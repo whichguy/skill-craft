@@ -563,6 +563,20 @@ class Overshoot(unittest.TestCase):
         self.assertEqual(live.overshoot(state, "step-plan", "A"), ["test-spec", "implement"])
         self.assertEqual(live.overshoot(None, "step-plan", "A"), [])
 
+    def test_rows_the_seed_recorded_are_never_overshoot(self):
+        # A seed_route scenario (the step-boundary replay) records later stages, a done step and a send-back, before the run
+        # returns to the seeded step-plan, whose amendment parks at its review. Those rows are the seed's; only rows after
+        # its history_length count (all 8 pilot samples were graded overshoot by the earlier rule).
+        seed = (("p1", "step-plan", "done"), ("t1", "test-spec", "done"), ("i1", "implement", "done"),
+                ("e1", "test", "done"), ("d1", "document", "done"), ("i2", "implement", "send-back"))
+        state = self.history(*seed)
+        self.assertEqual(live.overshoot(state, "step-plan", "A"), ["test-spec", "implement", "test", "document"],
+                         "without the seed's length its own rows look like overshoot")
+        self.assertEqual(live.overshoot(state, "step-plan", "A", after=len(seed)), [])
+        later = self.history(*seed, ("t2", "test-spec", "done"))
+        self.assertEqual(live.overshoot(later, "step-plan", "A", after=len(seed)), ["test-spec"],
+                         "a row after the seed still counts")
+
     def test_a_seeded_complete_trace_proves_its_contiguous_script_co_settlement(self):
         state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"))
         trace = self.trace_dir(self.complete_trace("A", [self.accepted_row("A", "test-spec"),

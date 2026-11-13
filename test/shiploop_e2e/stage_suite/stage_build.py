@@ -696,7 +696,8 @@ if not laid:
     lay()
 bases = [ident for ident in sorted(state.get("inner_loops") or {}) if lint.read_base(run_dir, ident) is not None]
 print(json.dumps({"skipped": skipped, "stage": nav.current_stage(state), "action": str(nav.current_action(state)["id"]),
-                  "delegation": state.get("delegation"), "item_bases": bases, "settled": settled}))
+                  "delegation": state.get("delegation"), "item_bases": bases, "settled": settled,
+                  "history_length": len(state["history"])}))
 """
 
 

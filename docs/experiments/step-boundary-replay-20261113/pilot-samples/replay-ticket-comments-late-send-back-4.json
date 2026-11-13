@@ -1,0 +1,271 @@
+{
+ "sample": "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4",
+ "verdict": {
+  "outcome": "done",
+  "result_source": "parked",
+  "run_status": "active",
+  "stage_at_stop": "step-plan",
+  "verdicts": {
+   "process": true,
+   "accepted": true,
+   "no_overshoot": false,
+   "oracle": true
+  },
+  "caught": {
+   "P1": true,
+   "P2": true
+  },
+  "value": 1.0,
+  "checks": [
+   {
+    "proves": "P1",
+    "kind": "outcome",
+    "pass": true,
+    "detail": "outcome done"
+   },
+   {
+    "proves": "P1",
+    "kind": "command",
+    "pass": true,
+    "detail": "exit 0"
+   },
+   {
+    "proves": "P2",
+    "kind": "command",
+    "pass": true,
+    "detail": "exit 0"
+   }
+  ],
+  "overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "ref": "d778b50a",
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh"
+ },
+ "sessions": [
+  {
+   "status": "stage-complete",
+   "seconds": 61.2
+  }
+ ],
+ "amendment": {
+  "concerns": [
+   {
+    "id": "api",
+    "steps": [
+     "S2"
+    ]
+   },
+   {
+    "id": "messaging",
+    "steps": [
+     "S1",
+     "S3"
+    ]
+   },
+   {
+    "id": "state",
+    "steps": [
+     "S1"
+    ]
+   },
+   {
+    "id": "concurrency",
+    "steps": [
+     "S1"
+    ]
+   },
+   {
+    "id": "security",
+    "steps": [
+     "S2"
+    ]
+   },
+   {
+    "id": "observability",
+    "steps": [
+     "S1"
+    ]
+   }
+  ],
+  "criteria": [
+   {
+    "confirm": "executed",
+    "id": "C1",
+    "text": "R-8 comments preserve order and state, reject closed tickets, audit and enqueue distinct notifications. Confirm by: TC_Comments_Store and TC_Comments_Persist; pass when all assertions and restart/legacy checks succeed."
+   },
+   {
+    "confirm": "executed",
+    "id": "C2",
+    "text": "R-8 POST and GET expose comments and validate inputs. Confirm by: TC_Comments_API; pass when valid and invalid boundaries and status cases succeed."
+   },
+   {
+    "confirm": "executed",
+    "id": "C3",
+    "text": "R-8 notification delivers comment content. Confirm by: TC_Comments_Notify; pass when assigned recipient receives authored text and self/unassigned cases do not enqueue."
+   },
+   {
+    "confirm": "searched",
+    "id": "C4",
+    "text": "R-8 comment validator documents its input contract. Confirm by: search its docstring; pass when the public comment validator describes author and body."
+   }
+  ],
+  "evidence_refs": [
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4/.shiploop-runs/seed/run/loops/nav-6831d11429a341b8bdb0fcf23d8985a4-terminal.json",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4/.shiploop-runs/seed/run/results/nav-90a9b12e58f34a8198452e50a497cabc.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4/.shiploop-runs/seed/run/results/nav-2bd8877bc7f441a08ce96052948532d7.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-ticket-comments-late-send-back/4/.shiploop-runs/seed/worktree/test/helpers.js"
+  ],
+  "expectations": [
+   {
+    "check": "node --test test/store.test.js test/persistence.test.js",
+    "id": "E1",
+    "paths": [
+     "src/store.js",
+     "src/persistence.js"
+    ],
+    "state": "works",
+    "statement": "Existing store and persistence modules load and baseline tests pass",
+    "steps": [
+     "S1"
+    ]
+   },
+   {
+    "check": "node --test test/api.test.js test/validate.test.js",
+    "id": "E2",
+    "paths": [
+     "src/app.js",
+     "src/tickets/validate.js"
+    ],
+    "state": "works",
+    "statement": "Existing HTTP routes and validation load",
+    "steps": [
+     "S2"
+    ]
+   },
+   {
+    "check": "node --test test/notifier.test.js",
+    "id": "E3",
+    "paths": [
+     "src/templates.js"
+    ],
+    "state": "works",
+    "statement": "Existing template renders",
+    "steps": [
+     "S3"
+    ]
+   }
+  ],
+  "follows": [
+   "R-8",
+   "AD-4"
+  ],
+  "headline": "Plan stored comments, HTTP validation and notifications with focused and regression checks",
+  "outcome": "done",
+  "paths": [
+   "src/store.js",
+   "src/persistence.js",
+   "src/app.js",
+   "src/tickets/validate.js",
+   "src/templates.js",
+   "test/comments.test.js",
+   "docs/api.md",
+   "docs/decisions/0011-ticket-comments.md",
+   "docs/decisions/README.md",
+   "CHANGELOG.md",
+   "package.json"
+  ],
+  "steps": [
+   {
+    "criteria": [
+     "C1"
+    ],
+    "deps": [],
+    "done": true,
+    "id": "S1",
+    "paths": [
+     "src/store.js",
+     "src/persistence.js"
+    ],
+    "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{TicketStore}=require('\"'\"'./src/store'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"'),{toDocument,fromDocument}=require('\"'\"'./src/persistence'\"'\"');const s=new TicketStore({clock:manualClock()}),t=s.create({title:'\"'\"'x'\"'\"',priority:'\"'\"'normal'\"'\"',requester:'\"'\"'r'\"'\"'},'\"'\"'r'\"'\"');s.assign(t.id,'\"'\"'agent'\"'\"','\"'\"'actor'\"'\"');let before=s.outboxReport().pending.length;const c=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'hello'\"'\"'},'\"'\"'guest'\"'\"'),d=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'second'\"'\"'},'\"'\"'guest'\"'\"');a.deepEqual(s.get(t.id).comments,[c,d]);a.equal(s.outboxReport().pending.length,before+2);a.equal(s.history(t.id).at(-1).action,'\"'\"'ticket.commented'\"'\"');let file=toDocument(s.snapshot(),new Date()),saved=fromDocument(file,Error);a.deepEqual(saved.tickets[0].comments,[c,d]);delete file.tickets[0].comments;a.deepEqual(fromDocument(file,Error).tickets[0].comments,[]);s.transition(t.id,'\"'\"'in_progress'\"'\"','\"'\"'actor'\"'\"');s.transition(t.id,'\"'\"'resolved'\"'\"','\"'\"'actor'\"'\"');s.comment(t.id,{author:'\"'\"'agent'\"'\"',body:'\"'\"'ok'\"'\"'},'\"'\"'agent'\"'\"');s.transition(t.id,'\"'\"'closed'\"'\"','\"'\"'actor'\"'\"');a.throws(()=>s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'no'\"'\"'},'\"'\"'guest'\"'\"'),{status:409});'",
+    "skills": [],
+    "task": "Implement stored comments and persistence for C1, including audit and outbox event."
+   },
+   {
+    "criteria": [
+     "C2",
+     "C4"
+    ],
+    "deps": [
+     "S1"
+    ],
+    "id": "S2",
+    "paths": [
+     "src/app.js",
+     "src/tickets/validate.js"
+    ],
+    "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),v=require('\"'\"'./src/tickets/validate'\"'\"'),{withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"');for(const b of [{author:'\"'\"''\"'\"',body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"''\"'\"'},{author:'\"'\"'a'\"'\"'.repeat(65),body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'.repeat(2001)},{author:3,body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"',extra:1}])a.throws(()=>v.comment(b));a.equal(v.comment({author:'\"'\"'a'\"'\"'.repeat(64),body:'\"'\"'x'\"'\"'.repeat(2000)}).body.length,2000);withService({},async api=>{const t=await api.post('\"'\"'/tickets'\"'\"',ticketBody());a.deepEqual((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments,[]);const c=await api.post('\"'\"'/tickets/'\"'\"'+t.body.id+'\"'\"'/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'hello'\"'\"'});a.equal(c.status,201);a.ok(c.body.id);a.equal(c.body.author,'\"'\"'a'\"'\"');a.equal(c.body.body,'\"'\"'hello'\"'\"');a.ok(!Number.isNaN(Date.parse(c.body.created)));a.equal((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments[0].body,'\"'\"'hello'\"'\"');a.equal((await api.post('\"'\"'/tickets/missing/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'})).status,404)}).catch(e=>{console.error(e);process.exitCode=1});' && rg 'POST /tickets/:id/comments' src/tickets/validate.js",
+    "skills": [],
+    "task": "Implement HTTP endpoint and validation for C2."
+   },
+   {
+    "criteria": [
+     "C3"
+    ],
+    "deps": [
+     "S1"
+    ],
+    "id": "S3",
+    "paths": [
+     "src/templates.js"
+    ],
+    "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{createNotifier}=require('\"'\"'./src/notifier'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"');const n=createNotifier({clock:manualClock()}),m=n.deliver({id:1,key:'\"'\"'c:1'\"'\"',type:'\"'\"'ticket.commented'\"'\"',to:'\"'\"'agent'\"'\"',ticket:'\"'\"'T-0001'\"'\"',data:{title:'\"'\"'x'\"'\"',author:'\"'\"'a'\"'\"',body:'\"'\"'hello'\"'\"'}});a.equal(m.to,'\"'\"'agent'\"'\"');a.match(m.body,/hello/);a.match(m.body,/a/);'",
+    "skills": [],
+    "task": "Implement notification rendering for C3."
+   }
+  ],
+  "summary": "S1 owns state, concurrency and audit; S2 owns API and input safety; S3 owns notification rendering. Tests use existing CommonJS helpers and local isolated files. Proof commands run without unwritten tests, while planned node:test cases exercise boundary and regression behavior. No external services or new dependencies. Review strengthened proof commands to exercise statuses, persistence, notification multiplicity, input boundaries and rendered delivery. Send-back amendment: S2 proof quotes the expected author and body strings correctly; S1 is done, with E1 retaining its works state on the new base. All other rows carry over unchanged. Retain node:test isolated service and file fixtures; S1 focused and regression checks passed as recorded in environment. Existing body-size limit and strict validation protect the HTTP boundary. Actors are API callers and assigned agents; store owns state, audit and outbox, worker delivers notifications. Recovery is checked by restart and legacy fixtures. CommonJS Node >=22 follows existing store, router, validator and template patterns; failures use existing error envelope, 404 for missing tickets, 409 for closed and 400 for invalid input. No remote or UI boundary.",
+  "test_commands": [
+   {
+    "command": "node --test test/comments.test.js",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "ids": [
+     "TC_Comments_Store",
+     "TC_Comments_Persist",
+     "TC_Comments_API",
+     "TC_Comments_Notify"
+    ],
+    "min_tests": 4,
+    "suite": "focused"
+   },
+   {
+    "command": "npm test",
+    "minimum": true,
+    "suite": "regression"
+   },
+   {
+    "command": "node --check src/store.js",
+    "suite": "check"
+   },
+   {
+    "command": "rg 'POST /tickets/:id/comments' src/tickets/validate.js",
+    "criteria": [
+     "C4"
+    ],
+    "suite": "check"
+   }
+  ]
+ }
+}

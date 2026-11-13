@@ -114,3 +114,49 @@ Continuation (Astra): after the pilot, one accepted amendment per case is contin
 synthetic later results: test-spec, implement, test, document and commit. The continuation asserts that the done
 commit is kept, the cursor names S2, the frozen cases hold, the floors carry and the last step runs the full
 regression. Its claim is limited to the route, not a model's continuation.
+
+## Results, Q1 pilot (2026-11-13; firm for these two cases)
+
+Ran `stages.py live` with Codex gpt-6.1-terra at xhigh, `--ref d778b50a` (fix forward plus the classifier fix 67f0a329),
+4 samples per case, 2 at once (`~/e2e-runs-sp/20261113/replay-q1-pilot`). Scored by `score_q1.py`
+(`q1-pilot-scores.json`); each sample's amendment and verdict are exported in `pilot-samples/`.
+
+| Measure | Prediction | p0 | ticket-comments | Pooled |
+| --- | --- | --- | --- | --- |
+| M1, accepted done (stage-complete) | at least 7 of 8 | 4 of 4 | 4 of 4 | 8 of 8 |
+| M2, no fix-forward refusal before acceptance | at least 6 of 8 | 4 of 4 | 4 of 4 | 8 of 8 |
+| M3, fidelity (oracle) | equals M1 | 4 of 4 | 4 of 4 | 8 of 8 |
+| M4, correction (oracle) | at least 6 of 8 | 4 of 4 | 4 of 4 | 8 of 8 |
+
+Each sample took 0.9 to 1.3 minutes. Every prediction held. The decision rule keeps the shipped packet and route: no
+prefilled-prefix arm is needed.
+
+What the models did:
+- All 8 copied the done S1 row exactly, marked done, on the first submission.
+- p0: all 4 moved the rg docstring search to suite `check`. Three of them first kept the plan's `check_na`, met one
+  refusal ("test_commands has a check row, so drop check_na"), and fixed it. That refusal is unrelated to fix forward.
+  It also served as M2's positive control: a check refusal reaches the logs by the same channel a fix-forward refusal
+  would.
+- ticket-comments: all 4 rewrote S2's Proof. Each new Proof exits 0 against S2's draft in the sample's tree, and none
+  added a step.
+
+Continuation (`continuation.py`, `q1-pilot-continuation.txt`): each sample's own amendment was carried through the
+route with no model. That covers the review import (`finish_improve` rechecks fix forward), test-spec with the
+accepted cases, and validate-existing. All 8 passed every assert:
+- the frozen cases were accepted;
+- the cursor names S2, with done and built both 1;
+- S1's commit is still HEAD;
+- S2's draft is still uncommitted;
+- where S2 is the last step (p0, 4 of 4), the full regression is due there.
+
+Apparatus finding: the runner graded all 8 samples "overshoot". That was a false positive from `seed_route`:
+`stage_live.overshoot` counted the later-stage rows the seed itself recorded. Each sample's history ends with the
+seeded send-back, and the amendment parked at its review (checked per sample). Fixed after the pilot: the seed reports
+`history_length`, and overshoot ignores rows up to it (shiploop-e2e-stage-live, a new test). The pilot's own records
+predate that fix and keep their overshoot verdict; the registered measures do not use it.
+
+Limits:
+- Two cases, both with one done step and both local. The longer-prefix and Salesforce cases are not run.
+- 8 of 8 is a development screen: the one-sided 95% lower bound is about 69%.
+- The continuation is the route's, not a model continuing the item.
+- Q2 stays deferred.
