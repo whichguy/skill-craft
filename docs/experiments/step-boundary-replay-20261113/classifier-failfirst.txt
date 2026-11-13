@@ -1,0 +1,6 @@
+FAIL: test_an_executed_criterion_needs_a_command_that_runs_more_than_a_text_search (__main__.TestLayerGateTests.test_an_executed_criterion_needs_a_command_that_runs_more_than_a_text_search) (command="rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js && rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js")
+AssertionError: False != True
+FAIL: test_an_executed_criterion_needs_a_command_that_runs_more_than_a_text_search (__main__.TestLayerGateTests.test_an_executed_criterion_needs_a_command_that_runs_more_than_a_text_search) (command='grep -q "unclosed f')
+AssertionError: True != False
+FAIL: test_the_historical_p0_search_recorded_as_focused_is_refused (__main__.TestLayerGateTests.test_the_historical_p0_search_recorded_as_focused_is_refused)
+AssertionError: NavigatorError not raised

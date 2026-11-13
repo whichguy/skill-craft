@@ -1355,9 +1355,21 @@ class TestLayerGateTests(RepoCase):
         navigator._check_submitted_layers(state, "step-plan", dict(
             plan, criteria=[{"id": "C1", "text": "x", "confirm": "searched"}]))
         for command, only in (("grep -q x a.js", True), ("cd src && rg -q x", True), ("! grep -q TypeError log", True),
-                              ("node cli.js | grep -q ok", False), ("FOO=1 npm test", False), ("true", False)):
+                              ("node cli.js | grep -q ok", False), ("FOO=1 npm test", False), ("true", False),
+                              # quoted text is one word (the step-boundary replay, Astra's finding on p0's search)
+                              (P0_SEARCH, True), ("grep -q 'a|b' f && node t.js", False),
+                              ("rg -q x\nrg -q y", True), ('grep -q "unclosed f', False)):
             with self.subTest(command=command):
                 self.assertEqual(layers.search_only(command), only)
+
+    def test_the_historical_p0_search_recorded_as_focused_is_refused(self) -> None:
+        # The exact command whose late send-back motivated the refusal (2026-10-30 run, step plan
+        # nav-49a22f541c1b4ca4af8b7e062965166d): its quoted docstrings hold semicolons, which the first classifier split as
+        # commands, so 1.34.0 let it through (Astra's review of the step-boundary replay, 2026-11-13).
+        state = self.strategy_state([self.UNIT])
+        plan = {"outcome": "done", "summary": "s", "criteria": [{"id": "C3", "text": "x", "confirm": "searched"}],
+                "test_commands": [{"command": P0_SEARCH, "suite": "focused", "criteria": ["C3"]}]}
+        self.assertIn("is recorded suite focused but only searches text", self.refused(state, "step-plan", plan))
 
     def test_a_search_recorded_as_a_focused_command_is_refused_and_a_check_passes(self) -> None:
         # A focused command prints test IDs and counts for the test stage; a search prints neither, so it can only fail
@@ -3656,6 +3668,11 @@ class StepAggregateTests(RepoCase):
                                    row("im3", "implement", "W1", {}), row("te3", "test", "W1", {}))
         self.assertEqual(planning_revision.step_actions(state, "W1", "test"), ["te3"])
         self.assertEqual(planning_revision.step_actions(state, "W2", "test"), [])
+
+
+# The focused command of the 2026-10-30 run's first step plan, as recorded (its late send-back cost 16 minutes of replay).
+P0_SEARCH = ("rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js "
+             "&& rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js")
 
 
 def stage_spec_duty(stage: str) -> str:
