@@ -106,6 +106,7 @@ __all__ = [
     "ReviewRefused",
     "WorkspaceError",
     "assert_binding",
+    "binding_snapshot",
     "completed_receipt",
     "returned_before",
     "return_kind",
@@ -825,7 +826,8 @@ def _workspace_snapshot_lock(root: Path):
         yield False
         return
     try:
-        descriptor = os.open(lock, os.O_RDONLY | os.O_NOFOLLOW)
+        # A FIFO must not block open before descriptor type validation can reject it.
+        descriptor = os.open(lock, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     except OSError:
         yield False
         return
@@ -958,6 +960,40 @@ def _assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
 def assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
     """Read-only check that an execution worktree came from this root."""
     return _assert_binding(root, repo)
+
+
+def binding_snapshot(workspace_root: Path, repo: Path) -> Optional[Dict[str, Any]]:
+    """Inspect an exact execution binding without creating locks or recovering state.
+
+    Dirty builder content is allowed. None means unresolved, including a missing
+    lock, pending transaction, removed worktree or unsafe Git metadata. This is
+    an ownership observation, not a completed-return or quality certificate.
+    """
+    try:
+        root = _resolved_directory(Path(workspace_root), label="workspace root")
+        with _workspace_snapshot_lock(root) as locked:
+            if not locked:
+                return None
+            manifest = _assert_binding(root, repo)
+            for key in ("source_repo", "worktree"):
+                checkout = Path(manifest[key])
+                if checkout.resolve() != checkout or _repo_root(checkout) != checkout:
+                    return None
+                _no_symlink_components(checkout / ".git", label="Git metadata")
+                git_dir = Path(_git_text(checkout, "rev-parse", "--absolute-git-dir"))
+                if git_dir.resolve() != git_dir:
+                    return None
+                _resolved_directory(git_dir, label="Git directory")
+                for name in ("commondir", "gitdir"):
+                    _no_symlink_components(git_dir / name, label="Git metadata pointer")
+                common = _common_dir(checkout)
+                if Path(_git_text(checkout, "rev-parse", "--path-format=absolute", "--git-common-dir")) != common:
+                    return None
+            return {"manifest": manifest, "common_dir": str(common),
+                    "execution_head": _head(Path(manifest["worktree"])),
+                    "source_head": _head(Path(manifest["source_repo"]))}
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError, WorkspaceError):
+        return None
 
 
 _WORKSPACE_IDENTITY = shiploop_git.WORKSPACE_IDENTITY

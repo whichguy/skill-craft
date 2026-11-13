@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-11-12
+
+### skill-craft 2.36.5
+
+- Skills: shiploop 1.33.9
+
+### shiploop 1.33.9
+
+- Add a nonmutating workspace binding snapshot for recovery inspection. It uses only an existing shared lock, refuses pending transactions and unsafe Git metadata, and permits dirty active builder worktrees without recovering state or writing Git objects.
+
 ## 2026-11-11
 
 ### skill-craft 2.36.4
