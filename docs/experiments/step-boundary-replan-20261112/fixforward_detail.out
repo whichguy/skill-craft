@@ -1,0 +1,8 @@
+{"run": "battleship-run", "item": "W1", "done": 1, "owned_by_done": ["C1"], "criteria_changed": [], "changed_owned": [], "cmds_removed": [], "cmds_added": []}
+{"run": "mp-codex-ticket-comments", "item": "W1", "done": 1, "owned_by_done": ["C1"], "criteria_changed": [], "changed_owned": [], "cmds_removed": [], "cmds_added": []}
+{"run": "ui-live-3", "item": "W1", "done": 2, "owned_by_done": ["C1", "C2"], "criteria_changed": [], "changed_owned": [], "cmds_removed": [["focused", []]], "cmds_added": [["focused", []]]}
+{"run": "gym-published-baseline-01", "item": "W1", "done": 1, "owned_by_done": ["C1", "C3"], "criteria_changed": ["C1", "C2", "C3"], "changed_owned": ["C1", "C3"], "cmds_removed": [["focused", []], ["check", ["C3"]], ["focused", ["C1"]]], "cmds_added": [["focused", ["C1"]]]}
+{"run": "run", "item": "W1", "done": 2, "owned_by_done": ["C1", "C2", "C3"], "criteria_changed": ["C4"], "changed_owned": [], "cmds_removed": [["check", []]], "cmds_added": [["check", []]]}
+{"run": "p0-terra-ask-agent-55bfcd", "item": "W1", "done": 1, "owned_by_done": ["C1", "C2", "C3"], "criteria_changed": [], "changed_owned": [], "cmds_removed": [["focused", ["C3"]]], "cmds_added": [["check", ["C3"]]]}
+{"run": "rerun-02", "item": "W2", "done": 3, "owned_by_done": ["C1", "C2", "C3", "C6", "C7"], "criteria_changed": ["C5"], "changed_owned": [], "cmds_removed": [["focused", []]], "cmds_added": [["focused", []]]}
+{"run": "baseline-01", "item": "W1", "done": 3, "owned_by_done": ["C1", "C2", "C3", "C4", "C5", "C6"], "criteria_changed": [], "changed_owned": [], "cmds_removed": [["focused", []]], "cmds_added": [["focused", []]]}

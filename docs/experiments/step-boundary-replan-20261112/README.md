@@ -113,7 +113,66 @@ My verification of Astra's factual claims: A2a and the round 2 branch are not on
 replacements each map W1 to [W2] (rescan); `_commit_stage` requires an accepted document done; `_document_entry`
 records N/A for non-behavioural diffs. Not verified by me: the 129-boundary replay and the trace-event minutes.
 
+## Owner answers (2026-11-12)
+
+- Re-plan: "Replay first (Recommended)". Round 2: "Rebase and ship (Recommended)". It was done as a merge, which keeps
+  the branch's cited hashes; see the merge commit message.
+- Later the same day: "I want to avoid send back about redoing steps, I feel like this might be an excessive scenario,
+  check on this. My idea is that at the end of an inner loop, even if there are things to change, we should add or
+  augment existing or new steps in the step-plan not revisit old steps. This is a fix forward motion."
+
+## E5 — do send-backs change done steps? (firm, with Astra's qualifications)
+
+`fixforward.py` → `fixforward.out`, `fixforward_detail.py` → `fixforward_detail.out`, ordered by state history.
+
+- 81 inner send-backs were followed by an accepted step plan (82 inner send-backs had a preceding plan; one was never
+  replanned). Within the plan in force, 73 came before any documented step and 8 after. Across the item's full history
+  the split is 72 and 9 (Astra: p0-terra's second amendment strengthened an already-documented S1's C2 and Proof, which
+  my per-plan counter missed).
+- The redone plan changed a done step's row (task, criteria, proof, paths) once. In 48 only the failing or a later
+  step's row changed. In 32 no step row changed: 30 changed item-wide fields, and 2 changed only summary and evidence.
+- Of the 8 late cases, 6 left everything a done step owns unchanged. p0-terra relabelled a shared command (C3 and C6,
+  still awaiting S2) from focused to check. gym replaced the plan with UI diagnosis and later blocked. Astra also found
+  no completed test-spec case changed in 7 of the 8.
+- Limits: `row()` compares four fields by position (Astra checked id, deps and skills by hand for the 8). The detail
+  script does not map test IDs through test-spec cases (Astra mapped them independently; the 6-of-8 finding holds).
+
+Learning: replaying done steps after a send-back bought nothing at the step level in 7 of 8 cases. This supports
+fixing forward. It measures no quality gain and no time saving.
+
+## E6 — Astra max review of fix-forward (interim; `fix-forward-brief.md` → `astra-fix-forward.md`)
+
+Verdict: fix-forward is sound. Build a guarded pilot. "Completed executions stay fixed; unresolved obligations and
+verification continue moving forward." It corrects the draft rules:
+
+1. Freeze completed records (a step is done at its accepted document, after review and commit) and copy their rows
+   mechanically, never re-typed by the planner. A later finding can challenge their evidence and add a corrective
+   obligation without erasing it.
+2. Freeze case ownership too. Today `case_step` gives a criterion to the last step listing it, so a new step that
+   re-lists C1 moves TC-1 (Astra reproduced this). Corrective work gets new criterion IDs as well as new case IDs.
+3. Only unfinished work re-enters implementation. Every later step still runs the earlier cases and the minimum
+   regression, and the last step runs the full regression (b385df5d7005de79e2522de308b3feb57b397716,
+   b55909179b89bfc63bba67d4cdbb833c700df147 stay). Receipts of the unfinished step are invalidated when its contract
+   changes.
+4. Protect shared commands: a mixed command cannot drop a done step's case. An invalid old command is superseded by an
+   appended correction, never rewritten.
+5. Make the amendment base explicit (the last done commit), and check every expectation whose applicability changed.
+   Dirty edits keep an owner, so a corrective step inserted earlier cannot absorb them.
+6. IDs are never reused. Execution order follows deps, so [S1 done, S3 correction, S2 pending] is valid. Removing a
+   step cannot discharge its obligations.
+7. Closure is its own script transition when no step is pending (no simulated document). A successful document may
+   carry an amendment request: review and commit first, then amend. Automatic N/A documents stay as they are.
+
+Also: carry-forward's incompatible findings include a changed completed-work assumption, and the document prompt still
+sends a changed requirement intent to send-back; align them. Implementation: one authoritative item-execution
+projection, with adapters for current_actions/step_actions, implement_progress, test_loop.step_number,
+loops.current_step, step_view, _previous_step_results, open_items and the count readers. Ten negative controls are listed
+in astra-fix-forward.md. The cheapest live check is one local two-step item whose S2 has a wrong Proof and dirty edits.
+Build order 1-7 is in the review.
+
+Effect on the replay decision: fix-forward changes what a boundary finding costs. The frozen-boundary replay still tests
+whether a forward-impact question catches anything; it is not started.
+
 ## Open (owner)
 
-1. The unmerged round 2 branch (`stepplan2-cf7d87`), which another session built: merge, rebase or drop.
-2. Which candidates to pursue, and whether to run the frozen-boundary replay first.
+1. Whether to build the fix-forward pilot (a ShipLoop behaviour change), and whether the replay waits for it.
