@@ -1,0 +1,27 @@
+{
+ "action": "nav-612cf7967602469b9b72fb43d7eca645",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Add GET /users/summary\\\" and \\\"Use the same `name` and `team` filters GET /users applies\\\"; the row only decides how the requested endpoint and its shared filtering will work.\"}, {\"n\": 2, \"label\": \"implied\", \"why\": \"Counting \\\"each matching user's stored team name\\\" requires reading the existing user records, and only reading them without mutation keeps \\\"Everything the project already does keeps working\\\".\"}]}",
+   "input_tokens": 4356,
+   "output_tokens": 164,
+   "seconds": 7.2,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Add GET /users/summary\" and \"Use the same `name` and `team` filters GET /users applies\"; the row only decides how the requested endpoint and its shared filtering will work."
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "Counting \"each matching user's stored team name\" requires reading the existing user records, and only reading them without mutation keeps \"Everything the project already does keeps working\"."
+  }
+ ]
+}

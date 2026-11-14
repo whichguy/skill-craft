@@ -1,0 +1,37 @@
+{
+ "action": "nav-3c14ce84a2ab4ab18d2d60a68549ac5c",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"The page shows shots, hits and accuracy (hits divided by shots, as a percentage) and names each ship as it sinks\\\"; resetting on New game keeps \\\"Everything the game already does keeps working\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"the POST /api/fire response also includes \\\"ship\\\" with the name of the ship that sank. Every /api/fire response includes \\\"shots\\\" ... and \\\"hits\\\"\\\" and \\\"Everything the game already does keeps working\\\".\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"The per-game counters decide how \\\"shots (shots fired so far in this game)\\\" and \\\"hits (shots that hit, including sinking shots)\\\" are tracked, so rejected shots are not counted.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Making the requested scoreboard and sunk-ship naming readable as real text and announced to screen readers through the existing status line is accessibility rigour on the requested page, not a new capability.\"}]}",
+   "input_tokens": 4542,
+   "output_tokens": 574,
+   "seconds": 10.5,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"The page shows shots, hits and accuracy (hits divided by shots, as a percentage) and names each ship as it sinks\"; resetting on New game keeps \"Everything the game already does keeps working\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"the POST /api/fire response also includes \"ship\" with the name of the ship that sank. Every /api/fire response includes \"shots\" ... and \"hits\"\" and \"Everything the game already does keeps working\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "The per-game counters decide how \"shots (shots fired so far in this game)\" and \"hits (shots that hit, including sinking shots)\" are tracked, so rejected shots are not counted."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Making the requested scoreboard and sunk-ship naming readable as real text and announced to screen readers through the existing status line is accessibility rigour on the requested page, not a new capability."
+  }
+ ]
+}

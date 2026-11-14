@@ -1,0 +1,52 @@
+{
+ "action": "nav-ac42ca2a8d4541b79ab4b27f6ba651da",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"GET / serves a playable HTML page titled \\\"Checkers\\\" with an 8x8 board where two players take turns on the same page\\\"; a responsive layout, status display and keyboard-usable buttons decide how that requested page works.\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"returns JSON with \\\"ok\\\" true or false, \\\"turn\\\" set to \\\"red\\\" or \\\"black\\\", and \\\"winner\\\" null or the winning colour. An illegal move returns \\\"ok\\\": false and leaves the turn unchanged\\\"\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"GET /api/new starts a game and returns JSON with a game id\\\"; keeping each game's state in memory decides how those requested games are held.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Two players posting moves to the same game could interleave, so the requested turn order and legal-move checks need moves applied one at a time.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"POST /api/move parses a client JSON body, so it must be validated and size-limited to reject malformed moves safely and keep the server running.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"server.js starts the server on the port in the PORT environment variable (default 3000)\\\"\"},\n{\"n\": 7, \"label\": \"implied\", \"why\": \"Visible focus and labelled squares are accessibility rigour on the requested playable board page, not extra capability.\"}\n]}\n```",
+   "input_tokens": 4764,
+   "output_tokens": 836,
+   "seconds": 15.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"GET / serves a playable HTML page titled \"Checkers\" with an 8x8 board where two players take turns on the same page\"; a responsive layout, status display and keyboard-usable buttons decide how that requested page works."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"returns JSON with \"ok\" true or false, \"turn\" set to \"red\" or \"black\", and \"winner\" null or the winning colour. An illegal move returns \"ok\": false and leaves the turn unchanged\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"GET /api/new starts a game and returns JSON with a game id\"; keeping each game's state in memory decides how those requested games are held."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Two players posting moves to the same game could interleave, so the requested turn order and legal-move checks need moves applied one at a time."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "POST /api/move parses a client JSON body, so it must be validated and size-limited to reject malformed moves safely and keep the server running."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"server.js starts the server on the port in the PORT environment variable (default 3000)\""
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "Visible focus and labelled squares are accessibility rigour on the requested playable board page, not extra capability."
+  }
+ ]
+}

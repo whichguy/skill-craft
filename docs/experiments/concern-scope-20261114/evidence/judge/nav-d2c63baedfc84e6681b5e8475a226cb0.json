@@ -1,0 +1,132 @@
+{
+ "action": "nav-d2c63baedfc84e6681b5e8475a226cb0",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`SLChessEngine` is a public class with static methods only; a position is a FEN string\\\" and \\\"throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`)\\\".\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"a position is a FEN string\\\" and \\\"Create no other metadata (no custom objects, fields...)\\\"; the row only decides that the FEN argument carries all state.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"deploy and test it in the Salesforce Developer Edition org with alias `de`\\\" and \\\"Deploy with `sf project deploy start --target-org de` and run the tests in the org\\\".\"},\n{\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"Build a chess rules engine in Apex\\\" with \\\"no custom objects, fields\\\"; the row only decides that the pure Apex engine uses no queries or DML.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction\\\".\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"never ask for, print or store credentials, and never run `sf org display`\\\".\"},\n{\"n\": 7, \"label\": \"implied\", \"why\": \"The requested CPU-budget outcomes (\\\"finishes well inside the synchronous Apex CPU limit\\\") cannot be confirmed in the org unless tests record CPU time and resource use, so these are test rigour on requested work.\"},\n{\"n\": 8, \"label\": \"implied\", \"why\": \"The requested Salesforce DX project (\\\"`sfdx-project.json` and `force-app/`\\\") needs a sourceApiVersion to deploy.\"},\n{\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit\\\"; the row decides how this will be met and measured.\"},\n{\"n\": 10, \"label\": \"requested\", \"why\": \"\\\"`SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`... `applyMove(String fen, String move)`... and `status(String fen)`\\\".\"},\n{\"n\": 11, \"label\": \"requested\", \"why\": \"The method signatures \\\"legalMoves(String fen)\\\", \\\"applyMove(String fen, String move)\\\" and \\\"status(String fen)\\\" take the position as a FEN, and the request says to create \\\"no custom objects\\\".\"},\n{\"n\": 12, \"label\": \"requested\", \"why\": \"\\\"Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time\\\".\"},\n{\"n\": 13, \"label\": \"requested\", \"why\": \"\\\"`@AuraEnabled public static` methods\\\"; choosing no wire cache only decides how those requested methods are called.\"},\n{\"n\": 14, \"label\": \"requested\", \"why\": \"\\\"a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too\\\".\"},\n{\"n\": 15, \"label\": \"requested\", \"why\": \"\\\"the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`)\\\".\"},\n{\"n\": 16, \"label\": \"implied\", \"why\": \"The requested 35-ply game must fit in one transaction, so the controller has to delegate to the engine and add no search of its own.\"},\n{\"n\": 17, \"label\": \"requested\", \"why\": \"\\\"renders a FEN as an 8x8 board... a person picks a piece and then a destination, the board shows whose turn it is and the game status... lets a pawn promote (queen is acceptable as the default) and has a New game button\\\".\"},\n{\"n\": 18, \"label\": \"requested\", \"why\": \"\\\"It calls `SLChessController` and renders what comes back.\\\"\"},\n{\"n\": 19, \"label\": \"implied\", \"why\": \"A \\\"game two people can play by turns on one screen\\\" fails unless the component keeps the current FEN between moves, and the request allows no stored records.\"},\n{\"n\": 20, \"label\": \"requested\", \"why\": \"\\\"so that the board opens in the org\\\" through \\\"a custom tab `tabs/SLChess_Board.tab-meta.xml`\\\", \\\"a Lightning app `applications/SLChess.app-meta.xml`\\\" and an optional flexipage, while \\\"do not change profiles or permission sets\\\".\"},\n{\"n\": 21, \"label\": \"requested\", \"why\": \"\\\"a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`...)\\\" and \\\"a Lightning app... (standard navigation, containing that tab)\\\".\"},\n{\"n\": 22, \"label\": \"requested\", \"why\": \"\\\"no... static resources\\\" and \\\"never ask for, print or store credentials\\\".\"},\n{\"n\": 23, \"label\": \"implied\", \"why\": \"The requested display of \\\"the game status (check, checkmate, stalemate)\\\" should be readable as text and not by color alone, which is accessibility rigour on a requested interface.\"}\n]}\n```",
+   "input_tokens": 7303,
+   "output_tokens": 2683,
+   "seconds": 27.8,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`SLChessEngine` is a public class with static methods only; a position is a FEN string\" and \"throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`)\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"a position is a FEN string\" and \"Create no other metadata (no custom objects, fields...)\"; the row only decides that the FEN argument carries all state."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"deploy and test it in the Salesforce Developer Edition org with alias `de`\" and \"Deploy with `sf project deploy start --target-org de` and run the tests in the org\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"Build a chess rules engine in Apex\" with \"no custom objects, fields\"; the row only decides that the pure Apex engine uses no queries or DML."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"never ask for, print or store credentials, and never run `sf org display`\"."
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "The requested CPU-budget outcomes (\"finishes well inside the synchronous Apex CPU limit\") cannot be confirmed in the org unless tests record CPU time and resource use, so these are test rigour on requested work."
+  },
+  {
+   "n": 8,
+   "label": "implied",
+   "why": "The requested Salesforce DX project (\"`sfdx-project.json` and `force-app/`\") needs a sourceApiVersion to deploy."
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit\"; the row decides how this will be met and measured."
+  },
+  {
+   "n": 10,
+   "label": "requested",
+   "why": "\"`SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`... `applyMove(String fen, String move)`... and `status(String fen)`\"."
+  },
+  {
+   "n": 11,
+   "label": "requested",
+   "why": "The method signatures \"legalMoves(String fen)\", \"applyMove(String fen, String move)\" and \"status(String fen)\" take the position as a FEN, and the request says to create \"no custom objects\"."
+  },
+  {
+   "n": 12,
+   "label": "requested",
+   "why": "\"Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time\"."
+  },
+  {
+   "n": 13,
+   "label": "requested",
+   "why": "\"`@AuraEnabled public static` methods\"; choosing no wire cache only decides how those requested methods are called."
+  },
+  {
+   "n": 14,
+   "label": "requested",
+   "why": "\"a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too\"."
+  },
+  {
+   "n": 15,
+   "label": "requested",
+   "why": "\"the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`)\"."
+  },
+  {
+   "n": 16,
+   "label": "implied",
+   "why": "The requested 35-ply game must fit in one transaction, so the controller has to delegate to the engine and add no search of its own."
+  },
+  {
+   "n": 17,
+   "label": "requested",
+   "why": "\"renders a FEN as an 8x8 board... a person picks a piece and then a destination, the board shows whose turn it is and the game status... lets a pawn promote (queen is acceptable as the default) and has a New game button\"."
+  },
+  {
+   "n": 18,
+   "label": "requested",
+   "why": "\"It calls `SLChessController` and renders what comes back.\""
+  },
+  {
+   "n": 19,
+   "label": "implied",
+   "why": "A \"game two people can play by turns on one screen\" fails unless the component keeps the current FEN between moves, and the request allows no stored records."
+  },
+  {
+   "n": 20,
+   "label": "requested",
+   "why": "\"so that the board opens in the org\" through \"a custom tab `tabs/SLChess_Board.tab-meta.xml`\", \"a Lightning app `applications/SLChess.app-meta.xml`\" and an optional flexipage, while \"do not change profiles or permission sets\"."
+  },
+  {
+   "n": 21,
+   "label": "requested",
+   "why": "\"a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`...)\" and \"a Lightning app... (standard navigation, containing that tab)\"."
+  },
+  {
+   "n": 22,
+   "label": "requested",
+   "why": "\"no... static resources\" and \"never ask for, print or store credentials\"."
+  },
+  {
+   "n": 23,
+   "label": "implied",
+   "why": "The requested display of \"the game status (check, checkmate, stalemate)\" should be readable as text and not by color alone, which is accessibility rigour on a requested interface."
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "action": "nav-70eab43838b04290a2c6e180fa5b0029",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The row only decides how the requested endpoint behaviour works: \\\"GET /users gains a `role` filter: `role=<role>` keeps only the users with that role\\\", \\\"in every user GET /users answers, whether as an array or in the items of a page\\\", and \\\"A `role` that is none of the three roles, an empty one included, answers HTTP 400\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"Reusing the existing user store to hold each user's role is how the request is met: \\\"Every user has a `role`, which is `admin`, `member` or `viewer`: Ada Lovelace is an admin, Grace Hopper a member and Alan Turing a viewer\\\".\"}]}",
+   "input_tokens": 4504,
+   "output_tokens": 247,
+   "seconds": 8.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The row only decides how the requested endpoint behaviour works: \"GET /users gains a `role` filter: `role=<role>` keeps only the users with that role\", \"in every user GET /users answers, whether as an array or in the items of a page\", and \"A `role` that is none of the three roles, an empty one included, answers HTTP 400\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "Reusing the existing user store to hold each user's role is how the request is met: \"Every user has a `role`, which is `admin`, `member` or `viewer`: Ada Lovelace is an admin, Grace Hopper a member and Alan Turing a viewer\"."
+  }
+ ]
+}

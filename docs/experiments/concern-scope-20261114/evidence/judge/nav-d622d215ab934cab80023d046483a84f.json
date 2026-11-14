@@ -1,0 +1,32 @@
+{
+ "action": "nav-d622d215ab934cab80023d046483a84f",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"implied\", \"why\": \"Summing totals across the given FILEs into one JSON object needs in-process accumulation, and the tool only reads its inputs, so this row adds no store.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"A row with ... a non-numeric or negative units or unit_price, is skipped\\\"; not using credentials or a network adds nothing.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1)\\\"\"}]}",
+   "input_tokens": 4574,
+   "output_tokens": 199,
+   "seconds": 17.2,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "implied",
+   "why": "Summing totals across the given FILEs into one JSON object needs in-process accumulation, and the tool only reads its inputs, so this row adds no store."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"A row with ... a non-numeric or negative units or unit_price, is skipped\"; not using credentials or a network adds nothing."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1)\""
+  }
+ ]
+}

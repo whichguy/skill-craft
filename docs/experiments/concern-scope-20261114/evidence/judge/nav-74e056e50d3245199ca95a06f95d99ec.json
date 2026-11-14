@@ -1,0 +1,47 @@
+{
+ "action": "nav-74e056e50d3245199ca95a06f95d99ec",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/:id/comments` with a JSON body `{\\\"author\\\": \\\"<name>\\\", \\\"body\\\": \\\"<text>\\\"}` ... answers 201\\\" and \\\"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\\\"\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment.\\\" The row only decides that delivery reuses the existing outbox and worker.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading.\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Comments posted at the same time must not overwrite each other, or the requested \\\"oldest first\\\" list would lose data or come out misordered; the row only reuses the existing synchronous store operations.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\\\" The row keeps the existing body-size limit and validation to enforce this.\"},\n{\"n\": 6, \"label\": \"beyond\", \"why\": \"The request never asks for comments to be audited, and no requested outcome needs audit entries for them; reusing the existing outbox report for notification failures would be implied, but adding audit records for comments is extra.\"}\n]}\n```",
+   "input_tokens": 5099,
+   "output_tokens": 966,
+   "seconds": 15.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/:id/comments` with a JSON body `{\"author\": \"<name>\", \"body\": \"<text>\"}` ... answers 201\" and \"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment.\" The row only decides that delivery reuses the existing outbox and worker."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading.\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Comments posted at the same time must not overwrite each other, or the requested \"oldest first\" list would lose data or come out misordered; the row only reuses the existing synchronous store operations."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\" The row keeps the existing body-size limit and validation to enforce this."
+  },
+  {
+   "n": 6,
+   "label": "beyond",
+   "why": "The request never asks for comments to be audited, and no requested outcome needs audit entries for them; reusing the existing outbox report for notification failures would be implied, but adding audit records for comments is extra."
+  }
+ ]
+}

@@ -1,0 +1,60 @@
+{
+ "requested_rows": 274,
+ "counts": {
+  "every fragment found": 267,
+  "a fragment not found": 7
+ },
+ "not_found": [
+  {
+   "action": "nav-474124c2eef5491ab980470f87ce0428",
+   "concern": "messaging",
+   "fragments": [
+    "each moved ticket's new agent is notified as for a single assignment"
+   ]
+  },
+  {
+   "action": "nav-71374c44aa3f47ae9cf68344fe35e6f5",
+   "concern": "messaging",
+   "fragments": [
+    "each moved ticket's new agent is notified as for a single assignment"
+   ]
+  },
+  {
+   "action": "nav-fe504441b35a48bf896f8747d87fcfa1",
+   "concern": "security",
+   "fragments": [
+    "specified tab/app/permission set only"
+   ]
+  },
+  {
+   "action": "nav-44f57505b40442b0940d7c209e79951d",
+   "concern": "state",
+   "fragments": [
+    "shots (shots fired so far in this game)",
+    "hits (shots that hit, including sinking shots)"
+   ]
+  },
+  {
+   "action": "nav-3c14ce84a2ab4ab18d2d60a68549ac5c",
+   "concern": "state",
+   "fragments": [
+    "shots (shots fired so far in this game)",
+    "hits (shots that hit, including sinking shots)"
+   ]
+  },
+  {
+   "action": "nav-efd6e9f954934a098c59908258e68fd9",
+   "concern": "api",
+   "fragments": [
+    "answers http 400 with a json object whose \\"
+   ]
+  },
+  {
+   "action": "nav-e719dcc8d0cd47338d89f40d00305266",
+   "concern": "platform-services",
+   "fragments": [
+    "a custom tab tabs/slchess_board.tab-meta.xml that is a lightning component tab, a lightning app applications/slchess.app-meta.xml (standard navigation, containing that tab) and, if you want one, a lightning app page"
+   ]
+  }
+ ]
+}

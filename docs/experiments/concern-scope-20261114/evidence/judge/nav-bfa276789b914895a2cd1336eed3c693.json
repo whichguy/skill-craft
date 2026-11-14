@@ -1,0 +1,62 @@
+{
+ "action": "nav-bfa276789b914895a2cd1336eed3c693",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"with a simple Lightning web component board\\\" and \\\"each cell is a button named `Battle cell row <row> column <column>: <state>`\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"`SLNvHo250fEngine` is a public class with static methods only\\\" and \\\"`SLNvHo250fController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"a game is a JSON string\\\" and \\\"Create no other metadata (no custom objects, fields, ...)\\\"\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"The game state is held by the client as JSON, so two overlapping fire calls would each start from the same prior state and one shot would be lost; serializing requests keeps the requested click-to-fire board and the complete-game UI check correct.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"Deploy with `sf project deploy start --target-org de`\\\" and \\\"Use `--target-org de` on every `sf` command that talks to the org\\\"\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"a permission set `permissionsets/SLNvHo250f_Access.permissionset-meta.xml` that grants the app ... the tab ... and the ... classes\\\" and \\\"never ask for, print or store credentials\\\"\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\\\" plus \\\"a custom tab `tabs/SLNvHo250f_Board.tab-meta.xml`\\\" and \\\"a Lightning app `applications/SLNvHo250f.app-meta.xml`\\\"\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Keep the engine efficient enough that a whole game of 100 shots played through `SLNvHo250fController` ... runs inside one transaction\\\"\"}, {\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"Define stable accessible names for the board: each cell is a button named ...; expose visible text exactly `Shots: <n>`, `Ships left: <n>`, and `Shot result: <result>`; provide a button named `New game`\\\"\"}]}",
+   "input_tokens": 7282,
+   "output_tokens": 1058,
+   "seconds": 17.9,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"with a simple Lightning web component board\" and \"each cell is a button named `Battle cell row <row> column <column>: <state>`\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"`SLNvHo250fEngine` is a public class with static methods only\" and \"`SLNvHo250fController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"a game is a JSON string\" and \"Create no other metadata (no custom objects, fields, ...)\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The game state is held by the client as JSON, so two overlapping fire calls would each start from the same prior state and one shot would be lost; serializing requests keeps the requested click-to-fire board and the complete-game UI check correct."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"Deploy with `sf project deploy start --target-org de`\" and \"Use `--target-org de` on every `sf` command that talks to the org\""
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"a permission set `permissionsets/SLNvHo250f_Access.permissionset-meta.xml` that grants the app ... the tab ... and the ... classes\" and \"never ask for, print or store credentials\""
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\" plus \"a custom tab `tabs/SLNvHo250f_Board.tab-meta.xml`\" and \"a Lightning app `applications/SLNvHo250f.app-meta.xml`\""
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Keep the engine efficient enough that a whole game of 100 shots played through `SLNvHo250fController` ... runs inside one transaction\""
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"Define stable accessible names for the board: each cell is a button named ...; expose visible text exactly `Shots: <n>`, `Ships left: <n>`, and `Shot result: <result>`; provide a button named `New game`\""
+  }
+ ]
+}

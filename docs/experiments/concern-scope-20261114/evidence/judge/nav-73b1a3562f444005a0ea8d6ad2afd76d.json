@@ -1,0 +1,37 @@
+{
+ "action": "nav-73b1a3562f444005a0ea8d6ad2afd76d",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"POST /groups with {\\\"id\\\": \\\"<group id>\\\", \\\"members\\\": [...]} creates a group: 201\\\" and \\\"GET /groups/<id>/balances returns an object\\\"; HTTP JSON endpoints is how the named routes work.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\\\"; persisting before success decides how that requirement holds.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Concurrent requests must never lose an expense\\\"; serializing writes in process decides how that works.\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\\\".\"}]}",
+   "input_tokens": 5123,
+   "output_tokens": 305,
+   "seconds": 9.1,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"POST /groups with {\"id\": \"<group id>\", \"members\": [...]} creates a group: 201\" and \"GET /groups/<id>/balances returns an object\"; HTTP JSON endpoints is how the named routes work."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\"; persisting before success decides how that requirement holds."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Concurrent requests must never lose an expense\"; serializing writes in process decides how that works."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\"."
+  }
+ ]
+}

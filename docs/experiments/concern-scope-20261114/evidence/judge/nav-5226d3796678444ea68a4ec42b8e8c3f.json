@@ -1,0 +1,22 @@
+{
+ "action": "nav-5226d3796678444ea68a4ec42b8e8c3f",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Use the same `name` and `team` filters GET /users applies\\\", \\\"change team matching on both GET /users and GET /users/summary to ignore letter case while still requiring the exact team name\\\" and \\\"It counts all matches without pagination\\\".\"}]}",
+   "input_tokens": 4439,
+   "output_tokens": 350,
+   "seconds": 11.2,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Use the same `name` and `team` filters GET /users applies\", \"change team matching on both GET /users and GET /users/summary to ignore letter case while still requiring the exact team name\" and \"It counts all matches without pagination\"."
+  }
+ ]
+}

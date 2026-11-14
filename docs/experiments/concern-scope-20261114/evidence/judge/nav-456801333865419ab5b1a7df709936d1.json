@@ -1,0 +1,62 @@
+{
+ "action": "nav-456801333865419ab5b1a7df709936d1",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination\\\"; responsive layout is polish of that requested interface.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"a position is a FEN string\\\" and \\\"`legalMoves(String fen)` returns a `List<String>` of every legal move ... in UCI form\\\", plus the `SLChessController` `@AuraEnabled public static` methods.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"Keeping state in the component decides how \\\"a game two people can play by turns on one screen\\\" works, and the request says to \\\"Create no other metadata (no custom objects, fields...)\\\".\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Without blocking input during server calls, clicks made while `applyMove` is still running could submit moves against a stale FEN and corrupt the turn-by-turn game the board must support.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"Build a chess rules engine in Apex with a simple Lightning web component board\\\".\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"throws `SLChessEngine.IllegalMoveException` ... when the move is not legal\\\", \\\"refuses an illegal destination\\\", and \\\"never ask for, print or store credentials, and never run `sf org display`\\\".\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Create no other metadata\\\" and \\\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\\\".\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"a whole depth-2 legal-move enumeration ... runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` ... does too\\\".\"}, {\"n\": 9, \"label\": \"implied\", \"why\": \"Keyboard focus and contrast are accessible controls of the requested board, so the people playing can pick pieces and see whose turn it is.\"}]}",
+   "input_tokens": 6188,
+   "output_tokens": 999,
+   "seconds": 43.6,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination\"; responsive layout is polish of that requested interface."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"a position is a FEN string\" and \"`legalMoves(String fen)` returns a `List<String>` of every legal move ... in UCI form\", plus the `SLChessController` `@AuraEnabled public static` methods."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "Keeping state in the component decides how \"a game two people can play by turns on one screen\" works, and the request says to \"Create no other metadata (no custom objects, fields...)\"."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Without blocking input during server calls, clicks made while `applyMove` is still running could submit moves against a stale FEN and corrupt the turn-by-turn game the board must support."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"Build a chess rules engine in Apex with a simple Lightning web component board\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"throws `SLChessEngine.IllegalMoveException` ... when the move is not legal\", \"refuses an illegal destination\", and \"never ask for, print or store credentials, and never run `sf org display`\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Create no other metadata\" and \"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\"."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"a whole depth-2 legal-move enumeration ... runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` ... does too\"."
+  },
+  {
+   "n": 9,
+   "label": "implied",
+   "why": "Keyboard focus and contrast are accessible controls of the requested board, so the people playing can pick pieces and see whose turn it is."
+  }
+ ]
+}

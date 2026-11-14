@@ -1,0 +1,102 @@
+{
+ "action": "nav-61df8d7aa9234127bc0ae2bb7a444102",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Keep the game rules in a module the server uses, and cover them with node:test tests\\\"; the export list and test-only supplied fleets only decide how that module and its tests work.\"},\n{\"n\": 2, \"label\": \"implied\", \"why\": \"Resolving \\\"miss\\\", \\\"hit\\\", \\\"sunk\\\" and \\\"gameOver\\\" across shots needs per-game state, and in-memory objects are the minimal way to hold it.\"},\n{\"n\": 3, \"label\": \"implied\", \"why\": \"Separate games identified by a game id would corrupt each other if state sat in a shared module-level registry rather than in each caller's game object.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"POST /api/fire takes caller-supplied row/col, so rejecting out-of-board, non-integer and repeat shots without changing the game is input validation the requested rules need.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"Random placement of a computer fleet on a 10x10 grid can loop forever without bounded retries, which would hang GET /api/new and the tests.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"GET / serves...\\\", \\\"GET /api/new starts a game\\\", \\\"POST /api/fire with JSON...\\\" and \\\"the port in the PORT environment variable (default 3000)\\\"; status codes and validation order decide how these work.\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"returns JSON with a game id\\\"; an in-process Map keyed by random UUIDs only decides how game ids and their games are held.\"},\n{\"n\": 8, \"label\": \"implied\", \"why\": \"Testing the requested HTTP API reliably needs isolated server processes per case so tests do not interfere through shared state or ports.\"},\n{\"n\": 9, \"label\": \"implied\", \"why\": \"A single-player game is pointless if fleet positions leak in responses, and parsing unbounded or coerced request bodies would let malformed input break the requested POST /api/fire.\"},\n{\"n\": 10, \"label\": \"implied\", \"why\": \"Whoever starts \\\"server.js\\\" needs to see that it is listening and see errors, and the plan does this with a minimal startup line and stderr only.\"},\n{\"n\": 11, \"label\": \"requested\", \"why\": \"\\\"starts the server on the port in the PORT environment variable (default 3000)\\\"; reading it once and printing the bound port decides how that works, including for tests.\"},\n{\"n\": 12, \"label\": \"implied\", \"why\": \"The tests that run with `node --test` need a time guard so a hung full game fails visibly instead of stalling the run.\"},\n{\"n\": 13, \"label\": \"requested\", \"why\": \"\\\"a playable HTML page titled \\\"Battleship\\\" where the player fires at a computer-placed fleet on a 10x10 grid\\\"; cells, outcome marks, status and new game decide how the page is playable.\"},\n{\"n\": 14, \"label\": \"requested\", \"why\": \"\\\"GET /api/new starts a game\\\" and \\\"POST /api/fire ... returns JSON with \\\"result\\\"\\\" are what the page uses for the player to fire, and reporting failed requests is error handling of that page.\"},\n{\"n\": 15, \"label\": \"implied\", \"why\": \"Firing at a hidden computer-placed fleet fails as a game if the page fetches or stores fleet positions.\"},\n{\"n\": 16, \"label\": \"implied\", \"why\": \"Keeping the computer-placed fleet hidden from the player requires that the page's markup does not expose ship data.\"},\n{\"n\": 17, \"label\": \"implied\", \"why\": \"Accessible controls of the requested playable page, including real buttons, labels, a live status and a small-screen layout, are rigour on a requested interface.\"}\n]}\n```",
+   "input_tokens": 5776,
+   "output_tokens": 2263,
+   "seconds": 30.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Keep the game rules in a module the server uses, and cover them with node:test tests\"; the export list and test-only supplied fleets only decide how that module and its tests work."
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "Resolving \"miss\", \"hit\", \"sunk\" and \"gameOver\" across shots needs per-game state, and in-memory objects are the minimal way to hold it."
+  },
+  {
+   "n": 3,
+   "label": "implied",
+   "why": "Separate games identified by a game id would corrupt each other if state sat in a shared module-level registry rather than in each caller's game object."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "POST /api/fire takes caller-supplied row/col, so rejecting out-of-board, non-integer and repeat shots without changing the game is input validation the requested rules need."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Random placement of a computer fleet on a 10x10 grid can loop forever without bounded retries, which would hang GET /api/new and the tests."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"GET / serves...\", \"GET /api/new starts a game\", \"POST /api/fire with JSON...\" and \"the port in the PORT environment variable (default 3000)\"; status codes and validation order decide how these work."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"returns JSON with a game id\"; an in-process Map keyed by random UUIDs only decides how game ids and their games are held."
+  },
+  {
+   "n": 8,
+   "label": "implied",
+   "why": "Testing the requested HTTP API reliably needs isolated server processes per case so tests do not interfere through shared state or ports."
+  },
+  {
+   "n": 9,
+   "label": "implied",
+   "why": "A single-player game is pointless if fleet positions leak in responses, and parsing unbounded or coerced request bodies would let malformed input break the requested POST /api/fire."
+  },
+  {
+   "n": 10,
+   "label": "implied",
+   "why": "Whoever starts \"server.js\" needs to see that it is listening and see errors, and the plan does this with a minimal startup line and stderr only."
+  },
+  {
+   "n": 11,
+   "label": "requested",
+   "why": "\"starts the server on the port in the PORT environment variable (default 3000)\"; reading it once and printing the bound port decides how that works, including for tests."
+  },
+  {
+   "n": 12,
+   "label": "implied",
+   "why": "The tests that run with `node --test` need a time guard so a hung full game fails visibly instead of stalling the run."
+  },
+  {
+   "n": 13,
+   "label": "requested",
+   "why": "\"a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid\"; cells, outcome marks, status and new game decide how the page is playable."
+  },
+  {
+   "n": 14,
+   "label": "requested",
+   "why": "\"GET /api/new starts a game\" and \"POST /api/fire ... returns JSON with \"result\"\" are what the page uses for the player to fire, and reporting failed requests is error handling of that page."
+  },
+  {
+   "n": 15,
+   "label": "implied",
+   "why": "Firing at a hidden computer-placed fleet fails as a game if the page fetches or stores fleet positions."
+  },
+  {
+   "n": 16,
+   "label": "implied",
+   "why": "Keeping the computer-placed fleet hidden from the player requires that the page's markup does not expose ship data."
+  },
+  {
+   "n": 17,
+   "label": "implied",
+   "why": "Accessible controls of the requested playable page, including real buttons, labels, a live status and a small-screen layout, are rigour on a requested interface."
+  }
+ ]
+}

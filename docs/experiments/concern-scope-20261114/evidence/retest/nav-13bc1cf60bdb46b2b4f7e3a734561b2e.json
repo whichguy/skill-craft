@@ -1,0 +1,47 @@
+{
+ "action": "nav-13bc1cf60bdb46b2b4f7e3a734561b2e",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/:id/comments` with a JSON body `{\\\"author\\\": \\\"<name>\\\", \\\"body\\\": \\\"<text>\\\"}` ... An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\\\"\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment\\\"; the row only decides that this goes through the service's existing outbox and a template.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Comments are kept like the rest of a ticket's state: they survive a restart of the service\\\".\"},\n{\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"a data file written before this change keeps loading\\\"; the row decides that a missing comments field defaults to empty.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"Comments added at the same moment, or alongside other ticket updates, could be lost or misordered. That would break \\\"oldest first\\\" ordering and durable storage, so the plan relies on the service's existing single-process serialization.\"},\n{\"n\": 6, \"label\": \"unclear\", \"why\": \"The request does not mention audit. Keeping the existing audit and outbox working is implied by \\\"Everything the service already does keeps working\\\", but the row does not say whether it also adds new audit entries for comments, which the request does not need.\"}\n]}\n```",
+   "input_tokens": 5089,
+   "output_tokens": 967,
+   "seconds": 15.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/:id/comments` with a JSON body `{\"author\": \"<name>\", \"body\": \"<text>\"}` ... An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment\"; the row only decides that this goes through the service's existing outbox and a template."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Comments are kept like the rest of a ticket's state: they survive a restart of the service\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"a data file written before this change keeps loading\"; the row decides that a missing comments field defaults to empty."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Comments added at the same moment, or alongside other ticket updates, could be lost or misordered. That would break \"oldest first\" ordering and durable storage, so the plan relies on the service's existing single-process serialization."
+  },
+  {
+   "n": 6,
+   "label": "unclear",
+   "why": "The request does not mention audit. Keeping the existing audit and outbox working is implied by \"Everything the service already does keeps working\", but the row does not say whether it also adds new audit entries for comments, which the request does not need."
+  }
+ ]
+}

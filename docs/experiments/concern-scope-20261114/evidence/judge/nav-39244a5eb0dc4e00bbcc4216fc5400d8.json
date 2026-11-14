@@ -1,0 +1,57 @@
+{
+ "action": "nav-39244a5eb0dc4e00bbcc4216fc5400d8",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"a simple Lightning web component board\\\" that \\\"renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button\\\"; responsiveness is visual polish of that requested board.\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"`SLBtl589079Engine` is a public class with static methods only\\\" with \\\"`newGame(Integer seed)`\\\" and \\\"`fire(String game, Integer row, Integer col)`\\\", and \\\"`SLBtl589079Controller` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(...)`, each returning the game JSON as a `String`\\\".\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"a game is a JSON string\\\" and \\\"Create no other metadata (no custom objects, fields, ...)\\\".\"},\n{\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"deploy and test it in the Salesforce Developer Edition org with alias `de`\\\" with \\\"a custom tab\\\", \\\"a Lightning app\\\" and \\\"a permission set\\\" all \\\"named with the prefix `SLBtl589079`\\\".\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"a permission set `permissionsets/SLBtl589079_Access.permissionset-meta.xml` that grants the app ..., the tab ... and the ... classes\\\" and \\\"A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBtl589079Engine.InvalidShotException`\\\".\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\\\" and \\\"Create no other metadata\\\".\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Keep the engine efficient enough that a whole game of 100 shots played through `SLBtl589079Controller` ... runs inside one transaction\\\".\"},\n{\"n\": 8, \"label\": \"implied\", \"why\": \"The requested board must let \\\"a person\\\" fire \\\"when a person clicks\\\" a cell and press \\\"a New game button\\\"; native buttons with focus indicators are accessibility rigour on those requested controls, not an extra capability.\"}\n]}\n```",
+   "input_tokens": 7090,
+   "output_tokens": 1050,
+   "seconds": 16.5,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"a simple Lightning web component board\" that \"renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button\"; responsiveness is visual polish of that requested board."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"`SLBtl589079Engine` is a public class with static methods only\" with \"`newGame(Integer seed)`\" and \"`fire(String game, Integer row, Integer col)`\", and \"`SLBtl589079Controller` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(...)`, each returning the game JSON as a `String`\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"a game is a JSON string\" and \"Create no other metadata (no custom objects, fields, ...)\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"deploy and test it in the Salesforce Developer Edition org with alias `de`\" with \"a custom tab\", \"a Lightning app\" and \"a permission set\" all \"named with the prefix `SLBtl589079`\"."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"a permission set `permissionsets/SLBtl589079_Access.permissionset-meta.xml` that grants the app ..., the tab ... and the ... classes\" and \"A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBtl589079Engine.InvalidShotException`\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\" and \"Create no other metadata\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Keep the engine efficient enough that a whole game of 100 shots played through `SLBtl589079Controller` ... runs inside one transaction\"."
+  },
+  {
+   "n": 8,
+   "label": "implied",
+   "why": "The requested board must let \"a person\" fire \"when a person clicks\" a cell and press \"a New game button\"; native buttons with focus indicators are accessibility rigour on those requested controls, not an extra capability."
+  }
+ ]
+}

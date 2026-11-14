@@ -1,0 +1,47 @@
+{
+ "action": "nav-71374c44aa3f47ae9cf68344fe35e6f5",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"`from` and `to` must be two different agents\\\" and asks for an answer of \\\"{\\\"moved\\\": <how many>, \\\"ids\\\": [<their ids in id order>]}\\\".\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"The request says \\\"Each moved ticket's new agent is notified as for a single assignment\\\" and \\\"the agent named in the ONCALL environment variable is notified\\\", and reusing the existing outbox and worker is how those notifications are delivered.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"The request says \\\"A ticket is escalated at most once, even across restarts of the service.\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"The bulk move and the escalation pass must not race with single assignments or each other, or tickets could be moved or escalated wrongly; a single-process synchronous store provides that safety without adding anything.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"Bulk moves and escalations that silently fail to notify would hide unassigned urgent tickets from whoever must act, so the existing audit and outbox reports need to cover them.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"The request says \\\"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\\\" and \\\"without ONCALL nothing is escalated\\\"; validating those values at startup is rigour on requested configuration.\"}\n]}\n```",
+   "input_tokens": 4718,
+   "output_tokens": 982,
+   "seconds": 14.5,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"`from` and `to` must be two different agents\" and asks for an answer of \"{\"moved\": <how many>, \"ids\": [<their ids in id order>]}\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "The request says \"Each moved ticket's new agent is notified as for a single assignment\" and \"the agent named in the ONCALL environment variable is notified\", and reusing the existing outbox and worker is how those notifications are delivered."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "The request says \"A ticket is escalated at most once, even across restarts of the service.\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The bulk move and the escalation pass must not race with single assignments or each other, or tickets could be moved or escalated wrongly; a single-process synchronous store provides that safety without adding anything."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Bulk moves and escalations that silently fail to notify would hide unassigned urgent tickets from whoever must act, so the existing audit and outbox reports need to cover them."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "The request says \"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\" and \"without ONCALL nothing is escalated\"; validating those values at startup is rigour on requested configuration."
+  }
+ ]
+}

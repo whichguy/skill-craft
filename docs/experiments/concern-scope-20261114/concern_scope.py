@@ -16,7 +16,9 @@ Subcommands (run with python3 -I from the repository root):
                       one isolated judge call per plan (rubric-eval model_call, alias "opus" = claude-opus-5-5 at
                       medium, no tools) -> evidence/judge/<action>.json; --retest re-judges the registered retest plans
                       -> evidence/retest/<action>.json. Resumable: a plan whose saved call parsed is not called again.
-    score             labels, predictions and agreement -> evidence/scores.json and evidence/summary.md
+    score             labels, predictions and agreement -> evidence/scores.json and evidence/labelled-rows.jsonl
+    beyond            every beyond row with its run's worktree, for the decision rule's audit -> evidence/beyond-rows.md
+    quotes            does each requested label quote the request's own words? -> evidence/quote-check.json
 """
 from __future__ import annotations
 
@@ -192,8 +194,8 @@ def cmd_sample(roots):
             plan = {key: value for key, value in plan.items() if key != "concerns"}
             plan["retest"] = plan["action"] in retest
             handle.write(json.dumps(plan) + "\n")
-    print(f"census: {census['plans']} plans, {census['work_items']} items, {census['applicable_rows']} applicable rows, "
-          f"{census['families']} request families; sample: {len(sample)} plans from {len(families)} families, "
+    print(f"census: {census['plans']} plans, {census['work_items']} items, {census['applicable_rows']} applicable "
+          f"rows, {census['families']} request families; sample: {len(sample)} plans from {len(families)} families, "
           f"{sum(len(plan['rows']) for plan in sample)} rows; retest: {len(retest)} plans")
 
 
@@ -362,12 +364,67 @@ def cmd_score():
                                                     "predictions", "tokens")}, indent=1, default=dict))
 
 
+def cmd_beyond():
+    """Every beyond row with its plan, the run's worktree (the delivered product) and the judge's reason, for the
+    decision rule's audit -> evidence/beyond-rows.md."""
+    sample = {plan["action"]: plan for plan in load_sample()}
+    lines = ["# Beyond rows (first judgment)", ""]
+    count = 0
+    for row in (json.loads(line) for line in open(EVIDENCE / "labelled-rows.jsonl", encoding="utf-8")):
+        if row["label"] != "beyond":
+            continue
+        count += 1
+        plan = sample[row["action"]]
+        worktree = pathlib.Path(plan["result"]).parent.parent.parent / "worktree"
+        lines += [f"## {count}. {row['concern']} in {row['item']} ({row['action']})", "",
+                  f"- Request: {normalise(plan['request'])[:300]}",
+                  f"- Decision: {row['decision']}", f"- Judge: {row['why']}",
+                  f"- Worktree: {worktree} ({'present' if worktree.exists() else 'absent'})", ""]
+    (EVIDENCE / "beyond-rows.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"{count} beyond rows -> {EVIDENCE / 'beyond-rows.md'}")
+
+
+def cmd_quotes():
+    """Grounding check of the requested labels: does every quoted fragment of the judge's reason (split at an
+    ellipsis, 6 or more characters) occur in the request, after folding case, whitespace, curly quotes and backticks?
+    -> evidence/quote-check.json"""
+    sample = {plan["action"]: plan for plan in load_sample()}
+
+    def fold(text: str) -> str:
+        text = text.replace("“", '"').replace("”", '"').replace("’", "'").replace("`", "")
+        return re.sub(r"\s+", " ", text).strip().lower()
+
+    counts, missing = collections.Counter(), []
+    for row in (json.loads(line) for line in open(EVIDENCE / "labelled-rows.jsonl", encoding="utf-8")):
+        if row["label"] != "requested":
+            continue
+        request = fold(sample[row["action"]]["request"])
+        quotes = [a or b for a, b in re.findall(r'"([^"]{6,})"|“([^”]{6,})”', row["why"])]
+        fragments = [part.strip(" .,;:") for quote in quotes for part in re.split(r"\.\.\.|…", fold(quote))
+                     if len(part.strip(" .,;:")) >= 6]
+        if not fragments:
+            counts["no quote"] += 1
+        elif all(fragment in request for fragment in fragments):
+            counts["every fragment found"] += 1
+        else:
+            counts["a fragment not found"] += 1
+            missing.append({"action": row["action"], "concern": row["concern"],
+                            "fragments": [f for f in fragments if f not in request]})
+    report = {"requested_rows": sum(counts.values()), "counts": dict(counts), "not_found": missing}
+    (EVIDENCE / "quote-check.json").write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
+    print(json.dumps(report["counts"]))
+
+
 def main(argv):
     if not argv:
         sys.exit(__doc__)
     command, rest = argv[0], argv[1:]
     if command == "sample":
         cmd_sample(rest)
+    elif command == "beyond":
+        cmd_beyond()
+    elif command == "quotes":
+        cmd_quotes()
     elif command == "prompts":
         cmd_prompts()
     elif command == "judge":

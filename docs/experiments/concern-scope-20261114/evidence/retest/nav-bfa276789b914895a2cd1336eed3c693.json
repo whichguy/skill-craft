@@ -1,0 +1,62 @@
+{
+ "action": "nav-bfa276789b914895a2cd1336eed3c693",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"a simple Lightning web component board\\\" that \\\"renders the 10x10 grid, fires at a cell when a person clicks it\\\" with \\\"each cell is a button\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"`SLNvHo250fEngine` is a public class with static methods only\\\" and \\\"`SLNvHo250fController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(...)`\\\".\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"a game is a JSON string\\\" and \\\"Create no other metadata (no custom objects, fields...)\\\".\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"The board passes the returned game JSON into each fire call, so overlapping clicks would fire against stale state and lose or corrupt shots unless requests are serialized.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"Deploy with `sf project deploy start --target-org de`\\\" and \\\"Create no other metadata\\\".\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"a permission set `permissionsets/SLNvHo250f_Access.permissionset-meta.xml`\\\" and \\\"never ask for, print or store credentials, and never run `sf org display`\\\".\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\\\" with \\\"a custom tab `tabs/SLNvHo250f_Board.tab-meta.xml`\\\" and \\\"a Lightning app `applications/SLNvHo250f.app-meta.xml`\\\".\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Keep the engine efficient enough that a whole game of 100 shots played through `SLNvHo250fController` ... runs inside one transaction.\\\"\"}, {\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"each cell is a button named `Battle cell row <row> column <column>: <state>`\\\" and \\\"expose visible text exactly `Shots: <n>`, `Ships left: <n>`, and `Shot result: <result>`\\\".\"}]}",
+   "input_tokens": 7278,
+   "output_tokens": 745,
+   "seconds": 11.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"a simple Lightning web component board\" that \"renders the 10x10 grid, fires at a cell when a person clicks it\" with \"each cell is a button\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"`SLNvHo250fEngine` is a public class with static methods only\" and \"`SLNvHo250fController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(...)`\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"a game is a JSON string\" and \"Create no other metadata (no custom objects, fields...)\"."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The board passes the returned game JSON into each fire call, so overlapping clicks would fire against stale state and lose or corrupt shots unless requests are serialized."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"Deploy with `sf project deploy start --target-org de`\" and \"Create no other metadata\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"a permission set `permissionsets/SLNvHo250f_Access.permissionset-meta.xml`\" and \"never ask for, print or store credentials, and never run `sf org display`\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\" with \"a custom tab `tabs/SLNvHo250f_Board.tab-meta.xml`\" and \"a Lightning app `applications/SLNvHo250f.app-meta.xml`\"."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Keep the engine efficient enough that a whole game of 100 shots played through `SLNvHo250fController` ... runs inside one transaction.\""
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"each cell is a button named `Battle cell row <row> column <column>: <state>`\" and \"expose visible text exactly `Shots: <n>`, `Ships left: <n>`, and `Shot result: <result>`\"."
+  }
+ ]
+}

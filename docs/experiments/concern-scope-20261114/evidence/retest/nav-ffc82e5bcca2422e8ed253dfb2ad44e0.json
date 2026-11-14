@@ -1,0 +1,67 @@
+{
+ "action": "nav-ffc82e5bcca2422e8ed253dfb2ad44e0",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"a simple Lightning web component board\\\" that \\\"renders the 10x10 grid... shows hits, misses and sunk ships, the number of shots fired and of ships left... and has a New game button\\\"; making the requested board responsive is polish, not a new capability.\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"SLBtlFull654Controller has @AuraEnabled public static methods newGame(Integer seed) and fire(String game, Integer row, Integer col), each returning the game JSON as a String\\\".\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"a game is a JSON string\\\" and the request says to \\\"Create no other metadata (no custom objects, fields...)\\\", so the state is held by the caller and nothing is persisted.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"The board holds the game JSON and passes it to each fire call, so overlapping clicks could start from a stale game and lose shots; serializing requests keeps each shot and the requested shot count correct.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org\\\".\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"a whole game of 100 shots played through SLBtlFull654Controller (newGame, then fire at every cell) runs inside one transaction\\\".\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"never ask for, print or store credentials, and never run sf org display\\\" and \\\"a permission set... that grants the app..., the tab... and the SLBtlFull654Engine and SLBtlFull654Controller classes\\\".\"},\n{\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"create exactly these kinds of metadata, all named with the prefix SLBtlFull654\\\" and \\\"Create no other metadata\\\".\"},\n{\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"Keep the engine efficient enough that a whole game of 100 shots... runs inside one transaction\\\"; checking the CPU limit verifies that requested constraint.\"},\n{\"n\": 10, \"label\": \"requested\", \"why\": \"\\\"each cell is a button named Battle cell row <row> column <column>: <state>\\\" and \\\"expose visible text exactly Shots: <n>, Ships left: <n>, and Shot result: <result>; provide a button named New game\\\".\"}\n]}\n```",
+   "input_tokens": 7074,
+   "output_tokens": 1144,
+   "seconds": 17.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"a simple Lightning web component board\" that \"renders the 10x10 grid... shows hits, misses and sunk ships, the number of shots fired and of ships left... and has a New game button\"; making the requested board responsive is polish, not a new capability."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"SLBtlFull654Controller has @AuraEnabled public static methods newGame(Integer seed) and fire(String game, Integer row, Integer col), each returning the game JSON as a String\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"a game is a JSON string\" and the request says to \"Create no other metadata (no custom objects, fields...)\", so the state is held by the caller and nothing is persisted."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The board holds the game JSON and passes it to each fire call, so overlapping clicks could start from a stale game and lose shots; serializing requests keeps each shot and the requested shot count correct."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"a whole game of 100 shots played through SLBtlFull654Controller (newGame, then fire at every cell) runs inside one transaction\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"never ask for, print or store credentials, and never run sf org display\" and \"a permission set... that grants the app..., the tab... and the SLBtlFull654Engine and SLBtlFull654Controller classes\"."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"create exactly these kinds of metadata, all named with the prefix SLBtlFull654\" and \"Create no other metadata\"."
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"Keep the engine efficient enough that a whole game of 100 shots... runs inside one transaction\"; checking the CPU limit verifies that requested constraint."
+  },
+  {
+   "n": 10,
+   "label": "requested",
+   "why": "\"each cell is a button named Battle cell row <row> column <column>: <state>\" and \"expose visible text exactly Shots: <n>, Ships left: <n>, and Shot result: <result>; provide a button named New game\"."
+  }
+ ]
+}

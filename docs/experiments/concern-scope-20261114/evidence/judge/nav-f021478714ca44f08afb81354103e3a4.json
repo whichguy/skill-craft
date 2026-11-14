@@ -1,0 +1,57 @@
+{
+ "action": "nav-f021478714ca44f08afb81354103e3a4",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Build four usable journeys: member self-service, administrative membership management, member 360, and a coaching check-in kiosk\\\" and \\\"Render saved controller results and refresh them after mutations/reload\\\"; responsive layout is visual polish of that requested interface.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"Expose @AuraEnabled public static methods on SLGymController, returning JSON Strings with this contract.\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Create exactly two custom objects, SLGymMember__c and SLGymVisit__c\\\" with \\\"visit history\\\" and \\\"checks persisted records\\\".\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"This is sequential idempotency; no concurrent-call guarantee is requested.\\\"\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"binding LoginUserId__c to UserInfo.getUserId()\\\" and \\\"Identify admin authority server-side using the current user's Profile.PermissionsModifyAllData\\\".\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"restricted to that linked member or an admin\\\", \\\"Profile.PermissionsModifyAllData\\\" and \\\"enforce CRUD/FLS as well as logical authorization (user-mode operations or equivalent)\\\".\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Use API version 60.0\\\" and \\\"SLGym_Access is the only permission set\\\".\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Use these stable accessible labels so a person and independent checker can exercise the same app\\\"; keyboard focus is accessibility rigour on the requested controls.\"}]}",
+   "input_tokens": 7066,
+   "output_tokens": 681,
+   "seconds": 10.8,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Build four usable journeys: member self-service, administrative membership management, member 360, and a coaching check-in kiosk\" and \"Render saved controller results and refresh them after mutations/reload\"; responsive layout is visual polish of that requested interface."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"Expose @AuraEnabled public static methods on SLGymController, returning JSON Strings with this contract.\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Create exactly two custom objects, SLGymMember__c and SLGymVisit__c\" with \"visit history\" and \"checks persisted records\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"This is sequential idempotency; no concurrent-call guarantee is requested.\""
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"binding LoginUserId__c to UserInfo.getUserId()\" and \"Identify admin authority server-side using the current user's Profile.PermissionsModifyAllData\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"restricted to that linked member or an admin\", \"Profile.PermissionsModifyAllData\" and \"enforce CRUD/FLS as well as logical authorization (user-mode operations or equivalent)\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Use API version 60.0\" and \"SLGym_Access is the only permission set\"."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Use these stable accessible labels so a person and independent checker can exercise the same app\"; keyboard focus is accessibility rigour on the requested controls."
+  }
+ ]
+}

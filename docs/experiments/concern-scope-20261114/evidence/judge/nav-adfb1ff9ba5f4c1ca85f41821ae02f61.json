@@ -1,0 +1,47 @@
+{
+ "action": "nav-adfb1ff9ba5f4c1ca85f41821ae02f61",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/:id/comments` ... answers 201 with the comment\\\" and \\\"a closed one answers 409\\\"; reusing the existing error envelope only decides how the requested endpoint and its errors work.\"},\n{\"n\": 2, \"label\": \"beyond\", \"why\": \"The request asks only that \\\"that agent is notified of the comment\\\"; an outbox store with a retrying worker and unique keys adds delivery infrastructure that this request does not need.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading.\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Showing comments \\\"oldest first\\\" with distinct ids requires a deterministic order for simultaneous comment requests, and keeping the existing synchronous store ordering provides that without new mechanism.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\\\"\"},\n{\"n\": 6, \"label\": \"beyond\", \"why\": \"Audit entries are a new logging capability the request never mentions, and the worker failure handling exists only to support the extra outbox worker.\"}\n]}\n```",
+   "input_tokens": 4700,
+   "output_tokens": 786,
+   "seconds": 15.8,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/:id/comments` ... answers 201 with the comment\" and \"a closed one answers 409\"; reusing the existing error envelope only decides how the requested endpoint and its errors work."
+  },
+  {
+   "n": 2,
+   "label": "beyond",
+   "why": "The request asks only that \"that agent is notified of the comment\"; an outbox store with a retrying worker and unique keys adds delivery infrastructure that this request does not need."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading.\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Showing comments \"oldest first\" with distinct ids requires a deterministic order for simultaneous comment requests, and keeping the existing synchronous store ordering provides that without new mechanism."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\""
+  },
+  {
+   "n": 6,
+   "label": "beyond",
+   "why": "Audit entries are a new logging capability the request never mentions, and the worker failure handling exists only to support the extra outbox worker."
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "action": "nav-67b86b639f564f1796e7a9a3ecc30e08",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"The helpers only decide how the requested behaviour is built, \\\"Extend the server's user listing, GET /users, with filtering and pagination\\\", and leaving existing exports unchanged serves \\\"Everything the project already does keeps working\\\".\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"The `name` query parameter keeps only the users whose name contains it... When either is given, the answer is a JSON object with \\\"page\\\", \\\"size\\\", \\\"total\\\"... \\\"pages\\\"... and \\\"items\\\"... answers HTTP 400 with a JSON object whose \\\"error\\\" says what is wrong... GET /users/:id is unchanged\\\".\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"Shipping through a plain restart with no flag follows \\\"`npm start` runs on the port in the PORT environment variable\\\" and \\\"Keep the API compatible\\\".\"},\n{\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400\\\"; keeping the existing user fields and adding no logging introduces nothing extra.\"}\n]}\n```",
+   "input_tokens": 5086,
+   "output_tokens": 661,
+   "seconds": 13.5,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The helpers only decide how the requested behaviour is built, \"Extend the server's user listing, GET /users, with filtering and pagination\", and leaving existing exports unchanged serves \"Everything the project already does keeps working\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"The `name` query parameter keeps only the users whose name contains it... When either is given, the answer is a JSON object with \"page\", \"size\", \"total\"... \"pages\"... and \"items\"... answers HTTP 400 with a JSON object whose \"error\" says what is wrong... GET /users/:id is unchanged\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "Shipping through a plain restart with no flag follows \"`npm start` runs on the port in the PORT environment variable\" and \"Keep the API compatible\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400\"; keeping the existing user fields and adding no logging introduces nothing extra."
+  }
+ ]
+}

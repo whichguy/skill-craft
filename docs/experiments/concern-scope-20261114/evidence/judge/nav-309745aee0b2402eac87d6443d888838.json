@@ -1,0 +1,52 @@
+{
+ "action": "nav-309745aee0b2402eac87d6443d888838",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"`PUT /tickets/:id/assignee` with a JSON body `{\\\"assignee\\\": \\\"<agent>\\\"}`\\\" and \\\"`GET /tickets` gains an `assignee` filter\\\"; this row decides how those routes validate input.\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"The request says \\\"The agent a ticket is assigned to is notified that it was assigned to them\\\"; using the outbox and a template only decides how that notification is sent.\"},\n{\"n\": 3, \"label\": \"implied\", \"why\": \"\\\"Every ticket shows its `assignee` (null when unassigned)\\\" fails unless the field is stored, and \\\"Everything the service already does keeps working\\\" requires the existing audit to keep working.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Tickets already stored without the field would break \\\"Every ticket shows its `assignee` (null when unassigned)\\\" and existing behaviour unless they are read as null.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"Assignments that run at the same time must not corrupt tickets or break \\\"Assigning a ticket to the agent it already has changes nothing\\\"; the row reuses the existing synchronous ordering and adds nothing.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"The request says \\\"an agent is a non-empty name of at most 64 characters\\\"; the row enforces that rule and keeps the existing HTTP boundaries, adding no new access control.\"},\n{\"n\": 7, \"label\": \"implied\", \"why\": \"If assignment or notification fails, the failure must be visible to whoever has to act; reusing the existing audit and outbox reports covers this without adding a new channel.\"}\n]}",
+   "input_tokens": 4878,
+   "output_tokens": 833,
+   "seconds": 17.4,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"`PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}`\" and \"`GET /tickets` gains an `assignee` filter\"; this row decides how those routes validate input."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "The request says \"The agent a ticket is assigned to is notified that it was assigned to them\"; using the outbox and a template only decides how that notification is sent."
+  },
+  {
+   "n": 3,
+   "label": "implied",
+   "why": "\"Every ticket shows its `assignee` (null when unassigned)\" fails unless the field is stored, and \"Everything the service already does keeps working\" requires the existing audit to keep working."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Tickets already stored without the field would break \"Every ticket shows its `assignee` (null when unassigned)\" and existing behaviour unless they are read as null."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Assignments that run at the same time must not corrupt tickets or break \"Assigning a ticket to the agent it already has changes nothing\"; the row reuses the existing synchronous ordering and adds nothing."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "The request says \"an agent is a non-empty name of at most 64 characters\"; the row enforces that rule and keeps the existing HTTP boundaries, adding no new access control."
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "If assignment or notification fails, the failure must be visible to whoever has to act; reusing the existing audit and outbox reports covers this without adding a new channel."
+  }
+ ]
+}

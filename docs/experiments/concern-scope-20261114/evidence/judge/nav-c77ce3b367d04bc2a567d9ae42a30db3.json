@@ -1,0 +1,62 @@
+{
+ "action": "nav-c77ce3b367d04bc2a567d9ae42a30db3",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/import` takes a JSON body `{\\\"tickets\\\": [...]}`\\\" and \\\"On success it answers 201 with `{\\\"created\\\": <how many>, \\\"ids\\\": [...]}`\\\".\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"its requester is notified just as when one ticket is created\\\".\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Each imported ticket is recorded ... just as when one ticket is created\\\" and \\\"Everything the service already does keeps working\\\". Using the existing store and its optional file persistence is how that recording works.\"},\n{\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"creates them in the given order: all of them, or none when any item is invalid\\\".\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"at most 5000 of them\\\".\"},\n{\"n\": 6, \"label\": \"implied\", \"why\": \"Accepting up to 5000 items needs a bounded request body, or an oversized or malicious import could exhaust the service's memory. This is input-validation rigour on the requested endpoint.\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Each imported ticket is recorded ... just as when one ticket is created\\\". This row reuses the existing audit recording.\"},\n{\"n\": 8, \"label\": \"implied\", \"why\": \"A 5000-ticket body likely exceeds the existing single-ticket body limit, so the requested import would fail unless the limit is set for this route.\"},\n{\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"An import of 5000 tickets must be answered within 10 seconds\\\".\"}\n]}\n```",
+   "input_tokens": 4764,
+   "output_tokens": 947,
+   "seconds": 15.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/import` takes a JSON body `{\"tickets\": [...]}`\" and \"On success it answers 201 with `{\"created\": <how many>, \"ids\": [...]}`\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"its requester is notified just as when one ticket is created\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Each imported ticket is recorded ... just as when one ticket is created\" and \"Everything the service already does keeps working\". Using the existing store and its optional file persistence is how that recording works."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"creates them in the given order: all of them, or none when any item is invalid\"."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"at most 5000 of them\"."
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "Accepting up to 5000 items needs a bounded request body, or an oversized or malicious import could exhaust the service's memory. This is input-validation rigour on the requested endpoint."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Each imported ticket is recorded ... just as when one ticket is created\". This row reuses the existing audit recording."
+  },
+  {
+   "n": 8,
+   "label": "implied",
+   "why": "A 5000-ticket body likely exceeds the existing single-ticket body limit, so the requested import would fail unless the limit is set for this route."
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"An import of 5000 tickets must be answered within 10 seconds\"."
+  }
+ ]
+}

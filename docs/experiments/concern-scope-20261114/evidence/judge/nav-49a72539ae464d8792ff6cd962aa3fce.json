@@ -1,0 +1,27 @@
+{
+ "action": "nav-49a72539ae464d8792ff6cd962aa3fce",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Add GET /users/summary\\\" and \\\"Use the same `name` and `team` filters GET /users applies\\\"; the row only decides how this requested local HTTP route works, reusing the existing semantics.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"Use the same `name` and `team` filters GET /users applies\\\" and \\\"Everything the project already does keeps working\\\"; the row only decides that the summary reads the existing in-memory store and adds no new state.\"}]}",
+   "input_tokens": 4350,
+   "output_tokens": 180,
+   "seconds": 9.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Add GET /users/summary\" and \"Use the same `name` and `team` filters GET /users applies\"; the row only decides how this requested local HTTP route works, reusing the existing semantics."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"Use the same `name` and `team` filters GET /users applies\" and \"Everything the project already does keeps working\"; the row only decides that the summary reads the existing in-memory store and adds no new state."
+  }
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "action": "nav-226f68f7e1064a27af8228d18a0f02b9",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Update the project-wide [*] policy to charset = utf-8, end_of_line = lf, indent_style = space, and indent_size = 2. Preserve root = true.\\\"\"}]}",
+   "input_tokens": 4329,
+   "output_tokens": 87,
+   "seconds": 7.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Update the project-wide [*] policy to charset = utf-8, end_of_line = lf, indent_style = space, and indent_size = 2. Preserve root = true.\""
+  }
+ ]
+}

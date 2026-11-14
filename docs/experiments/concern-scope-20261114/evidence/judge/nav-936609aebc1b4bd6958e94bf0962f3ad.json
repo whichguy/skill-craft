@@ -1,0 +1,52 @@
+{
+ "action": "nav-936609aebc1b4bd6958e94bf0962f3ad",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"GET / serves a playable HTML page titled \\\"Battleship\\\" where the player fires at a computer-placed fleet on a 10x10 grid\\\"; the button grid and status line only decide how that page works.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\\\"game\\\": id, \\\"row\\\": r, \\\"col\\\": c} returns JSON with \\\"result\\\"\\\"; error codes are the error handling for these requested endpoints.\"}, {\"n\": 3, \"label\": \"beyond\", \"why\": \"An in-memory store of games is needed for /api/fire to find the game started by /api/new, but idle and capacity pruning is extra lifecycle machinery that a small single-player game does not need.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Fire requests must apply hits to one game consistently or results and gameOver could be corrupted, and relying on Node's single thread with synchronous mutation is the minimal way to get that.\"}, {\"n\": 5, \"label\": \"implied\", \"why\": \"A playable game against a computer-placed fleet fails if ship positions are exposed, and the fire endpoint needs validated input and a bounded body to handle bad requests safely; unguessable ids are just how the requested game id is generated.\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"starts the server on the port in the PORT environment variable (default 3000)\\\"; falling back on a non-numeric value only decides how that default applies.\"}, {\"n\": 7, \"label\": \"implied\", \"why\": \"Accessible controls on the requested playable page count as rigour on a requested interface, and button cells with aria-labels plus a live status region are that rigour.\"}]}",
+   "input_tokens": 4721,
+   "output_tokens": 908,
+   "seconds": 18.9,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"GET / serves a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid\"; the button grid and status line only decide how that page works."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\"game\": id, \"row\": r, \"col\": c} returns JSON with \"result\"\"; error codes are the error handling for these requested endpoints."
+  },
+  {
+   "n": 3,
+   "label": "beyond",
+   "why": "An in-memory store of games is needed for /api/fire to find the game started by /api/new, but idle and capacity pruning is extra lifecycle machinery that a small single-player game does not need."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Fire requests must apply hits to one game consistently or results and gameOver could be corrupted, and relying on Node's single thread with synchronous mutation is the minimal way to get that."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "A playable game against a computer-placed fleet fails if ship positions are exposed, and the fire endpoint needs validated input and a bounded body to handle bad requests safely; unguessable ids are just how the requested game id is generated."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"starts the server on the port in the PORT environment variable (default 3000)\"; falling back on a non-numeric value only decides how that default applies."
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "Accessible controls on the requested playable page count as rigour on a requested interface, and button cells with aria-labels plus a live status region are that rigour."
+  }
+ ]
+}

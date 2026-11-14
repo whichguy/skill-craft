@@ -1,0 +1,52 @@
+{
+ "action": "nav-e719dcc8d0cd47338d89f40d00305266",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"a simple Lightning web component board ... a person picks a piece and then a destination ... lets a pawn promote (queen is acceptable as the default) and has a New game button\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"It calls `SLChessController` and renders what comes back.\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"This only decides how the requested two-player game keeps its position: \\\"renders a FEN as an 8x8 board and is a game two people can play by turns ... refuses an illegal destination ... has a New game button\\\".\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab, a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page ... Create no other metadata\\\"\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"Create no other metadata (no ... permission sets ... profiles ...), and do not change profiles or permission sets.\\\"\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"the component's meta file exposes the `lightning__Tab` target ... (then the component's meta file also exposes `lightning__AppPage`)\\\"\"}, {\"n\": 7, \"label\": \"implied\", \"why\": \"Text status and named square buttons are accessible controls for the requested board that \\\"shows whose turn it is and the game status\\\", which counts as rigour on a requested interface.\"}]}",
+   "input_tokens": 6170,
+   "output_tokens": 677,
+   "seconds": 11.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"a simple Lightning web component board ... a person picks a piece and then a destination ... lets a pawn promote (queen is acceptable as the default) and has a New game button\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"It calls `SLChessController` and renders what comes back.\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "This only decides how the requested two-player game keeps its position: \"renders a FEN as an 8x8 board and is a game two people can play by turns ... refuses an illegal destination ... has a New game button\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab, a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page ... Create no other metadata\""
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"Create no other metadata (no ... permission sets ... profiles ...), and do not change profiles or permission sets.\""
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"the component's meta file exposes the `lightning__Tab` target ... (then the component's meta file also exposes `lightning__AppPage`)\""
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "Text status and named square buttons are accessible controls for the requested board that \"shows whose turn it is and the game status\", which counts as rigour on a requested interface."
+  }
+ ]
+}

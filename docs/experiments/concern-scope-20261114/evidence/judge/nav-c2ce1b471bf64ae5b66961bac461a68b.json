@@ -1,0 +1,42 @@
+{
+ "action": "nav-c2ce1b471bf64ae5b66961bac461a68b",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"Each escalation notifies the agent named in the ONCALL environment variable as before\\\", and this row only decides how that notification is delivered, using the existing outbox with a distinct key for the second escalation.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"The request says \\\"a ticket is escalated at most twice, even across restarts of the service\\\" and \\\"has stayed open and unassigned for twice its wait since its first escalation\\\", and this row only decides how that count and history are kept across reloads.\"}, {\"n\": 3, \"label\": \"implied\", \"why\": \"The at-most-twice limit could be broken by two changes racing each other, and relying on the existing synchronous single-process store to apply changes one at a time adds no new mechanism.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Requested escalations must not fail silently for the on-call agent, and this row reuses the outbox's existing reporting and retries without adding a new channel.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"The request names \\\"ESCALATE_HIGH_MINUTES minutes (an environment variable, default 240)\\\", and validating it the same way as the urgent threshold is rigour on that requested setting.\"}]}",
+   "input_tokens": 4772,
+   "output_tokens": 416,
+   "seconds": 9.5,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"Each escalation notifies the agent named in the ONCALL environment variable as before\", and this row only decides how that notification is delivered, using the existing outbox with a distinct key for the second escalation."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "The request says \"a ticket is escalated at most twice, even across restarts of the service\" and \"has stayed open and unassigned for twice its wait since its first escalation\", and this row only decides how that count and history are kept across reloads."
+  },
+  {
+   "n": 3,
+   "label": "implied",
+   "why": "The at-most-twice limit could be broken by two changes racing each other, and relying on the existing synchronous single-process store to apply changes one at a time adds no new mechanism."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Requested escalations must not fail silently for the on-call agent, and this row reuses the outbox's existing reporting and retries without adding a new channel."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "The request names \"ESCALATE_HIGH_MINUTES minutes (an environment variable, default 240)\", and validating it the same way as the urgent threshold is rigour on that requested setting."
+  }
+ ]
+}

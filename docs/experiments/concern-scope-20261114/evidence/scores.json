@@ -1,0 +1,123 @@
+{
+ "judged_rows": 376,
+ "judged_plans": 64,
+ "missing_plans": [],
+ "labels": {
+  "requested": 274,
+  "implied": 92,
+  "beyond": 8,
+  "unclear": 2
+ },
+ "label_share": {
+  "requested": 0.7287,
+  "implied": 0.2447,
+  "beyond": 0.0213,
+  "unclear": 0.0053
+ },
+ "plans_with_beyond": 6,
+ "family_mean_beyond_share": 0.020872420262664164,
+ "families": 41,
+ "by_concern": {
+  "accessibility": {
+   "implied": 11,
+   "requested": 11
+  },
+  "api": {
+   "requested": 60,
+   "implied": 1
+  },
+  "concurrency": {
+   "implied": 27,
+   "requested": 9,
+   "unclear": 1
+  },
+  "config": {
+   "requested": 30,
+   "implied": 5,
+   "beyond": 1
+  },
+  "messaging": {
+   "requested": 14,
+   "implied": 2,
+   "beyond": 2
+  },
+  "migrate-before": {
+   "requested": 1,
+   "implied": 1
+  },
+  "observability": {
+   "implied": 12,
+   "requested": 7,
+   "beyond": 4
+  },
+  "performance": {
+   "requested": 15,
+   "implied": 5,
+   "unclear": 1
+  },
+  "platform-services": {
+   "requested": 16,
+   "implied": 2
+  },
+  "scale": {
+   "requested": 10
+  },
+  "security": {
+   "requested": 28,
+   "implied": 13
+  },
+  "state": {
+   "requested": 46,
+   "implied": 13,
+   "beyond": 1
+  },
+  "switchover": {
+   "requested": 5
+  },
+  "ui": {
+   "requested": 22
+  }
+ },
+ "by_anchor": {
+  "R-<n>": {
+   "requested": 78,
+   "implied": 23,
+   "beyond": 2
+  },
+  "AD-<n>": {
+   "requested": 33,
+   "implied": 15,
+   "beyond": 1
+  },
+  "file or text": {
+   "requested": 163,
+   "implied": 54,
+   "unclear": 2,
+   "beyond": 5
+  }
+ },
+ "retest": {
+  "rows": 71,
+  "agree": 68,
+  "kappa": 0.8968023255813953,
+  "changes": {
+   "implied->unclear": 1,
+   "implied->requested": 2
+  }
+ },
+ "predictions": {
+  "P1 beyond <= 10% of rows (65%)": true,
+  "P2 >= 20% of judged plans hold a beyond row (55%)": false,
+  "P3 implied rows outnumber requested rows (60%)": false,
+  "P4 >= 50% of beyond rows in observability, scale, performance, platform-services, messaging (55%)": true,
+  "P5 retest agreement >= 85% of re-judged rows (70%)": true,
+  "P6 R-<n>-anchored rows are labelled requested more often than file-or-text rows (70%)": true,
+  "P7 unclear <= 5% of rows (60%)": true
+ },
+ "tokens": {
+  "input": 330745,
+  "output": 42384,
+  "calls": 64,
+  "outside_nonempty": 0
+ }
+}

@@ -1,0 +1,47 @@
+{
+ "action": "nav-13bc1cf60bdb46b2b4f7e3a734561b2e",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/:id/comments` with a JSON body `{\\\"author\\\": \\\"<name>\\\", \\\"body\\\": \\\"<text>\\\"}`... An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment\\\"; the row only decides that this goes through the service's existing outbox and worker template.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Comments are kept like the rest of a ticket's state: they survive a restart of the service\\\".\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"a data file written before this change keeps loading\\\"; defaulting absent comments to an empty list is how this works.\"}, {\"n\": 5, \"label\": \"implied\", \"why\": \"Durable comments and their notifications would be lost or corrupted if simultaneous comment requests interleaved, and the row reuses the existing single-process serialization rather than adding new machinery.\"}, {\"n\": 6, \"label\": \"implied\", \"why\": \"Reusing the existing audit and outbox keeps comment writes and notification failures visible to whoever must act, and keeps existing behaviour working, without adding a new channel.\"}]}",
+   "input_tokens": 5080,
+   "output_tokens": 817,
+   "seconds": 15.6,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/:id/comments` with a JSON body `{\"author\": \"<name>\", \"body\": \"<text>\"}`... An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment\"; the row only decides that this goes through the service's existing outbox and worker template."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Comments are kept like the rest of a ticket's state: they survive a restart of the service\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"a data file written before this change keeps loading\"; defaulting absent comments to an empty list is how this works."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Durable comments and their notifications would be lost or corrupted if simultaneous comment requests interleaved, and the row reuses the existing single-process serialization rather than adding new machinery."
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "Reusing the existing audit and outbox keeps comment writes and notification failures visible to whoever must act, and keeps existing behaviour working, without adding a new channel."
+  }
+ ]
+}

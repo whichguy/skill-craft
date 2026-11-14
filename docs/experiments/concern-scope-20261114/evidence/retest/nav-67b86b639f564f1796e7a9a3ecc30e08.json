@@ -1,0 +1,37 @@
+{
+ "action": "nav-67b86b639f564f1796e7a9a3ecc30e08",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The row only decides how the requested feature is built internally, as additive helpers that leave existing exports unchanged: \\\"Extend the server's user listing, GET /users, with filtering and pagination\\\" and \\\"Everything the project already does keeps working\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"The `name` query parameter keeps only the users whose name contains it... When either is given, the answer is a JSON object with \\\"page\\\", \\\"size\\\", \\\"total\\\"... \\\"pages\\\"... and \\\"items\\\"... answers HTTP 400 with a JSON object whose \\\"error\\\" says what is wrong... GET /users/:id is unchanged\\\".\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"The row adds no flag or rollout machinery and relies on compatibility, as the request asks: \\\"Keep the API compatible: without `page` and `size`, GET /users still answers a JSON array of users in id order\\\".\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400\\\"; keeping the existing user fields and adding no logging adds nothing beyond that.\"}]}",
+   "input_tokens": 5085,
+   "output_tokens": 718,
+   "seconds": 13.2,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The row only decides how the requested feature is built internally, as additive helpers that leave existing exports unchanged: \"Extend the server's user listing, GET /users, with filtering and pagination\" and \"Everything the project already does keeps working\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"The `name` query parameter keeps only the users whose name contains it... When either is given, the answer is a JSON object with \"page\", \"size\", \"total\"... \"pages\"... and \"items\"... answers HTTP 400 with a JSON object whose \"error\" says what is wrong... GET /users/:id is unchanged\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "The row adds no flag or rollout machinery and relies on compatibility, as the request asks: \"Keep the API compatible: without `page` and `size`, GET /users still answers a JSON array of users in id order\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400\"; keeping the existing user fields and adding no logging adds nothing beyond that."
+  }
+ ]
+}

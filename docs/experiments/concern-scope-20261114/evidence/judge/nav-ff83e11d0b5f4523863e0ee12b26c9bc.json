@@ -1,0 +1,47 @@
+{
+ "action": "nav-ff83e11d0b5f4523863e0ee12b26c9bc",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request names the HTTP routes: \\\"POST /groups\\\", \\\"POST /groups/<id>/expenses\\\", \\\"GET /groups/<id>/balances\\\", \\\"GET /groups/<id>/settlements\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Concurrent requests must never lose an expense.\\\"\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"The request asks for these rejections: \\\"400 unless members holds at least two distinct non-empty names\\\" and \\\"400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up\\\".\"}, {\"n\": 5, \"label\": \"implied\", \"why\": \"Groups and expenses must \\\"survive a restart\\\", and if startup or the data-file read or write failed silently, whoever runs the service would not know that data was not being kept.\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\\\"\"}]}",
+   "input_tokens": 5340,
+   "output_tokens": 434,
+   "seconds": 15.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request names the HTTP routes: \"POST /groups\", \"POST /groups/<id>/expenses\", \"GET /groups/<id>/balances\", \"GET /groups/<id>/settlements\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Concurrent requests must never lose an expense.\""
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "The request asks for these rejections: \"400 unless members holds at least two distinct non-empty names\" and \"400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up\"."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Groups and expenses must \"survive a restart\", and if startup or the data-file read or write failed silently, whoever runs the service would not know that data was not being kept."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\""
+  }
+ ]
+}

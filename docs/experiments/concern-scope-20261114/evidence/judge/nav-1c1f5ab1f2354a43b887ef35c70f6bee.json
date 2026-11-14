@@ -1,0 +1,27 @@
+{
+ "action": "nav-1c1f5ab1f2354a43b887ef35c70f6bee",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`GET /teams` lists the teams the way `GET /users` lists users: filtered by `name`, and paged by `page` and `size`, with the same answers, errors included\\\" and \\\"404 the way `GET /users/:id` does\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"There are five teams, each with an `id`, a `name` and its `members`\\\" \u2014 the request fixes the exact team data and asks only for reads, so fixed read-only in-process data only decides how the named teams are held.\"}]}",
+   "input_tokens": 4459,
+   "output_tokens": 193,
+   "seconds": 9.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`GET /teams` lists the teams the way `GET /users` lists users: filtered by `name`, and paged by `page` and `size`, with the same answers, errors included\" and \"404 the way `GET /users/:id` does\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"There are five teams, each with an `id`, a `name` and its `members`\" \u2014 the request fixes the exact team data and asks only for reads, so fixed read-only in-process data only decides how the named teams are held."
+  }
+ ]
+}

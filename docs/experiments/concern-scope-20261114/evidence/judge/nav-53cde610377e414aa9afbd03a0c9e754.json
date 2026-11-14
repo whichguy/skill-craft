@@ -1,0 +1,47 @@
+{
+ "action": "nav-53cde610377e414aa9afbd03a0c9e754",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Everything else the service already does keeps working, and its other tests must still pass as they are.\\\"\"},\n{\"n\": 2, \"label\": \"implied\", \"why\": \"\\\"Each escalation notifies the agent named in the ONCALL environment variable\\\" requires the second escalation to produce its own notification; it must not be merged with or deduplicated against the first.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"a ticket is escalated at most twice, even across restarts of the service\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Enforcing the at-most-twice limit needs consistent ordering of escalation checks, and reusing the existing single-process store provides that without new infrastructure.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"If the service already audits escalations, both escalations must be recorded so the existing behaviour keeps working and the second escalation is not hidden from whoever acts on it.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"urgent tickets keep ESCALATE_AFTER_MINUTES (default 60), and high tickets are escalated too, after ESCALATE_HIGH_MINUTES minutes (an environment variable, default 240)\\\"\"}\n]}\n```",
+   "input_tokens": 4768,
+   "output_tokens": 762,
+   "seconds": 19.1,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Everything else the service already does keeps working, and its other tests must still pass as they are.\""
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "\"Each escalation notifies the agent named in the ONCALL environment variable\" requires the second escalation to produce its own notification; it must not be merged with or deduplicated against the first."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"a ticket is escalated at most twice, even across restarts of the service\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Enforcing the at-most-twice limit needs consistent ordering of escalation checks, and reusing the existing single-process store provides that without new infrastructure."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "If the service already audits escalations, both escalations must be recorded so the existing behaviour keeps working and the second escalation is not hidden from whoever acts on it."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"urgent tickets keep ESCALATE_AFTER_MINUTES (default 60), and high tickets are escalated too, after ESCALATE_HIGH_MINUTES minutes (an environment variable, default 240)\""
+  }
+ ]
+}

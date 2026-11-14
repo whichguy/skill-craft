@@ -1,0 +1,27 @@
+{
+ "action": "nav-b8dfa9fa233146ff8bbbe84d05f9514d",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"Add GET /users/summary\\\" and \\\"Use the same `name` and `team` filters GET /users applies\\\"; reusing the existing HTTP server only decides how that requested route is exposed.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"The request says \\\"Use the same `name` and `team` filters GET /users applies\\\" and \\\"Everything the project already does keeps working\\\"; reading the existing in-memory store read-only only decides how the requested counts are sourced, with no new state.\"}]}",
+   "input_tokens": 4412,
+   "output_tokens": 189,
+   "seconds": 8.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"Add GET /users/summary\" and \"Use the same `name` and `team` filters GET /users applies\"; reusing the existing HTTP server only decides how that requested route is exposed."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "The request says \"Use the same `name` and `team` filters GET /users applies\" and \"Everything the project already does keeps working\"; reading the existing in-memory store read-only only decides how the requested counts are sourced, with no new state."
+  }
+ ]
+}

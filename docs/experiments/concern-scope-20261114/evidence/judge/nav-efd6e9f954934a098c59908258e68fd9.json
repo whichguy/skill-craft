@@ -1,0 +1,27 @@
+{
+ "action": "nav-efd6e9f954934a098c59908258e68fd9",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Extend the server's user listing, GET /users, with filtering and pagination\\\" ... \\\"answers HTTP 400 with a JSON object whose \\\\\\\"error\\\\\\\" says what is wrong\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"an in-memory user store\\\" ... \\\"Everything the project already does keeps working\\\"\"}]}",
+   "input_tokens": 4664,
+   "output_tokens": 142,
+   "seconds": 9.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Extend the server's user listing, GET /users, with filtering and pagination\" ... \"answers HTTP 400 with a JSON object whose \\\"error\\\" says what is wrong\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"an in-memory user store\" ... \"Everything the project already does keeps working\""
+  }
+ ]
+}

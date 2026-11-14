@@ -1,0 +1,62 @@
+{
+ "action": "nav-7c9222cc2d8847c4a0645a37dbc3603c",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/import` takes a JSON body `{\\\"tickets\\\": [...]}`\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"its requester is notified just as when one ticket is created\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"creates them in the given order: all of them, or none when any item is invalid\\\" and \\\"Each imported ticket is recorded\\\"\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"The all-or-none, in-order creation would be corrupted if other writes interleaved mid-import, so relying on the synchronous store to keep the batch atomic is needed.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"at most 5000 of them\\\"\"}, {\"n\": 6, \"label\": \"implied\", \"why\": \"Rejecting oversized or malformed bodies is input validation of the requested endpoint, needed so the 5000-item bound and all-or-none rule are enforced safely.\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Each imported ticket is recorded ... just as when one ticket is created\\\"\"}, {\"n\": 8, \"label\": \"implied\", \"why\": \"A body of 5000 tickets would be rejected by an existing default body size limit, so the limit must accommodate the full-size import.\"}, {\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"An import of 5000 tickets must be answered within 10 seconds\\\" and \\\"Add node:test tests under test/ for the new behaviour\\\"\"}]}",
+   "input_tokens": 4820,
+   "output_tokens": 518,
+   "seconds": 10.6,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/import` takes a JSON body `{\"tickets\": [...]}`\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"its requester is notified just as when one ticket is created\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"creates them in the given order: all of them, or none when any item is invalid\" and \"Each imported ticket is recorded\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The all-or-none, in-order creation would be corrupted if other writes interleaved mid-import, so relying on the synchronous store to keep the batch atomic is needed."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"at most 5000 of them\""
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "Rejecting oversized or malformed bodies is input validation of the requested endpoint, needed so the 5000-item bound and all-or-none rule are enforced safely."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Each imported ticket is recorded ... just as when one ticket is created\""
+  },
+  {
+   "n": 8,
+   "label": "implied",
+   "why": "A body of 5000 tickets would be rejected by an existing default body size limit, so the limit must accommodate the full-size import."
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"An import of 5000 tickets must be answered within 10 seconds\" and \"Add node:test tests under test/ for the new behaviour\""
+  }
+ ]
+}

@@ -1,0 +1,52 @@
+{
+ "action": "nav-220629cd5dea474daa2addd3b2cf2c67",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"The request asks for \\\"a simple Lightning web component board\\\" and for following the \\\"accessibility\\\" and \\\"UI\\\" requirements.\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"The request says \\\"Build a single-player Battleship game in Apex\\\" and to \\\"Follow the complete user-specified ... API ... requirements\\\"; this row decides how that API is structured.\"},\n{\"n\": 3, \"label\": \"implied\", \"why\": \"A playable game needs board and shot state somewhere, and keeping it as client-held JSON with no stored data is the minimal way to make the requested game work.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Rapid clicks on the requested board could send overlapping shot requests that corrupt or reorder the client-held game state, so the UI must serialize them.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"The game deployed to the de org can't be used without access granted through the requested \\\"metadata\\\", and checking shots inside the engine is input validation of the requested API.\"},\n{\"n\": 6, \"label\": \"implied\", \"why\": \"A full game on a 10x10 board can take up to 100 shots, so the requested Apex game must stay within Salesforce governor limits at that size, which is what this test checks.\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"The request says \\\"Follow the complete user-specified ... accessibility ... and UI test requirements\\\".\"}\n]}\n```",
+   "input_tokens": 4467,
+   "output_tokens": 973,
+   "seconds": 18.8,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request asks for \"a simple Lightning web component board\" and for following the \"accessibility\" and \"UI\" requirements."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "The request says \"Build a single-player Battleship game in Apex\" and to \"Follow the complete user-specified ... API ... requirements\"; this row decides how that API is structured."
+  },
+  {
+   "n": 3,
+   "label": "implied",
+   "why": "A playable game needs board and shot state somewhere, and keeping it as client-held JSON with no stored data is the minimal way to make the requested game work."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Rapid clicks on the requested board could send overlapping shot requests that corrupt or reorder the client-held game state, so the UI must serialize them."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "The game deployed to the de org can't be used without access granted through the requested \"metadata\", and checking shots inside the engine is input validation of the requested API."
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "A full game on a 10x10 board can take up to 100 shots, so the requested Apex game must stay within Salesforce governor limits at that size, which is what this test checks."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "The request says \"Follow the complete user-specified ... accessibility ... and UI test requirements\"."
+  }
+ ]
+}

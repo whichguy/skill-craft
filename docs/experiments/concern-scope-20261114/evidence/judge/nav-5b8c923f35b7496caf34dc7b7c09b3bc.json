@@ -1,0 +1,37 @@
+{
+ "action": "nav-5b8c923f35b7496caf34dc7b7c09b3bc",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"Keeping the totals in memory for one run only decides how the request's \\\"Print one JSON object to stdout: {\\\"rows\\\": ..., \\\"revenue\\\": ..., \\\"by_region\\\": ..., \\\"by_product\\\": ...}\\\" is computed.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"a non-numeric or negative units or unit_price, is skipped\\\" and \\\"A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1\\\".\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0\\\" and \\\"exits 1\\\".\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"Streaming records with no stated speed target only decides how the tool \\\"summarises sales records\\\" from each \\\"FILE [FILE ...]\\\" and adds no capability or budget.\"}]}",
+   "input_tokens": 4625,
+   "output_tokens": 636,
+   "seconds": 14.5,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "Keeping the totals in memory for one run only decides how the request's \"Print one JSON object to stdout: {\"rows\": ..., \"revenue\": ..., \"by_region\": ..., \"by_product\": ...}\" is computed."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"a non-numeric or negative units or unit_price, is skipped\" and \"A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0\" and \"exits 1\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "Streaming records with no stated speed target only decides how the tool \"summarises sales records\" from each \"FILE [FILE ...]\" and adds no capability or budget."
+  }
+ ]
+}

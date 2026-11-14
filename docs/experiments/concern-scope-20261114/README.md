@@ -76,3 +76,72 @@ the request does not need (**beyond**)? How often does a plan carry at least one
 The labels are one model's judgment, not a script-run test. The corpus is E2E test requests, which state their scope
 in detail, so it may understate how often a vaguer real request draws extra scope. A plan row is a decision, not the
 built product; the decision rule's second branch checks the product only for beyond rows.
+
+## Results (2026-11-14, scored as registered)
+
+**The run.** Before it, every nested `claude -p` failed ("this login reached its time limit and cannot be renewed"):
+the Claude CLI's stored sign-in had expired. The owner signed in again and the registered route then ran unchanged.
+64 judge calls, every reply parsed on its first attempt, no call touched anything outside its directory; 330,745 input
+and 42,384 output tokens, 157 seconds at 6 parallel calls. Retest: 10 calls, 53,717 input and 7,232 output tokens.
+
+**Labels** (376 rows in 64 plans; `scores.json`, `labelled-rows.jsonl`):
+
+| Label | Rows | Share |
+|---|---|---|
+| requested | 274 | 72.9% |
+| implied | 92 | 24.5% |
+| beyond | 8 | 2.1% |
+| unclear | 2 | 0.5% |
+
+- Plans holding a beyond row: 6 of 64 (9.4%). Mean beyond share per family, each of the 41 families weighted once: 2.1%.
+- Implied is the majority only in concurrency (27 of 37 rows); about half in accessibility (11 of 22) and
+  observability (12 of 23, with 4 beyond); a third in security (13 of 41); api (60 of 61) and ui (22 of 22) are
+  almost all requested.
+- Grounding check (`quote-check.json`): 267 of the 274 requested labels quote words that occur in the request
+  (fragments around an ellipsis, case and whitespace folded); the other 7 are near-verbatim.
+- Retest: 68 of 71 re-judged rows got the same label (95.8%, Cohen's kappa 0.90). The 3 changes were implied to
+  requested (2) and implied to unclear (1); no beyond label changed.
+
+**Predictions, as written:**
+
+| # | Outcome |
+|---|---|
+| P1 | Held: beyond rows are 2.1% of rows |
+| P2 | Missed as written: 9.4% of plans hold a beyond row, not 20% or more |
+| P3 | Missed as written: 92 implied rows against 274 requested |
+| P4 | Held as written: 6 of 8 beyond rows are observability (4) or messaging (2). Reading: all 6 are one case family's reuse of an existing outbox and audit log (below), so this says nothing about the concern type |
+| P5 | Held: 95.8% agreement, kappa 0.90 |
+| P6 | Held as written, by 3 points: requested in 76% of the 103 R-<n>-anchored rows against 73% of the 224 file-or-text rows. Reading: the anchor kind does not tell requested rows apart |
+| P7 | Held: 0.5% unclear |
+
+**The beyond rows** (`beyond-rows.md`; a reading, not a rescoring; the registered rule asks for this audit only in
+its second branch):
+
+- 6 of the 8, in 4 plans, are the ticket service's notification outbox and worker, and audit entries. The service's
+  base commit already holds `src/outbox.js`, `src/notifier.js`, `src/backoff.js` and `src/audit.js` (case repository
+  root commits 2e416e91118338a32979ff152d67afadf09f861f and d507f964237b016624448004ac6d7ba70ad8bd46): the plans
+  reused the service's own notification and audit convention. The judge saw only the request, so it read reuse as
+  addition. These are not scope beyond the ask.
+- 1 is a genuine small addition: a hello run (DeepSeek flash pilot, 2026-10-26) planned and delivered a `.gitignore`
+  for `__pycache__/` and `*.pyc` as its own step (case commit 194e797, "feat(W1/S2)").
+- 1 is a safeguard: a Battleship run (Sonnet, 2026-10-26) bounded its in-memory game store by count (1,000) and idle
+  time (one hour) in `game.js`. Under the request-only rule it is beyond; it is also the abuse limit on anonymous input
+  that plan duty 8 asks for at every placement, so it is an implied safeguard the plan did not mark as one.
+
+So the clear additions beyond the ask in this sample are 1 row of 376, or 2 counting the safeguard.
+
+**Decision (the registered rule's first branch).** Beyond rows are 2.1% of rows (at most 5%) and 9.4% of plans (at most
+15%): a basis field built as a scope guard would change almost no plan in these runs, so it is not built. The implied
+rows, 92 of 376 (about 1.4 per plan, mostly concurrency, observability, security, state and accessibility), are what a
+basis field would ask the plan to mark; whether to mark them for visibility alone is the owner's decision.
+
+**Contrary evidence and unknowns.**
+
+- These requests spell out their behaviour, which is why requested dominates; a vague request may draw more additions.
+  Not measured.
+- The judge saw only the request. A judge with the repository would not have flagged the 6 reuse rows, but might flag
+  others.
+- Only applicable rows were judged. Rows marked "no" were not, so the other half of the owner's rule, a material
+  implied requirement the plan missed, is unmeasured here.
+- The release and migration points are barely in the corpus: switchover, migrate-before and migrate-after apply in 11,
+  9 and 1 of 416 work items (2 and 1 rows in the sample), so this study says nothing about them.

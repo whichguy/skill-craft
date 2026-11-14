@@ -1,0 +1,47 @@
+{
+ "action": "nav-287dd5c4be76449db65c62206a29a9a4",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/reassign` with `{\\\"from\\\": \\\"<agent>\\\", \\\"to\\\": \\\"<agent>\\\"}` ... answers `{\\\"moved\\\": <how many>, \\\"ids\\\": [...]}`; `from` and `to` must be two different agents\\\"\"},\n{\"n\": 2, \"label\": \"implied\", \"why\": \"Reusing assignment events is requested (\\\"notified as for a single assignment\\\"), and a durable outbox keeps the escalation notification from being lost on restart while still honouring \\\"escalated at most once, even across restarts\\\", so urgent tickets do not silently wait.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"A ticket is escalated at most once, even across restarts of the service\\\"; loading legacy data without the marker only keeps \\\"Everything the service already does keeps working\\\".\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Without serialized store operations, bulk reassignment racing with single assignment or the escalation worker could move or escalate tickets inconsistently and corrupt the reported moved count and ids.\"},\n{\"n\": 5, \"label\": \"beyond\", \"why\": \"Logging worker failures is implied so failed escalations are not hidden, but an assignment audit trail and an outbox report add an audit log and reporting surface the request does not ask for.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\\\" and \\\"the agent named in the ONCALL environment variable ... without ONCALL nothing is escalated\\\"; validating these is rigour on requested config.\"}\n]}\n```",
+   "input_tokens": 4746,
+   "output_tokens": 1215,
+   "seconds": 18.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/reassign` with `{\"from\": \"<agent>\", \"to\": \"<agent>\"}` ... answers `{\"moved\": <how many>, \"ids\": [...]}`; `from` and `to` must be two different agents\""
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "Reusing assignment events is requested (\"notified as for a single assignment\"), and a durable outbox keeps the escalation notification from being lost on restart while still honouring \"escalated at most once, even across restarts\", so urgent tickets do not silently wait."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"A ticket is escalated at most once, even across restarts of the service\"; loading legacy data without the marker only keeps \"Everything the service already does keeps working\"."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Without serialized store operations, bulk reassignment racing with single assignment or the escalation worker could move or escalate tickets inconsistently and corrupt the reported moved count and ids."
+  },
+  {
+   "n": 5,
+   "label": "beyond",
+   "why": "Logging worker failures is implied so failed escalations are not hidden, but an assignment audit trail and an outbox report add an audit log and reporting surface the request does not ask for."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\" and \"the agent named in the ONCALL environment variable ... without ONCALL nothing is escalated\"; validating these is rigour on requested config."
+  }
+ ]
+}

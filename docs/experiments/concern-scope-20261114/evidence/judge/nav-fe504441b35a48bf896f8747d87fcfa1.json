@@ -1,0 +1,57 @@
+{
+ "action": "nav-fe504441b35a48bf896f8747d87fcfa1",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"following the complete user-specified ... accessibility ... and UI requirements\\\" and asks to \\\"test\\\" the project.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"The request says \\\"following the complete user-specified Apex ... test ... requirements\\\", and this row only decides how the Apex contract and its tests work.\"}, {\"n\": 3, \"label\": \"implied\", \"why\": \"A requested working \\\"single-player Battleship\\\" game needs its game state kept and reset correctly, and session-only JSON is the minimal way to do that with no extra store.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Without serialized requests, double clicks could record duplicate shots and corrupt the requested game's state.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"The request says \\\"Build, deploy, and test ... in the current directory and org de\\\".\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"The request says \\\"following the complete user-specified ... security ... requirements\\\", and the work item scope limits it to the \\\"specified tab/app/permission set only\\\".\"}, {\"n\": 7, \"label\": \"implied\", \"why\": \"A full game of up to 100 shots has to finish within Salesforce transaction limits, or the requested game would fail partway through.\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"The request says \\\"following the complete user-specified ... accessibility ... requirements\\\" and asks to \\\"test\\\" the project.\"}]}",
+   "input_tokens": 4599,
+   "output_tokens": 493,
+   "seconds": 10.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"following the complete user-specified ... accessibility ... and UI requirements\" and asks to \"test\" the project."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "The request says \"following the complete user-specified Apex ... test ... requirements\", and this row only decides how the Apex contract and its tests work."
+  },
+  {
+   "n": 3,
+   "label": "implied",
+   "why": "A requested working \"single-player Battleship\" game needs its game state kept and reset correctly, and session-only JSON is the minimal way to do that with no extra store."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Without serialized requests, double clicks could record duplicate shots and corrupt the requested game's state."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "The request says \"Build, deploy, and test ... in the current directory and org de\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "The request says \"following the complete user-specified ... security ... requirements\", and the work item scope limits it to the \"specified tab/app/permission set only\"."
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "A full game of up to 100 shots has to finish within Salesforce transaction limits, or the requested game would fail partway through."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "The request says \"following the complete user-specified ... accessibility ... requirements\" and asks to \"test\" the project."
+  }
+ ]
+}

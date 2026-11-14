@@ -1,0 +1,47 @@
+{
+ "action": "nav-474124c2eef5491ab980470f87ce0428",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/reassign` with `{\\\"from\\\": \\\"<agent>\\\", \\\"to\\\": \\\"<agent>\\\"}` ... answers `{\\\"moved\\\": <how many>, \\\"ids\\\": [<their ids in id order>]}`\\\"\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"Each moved ticket's new agent is notified as for a single assignment\\\" and \\\"the agent named in the ONCALL environment variable is notified that the ticket was escalated\\\"\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"A ticket is escalated at most once, even across restarts of the service\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"The request does not mention concurrency, but bulk reassignment and periodic escalation running alongside single assignment could double-escalate or lose moves unless their ordering is handled, which would break \\\"escalated at most once\\\" and correct \\\"moved\\\"/\\\"ids\\\" results.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"The request does not mention logging, but failed escalation or reassignment notifications would otherwise go unseen, and the urgent tickets would wait unassigned; reusing the existing boundary adds no new monitoring infrastructure.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\\\" and \\\"without ONCALL nothing is escalated\\\"\"}\n]}\n```",
+   "input_tokens": 4784,
+   "output_tokens": 748,
+   "seconds": 16.1,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/reassign` with `{\"from\": \"<agent>\", \"to\": \"<agent>\"}` ... answers `{\"moved\": <how many>, \"ids\": [<their ids in id order>]}`\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"Each moved ticket's new agent is notified as for a single assignment\" and \"the agent named in the ONCALL environment variable is notified that the ticket was escalated\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"A ticket is escalated at most once, even across restarts of the service\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The request does not mention concurrency, but bulk reassignment and periodic escalation running alongside single assignment could double-escalate or lose moves unless their ordering is handled, which would break \"escalated at most once\" and correct \"moved\"/\"ids\" results."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "The request does not mention logging, but failed escalation or reassignment notifications would otherwise go unseen, and the urgent tickets would wait unassigned; reusing the existing boundary adds no new monitoring infrastructure."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\" and \"without ONCALL nothing is escalated\""
+  }
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "action": "nav-6653d26e0dd14a719d52f4d34f0168a5",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"Add GET /users/summary\\\" and \\\"Use the same `name` and `team` filters GET /users applies\\\", and this row only decides how that route is implemented and verified.\"}]}",
+   "input_tokens": 4366,
+   "output_tokens": 86,
+   "seconds": 9.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"Add GET /users/summary\" and \"Use the same `name` and `team` filters GET /users applies\", and this row only decides how that route is implemented and verified."
+  }
+ ]
+}

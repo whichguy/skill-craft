@@ -1,0 +1,47 @@
+{
+ "action": "nav-3441647f20f541cf8370394fd9f5b689",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"renders a list of options given by its `options` attribute ... a Confirm button and a status line\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"given by its `options` attribute (comma-separated...)\\\" and \\\"dispatches a `confirm` event with the name\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"dispatches a `confirm` event with the name\\\"\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"This decides how \\\"Clicking an option selects it (only one at a time...)\\\" and the status line will work, keeping that state on the component.\"}, {\"n\": 5, \"label\": \"implied\", \"why\": \"The requirement that \\\"The interaction must be verified by tests that run it\\\" needs a DOM in Node, and pinning jsdom keeps those tests reproducible.\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"only one at a time, marked with aria-pressed\\\"\"}]}",
+   "input_tokens": 4587,
+   "output_tokens": 484,
+   "seconds": 10.6,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"renders a list of options given by its `options` attribute ... a Confirm button and a status line\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"given by its `options` attribute (comma-separated...)\" and \"dispatches a `confirm` event with the name\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"dispatches a `confirm` event with the name\""
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "This decides how \"Clicking an option selects it (only one at a time...)\" and the status line will work, keeping that state on the component."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "The requirement that \"The interaction must be verified by tests that run it\" needs a DOM in Node, and pinning jsdom keeps those tests reproducible."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"only one at a time, marked with aria-pressed\""
+  }
+ ]
+}

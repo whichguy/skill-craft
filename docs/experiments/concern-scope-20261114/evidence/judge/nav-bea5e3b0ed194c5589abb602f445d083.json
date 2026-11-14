@@ -1,0 +1,62 @@
+{
+ "action": "nav-bea5e3b0ed194c5589abb602f445d083",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"answers 400 with an error whose message names the first invalid item by its index\\\" and \\\"On success it answers 201 with {\\\"created\\\": <how many>, \\\"ids\\\": [...]}\\\"\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"its requester is notified just as when one ticket is created\\\"\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"creates them in the given order: all of them, or none when any item is invalid\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"The all-or-none, in-order import would be corrupted if a concurrent request could mutate the store mid-import, so the store mutation has to stay serialized.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"at most 5000 of them\\\"\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"whose items are what POST /tickets takes, at most 5000 of them\\\"\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Each imported ticket is recorded ... just as when one ticket is created\\\"\"},\n{\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Everything the service already does keeps working\\\"\"},\n{\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"An import of 5000 tickets must be answered within 10 seconds\\\"\"}\n]}\n```",
+   "input_tokens": 4871,
+   "output_tokens": 776,
+   "seconds": 12.6,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"answers 400 with an error whose message names the first invalid item by its index\" and \"On success it answers 201 with {\"created\": <how many>, \"ids\": [...]}\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"its requester is notified just as when one ticket is created\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"creates them in the given order: all of them, or none when any item is invalid\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The all-or-none, in-order import would be corrupted if a concurrent request could mutate the store mid-import, so the store mutation has to stay serialized."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"at most 5000 of them\""
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"whose items are what POST /tickets takes, at most 5000 of them\""
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Each imported ticket is recorded ... just as when one ticket is created\""
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Everything the service already does keeps working\""
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"An import of 5000 tickets must be answered within 10 seconds\""
+  }
+ ]
+}

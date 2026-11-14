@@ -1,0 +1,52 @@
+{
+ "action": "nav-ac42ca2a8d4541b79ab4b27f6ba651da",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"Only decides how the requested page works and looks: \\\"GET / serves a playable HTML page titled \\\"Checkers\\\" with an 8x8 board where two players take turns on the same page\\\".\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"POST /api/move ... returns JSON with \\\"ok\\\" true or false, \\\"turn\\\" set to \\\"red\\\" or \\\"black\\\", and \\\"winner\\\" null or the winning colour. An illegal move returns \\\"ok\\\": false and leaves the turn unchanged\\\".\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"Decides how the requested games are held: \\\"GET /api/new starts a game and returns JSON with a game id\\\".\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Requests arriving close together must apply in order, or the rule that \\\"a legal move switches the turn\\\" could corrupt game state, and the single-threaded event loop provides that ordering with no extra machinery.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"POST /api/move must reject malformed or oversized JSON bodies, or the server could crash or hang and the requested move endpoint would fail.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"server.js starts the server on the port in the PORT environment variable (default 3000)\\\".\"},\n{\"n\": 7, \"label\": \"implied\", \"why\": \"Visible focus and labelled squares are accessibility rigour on the requested \\\"playable HTML page\\\" board, so players can operate and read it.\"}\n]}",
+   "input_tokens": 4770,
+   "output_tokens": 846,
+   "seconds": 16.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "Only decides how the requested page works and looks: \"GET / serves a playable HTML page titled \"Checkers\" with an 8x8 board where two players take turns on the same page\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"POST /api/move ... returns JSON with \"ok\" true or false, \"turn\" set to \"red\" or \"black\", and \"winner\" null or the winning colour. An illegal move returns \"ok\": false and leaves the turn unchanged\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "Decides how the requested games are held: \"GET /api/new starts a game and returns JSON with a game id\"."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Requests arriving close together must apply in order, or the rule that \"a legal move switches the turn\" could corrupt game state, and the single-threaded event loop provides that ordering with no extra machinery."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "POST /api/move must reject malformed or oversized JSON bodies, or the server could crash or hang and the requested move endpoint would fail."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"server.js starts the server on the port in the PORT environment variable (default 3000)\"."
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "Visible focus and labelled squares are accessibility rigour on the requested \"playable HTML page\" board, so players can operate and read it."
+  }
+ ]
+}

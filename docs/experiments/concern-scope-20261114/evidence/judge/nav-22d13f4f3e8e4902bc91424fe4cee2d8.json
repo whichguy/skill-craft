@@ -1,0 +1,72 @@
+{
+ "action": "nav-22d13f4f3e8e4902bc91424fe4cee2d8",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"a simple Lightning web component board\\\" that \\\"renders the 10x10 grid... and has a New game button\\\"; loading and error states are polish of that requested interface.\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"SLBtlHo9a87Controller has @AuraEnabled public static methods newGame(Integer seed) and fire(...)\\\" and \\\"SLBtlHo9a87Engine is a public class with static methods only\\\".\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"a game is a JSON string\\\" and \\\"Create no other metadata (no custom objects, fields...)\\\", so the board holds the returned game in memory.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"The board must \\\"fire at a cell when a person clicks it\\\"; overlapping requests could submit a stale game or fire a duplicate shot that throws, so input is held until each response returns.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"Build a single-player Battleship game in Apex\\\" with \\\"a custom tab... that is a Lightning component tab\\\".\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"the computer places a fleet on a 10x10 grid (rows and columns 0 to 9)\\\".\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"a permission set permissionsets/SLBtlHo9a87_Access...\\\", \\\"never ask for, print or store credentials\\\" and out-of-range shots \\\"throws SLBtlHo9a87Engine.InvalidShotException\\\".\"},\n{\"n\": 8, \"label\": \"implied\", \"why\": \"If invalid-shot or server errors were not shown on the board or in test output, failures would be hidden from the player and from whoever runs the tests.\"},\n{\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"Create no other metadata\\\" and \\\"The Salesforce DX project root (sfdx-project.json and force-app/) is the current directory itself\\\".\"},\n{\"n\": 10, \"label\": \"requested\", \"why\": \"\\\"Keep the engine efficient enough that a whole game of 100 shots... runs inside one transaction\\\".\"},\n{\"n\": 11, \"label\": \"implied\", \"why\": \"Keyboard focus and contrast make the requested clickable board grid usable; this is accessibility rigour on a requested interface.\"}\n]}\n```",
+   "input_tokens": 7396,
+   "output_tokens": 1163,
+   "seconds": 17.1,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"a simple Lightning web component board\" that \"renders the 10x10 grid... and has a New game button\"; loading and error states are polish of that requested interface."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"SLBtlHo9a87Controller has @AuraEnabled public static methods newGame(Integer seed) and fire(...)\" and \"SLBtlHo9a87Engine is a public class with static methods only\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"a game is a JSON string\" and \"Create no other metadata (no custom objects, fields...)\", so the board holds the returned game in memory."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The board must \"fire at a cell when a person clicks it\"; overlapping requests could submit a stale game or fire a duplicate shot that throws, so input is held until each response returns."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"Build a single-player Battleship game in Apex\" with \"a custom tab... that is a Lightning component tab\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"the computer places a fleet on a 10x10 grid (rows and columns 0 to 9)\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"a permission set permissionsets/SLBtlHo9a87_Access...\", \"never ask for, print or store credentials\" and out-of-range shots \"throws SLBtlHo9a87Engine.InvalidShotException\"."
+  },
+  {
+   "n": 8,
+   "label": "implied",
+   "why": "If invalid-shot or server errors were not shown on the board or in test output, failures would be hidden from the player and from whoever runs the tests."
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"Create no other metadata\" and \"The Salesforce DX project root (sfdx-project.json and force-app/) is the current directory itself\"."
+  },
+  {
+   "n": 10,
+   "label": "requested",
+   "why": "\"Keep the engine efficient enough that a whole game of 100 shots... runs inside one transaction\"."
+  },
+  {
+   "n": 11,
+   "label": "implied",
+   "why": "Keyboard focus and contrast make the requested clickable board grid usable; this is accessibility rigour on a requested interface."
+  }
+ ]
+}

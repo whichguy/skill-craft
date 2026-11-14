@@ -1,0 +1,22 @@
+{
+ "action": "nav-2c4c7d9cc8e946dca6297dfb46f5cbcb",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"Keeping input read-only and aggregates local to one run only decides how the requested CLI works: \\\"Usage: `python3 report.py FILE [FILE ...]`\\\" ... \\\"Print one JSON object to stdout\\\"; it adds no store or shared state.\"}]}",
+   "input_tokens": 4855,
+   "output_tokens": 209,
+   "seconds": 8.4,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "Keeping input read-only and aggregates local to one run only decides how the requested CLI works: \"Usage: `python3 report.py FILE [FILE ...]`\" ... \"Print one JSON object to stdout\"; it adds no store or shared state."
+  }
+ ]
+}

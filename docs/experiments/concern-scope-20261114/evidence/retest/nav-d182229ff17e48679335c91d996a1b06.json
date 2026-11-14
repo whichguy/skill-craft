@@ -1,0 +1,37 @@
+{
+ "action": "nav-d182229ff17e48679335c91d996a1b06",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request specifies the HTTP contract and its validation: \\\"POST /groups ... 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names\\\" and \\\"400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up\\\".\"}, {\"n\": 2, \"label\": \"implied\", \"why\": \"The request says data is kept \\\"in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\\\", and a non-atomic write interrupted mid-way could corrupt that file and lose every group and expense.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"The request states \\\"Concurrent requests must never lose an expense\\\", and serializing writes is how the plan meets it.\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"The request says \\\"server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\\\".\"}]}",
+   "input_tokens": 5143,
+   "output_tokens": 440,
+   "seconds": 11.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request specifies the HTTP contract and its validation: \"POST /groups ... 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names\" and \"400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up\"."
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "The request says data is kept \"in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\", and a non-atomic write interrupted mid-way could corrupt that file and lose every group and expense."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "The request states \"Concurrent requests must never lose an expense\", and serializing writes is how the plan meets it."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "The request says \"server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\"."
+  }
+ ]
+}

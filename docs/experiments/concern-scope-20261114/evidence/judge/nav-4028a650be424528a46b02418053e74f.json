@@ -1,0 +1,52 @@
+{
+ "action": "nav-4028a650be424528a46b02418053e74f",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`from` and `to` must be two different agents\\\" and \\\"answers `{\\\"moved\\\": <how many>, \\\"ids\\\": [<their ids in id order>]}`\\\".\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"Each moved ticket's new agent is notified as for a single assignment\\\" and \\\"the agent named in the ONCALL environment variable is notified that the ticket was escalated\\\"; reusing the existing outbox and retry only decides how that works.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"A ticket is escalated at most once, even across restarts of the service\\\" and \\\"Everything the service already does keeps working\\\".\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Bulk reassignment and the escalation scan run alongside single assignments, so they need a defined ordering in the store; without it the moved count and ids could be wrong, or an escalation could be duplicated or lost.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"Everything the service already does keeps working, assignment included, and the existing tests must still pass\\\".\"},\n{\"n\": 6, \"label\": \"implied\", \"why\": \"Reusing the existing audit and outbox reporting, with nothing new added, keeps failed reassignment or escalation notifications visible to whoever must act, so they are not silently lost.\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\\\" and \\\"without ONCALL nothing is escalated\\\".\"}\n]}\n```",
+   "input_tokens": 4822,
+   "output_tokens": 955,
+   "seconds": 13.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`from` and `to` must be two different agents\" and \"answers `{\"moved\": <how many>, \"ids\": [<their ids in id order>]}`\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"Each moved ticket's new agent is notified as for a single assignment\" and \"the agent named in the ONCALL environment variable is notified that the ticket was escalated\"; reusing the existing outbox and retry only decides how that works."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"A ticket is escalated at most once, even across restarts of the service\" and \"Everything the service already does keeps working\"."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Bulk reassignment and the escalation scan run alongside single assignments, so they need a defined ordering in the store; without it the moved count and ids could be wrong, or an escalation could be duplicated or lost."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"Everything the service already does keeps working, assignment included, and the existing tests must still pass\"."
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "Reusing the existing audit and outbox reporting, with nothing new added, keeps failed reassignment or escalation notifications visible to whoever must act, so they are not silently lost."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60)\" and \"without ONCALL nothing is escalated\"."
+  }
+ ]
+}

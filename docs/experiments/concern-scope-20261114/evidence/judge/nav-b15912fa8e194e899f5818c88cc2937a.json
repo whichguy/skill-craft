@@ -1,0 +1,27 @@
+{
+ "action": "nav-b15912fa8e194e899f5818c88cc2937a",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Use the same `name` and `team` filters GET /users applies\\\", \\\"change team matching on both GET /users and GET /users/summary to ignore letter case while still requiring the exact team name\\\" and \\\"It counts all matches without pagination.\\\"\"}, {\"n\": 2, \"label\": \"implied\", \"why\": \"The summary must read the existing user store to count matches, and \\\"Stored and returned team spelling stays unchanged\\\" plus keeping unrelated behavior intact require that this read never mutate the store.\"}]}",
+   "input_tokens": 4443,
+   "output_tokens": 188,
+   "seconds": 7.2,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Use the same `name` and `team` filters GET /users applies\", \"change team matching on both GET /users and GET /users/summary to ignore letter case while still requiring the exact team name\" and \"It counts all matches without pagination.\""
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "The summary must read the existing user store to count matches, and \"Stored and returned team spelling stays unchanged\" plus keeping unrelated behavior intact require that this read never mutate the store."
+  }
+ ]
+}

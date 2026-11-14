@@ -1,0 +1,57 @@
+{
+ "action": "nav-90f1db1052f4474e809248e257096b9b",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Build four usable journeys: member self-service, administrative membership management, member 360, and a coaching check-in kiosk\\\" via \\\"slGymApp as the LWC exposed to lightning__Tab\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"Expose @AuraEnabled public static methods on SLGymController, returning JSON Strings with this contract.\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"The product is small: membership/profile plus visit history. Create exactly two custom objects, SLGymMember__c and SLGymVisit__c.\\\"\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"This is sequential idempotency; no concurrent-call guarantee is requested.\\\"\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"binding LoginUserId__c to UserInfo.getUserId()\\\" and \\\"Identify admin authority server-side using the current user's Profile.PermissionsModifyAllData\\\" with \\\"Private sharing\\\" and \\\"Declare sharing explicitly\\\".\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"enforce CRUD/FLS as well as logical authorization (user-mode operations or equivalent)\\\" and \\\"never trust a client role flag\\\".\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"SLGym_Access is the only permission set\\\" with \\\"Use API version 60.0\\\".\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Use these stable accessible labels so a person and independent checker can exercise the same app\\\"; focus handling is accessible-control rigour on the requested UI.\"}]}",
+   "input_tokens": 7725,
+   "output_tokens": 573,
+   "seconds": 12.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Build four usable journeys: member self-service, administrative membership management, member 360, and a coaching check-in kiosk\" via \"slGymApp as the LWC exposed to lightning__Tab\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"Expose @AuraEnabled public static methods on SLGymController, returning JSON Strings with this contract.\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"The product is small: membership/profile plus visit history. Create exactly two custom objects, SLGymMember__c and SLGymVisit__c.\""
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"This is sequential idempotency; no concurrent-call guarantee is requested.\""
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"binding LoginUserId__c to UserInfo.getUserId()\" and \"Identify admin authority server-side using the current user's Profile.PermissionsModifyAllData\" with \"Private sharing\" and \"Declare sharing explicitly\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"enforce CRUD/FLS as well as logical authorization (user-mode operations or equivalent)\" and \"never trust a client role flag\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"SLGym_Access is the only permission set\" with \"Use API version 60.0\"."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Use these stable accessible labels so a person and independent checker can exercise the same app\"; focus handling is accessible-control rigour on the requested UI."
+  }
+ ]
+}

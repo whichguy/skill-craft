@@ -1,0 +1,27 @@
+{
+ "action": "nav-6a3d200f685841eeb4b233aae12d69c7",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"Create hello.py that prints exactly \\\"Hello, world!\\\" when run\\\": the row only settles that the interface is running the script and reading its stdout, with no library API added.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"Create hello.py ... plus a unittest test in test_hello.py\\\": the row only decides how those two requested files land, adding no flag, host or deploy machinery.\"}]}\n```",
+   "input_tokens": 4208,
+   "output_tokens": 422,
+   "seconds": 11.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"Create hello.py that prints exactly \"Hello, world!\" when run\": the row only settles that the interface is running the script and reading its stdout, with no library API added."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"Create hello.py ... plus a unittest test in test_hello.py\": the row only decides how those two requested files land, adding no flag, host or deploy machinery."
+  }
+ ]
+}

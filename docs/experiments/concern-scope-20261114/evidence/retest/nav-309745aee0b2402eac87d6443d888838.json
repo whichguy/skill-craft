@@ -1,0 +1,52 @@
+{
+ "action": "nav-309745aee0b2402eac87d6443d888838",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`PUT /tickets/:id/assignee` with a JSON body `{\\\"assignee\\\": \\\"<agent>\\\"}`... an agent is a non-empty name of at most 64 characters\\\" and \\\"`GET /tickets` gains an `assignee` filter\\\".\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"The agent a ticket is assigned to is notified that it was assigned to them\\\"; using the outbox and a template only decides how that notification is delivered.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Every ticket shows its `assignee` (null when unassigned)\\\" and \\\"Everything the service already does keeps working\\\" cover persisting the field and preserving the existing audit.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Existing stored tickets have no assignee field, so \\\"Every ticket shows its `assignee` (null when unassigned)\\\" and existing behaviour would break unless old records read as null.\"},\n{\"n\": 5, \"label\": \"implied\", \"why\": \"Assign, unassign and the no-op on the same agent must not race or produce duplicate notifications, and keeping the existing synchronous store ordering ensures that without adding anything new.\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"an agent is a non-empty name of at most 64 characters\\\"; the rest relies on existing HTTP boundaries and adds no new access control.\"},\n{\"n\": 7, \"label\": \"implied\", \"why\": \"A failed assignment notification must be visible to whoever acts on it, and reusing the existing audit and outbox reports does this without a new channel.\"}\n]}\n```",
+   "input_tokens": 4876,
+   "output_tokens": 821,
+   "seconds": 22.6,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}`... an agent is a non-empty name of at most 64 characters\" and \"`GET /tickets` gains an `assignee` filter\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"The agent a ticket is assigned to is notified that it was assigned to them\"; using the outbox and a template only decides how that notification is delivered."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Every ticket shows its `assignee` (null when unassigned)\" and \"Everything the service already does keeps working\" cover persisting the field and preserving the existing audit."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Existing stored tickets have no assignee field, so \"Every ticket shows its `assignee` (null when unassigned)\" and existing behaviour would break unless old records read as null."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Assign, unassign and the no-op on the same agent must not race or produce duplicate notifications, and keeping the existing synchronous store ordering ensures that without adding anything new."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"an agent is a non-empty name of at most 64 characters\"; the rest relies on existing HTTP boundaries and adds no new access control."
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "A failed assignment notification must be visible to whoever acts on it, and reusing the existing audit and outbox reports does this without a new channel."
+  }
+ ]
+}

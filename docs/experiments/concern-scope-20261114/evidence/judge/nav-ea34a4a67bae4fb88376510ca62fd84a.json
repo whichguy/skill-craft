@@ -1,0 +1,62 @@
+{
+ "action": "nav-ea34a4a67bae4fb88376510ca62fd84a",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"renders the 10x10 grid, fires at a cell when a person clicks it\\\" and \\\"run the provided `battleship-ui` command from the shell and fix any UI failure it reports\\\"; accessible, responsive layout is polish of the requested board.\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"a game is a JSON string\\\", \\\"throws `SLBtlRepair654Engine.InvalidShotException`\\\" and \\\"Cover the rules with Apex tests in classes named `SLBtlRepair654...Test` that run in the org\\\".\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"a game is a JSON string\\\" returned by `newGame` and `fire`, and \\\"Create no other metadata (no custom objects, fields...)\\\"; the row only decides how that game state is held.\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Each fire takes the previous game JSON, so overlapping clicks would fire from stale JSON and drop shots, corrupting the requested shot count and board state.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"Build a single-player Battleship game in Apex with a simple Lightning web component board\\\".\"},\n{\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"with a row or a column outside 0 to 9, throws `SLBtlRepair654Engine.InvalidShotException`\\\" and the permission set \\\"grants the app..., the tab... and the `SLBtlRepair654Engine` and `SLBtlRepair654Controller` classes\\\".\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\\\" and \\\"Create no other metadata\\\".\"},\n{\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Keep the engine efficient enough that a whole game of 100 shots played through `SLBtlRepair654Controller`... runs inside one transaction\\\".\"},\n{\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"each cell is a button named `Battle cell row <row> column <column>: <state>`\\\" and \\\"provide a button named `New game`\\\".\"}\n]}\n```",
+   "input_tokens": 7394,
+   "output_tokens": 1038,
+   "seconds": 13.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"renders the 10x10 grid, fires at a cell when a person clicks it\" and \"run the provided `battleship-ui` command from the shell and fix any UI failure it reports\"; accessible, responsive layout is polish of the requested board."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"a game is a JSON string\", \"throws `SLBtlRepair654Engine.InvalidShotException`\" and \"Cover the rules with Apex tests in classes named `SLBtlRepair654...Test` that run in the org\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"a game is a JSON string\" returned by `newGame` and `fire`, and \"Create no other metadata (no custom objects, fields...)\"; the row only decides how that game state is held."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Each fire takes the previous game JSON, so overlapping clicks would fire from stale JSON and drop shots, corrupting the requested shot count and board state."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"Build a single-player Battleship game in Apex with a simple Lightning web component board\"."
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"with a row or a column outside 0 to 9, throws `SLBtlRepair654Engine.InvalidShotException`\" and the permission set \"grants the app..., the tab... and the `SLBtlRepair654Engine` and `SLBtlRepair654Controller` classes\"."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself\" and \"Create no other metadata\"."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Keep the engine efficient enough that a whole game of 100 shots played through `SLBtlRepair654Controller`... runs inside one transaction\"."
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"each cell is a button named `Battle cell row <row> column <column>: <state>`\" and \"provide a button named `New game`\"."
+  }
+ ]
+}

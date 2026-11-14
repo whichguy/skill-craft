@@ -1,0 +1,27 @@
+{
+ "action": "nav-a8a50ced7f2648fea04a42bad7ea4900",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"GET /users may filter by `team`\\\" ... \\\"team matching uses the exact, case-sensitive team name\\\" ... \\\"`include=team` (exactly that value) adds `team`\\\" ... \\\"Keep the existing pagination and all other behavior.\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"Add a `team` to each user in the in-memory store: Ada Lovelace and Grace Hopper belong to `Engineering`, and Alan Turing belongs to `Support`.\\\"\"}]}",
+   "input_tokens": 4442,
+   "output_tokens": 195,
+   "seconds": 6.8,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"GET /users may filter by `team`\" ... \"team matching uses the exact, case-sensitive team name\" ... \"`include=team` (exactly that value) adds `team`\" ... \"Keep the existing pagination and all other behavior.\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"Add a `team` to each user in the in-memory store: Ada Lovelace and Grace Hopper belong to `Engineering`, and Alan Turing belongs to `Support`.\""
+  }
+ ]
+}

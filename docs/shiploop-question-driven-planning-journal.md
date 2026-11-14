@@ -561,8 +561,28 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   no tools, one call per plan, prompt v1 built on rubric-eval architecture-v4's P3 scope criterion
   (abb0d23861d53b6aa85e66210e386412f0fdcae5, e18cbce9ec577a61a8cdea353c6794804b09f1d9); 10 plans re-judged for
   agreement (seed 20261115). Predictions P1-P7 and the decision rule are in the README.
-- **Result.** Pending.
-- **Status.** Registered.
+- **Conditions.** The first judge call failed: the Claude CLI's stored sign-in had expired, so every nested `claude -p`
+  failed. The owner signed in again; the registered route then ran unchanged. 64 calls, all parsed first time, none
+  outside its directory, 330,745 input and 42,384 output tokens; retest 10 calls, 53,717 and 7,232.
+- **Result.** Of 376 applicable rows in 64 plans: requested 274 (72.9%), implied 92 (24.5%), beyond 8 (2.1%), unclear 2
+  (0.5%); 6 of 64 plans hold a beyond row; the mean beyond share per family is 2.1%. 267 of 274 requested labels quote
+  the request's own words. Retest: 68 of 71 rows the same, kappa 0.90, no beyond label changed. Predictions as written:
+  P1, P4, P5, P6 and P7 held; P2 (beyond rows in 20% of plans or more) and P3 (implied outnumbers requested) missed.
+  Readings, not rescorings: P4's 6 beyond rows are one case family's reuse of an existing outbox and audit log; P6 held
+  by 3 points, so the anchor kind does not tell requested rows apart.
+- **Beyond-row audit (reading).** 6 of the 8 reuse the ticket service's own `src/outbox.js`, `src/notifier.js` and
+  `src/audit.js`, present in the case repository's base commit; the judge, given only the request, read reuse as
+  addition. 1 is a genuine small addition (hello's `.gitignore`, delivered as its own step). 1 is Battleship's game-store
+  bound, the abuse limit plan duty 8 asks for, which the plan did not mark as a safeguard.
+- **Decision.** The registered rule's first branch: a basis field built as a scope guard would change almost no plan in
+  these runs, so it is not built. Marking the 92 implied rows (about 1.4 per plan) for visibility alone is the owner's
+  decision. Untested here: vague requests, missed implied requirements (rows marked "no" were not judged), and the
+  release and migration points (switchover, migrate-before and migrate-after apply in 11, 9 and 1 of 416 work items).
+- **Status.** Firm for these runs (one judge, retest kappa 0.90, grounding check 267 of 274); exploratory for real,
+  vaguer requests.
+- **Evidence.** docs/experiments/concern-scope-20261114/: README.md (design, predictions, results), concern_scope.py,
+  evidence/census.json, sample.jsonl, prompts/, judge/, retest/, scores.json, labelled-rows.jsonl, beyond-rows.md,
+  quote-check.json.
 
 ## Findings
 
@@ -607,3 +627,7 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F35 | Test-spec's RED placeholder ("not because a file is") contradicted the base run, which accepts a load failure of the item's new code; 5 of the 30 send-backs on ShipLoop 1.27.0 and later were test-spec refusing that on an empty base | firm (corpus), interim (fix) | E22 |
 | F36 | A rule B extension to the `minimum` regression command flags 1 of 363 plans (0 before its filter took in focused rows marked regression), neither of the known cases: the needs-later-step cases import a later file or assign a case to the wrong step, which no path rule sees | firm (replay) | E22 |
 | F37 | The repeatable-Proof clause fits the step-plan head when the tests-are-not-a-step line drops the clause its refusal already states (heads -20) | firm (measure) | E22 |
+| F38 | The owner's planning points of 2026-11-14 are already the concern map plus plan duties 3-8, `prepare` and `release-plan`: one result per gate, a missing row refused, step-plan's Until Loop exiting on its concern clause. Documentation and setup have no row of their own | firm (source reading) | E23 |
+| F39 | The plan's applicable concern rows carry the request: 72.9% requested, 24.5% implied, 2.1% beyond (376 rows, 64 plans, Opus medium, retest kappa 0.90); beyond rows in 6 of 64 plans | firm for these runs; vaguer requests unmeasured | E23 |
+| F40 | Of the 8 beyond rows, 6 reuse the ticket service's existing outbox and audit log (a request-only judge read reuse as addition), 1 is a genuine small addition (hello's `.gitignore`) and 1 is a duty-8 abuse limit left unmarked; a scope-basis field would guard almost nothing here, so it is not built, and marking the implied rows (about 1.4 per plan) for visibility is the owner's decision | firm (base-commit check) | E23 |
+| F41 | 71% of applicable rows anchor to a whole file or free text, and the anchor kind does not tell requested rows apart (76% against 73%); the release and migration rows apply in 11, 9 and 1 of 416 work items, so the corpus cannot test the owner's deployment points | firm (census) | E23 |

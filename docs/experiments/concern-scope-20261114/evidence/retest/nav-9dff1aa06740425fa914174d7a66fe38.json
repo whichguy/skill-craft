@@ -1,0 +1,62 @@
+{
+ "action": "nav-9dff1aa06740425fa914174d7a66fe38",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/import` takes a JSON body `{\\\"tickets\\\": [...]}` whose items are what `POST /tickets` takes ... answers 400 with an error whose message names the first invalid item by its index\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"its requester is notified just as when one ticket is created\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"all of them, or none when any item is invalid\\\"\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Atomic all-or-none creation in the given order would be corrupted if other requests interleaved with a partially applied import, so mutation must not yield mid-batch.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"at most 5000 of them\\\"\"}, {\"n\": 6, \"label\": \"requested\", \"why\": \"\\\"none when any item is invalid, in which case it answers 400\\\"\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Each imported ticket is recorded ... just as when one ticket is created\\\"\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Everything the service already does keeps working\\\"\"}, {\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"An import of 5000 tickets must be answered within 10 seconds\\\"\"}]}",
+   "input_tokens": 4877,
+   "output_tokens": 448,
+   "seconds": 10.1,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/import` takes a JSON body `{\"tickets\": [...]}` whose items are what `POST /tickets` takes ... answers 400 with an error whose message names the first invalid item by its index\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"its requester is notified just as when one ticket is created\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"all of them, or none when any item is invalid\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Atomic all-or-none creation in the given order would be corrupted if other requests interleaved with a partially applied import, so mutation must not yield mid-batch."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"at most 5000 of them\""
+  },
+  {
+   "n": 6,
+   "label": "requested",
+   "why": "\"none when any item is invalid, in which case it answers 400\""
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Each imported ticket is recorded ... just as when one ticket is created\""
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Everything the service already does keeps working\""
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"An import of 5000 tickets must be answered within 10 seconds\""
+  }
+ ]
+}

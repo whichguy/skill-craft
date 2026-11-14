@@ -1,0 +1,37 @@
+{
+ "action": "nav-cd03ed76edc4423d9eadb685fad0a2f7",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request specifies the HTTP routes and responses: \\\"POST /groups ... creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names\\\" and \\\"GET /groups/<id>/balances\\\", \\\"GET /groups/<id>/settlements\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\\\"; persisting atomically before responding only decides how that requested persistence works.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Concurrent requests must never lose an expense\\\"; serializing mutations is how that requirement is met.\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\\\".\"}]}",
+   "input_tokens": 5108,
+   "output_tokens": 334,
+   "seconds": 10.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request specifies the HTTP routes and responses: \"POST /groups ... creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names\" and \"GET /groups/<id>/balances\", \"GET /groups/<id>/settlements\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart\"; persisting atomically before responding only decides how that requested persistence works."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Concurrent requests must never lose an expense\"; serializing mutations is how that requirement is met."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\"."
+  }
+ ]
+}

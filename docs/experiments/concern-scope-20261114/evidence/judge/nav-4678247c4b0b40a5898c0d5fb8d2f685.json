@@ -1,0 +1,22 @@
+{
+ "action": "nav-4678247c4b0b40a5898c0d5fb8d2f685",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"Keep the API compatible: without `page` and `size`, GET /users still answers a JSON array of users in id order\\\" and \\\"`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400\\\".\"}]}",
+   "input_tokens": 4642,
+   "output_tokens": 126,
+   "seconds": 8.0,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"Keep the API compatible: without `page` and `size`, GET /users still answers a JSON array of users in id order\" and \"`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400\"."
+  }
+ ]
+}

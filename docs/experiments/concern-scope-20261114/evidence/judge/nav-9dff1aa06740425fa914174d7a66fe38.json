@@ -1,0 +1,62 @@
+{
+ "action": "nav-9dff1aa06740425fa914174d7a66fe38",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"`POST /tickets/import` takes a JSON body `{\\\"tickets\\\": [...]}` whose items are what `POST /tickets` takes\\\" and \\\"answers 400 with an error whose message names the first invalid item\\\"; reusing validation and the error envelope only decides how that works.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"The request says \\\"its requester is notified just as when one ticket is created\\\", and using the existing outbox and worker decides how that notification happens.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"The request says \\\"all of them, or none when any item is invalid\\\", and validating before any change with one batch save decides how that atomicity works.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"The \\\"all of them, or none\\\" outcome and \\\"creates them in the given order\\\" would break if other requests interleaved with a partial import, so the mutation must not yield to other work.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"The request says \\\"at most 5000 of them\\\"; limiting the body is how that cap is enforced.\"}, {\"n\": 6, \"label\": \"implied\", \"why\": \"Imported items are untrusted input that must be rejected with \\\"400 with an error\\\" rather than corrupt the store, which is rigour on the requested validation and adds no new access control.\"}, {\"n\": 7, \"label\": \"requested\", \"why\": \"The request says \\\"Each imported ticket is recorded ... just as when one ticket is created\\\"; reusing the existing audit and error logging decides how that recording works and adds no new monitoring.\"}, {\"n\": 8, \"label\": \"requested\", \"why\": \"The request says \\\"Everything the service already does keeps working, and its existing tests must still pass as they are\\\"; leaving other routes' body limit unchanged keeps that true.\"}, {\"n\": 9, \"label\": \"requested\", \"why\": \"The request says \\\"An import of 5000 tickets must be answered within 10 seconds\\\"; measuring 5000 against the file-backed service checks that requirement.\"}]}",
+   "input_tokens": 4877,
+   "output_tokens": 670,
+   "seconds": 13.3,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"`POST /tickets/import` takes a JSON body `{\"tickets\": [...]}` whose items are what `POST /tickets` takes\" and \"answers 400 with an error whose message names the first invalid item\"; reusing validation and the error envelope only decides how that works."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "The request says \"its requester is notified just as when one ticket is created\", and using the existing outbox and worker decides how that notification happens."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "The request says \"all of them, or none when any item is invalid\", and validating before any change with one batch save decides how that atomicity works."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The \"all of them, or none\" outcome and \"creates them in the given order\" would break if other requests interleaved with a partial import, so the mutation must not yield to other work."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "The request says \"at most 5000 of them\"; limiting the body is how that cap is enforced."
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "Imported items are untrusted input that must be rejected with \"400 with an error\" rather than corrupt the store, which is rigour on the requested validation and adds no new access control."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "The request says \"Each imported ticket is recorded ... just as when one ticket is created\"; reusing the existing audit and error logging decides how that recording works and adds no new monitoring."
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "The request says \"Everything the service already does keeps working, and its existing tests must still pass as they are\"; leaving other routes' body limit unchanged keeps that true."
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "The request says \"An import of 5000 tickets must be answered within 10 seconds\"; measuring 5000 against the file-backed service checks that requirement."
+  }
+ ]
+}

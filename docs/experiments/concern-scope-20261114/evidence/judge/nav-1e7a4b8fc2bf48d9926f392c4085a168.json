@@ -1,0 +1,62 @@
+{
+ "action": "nav-1e7a4b8fc2bf48d9926f392c4085a168",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/import` takes a JSON body {\\\"tickets\\\": [...]} whose items are what `POST /tickets` takes ... answers 400 with an error whose message names the first invalid item\\\"\"},\n{\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"its requester is notified just as when one ticket is created\\\"\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"creates them in the given order: all of them, or none when any item is invalid\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"The all-or-none, in-order import would interleave with or corrupt other concurrent writes unless store mutation is serialized.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"at most 5000 of them\\\"\"},\n{\"n\": 6, \"label\": \"implied\", \"why\": \"Accepting up to 5000 items needs a bounded body limit and per-item validation, or the import could exhaust memory or store invalid data; the 400 on an invalid item is requested.\"},\n{\"n\": 7, \"label\": \"requested\", \"why\": \"\\\"Each imported ticket is recorded and its requester is notified just as when one ticket is created\\\"\"},\n{\"n\": 8, \"label\": \"requested\", \"why\": \"\\\"Everything the service already does keeps working\\\"\"},\n{\"n\": 9, \"label\": \"requested\", \"why\": \"\\\"An import of 5000 tickets must be answered within 10 seconds\\\"\"}\n]}\n```",
+   "input_tokens": 4885,
+   "output_tokens": 873,
+   "seconds": 14.2,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/import` takes a JSON body {\"tickets\": [...]} whose items are what `POST /tickets` takes ... answers 400 with an error whose message names the first invalid item\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"its requester is notified just as when one ticket is created\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"creates them in the given order: all of them, or none when any item is invalid\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The all-or-none, in-order import would interleave with or corrupt other concurrent writes unless store mutation is serialized."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"at most 5000 of them\""
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "Accepting up to 5000 items needs a bounded body limit and per-item validation, or the import could exhaust memory or store invalid data; the 400 on an invalid item is requested."
+  },
+  {
+   "n": 7,
+   "label": "requested",
+   "why": "\"Each imported ticket is recorded and its requester is notified just as when one ticket is created\""
+  },
+  {
+   "n": 8,
+   "label": "requested",
+   "why": "\"Everything the service already does keeps working\""
+  },
+  {
+   "n": 9,
+   "label": "requested",
+   "why": "\"An import of 5000 tickets must be answered within 10 seconds\""
+  }
+ ]
+}

@@ -1,0 +1,52 @@
+{
+ "action": "nav-44f57505b40442b0940d7c209e79951d",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"The page shows shots, hits and accuracy (hits divided by shots, as a percentage) and names each ship as it sinks.\\\"\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"the POST /api/fire response also includes \\\"ship\\\" with the name of the ship that sank. Every /api/fire response includes \\\"shots\\\" ... and \\\"hits\\\"\\\"\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"This decides how \\\"shots (shots fired so far in this game)\\\" and \\\"hits (shots that hit, including sinking shots)\\\" are computed, using the game's existing in-memory state.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"The requested \\\"shots\\\" and \\\"hits\\\" counts would be wrong if a repeat or overlapping fire request double-counted, so counts must be read after the shot is stored.\"}, {\"n\": 5, \"label\": \"implied\", \"why\": \"Reusing the existing server and test runner keeps \\\"Everything the game already does keeps working\\\" and adds no infrastructure the scoring needs.\"}, {\"n\": 6, \"label\": \"implied\", \"why\": \"Leaking hidden ship coordinates in the new response fields would break the existing game, which the request says must keep working (\\\"Everything the game already does keeps working\\\").\"}, {\"n\": 7, \"label\": \"implied\", \"why\": \"Accessible text for the requested score and sunk-ship display, and keeping the existing buttons' accessible names, is rigour on the requested page and on preserving existing behaviour.\"}]}",
+   "input_tokens": 4650,
+   "output_tokens": 517,
+   "seconds": 15.7,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"The page shows shots, hits and accuracy (hits divided by shots, as a percentage) and names each ship as it sinks.\""
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"the POST /api/fire response also includes \"ship\" with the name of the ship that sank. Every /api/fire response includes \"shots\" ... and \"hits\"\""
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "This decides how \"shots (shots fired so far in this game)\" and \"hits (shots that hit, including sinking shots)\" are computed, using the game's existing in-memory state."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "The requested \"shots\" and \"hits\" counts would be wrong if a repeat or overlapping fire request double-counted, so counts must be read after the shot is stored."
+  },
+  {
+   "n": 5,
+   "label": "implied",
+   "why": "Reusing the existing server and test runner keeps \"Everything the game already does keeps working\" and adds no infrastructure the scoring needs."
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "Leaking hidden ship coordinates in the new response fields would break the existing game, which the request says must keep working (\"Everything the game already does keeps working\")."
+  },
+  {
+   "n": 7,
+   "label": "implied",
+   "why": "Accessible text for the requested score and sunk-ship display, and keeping the existing buttons' accessible names, is rigour on the requested page and on preserving existing behaviour."
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "action": "nav-7259f5d5855e497e8a8fbb4cd7540e77",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"POST /events with JSON {\\\"id\\\": \\\"<event id>\\\", \\\"capacity\\\": <positive integer>} creates an event (201; 409 if the id exists)\\\" and \\\"GET /events/<id> returns {\\\"id\\\", \\\"capacity\\\", \\\"reserved\\\", \\\"remaining\\\"}\\\".\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"keeps its data in the SQLite file named by the DATA_FILE environment variable, so reservations survive a restart\\\".\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Concurrent reservation requests must never reserve more seats than the capacity\\\".\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"400 for invalid input\\\" and \\\"<positive integer>\\\".\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"listens on the port in the PORT environment variable\\\" and \\\"the SQLite file named by the DATA_FILE environment variable\\\".\"}]}",
+   "input_tokens": 4614,
+   "output_tokens": 345,
+   "seconds": 10.2,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"POST /events with JSON {\"id\": \"<event id>\", \"capacity\": <positive integer>} creates an event (201; 409 if the id exists)\" and \"GET /events/<id> returns {\"id\", \"capacity\", \"reserved\", \"remaining\"}\"."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"keeps its data in the SQLite file named by the DATA_FILE environment variable, so reservations survive a restart\"."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Concurrent reservation requests must never reserve more seats than the capacity\"."
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"400 for invalid input\" and \"<positive integer>\"."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"listens on the port in the PORT environment variable\" and \"the SQLite file named by the DATA_FILE environment variable\"."
+  }
+ ]
+}

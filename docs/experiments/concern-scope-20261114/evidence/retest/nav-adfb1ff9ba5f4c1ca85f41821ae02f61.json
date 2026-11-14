@@ -1,0 +1,47 @@
+{
+ "action": "nav-adfb1ff9ba5f4c1ca85f41821ae02f61",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"`POST /tickets/:id/comments` with a JSON body ... answers 201 with the comment\\\" and \\\"a closed one answers 409\\\"; the existing error envelope is how those requested answers are shaped.\"},\n{\"n\": 2, \"label\": \"beyond\", \"why\": \"The request only says \\\"that agent is notified of the comment\\\"; an outbox with a retrying worker and unique keys is extra delivery infrastructure.\"},\n{\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading.\\\"\"},\n{\"n\": 4, \"label\": \"implied\", \"why\": \"Comments must be added without loss and listed \\\"oldest first\\\", so simultaneous comment posts need a defined ordering; reusing the existing synchronous store ordering provides it.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\\\"\"},\n{\"n\": 6, \"label\": \"beyond\", \"why\": \"The request asks for no audit trail; appending audit entries is extra, and the worker failure handling only serves the extra outbox worker.\"}\n]}\n```",
+   "input_tokens": 4701,
+   "output_tokens": 601,
+   "seconds": 11.5,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"`POST /tickets/:id/comments` with a JSON body ... answers 201 with the comment\" and \"a closed one answers 409\"; the existing error envelope is how those requested answers are shaped."
+  },
+  {
+   "n": 2,
+   "label": "beyond",
+   "why": "The request only says \"that agent is notified of the comment\"; an outbox with a retrying worker and unique keys is extra delivery infrastructure."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading.\""
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Comments must be added without loss and listed \"oldest first\", so simultaneous comment posts need a defined ordering; reusing the existing synchronous store ordering provides it."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters.\""
+  },
+  {
+   "n": 6,
+   "label": "beyond",
+   "why": "The request asks for no audit trail; appending audit entries is extra, and the worker failure handling only serves the extra outbox worker."
+  }
+ ]
+}

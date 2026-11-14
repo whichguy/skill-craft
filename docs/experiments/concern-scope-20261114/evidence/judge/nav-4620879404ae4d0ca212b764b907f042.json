@@ -1,0 +1,47 @@
+{
+ "action": "nav-4620879404ae4d0ca212b764b907f042",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"The request says \\\"`PUT /tickets/:id/assignee` with a JSON body `{\\\"assignee\\\": \\\"<agent>\\\"}`\\\" and \\\"a ticket must match every filter given\\\".\"}, {\"n\": 2, \"label\": \"beyond\", \"why\": \"The request asks only that \\\"The agent a ticket is assigned to is notified\\\", so a new outbox store and background worker is extra infrastructure for a small dependency-free service.\"}, {\"n\": 3, \"label\": \"implied\", \"why\": \"\\\"Every ticket shows its `assignee`\\\" needs the assignee persisted, and \\\"Everything the service already does keeps working\\\" needs existing data files to stay readable.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Assignment and the rule that \\\"Assigning a ticket to the agent it already has changes nothing\\\" need consistent ordering of store changes, and reusing the existing synchronous store gives that without anything new.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"The request says \\\"an agent is a non-empty name of at most 64 characters\\\" and \\\"Only open and in-progress tickets can be assigned or unassigned\\\", which this validation enforces.\"}, {\"n\": 6, \"label\": \"beyond\", \"why\": \"An audit trail of changes and retained outbox state are not needed by any requested outcome; the request asks only for assignment, notification, filtering and listing.\"}]}",
+   "input_tokens": 4785,
+   "output_tokens": 828,
+   "seconds": 17.9,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "The request says \"`PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}`\" and \"a ticket must match every filter given\"."
+  },
+  {
+   "n": 2,
+   "label": "beyond",
+   "why": "The request asks only that \"The agent a ticket is assigned to is notified\", so a new outbox store and background worker is extra infrastructure for a small dependency-free service."
+  },
+  {
+   "n": 3,
+   "label": "implied",
+   "why": "\"Every ticket shows its `assignee`\" needs the assignee persisted, and \"Everything the service already does keeps working\" needs existing data files to stay readable."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Assignment and the rule that \"Assigning a ticket to the agent it already has changes nothing\" need consistent ordering of store changes, and reusing the existing synchronous store gives that without anything new."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "The request says \"an agent is a non-empty name of at most 64 characters\" and \"Only open and in-progress tickets can be assigned or unassigned\", which this validation enforces."
+  },
+  {
+   "n": 6,
+   "label": "beyond",
+   "why": "An audit trail of changes and retained outbox state are not needed by any requested outcome; the request asks only for assignment, notification, filtering and listing."
+  }
+ ]
+}

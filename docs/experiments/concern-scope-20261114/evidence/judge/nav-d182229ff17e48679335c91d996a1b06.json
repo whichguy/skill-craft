@@ -1,0 +1,37 @@
+{
+ "action": "nav-d182229ff17e48679335c91d996a1b06",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"400 unless members holds at least two distinct non-empty names\\\" and \\\"400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up\\\"\"}, {\"n\": 2, \"label\": \"implied\", \"why\": \"The request asks that data in DATA_FILE let \\\"groups and expenses survive a restart\\\", and a crash partway through a write could leave the file corrupt, losing every group and expense, unless writes are atomic.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Concurrent requests must never lose an expense\\\"\"}, {\"n\": 4, \"label\": \"requested\", \"why\": \"\\\"listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\\\"\"}]}",
+   "input_tokens": 5154,
+   "output_tokens": 283,
+   "seconds": 10.8,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"400 unless members holds at least two distinct non-empty names\" and \"400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up\""
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "The request asks that data in DATA_FILE let \"groups and expenses survive a restart\", and a crash partway through a write could leave the file corrupt, losing every group and expense, unless writes are atomic."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Concurrent requests must never lose an expense\""
+  },
+  {
+   "n": 4,
+   "label": "requested",
+   "why": "\"listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable\""
+  }
+ ]
+}

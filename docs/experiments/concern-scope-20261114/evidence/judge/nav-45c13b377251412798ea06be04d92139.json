@@ -1,0 +1,57 @@
+{
+ "action": "nav-45c13b377251412798ea06be04d92139",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "```json\n{\"rows\": [\n{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"with a simple Lightning web component board\\\"\"},\n{\"n\": 2, \"label\": \"implied\", \"why\": \"The requested LWC board can only play the requested Apex game through a callable Apex controller interface, so without it the component cannot drive the engine.\"},\n{\"n\": 3, \"label\": \"implied\", \"why\": \"A playable Battleship game has to track ship placement, shots, hits and win state, so the requested game fails without defined state and ownership.\"},\n{\"n\": 4, \"label\": \"unclear\", \"why\": \"The request is single-player and the full specification is not visible, so it cannot be told whether ordering rules like guarding against double-clicked shots are needed or go beyond the request.\"},\n{\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"deploy and test it in the Salesforce Developer Edition org with alias de\\\"\"},\n{\"n\": 6, \"label\": \"implied\", \"why\": \"The deployed component must be allowed to call the Apex controller in the org (the permission assignment in W1), so the requested deploy-and-test would fail without access configuration.\"},\n{\"n\": 7, \"label\": \"unclear\", \"why\": \"The request sets no speed budgets and a small board is unlikely to approach Apex governor limits, but the hidden specification may define performance behavior, so this cannot be judged.\"},\n{\"n\": 8, \"label\": \"implied\", \"why\": \"Accessible names and keyboard use for the controls of the requested LWC board are rigour on a requested interface.\"}\n]}\n```",
+   "input_tokens": 5078,
+   "output_tokens": 1163,
+   "seconds": 18.4,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"with a simple Lightning web component board\""
+  },
+  {
+   "n": 2,
+   "label": "implied",
+   "why": "The requested LWC board can only play the requested Apex game through a callable Apex controller interface, so without it the component cannot drive the engine."
+  },
+  {
+   "n": 3,
+   "label": "implied",
+   "why": "A playable Battleship game has to track ship placement, shots, hits and win state, so the requested game fails without defined state and ownership."
+  },
+  {
+   "n": 4,
+   "label": "unclear",
+   "why": "The request is single-player and the full specification is not visible, so it cannot be told whether ordering rules like guarding against double-clicked shots are needed or go beyond the request."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"deploy and test it in the Salesforce Developer Edition org with alias de\""
+  },
+  {
+   "n": 6,
+   "label": "implied",
+   "why": "The deployed component must be allowed to call the Apex controller in the org (the permission assignment in W1), so the requested deploy-and-test would fail without access configuration."
+  },
+  {
+   "n": 7,
+   "label": "unclear",
+   "why": "The request sets no speed budgets and a small board is unlikely to approach Apex governor limits, but the hidden specification may define performance behavior, so this cannot be judged."
+  },
+  {
+   "n": 8,
+   "label": "implied",
+   "why": "Accessible names and keyboard use for the controls of the requested LWC board are rigour on a requested interface."
+  }
+ ]
+}

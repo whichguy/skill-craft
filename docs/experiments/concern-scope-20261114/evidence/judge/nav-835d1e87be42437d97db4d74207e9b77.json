@@ -1,0 +1,42 @@
+{
+ "action": "nav-835d1e87be42437d97db4d74207e9b77",
+ "judge": "opus",
+ "prompt": "v1",
+ "attempts": [
+  {
+   "spec": "claude:claude-opus-5-5@medium",
+   "text": "{\"rows\": [{\"n\": 1, \"label\": \"requested\", \"why\": \"\\\"add a <choice-confirm> component ... and show it in index.html. It renders a list of options ..., a Confirm button and a status line\\\"; placing it beside counter-badge only decides how it is shown.\"}, {\"n\": 2, \"label\": \"requested\", \"why\": \"\\\"dispatches a `confirm` event with the name\\\"; making it bubble with the name in detail only decides how the event works.\"}, {\"n\": 3, \"label\": \"requested\", \"why\": \"\\\"Clicking an option selects it (only one at a time...)\\\" and \\\"shows `Confirmed: <name>`\\\"; keeping selection and status on the element only decides where that state lives, and it adds no store.\"}, {\"n\": 4, \"label\": \"implied\", \"why\": \"Option names come from the `options` attribute and must render as the given names; parsing them as markup would show the wrong content and could inject elements.\"}, {\"n\": 5, \"label\": \"requested\", \"why\": \"\\\"marked with aria-pressed\\\"; aria-disabled for the unchoosable option and role=status for the status line are accessibility rigour on the requested controls.\"}]}",
+   "input_tokens": 4596,
+   "output_tokens": 637,
+   "seconds": 11.4,
+   "outside": []
+  }
+ ],
+ "labels": [
+  {
+   "n": 1,
+   "label": "requested",
+   "why": "\"add a <choice-confirm> component ... and show it in index.html. It renders a list of options ..., a Confirm button and a status line\"; placing it beside counter-badge only decides how it is shown."
+  },
+  {
+   "n": 2,
+   "label": "requested",
+   "why": "\"dispatches a `confirm` event with the name\"; making it bubble with the name in detail only decides how the event works."
+  },
+  {
+   "n": 3,
+   "label": "requested",
+   "why": "\"Clicking an option selects it (only one at a time...)\" and \"shows `Confirmed: <name>`\"; keeping selection and status on the element only decides where that state lives, and it adds no store."
+  },
+  {
+   "n": 4,
+   "label": "implied",
+   "why": "Option names come from the `options` attribute and must render as the given names; parsing them as markup would show the wrong content and could inject elements."
+  },
+  {
+   "n": 5,
+   "label": "requested",
+   "why": "\"marked with aria-pressed\"; aria-disabled for the unchoosable option and role=status for the status line are accessibility rigour on the requested controls."
+  }
+ ]
+}
