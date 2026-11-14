@@ -397,3 +397,42 @@ round was clean, so T ships as a patch (ShipLoop 1.34.2 to 1.34.3, skill-craft 2
   refreshes only from the owner's app.
 - **Unknowns kept open:** other hosts and models (only Codex Sol at medium was measured), and whole-run minutes (no whole-run
   saving was observed in round 2).
+
+## After the release: where the time goes, and what is left (2026-11-14)
+
+Asked whether anything else we saw is worth improving, I split the four round-2 runs' time two more ways with
+`analysis/time_split.py` (output in `evidence/time-split.txt`). Both are descriptive; nothing here changes a registered decision.
+
+**Time by what the model was doing** (two runs an arm; each tool call is charged the gap since the previous call ended plus its
+own duration, so it carries the model's thinking before it). T's shares: work 68.9%, close-out 13.1% (B 20.2%), the loop's start
+14.2% (B 13.8%), other ShipLoop calls such as lint and improve-pass 3.4% (B 3.7%), re-reads of a packet or receipt 0.3% (B 3.6%).
+Total 2,559 s on T and 3,088 s on B, but B had 22 inner stages against T's 18 (B shared-expenses replanned after a send-back), so
+the total is not a per-stage comparison. Two cautions in reading it. The loop-start row is the model's reading and planning from
+the stage's roughly 30 KB packet before its first command (the call itself takes about a tenth of a second), so it is not command
+overhead that could be fused away. Report-writing time moves between the work and close-out rows when the wording changes (T
+writes the report to a file before its closing command), so the close-out row's 46% fall overstates what the wording saved; the
+fair figures are the per-stage ones below.
+
+**Stage wall time of the done inner stages** (packet first printed to accepted `complete`): B 21 stages, mean 60.2 s, median
+50.7 s; T 18 stages, mean 53.9 s, median 39.1 s. Outside the test stage: B 17 stages, mean 45.4 s, median 44.0 s; T 14 stages,
+mean 43.4 s, median 32.6 s. So about 2 s a stage by the mean and about 11 s by the median, against a stage-to-stage spread (a
+step-plan stage took 24 to 88 s) that is much larger than either. The test stage read 123.3 s against 90.3 s (four each) and varies
+with the check's own runtime. The honest reading: a small real gain at the close, not a measured large one, consistent with the
+round-2 span figures (about 2 s a stage outside the test stage).
+
+**What is left.** Of a T run's time, 69% is the model's own work, 14% reading and planning from the stage packet, 13% closing
+stages and 3% lint and improve-pass. There is no second cut of this size in the commands: the only further fusing candidate seen,
+the lint call before an implement stage's close-out, is 3.4% of the time in all, which is not material under the owner's rule of
+2026-11-14. Seen and left alone for the same reason: repeated checks (4 of 18 T stages, 9.9 s in all; 159 pairs in 290 retained
+runs, 0.1% of the time) and the test stage's check time (a passing check took 22.8 to 42.8 s, the base, candidate and mutation
+runs, which cannot be cut without cutting rigor).
+
+**Open options, none done, each the owner's call:**
+1. A live stage-suite scenario for the test and carry-forward stages. Round 2 needed four whole runs (about 50 minutes) only
+   because the cheap suite cannot reach those stages; a scenario would make a later change there a check of a few minutes.
+   Apparatus only, no ShipLoop behavior.
+2. Other hosts and models. Only Codex Sol at medium was measured. The wording is plain text, but no Claude or Grok run has been
+   seen following the chained command (a `&&` chain with a heredoc report). A stage-suite A/B of about 15 samples each would tell;
+   worth it only if ShipLoop runs on them regularly.
+Still parked from the fix-forward work earlier the same day, with nothing seen since that makes them matter: the boundary question
+with new-information cases, the document-done plus amendment route, and longer-prefix Salesforce replays.
