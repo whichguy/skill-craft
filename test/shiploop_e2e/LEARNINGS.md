@@ -8995,3 +8995,46 @@ is whether about 1 call in 3 at the close, roughly 7 s a stage on Sol at medium,
 
 Evidence: `docs/experiments/closeout-one-command-20261114/` (README, `analysis/`, `evidence/`) and the run folders
 `~/e2e-runs-sp/20261114/closeout-B` and `closeout-T`.
+
+## 2026-11-14 — One-command stage close-out, two whole deliveries an arm on Codex Sol medium: 4 of 4 pass, every T stage closed in one command
+
+Round 2 of the registration in `docs/experiments/closeout-one-command-20261114/README.md`, run after the owner's "Yes" to
+"do you want that minute?" (a patch release if the round is clean). Round 1 (the stage suite, entry above) could not reach the
+test and carry-forward stages; this round runs whole deliveries of the earlier smoke cases, `csv-report` and `shared-expenses`,
+one run of each per arm, Codex gpt-6.1-sol at medium, `run.py --source checkout`, two lanes with one B and one T each.
+B = `3474addc6a2a40c0a13313c3409841831252fe12` (ShipLoop 1.34.2); T = the candidate `db725d10e31f869442f8ba0ec3b0401c4886b165`
+(no skill source changed between it and the commits the T runs launched from: `git diff` over `skills agents catalog changes
+plugins` is empty). The round exercised the exact tree that ships; it is not a round on an older tree.
+
+Read over the done stages (B 21, T 18, none unmatched) unless a population is named:
+
+| Measure | B (shipped) | T (candidate) |
+| --- | --- | --- |
+| Deliveries passing every verdict and case check | 2 of 2 (5 of 5, 6 of 6) | 2 of 2 (5 of 5, 6 of 6) |
+| Close-out calls a done stage, median (mean) | 3 (2.76) | 1 (1.44) |
+| Done stages whose last passing check ran in the `complete` call | 0 of 21 | 18 of 18 |
+| Done stages that ran `check` at all | 12 of 21 | 18 of 18 |
+| Test-stage close-out seconds, median | 54.7 | 19.6 |
+| Repeated passing checks (stages) | 0 | 4 (9.9 s in all; test stages 3.2 and 6.5 s) |
+| Check refusals / complete refusals / refusals naming the loop | 4 / 0 / 0 | 6 / 0 / 0 |
+| Turns, calls, tokens processed: csv-report | 183, 164, 14.20 M | 170, 153, 14.08 M |
+| Turns, calls, tokens processed: shared-expenses | 224, 204, 20.47 M | 271, 256, 20.15 M |
+
+- The four registered conditions hold (both T deliveries pass; no failure from the chain; T's median close-out calls below B's;
+  T's test-stage median seconds within 5 s of B's, here 35 s below). They were "release only if" conditions and the owner had
+  already answered "Yes" to a release on them, so T ships as a patch.
+- **The registered path ran live once.** One refusal came inside a closing command (a test stage, 1 of 8 mutants survived):
+  its output is the check's refusal alone, no loop report followed, and the next closing command ran `check`, the report and
+  `complete` and was accepted. All 19 of T's closing commands joined their parts with `&&`.
+- **What it does not show.** Whole-run turns, calls and tokens show no saving (T fewer on csv-report, more on
+  shared-expenses, tokens within 2%), so none is claimed. Minutes were lower on both (17.1 against 19.3, 26.1 against 32.8),
+  one run a cell and B shared-expenses carried a send-back: not read. The test-stage seconds are mostly the check's own runtime
+  (22.8 to 42.8 s a passing check in B), not the wording. The saving observed is at the close, 1.32 fewer calls a done stage:
+  about 2 s a stage outside the test stage on this model, about 20 s a run, and about a minute a run extrapolated to about 5 s
+  a call. Two runs an arm, one host and model, another session's Codex run alive for part of the time.
+- **Two scorer defects**, both journaled with their fixes before the figures were written: a quoted `'done'` was invisible
+  (round 1's 30 samples rescored with 0 changed fields), and a loop `done` after a refused `check` in the same `&&` chain was
+  counted as run (two T test-stage rows moved; B did not).
+
+Evidence: `docs/experiments/closeout-one-command-20261114/` (README, `analysis/whole_score.py`, `evidence/whole-scores.json`,
+`whole-baselines.jsonl`) and the run folders `~/e2e-runs-sp/20261114/closeout-whole/`.
