@@ -1,0 +1,18 @@
+# Independent customer outcome review — operator only
+
+Evaluate the delivered customer experience, not conformity to a preferred implementation. This prototype has not been launched; acceptance is **NOT_RUN** and the evaluator remains **UNQUALIFIED**. No app results are claimed.
+
+Before launch, inspect the entire builder-visible input, including environment seeds and helper tools. Do not feed the old fixed checks, UI labels, APIs or tool schemas into that environment. Freeze the exact attempt and literal brief. Bind subsequent observations to exact source, deployment, canonical org and user; a changed candidate needs observations bound to that candidate.
+
+| Customer journey | Outcome to assess through independent observation |
+| --- | --- |
+| First use and setup | A new user can understand prerequisites, complete permitted setup, and recover from missing or incorrect configuration without exposing secrets. Observe the actual rendered flow and relevant provider behavior. |
+| Natural read and follow-up | The user asks about permitted synthetic records, receives a useful grounded answer, and follows up without re-explaining context. Compare rendered conversation, actual provider use and independently read records; examine access boundaries. |
+| Proposed, rejected and confirmed writes | The user sees exact create and update proposals, rejects some and confirms others. Independent record readback establishes only confirmed intended changes occurred; cancellation, repeat and reload do not introduce unintended writes. |
+| Returning, history and memory | Named bots, saved conversations and reusable instructions/tasks remain useful after returning. Inspect, correct and forget memory, then observe later behavior and user/bot separation rather than merely the presence of controls. |
+| Browser-away work and recovery | Close the app during useful work, return, steer or cancel, and encounter a recoverable interruption. Independently observe execution and effects as relevant; assess honest progress, completed work, cancellation limits and recovery. |
+| Desktop, narrow and keyboard use | Use the actual rendered product to read, compose, navigate, approve and recover. Judge fluency, focus, readability and practical task completion across these surfaces, rather than visual adjectives or counts of controls. |
+
+Assign **PASS** only to an observed outcome, **FAIL** only to a demonstrated unmet outcome, and **UNKNOWN** when observation is missing, ambiguous or blocked. Keep the reason and supporting independent observations beside each verdict. Builder tests alone cannot prove the live product; screenshots alone cannot prove record writes or provider use. Establish evaluator qualification separately before relying on its verdicts.
+
+Observe which tests, helpers and instrumentation ShipLoop independently creates and how useful they are in finding defects or supporting recovery. Impose no quotas or named artifacts, and do not fail the product merely because preferred instrumentation is absent. Generated verification, independent product acceptance and evidence of generic ShipLoop improvement are three separate findings. Neither a polished app nor this rewritten scenario establishes a generic improvement without its own comparison evidence.
