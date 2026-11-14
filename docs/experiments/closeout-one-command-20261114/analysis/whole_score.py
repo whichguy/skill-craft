@@ -33,7 +33,7 @@ import closeout_score as cs  # noqa: E402  (tool_calls, _jsonl)
 INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward")
 _RUN = r"/shiploop['\"]?\s+"
 VERB = re.compile(r"(?P<check>" + _RUN + r"check\s+--run-dir)|(?P<complete>" + _RUN + r"complete\s+--run-dir)"
-                  r"|(?P<done>until_loop_ephemeral\.py['\"]?\s+done\s+--state)")
+                  r"|(?P<done>until_loop_ephemeral\.py['\"]?\s+['\"]?done['\"]?\s+['\"]?--state)")
 ACTION = re.compile(r"--action[= ]\s*['\"]?(nav-[0-9a-f]+)")
 LOOPY = re.compile(r"\bloop\b|receipt|next_argv|still active", re.I)  # not "ShipLoop"
 
@@ -103,7 +103,7 @@ def score_run(run: Path) -> dict:
         accepted = next((r for r in rs if r["verb"] == "complete" and r.get("exit") == 0), None)
         entry = {"action": action, "stage": stage, "outcome": outcome_of.get(action, "done" if accepted else None),
                  "accepted": accepted is not None, "text_match": None, "co_calls": None, "co_seconds": None,
-                 "fused": None, "checks": sum(r["verb"] == "check" for r in rs),
+                 "fused": None, "close_out": None, "checks": sum(r["verb"] == "check" for r in rs),
                  "yes": sum(r["verb"] == "check" and r.get("exit") == 0 for r in rs),
                  "check_refusals": sum(r["verb"] == "check" and r.get("exit") != 0 for r in rs),
                  "complete_refusals": sum(r["verb"] == "complete" and r.get("exit") != 0 for r in rs),
@@ -120,6 +120,7 @@ def score_run(run: Path) -> dict:
             events.sort(key=lambda e: (e[0], 0 if e[1] != "complete" else 1))
             refused = [i for i, e in enumerate(events) if e[2] is not None and e[2].get("exit") != 0]
             attempt = [e for e in events[(refused[-1] + 1) if refused else 0:] if e[0] <= final]
+            entry["close_out"] = [[call, verb] for call, verb, _ in attempt]
             if attempt:
                 entry["co_calls"] = final - attempt[0][0] + 1
                 entry["co_seconds"] = round(accepted["ts"] - calls[attempt[0][0]][0], 1)

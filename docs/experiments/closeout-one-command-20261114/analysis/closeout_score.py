@@ -78,7 +78,7 @@ import re
 
 _RUN = r"/shiploop['\"]?\s+"
 INVOCATION = re.compile(r"(?P<check>" + _RUN + r"check\s+--run-dir)|(?P<complete>" + _RUN + r"complete\s+--run-dir)"
-                        r"|(?P<done>until_loop_ephemeral\.py['\"]?\s+done\s+--state)")
+                        r"|(?P<done>until_loop_ephemeral\.py['\"]?\s+['\"]?done['\"]?\s+['\"]?--state)")
 
 
 def invocations(command):
