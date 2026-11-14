@@ -90,7 +90,7 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
         if stage in loops.ARGUMENT_STAGES:
             p0 += ["Until Loop (no iteration limit", loops.ARGUMENT_BEGIN, loops.ARGUMENT_END, "\nWork: ",
                    "Exit when ALL of these hold:", "Repeat while ", "\nContract: ", "\nReceipt: ",
-                   "until_loop_ephemeral.py start --receipt", "Result: when the Receipt",
+                   "until_loop_ephemeral.py start --receipt", "Result: write the result first",
                    *(f"\n{number}. {condition}\n" for number, condition in enumerate(spec.done_when, 1))]
         else:
             # Decision 20 (owner 2026-10-18): outside ARGUMENT_STAGES the packet prints no argument -- only the
@@ -98,7 +98,7 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
             # Repeat each time (pinned in shiploop-loops.test.py), so the numbered exit conditions are not required
             # tokens of this printed head any more.
             p0 += ["Until Loop (no iteration limit", loops.NO_ARGUMENT_FOLLOW, "Contract: ", " · Receipt: ",
-                   "until_loop_ephemeral.py start --receipt", "Result: when the Receipt"]
+                   "until_loop_ephemeral.py start --receipt", "Result: write the result first"]
     else:
         p0 += ["Done when"]
     p1: list[str] = []
