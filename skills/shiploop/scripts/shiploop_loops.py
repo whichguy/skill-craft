@@ -528,8 +528,14 @@ RESUME_LINE = ("The loop already started: do not start it again (a second start 
 REPORT_FIELDS = ("Done-report fields: classification trivial|non-trivial|unresolved, exit_assessment "
                  "satisfied|unsatisfied|unknown, continuation_assessment allowed|blocked|cancelled, plus evidence and "
                  "handoff (nonblank text).")
-_RESULT_HEAD = ("Result: when the Receipt says status complete (stopped: report it), keep it in evidence_refs and run "
-                "the callback above. If that refuses for the loop, ")
+# Outcome done closes in one command (check, the satisfied report, the callback), each part only after the one before
+# succeeded: a refused check leaves the loop active, and the two turns that followed a yes are gone.
+_RESULT_HEAD = ("Result: write the result first, keeping the receipt in evidence_refs. For outcome done, close with one "
+                "shell command whose parts each run only if the one before succeeded: the callback with `check` in place "
+                "of `complete`, then the loop's done_argv with your satisfied done report on stdin, then the callback "
+                "above. A refused check stops it before the report: fix what it names and run the same command again. "
+                "For send-back or blocked, report the loop blocked, then run the callback. If the callback refuses for "
+                "the loop, ")
 RESULT_LINE = (_RESULT_HEAD + "run the start command above again (an active receipt: its next_argv instead), then run "
                "the callback again. " + REPORT_FIELDS)
 # A packet read after the start prints no start command (a second start resets the loop), so its result line names the

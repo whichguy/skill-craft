@@ -418,7 +418,12 @@ class InvokeLinesTests(Synthetic):
         self.write(state)
         block = self.block(state)
         self.assertEqual(block.result, loops.RESULT_LINE)
-        for needed in ("the Receipt says status complete", "stopped: report it", "evidence_refs",
+        # Outcome done closes in one command: check, then the satisfied report, then the callback, each only after the
+        # one before succeeded; send-back and blocked keep the stopped loop's route.
+        for needed in ("evidence_refs", "one shell command", "only if the one before succeeded",
+                       "the callback with `check` in place of `complete`", "the loop's done_argv",
+                       "satisfied done report on stdin", "A refused check stops it before the report",
+                       "For send-back or blocked, report the loop blocked",
                        "the callback above", "run the start command above again",
                        "an active receipt: its next_argv instead", "then run the callback again"):
             self.assertIn(needed, block.result)
