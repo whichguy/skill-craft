@@ -67,6 +67,9 @@
  "terminal_duplicates": 0,
  "steps_without_end": 0,
  "claims_without_start": 0,
+ "settle_s": 0,
+ "settled_steps": 0,
+ "settled_all": null,
  "verify": "OK",
  "verify_line": "VERIFY OK steps=5 chain=5805398e6d0d",
  "expected_verdict": "OK",
@@ -195,17 +198,17 @@
  },
  "tokens": {
   "source": "claude.result",
-  "input": 4,
-  "output": 296,
-  "cache_read": 86365,
+  "input": 18,
+  "output": 2503,
+  "cache_read": 332645,
   "cost_usd": 0.5160984000000001,
   "peak_parent_input": 44407,
   "children_included": false,
-  "parent_input_all": 87811,
-  "children_input_all": 787670,
+  "parent_input_all": 352846,
+  "children_input_all": 522635,
   "input_all": 875481,
   "output_all": 7022,
-  "cache_create": 1442
+  "cache_create": 20183
  },
  "process": {
   "status": "exited",

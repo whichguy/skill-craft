@@ -199,10 +199,18 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 
   | host, effort | task makespan A0 / A3 | launch to first task | wait before T5 | whole run A0 / A3 | input tokens A0 / A3 (parent in A3) | cost A0 / A3 | agents, peak |
   |---|---|---|---|---|---|---|---|
-  | Claude Sonnet 5.5, high | 27.7 / 21.9 | 4.4 / 12.3 | 2.3 / 6.7 | 35.4 / 43.2 | 555,668 / 932,405 (133,640) | $0.152 / $0.363 | 5, 4 |
-  | Grok 4.6, xhigh | 65.3 / 50.4 | 7.6 / 33.0 | 3.8 / 15.8 | 81.4 / 96.1 | 867,154 / 659,155 (scope unknown) | $0.593 / $0.630 | 5, 4 |
+  | Claude Sonnet 5.5, high | 27.7 / 21.9 | 4.4 / 12.3 | 2.3 / 6.7 | 35.4 / 43.2 | 555,668 / 932,405 (404,872; first read as 133,640, superseded: see the correction below) | $0.152 / $0.363 | 5, 4 |
+  | Grok 4.6, xhigh | 65.3 / 50.4 | 7.6 / 33.0 | 3.8 / 15.8 | 81.4 / 96.1 | 867,154 / 659,155 (the whole run, children included; the parent's own 185,909 is in `context.json`; first reported as scope unknown) | $0.593 / $0.630 | 5, 4 |
   | Codex Sol 6.1, medium | 75.7 / 70.4 | 10.6 / 22.1 | 6.9 / 19.8 | 100.3 / 109.9 | 449,485 / 706,535 (328,246) | not reported | 5, 3 |
-  | Claude, default effort (exploratory) | 29.8 / 20.3 | 4.5 / 12.2 | 1.9 / 7.4 | 37.5 / 39.9 | 524,909 / 875,481 (87,811) | $0.162 / $0.516 | 5, 4 |
+  | Claude, default effort (exploratory) | 29.8 / 20.3 | 4.5 / 12.2 | 1.9 / 7.4 | 37.5 / 39.9 | 524,909 / 875,481 (352,846; first read as 87,811, superseded) | $0.162 / $0.516 | 5, 4 |
+
+  **Correction (2026-11-14, journal R4; supersedes the parent figures above and reading (c) below).** In `-p` mode Claude emits one `result` event per
+  parent turn (a background sub-agent's completion re-enters the parent as a new turn: three result events in each Claude A3 trial), each result's `usage`
+  covers its own turn only, and `modelUsage` and the cost are cumulative. The scorer read only the last result, so the parent's input in Claude A3 was
+  understated (133,640 and 87,811). The sum over all result events is 404,872 and 352,846, and the per-call record (`context.py`, the stream's assistant
+  messages) gives the same parent figure and the same all-contexts total on all six Claude trials. The corrected ratio of the parent's input in A3 to A0 is
+  0.73 (Claude high, 404,872 / 555,668) and 0.67 (Claude default), not 0.24 and 0.17. The all-contexts totals, costs, times and every other figure in this
+  entry were never affected. The defect was reproduced as a failing calibration cell before the fix.
 
   A3 against A0: task makespan 0.79, 0.77 and 0.93 times (Claude high, Grok, Codex); whole run 1.22, 1.18 and 1.10 times; input tokens 1.68, 0.76 and 1.57 times.
   The task phase shortened by 5.7 s, 14.9 s and 5.3 s, and the cost outside the task phase (the parent planning and spawning, the children starting, the join, the
@@ -214,13 +222,16 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   not when each spawn was issued. A3's `ready` line was consistent in every trial: no refused attempt, no duplicate start; the release path (added after the review) was used once.
 - Predictions scored as registered (README A5): **P16 held** (Claude high peak 4); **P17 held** (Codex peak 3); **P18 held** (Grok peak 4); **P19 held** (all eight task
   trials answered 5 of 5); **P20 held** on all three hosts, by task makespan; **P21 missed as written** (Claude 1.68 and Codex 1.57 times, Grok 0.76); **P22 held** where the
-  figure separates the parent (Claude 133,640 against 555,668; Codex 328,246 against 449,485; Grok not scored); **P23 held** (every exit 0, tails 0.4 s to 2.5 s since the final
+  figure separates the parent (Claude 404,872 against 555,668, first read as 133,640; Codex 328,246 against 449,485; Grok first not scored, scored 2026-11-14 from its per-call log, parent 185,909 against 867,154, held); **P23 held** (every exit 0, tails 0.4 s to 2.5 s since the final
   report); **P24 missed** (no host's agent peak was 1). Seven of nine held against 70%, 55%, 50%, 75%, 70%, 70%, 80%, 70% and 40% (about 5.8 expected). Decision rule **R6**: all three
   hosts satisfy it (valid A3 trial, five correct answers, a faithful report, exit 0, peak at least 3 in both the host's own agent record and the ledger). The synthetic predictions
   P1 to P15 registered for E2 and E3 were never tested: those trials were superseded by this design (A5) before they ran.
-- Readings, each on its own line, none a rescore: (a) P20 holds by the registered measure while the whole run is longer on every host (above). (b) P21's miss rests on Grok's figure,
-  whose scope is unknown (Claude's `usage` was the parent only and `modelUsage` the whole run; if Grok's end usage also leaves out its children, its 0.76 understates A3). (c) In A3 the
-  parent's own input tokens fall to 0.24 (Claude) and 0.73 (Codex) times A0's: the outcome-only retention the owner described holds, strongly on Claude, modestly on Codex.
+- Readings, each on its own line, none a rescore: (a) P20 holds by the registered measure while the whole run is longer on every host (above). (b) ~~P21's miss rests on Grok's figure,
+  whose scope is unknown (Claude's `usage` was the parent only and `modelUsage` the whole run; if Grok's end usage also leaves out its children, its 0.76 understates A3).~~
+  Resolved 2026-11-14 (R4): Grok's end usage covers its sub-agent sessions (659,155 = the parent's 185,909 + five children, 473,246, from its per-call log), so 0.76 is the whole run:
+  Grok's A3 used fewer input tokens than its A0 (its single context grew from 14,417 to 43,759 tokens over 24 calls) although it cost 1.06 times as much. (c) ~~In A3 the
+  parent's own input tokens fall to 0.24 (Claude) and 0.73 (Codex) times A0's: the outcome-only retention the owner described holds, strongly on Claude, modestly on Codex.~~
+  Superseded 2026-11-14 (R4, the correction above): the parent's own input in A3 is 0.73 times A0's on both Claude and Codex, so outcome-only retention holds, modestly, on both.
 - Limits: one trial per cell, so no rate and no claim that a difference of a few seconds is real; one read-only workload with 5 s to 24 s tasks (short against the fixed cost); no
   write conflict, no commit, no isolation; three hosts ran side by side and a later trial may have profited from caches an earlier one warmed (order counterbalanced, not removed);
   load average 5 to 8 on the machine; Grok's and Codex's agent types and models were the hosts' defaults (Grok inherited its model, Codex pinned the child to Sol medium).
@@ -250,7 +261,7 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F19 | Each host keeps its own record of its sub-agents: Claude's stream (`task_started` with `subagent_type`, `task_progress` tokens, `parent_tool_use_id` on every call), Codex's rollout files (one per thread, naming parent and depth; its `exec --json` stream shows neither the spawn nor the child's commands), Grok's `logs/unified.jsonl` (a session id on every tool call and a lifecycle line per sub-agent). Attribution therefore needs no hooks, and a host-neutral timeline needs three small readers | firm (shapes read from real runs) | E1 |
 | F20 | Native fan-out and fan-in works on all three harnesses from one anonymous packet when a script owns readiness, instructions and recorded outcomes: eight of eight task trials answered all five analyses correctly, the parent's report matched the ledger, every exit was 0 and nothing was left running; agent peaks 4 (Claude), 4 (Grok), 3 (Codex), each in both the host's own record and the ledger | interim (one trial per cell) | E9 |
 | F21 | For these 5 s to 24 s tasks parallelism shortened the task phase (0.77 to 0.93 times) but lengthened the whole run (1.10 to 1.22 times): the cost outside the task phase rose by 13.6 s (Claude), 29.6 s (Grok) and 14.9 s (Codex) while the task phase fell by 5.7 s, 14.9 s and 5.3 s. Only independent work longer than about those figures, times four thirds, can pay on these hosts; a ShipLoop step iteration (median 154 s, F11) is far longer, but 90% of recorded plans have no independent pair (F8) | interim (n = 1 per host; the arithmetic is derived from three trials) | E9 |
-| F22 | Fresh contexts cost tokens and money: A3 used 1.68 times (Claude) and 1.57 times (Codex) the input tokens of A0 and 2.39 times the cost on Claude; the parent's own input fell to 0.24 times (Claude) and 0.73 times (Codex) of A0's, so outcome-only retention holds. Grok's A3 figure (0.76 times) has an unknown scope | interim | E9 |
+| F22 | Fresh contexts cost tokens and money: A3 used 1.68 times (Claude) and 1.57 times (Codex) the input tokens of A0 and 2.39 times the cost on Claude; the parent's own input fell to ~~0.24 times (Claude) and~~ 0.73 times (Codex and, corrected 2026-11-14 from 0.24, Claude: the first reading took the last of three result events) of A0's, so outcome-only retention holds, modestly. Grok's A3 figure (0.76 times) covers the whole run, children included (resolved 2026-11-14, R4): on Grok the fan-out used fewer input tokens, and cost 1.06 times | interim | E9, R4 |
 | F23 | Host differences a portable route must absorb: Codex allows four concurrency slots including the parent (three children; its parent released the fourth claim itself); Claude and Grok spawn in background mode and their children begin together when the parent yields, not at each spawn; Claude picks the sub-agent type itself (general-purpose, once `claude`); the waits differ (`wait_agent` in slices, `get_command_or_subagent_output`, Claude's notifications); usage figures differ in scope (Claude `usage` is the parent's and `modelUsage` the whole run) | interim | E9 |
 | F24 | A script-owned ready set with a claim, a capacity and a release was reliable on all three hosts: no refused attempt, no duplicate start, no stranded claim, one release used by Codex's parent when its host's slots ran out | interim | E9 |
 | F25 | The sub-agents in every trial were native by each host's own account (Claude's task events, Codex's rollout threads at depth 1, Grok's log with a session id per tool call), and the timeline page `evidence/pilot-timeline.html` shows the interleaving: a staircase of tasks in A0 and overlapping agent lifetimes in A3 | firm (read from the real runs) | E9 |

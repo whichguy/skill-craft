@@ -5,7 +5,9 @@ Apparatus for docs/experiments/parallel-plan-execution-20261114 (see its README)
 skill uses it. Every arm calls it through the host's own shell tool, so each command is a visible host tool call. The
 ledger (``RUN/ledger.jsonl``, one JSON object per line) is the ground truth for when each step ran.
 
-  dagkit.py init     --plan PLAN.json --run RUN
+  dagkit.py init     --plan PLAN.json --run RUN [--settle SECONDS]
+  dagkit.py settle   --run RUN --step ID     task steps with --settle: a slow verification (a sleep) the agent runs before it reports;
+                                             it stands for a slow test suite or build and is the dial for how long a task takes
   dagkit.py ready    --run RUN [--claim [--capacity N]]
                      one JSON line: ready, deferred, claimed, running, done, failed, blocked, waiting, complete, capacity,
                      claimed_age_s. With --claim the ready steps are claimed (at most N minus the claimed and running ones
@@ -169,10 +171,10 @@ def cmd_init(args) -> int:
     run.dir.mkdir(parents=True, exist_ok=False)
     (run.dir / "out").mkdir()
     (run.dir / "plan.json").write_text(plan_text)
-    (run.dir / "meta.json").write_text(json.dumps({"schema": SCHEMA, "plan_sha": _sha(plan_text),
-                                                   "plan": plan.get("name"), "scale": SCALE}, indent=1))
+    (run.dir / "meta.json").write_text(json.dumps({"schema": SCHEMA, "plan_sha": _sha(plan_text), "plan": plan.get("name"),
+                                                   "scale": SCALE, "settle": float(args.settle or 0)}, indent=1))
     with run.locked():
-        run.append("init", None, plan=plan.get("name"), steps=[s["id"] for s in plan["steps"]], scale=SCALE)
+        run.append("init", None, plan=plan.get("name"), steps=[s["id"] for s in plan["steps"]], scale=SCALE, settle=float(args.settle or 0))
     print(f"INIT {plan.get('name')} steps={len(plan['steps'])} run={run.dir}")
     return 0
 
@@ -284,6 +286,10 @@ def cmd_begin(args) -> int:
         run.append("start", step_id, deps=inputs, mode="task", scale=SCALE)
     kit = str(Path(__file__).resolve())
     text = step["task"].replace("{evidence}", str(run.dir.parent / "evidence")).replace("{run}", str(run.dir)).replace("{kit}", kit)
+    settle = run.meta().get("settle", 0)
+    if settle:
+        text += (f"\n\nBefore you report, run this command: it stands for the project's slow verification, takes about {settle:g} seconds, "
+                 f"and you must let it finish and not skip it:\n  python3 {kit} settle --run {run.dir} --step {step_id}")
     print(f"STEP {step_id} BEGUN. You are a fresh agent; this is your whole task. Do only this.\n\n{text}\n\n"
           "When you have the answer, report it by running exactly this command, with your integer in place of N and one short "
           "line in place of METHOD:\n"
@@ -308,6 +314,8 @@ def cmd_complete(args) -> int:
             return _refuse(run, step_id, "not-started", ["it was never begun"], "complete")
         if item["terminals"]:
             return _refuse(run, step_id, "duplicate", ["it already has its outcome"], "complete")
+        if meta.get("settle") and not any(e["kind"] == "settled" and e["step"] == step_id for e in run.events()):
+            return _refuse(run, step_id, "not-settled", [f"run the settle command first and let it finish: python3 {Path(__file__).resolve()} settle --run {run.dir} --step {step_id}"], "complete")
         if not isinstance(result, dict) or not isinstance(result.get("answer"), int) or isinstance(result.get("answer"), bool):
             return _refuse(run, step_id, "bad-result", ["the result must be a JSON object with an integer answer"], "complete")
         state = derive(plan, run.events())
@@ -319,6 +327,28 @@ def cmd_complete(args) -> int:
         os.replace(tmp, target)
         run.append("end", step_id, sha=sha, result=result)
     print(f"RECORDED {step_id} answer={result['answer']} (finished; do not report it again)")
+    return 0
+
+
+def cmd_settle(args) -> int:
+    run, step_id = Run(args.run), args.step
+    with run.locked():
+        plan, meta = run.plan(), run.meta()
+        steps = {s["id"]: s for s in plan["steps"]}
+        if step_id not in steps:
+            return _refuse(run, step_id, "unknown", ["not a step of this plan"], "settle")
+        item = derive(plan, run.events())[step_id]
+        done = [e for e in run.events() if e["kind"] == "settled" and e["step"] == step_id]
+        if not item["starts"] or item["terminals"]:
+            return _refuse(run, step_id, "not-started", ["settle runs between begin and complete"], "settle")
+        if done:
+            return _refuse(run, step_id, "duplicate", ["it already settled"], "settle")
+        seconds = float(meta.get("settle", 0))
+        run.append("settle", step_id, seconds=seconds, scale=SCALE)
+    time.sleep(seconds * SCALE)
+    with run.locked():
+        run.append("settled", step_id, seconds=seconds, scale=SCALE)
+    print(f"SETTLED {step_id} after {seconds:g} s; now report your outcome")
     return 0
 
 
@@ -402,15 +432,17 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name, fn in (("init", cmd_init), ("ready", cmd_ready), ("release", cmd_release), ("run", cmd_run), ("begin", cmd_begin),
-                     ("complete", cmd_complete), ("outcome", cmd_outcome), ("verify", cmd_verify), ("timeline", cmd_timeline)):
+                     ("complete", cmd_complete), ("outcome", cmd_outcome), ("settle", cmd_settle), ("verify", cmd_verify),
+                     ("timeline", cmd_timeline)):
         p = sub.add_parser(name)
         p.add_argument("--run", required=True)
         if name == "init":
             p.add_argument("--plan", required=True)
+            p.add_argument("--settle", type=float, default=0.0)
         if name == "ready":
             p.add_argument("--claim", action="store_true")
             p.add_argument("--capacity", type=int, default=None)
-        if name in ("run", "release", "begin", "complete", "outcome"):
+        if name in ("run", "release", "begin", "complete", "outcome", "settle"):
             p.add_argument("--step", required=True)
         if name == "complete":
             p.add_argument("--result", required=True)

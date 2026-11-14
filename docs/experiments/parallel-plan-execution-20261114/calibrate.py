@@ -278,6 +278,22 @@ def qualification_cells() -> tuple[int, int, list]:
     cell("scorer: mechanism", "a run call whose ' run ' is past column 140", lambda: score.mechanism(longrun, {"peak_concurrency": 1}, True)["kind"], "parent-executed")
     cell("scorer: tokens", "codex cached_input_tokens is the cache read", lambda: score.tokens(_view("codex", [
         {"type": "turn.completed", "usage": {"input_tokens": 100, "cached_input_tokens": 90, "output_tokens": 5}}]), "codex")["cache_read"], 90)
+    # One result event per parent turn (README Amendment A7): in -p mode a background sub-agent's completion re-enters the parent as a new turn,
+    # each result's usage covers its own turn only, and modelUsage is cumulative. The numbers below are the real r1h-claude-a3 stream's.
+    shared = {"m": {"inputTokens": 60, "cacheReadInputTokens": 868158, "cacheCreationInputTokens": 64187, "outputTokens": 8474}}
+    turns = [{"type": "result", "result": text, "total_cost_usd": 0.36, "modelUsage": shared, "usage": {
+        "input_tokens": a, "cache_read_input_tokens": b, "cache_creation_input_tokens": c, "output_tokens": d}}
+        for text, a, b, c, d in (("one", 6, 92370, 13295, 1623), ("two", 8, 159653, 5900, 917), ("three", 6, 132018, 1616, 455))]
+    cell("scorer: tokens", "a Claude run with one result event per parent turn sums the parent's usage over every turn", lambda: (
+        score.tokens(_view("claude", turns), "claude")["parent_input_all"], score.tokens(_view("claude", turns), "claude")["children_input_all"],
+        score.tokens(_view("claude", turns), "claude")["output"]), (404872, 527533, 2995))
+    cell("scorer: tokens", "a Claude run with a single result event is unchanged", lambda: (score.tokens(_view("claude", turns[2:]), "claude")["parent_input_all"]), 133640)
+    # Grok's end usage covers the parent and every sub-agent session (the per-call log of r1-grok-a3: 659,155 = parent 185,909 + five children 473,246)
+    gview = _view("grok", [{"type": "end", "usage": {"input_tokens": 100, "cache_read_input_tokens": 50, "output_tokens": 5}}])
+    cell("scorer: tokens", "grok with sub-agents: the end usage is the whole run, the parent's share is not separable from the stream", lambda: (
+        lambda g: (g["input_all"], g["parent_input_all"], g["children_included"]))(score.tokens(gview, "grok", {"agents": [{"actor": "agent:a"}]})), (150, None, True))
+    cell("scorer: tokens", "grok with no sub-agents: the end usage is the parent's", lambda: (
+        lambda g: (g["input_all"], g["parent_input_all"], g["children_included"]))(score.tokens(gview, "grok", {"agents": []})), (150, 150, None))
     cell("scorer: tools", "grok spawn_subagent is a spawn", lambda: [i["kind"] for i in _view("grok", [
         {"type": "tool_call", "toolCallId": "g1", "toolName": "spawn_subagent", "rawInput": {"prompt": "x"}}])], ["spawn"])
     cell("scorer: tools", "grok collect and stop are not spawns", lambda: [i["kind"] for i in _view("grok", [
@@ -421,6 +437,43 @@ def task_cells() -> tuple[int, int, list]:
         record["result"]["answer"] = 8
         tamper.write_text(json.dumps(record))
         cell("kit: task mode", "an outcome edited after it was recorded breaks the chain", lambda: dagkit.verdict(dagkit.Run(run))[0], "FAIL")
+    # the settle dial: a slow verification inside every task (the work-length dial of the scaling trials); `complete` insists on it
+    with tempfile.TemporaryDirectory() as root:
+        senv = dict(os.environ, PPE_TIME_SCALE="0.01")
+
+        def ssh(*args):
+            return subprocess.run(k + list(args), env=senv, capture_output=True, text=True)
+        srun = str(Path(root) / "swork" / "run")
+        (Path(root) / "swork").mkdir()
+        ssh("init", "--plan", str(HERE / "plans" / "analysis5.json"), "--run", srun, "--settle", "40")
+        early = ssh("settle", "--run", srun, "--step", "T1")
+        cell("kit: settle dial", "settle before begin is refused", lambda: early.returncode, 3)
+        sbegun = ssh("begin", "--run", srun, "--step", "T1")
+        cell("kit: settle dial", "begin tells the agent to run the settle command and how long it takes", lambda: ("settle --run" in sbegun.stdout and "40 seconds" in sbegun.stdout), True)
+        cell("kit: settle dial", "a run with no settle never mentions one", lambda: "settle --run" in begun.stdout, False)
+        skipped = ssh("complete", "--run", srun, "--step", "T1", "--result", '{"answer": 5}')
+        cell("kit: settle dial", "complete is refused until the settle has finished", lambda: (skipped.returncode, "not-settled" in "".join(
+            e["detail"].get("category", "") for e in dagkit.Run(srun).events() if e["kind"] == "refused")), (3, True))
+        began = time.time()
+        settled = ssh("settle", "--run", srun, "--step", "T1")
+        cell("kit: settle dial", "settle runs for the declared time (scaled) and says so", lambda: (settled.returncode, "SETTLED T1" in settled.stdout, 0.3 <= time.time() - began < 6), (0, True, True))
+        again2 = ssh("settle", "--run", srun, "--step", "T1")
+        cell("kit: settle dial", "a second settle is a duplicate", lambda: again2.returncode, 3)
+        finished = ssh("complete", "--run", srun, "--step", "T1", "--result", '{"answer": 5}')
+        cell("kit: settle dial", "complete succeeds after the settle", lambda: finished.returncode, 0)
+        late = ssh("settle", "--run", srun, "--step", "T1")
+        cell("kit: settle dial", "settle after the outcome is refused", lambda: late.returncode, 3)
+        for step, answer in (("T2", 7), ("T3", 3), ("T4", 100), ("T5", 115)):
+            for call in (("begin",), ("settle",), ("complete", "--result", json.dumps({"answer": answer}))):
+                ssh(call[0], "--run", srun, "--step", step, *call[1:])
+        srunner = dagkit.Run(srun)
+        splan = srunner.plan()
+        cell("kit: settle dial", "a finished settled plan verifies OK with every step settled", lambda: (
+            dagkit.verdict(srunner)[0], score.ledger_measures(splan, srunner.events())["settled_all"]), ("OK", True))
+        hand = [e for e in srunner.events() if not (e["kind"] == "settled" and e["step"] == "T2")]
+        cell("scorer: settle", "a step that ended with no settle is detected (a hand-made ledger: the kit cannot make one)", lambda: score.ledger_measures(splan, hand)["settled_all"], False)
+        nosettle = [dict(e, detail=dict(e["detail"], settle=0.0)) if e["kind"] == "init" else e for e in hand]
+        cell("scorer: settle", "a run declared with no settle leaves the check unset even when a step has none", lambda: score.ledger_measures(splan, nosettle)["settled_all"], None)
     files_a, expected_a = evidence.generate(11, 150)
     files_b, expected_b = evidence.generate(11, 150)
     cell("evidence", "the same seed gives the same logs and answers", lambda: files_a == files_b and expected_a == expected_b, True)
@@ -464,12 +517,64 @@ def task_cells() -> tuple[int, int, list]:
                 m = json.loads((out / "score.json").read_text())
                 return (m.get("verify"), m["answers"]["correct"], m.get("final_answer_ok"), m["mechanism"]["kind"], (out / "oracle.json").is_file(), (out / "work" / "evidence" / "log_1.txt").is_file())
             cell("launcher: task path", f"{host}: evidence, oracle, answers and report", run_launch, ("OK", 5, True, "parent-executed", True, True))
+        out = Path(root) / "task-settle"
+
+        def run_settle_launch():
+            import io
+            import contextlib
+            with contextlib.redirect_stdout(io.StringIO()):
+                launch.main(["--host", "grok", "--plan", "analysis5", "--arm", "A0", "--binary", str(HERE / "fakehost.py"), "--out", str(out), "--timeout", "60",
+                             "--lines", "80", "--settle", "30"])
+            m = json.loads((out / "score.json").read_text())
+            inv = json.loads((out / "invocation.json").read_text())
+            return (m.get("verify"), m["answers"]["correct"], m.get("settled_all"), m.get("settle_s"), inv.get("settle_s"))
+        cell("launcher: task path", "a settle is passed to the kit, recorded in the invocation and seen by the scorer", run_settle_launch, ("OK", 5, True, 30.0, 30.0))
+    return cells, off, lines
+
+
+def identity_cells() -> tuple[int, int, list]:
+    """The identity probe (README Amendment A7): whoami.py under made-up environments, and the judge on canned reports."""
+    import tempfile
+    sys.path.insert(0, str(HERE))
+    import identity
+    lines: list = []
+    cells = off = 0
+
+    def cell(group, name, fn, want):
+        nonlocal cells, off
+        c, o = _cell(lines, group, name, fn, want)
+        cells, off = cells + c, off + o
+    with tempfile.TemporaryDirectory() as root:
+        script = identity.make_whoami(Path(root) / "whoami.py")
+
+        def who(extra: dict) -> dict:
+            env = {"PATH": os.environ["PATH"], **extra}   # never the calibrating session's own environment
+            done = subprocess.run([sys.executable, str(script)], env=env, capture_output=True, text=True)
+            return json.loads(done.stdout)
+        cell("identity: whoami", "a Codex thread id means codex, and only its last six characters are kept",
+             lambda: (lambda r: (r["detect_host"], r["ids"]))(who({"CODEX_THREAD_ID": "019aaaaaabcdef"})), ("codex", {"CODEX_THREAD_ID": "abcdef"}))
+        cell("identity: whoami", "a Grok session id means grok", lambda: who({"GROK_SESSION_ID": "sess-123456"})["detect_host"], "grok")
+        cell("identity: whoami", "CLAUDECODE means claude", lambda: who({"CLAUDECODE": "1"})["detect_host"], "claude")
+        cell("identity: whoami", "no marker is unknown, with no markers listed", lambda: (lambda r: (r["detect_host"], r["markers"]))(who({})), ("unknown", []))
+        cell("identity: whoami", "a nested host wins over its launcher (innermost first)", lambda: who({"CLAUDECODE": "1", "CODEX_THREAD_ID": "x1"})["detect_host"], "codex")
+        cell("identity: whoami", "marker names are listed, values are not", lambda: (lambda r: ("CODEX_SANDBOX" in r["markers"], "seatbelt" in json.dumps(r)))(
+            who({"CODEX_SANDBOX": "seatbelt"})), (True, False))
+    parent = {"detect_host": "grok", "markers": ["GROK_AGENT"], "ids": {"GROK_SESSION_ID": "aaaaaa"}, "ancestors": ["grok"]}
+    child = {"detect_host": "grok", "markers": ["GROK_AGENT"], "ids": {"GROK_SESSION_ID": "bbbbbb"}, "ancestors": ["grok"]}
+    ok = identity.judge("grok", {"parent": parent, "child": child, "parent_tools": ["spawn_subagent", "run_terminal_command"], "child_tools": ["run_terminal_command"]}, 1)
+    cell("identity: judge", "both contexts right, ids differ, markers equal, the child cannot spawn", lambda: (
+        ok["parent_right"], ok["child_right"], ok["ids_differ"], ok["markers_same"], ok["child_can_spawn"], ok["native_agents"]), (True, True, True, True, False, 1))
+    wrong = identity.judge("grok", {"parent": parent, "child": dict(child, detect_host="unknown", markers=[]), "child_tools": ["spawn_subagent"]}, 1)
+    cell("identity: judge", "a sub-agent that detects unknown is flagged, with differing markers", lambda: (wrong["child_right"], wrong["markers_same"], wrong["child_can_spawn"]), (False, False, True))
+    none = identity.judge("claude", None, 0)
+    cell("identity: judge", "no FINAL line is a failed probe, not a pass", lambda: (none["reported"], none["parent_right"], none["child_ran"], none["child_can_spawn"]), (False, False, False, None))
+    cell("identity: judge", "the Agent tool counts as a spawn tool", lambda: identity.judge("claude", {"parent": parent, "child": child, "child_tools": ["Agent"]}, 1)["child_can_spawn"], True)
     return cells, off, lines
 
 
 def main() -> int:
     total = bad = 0
-    for part in (check(CASES), view_cells(), kit_end_to_end(), qualification_cells(), task_cells()):
+    for part in (check(CASES), view_cells(), kit_end_to_end(), qualification_cells(), task_cells(), identity_cells()):
         n, off, lines = part
         print("\n".join(lines))
         total, bad = total + n, bad + off

@@ -74,6 +74,8 @@ def main(argv: list) -> int:
     for step in plan["steps"]:
         if task_mode:
             shell([sys.executable, kit, "begin", "--run", run, "--step", step["id"]])
+            if json.loads((Path(run) / "meta.json").read_text()).get("settle"):
+                shell([sys.executable, kit, "settle", "--run", run, "--step", step["id"]])
             out.append(shell([sys.executable, kit, "complete", "--run", run, "--step", step["id"], "--result",
                               json.dumps({"answer": oracle[step["id"]], "method": "fake"})]))
         else:

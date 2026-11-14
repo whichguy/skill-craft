@@ -106,6 +106,10 @@ def ledger_measures(plan: dict, events: list, run: dagkit.Run | None = None) -> 
     out["terminal_duplicates"] = sum(1 for i in ids if state[i]["terminals"] > 1)
     out["steps_without_end"] = sum(1 for i in ids if state[i]["state"] == "running")
     out["claims_without_start"] = sum(1 for i in ids if state[i]["claimed"] and not state[i]["starts"])
+    settled = {e["step"] for e in events if e["kind"] == "settled"}
+    settle_s = next((e["detail"].get("settle") for e in events if e["kind"] == "init"), 0) or 0
+    out["settle_s"], out["settled_steps"] = settle_s, len(settled)
+    out["settled_all"] = all(i in settled for i in ids if state[i]["end"] is not None) if settle_s else None   # a step that ended without its settle
     if run is not None and (run.dir / "meta.json").is_file():
         kind, line = dagkit.verdict(run)
         out["verify"], out["verify_line"] = kind, line
@@ -418,15 +422,18 @@ def final_claim(view: list) -> dict | None:
 
 def tokens(view: list, host: str, native: dict | None = None) -> dict:
     """M8: what the host reports, or None for an unreported figure (never zero). ``input`` is the host's uncached input field;
-    ``input_all`` adds cached reads and writes. Claude's final ``usage`` is the parent only and ``modelUsage`` is the whole
-    run (it is larger by the sub-agent's share in E1); Codex's turn usage is the parent and each child's rollout adds its own;
-    whether Grok's end usage includes its sub-agents is not established."""
+    ``input_all`` adds cached reads and writes. Claude's result ``usage`` is the parent only, one result event per parent turn (summed
+    here), and ``modelUsage`` is the whole run, cumulative (it is larger by the sub-agents' share); Codex's turn usage is the parent and each child's rollout adds its own;
+    Grok's end usage includes its sub-agent sessions (established from its per-call log, journal R4)."""
     out: dict = {"source": None, "input": None, "output": None, "cache_read": None, "cost_usd": None, "peak_parent_input": None,
                  "children_included": None, "parent_input_all": None, "children_input_all": None, "input_all": None, "output_all": None}
     usages = [i for i in view if i["kind"] == "usage" and i.get("usage")]
     finals = [i for i in view if i["kind"] == "final"]
-    if host == "claude" and finals and finals[-1].get("usage"):
-        u = finals[-1]["usage"]
+    if host == "claude" and finals and any(f.get("usage") for f in finals):
+        # One result event per parent turn: a background sub-agent's completion re-enters the parent as a new turn in -p mode, each result's
+        # usage covers its own turn only, and modelUsage and the cost are cumulative (README Amendment A7).
+        u = {k: sum((f.get("usage") or {}).get(k) or 0 for f in finals)
+             for k in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")}
         out.update(source="claude.result", input=u.get("input_tokens"), output=u.get("output_tokens"),
                    cache_read=u.get("cache_read_input_tokens"), cache_create=u.get("cache_creation_input_tokens"), cost_usd=finals[-1].get("cost"))
         parent_all = sum(u.get(k) or 0 for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
@@ -453,9 +460,10 @@ def tokens(view: list, host: str, native: dict | None = None) -> dict:
             kids_in = sum(k.get("input_tokens") or 0 for k in kids)
             out.update(parent_input_all=parent_in, children_input_all=kids_in if native else None, children_included=False if native else None,
                        input_all=(parent_in or 0) + kids_in, output_all=(out["output"] or 0) + sum(k.get("output_tokens") or 0 for k in kids))
-        else:
-            out.update(parent_input_all=(out["input"] or 0) + (out["cache_read"] or 0), input_all=(out["input"] or 0) + (out["cache_read"] or 0),
-                       output_all=out["output"])
+        else:   # grok: the end usage covers the parent and every sub-agent session (r1-grok-a3: 659,155 = parent 185,909 + five children 473,246, from the per-call log)
+            whole = (out["input"] or 0) + (out["cache_read"] or 0)
+            kids = bool((native or {}).get("agents"))
+            out.update(parent_input_all=None if kids else whole, children_included=True if kids else None, input_all=whole, output_all=out["output"])
     return out
 
 
@@ -621,7 +629,7 @@ def score_trial(trial: Path) -> dict:
                     "launch_to_exit_s": round(proc_end - launched, 3) if launched and proc_end else None}
     m["valid"] = bool(inv.get("status") == "exited" and not m["scaled_trial"] and m["steps_without_end"] == 0
                       and m["verify_as_expected"] and m["fidelity_ok"] and m["terminal_duplicates"] == 0
-                      and (ans is None or ans["all_correct"]))
+                      and m.get("settled_all") is not False and (ans is None or ans["all_correct"]))
     m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "loadavg", "enabled_features")}
     (trial / "score.json").write_text(json.dumps(m, indent=1, default=str) + "\n")
     (trial / "timeline.txt").write_text(render_timeline(trial, plan, events, view, inv))

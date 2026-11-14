@@ -1,0 +1,1 @@
+{"trial":"r1h-claude-a0","host":"claude","arm":"A0","threads":{"parent":{"calls":15,"first":33316,"last":40247,"sum":555668,"growth_per_call":495.1,"output":424,"model_ms":null,"series":[33316,33680,34511,35284,35627,36386,36673,37289,37575,38210,38533,38917,39524,39896,40247]}}}

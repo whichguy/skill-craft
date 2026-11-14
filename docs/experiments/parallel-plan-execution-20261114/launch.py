@@ -158,6 +158,7 @@ def main(argv=None) -> int:
     parser.add_argument("--enable-feature", action="append", default=[], metavar="NAME",
                         help="Codex only: pass --enable NAME (README Amendment A1: multi_agent_v2 is off in the harness's "
                              "throwaway profile and on in the owner's own)")
+    parser.add_argument("--settle", type=float, default=0.0, help="task plans: seconds of slow verification inside every task (the work-length dial)")
     parser.add_argument("--seed", type=int, default=20261114, help="task plans: the seed of the generated log files")
     parser.add_argument("--lines", type=int, default=400, help="task plans: events per generated log")
     parser.add_argument("--binary", help="run this executable in place of the host's own (calibrate.py uses fakehost.py)")
@@ -199,8 +200,8 @@ def main(argv=None) -> int:
     clean_env = {k: v for k, v in os.environ.items() if k != "PPE_TIME_SCALE"}   # a live trial is never scaled
     shutil.copy(HERE / "dagkit.py", kit)
     shutil.copy(plan_src, work / "plan.json")
-    subprocess.run([sys.executable, str(kit), "init", "--plan", str(work / "plan.json"), "--run", str(run_dir)], check=True,
-                   stdout=subprocess.DEVNULL, env=clean_env)
+    subprocess.run([sys.executable, str(kit), "init", "--plan", str(work / "plan.json"), "--run", str(run_dir), "--settle", str(args.settle)],
+                   check=True, stdout=subprocess.DEVNULL, env=clean_env)
     (trial / "packet.md").write_text(packet)
     if is_task_plan(plan):   # the agents' evidence sits in work/; the oracle sits beside it, read only by the scorer
         files, expected = evidence.generate(args.seed, args.lines)
@@ -215,7 +216,7 @@ def main(argv=None) -> int:
     inv = {"host": args.host, "binary": host.binary, "version": version or why, "model": model, "effort": effort,
            "permission_mode": "auto", "allow": list(allow), "plan": args.plan, "arm": args.arm, "variant": args.variant,
            "capacity": capacity, "enabled_features": args.enable_feature, "timeout_s": args.timeout,
-           "task_plan": is_task_plan(plan), "seed": args.seed if is_task_plan(plan) else None,
+           "task_plan": is_task_plan(plan), "settle_s": args.settle, "seed": args.seed if is_task_plan(plan) else None,
            "lines": args.lines if is_task_plan(plan) else None,
            "budget_usd": args.budget if args.host == "claude" else None,
            "argv": ["<packet.md>" if part == packet else part for part in cmd], "cwd": str(work),
