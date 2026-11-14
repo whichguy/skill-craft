@@ -1,0 +1,6 @@
+status: passed
+groups: core
+suites selected: 61; completed: 61; not passed: 0
+wall seconds: 704.0 (jobs 8)
+tree under test: the release commit 2e96482d; tracked changes: 0
+runtimes: node: v26.12.1; python3: Python 3.15.1

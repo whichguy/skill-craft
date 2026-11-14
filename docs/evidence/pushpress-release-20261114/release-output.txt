@@ -1,0 +1,6 @@
+skill-frontmatter-to-plugin-json: CHECK OK skill-craft
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (26 skills)
+sync-plugin-views: CHECK OK
+release: pushpress 0.1.0 -> 0.1.1 (2 note(s))
+release: skill-craft 2.37.2 -> 2.37.3
+release: committed 2e96482d; publish with scripts/release-push.py

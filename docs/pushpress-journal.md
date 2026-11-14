@@ -637,6 +637,39 @@ All six gates passed and every file is complete (no run error, no invalid run). 
 
 **Not done.** A publish, a push, a tag and a plugin update; the CI-only groups locally; anything on the live tenant.
 
+## Round 15 - publication of pushpress 0.1.1 (2026-11-14)
+
+**Request.** The owner answered "Publish 0.1.1" to the question that ended Round 14 ("Publish skill-craft 0.1.1 now?"). That lifts the gate for the release and its push, and for nothing else: a host refresh (a plugin update), a push of this record, the CI-only groups run locally, P24, P3 to P7, P9 to P23, P18 and anything on the live tenant still wait for their own yes. The order followed the checklist's guarded publication and Round 8. Branch `pushpress-card-fixes`; the pushed range is 51 commits (the 49 of the branch, the merge and the release commit).
+
+**Steps.**
+1. Identity gate. Before cutting I listed the author and committer lines of the 48 commits then on the branch: 47 matched the 200 most recent commits on `origin/main`, one did not (the Round 11 record). The owner chose "Normalize first" (the last paragraph of Round 14 has the old-to-new hashes). After that every commit to be pushed had the same identity.
+2. `git fetch origin`: remote main `3474addc6a2a40c0a13313c3409841831252fe12`, unchanged since the rehearsal (its last push was at 01:10 UTC the same day), with no pending note but this skill's two.
+3. Merge of that main into the branch without squashing: `7f10ae400d502c611fdb9c7e1a47fd0972570ec1` (parents the branch head `35a9b584` and `3474addc`; no conflict).
+4. `release.py --dry-run`: `pushpress` 0.1.0 to 0.1.1 (2 notes), `skill-craft` 2.37.2 to 2.37.3, nothing else. `release.py`: release commit `2e96482d9c53cd27c471c0278358d23dc537a284`, "release: skill-craft 2.37.3, pushpress 0.1.1", tree `a0b098bc3057233bc8218ef3bfbd277825659d79`, parent the merge commit, 15 files; the two notes were consumed.
+5. Qualification on that tree: the `core` group 61 of 61 in 704 s (key variables unset, CI's stand-in session markers), the extractor harness 17 of 17, the release-boundary guard, `sync-plugin-views --check`, the package check, the source-to-copy comparison with controls, and a scan of the 331 files the release adds (317 with no category; the same 14 synthetic or older-line hits as the rehearsal; the changelog's 11 added lines clean), with both controls flagged first.
+6. `release-push.py` with three checks (`sync-plugin-views --check`, the package check, `check-release-boundary --base 3474addc`): 3 of 3 passed, then one non-forced push of the frozen commit. Remote main moved from `3474addc` to `2e96482d`.
+7. After the push: `git ls-remote` shows remote main equal to the release commit; `release.py --dry-run` reports "no pending notes; nothing to release"; a clean install of the published plugin into a disposable Claude config gave `skill-craft` 2.37.3 with `pushpress` 0.1.1, and its `skills/pushpress` (and the whole installed plugin) equals the pushed tree, with an identical-pair and a must-differ control. The owner's own install still reports 2.37.2, and nothing in their plugin area changed in the last 30 minutes.
+
+**CI.** The `CI push` workflow on the release commit: attempt 1 passed 8 of its 10 jobs and failed `full / shiploop-2`, and with it the aggregate `hermetic` job, on one test, `test_restarted_observer_replaces_stale_status_before_start_succeeds` of the `shiploop-progress` suite (`progress.start(..., interval=.1)` returned false on a runner where the suite took 46 s). The release changes no ShipLoop file (0 of its 331 files; the test file and `skills/shiploop` are identical to the previous green main), the test passes 15 of 15 alone and the whole suite 3 of 3 locally on the release tree (about 13 s each), and main's CI was red in 7 of its last 40 runs, on various ShipLoop suites. I re-ran only the failed job (no revert, nothing else touched): attempt 2 passed every job, the aggregate `hermetic` included.
+
+**Where.** `docs/evidence/pushpress-release-20261114/` (README, the push receipt, the release output, the 61-suite table, `summary.json`).
+
+**Findings.**
+- **F23 (`firm` for this moment)** The guarded sequence of the checklist worked as written, and the exact bytes were qualified. Main did not move between the merge and the push, so no second merge was needed; had it moved, the merge, the cut and the 704 s suite would have repeated.
+- **F24 (`firm`, about the work)** The author and committer email derives from the machine's hostname, which changed with the network: one commit of 48 carried the email of the other network. Listing the author and committer lines of every commit before the push, the rule from an earlier incident, found it. Fixing it cost five recreated commits and six citation updates because the commit sat four commits before the head; further back it would have cost more.
+- **F25 (`firm` for this run, `exploratory` as a claim about the test)** A red CI on a release is not necessarily the release's. What told them apart: the files the release changes against the failing suite's files (0 of 331, with a control grep that finds 265 ShipLoop files in main's own earlier range), the failing test alone 15 times and its suite 3 times on the release tree, and the red rate of main's recent runs (7 of 40). Then one re-run of only the failed job, which passed. The test is timing-sensitive on a loaded runner (an observer start with a 0.1 s interval, after a leaked-subprocess warning); that is a ShipLoop matter and was not changed here.
+
+**Decisions.**
+- R15-D1 This record is a local commit and is not pushed: a docs commit to the public main needs its own go-ahead.
+- R15-D2 The backup branch that holds the pre-normalization head stays local until the owner says it can go.
+- R15-D3 No host was refreshed: the owner's Claude install reports 2.37.2 and the published release is 2.37.3.
+
+**Proposed changes (new; each needs the owner's yes).** P27: pin the commit identity (name and email) in the local configuration of the checkouts the owner publishes from, so a change of network cannot alter it; one line of configuration per checkout. Nothing else.
+
+**Marks on earlier items (2026-11-14).** R12-D4, R13-D4 and R14-D1 (release the two notes together): done, as 0.1.1. R14-D3's sequence is the one that ran here.
+
+**Not done.** A host refresh (Claude reports 2.37.2; Grok, Codex and Cursor were not looked at); the CI-only groups locally; the post-release smoke checks 2 and 3 of the distribution doc (a live model session of about 4 to 6 USD, and the Codex host), which exercise another skill; a push of this record.
+
 ## Still unknown
 
 - **G1 (`superseded` 2026-11-08 by Round 6; it was `firm`).** The generalized skill had not been run against a live tenant after generalization. It has now had one read-only pass

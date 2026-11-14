@@ -1,0 +1,53 @@
+{
+  "published": "2026-11-14",
+  "remote": "public skill-craft repository, branch main",
+  "release_commit": "2e96482d9c53cd27c471c0278358d23dc537a284",
+  "release_tree": "a0b098bc3057233bc8218ef3bfbd277825659d79",
+  "previous_remote_head": "3474addc6a2a40c0a13313c3409841831252fe12",
+  "merge_commit": "7f10ae400d502c611fdb9c7e1a47fd0972570ec1",
+  "versions": {"pushpress": "0.1.0 to 0.1.1 (2 notes)", "skill-craft": "2.37.2 to 2.37.3"},
+  "release_commit_files": 15,
+  "commits_pushed": 51,
+  "identity": "all 51 commits have one author and committer identity, the one on the 200 most recent commits of main before the push",
+  "guarded_push_checks": [
+    ["bash", "scripts/sync-plugin-views.sh", "--check"],
+    ["python3", "-B", "-I", "scripts/check-marketplace-packages.py"],
+    ["python3", "-B", "-I", "scripts/check-release-boundary.py", "--base", "3474addc6a2a40c0a13313c3409841831252fe12"]
+  ],
+  "qualification_on_the_release_tree": {
+    "core_group": {"suites": 61, "passed": 61, "wall_seconds": 704.0, "key_variables_unset": true, "ci_stand_in_session_markers": true},
+    "extractor_harness": "PASS, 17 checks",
+    "release_boundary_guard": "OK",
+    "sync_plugin_views_check": "OK",
+    "marketplace_package_check": "OK (offline payload validation only)",
+    "plugin_copy_equals_source": {"diff_rc": 0, "identical_pair_control_rc": 0, "must_differ_control_rc": 1}
+  },
+  "privacy_scan": {
+    "files_scanned": 331,
+    "files_with_no_category": 317,
+    "files_with_a_category": 14,
+    "all_hits_are_synthetic_fixtures_or_older_published_lines": true,
+    "changelog_added_lines": 11,
+    "changelog_added_lines_clean": true,
+    "controls_flagged_first": ["a control file seeded with nine categories", "an in-memory live-key string"]
+  },
+  "after_the_push": {
+    "ls_remote_equals_release_commit": true,
+    "release_dry_run": "no pending notes; nothing to release",
+    "clean_install_into_a_disposable_config": {
+      "installed": "skill-craft 2.37.3, enabled",
+      "pushpress_version_line": "0.1.1",
+      "skills_pushpress_equals_pushed_tree": true,
+      "whole_installed_plugin_equals_pushed_tree": true,
+      "identical_pair_control_rc": 0,
+      "must_differ_control_rc": 1
+    },
+    "owners_real_plugin_install_untouched": "still reports skill-craft 2.37.2; nothing in the real plugin area changed in the last 30 minutes",
+    "ci_on_the_release_commit": {
+      "attempt_1": "8 of 10 jobs passed; full / shiploop-2 failed on one timing-sensitive ShipLoop test (shiploop-progress), and the aggregate hermetic job with it; unrelated to the release",
+      "evidence_it_is_unrelated": "0 of 331 changed files are ShipLoop files; the test file and skills/shiploop equal the previous green main; the test passes 15 of 15 alone and the suite 3 of 3 locally on the release tree",
+      "action": "re-ran only the failed job once; no revert, nothing else touched",
+      "attempt_2": "every job passed, the aggregate hermetic job included"
+    }
+  }
+}
