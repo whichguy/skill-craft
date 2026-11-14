@@ -10,6 +10,8 @@ the real kit with simulated agents at a small time scale. Exit 0 only when no ce
 
 from __future__ import annotations
 
+# ruff: noqa: B023  (every cell lambda is called by cell() in the loop iteration that defines it, so the late-binding warning cannot fire)
+
 import json
 import os
 from pathlib import Path

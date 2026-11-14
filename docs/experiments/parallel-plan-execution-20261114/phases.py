@@ -69,12 +69,8 @@ def split(name: str) -> dict:
     last_indep_end = max(end[s] for s in indep)
     sp = spawn_times(t)
     out = {"name": name, "arm": t["inv"]["arm"], "host": t["inv"]["host"], "whole": t_end - t0}
-    if sp:
-        out["orient"] = ready[0] - t0
-        out["spawn"] = max(0.0, max(s for s in sp if s < begin["T5"] - 0.0001 and s <= first_begin + 60) - ready[0]) if False else None
     # round-one spawns are those issued before the first task began; the dependent task's spawn comes later
     first_round = [s for s in sp if s <= first_begin + 0.5] if sp else []
-    after_first = [s for s in sp if s > first_begin + 0.5]
     out["orient"] = ready[0] - t0
     if first_round:
         out["spawn"] = max(first_round) - ready[0]
