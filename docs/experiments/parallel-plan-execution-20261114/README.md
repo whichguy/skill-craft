@@ -396,6 +396,13 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
   (the pilot's N had one per model call). **P42 (50%):** Codex H's whole run is at least 8 s shorter than the pilot's N (same-condition spread on Grok was 3 s to 11 s, so this bar is loose and a pass is weak evidence).
   **P33 stands as registered (65%):** Claude H's whole run is within 5 s of the pilot's N. R8 stands: H does not enter the contract for Grok.
 
+- **A9 (2026-11-14, after the S = 30 trials of E12 were read and before any Codex trial with H at S = 30): one cost that does not stay fixed.**
+  The six S = 30 trials (n = 1 each) give A3/A0 whole-run ratios of 0.55 (Claude), 0.63 (Grok) and 0.75 (Codex) against the model's 0.56, 0.67 and 0.80, and a cost outside the work phase of 19.4 s, 37.9 s and 22.5 s against the pilot's 21.4 s, 43.0 s
+  and 26.6 s: the fixed part stayed fixed. What did not: the parent's model calls grow with the length of the commands it waits for on Codex and Grok (`context.json`: Codex A0 23 to 29 calls, A3 18 to 25 with `wait_agent` 5 to 12 in 10 s slices;
+  Grok A0 24 to 29; Claude A0 15 to 14), which is a token and per-call cost that scales with S. H-codex's long-wait sentence ("a long timeout_ms, not short polls") targets it and the S = 0 H trial of A8 cannot show it. So one more exploratory Codex trial: A3 with H
+  (capacity 3) at S = 30, compared with `e12-codex-s30-a3` (N), after the S = 0 H trial and the Codex chain, never pooled. Predictions registered before it runs: **P43 (65%):** H's parent makes at most 6 `wait_agent` calls (N: 12). **P44 (55%):** H's whole run is within
+  10 s of N's 215.2 s (the same work in parallel: fewer polls change tokens, not time). Nothing else changes.
+
 ## Files
 
 `README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,
