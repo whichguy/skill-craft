@@ -1,0 +1,2004 @@
+{
+ "B": {
+  "summary": {
+   "runs": 2,
+   "pass": 2,
+   "tool_calls": [
+    164,
+    204
+   ],
+   "turns": [
+    183,
+    224
+   ],
+   "done_stages": 21,
+   "unmatched": 0,
+   "co_calls_median": 3,
+   "co_seconds_median": 2.5,
+   "fused": 0,
+   "repeated_check_stages": 0,
+   "dup_seconds": 0.0,
+   "check_refusals": 4,
+   "complete_refusals": 0,
+   "loop_refusals": 0,
+   "by_stage": {
+    "step-plan": {
+     "n": 3,
+     "co_calls": [
+      3,
+      3,
+      3
+     ],
+     "co_seconds": [
+      2.2,
+      11.5,
+      13.3
+     ],
+     "fused": 0,
+     "yes": [
+      1,
+      1,
+      1
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "test-spec": {
+     "n": 3,
+     "co_calls": [
+      3,
+      3,
+      3
+     ],
+     "co_seconds": [
+      2.2,
+      2.5,
+      15.2
+     ],
+     "fused": 0,
+     "yes": [
+      1,
+      1,
+      1
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "implement": {
+     "n": 5,
+     "co_calls": [
+      2,
+      2,
+      2,
+      2,
+      2
+     ],
+     "co_seconds": [
+      1.2,
+      1.2,
+      2.0,
+      2.1,
+      2.5
+     ],
+     "fused": 0,
+     "yes": [
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "test": {
+     "n": 4,
+     "co_calls": [
+      3,
+      3,
+      3,
+      7
+     ],
+     "co_seconds": [
+      44.3,
+      46.2,
+      63.2,
+      65.9
+     ],
+     "fused": 0,
+     "yes": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "document": {
+     "n": 4,
+     "co_calls": [
+      2,
+      2,
+      2,
+      3
+     ],
+     "co_seconds": [
+      1.2,
+      1.3,
+      2.0,
+      11.3
+     ],
+     "fused": 0,
+     "yes": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "carry-forward": {
+     "n": 2,
+     "co_calls": [
+      2,
+      3
+     ],
+     "co_seconds": [
+      1.0,
+      12.7
+     ],
+     "fused": 0,
+     "yes": [
+      1,
+      0
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    }
+   }
+  },
+  "runs": [
+   {
+    "run": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report",
+    "pass": true,
+    "verdicts": {
+     "invoked": {
+      "pass": true,
+      "skill": "skill-craft:shiploop",
+      "evidence": "ShipLoop CLI ran"
+     },
+     "plugin": {
+      "pass": true,
+      "loaded": [
+       "skill-craft@whichguy 2.37.2"
+      ],
+      "wanted": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report/build/plugins/skill-craft",
+      "path": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2",
+      "output": "Added marketplace `whichguy` from /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report/build.\nInstalled marketplace root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2"
+     },
+     "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 1158.7,
+      "stop": "end_turn",
+      "sessions": [
+       {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 1158.7,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+       }
+      ],
+      "resumes": 0,
+      "pass": true
+     },
+     "shiploop": {
+      "pass": true,
+      "run_dir": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report/.shiploop-runs/work-20261114-140508-5fed64/run",
+      "status": "done",
+      "stage": "done",
+      "revision": 30,
+      "report_html": true,
+      "runs": 1,
+      "identity": "recorded",
+      "worktree": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-csv-report/.shiploop-runs/work-20261114-140508-5fed64/worktree",
+      "knowledge": {
+       "spec": true,
+       "head": "994d7592a37345ffbf02b31b1bccb6d7dde1e0eb",
+       "uncommitted": [],
+       "spec_tracked": true,
+       "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5"
+       ],
+       "head_commits": 11,
+       "head_files": 7,
+       "untracked_files": 0,
+       "branches": [
+        "main",
+        "shiploop/run-3b1fcbc3e979ba65"
+       ]
+      }
+     },
+     "committed": {
+      "pass": true,
+      "start_head": null,
+      "head": "994d7592a37345ffbf02b31b1bccb6d7dde1e0eb",
+      "head_files": 7,
+      "uncommitted": []
+     },
+     "checks": [
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" unit",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" totals",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" invalid",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" missing",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" empty",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      }
+     ]
+    },
+    "tool_calls": 164,
+    "turns": 183,
+    "tokens": {
+     "input_peak": 321592,
+     "processed": 14201659,
+     "output": 36323
+    },
+    "span": {
+     "started": 1794665087.467,
+     "ended": 1794666244.321
+    },
+    "local_head": "3474addc6a2a40c0a13313c3409841831252fe12",
+    "actions": [
+     {
+      "action": "nav-18a5ad2ebf4b483fbc2958f52258b5f0",
+      "stage": "step-plan",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 13.3,
+      "fused": false,
+      "close_out": [
+       [
+        54,
+        "check"
+       ],
+       [
+        55,
+        "done"
+       ],
+       [
+        56,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-433184b2c5814527bcaa5eecf8a7ac6f",
+      "stage": "test-spec",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 2.5,
+      "fused": false,
+      "close_out": [
+       [
+        65,
+        "check"
+       ],
+       [
+        66,
+        "done"
+       ],
+       [
+        67,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-7b5bdb1034b14f08bdcaa18d4c33e371",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 2.0,
+      "fused": false,
+      "close_out": [
+       [
+        75,
+        "done"
+       ],
+       [
+        76,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-165b476d8bcb44b8a9b4402e6eaddc1f",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 7,
+      "co_seconds": 63.2,
+      "fused": false,
+      "close_out": [
+       [
+        87,
+        "check"
+       ],
+       [
+        92,
+        "done"
+       ],
+       [
+        93,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-4993d5382db14fd9a9fac6ce7f17f9ca",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 11.3,
+      "fused": false,
+      "close_out": [
+       [
+        98,
+        "check"
+       ],
+       [
+        99,
+        "done"
+       ],
+       [
+        100,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-62805302897b4beb9a04c5b0b39b9c1b",
+      "stage": "carry-forward",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 12.7,
+      "fused": false,
+      "close_out": [
+       [
+        111,
+        "check"
+       ],
+       [
+        112,
+        "done"
+       ],
+       [
+        113,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     }
+    ]
+   },
+   {
+    "run": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses",
+    "pass": true,
+    "verdicts": {
+     "invoked": {
+      "pass": true,
+      "skill": "skill-craft:shiploop",
+      "evidence": "ShipLoop CLI ran"
+     },
+     "plugin": {
+      "pass": true,
+      "loaded": [
+       "skill-craft@whichguy 2.37.2"
+      ],
+      "wanted": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses/build/plugins/skill-craft",
+      "path": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2",
+      "output": "ace `whichguy` from /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses/build.\nInstalled marketplace root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2"
+     },
+     "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 1967.5,
+      "stop": "end_turn",
+      "sessions": [
+       {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 1967.5,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+       }
+      ],
+      "resumes": 0,
+      "pass": true
+     },
+     "shiploop": {
+      "pass": true,
+      "run_dir": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses/.shiploop-runs/work-20261114-140515-c779ab/run",
+      "status": "done",
+      "stage": "done",
+      "revision": 43,
+      "report_html": true,
+      "runs": 1,
+      "identity": "recorded",
+      "worktree": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/B-shared-expenses/.shiploop-runs/work-20261114-140515-c779ab/worktree",
+      "knowledge": {
+       "spec": true,
+       "head": "e423a9fce79ec6b14c4fb47b606e5dd74d822cab",
+       "uncommitted": [],
+       "spec_tracked": true,
+       "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5",
+        "R-6",
+        "R-7"
+       ],
+       "head_commits": 15,
+       "head_files": 6,
+       "untracked_files": 0,
+       "branches": [
+        "main",
+        "shiploop/run-bca2fc1152cb0543"
+       ]
+      }
+     },
+     "committed": {
+      "pass": true,
+      "start_head": null,
+      "head": "e423a9fce79ec6b14c4fb47b606e5dd74d822cab",
+      "head_files": 6,
+      "uncommitted": []
+     },
+     "checks": [
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" unit",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" contract",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" split",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" settle",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" restart",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" concurrency",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      }
+     ]
+    },
+    "tool_calls": 204,
+    "turns": 224,
+    "tokens": {
+     "input_peak": 360056,
+     "processed": 20471652,
+     "output": 68817
+    },
+    "span": {
+     "started": 1794665087.74,
+     "ended": 1794667053.26
+    },
+    "local_head": "3474addc6a2a40c0a13313c3409841831252fe12",
+    "actions": [
+     {
+      "action": "nav-f13d72c773b844f7a7ddc2cef132b312",
+      "stage": "step-plan",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 11.5,
+      "fused": false,
+      "close_out": [
+       [
+        45,
+        "check"
+       ],
+       [
+        46,
+        "done"
+       ],
+       [
+        47,
+        "complete"
+       ]
+      ],
+      "checks": 2,
+      "yes": 1,
+      "check_refusals": 1,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-784a5e94f5a1466abcae9ef91c66bf6a",
+      "stage": "test-spec",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 15.2,
+      "fused": false,
+      "close_out": [
+       [
+        55,
+        "check"
+       ],
+       [
+        56,
+        "done"
+       ],
+       [
+        57,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-8cb3d720e59040568bcc48a0c61f3b81",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 2.5,
+      "fused": false,
+      "close_out": [
+       [
+        62,
+        "done"
+       ],
+       [
+        63,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-c1a10f7eeed243ed8a320464087853d9",
+      "stage": "test",
+      "outcome": "send-back",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 1.1,
+      "fused": false,
+      "close_out": [
+       [
+        67,
+        "done"
+       ],
+       [
+        68,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-9207c2257ec7496fbab9669afb5df931",
+      "stage": "step-plan",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 2.2,
+      "fused": false,
+      "close_out": [
+       [
+        75,
+        "check"
+       ],
+       [
+        76,
+        "done"
+       ],
+       [
+        77,
+        "complete"
+       ]
+      ],
+      "checks": 3,
+      "yes": 1,
+      "check_refusals": 2,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-31298fef7267482aa620ffe21f0dfce1",
+      "stage": "test-spec",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 2.2,
+      "fused": false,
+      "close_out": [
+       [
+        84,
+        "check"
+       ],
+       [
+        85,
+        "done"
+       ],
+       [
+        86,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-2f85bfd0e90e4166972fb96d62d50bde",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 1.2,
+      "fused": false,
+      "close_out": [
+       [
+        91,
+        "done"
+       ],
+       [
+        92,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-b94584df5798493a873c8ac72bf7bcc5",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 46.2,
+      "fused": false,
+      "close_out": [
+       [
+        100,
+        "check"
+       ],
+       [
+        101,
+        "done"
+       ],
+       [
+        102,
+        "complete"
+       ]
+      ],
+      "checks": 2,
+      "yes": 1,
+      "check_refusals": 1,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-c62635078084438696a853bfd1e92c62",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 2.0,
+      "fused": false,
+      "close_out": [
+       [
+        105,
+        "done"
+       ],
+       [
+        106,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-d7e49c294049470ea7cd77a0cbeffb32",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 2.1,
+      "fused": false,
+      "close_out": [
+       [
+        116,
+        "done"
+       ],
+       [
+        117,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-72ea0353a93d452990c8dcb986df3a81",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 44.3,
+      "fused": false,
+      "close_out": [
+       [
+        121,
+        "check"
+       ],
+       [
+        122,
+        "done"
+       ],
+       [
+        123,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-604e843e28c04f80b51115140bd5c4b9",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 1.3,
+      "fused": false,
+      "close_out": [
+       [
+        126,
+        "done"
+       ],
+       [
+        127,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-902ad73b55f44d34bdcb2afb3ca55d00",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 1.2,
+      "fused": false,
+      "close_out": [
+       [
+        142,
+        "done"
+       ],
+       [
+        143,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-2850792afd0e4a6ab2f08ca3a7c49d34",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 65.9,
+      "fused": false,
+      "close_out": [
+       [
+        147,
+        "check"
+       ],
+       [
+        148,
+        "done"
+       ],
+       [
+        149,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-aff4c12602c544ec9f2304a44cff1a06",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 1.2,
+      "fused": false,
+      "close_out": [
+       [
+        152,
+        "done"
+       ],
+       [
+        153,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-f38fcdd9416e4ef48c8f6debd7fba4d1",
+      "stage": "carry-forward",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 2,
+      "co_seconds": 1.0,
+      "fused": false,
+      "close_out": [
+       [
+        160,
+        "done"
+       ],
+       [
+        161,
+        "complete"
+       ]
+      ],
+      "checks": 0,
+      "yes": 0,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     }
+    ]
+   }
+  ]
+ },
+ "T": {
+  "summary": {
+   "runs": 2,
+   "pass": 2,
+   "tool_calls": [
+    153,
+    256
+   ],
+   "turns": [
+    170,
+    271
+   ],
+   "done_stages": 18,
+   "unmatched": 0,
+   "co_calls_median": 1.0,
+   "co_seconds_median": 1.2999999999999998,
+   "fused": 18,
+   "repeated_check_stages": 4,
+   "dup_seconds": 9.9,
+   "check_refusals": 6,
+   "complete_refusals": 0,
+   "loop_refusals": 0,
+   "by_stage": {
+    "step-plan": {
+     "n": 2,
+     "co_calls": [
+      3,
+      3
+     ],
+     "co_seconds": [
+      12.6,
+      13.6
+     ],
+     "fused": 2,
+     "yes": [
+      2,
+      2
+     ],
+     "dup_seconds": 0.2,
+     "unmatched": 0
+    },
+    "test-spec": {
+     "n": 2,
+     "co_calls": [
+      1,
+      1
+     ],
+     "co_seconds": [
+      0.8,
+      1.2
+     ],
+     "fused": 2,
+     "yes": [
+      1,
+      1
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "implement": {
+     "n": 4,
+     "co_calls": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "co_seconds": [
+      1.2,
+      1.2,
+      1.4,
+      1.6
+     ],
+     "fused": 4,
+     "yes": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "test": {
+     "n": 4,
+     "co_calls": [
+      1,
+      1,
+      3,
+      3
+     ],
+     "co_seconds": [
+      14.1,
+      16.4,
+      22.7,
+      43.9
+     ],
+     "fused": 4,
+     "yes": [
+      2,
+      2,
+      1,
+      1
+     ],
+     "dup_seconds": 9.7,
+     "unmatched": 0
+    },
+    "document": {
+     "n": 4,
+     "co_calls": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "co_seconds": [
+      1.2,
+      1.2,
+      1.2,
+      1.6
+     ],
+     "fused": 4,
+     "yes": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    },
+    "carry-forward": {
+     "n": 2,
+     "co_calls": [
+      1,
+      1
+     ],
+     "co_seconds": [
+      0.8,
+      0.8
+     ],
+     "fused": 2,
+     "yes": [
+      1,
+      1
+     ],
+     "dup_seconds": 0.0,
+     "unmatched": 0
+    }
+   }
+  },
+  "runs": [
+   {
+    "run": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report",
+    "pass": true,
+    "verdicts": {
+     "invoked": {
+      "pass": true,
+      "skill": "skill-craft:shiploop",
+      "evidence": "ShipLoop CLI ran"
+     },
+     "plugin": {
+      "pass": true,
+      "loaded": [
+       "skill-craft@whichguy 2.37.2"
+      ],
+      "wanted": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report/build/plugins/skill-craft",
+      "path": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2",
+      "output": "Added marketplace `whichguy` from /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report/build.\nInstalled marketplace root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2"
+     },
+     "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 1026.2,
+      "stop": "end_turn",
+      "sessions": [
+       {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 1026.2,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+       }
+      ],
+      "resumes": 0,
+      "pass": true
+     },
+     "shiploop": {
+      "pass": true,
+      "run_dir": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report/.shiploop-runs/work-20261114-143805-7ecf73/run",
+      "status": "done",
+      "stage": "done",
+      "revision": 30,
+      "report_html": true,
+      "runs": 1,
+      "identity": "recorded",
+      "worktree": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-csv-report/.shiploop-runs/work-20261114-143805-7ecf73/worktree",
+      "knowledge": {
+       "spec": true,
+       "head": "14d8eab49312955b5f6ed728a36d8eac22835336",
+       "uncommitted": [],
+       "spec_tracked": true,
+       "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5"
+       ],
+       "head_commits": 10,
+       "head_files": 7,
+       "untracked_files": 0,
+       "branches": [
+        "main",
+        "shiploop/run-925c350069f1dca0"
+       ]
+      }
+     },
+     "committed": {
+      "pass": true,
+      "start_head": null,
+      "head": "14d8eab49312955b5f6ed728a36d8eac22835336",
+      "head_files": 7,
+      "uncommitted": []
+     },
+     "checks": [
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" unit",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" totals",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" invalid",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" missing",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/csv_report.py\" empty",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      }
+     ]
+    },
+    "tool_calls": 153,
+    "turns": 170,
+    "tokens": {
+     "input_peak": 345029,
+     "processed": 14083135,
+     "output": 36048
+    },
+    "span": {
+     "started": 1794667065.695,
+     "ended": 1794668090.11
+    },
+    "local_head": "65860bfddf8eebebc3c7fc34b159c970cc236ec5",
+    "actions": [
+     {
+      "action": "nav-56d91d5590d047f780ceb672967a9917",
+      "stage": "step-plan",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 13.6,
+      "fused": true,
+      "close_out": [
+       [
+        59,
+        "check"
+       ],
+       [
+        61,
+        "check"
+       ],
+       [
+        61,
+        "done"
+       ],
+       [
+        61,
+        "complete"
+       ]
+      ],
+      "checks": 4,
+      "yes": 2,
+      "check_refusals": 2,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.1
+     },
+     {
+      "action": "nav-8627603cb830441d8a33c6c96fbb6778",
+      "stage": "test-spec",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 0.8,
+      "fused": true,
+      "close_out": [
+       [
+        70,
+        "check"
+       ],
+       [
+        70,
+        "done"
+       ],
+       [
+        70,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-33f06d6ecfb648099593ed2c676659d4",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.4,
+      "fused": true,
+      "close_out": [
+       [
+        77,
+        "check"
+       ],
+       [
+        77,
+        "done"
+       ],
+       [
+        77,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-afa8d9b58cca4c83a71335af35759a08",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 43.9,
+      "fused": true,
+      "close_out": [
+       [
+        86,
+        "check"
+       ],
+       [
+        88,
+        "check"
+       ],
+       [
+        88,
+        "done"
+       ],
+       [
+        88,
+        "complete"
+       ]
+      ],
+      "checks": 2,
+      "yes": 2,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 6.5
+     },
+     {
+      "action": "nav-e699bf021fcb486486dcaa5b2d90f881",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.2,
+      "fused": true,
+      "close_out": [
+       [
+        93,
+        "check"
+       ],
+       [
+        93,
+        "done"
+       ],
+       [
+        93,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-be8c82b6a593472799eca60ebc6c8291",
+      "stage": "carry-forward",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 0.8,
+      "fused": true,
+      "close_out": [
+       [
+        103,
+        "check"
+       ],
+       [
+        103,
+        "done"
+       ],
+       [
+        103,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     }
+    ]
+   },
+   {
+    "run": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses",
+    "pass": true,
+    "verdicts": {
+     "invoked": {
+      "pass": true,
+      "skill": "skill-craft:shiploop",
+      "evidence": "ShipLoop CLI ran"
+     },
+     "plugin": {
+      "pass": true,
+      "loaded": [
+       "skill-craft@whichguy 2.37.2"
+      ],
+      "wanted": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/build/plugins/skill-craft",
+      "path": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2",
+      "output": "ace `whichguy` from /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/build.\nInstalled marketplace root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2"
+     },
+     "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 1563.2,
+      "stop": "end_turn",
+      "sessions": [
+       {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 1563.2,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+       }
+      ],
+      "resumes": 0,
+      "pass": true
+     },
+     "shiploop": {
+      "pass": true,
+      "run_dir": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/.shiploop-runs/work-20261114-142440-349c3c/run",
+      "status": "done",
+      "stage": "done",
+      "revision": 38,
+      "report_html": true,
+      "runs": 1,
+      "identity": "recorded",
+      "worktree": "/Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/.shiploop-runs/work-20261114-142440-349c3c/worktree",
+      "knowledge": {
+       "spec": true,
+       "head": "645c033b9dd800b291dd10e3be8f317be887f963",
+       "uncommitted": [],
+       "spec_tracked": true,
+       "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5",
+        "R-6",
+        "R-7",
+        "R-8",
+        "R-9",
+        "R-10",
+        "R-11",
+        "R-12"
+       ],
+       "head_commits": 12,
+       "head_files": 6,
+       "untracked_files": 0,
+       "branches": [
+        "main",
+        "shiploop/run-dde298a359be08c2"
+       ]
+      }
+     },
+     "committed": {
+      "pass": true,
+      "start_head": null,
+      "head": "645c033b9dd800b291dd10e3be8f317be887f963",
+      "head_files": 6,
+      "uncommitted": []
+     },
+     "checks": [
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" unit",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" contract",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" split",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" settle",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" restart",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      },
+      {
+       "command": "python3 \"$E2E_CHECKS/expense_service.py\" concurrency",
+       "pass": true,
+       "returncode": 0,
+       "output": "ok\n"
+      }
+     ]
+    },
+    "tool_calls": 256,
+    "turns": 271,
+    "tokens": {
+     "input_peak": 337031,
+     "processed": 20150550,
+     "output": 55132
+    },
+    "span": {
+     "started": 1794666254.074,
+     "ended": 1794667815.714
+    },
+    "local_head": "c69df5aabf226312d644950889987087fa1287fb",
+    "actions": [
+     {
+      "action": "nav-f2f4c29a6a6b4cf68fed56e6165c350a",
+      "stage": "step-plan",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 12.6,
+      "fused": true,
+      "close_out": [
+       [
+        67,
+        "check"
+       ],
+       [
+        69,
+        "check"
+       ],
+       [
+        69,
+        "done"
+       ],
+       [
+        69,
+        "complete"
+       ]
+      ],
+      "checks": 4,
+      "yes": 2,
+      "check_refusals": 2,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.1
+     },
+     {
+      "action": "nav-fe952d29efca48e8ac5dd8f77a8987cc",
+      "stage": "test-spec",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.2,
+      "fused": true,
+      "close_out": [
+       [
+        101,
+        "check"
+       ],
+       [
+        101,
+        "done"
+       ],
+       [
+        101,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-ce06811bb59d40fd822996cdffba423b",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.6,
+      "fused": true,
+      "close_out": [
+       [
+        113,
+        "check"
+       ],
+       [
+        113,
+        "done"
+       ],
+       [
+        113,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-9a300adf3c37435d8cf78b2afd0f2f30",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 3,
+      "co_seconds": 22.7,
+      "fused": true,
+      "close_out": [
+       [
+        123,
+        "check"
+       ],
+       [
+        125,
+        "check"
+       ],
+       [
+        125,
+        "done"
+       ],
+       [
+        125,
+        "complete"
+       ]
+      ],
+      "checks": 3,
+      "yes": 2,
+      "check_refusals": 1,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 3.2
+     },
+     {
+      "action": "nav-7ca0b47ca8d1476e80cea64d62441725",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.6,
+      "fused": true,
+      "close_out": [
+       [
+        130,
+        "check"
+       ],
+       [
+        130,
+        "done"
+       ],
+       [
+        130,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-4b7f16f621874a0a841787cc2f04ba54",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.2,
+      "fused": true,
+      "close_out": [
+       [
+        153,
+        "check"
+       ],
+       [
+        153,
+        "done"
+       ],
+       [
+        153,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-0aaea8fd3e4048d3bdcfefaa90d0af2d",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 14.1,
+      "fused": true,
+      "close_out": [
+       [
+        162,
+        "check"
+       ],
+       [
+        162,
+        "done"
+       ],
+       [
+        162,
+        "complete"
+       ]
+      ],
+      "checks": 2,
+      "yes": 1,
+      "check_refusals": 1,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-e48ed6f432a847f296fa96a794f4019e",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.2,
+      "fused": true,
+      "close_out": [
+       [
+        167,
+        "check"
+       ],
+       [
+        167,
+        "done"
+       ],
+       [
+        167,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-9367492d0db34b96891be2f7f7961c8e",
+      "stage": "implement",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.2,
+      "fused": true,
+      "close_out": [
+       [
+        180,
+        "check"
+       ],
+       [
+        180,
+        "done"
+       ],
+       [
+        180,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-8ef291e8f1a34c71a6e3308e73da4864",
+      "stage": "test",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 16.4,
+      "fused": true,
+      "close_out": [
+       [
+        185,
+        "check"
+       ],
+       [
+        185,
+        "done"
+       ],
+       [
+        185,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-68b3d56b1fc649cb82ba4cfa659a4569",
+      "stage": "document",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 1.2,
+      "fused": true,
+      "close_out": [
+       [
+        190,
+        "check"
+       ],
+       [
+        190,
+        "done"
+       ],
+       [
+        190,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     },
+     {
+      "action": "nav-1ae5d99f6c204bd1b7fcc519c257393b",
+      "stage": "carry-forward",
+      "outcome": "done",
+      "accepted": true,
+      "text_match": "ok",
+      "co_calls": 1,
+      "co_seconds": 0.8,
+      "fused": true,
+      "close_out": [
+       [
+        200,
+        "check"
+       ],
+       [
+        200,
+        "done"
+       ],
+       [
+        200,
+        "complete"
+       ]
+      ],
+      "checks": 1,
+      "yes": 1,
+      "check_refusals": 0,
+      "complete_refusals": 0,
+      "loop_refusals": 0,
+      "dup_seconds": 0.0
+     }
+    ]
+   }
+  ]
+ }
+}

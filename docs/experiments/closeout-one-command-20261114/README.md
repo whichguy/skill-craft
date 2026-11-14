@@ -6,8 +6,9 @@ Owner, 2026-11-14:
 
 Standing rule the same day: change nothing unless it is materially different from current functionality.
 
-Status: **run 2026-11-14. The registered conditions for adoption are met; whether to adopt is the owner's decision, and
-the limits under "Decision" apply.**
+Status: **both rounds run 2026-11-14. Round 1 (stage suite) and round 2 (whole deliveries) met every registered
+condition; the owner answered "Yes" to releasing it as a patch. The release follows this entry; a "Release" section
+below records it once it is published.**
 
 ## Why: the measured cost of closing a stage
 
@@ -265,3 +266,100 @@ CI pass.
 
 With 2 runs an arm this round is a coverage and safety check, not an estimate of whole-run time: a difference in minutes
 is not read from it.
+
+## Round 2 results (2026-11-14)
+
+Launched 14:04 UTC with `analysis/lanes.sh` (two lanes, 2 runs at a time), finished 14:55 UTC. B ran from the detached
+worktree at `3474addc6a2a40c0a13313c3409841831252fe12`; T from this branch. Each run's `result.json` records its
+`local_head`: T shared-expenses `c69df5aabf226312d644950889987087fa1287fb` and T csv-report
+`65860bfddf8eebebc3c7fc34b159c970cc236ec5`, both after the candidate `db725d10e31f869442f8ba0ec3b0401c4886b165` with only
+documents and the scorers changed since. The first T inner packet carries the one-command line and no B packet does. Another
+session's Codex run was alive for part of the time, so minutes are not a clean wall-time measure. Evidence:
+`evidence/whole-scores.json` (every action's measures and close-out events), `whole-scores.txt`, `whole-baselines.jsonl`
+(the harness's own rows) and the run folders `~/e2e-runs-sp/20261114/closeout-whole/`. Scorer: `analysis/whole_score.py`.
+
+### W1, delivery: 4 of 4 pass, every verdict
+
+| Run | Case checks | Minutes | Turns | Host tool calls | Tokens processed |
+| --- | --- | --- | --- | --- | --- |
+| B csv-report | 5 of 5 | 19.3 | 183 | 164 | 14.20 M |
+| T csv-report | 5 of 5 | 17.1 | 170 | 153 | 14.08 M |
+| B shared-expenses | 6 of 6 | 32.8 | 224 | 204 | 20.47 M |
+| T shared-expenses | 6 of 6 | 26.1 | 271 | 256 | 20.15 M |
+
+Each run was one host session with no resume, no compaction and nothing left listening. B shared-expenses sent back once
+at its test stage and replanned; T shared-expenses did not.
+
+### W2, close-out by stage type (done stages; B 21, T 18; no stage unmatched)
+
+| Stage | B calls | T calls | B seconds | T seconds | T closed in one call |
+| --- | --- | --- | --- | --- | --- |
+| step-plan | 3, 3, 3 | 3, 3 | 2.2, 11.5, 13.3 | 12.6, 13.6 | 2 of 2 |
+| test-spec | 3, 3, 3 | 1, 1 | 2.2, 2.5, 15.2 | 0.8, 1.2 | 2 of 2 |
+| implement | 2, 2, 2, 2, 2 | 1, 1, 1, 1 | 1.2 to 2.5 | 1.2 to 1.6 | 4 of 4 |
+| test | 3, 3, 3, 7 | 1, 1, 3, 3 | 44.3, 46.2, 63.2, 65.9 | 14.1, 16.4, 22.7, 43.9 | 4 of 4 |
+| document | 2, 2, 2, 3 | 1, 1, 1, 1 | 1.2, 1.3, 2.0, 11.3 | 1.2, 1.2, 1.2, 1.6 | 4 of 4 |
+| carry-forward | 2, 3 | 1, 1 | 1.0, 12.7 | 0.8, 0.8 | 2 of 2 |
+
+Pooled: close-out calls a done stage, median 3 on B and 1 on T (means 2.76 and 1.44); seconds a done stage, median 2.5 on
+B and 1.3 on T (means 14.5 and 7.6, and 5.0 and 2.9 outside the test stage). Every one of T's 18 done stages ran its last
+passing `check` in the same call as the accepted `complete`; none of B's 21 did. B ran `check` at all in 12 of 21 done stages
+(at none of its 5 implement stages, and at 1 of 4 document and 1 of 2 carry-forward stages); T ran it in all 18, as the
+wording says. The four T stages with 3 calls (two step-plan, two test) are the four that ran a standalone passing
+`check` before the closing command; their span starts at that check. The test stage's seconds are mostly the check's own runtime (a passing test-stage `check` took 22.8 to 42.8 s
+in B), which differs run to run, so its comparison is not a measure of the wording alone.
+
+### W3, repeated checks: 4 of 18 T stages, 0 of 21 B stages
+
+T repeated a passing `check` at 2 step-plan stages (0.2 s in all) and 2 test stages (9.7 s in all: 3.2 s and 6.5 s). The
+repeat at the test stage is much cheaper than a first test-stage `check` (22.8 to 42.8 s in B) because gates with unchanged
+inputs are taken from earlier records. A repeat at the test stage costs 3 to 7 s here, not a second full check.
+
+### W5, refusals
+
+| | check refused | complete refused | refusal naming the loop |
+| --- | --- | --- | --- |
+| B | 4 | 0 | 0 |
+| T | 6 | 0 | 0 |
+
+All 19 of T's closing commands (the ones that ran `check` together with `done` or `complete`) joined their parts with `&&`.
+One refusal came inside a closing command (T shared-expenses, a test stage, 1 of 8 mutants survived): its output is the
+check's refusal alone, with no loop report after it, and the model's next closing command ran `check`, the loop report and
+`complete` and was accepted. So the registered path "a refused check stops it before the report" ran live and held.
+
+### A second scorer defect, found while writing this up and fixed before these figures
+
+`whole_score.py` collected every loop `done` it could read in a call's text, including one that sits after a `check` in
+the same `&&` chain when that `check` was refused: the chain stopped there, so the `done` never ran. That made a stage
+with a refused closing command read too long on T (one test stage read as 4 calls and 42.6 s; it is 1 call and 14.1 s, its
+refusal being the previous call's). The scorer now drops a `done` that follows a refused invocation in its own call. B has
+no such chain, so no B figure moved; round 1's scorer already stopped a chain at a refusal. The first whole-run output was
+never committed, so no recorded figure was corrected: only the two T test-stage rows differ from what I first read.
+
+### The registered conditions
+
+1. Both T deliveries pass W1: **yes** (5 of 5 and 6 of 6).
+2. No failure is caused by the close-out chain: **yes**. No T run failed or stalled; 0 complete refusals; the one refused
+   check inside a closing command stopped it as designed.
+3. T's pooled median close-out calls over done stages is below B's: **yes** (1 against 3).
+4. T's median close-out seconds on the test stage is no more than B's plus 5 s: **yes** (19.6 s against 54.7 s).
+
+### What this does and does not show
+
+- It shows that on both whole deliveries, on every inner stage including test and carry-forward, the closing command works,
+  keeps the loop's refusal path, and costs no quality: 4 of 4 deliveries pass, 0 loop-named refusals.
+- Whole runs: T used fewer turns and calls on csv-report (170 against 183, 153 against 164) and more on shared-expenses
+  (271 against 224, 256 against 204), where B also replanned. Tokens processed were within 2% in both cases (14.08 against
+  14.20 M, 20.15 against 20.47 M). So no whole-run saving in turns, calls or tokens is claimed. Minutes were lower on both
+  (17.1 against 19.3, 26.1 against 32.8), one run a cell, with B shared-expenses carrying a send-back: not read.
+- The saving that is observed is at the close, by stage: 1.32 fewer calls a done stage (2.76 to 1.44). On this host and
+  model that is about 2 s a stage outside the test stage (5.0 to 2.9), about 20 s a run. At about 5 s a call, as on the
+  retained Terra runs, about a minute a run. That extrapolation is the owner's "minute".
+- Limits: two runs an arm, one host and model (Codex Sol at medium), one run per case and arm, and a test-stage comparison
+  confounded by the check's own runtime. Other hosts and models are not measured.
+
+### Decision
+
+Every registered condition holds. The owner's answer to "do you want that minute?" was "Yes", with a patch release if this
+round was clean, so T ships as a patch (ShipLoop 1.34.2 to 1.34.3, skill-craft 2.37.2 to 2.37.3) with the change note
+`changes/shiploop/closeout-one-command.md`.

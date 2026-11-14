@@ -79,18 +79,23 @@ def score_run(run: Path) -> dict:
     for index, (_, _, text) in enumerate(calls):
         for position, verb, action in commands(text):
             if verb == "done":
-                dones.append(index)
+                dones.append((index, position))
             elif action:
                 invocations[action].append((index, position, verb))
+    walked_of = {action: _walk(invocations.get(action, []), rs) for action, rs in command_rows.items()}
+    # A chain stops at a refused check or complete: a loop done after it in the same call never ran.
+    refused_at = {}
+    for walked in walked_of.values():
+        for call, _, row, position in walked or []:
+            if row.get("exit") != 0:
+                refused_at[call] = min(refused_at.get(call, position), position)
+    ran_dones = [call for call, position in dones if position < refused_at.get(call, float("inf"))]
     # Each action's accepted complete: the call that ran its first passing complete row.
     final_call = {}
     for action, rs in command_rows.items():
-        ok = [r for r in rs if r["verb"] == "complete" and r.get("exit") == 0]
-        if not ok:
-            continue
-        walked = _walk(invocations.get(action, []), rs)
+        walked = walked_of[action]
         if walked is not None:
-            for call, verb, row in walked:
+            for call, verb, row, _ in walked:
                 if verb == "complete" and row.get("exit") == 0:
                     final_call[action] = call
                     break
@@ -110,13 +115,13 @@ def score_run(run: Path) -> dict:
                  "loop_refusals": sum(r.get("exit") != 0 and bool(LOOPY.search(str(r.get("error") or ""))) for r in rs),
                  "dup_seconds": round(sum(r.get("ms", 0) for r in [r for r in rs if r["verb"] == "check"
                                                                        and r.get("exit") == 0][1:]) / 1000, 1)}
-        walked = _walk(invocations.get(action, []), rs) if accepted else None
+        walked = walked_of[action] if accepted else None
         entry["text_match"] = None if not accepted else ("ok" if walked is not None else "unmatched")
         if walked is not None and action in final_call:
             final = final_call[action]
             prev = max([e for e in ends if e < final], default=-1)
-            own_dones = [d for d in dones if prev < d <= final]
-            events = [(call, verb, row) for call, verb, row in walked] + [(d, "done", None) for d in own_dones]
+            own_dones = [d for d in ran_dones if prev < d <= final]
+            events = [(call, verb, row) for call, verb, row, _ in walked] + [(d, "done", None) for d in own_dones]
             events.sort(key=lambda e: (e[0], 0 if e[1] != "complete" else 1))
             refused = [i for i, e in enumerate(events) if e[2] is not None and e[2].get("exit") != 0]
             attempt = [e for e in events[(refused[-1] + 1) if refused else 0:] if e[0] <= final]
@@ -124,7 +129,7 @@ def score_run(run: Path) -> dict:
             if attempt:
                 entry["co_calls"] = final - attempt[0][0] + 1
                 entry["co_seconds"] = round(accepted["ts"] - calls[attempt[0][0]][0], 1)
-            yes_calls = [c for c, v, r in walked if v == "check" and r.get("exit") == 0 and c <= final]
+            yes_calls = [c for c, v, r, _ in walked if v == "check" and r.get("exit") == 0 and c <= final]
             entry["fused"] = bool(yes_calls) and yes_calls[-1] == final
         actions.append(entry)
     verdicts = {k: result.get(k) for k in ("invoked", "plugin", "process", "shiploop", "committed", "checks")}
@@ -142,7 +147,7 @@ def _walk(invs, rows):
     ci = ki = 0
     walked = []
     stopped = None  # call index whose chain a refusal stopped
-    for call, _, verb in sorted(invs, key=lambda i: (i[0], i[1])):
+    for call, position, verb in sorted(invs, key=lambda i: (i[0], i[1])):
         if stopped == call:
             continue
         if verb == "check":
@@ -155,7 +160,7 @@ def _walk(invs, rows):
                 return None
             row = completes[ki]
             ki += 1
-        walked.append((call, verb, row))
+        walked.append((call, verb, row, position))
         if row.get("exit") != 0:
             stopped = call
     return walked if ci == len(checks) and ki == len(completes) else None
