@@ -1,0 +1,16 @@
+{
+ "source": "claude stream (system task events)",
+ "agents": [
+  {
+   "id": "afa2adcaa742c1dbf",
+   "actor": "agent:Any481",
+   "kind": "general-purpose",
+   "start": 1794697587.419,
+   "end": 1794697597.539,
+   "background": false,
+   "depth": 1,
+   "tokens": 28788,
+   "success": true
+  }
+ ]
+}

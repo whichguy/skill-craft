@@ -1,0 +1,90 @@
+{
+ "trial": "e10-grok",
+ "host": "grok",
+ "elapsed_s": 52.6,
+ "status": "exited",
+ "reported": true,
+ "parent_detects": "grok",
+ "child_detects": "grok",
+ "parent_right": true,
+ "child_right": true,
+ "child_ran": true,
+ "native_agents": 1,
+ "markers_same": true,
+ "ids_differ": true,
+ "parent_ids": {
+  "GROK_SESSION_ID": "11e0cf",
+  "GROK_AGENT": "1"
+ },
+ "child_ids": {
+  "GROK_SESSION_ID": "ec62f4",
+  "GROK_AGENT": "1"
+ },
+ "parent_markers": [
+  "ANTHROPIC_BASE_URL",
+  "CODEX_COMPANION_SESSION_ID",
+  "CODEX_COMPANION_TRANSCRIPT_PATH",
+  "GROK_AGENT",
+  "GROK_CLAUDE_SKILLS_ENABLED",
+  "GROK_CONFIG_DIR",
+  "GROK_CURSOR_SKILLS_ENABLED",
+  "GROK_SESSION_ID",
+  "OPENAI_API_KEY",
+  "XAI_API_KEY"
+ ],
+ "child_markers": [
+  "ANTHROPIC_BASE_URL",
+  "CODEX_COMPANION_SESSION_ID",
+  "CODEX_COMPANION_TRANSCRIPT_PATH",
+  "GROK_AGENT",
+  "GROK_CLAUDE_SKILLS_ENABLED",
+  "GROK_CONFIG_DIR",
+  "GROK_CURSOR_SKILLS_ENABLED",
+  "GROK_SESSION_ID",
+  "OPENAI_API_KEY",
+  "XAI_API_KEY"
+ ],
+ "parent_ancestors": [
+  "zsh",
+  "grok",
+  "Python",
+  "zsh",
+  "claude",
+  "disclaimer",
+  "Claude"
+ ],
+ "child_ancestors": [
+  "zsh",
+  "grok",
+  "Python",
+  "zsh",
+  "claude",
+  "disclaimer",
+  "Claude"
+ ],
+ "parent_tools": [
+  "spawn_subagent",
+  "get_command_or_subagent_output",
+  "run_terminal_command",
+  "monitor",
+  "scheduler_create",
+  "workflow"
+ ],
+ "child_tools": [
+  "run_terminal_command",
+  "get_command_or_subagent_output",
+  "wait_commands_or_subagents",
+  "scheduler_create",
+  "monitor"
+ ],
+ "child_can_spawn": false,
+ "tool_words_checked": [
+  "agent",
+  "task",
+  "spawn",
+  "wait",
+  "background",
+  "bash",
+  "command"
+ ]
+}

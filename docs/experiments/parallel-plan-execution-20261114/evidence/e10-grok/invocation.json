@@ -1,0 +1,25 @@
+{
+ "host": "grok",
+ "binary": "grok",
+ "version": "grok 1.0.77 (50ca579fa996)",
+ "model": "grok-4.6",
+ "effort": "xhigh",
+ "probe": "identity",
+ "allow": [
+  "Bash(python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e10-grok/work/whoami.py:*)"
+ ],
+ "packet_sha256": "c6dc6d37cf0639e276f415f81fae0a792408c691c73b1f120c2ce9db54cf1c72",
+ "loadavg": [
+  7.77,
+  5.53,
+  5.48
+ ],
+ "status": "exited",
+ "returncode": 0,
+ "started": 1794697509.837,
+ "ended": 1794697562.458,
+ "elapsed_s": 52.6,
+ "elapsed_monotonic_s": 52.621,
+ "reader_joined": true,
+ "reader_error": null
+}

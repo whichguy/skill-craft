@@ -1,0 +1,70 @@
+{
+ "source": "codex rollout files",
+ "agents": [
+  {
+   "id": "01a1dc50-04a9-7d52-9dff-92d615bc3ab5",
+   "actor": "thread:bc3ab5",
+   "child": true,
+   "depth": 1,
+   "nickname": "Anscombe",
+   "version": "v2",
+   "start": 1794697594.043,
+   "end": 1794697607.964,
+   "tokens": {
+    "input_tokens": 36604,
+    "cached_input_tokens": 29952,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 394,
+    "reasoning_output_tokens": 172,
+    "total_tokens": 36998
+   },
+   "calls": [
+    {
+     "t": 1794697598.812,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e10-codex/work/whoami.py"
+    }
+   ]
+  }
+ ],
+ "threads": 2,
+ "parent": {
+  "id": "01a1dc4f-d82d-7150-9418-90eeca3585e8",
+  "actor": "parent",
+  "child": false,
+  "depth": null,
+  "nickname": null,
+  "version": null,
+  "start": 1794697583.036,
+  "end": 1794697617.255,
+  "tokens": {
+   "input_tokens": 62626,
+   "cached_input_tokens": 55168,
+   "cache_write_input_tokens": 0,
+   "output_tokens": 672,
+   "reasoning_output_tokens": 97,
+   "total_tokens": 63298
+  },
+  "calls": [
+   {
+    "t": 1794697588.618,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e10-codex/work/whoami.py"
+   },
+   {
+    "t": 1794697594.021,
+    "kind": "agent_tool",
+    "name": "spawn_agent",
+    "text": "{\"task_name\":\"probe\",\"fork_turns\":\"none\",\"message\":\"gAAAAABq-Ol59vERRNeYe5mF6Q1tAU1fyX2JiClC1Gm382K3_KbNpOPyVjHQv_VPP1HAwDBdVzOYVVOviUTcw2mQEXC4KkHferDnXUBFFngZ"
+   },
+   {
+    "t": 1794697595.917,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":60000}"
+   }
+  ]
+ }
+}

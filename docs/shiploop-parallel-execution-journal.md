@@ -285,6 +285,36 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 - Next, registered in README A7 before it runs: E10 (can the skill tell its harness, in the parent and in a sub-agent), E11 (does host-specific wording beat the anonymous packet), E12 (the settle dial: the same
   two arms at S = 30 and S = 90 on all three hosts). The skill-layer contract follows them. Nothing here changes a skill, an agent card or a default.
 
+### E10 — 2026-11-14: can a skill tell its harness, in the parent and in a native sub-agent? (the identity probe; one trial per host)
+
+- Question and method (README A7, committed in 7e68c9f03ddb5d7ef4d53926c207e43f5083a4a6 before any trial): the parent runs `whoami.py`, starts one fresh native sub-agent that runs it too, and
+  reports both lines and the names of the tools each has for starting or waiting for another agent. `whoami.py` prints what the repository's own `detect_host`
+  (skills/shiploop/scripts/shiploop_grants.py, imported read-only) says, the marker names (never values), the last six characters of thread and session ids and the process ancestry. Profiles as the owner
+  set them: Grok 4.6 xhigh, Claude Sonnet 5.5 `--effort high`, Codex Sol 6.1 medium; Grok first, then the other two side by side. Evidence: `evidence/e10-{grok,claude,codex}/` (`identity.json`, the
+  trimmed events, the host's own sub-agent record).
+- Result:
+
+  | host | parent detects | sub-agent detects | id variable, parent / sub-agent | parent's native-agent tool | sub-agent lists an agent tool | native agents (host record) | seconds |
+  |---|---|---|---|---|---|---|---|
+  | Grok 1.0.77 | grok | grok | GROK_SESSION_ID 11e0cf / ec62f4 | `spawn_subagent` | no (it lists `run_terminal_command`, `get_command_or_subagent_output`, `wait_commands_or_subagents`, `monitor`, `scheduler_create`) | 1 (general-purpose) | 52.6 |
+  | Claude Code 2.1.325 | claude | claude | CLAUDE_CODE_SESSION_ID 8476b5 / 8476b5 (the same) | `Agent` (the init event lists it as `Task`) | yes, `Agent` | 1 (general-purpose, depth 1) | 30.5 |
+  | Codex 0.169.0 | codex | codex | CODEX_THREAD_ID 3585e8 / bc3ab5 | `collaboration.spawn_agent` | yes, `collaboration.spawn_agent` | 1 (depth 1, multi-agent v2) | 35.3 |
+
+- Predictions scored as registered (README A7): **P25 held** (the parent's `detect_host` named the launched host on all three); **P26 held** (so did the sub-agent's); **P27 held** (the sub-agent's
+  thread or session id differed on two hosts, Grok and Codex; on Claude the session id is the same); **P28 held** (each parent reported its native tool; Codex's name carries a `collaboration.` namespace,
+  Claude's init event calls it `Task`); **P29 missed** (the Claude and Codex sub-agents reported a tool for starting another agent; only Grok's did not). Four of five against 85%, 75%, 60%, 75%, 65% (about 3.6 expected).
+- Readings, each on its own line: (a) The environment detection the repository already has works in both contexts on all three hosts, from the environment alone. (b) The environment also carries the
+  launching session's markers into the host: `CODEX_COMPANION_SESSION_ID` and `CODEX_COMPANION_TRANSCRIPT_PATH` (a Codex plugin's variables, set by the Claude session that ran the harness) appear in the Grok and
+  Claude environments, and `OPENAI_API_KEY`, `XAI_API_KEY` and `ANTHROPIC_BASE_URL` names in all three: a detector that matched the prefix `CODEX` would call Grok and Claude "codex" here. `detect_host`
+  checks exact names (`CODEX_SANDBOX`, `CODEX_THREAD_ID`, `GROK_AGENT`, `GROK_SESSION_ID`, `GROK_SANDBOX`, `CLAUDECODE`), innermost first; the contract must keep that. (c) Process ancestry shows the nearest
+  host binary (`grok`, `claude`, `codex`), but under Grok the chain continues through the launching Claude session (`zsh, grok, Python, zsh, claude, ...`), so ancestry is usable only as "the nearest host
+  ancestor" and is weaker than the exact markers. (d) A sub-agent cannot tell that it is one from its environment on Claude (same session id) and has no depth marker on any host; "you are a worker, do not start
+  agents" has to be in its instruction, and the script's `begin` lease is the guard. (e) Children on Claude and Codex list an agent tool: nesting is offered; whether a grandchild would run was not tested (Codex
+  child rollouts record depth 1).
+- Limits: one trial per host; the environment was built by the E2E harness's host adapters from the launching session's (so the owner's own interactive sessions may carry other markers); a model's list
+  of its tools is a report, not the schema (the schema is in the host's own records: Grok's `tool_definitions.json`, Claude's init event); host-in-host nesting, and a skill running inside another host's
+  sub-agent, were not tested.
+
 ## Findings
 
 | # | Finding | Status | Entry |
@@ -318,4 +348,5 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F27 | The pilot's tasks were 3 s to 5 s of per-task time short of break-even on every host: with S seconds more per task the saving grows 3S (Claude, Grok) or 2S (Codex, three slots), so the fan-out pays from about 8 s, 18 s and 19 s a task; the model predicts a whole-run ratio A3/A0 of 0.56, 0.67 and 0.80 at S = 30 and 0.46, 0.52 and 0.69 at S = 90 (to be tested by E12) | interim (a model from n = 1 cells) | R4 |
 | F28 | The pilot's token accounting had two defects, both mine and both reproduced as failing cells: Claude `-p` emits one result event per parent turn (the scorer read the last), so the parent's input in Claude A3 is 404,872 (0.73 times A0), not 133,640; Grok's end usage covers its sub-agents (659,155 = parent 185,909 + children 473,246), so Grok's A3 used 0.76 times A0's input. Times, costs, answers and all-contexts totals were unaffected | firm (two independent sources agree on all six Claude trials) | R4 |
 | F29 | A single context's input grows with the work, quadratically in total (495, 1,276 and 342 tokens a call on Claude, Grok and Codex), while a fresh child restarts from 24,152, 9,948 and 18,234 tokens; at the pilot's three to five calls a task the two are close and A3's extra tokens are the parent's orchestration turns. A fit says A3 uses fewer input tokens than A0 from about 7 calls a task on Claude and about 12 on Codex, and Grok already does at 5 | exploratory (a fit to n = 1 cells; linear growth, no compaction, no cache pricing) | R4 |
-
+| F30 | The repository's `detect_host` (exact markers, innermost first) names the right host in the parent and in a native sub-agent on all three hosts, from the environment alone; the environment also carries the launching session's markers (`CODEX_COMPANION_*`, API-key names), so prefix matching would misdetect and the exact-name rule must stay | interim (one trial per host, E10) | E10 |
+| F31 | A sub-agent cannot tell from its environment that it is one (Claude's session id is shared with the parent; no host sets a depth marker), and the Claude and Codex sub-agents list a tool for starting further agents; the contract therefore tells every worker, in its instruction, that it is a worker and must not start agents, and relies on the script's lease for the rest | interim (one trial per host; a model's tool list is a report) | E10 |

@@ -1,0 +1,79 @@
+{
+ "trial": "e10-codex",
+ "host": "codex",
+ "elapsed_s": 35.3,
+ "status": "exited",
+ "reported": true,
+ "parent_detects": "codex",
+ "child_detects": "codex",
+ "parent_right": true,
+ "child_right": true,
+ "child_ran": true,
+ "native_agents": 1,
+ "markers_same": true,
+ "ids_differ": true,
+ "parent_ids": {
+  "CODEX_THREAD_ID": "3585e8"
+ },
+ "child_ids": {
+  "CODEX_THREAD_ID": "bc3ab5"
+ },
+ "parent_markers": [
+  "ANTHROPIC_BASE_URL",
+  "CODEX_APPLY_PATCH_PRESERVE_LINE_ENDINGS",
+  "CODEX_CI",
+  "CODEX_HOME",
+  "CODEX_SESSION_ID",
+  "CODEX_THREAD_ID",
+  "CODEX_TOOL_CALL_ID",
+  "CODEX_VERSION",
+  "OPENAI_API_KEY",
+  "XAI_API_KEY"
+ ],
+ "child_markers": [
+  "ANTHROPIC_BASE_URL",
+  "CODEX_APPLY_PATCH_PRESERVE_LINE_ENDINGS",
+  "CODEX_CI",
+  "CODEX_HOME",
+  "CODEX_SESSION_ID",
+  "CODEX_THREAD_ID",
+  "CODEX_TOOL_CALL_ID",
+  "CODEX_VERSION",
+  "OPENAI_API_KEY",
+  "XAI_API_KEY"
+ ],
+ "parent_ancestors": [
+  "codex",
+  "Python"
+ ],
+ "child_ancestors": [
+  "codex",
+  "Python"
+ ],
+ "parent_tools": [
+  "collaboration.spawn_agent",
+  "collaboration.followup_task",
+  "collaboration.wait_agent",
+  "functions.exec",
+  "functions.wait",
+  "exec_command"
+ ],
+ "child_tools": [
+  "collaboration.spawn_agent",
+  "collaboration.followup_task",
+  "collaboration.wait_agent",
+  "functions.exec",
+  "functions.wait",
+  "exec_command"
+ ],
+ "child_can_spawn": true,
+ "tool_words_checked": [
+  "agent",
+  "task",
+  "spawn",
+  "wait",
+  "background",
+  "bash",
+  "command"
+ ]
+}

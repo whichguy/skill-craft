@@ -1,0 +1,25 @@
+{
+ "host": "claude",
+ "binary": "claude",
+ "version": "2.1.325 (Claude Code)",
+ "model": "claude-sonnet-5-5",
+ "effort": "high",
+ "probe": "identity",
+ "allow": [
+  "Bash(python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e10-claude/work/whoami.py:*)"
+ ],
+ "packet_sha256": "74efe67d3379f9065ce0bb72df003158221669dda8b45c356291d8bf590088e3",
+ "loadavg": [
+  5.57,
+  5.33,
+  5.4
+ ],
+ "status": "exited",
+ "returncode": 0,
+ "started": 1794697582.696,
+ "ended": 1794697613.175,
+ "elapsed_s": 30.5,
+ "elapsed_monotonic_s": 30.479,
+ "reader_joined": true,
+ "reader_error": null
+}
