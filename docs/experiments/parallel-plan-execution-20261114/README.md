@@ -340,6 +340,16 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
   - *Limits:* one workload, read-only, no write conflict and no commit; one model per host; three hosts side by side; a later trial of a host
     may profit from prompt caches the earlier one warmed (order is counterbalanced, not removed).
 
+- **A6 (2026-11-14, after the pilot began and before any high-effort Claude result was read): the owner's model profiles.** The owner said:
+  "The models that we should be using to run tests with harnesses would be Sonnet at high, Grok 4.6 at extra high, or SOL-6.1 on medium", and
+  "If you need to just test basics first, you can just use grok as your first basic test just to see if things are working." The profiles are
+  Claude `claude-sonnet-5-5` with `--effort high`, Grok `grok-4.6` at `xhigh`, Codex `gpt-6.1-sol` at `medium`. The Grok and Codex trials already
+  matched. The Claude trials that ran before the instruction (E1 `e1-claude` and the pilot's `r1-claude-a3` and `r1-claude-a0`) passed no `--effort`,
+  so they ran at the CLI default: they are an exploratory cell labelled "default effort", never pooled with the high-effort cell (the comparison
+  already keys the baseline on effort). The registered predictions for Claude are scored on the high-effort trials (`r1h-claude-a3`, `r1h-claude-a0`,
+  `e1h-claude`), launched after the instruction. From here a new reader, packet or launcher change gets its first basic check on Grok before the other
+  hosts; the registered cells still run on all three.
+
 ## Files
 
 `README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,

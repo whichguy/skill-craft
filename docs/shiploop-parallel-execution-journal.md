@@ -172,6 +172,17 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   In Parallel (their protocol is the heavy one: 587 s for a 60 s ideal in the Codex fan-out; a script-owned ready set tests the same idea with
   the least machinery), kept as the comparison if the light route works.
 
+### R3 — 2026-11-14: the owner's model profiles
+
+- The owner (mid-session): "The models that we should be using to run tests with harnesses would be Sonnet at high, Grok 4.6 at extra high, or
+  SOL-6.1 on medium", then "If you need to just test basics first, you can just use grok as your first basic test just to see if things are working."
+- What was wrong: my Claude trials (E1 and the first two pilot trials) went through `test/shiploop_e2e/hosts.py`, whose Claude host has no effort,
+  so no `--effort` was passed and they ran at the CLI default. Grok (xhigh) and Codex (Sol medium) already matched. Decision (routine; I did not change
+  `hosts.py`, whose defaults are a comparability question for the owner): rerun the Claude cells with `--effort high` (`r1h-claude-a3`, `r1h-claude-a0`,
+  `e1h-claude`), keep the default-effort Claude trials as a separate exploratory cell, score the Claude predictions on the high-effort cell, and
+  check anything new on Grok first (README Amendment A6, committed before any high-effort result was read). Saved to memory as
+  harness-test-model-profiles-2026-11-14.
+
 ## Findings
 
 | # | Finding | Status | Entry |
