@@ -1,0 +1,73 @@
+{
+ "schema": "ppe-plan/v1",
+ "name": "chain4",
+ "description": "four steps in a line, 20 s each: nothing to overlap",
+ "steps": [
+  {
+   "id": "S1",
+   "task": "Synthetic step S1: the kit's run command for S1, once. Nothing else is real work.",
+   "deps": [],
+   "criteria": [
+    "C-S1"
+   ],
+   "proof": "test -s out/S1.json",
+   "paths": [
+    "out/S1.json"
+   ],
+   "kit": {
+    "seconds": 20
+   }
+  },
+  {
+   "id": "S2",
+   "task": "Synthetic step S2: the kit's run command for S2, once. Nothing else is real work.",
+   "deps": [
+    "S1"
+   ],
+   "criteria": [
+    "C-S2"
+   ],
+   "proof": "test -s out/S2.json",
+   "paths": [
+    "out/S2.json"
+   ],
+   "kit": {
+    "seconds": 20
+   }
+  },
+  {
+   "id": "S3",
+   "task": "Synthetic step S3: the kit's run command for S3, once. Nothing else is real work.",
+   "deps": [
+    "S2"
+   ],
+   "criteria": [
+    "C-S3"
+   ],
+   "proof": "test -s out/S3.json",
+   "paths": [
+    "out/S3.json"
+   ],
+   "kit": {
+    "seconds": 20
+   }
+  },
+  {
+   "id": "S4",
+   "task": "Synthetic step S4: the kit's run command for S4, once. Nothing else is real work.",
+   "deps": [
+    "S3"
+   ],
+   "criteria": [
+    "C-S4"
+   ],
+   "proof": "test -s out/S4.json",
+   "paths": [
+    "out/S4.json"
+   ],
+   "kit": {
+    "seconds": 20
+   }
+  }
+ ]
+}

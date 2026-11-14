@@ -1,0 +1,22 @@
+{
+ "schema": "ppe-plan/v1",
+ "name": "one1",
+ "description": "one step of 5 s",
+ "steps": [
+  {
+   "id": "S1",
+   "task": "Synthetic step S1: the kit's run command for S1, once. Nothing else is real work.",
+   "deps": [],
+   "criteria": [
+    "C-S1"
+   ],
+   "proof": "test -s out/S1.json",
+   "paths": [
+    "out/S1.json"
+   ],
+   "kit": {
+    "seconds": 5
+   }
+  }
+ ]
+}

@@ -1,0 +1,2 @@
+
+If a step prints FAILED, do not run it again, do not run any step that depends on it (directly or through other steps), and continue with every other step that can still run.

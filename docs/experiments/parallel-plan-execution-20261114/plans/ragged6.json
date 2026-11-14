@@ -1,0 +1,105 @@
+{
+ "schema": "ppe-plan/v1",
+ "name": "ragged6",
+ "description": "S1 40 s; S2 10 s; S3 10 s after S2; S4 20 s after S1 and S3; S5 30 s; S6 10 s after S4 and S5",
+ "steps": [
+  {
+   "id": "S1",
+   "task": "Synthetic step S1: the kit's run command for S1, once. Nothing else is real work.",
+   "deps": [],
+   "criteria": [
+    "C-S1"
+   ],
+   "proof": "test -s out/S1.json",
+   "paths": [
+    "out/S1.json"
+   ],
+   "kit": {
+    "seconds": 40
+   }
+  },
+  {
+   "id": "S2",
+   "task": "Synthetic step S2: the kit's run command for S2, once. Nothing else is real work.",
+   "deps": [],
+   "criteria": [
+    "C-S2"
+   ],
+   "proof": "test -s out/S2.json",
+   "paths": [
+    "out/S2.json"
+   ],
+   "kit": {
+    "seconds": 10
+   }
+  },
+  {
+   "id": "S3",
+   "task": "Synthetic step S3: the kit's run command for S3, once. Nothing else is real work.",
+   "deps": [
+    "S2"
+   ],
+   "criteria": [
+    "C-S3"
+   ],
+   "proof": "test -s out/S3.json",
+   "paths": [
+    "out/S3.json"
+   ],
+   "kit": {
+    "seconds": 10
+   }
+  },
+  {
+   "id": "S4",
+   "task": "Synthetic step S4: the kit's run command for S4, once. Nothing else is real work.",
+   "deps": [
+    "S1",
+    "S3"
+   ],
+   "criteria": [
+    "C-S4"
+   ],
+   "proof": "test -s out/S4.json",
+   "paths": [
+    "out/S4.json"
+   ],
+   "kit": {
+    "seconds": 20
+   }
+  },
+  {
+   "id": "S5",
+   "task": "Synthetic step S5: the kit's run command for S5, once. Nothing else is real work.",
+   "deps": [],
+   "criteria": [
+    "C-S5"
+   ],
+   "proof": "test -s out/S5.json",
+   "paths": [
+    "out/S5.json"
+   ],
+   "kit": {
+    "seconds": 30
+   }
+  },
+  {
+   "id": "S6",
+   "task": "Synthetic step S6: the kit's run command for S6, once. Nothing else is real work.",
+   "deps": [
+    "S4",
+    "S5"
+   ],
+   "criteria": [
+    "C-S6"
+   ],
+   "proof": "test -s out/S6.json",
+   "paths": [
+    "out/S6.json"
+   ],
+   "kit": {
+    "seconds": 10
+   }
+  }
+ ]
+}

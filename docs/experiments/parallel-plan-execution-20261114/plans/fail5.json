@@ -1,0 +1,90 @@
+{
+ "schema": "ppe-plan/v1",
+ "name": "fail5",
+ "description": "S1 and S2 independent; S3 after S1 fails; S4 after S2; S5 after S3 and S4 must not run",
+ "steps": [
+  {
+   "id": "S1",
+   "task": "Synthetic step S1: the kit's run command for S1, once. Nothing else is real work.",
+   "deps": [],
+   "criteria": [
+    "C-S1"
+   ],
+   "proof": "test -s out/S1.json",
+   "paths": [
+    "out/S1.json"
+   ],
+   "kit": {
+    "seconds": 20
+   }
+  },
+  {
+   "id": "S2",
+   "task": "Synthetic step S2: the kit's run command for S2, once. Nothing else is real work.",
+   "deps": [],
+   "criteria": [
+    "C-S2"
+   ],
+   "proof": "test -s out/S2.json",
+   "paths": [
+    "out/S2.json"
+   ],
+   "kit": {
+    "seconds": 20
+   }
+  },
+  {
+   "id": "S3",
+   "task": "Synthetic step S3: the kit's run command for S3, once. Nothing else is real work.",
+   "deps": [
+    "S1"
+   ],
+   "criteria": [
+    "C-S3"
+   ],
+   "proof": "test -s out/S3.json",
+   "paths": [
+    "out/S3.json"
+   ],
+   "kit": {
+    "seconds": 10,
+    "fail": true
+   }
+  },
+  {
+   "id": "S4",
+   "task": "Synthetic step S4: the kit's run command for S4, once. Nothing else is real work.",
+   "deps": [
+    "S2"
+   ],
+   "criteria": [
+    "C-S4"
+   ],
+   "proof": "test -s out/S4.json",
+   "paths": [
+    "out/S4.json"
+   ],
+   "kit": {
+    "seconds": 10
+   }
+  },
+  {
+   "id": "S5",
+   "task": "Synthetic step S5: the kit's run command for S5, once. Nothing else is real work.",
+   "deps": [
+    "S3",
+    "S4"
+   ],
+   "criteria": [
+    "C-S5"
+   ],
+   "proof": "test -s out/S5.json",
+   "paths": [
+    "out/S5.json"
+   ],
+   "kit": {
+    "seconds": 10
+   }
+  }
+ ]
+}
