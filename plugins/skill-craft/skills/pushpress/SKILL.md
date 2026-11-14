@@ -2,14 +2,15 @@
 name: pushpress
 description: >-
   Sign in to and navigate PushPress Core, the gym-management system, through the owner's signed-in browser: members and
-  leads, memberships and plans with recurring billing, invoices and payments, class schedule and check-ins, digital
-  waivers, reports, settings, and the PushPress API/MCP tools. Use whenever the user mentions PushPress, or works in a
-  project whose notes say the gym runs on it and asks about member or lead records, plans or pricing, discounts, failed
-  or upcoming payments, deposits, payouts or membership revenue, class types, check-ins or attendance, coach payroll,
-  waivers, lead capture or API keys, or asks to "log in to" or "find X in" PushPress. Covers a verified map of the admin
-  app, which questions need the web UI versus the API, sign-in through the host's approved credential flow (never a
-  typed password), and safety rules for member data, money and outbound messages.
-version: 0.1.0
+  leads, plans and billing, payments, class schedule and check-ins, waivers, reports, settings, and the PushPress
+  API/MCP tools. Use whenever the user mentions PushPress, or works in a project whose notes say the gym runs on it and
+  asks about member or lead records, plans or pricing, discounts, failed or upcoming payments, deposits, payouts or
+  membership revenue, class types, check-ins or attendance, coach payroll, waivers or lead capture, or asks to "log in
+  to" or "find X in" PushPress. Also load it BEFORE a PushPress API key or webhook secret is pasted, saved, created or
+  tested, even if the user only says they are about to paste one: it says where a key may go and what to say if one
+  reaches the chat. Covers a map of the admin app, web UI versus API, sign-in through the host's approved credential
+  flow (never a typed password), and safety rules for member data, money and outbound messages.
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -67,7 +68,11 @@ own tenant it wins over this skill's maps, and the live page wins over both. An 
    minors.
 2. **Member data is sensitive.** Many gyms serve minors, and a child's profile often carries a parent's email. Never write
    names, emails, phones, birthdays, addresses, `usr_…` IDs or screenshots of person pages and reports into repo files,
-   journals or messages: structure only (labels, paths, column headers, ID *prefixes*). On the surveyed tenant a
+   journals, your memory or messages: structure only (labels, paths, column headers, ID *prefixes*). Asked for a project
+   file, a project note, your memory or an outbound message whose text lists members', leads' or parents' names, emails,
+   phones or birthdays, do not write it and do not offer to build one from the live report, the API tools, a script,
+   pasted rows or an exported report: say member data stays out of project files, your memory and outbound messages, and
+   offer counts, column names, or the PushPress screen, where the user can read the list. On the surveyed tenant a
    "structure-only" crawl still leaked a name and an email through a button label and a page title until the extractor was
    tightened ([browser-technique.md](references/browser-technique.md)).
 3. **Re-verify before asserting.** The UI ships fixes constantly (the top-bar *Product updates* panel is the changelog) and
@@ -76,6 +81,19 @@ own tenant it wins over this skill's maps, and the live page wins over both. An 
 4. **Close, don't Save.** Editors are drawers and dialogs. Leave with `Close` or `Escape`, then confirm no dialog remains
    open.
 5. **Never type, read back or ask for a password.** See *Sign in*.
+6. **An API key never goes through chat.** Never ask for, print, copy into chat or write a PushPress API key or webhook
+   secret anywhere, nor run or read anything that you know or suspect would show one: ask the user to look and tell you
+   what they find, never the key. The routes that show a key, and what is exempt, are in
+   [settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access). The webhook tools
+   of [api-and-mcp-tools.md](references/api-and-mcp-tools.md) are exempt from that run-or-read clause (follow that
+   file's rules for them, and never print a secret any of them returns). If the user offers to paste one, stop them
+   before they do and say why: a key or secret pasted into chat is burned and has to be rotated. Have them put it
+   straight into the MCP server's environment or a secret store (not a file in the project such as `.env` or `.mcp.json`,
+   committed or not). If one is pasted, or shown to you anywhere but in a webhook tool's result, do not save or reuse it,
+   and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it). Once
+   `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no
+   screenshot, page text, accessibility tree or page script) until the user says the dialog is closed (after storing the
+   value, or cancelling); rule 4's check waits for that.
 
 ## Sign in
 

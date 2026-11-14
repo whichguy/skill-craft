@@ -30,7 +30,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [prompt-audit](skills/prompt-audit/SKILL.md) | `/skill-craft:prompt-audit` | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology… |
 | [prompt-migrate](skills/prompt-migrate/SKILL.md) | `/skill-craft:prompt-migrate` | 0.1.2 | TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first… |
 | [prompt-refine](skills/prompt-refine/SKILL.md) | `/skill-craft:prompt-refine` | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs… |
-| [pushpress](skills/pushpress/SKILL.md) | `/skill-craft:pushpress` | 0.1.0 | Sign in to and navigate PushPress Core, the gym-management system, through the owner's signed-in browser: members and… |
+| [pushpress](skills/pushpress/SKILL.md) | `/skill-craft:pushpress` | 0.1.1 | Sign in to and navigate PushPress Core, the gym-management system, through the owner's signed-in browser: members and… |
 | [review-coverage](skills/review-coverage/SKILL.md) | `/skill-craft:review-coverage` | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | `/skill-craft:review-fix-bench` | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external… |
 | [rubric-eval](skills/rubric-eval/SKILL.md) | `/skill-craft:rubric-eval` | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default)… |

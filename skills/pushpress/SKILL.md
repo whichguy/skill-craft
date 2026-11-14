@@ -10,7 +10,7 @@ description: >-
   tested, even if the user only says they are about to paste one: it says where a key may go and what to say if one
   reaches the chat. Covers a map of the admin app, web UI versus API, sign-in through the host's approved credential
   flow (never a typed password), and safety rules for member data, money and outbound messages.
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux

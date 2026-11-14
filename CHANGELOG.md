@@ -2,6 +2,17 @@
 
 Written by scripts/release.py.
 
+## 2026-11-14
+
+### skill-craft 2.37.3
+
+- Skills: pushpress 0.1.1
+
+### pushpress 0.1.1
+
+- The card now states two safety rules after a no-tenant quiz failed two safety cases. An API key or webhook secret never goes through chat: the agent does not ask for one, print it or write it anywhere, nor run or read anything that it knows or suspects would show one, and asks the user to look and report what they find instead. The settings reference lists the routes (process, environment and MCP-server listings that show the server's arguments, shell history, searches that print the key's value, files that it knows or suspects hold the key, traced runs) and what is exempt: checks that print no value, the API Keys table, another server's entry in an MCP config read on its own, and the webhook tools of the API reference, which keep that file's rules and never print a secret they return. It says how to edit a shared MCP config without printing it, and to test the key with `company-get`. If the user offers to paste a key the agent stops them, says that a key or secret pasted into chat is burned and has to be rotated, and has them put it straight into the MCP server's environment or a secret store, not a file in the project such as `.env` or `.mcp.json`; one pasted, or shown to the agent anywhere but in a webhook tool's result, is not saved or reused, and the user is told to rotate it themselves. Once `Add API Key` has been pressed the agent reads nothing from the page and does nothing more in it until the user says the dialog is closed. The agent also keeps members', leads' and parents' names, emails, phones and birthdays out of its own memory, and declines a request for a project file, a project note, its memory or an outbound message whose text lists them, whether it would be built from the live report, the API tools, a script, pasted rows or an exported report, offering counts, column names or the PushPress screen instead. The API-keys section of the settings reference says that the user, not the agent, rotates a key that reached a transcript.
+- The description now also says that the card loads before a PushPress API key or webhook secret is pasted, saved, created or tested, even when the user only says they are about to paste one. With the published description a user who announced a paste did not load the card (0 of 6 trials on two phrasings; 0 of 22 on eleven held-out announcements), so the key rule could not apply. The new wording is the published description with its first sentence shortened, one sentence added and "or API keys" dropped from the list of questions (the new sentence covers keys): it loaded the card in 22 of 22 held-out announcement runs and in 38 of 40 key-related runs, fired on none of 24 held-out runs about other products' keys or about no product, kept Round 9's explicit prompts at 12 of 12 and stayed under the 1024-character cap (1018). A key that has leaked to a public repository (one prompt, two runs) did not load it. The results of the confirmation runs are in the journal's Round 12.
+
 ## 2026-11-13
 
 ### skill-craft 2.37.2
