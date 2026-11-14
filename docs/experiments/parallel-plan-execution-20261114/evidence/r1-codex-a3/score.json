@@ -1,0 +1,276 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 70.394,
+ "first_start_ts": 1794695393.785,
+ "last_end_ts": 1794695464.179,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 3,
+ "independent_pairs": 6,
+ "pairs_overlapped": 2,
+ "pairs": [
+  {
+   "pair": [
+    "T1",
+    "T2"
+   ],
+   "overlap_s": 5.845,
+   "frac_of_shorter": 0.52
+  },
+  {
+   "pair": [
+    "T1",
+    "T3"
+   ],
+   "overlap_s": 1.095,
+   "frac_of_shorter": 0.102
+  },
+  {
+   "pair": [
+    "T1",
+    "T4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T2",
+    "T3"
+   ],
+   "overlap_s": 6.501,
+   "frac_of_shorter": 0.604
+  },
+  {
+   "pair": [
+    "T2",
+    "T4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T3",
+    "T4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=054b317cf40c",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "T5": 19.821
+ },
+ "dispatch_latency_mean_s": 19.821,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "T1": "done",
+  "T2": "done",
+  "T3": "done",
+  "T4": "done",
+  "T5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": {
+  "correct": 5,
+  "total": 5,
+  "all_correct": true,
+  "tasks": {
+   "T1": {
+    "expected": 5,
+    "recorded": 5,
+    "correct": true
+   },
+   "T2": {
+    "expected": 20,
+    "recorded": 20,
+    "correct": true
+   },
+   "T3": {
+    "expected": 10,
+    "recorded": 10,
+    "correct": true
+   },
+   "T4": {
+    "expected": 660,
+    "recorded": 660,
+    "correct": true
+   },
+   "T5": {
+    "expected": 695,
+    "recorded": 695,
+    "correct": true
+   }
+  },
+  "expected_final": 695
+ },
+ "final_answer_ok": true,
+ "mechanism": {
+  "kind": "native-agents",
+  "spawns": 5,
+  "run_calls": 5,
+  "run_calls_by_actor": {
+   "thread:cf05d3": 1,
+   "thread:f0b8f0": 1,
+   "thread:23e8f9": 1,
+   "thread:022a1d": 1,
+   "thread:9651ab": 1
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "codex rollout files",
+  "agents": 5,
+  "peak": 3,
+  "kinds": [
+   "None"
+  ],
+  "depths": [
+   1
+  ],
+  "background": [],
+  "intervals_s": [
+   {
+    "actor": "thread:cf05d3",
+    "start": -7.22,
+    "end": 13.69,
+    "tokens": {
+     "input_tokens": 75550,
+     "cached_input_tokens": 66304,
+     "cache_write_input_tokens": 0,
+     "output_tokens": 650,
+     "reasoning_output_tokens": 0,
+     "total_tokens": 76200
+    }
+   },
+   {
+    "actor": "thread:f0b8f0",
+    "start": -0.35,
+    "end": 19.57,
+    "tokens": {
+     "input_tokens": 75563,
+     "cached_input_tokens": 71296,
+     "cache_write_input_tokens": 0,
+     "output_tokens": 589,
+     "reasoning_output_tokens": 0,
+     "total_tokens": 76152
+    }
+   },
+   {
+    "actor": "thread:23e8f9",
+    "start": 5.19,
+    "end": 23.45,
+    "tokens": {
+     "input_tokens": 75539,
+     "cached_input_tokens": 66816,
+     "cache_write_input_tokens": 0,
+     "output_tokens": 563,
+     "reasoning_output_tokens": 0,
+     "total_tokens": 76102
+    }
+   },
+   {
+    "actor": "thread:022a1d",
+    "start": 24.35,
+    "end": 42.5,
+    "tokens": {
+     "input_tokens": 75550,
+     "cached_input_tokens": 71936,
+     "cache_write_input_tokens": 0,
+     "output_tokens": 564,
+     "reasoning_output_tokens": 0,
+     "total_tokens": 76114
+    }
+   },
+   {
+    "actor": "thread:9651ab",
+    "start": 54.55,
+    "end": 72.25,
+    "tokens": {
+     "input_tokens": 76087,
+     "cached_input_tokens": 72192,
+     "cache_write_input_tokens": 0,
+     "output_tokens": 539,
+     "reasoning_output_tokens": 0,
+     "total_tokens": 76626
+    }
+   }
+  ]
+ },
+ "tokens": {
+  "source": "codex.usage",
+  "input": 328246,
+  "output": 2642,
+  "cache_read": 312192,
+  "cost_usd": null,
+  "peak_parent_input": null,
+  "children_included": false,
+  "parent_input_all": 328246,
+  "children_input_all": 378289,
+  "input_all": 706535,
+  "output_all": 5547,
+  "reasoning": 0
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 109.9,
+  "last_activity_tail_s": 0.445,
+  "tail_from_last_end_s": 17.414,
+  "tail_from_final_report_s": 0.463,
+  "tail_from_last_child_return_s": 15.556,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 22.108,
+  "launch_to_last_end_s": 92.502,
+  "launch_to_verified_s": 107.102,
+  "launch_to_exit_s": 109.916
+ },
+ "valid": true,
+ "identity": {
+  "host": "codex",
+  "version": "codex-cli 0.169.0",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "plan": "analysis5",
+  "arm": "A3",
+  "variant": "N",
+  "loadavg": [
+   6.72,
+   6.05,
+   5.63
+  ],
+  "enabled_features": []
+ }
+}

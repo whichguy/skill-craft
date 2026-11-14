@@ -1,0 +1,32 @@
+trial   e1h-claude
+host    claude 2.1.325 (Claude Code) claude-sonnet-5-5 high
+plan    one1  arm A1  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   0.248  H  parent        system   init         init {"subtype": "init", "tools": ["Task", "Artifact", "ArtifactComments", "ArtifactData", "Bash", "CronCreate", "CronDelete", "CronList", "DesignSync
++   1.613  H  parent        call     Read         Read {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++   1.626  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++   1.635  H  parent        result   -            1	{ 2	 "schema": "ppe-plan/v1", 3	 "name": "one1", 4	 "description": "one step of 5 s", 5	 "expected_verdict": "OK", 6	 "steps": [ 7	  { 8
++   4.019  H  parent        spawn    Agent        Agent Run step S1 | Your only job: run exactly this command in a shell and reply with the one line it prints (nothing else):  python3 /private/tmp
++   4.271  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "a739f4d765d5d653d", "tool_use_id": "toolu_01L22N6dVFqFTxQAMbrKJD75", "description": "Run step S1"
++   6.123  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a739f4d765d5d653d", "tool_use_id": "toolu_01L22N6dVFqFTxQAMbrKJD75", "description": "Running Ru
++   6.129  H  agent:rKJD75  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e1h-cl
++   6.253  L  ledger        start    S1           {"seconds":5}
++   9.220  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "bkbu3j6al", "tool_use_id": "toolu_016hCJQkzN6TyZSqLr14vYmD", "description": "Run dagkit step S1"}
++  11.254  L  ledger        end      S1           {"sha":"2a10a2d9fcfade44f89dd2492e4874702ef6d41d122c7b38a7d040871de86119","seconds":5.001}
++  11.260  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "bkbu3j6al", "tool_use_id": "toolu_016hCJQkzN6TyZSqLr14vYmD", "status": "completed"}
++  11.264  H  agent:rKJD75  result   -            STEP S1 OK sha=2a10a2d9fcfa seconds=5.001 (finished; do not run it again)
++  12.131  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a739f4d765d5d653d", "tool_use_id": "toolu_01L22N6dVFqFTxQAMbrKJD75", "description": "Run step S
++  12.133  H  agent:rKJD75  call     SubagentHand SubagentHandback {"message": "STEP S1 OK sha=2a10a2d9fcfa seconds=5.001 (finished; do not run it again)"}
++  13.148  H  agent:rKJD75  result   -            {"success":true,"message":"Report delivered to your caller."}
++  13.151  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "a739f4d765d5d653d"}
++  13.151  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "a739f4d765d5d653d", "tool_use_id": "toolu_01L22N6dVFqFTxQAMbrKJD75", "status": "complet
++  13.156  H  parent        result   -            This agent's report was delivered to you as a message from "a739f4d765d5d653d" (its SubagentHandback call). Read it there; it is not repea
++  14.963  H  parent        call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e1h-cl
++  15.015  L  ledger        verify   -            {"line":"VERIFY OK steps=1 chain=3d5ef9fd4432"}
++  15.022  H  parent        result   -            VERIFY OK steps=1 chain=3d5ef9fd4432
++  17.013  H  parent        text     -            S1 ran in its own sub-agent and printed `STEP S1 OK sha=2a10a2d9fcfa seconds=5.001`. Verify then returned `VERIFY OK steps=1 chain=3d5ef9fd4432`.  FIN
++  19.332  H  parent        system   post_turn_su post_turn_summary {"subtype": "post_turn_summary"}
++  19.336  H  parent        final    -            S1 ran in its own sub-agent and printed `STEP S1 OK sha=2a10a2d9fcfa seconds=5.001`. Verify then returned `VERIFY OK steps=1 chain=3d5ef9fd4432`.  FIN
++  19.339  H  parent        system   task_summary task_summary {"subtype": "task_summary"}

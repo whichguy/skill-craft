@@ -183,6 +183,48 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   check anything new on Grok first (README Amendment A6, committed before any high-effort result was read). Saved to memory as
   harness-test-model-profiles-2026-11-14.
 
+### E9 — 2026-11-14: native agents on real work, per harness (the pilot; fixture analysis5)
+
+- Question: with the script printing the ready set and each task's instructions, can each harness's native sub-agents do real analysis in fresh contexts,
+  in parallel, from one anonymous packet, and what does that cost against the parent doing every task itself? Method as registered (README A5, committed in
+  1b4fa27287692c242c2f52c98762509b8bde3203; the profiles in A6, 6d574c9fc8f0385304496caa395e069483b8a14d): fixture `analysis5` (four independent log analyses,
+  then their sum, 400 events per log, seed 20261114, oracle outside the agents' directory), arms A0 (one context does all five) and A3 (script-owned ready set,
+  fresh native sub-agents, capacity five), one trial per cell, arm order counterbalanced (Claude A3 then A0, Codex A0 then A3, Grok A3 then A0), three hosts side
+  by side. Profiles: Claude Code 2.1.325 `claude-sonnet-5-5` at `--effort high`, Grok Build 1.0.77 `grok-4.6` xhigh, Codex 0.169.0 `gpt-6.1-sol` medium. The
+  first Claude pair ran at the CLI default effort before the owner's instruction (journal R3) and is an exploratory, unpooled cell; the high-effort pair was
+  launched after it and read after A6 was committed. Evidence: `evidence/r1h-claude-*`, `r1-grok-*`, `r1-codex-*`, `r1-claude-*`, `e1h-claude`, the pages
+  `evidence/pilot-timeline.html` and `e1-timeline.html`, and `pilot_table.py`, which prints the table below from the score files.
+- Result (seconds; tokens include cache; "parent" is the parent's own input tokens): every task trial, nine in all counting the exploratory pair and E1 at high,
+  completed with verify OK, a faithful report, exit 0 and nothing left running; all eight task trials answered all five tasks correctly.
+
+  | host, effort | task makespan A0 / A3 | launch to first task | wait before T5 | whole run A0 / A3 | input tokens A0 / A3 (parent in A3) | cost A0 / A3 | agents, peak |
+  |---|---|---|---|---|---|---|---|
+  | Claude Sonnet 5.5, high | 27.7 / 21.9 | 4.4 / 12.3 | 2.3 / 6.7 | 35.4 / 43.2 | 555,668 / 932,405 (133,640) | $0.152 / $0.363 | 5, 4 |
+  | Grok 4.6, xhigh | 65.3 / 50.4 | 7.6 / 33.0 | 3.8 / 15.8 | 81.4 / 96.1 | 867,154 / 659,155 (scope unknown) | $0.593 / $0.630 | 5, 4 |
+  | Codex Sol 6.1, medium | 75.7 / 70.4 | 10.6 / 22.1 | 6.9 / 19.8 | 100.3 / 109.9 | 449,485 / 706,535 (328,246) | not reported | 5, 3 |
+  | Claude, default effort (exploratory) | 29.8 / 20.3 | 4.5 / 12.2 | 1.9 / 7.4 | 37.5 / 39.9 | 524,909 / 875,481 (87,811) | $0.162 / $0.516 | 5, 4 |
+
+  A3 against A0: task makespan 0.79, 0.77 and 0.93 times (Claude high, Grok, Codex); whole run 1.22, 1.18 and 1.10 times; input tokens 1.68, 0.76 and 1.57 times.
+  The task phase shortened by 5.7 s, 14.9 s and 5.3 s, and the cost outside the task phase (the parent planning and spawning, the children starting, the join, the
+  tail) rose by 13.6 s, 29.6 s and 14.9 s, so the whole run was 7.8 s, 14.7 s and 9.6 s longer. How each host launched: Claude spawned in background mode (four
+  `Agent` calls over about 5 s, from 4.8 s to 10.2 s; the stream does not show whether they came in one message or several; the sub-agent type was chosen by the model: general-purpose in all but one trial, where it chose `claude`); Grok spawned four
+  background `spawn_subagent` calls over 11 s to 25 s and waited on all four with `get_command_or_subagent_output`; Codex spawned three (`spawn_agent`, `fork_turns` "none"),
+  waited with `wait_agent` in 10 s slices and **released the fourth claim** because its tool description says "There are 4 available concurrency slots, meaning that up to 4
+  agents can be active at once, including you", then launched T4 after the first wave. On Claude and Grok the children began together when the parent yielded its turn,
+  not when each spawn was issued. A3's `ready` line was consistent in every trial: no refused attempt, no duplicate start; the release path (added after the review) was used once.
+- Predictions scored as registered (README A5): **P16 held** (Claude high peak 4); **P17 held** (Codex peak 3); **P18 held** (Grok peak 4); **P19 held** (all eight task
+  trials answered 5 of 5); **P20 held** on all three hosts, by task makespan; **P21 missed as written** (Claude 1.68 and Codex 1.57 times, Grok 0.76); **P22 held** where the
+  figure separates the parent (Claude 133,640 against 555,668; Codex 328,246 against 449,485; Grok not scored); **P23 held** (every exit 0, tails 0.4 s to 2.5 s since the final
+  report); **P24 missed** (no host's agent peak was 1). Seven of nine held against 70%, 55%, 50%, 75%, 70%, 70%, 80%, 70% and 40% (about 5.8 expected). Decision rule **R6**: all three
+  hosts satisfy it (valid A3 trial, five correct answers, a faithful report, exit 0, peak at least 3 in both the host's own agent record and the ledger). The synthetic predictions
+  P1 to P15 registered for E2 and E3 were never tested: those trials were superseded by this design (A5) before they ran.
+- Readings, each on its own line, none a rescore: (a) P20 holds by the registered measure while the whole run is longer on every host (above). (b) P21's miss rests on Grok's figure,
+  whose scope is unknown (Claude's `usage` was the parent only and `modelUsage` the whole run; if Grok's end usage also leaves out its children, its 0.76 understates A3). (c) In A3 the
+  parent's own input tokens fall to 0.24 (Claude) and 0.73 (Codex) times A0's: the outcome-only retention the owner described holds, strongly on Claude, modestly on Codex.
+- Limits: one trial per cell, so no rate and no claim that a difference of a few seconds is real; one read-only workload with 5 s to 24 s tasks (short against the fixed cost); no
+  write conflict, no commit, no isolation; three hosts ran side by side and a later trial may have profited from caches an earlier one warmed (order counterbalanced, not removed);
+  load average 5 to 8 on the machine; Grok's and Codex's agent types and models were the hosts' defaults (Grok inherited its model, Codex pinned the child to Sol medium).
+
 ## Findings
 
 | # | Finding | Status | Entry |
@@ -206,3 +248,9 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F17 | One hand-off of a 5 s step costs, bare: Claude 19.6 s, 188k input tokens (parent 136k, child 52k; the child's own context 27k), $0.137; Codex 34.5 s, 117k tokens (parent 81k, child 37k); Grok 31.5 s, 93k tokens, $0.087. The roughly 86k-token start-up figure for a fresh Claude sub-agent does not hold for a clean profile (27k) | interim (n = 1 per host; Codex and Grok at their medium and xhigh latency) | E1 |
 | F18 | Codex's effective multi-agent version was v2 in both profiles (each child rollout says so, with the same tool names and the same overhead) although `codex features list` shows v2 off in the harness profile: the feature list is not the effective state, and A1's premise (v1 in the harness profile) is dropped | interim (one trial per profile) | E1 |
 | F19 | Each host keeps its own record of its sub-agents: Claude's stream (`task_started` with `subagent_type`, `task_progress` tokens, `parent_tool_use_id` on every call), Codex's rollout files (one per thread, naming parent and depth; its `exec --json` stream shows neither the spawn nor the child's commands), Grok's `logs/unified.jsonl` (a session id on every tool call and a lifecycle line per sub-agent). Attribution therefore needs no hooks, and a host-neutral timeline needs three small readers | firm (shapes read from real runs) | E1 |
+| F20 | Native fan-out and fan-in works on all three harnesses from one anonymous packet when a script owns readiness, instructions and recorded outcomes: eight of eight task trials answered all five analyses correctly, the parent's report matched the ledger, every exit was 0 and nothing was left running; agent peaks 4 (Claude), 4 (Grok), 3 (Codex), each in both the host's own record and the ledger | interim (one trial per cell) | E9 |
+| F21 | For these 5 s to 24 s tasks parallelism shortened the task phase (0.77 to 0.93 times) but lengthened the whole run (1.10 to 1.22 times): the cost outside the task phase rose by 13.6 s (Claude), 29.6 s (Grok) and 14.9 s (Codex) while the task phase fell by 5.7 s, 14.9 s and 5.3 s. Only independent work longer than about those figures, times four thirds, can pay on these hosts; a ShipLoop step iteration (median 154 s, F11) is far longer, but 90% of recorded plans have no independent pair (F8) | interim (n = 1 per host; the arithmetic is derived from three trials) | E9 |
+| F22 | Fresh contexts cost tokens and money: A3 used 1.68 times (Claude) and 1.57 times (Codex) the input tokens of A0 and 2.39 times the cost on Claude; the parent's own input fell to 0.24 times (Claude) and 0.73 times (Codex) of A0's, so outcome-only retention holds. Grok's A3 figure (0.76 times) has an unknown scope | interim | E9 |
+| F23 | Host differences a portable route must absorb: Codex allows four concurrency slots including the parent (three children; its parent released the fourth claim itself); Claude and Grok spawn in background mode and their children begin together when the parent yields, not at each spawn; Claude picks the sub-agent type itself (general-purpose, once `claude`); the waits differ (`wait_agent` in slices, `get_command_or_subagent_output`, Claude's notifications); usage figures differ in scope (Claude `usage` is the parent's and `modelUsage` the whole run) | interim | E9 |
+| F24 | A script-owned ready set with a claim, a capacity and a release was reliable on all three hosts: no refused attempt, no duplicate start, no stranded claim, one release used by Codex's parent when its host's slots ran out | interim | E9 |
+| F25 | The sub-agents in every trial were native by each host's own account (Claude's task events, Codex's rollout threads at depth 1, Grok's log with a session id per tool call), and the timeline page `evidence/pilot-timeline.html` shows the interleaving: a staircase of tasks in A0 and overlapping agent lifetimes in A3 | firm (read from the real runs) | E9 |

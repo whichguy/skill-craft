@@ -1,0 +1,88 @@
+{
+ "schema": "ppe-plan/v1",
+ "name": "analysis5",
+ "description": "four independent log analyses, then their sum (real agent work; README Amendment A5)",
+ "expected_verdict": "OK",
+ "steps": [
+  {
+   "id": "T1",
+   "task": "Read {evidence}/log_1.txt. Each line of the log is `<UTC timestamp> user=<id> action=<action> status=<ok|fail> ip=<ip>`. The file is in time order. Do not modify any file under the evidence folder. Count the distinct users that have three events with action=login and status=fail where the third such event is at most 600 seconds after the first (look at that user's failed logins in time order; other events in between do not matter). Report that count as the integer answer.",
+   "deps": [],
+   "criteria": [
+    "C-T1"
+   ],
+   "proof": "test -s out/T1.json",
+   "paths": [
+    "out/T1.json"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "T2",
+   "task": "Read {evidence}/log_2.txt. Each line of the log is `<UTC timestamp> user=<id> action=<action> status=<ok|fail> ip=<ip>`. The file is in time order. Do not modify any file under the evidence folder. For each user count the events with action=download and status=ok. Report the largest of those per-user counts as the integer answer.",
+   "deps": [],
+   "criteria": [
+    "C-T2"
+   ],
+   "proof": "test -s out/T2.json",
+   "paths": [
+    "out/T2.json"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "T3",
+   "task": "Read {evidence}/log_3.txt. Each line of the log is `<UTC timestamp> user=<id> action=<action> status=<ok|fail> ip=<ip>`. The file is in time order. Do not modify any file under the evidence folder. Count the distinct ip values that appear in at least one event with status=fail and also in at least one event with status=ok. Report that count as the integer answer.",
+   "deps": [],
+   "criteria": [
+    "C-T3"
+   ],
+   "proof": "test -s out/T3.json",
+   "paths": [
+    "out/T3.json"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "T4",
+   "task": "Read {evidence}/log_4.txt. Each line of the log is `<UTC timestamp> user=<id> action=<action> status=<ok|fail> ip=<ip>`. The file is in time order. Do not modify any file under the evidence folder. Look only at the events of user=u03, in file order. Find the largest difference, in whole seconds, between the timestamps of two consecutive u03 events. Report that number of seconds as the integer answer.",
+   "deps": [],
+   "criteria": [
+    "C-T4"
+   ],
+   "proof": "test -s out/T4.json",
+   "paths": [
+    "out/T4.json"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "T5",
+   "task": "Four colleagues each analysed one log. Their integer answers are recorded by the script: read them with `python3 {kit} outcome --run {run} --step T1` and the same command for T2, T3 and T4 (do not read the log files). Report as the integer answer the sum of the four answers.",
+   "deps": [
+    "T1",
+    "T2",
+    "T3",
+    "T4"
+   ],
+   "criteria": [
+    "C-T5"
+   ],
+   "proof": "test -s out/T5.json",
+   "paths": [
+    "out/T5.json"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  }
+ ]
+}

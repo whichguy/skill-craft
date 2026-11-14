@@ -355,4 +355,5 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
 `README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,
 `launch.py` (one trial), `score.py` (measures, text timeline, ASCII Gantt), `calibrate.py` (the scorer, the kit and the launcher
 path against runs with known answers, run before any model call), `fakehost.py` (a stand-in host for that), `export.py`
-(compact evidence into `evidence/`), `evidence/` (the Astra review and its question; trial evidence as it is exported).
+(compact evidence into `evidence/`), `evidence.py` (the seeded logs and the oracle for `analysis5`), `render_html.py` (the timeline page), `pilot_table.py`
+(the pilot's table from the score files), `evidence/` (the Astra review and its question; every exported trial; the timeline pages).

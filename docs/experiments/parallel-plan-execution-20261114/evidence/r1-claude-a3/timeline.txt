@@ -1,0 +1,149 @@
+trial   r1-claude-a3
+host    claude 2.1.325 (Claude Code) claude-sonnet-5-5 None
+plan    analysis5  arm A3  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   0.710  H  parent        system   init         init {"subtype": "init", "tools": ["Task", "Artifact", "ArtifactComments", "ArtifactData", "Bash", "CronCreate", "CronDelete", "CronList", "DesignSync
++   2.642  H  parent        call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++   2.780  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++   2.920  L  ledger        claim    T1           
++   2.921  L  ledger        claim    T2           
++   2.921  L  ledger        claim    T3           
++   2.921  L  ledger        claim    T4           
++   2.921  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,
++   2.930  H  parent        result   -            {"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,
++   5.283  H  parent        spawn    Agent        Agent Run task T1 | Run exactly `python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/s
++   7.021  H  parent        spawn    Agent        Agent Run task T2 | Run exactly `python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/s
++   8.613  H  parent        spawn    Agent        Agent Run task T3 | Run exactly `python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/s
++   9.287  H  parent        system   permission_c permission_check_status {"subtype": "permission_check_status", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "status": "checking"}
++  10.246  H  parent        spawn    Agent        Agent Run task T4 | Run exactly `python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/s
++  10.545  H  parent        system   permission_c permission_check_status {"subtype": "permission_check_status", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "status": "done"}
++  10.565  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  10.567  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "ad7925bb4661a02f0", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "description": "Run task T1"
++  10.573  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  10.573  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "a3893d15d5b35adbe", "tool_use_id": "toolu_01U9GRGNL1FFTb6x26nDnmmd", "description": "Run task T2"
++  10.579  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  10.580  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "aeb4a617efcd81611", "tool_use_id": "toolu_018zT5kPLH8QHznqtrXEFoVp", "description": "Run task T3"
++  10.585  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  10.586  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "a7819ae9f132abc28", "tool_use_id": "toolu_01J3XbQ8agiV45C5aZTSiqsz", "description": "Run task T4"
++  10.592  H  parent        result   -            Async agent launched successfully. (This tool result is internal metadata — never quote or paste any part of it, including the agentId below
++  10.594  H  parent        result   -            Async agent launched successfully. (This tool result is internal metadata — never quote or paste any part of it, including the agentId below
++  10.596  H  parent        result   -            Async agent launched successfully. (This tool result is internal metadata — never quote or paste any part of it, including the agentId below
++  10.597  H  parent        result   -            Async agent launched successfully. (This tool result is internal metadata — never quote or paste any part of it, including the agentId below
++  11.490  H  parent        text     -            Waiting for sub-agents to return.
++  11.710  H  parent        call     Bash         Bash sleep 1; echo waiting
++  12.300  H  agent:UM325g  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  12.301  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ad7925bb4661a02f0", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "description": "Running py
++  12.360  H  agent:XEFoVp  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  12.361  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "aeb4a617efcd81611", "tool_use_id": "toolu_018zT5kPLH8QHznqtrXEFoVp", "description": "Running py
++  12.372  L  ledger        start    T1           
++  12.372  H  agent:nDnmmd  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  12.372  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a3893d15d5b35adbe", "tool_use_id": "toolu_01U9GRGNL1FFTb6x26nDnmmd", "description": "Running py
++  12.382  H  agent:UM325g  result   -            STEP T1 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Read /private/tmp/claude-501/-Users-dadleet--claude-spares-spa
++  12.425  L  ledger        start    T3           
++  12.434  H  agent:XEFoVp  result   -            STEP T3 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Read /private/tmp/claude-501/-Users-dadleet--claude-spares-spa
++  12.439  L  ledger        start    T2           
++  12.449  H  agent:nDnmmd  result   -            STEP T2 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Read /private/tmp/claude-501/-Users-dadleet--claude-spares-spa
++  12.484  H  agent:TSiqsz  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  12.485  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a7819ae9f132abc28", "tool_use_id": "toolu_01J3XbQ8agiV45C5aZTSiqsz", "description": "Running py
++  12.550  L  ledger        start    T4           
++  12.557  H  agent:TSiqsz  result   -            STEP T4 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Read /private/tmp/claude-501/-Users-dadleet--claude-spares-spa
++  13.036  H  parent        result   -            waiting
++  14.032  H  parent        text     -            The four sub-agents (T1–T4) are still running. I'll check readiness again when one returns.
++  14.080  H  parent        system   post_turn_su post_turn_summary {"subtype": "post_turn_summary"}
++  14.541  H  agent:nDnmmd  call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-claude-a
++  14.545  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a3893d15d5b35adbe", "tool_use_id": "toolu_01U9GRGNL1FFTb6x26nDnmmd", "description": "Running cd
++  14.916  H  agent:XEFoVp  call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-claude-a
++  14.917  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "aeb4a617efcd81611", "tool_use_id": "toolu_018zT5kPLH8QHznqtrXEFoVp", "description": "Running cd
++  15.090  H  agent:UM325g  call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-claude-a
++  15.091  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ad7925bb4661a02f0", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "description": "Running cd
++  15.157  H  agent:nDnmmd  result   -            415   20 user=u16    6 user=u14    6 user=u05   84 action=download status=ok    4 action=login status=fail   99 action=login status=ok   53
++  15.427  H  agent:XEFoVp  result   -            400 log_3.txt 10
++  15.515  H  agent:UM325g  result   -            2026-03-14T08:00:05Z user=u08 action=logout status=ok ip=10.0.8.57 2026-03-14T08:00:27Z user=u06 action=login status=ok ip=10.0.4.2 2026-03-
++  15.606  H  agent:TSiqsz  call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-claude-a
++  15.607  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a7819ae9f132abc28", "tool_use_id": "toolu_01J3XbQ8agiV45C5aZTSiqsz", "description": "Running cd
++  16.318  H  agent:TSiqsz  result   -            412 2026-03-14T08:04:31Z user=u03 action=view status=ok ip=10.0.5.22 2026-03-14T08:06:58Z user=u03 action=view status=ok ip=10.0.3.33 2026-0
++  17.120  H  agent:nDnmmd  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  17.121  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a3893d15d5b35adbe", "tool_use_id": "toolu_01U9GRGNL1FFTb6x26nDnmmd", "description": "Running py
++  17.183  L  ledger        end      T2           {"sha":"e8c2a1c43150fe16190199cee13d978d1db4f8be7d2b364a39ed583f815f8def","result":{"answer":20,"method":"grep action=download status=ok, count per us
++  17.191  H  agent:nDnmmd  result   -            RECORDED T2 answer=20 (finished; do not report it again)
++  17.473  H  agent:UM325g  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  17.474  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ad7925bb4661a02f0", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "description": "Running py
++  17.480  H  agent:XEFoVp  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  17.481  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "aeb4a617efcd81611", "tool_use_id": "toolu_018zT5kPLH8QHznqtrXEFoVp", "description": "Running py
++  17.535  L  ledger        end      T3           {"sha":"bcb450970882e22315492e4fda06aa8bdd1f778d7b98199b0c0c5fbc15699bfe","result":{"answer":10,"method":"awk collected ips with fail and ok statuses,
++  17.536  L  ledger        end      T1           {"sha":"ed3972e1a7f2237da62e9d7f50f65fe09c7530c49ef7c7808bdba53d4c9cf00d","result":{"answer":5,"method":"Parsed log, grouped failed logins per user, s
++  17.544  H  agent:UM325g  result   -            RECORDED T1 answer=5 (finished; do not report it again)
++  17.547  H  agent:XEFoVp  result   -            RECORDED T3 answer=10 (finished; do not report it again)
++  18.352  H  agent:UM325g  call     SubagentHand SubagentHandback {"message": "RECORDED T1 answer=5 (finished; do not report it again)"}
++  18.356  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ad7925bb4661a02f0", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "description": "Run task T
++  18.384  H  agent:TSiqsz  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  18.385  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a7819ae9f132abc28", "tool_use_id": "toolu_01J3XbQ8agiV45C5aZTSiqsz", "description": "Running py
++  18.446  L  ledger        end      T4           {"sha":"70b969edb421886473b8086af63e16e3e00e900359ddfd5ee1157357bc551827","result":{"answer":660,"method":"Filtered user=u03 lines (36 events), parsed
++  18.452  H  agent:TSiqsz  result   -            RECORDED T4 answer=660 (finished; do not report it again)
++  18.766  H  agent:nDnmmd  call     SubagentHand SubagentHandback {"message": "RECORDED T2 answer=20 (finished; do not report it again)"}
++  18.766  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a3893d15d5b35adbe", "tool_use_id": "toolu_01U9GRGNL1FFTb6x26nDnmmd", "description": "Run task T
++  18.858  H  agent:XEFoVp  call     SubagentHand SubagentHandback {"message": "RECORDED T3 answer=10 (finished; do not report it again)"}
++  18.858  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "aeb4a617efcd81611", "tool_use_id": "toolu_018zT5kPLH8QHznqtrXEFoVp", "description": "Run task T
++  19.432  H  agent:UM325g  result   -            {"success":true,"message":"Report delivered to your caller."}
++  19.439  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "ad7925bb4661a02f0"}
++  19.439  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "ad7925bb4661a02f0", "tool_use_id": "toolu_0151KomNvTebf9cpoqUM325g", "status": "complet
++  19.440  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  19.456  H  agent:nDnmmd  result   -            {"success":true,"message":"Report delivered to your caller."}
++  19.458  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "a3893d15d5b35adbe"}
++  19.458  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "a3893d15d5b35adbe", "tool_use_id": "toolu_01U9GRGNL1FFTb6x26nDnmmd", "status": "complet
++  19.459  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  19.461  H  parent        system   init         init {"subtype": "init", "tools": ["Task", "Artifact", "ArtifactComments", "ArtifactData", "Bash", "CronCreate", "CronDelete", "CronList", "DesignSync
++  19.678  H  agent:XEFoVp  result   -            {"success":true,"message":"Report delivered to your caller."}
++  19.682  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "aeb4a617efcd81611"}
++  19.683  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "aeb4a617efcd81611", "tool_use_id": "toolu_018zT5kPLH8QHznqtrXEFoVp", "status": "complet
++  19.683  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  20.303  H  agent:TSiqsz  call     SubagentHand SubagentHandback {"message": "RECORDED T4 answer=660 (finished; do not report it again)"}
++  20.304  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a7819ae9f132abc28", "tool_use_id": "toolu_01J3XbQ8agiV45C5aZTSiqsz", "description": "Run task T
++  21.265  H  parent        call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  21.316  L  ledger        claim    T5           
++  21.317  L  ledger        ready    -            {"result":{"ready":["T5"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++  21.324  H  parent        result   -            {"ready":["T5"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++  21.471  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++  21.496  H  agent:TSiqsz  result   -            {"success":true,"message":"Report delivered to your caller."}
++  21.499  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "a7819ae9f132abc28"}
++  21.499  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "a7819ae9f132abc28", "tool_use_id": "toolu_01J3XbQ8agiV45C5aZTSiqsz", "status": "complet
++  21.499  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  22.137  H  parent        text     -            T5 is ready and claimed; launching it.
++  23.838  H  parent        spawn    Agent        Agent Run task T5 | Run exactly `python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/s
++  24.156  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  24.162  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "ae4ad2b0b106227a6", "tool_use_id": "toolu_01Ek46HgaMtLeXnvJfmRwKZr", "description": "Run task T5"
++  24.162  H  parent        result   -            Async agent launched successfully. (This tool result is internal metadata — never quote or paste any part of it, including the agentId below
++  24.764  H  parent        text     -            T5 is still running. I'll check readiness again once it returns.
++  25.799  H  agent:mRwKZr  call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-cla
++  25.800  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ae4ad2b0b106227a6", "tool_use_id": "toolu_01Ek46HgaMtLeXnvJfmRwKZr", "description": "Running py
++  25.856  L  ledger        start    T5           
++  25.863  H  agent:mRwKZr  result   -            STEP T5 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Four colleagues each analysed one log. Their integer answers a
++  26.794  H  parent        system   post_turn_su post_turn_summary {"subtype": "post_turn_summary"}
++  28.745  H  agent:mRwKZr  call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-claude-a
++  28.747  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ae4ad2b0b106227a6", "tool_use_id": "toolu_01Ek46HgaMtLeXnvJfmRwKZr", "description": "Running cd
++  30.083  H  agent:mRwKZr  result   -            {"step":"T1","result":{"answer":5,"method":"Parsed log, grouped failed logins per user, sliding window of 3 within 600s"}} {"step":"T2","res
++  30.665  H  agent:mRwKZr  text     -            Sum = 695.
++  32.081  H  agent:mRwKZr  call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-claude-a
++  32.081  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ae4ad2b0b106227a6", "tool_use_id": "toolu_01Ek46HgaMtLeXnvJfmRwKZr", "description": "Running cd
++  32.646  L  ledger        end      T5           {"sha":"d960cd661d508f8c079d05d30e251cdf97331ed731645a1ffa50d7c491a27c04","result":{"answer":695,"method":"Summed T1-T4 recorded answers (5+20+10+660)
++  32.653  H  agent:mRwKZr  result   -            RECORDED T5 answer=695 (finished; do not report it again)
++  33.438  H  agent:mRwKZr  call     SubagentHand SubagentHandback {"message": "RECORDED T5 answer=695 (finished; do not report it again)"}
++  33.439  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "ae4ad2b0b106227a6", "tool_use_id": "toolu_01Ek46HgaMtLeXnvJfmRwKZr", "description": "Run task T
++  34.414  H  agent:mRwKZr  result   -            {"success":true,"message":"Report delivered to your caller."}
++  34.416  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "ae4ad2b0b106227a6"}
++  34.416  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "ae4ad2b0b106227a6", "tool_use_id": "toolu_01Ek46HgaMtLeXnvJfmRwKZr", "status": "complet
++  34.417  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++  34.494  H  parent        system   init         init {"subtype": "init", "tools": ["Task", "Artifact", "ArtifactComments", "ArtifactData", "Bash", "CronCreate", "CronDelete", "CronList", "DesignSync
++  36.131  H  parent        call     Bash         Bash D=/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/r1-claude-a3
++  36.390  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++  36.437  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4","T5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++  36.474  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=5805398e6d0d"}
++  36.517  H  parent        result   -            {"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4","T5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++  37.409  H  parent        text     -            All five tasks finished and `verify` passed. T1–T4 ran in parallel, and T5 ran after them.  FINAL {"done":["T1","T2","T3","T4","T5"],"failed":[],"not_
++  39.810  H  parent        system   post_turn_su post_turn_summary {"subtype": "post_turn_summary"}
++  39.813  H  parent        final    -            The four sub-agents (T1–T4) are still running. I'll check readiness again when one returns.
++  39.813  H  parent        final    -            T5 is still running. I'll check readiness again once it returns.
++  39.814  H  parent        final    -            All five tasks finished and `verify` passed. T1–T4 ran in parallel, and T5 ran after them.  FINAL {"done":["T1","T2","T3","T4","T5"],"failed":[],"not_
++  39.815  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
