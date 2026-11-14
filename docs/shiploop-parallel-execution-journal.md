@@ -134,6 +134,44 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   several agents each inspect a separate slice of supplied evidence and one owner assembles the plan; measures: omitted edges, invented
   edges, wall-clock, tokens. It answers the owner's "when we do the planning" directly and needs no write isolation.
 
+### E1 — 2026-11-14: one fresh native sub-agent per host, headless (the qualification probe)
+
+- Question: can each harness's own agent infrastructure be driven headless from a neutral text packet, with the sub-agent's work attributable
+  to it and a clean exit? Method: arm A1 on `one1` (one 5 s step), packet N, one trial per condition: Claude Code 2.1.325 (`claude-sonnet-5-5`),
+  Codex 0.169.0 (`gpt-6.1-sol` medium) in the harness profile and with `--enable multi_agent_v2`, Grok Build 1.0.77 (`grok-4.6` xhigh); the
+  four ran side by side (a qualification, not a timing comparison). The registered arms and predictions of E2 and E3 are not run (superseded
+  by R2). Evidence: the trial folders were scored with the registered scorer after the reader fixes in
+  3c8e1cb6c42b5f4f17890a6959b9116640f21565.
+- Result: all four trials completed with the step run once and `verify` OK, exit 0 and no lingering process. **Claude:** the parent read the plan,
+  spawned an `Agent` (`subagent_type` general-purpose, `is_backgrounded` false, `spawn_depth` 1); the sub-agent ran the command (attributed
+  by `parent_tool_use_id`) and returned through a `SubagentHandback` call; 19.6 s elapsed for the 5 s step, process exit 2.9 s after the final
+  report, $0.137, input tokens 188,154 including cache (parent 135,698, children 52,456; the child's own context 27,229 tokens). **Codex:**
+  the parent called `spawn_agent` (`task_name`, `fork_turns` "none", message encrypted) and `wait_agent`; a child thread with its own rollout
+  file ran the command (depth 1); `exec --json` showed only the `wait` and none of the child's events; 34.5 s elapsed in both profiles; input
+  tokens 117,447 (parent 80,783, child 36,664). In both profiles the child's `multi_agent_version` is v2. **Grok:** the parent called
+  `spawn_subagent` (general-purpose, `background` false, model inherited from the parent); the child's call appears in the stream and
+  `unified.jsonl` gives each call's session id, so it is exactly attributable; 31.5 s elapsed, 93,251 input tokens in the end usage (whether
+  that figure includes the sub-agent is not established), $0.087. Grok's first scoring said `final=none` because its closing message streams
+  as 123 text deltas; the reader now joins the trailing deltas.
+- Reading: native sub-agents work headless on all three, one at a time, from a neutral packet, and each host keeps its own account of them (Claude
+  in the stream, Codex in rollout files, Grok in its log), so attribution needs no hooks. The Claude headless failure documented on 2.1.296
+  (a coordinator returning before its workers, or not exiting) did not occur here; this was one foreground sub-agent, not a nested coordinator or a
+  background worker, so it is not a general qualification. Parallel launch, completion-driven refill and real work are untested.
+
+### R2 — 2026-11-14: the owner's course correction, and the pivot to native agents doing real work
+
+- The owner's words (mid-session): "My hope was not actually to use bash calls as subagents. I was hoping to use the native agent
+  infrastructure of the harnesses, but I'm not sure if it's possible or not. You don't necessarily have to reuse some of the things that I've
+  previously created, but you can leverage it if you think it's valuable. Help me figure out what the right thing is to do here."
+- Reading: E1's sub-agents were native, but the payload (a sleeping shell command) tests neither a fresh context doing work nor an outcome
+  returned to a small parent; the design should not look as if a bash call were the agent. Decision (routine; direction-setting parts are put to
+  the owner in the closing message): keep E1 as qualification; replace the payload with real analysis work done by the fresh sub-agent; keep the
+  script as the single authority for readiness, instructions and recorded outcomes (the ShipLoop shape: print the step, the model does it,
+  the model calls back), because ShipLoop talks to its script by command anyway; cross-check that the workers were native agents with each
+  host's own record. README Amendment A5 registers the design and predictions P16 to P24 before any task trial. Not reused: Plan Dispatcher and
+  In Parallel (their protocol is the heavy one: 587 s for a 60 s ideal in the Codex fan-out; a script-owned ready set tests the same idea with
+  the least machinery), kept as the comparison if the light route works.
+
 ## Findings
 
 | # | Finding | Status | Entry |
@@ -143,7 +181,7 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F3 | On the heavy Plan Dispatcher protocol a 60 s ideal fan-out took 587 s on Codex (J started about 240 s after A and B ended); overlap itself was real on Codex (29.3 of 30 s) and Claude (29.9 of 30 s) | interim (one run each; test/shiploop_e2e/LEARNINGS.md, f810a78f38f996086f6beba9eceb54403052e8bc, e0fb43667f4f9b2386962d46c38f288f56822809) | R0 |
 | F4 | The history digest said no script validates step `deps`; that is wrong: the navigator rejects non-list, duplicate, unknown, self and forward dependencies. What no script proves is that a recorded `deps` is the true set (a missing or a forced dependency) | firm (source reading) | R0 |
 | F5 | The three CLIs on this machine can all run headless with a native sub-agent facility present: Claude Code 2.1.325 (`--agents`, `stream-json`), Codex 0.169.0 (`multi_agent_v2` stable; `enable_fanout` removed), Grok Build 1.0.77 (subagents on by default, `--no-subagents`, `streaming-json`). Presence is not behaviour; that is what E1 to E3 test | firm (CLI reading) | R0 |
-| F6 | Codex's native multi-agent feature depends on the profile: in the throwaway `CODEX_HOME` the E2E harness builds (sign-in only) `multi_agent_v2` is off and the deprecated `multi_agent` is on, while the owner's own profile has both on. A harness result on Codex is therefore a result for one profile; "Codex can do it" needs both | firm (`codex features list` in each profile, 0.169.0) | R0 |
+| F6 | Codex's native multi-agent feature depends on the profile: in the throwaway `CODEX_HOME` the E2E harness builds (sign-in only) `multi_agent_v2` is off and the deprecated `multi_agent` is on, while the owner's own profile has both on. A harness result on Codex is therefore a result for one profile; "Codex can do it" needs both | firm for the configured state; superseded as to effective behaviour by F18 (2026-11-14) | R0 |
 | F7 | Planning reliably records dependencies: 922 of 928 recorded step plans (99.4%) have `deps` on every step, none names a later or unknown step, and the 6 without are legacy | firm (census, re-extracted independently) | E0 |
 | F8 | Most recorded plans have nothing to overlap: 600 of 922 are single-step (65%), 218 are pure chains (24%); 92 (10.0%) have an independent pair, 28.6% of the 322 multi-step plans; 28 plans have width 3 or more | firm for these runs (E2E cases) | E0 |
 | F9 | The ideal wall-clock saving from step-level parallelism is 11.6% of recorded step time over the 323 timed plans (20.8% over the 75 multi-step ones; per-plan median 0; 21 plans save anything; family-weighted 1.6%); with overlapping-path steps kept in order, 9.9% (17.7%). It is concentrated in a few families and is an upper bound (unlimited workers, no merge cost, per-step stages assumed able to overlap) | interim (75 timed multi-step plans) | E0 |
@@ -153,3 +191,7 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F13 | The per-step pilot ran (2026-10-29, `eadad0c84f8a213287459bbf6252411ac0b90fce`, Codex gpt-6.1-terra xhigh, case stand-in-parser, one run per arm): serial fresh workers cost 4.1 times the inline control's time (21.6 against 5.3 min), 2.9 times its input tokens (23.11 M against 8.06 M) and 4.5 times its output tokens, with 13 fresh workers (four per step plus five for the item), about 1.25 min and 1.2 M input tokens each; all slice verdicts passed. It measured no parallel run, so the unmeasured quantity (parallel against serial) stands; it is the prior for what a fresh context costs in real ShipLoop | interim (one case, one run per arm) | R1 |
 | F14 | The first no-model calibration (75 cells, 0 off) could not see six pre-trial defects in the apparatus: a launcher that crashed on Codex and Grok before creating its directory, a mechanism detector that credited unrelated spawns and truncated commands, a report check that accepted a child's FINAL and an omitted running step, a Codex token key that read unknown, a claim that could strand a run, and a comparison that overwrote one Codex profile with the other. Each was reproduced as a failing cell (23 of 26 failed) before the fix (3c8e1cb6c42b5f4f17890a6959b9116640f21565); a dry run alone had hidden the first | firm (fail-first cells, then 104 cells 0 off) | R1 |
 | F15 | A synthetic DAG that runs concurrently proves a mechanism, not a route: ShipLoop's step lifecycle (build, test, document, review, commit before the next) and its commit stage conflict with concurrent steps, which is why the chain was retired. E0's step-level saving is an upper bound that needs an owner decision to relax that lifecycle; the next bridge is parallel work inside one stage | firm as framing; the owner decision is open | R1 |
+| F16 | Native sub-agents work headless on all three harnesses from a neutral packet, one foreground general-purpose sub-agent each, the step run once in the child, verify OK and a clean exit 0: Claude's `Agent` tool, Codex's `spawn_agent` (`fork_turns` "none") with `wait_agent`, Grok's `spawn_subagent` | interim (E1, one trial per host) | E1 |
+| F17 | One hand-off of a 5 s step costs, bare: Claude 19.6 s, 188k input tokens (parent 136k, child 52k; the child's own context 27k), $0.137; Codex 34.5 s, 117k tokens (parent 81k, child 37k); Grok 31.5 s, 93k tokens, $0.087. The roughly 86k-token start-up figure for a fresh Claude sub-agent does not hold for a clean profile (27k) | interim (n = 1 per host; Codex and Grok at their medium and xhigh latency) | E1 |
+| F18 | Codex's effective multi-agent version was v2 in both profiles (each child rollout says so, with the same tool names and the same overhead) although `codex features list` shows v2 off in the harness profile: the feature list is not the effective state, and A1's premise (v1 in the harness profile) is dropped | interim (one trial per profile) | E1 |
+| F19 | Each host keeps its own record of its sub-agents: Claude's stream (`task_started` with `subagent_type`, `task_progress` tokens, `parent_tool_use_id` on every call), Codex's rollout files (one per thread, naming parent and depth; its `exec --json` stream shows neither the spawn nor the child's commands), Grok's `logs/unified.jsonl` (a session id on every tool call and a lifecycle line per sub-agent). Attribution therefore needs no hooks, and a host-neutral timeline needs three small readers | firm (shapes read from real runs) | E1 |

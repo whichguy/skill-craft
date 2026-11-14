@@ -300,6 +300,46 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
     question from that result alone. E7 stale state: a worker starts against a state file at revision R1, the parent changes it to R2
     before the worker returns, and the parent must record a disposition for the stale result (accept, redo or ask) rather than accept it.
 
+- **A5 (2026-11-14, after E1 and the owner's course correction, before any task trial): native agents doing real work.**
+  - *The owner's message, mid-session:* "My hope was not actually to use bash calls as subagents. I was hoping to use the native agent
+    infrastructure of the harnesses, but I'm not sure if it's possible or not. You don't necessarily have to reuse some of the things
+    that I've previously created, but you can leverage it if you think it's valuable. Help me figure out what the right thing is to do here."
+  - *What E1 showed.* The sub-agents in E1 were native on all three harnesses: Claude Code's `Agent` tool (a general-purpose,
+    foreground, depth-1 agent; its Bash call attributed to it in the stream), Codex's `spawn_agent` with `fork_turns` "none" and `wait_agent`
+    (a child thread with its own rollout file, naming its parent and depth), Grok's `spawn_subagent` (a general-purpose agent that inherits the
+    parent's model; its command attributed to it by session id in `logs/unified.jsonl`). The shell command was only the payload, there to
+    make timing measurable; but a sleep is the wrong payload for the question, because it exercises neither a fresh context doing work nor
+    an outcome returned to a small parent context. E1 is kept as qualification, not as the result.
+  - *The new design (ShipLoop-shaped).* The script prints the ready set and each task's instructions; a fresh native sub-agent does the
+    task (real analysis of log files it reads itself) and reports its outcome through the script's callback (`begin`, then `complete`); the
+    parent only launches children and collects one-line acknowledgements, never reading the evidence. Fixture **`analysis5`** (plans/):
+    four independent log analyses T1 to T4 and T5, which depends on all four (the sum, read from the script, not from the logs). `evidence.py`
+    generates the logs from a seed (default 20261114, 400 events each) and an independent oracle; the oracle sits beside `work/` in the trial
+    folder and only the scorer reads it. Packets `task-A0.md` (the parent does every task itself, one context) and `task-A3.md` (script-owned
+    ready set, up to four sub-agents at once; capacity one is A3s). The packet wording stays anonymous (N): E1 showed it suffices for one
+    sub-agent on all three hosts. The kit's bash calls are the script interface (ShipLoop itself talks to its script by command), not the
+    workers; the host's own record of its sub-agents (above) is read as the cross-check that the workers were native agents.
+  - *Corrected premise.* In E1 both Codex profiles ran `multi_agent_version` v2 in the child rollouts although `codex features list` shows v2
+    off in the harness profile, with the same tool names and the same overhead. A1's "harness profile = v1" is therefore dropped: the
+    effective version is read from the rollouts, and `+v2` trials are not run unless a rollout shows v1.
+  - *Measures added:* correctness (each answer and the final answer against the oracle; a trial with a wrong answer is not valid for a
+    comparison, quality first), the host's own agent records (count, peak, intervals, kind, depth), tokens split into the parent's and the
+    children's (the parent's total input tokens stand for the work done in its context), valid as before.
+  - *Order (arm order counterbalanced across hosts; each host runs one trial at a time, the three hosts side by side):* Claude A3 then A0;
+    Codex A0 then A3; Grok A3 then A0; one trial per cell. A3s is added on a host only if its A3 shows peak at least 2 and the cost needs separating.
+  - *Predictions, registered before any task trial:* **P16 (70%):** Claude A3's ledger peak (begin to complete) is at least 3; **P17 (55%)** Codex;
+    **P18 (50%)** Grok. **P19 (75%):** every task trial, every host and arm, answers all five tasks correctly. **P20 (70%):** on each host where A3
+    has peak at least 3 and five correct answers, A3's makespan is below A0's. **P21 (70%):** on every host, A3's total input tokens (all contexts,
+    cache included) are at least 1.3 times A0's. **P22 (80%):** on every host where the figure separates the parent, the parent's total input tokens
+    in A3 are below A0's (Grok's is not scored if its figure's scope is unknown). **P23 (70%):** every host exits 0 with a tail of at most 60 s
+    since its final report in every task trial. **P24 (40%):** at least one host's A3 shows an agent peak of 1 although the packet asks for the
+    sub-agents together.
+  - *Decision rule R6.* A host "runs native parallel fan-out and fan-in on real work" when its A3 trial is valid (five correct answers, verify
+    OK, a faithful report, exit 0) and both the host's own agent records and the kit's ledger show a peak of at least 3. Time, tokens and parent
+    context are reported as measured; one trial per cell supports no payoff claim and no rate.
+  - *Limits:* one workload, read-only, no write conflict and no commit; one model per host; three hosts side by side; a later trial of a host
+    may profit from prompt caches the earlier one warmed (order is counterbalanced, not removed).
+
 ## Files
 
 `README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,
