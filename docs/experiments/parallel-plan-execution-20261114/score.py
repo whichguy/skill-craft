@@ -356,7 +356,8 @@ def score_trial(trial: Path) -> dict:
     last_activity = max(ends) if ends else None
     m["process"] = {"status": inv.get("status"), "returncode": inv.get("returncode"), "elapsed_s": inv.get("elapsed_s"),
                     "tail_s": round(inv["ended"] - last_activity, 3) if inv.get("ended") and last_activity else None}
-    m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "loadavg")}
+    m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "loadavg",
+                                             "enabled_features")}
     (trial / "score.json").write_text(json.dumps(m, indent=1, default=str) + "\n")
     (trial / "timeline.txt").write_text(render_timeline(trial, plan, events, view, inv))
     (trial / "gantt.txt").write_text(render_gantt(plan, events, view))
@@ -365,7 +366,8 @@ def score_trial(trial: Path) -> dict:
 
 def summary_line(trial: Path, m: dict) -> str:
     i, p, t = m["identity"], m["process"], m["tokens"]
-    return (f"{trial.name:<28} {i.get('host') or '-':<6} {i.get('plan') or '-':<8} {i.get('arm') or '-':<3}{i.get('variant') or '':<2} "
+    tag = "+v2" if "multi_agent_v2" in (i.get("enabled_features") or []) else ""
+    return (f"{trial.name:<28} {(i.get('host') or '-') + tag:<9} {i.get('plan') or '-':<8} {i.get('arm') or '-':<3}{i.get('variant') or '':<2} "
             f"{(p.get('status') or '-'):<8} makespan={m['makespan_s']} peak={m['peak_concurrency']} refused={m['refused']} "
             f"early={m['starts_before_dep_end']} dup={m['steps_started_twice']} verify={m.get('verify')} "
             f"final={'ok' if m.get('fidelity_ok') else ('bad' if m.get('final_found') else 'none')} mech={m['mechanism']['kind']} "

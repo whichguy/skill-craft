@@ -217,6 +217,15 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
 - A write DAG in one checkout also needs isolation and integration (the chain's real value); E5 only probes the
   simplest case.
 
+## Amendments (dated, each made before any trial, none changes a prediction)
+
+- **A1 (2026-11-14): Codex's multi-agent feature differs between profiles.** `codex features list` in a throwaway
+  `CODEX_HOME` that holds only the sign-in (the profile `hosts.CodexHost.env` builds) shows the deprecated `multi_agent`
+  on and `multi_agent_v2` (stable) **off**; the owner's own profile has both on. Condition added: every Codex arm runs in
+  the harness profile (v1 only) and, where it matters, again with `--enable multi_agent_v2` (the launcher's
+  `--enable-feature`), the effective state recorded in each trial's invocation. P1, P2 and P8 are scored on the profile as
+  run; a trial in the other profile is a separate cell and is never pooled with it.
+
 ## Files
 
 `README.md` (this registration), `census/` (E0: script, README, evidence), `dagkit.py`, `plans/`, `packets/`,

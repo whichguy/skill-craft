@@ -99,8 +99,13 @@ def main(argv=None) -> int:
     parser.add_argument("--budget", type=float, default=6.0, help="Claude's per-trial dollar ceiling (a safety net)")
     parser.add_argument("--model")
     parser.add_argument("--effort")
+    parser.add_argument("--enable-feature", action="append", default=[], metavar="NAME",
+                        help="Codex only: pass --enable NAME (README Amendment A1: multi_agent_v2 is off in the harness's "
+                             "throwaway profile and on in the owner's own)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
+    if args.enable_feature and args.host != "codex":
+        parser.error("--enable-feature applies to the codex host only")
 
     trial = Path(args.out).resolve()
     work, run_dir = trial / "work", trial / "work" / "run"
@@ -115,6 +120,8 @@ def main(argv=None) -> int:
     prompt_file = (trial.parent / ".dry-run-prompt.txt") if args.dry_run else trial / "prompt.txt"
     cmd = host.argv(prompt=packet, prompt_file=prompt_file, cwd=work, model=model, effort=effort, permission_mode="auto",
                     max_turns=None, max_budget_usd=args.budget if args.host == "claude" else None, allow=allow)
+    if args.enable_feature:  # Codex's prompt is its last argument; options go before it
+        cmd = cmd[:-1] + [part for name in args.enable_feature for part in ("--enable", name)] + cmd[-1:]
     if args.dry_run:
         shown = ["<packet>" if part == packet else part for part in cmd]
         print(f"host={args.host} model={model} effort={effort} plan={args.plan} arm={args.arm} variant={args.variant}\n"
@@ -135,6 +142,7 @@ def main(argv=None) -> int:
     result = run_host(cmd, work, env, trial / "events.raw.jsonl", trial / "stderr.txt", args.timeout)
     inv = {"host": args.host, "binary": host.binary, "version": version or why, "model": model, "effort": effort,
            "permission_mode": "auto", "allow": list(allow), "plan": args.plan, "arm": args.arm, "variant": args.variant,
+           "enabled_features": args.enable_feature,
            "timeout_s": args.timeout, "budget_usd": args.budget if args.host == "claude" else None,
            "argv": ["<packet.md>" if part == packet else part for part in cmd], "cwd": str(work),
            "loadavg": [round(x, 2) for x in os.getloadavg()], "kit_sha256": score.dagkit._sha(kit.read_text()),
