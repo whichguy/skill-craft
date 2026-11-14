@@ -2,6 +2,7 @@
  "schema": "ppe-plan/v1",
  "name": "one1",
  "description": "one step of 5 s",
+ "expected_verdict": "OK",
  "steps": [
   {
    "id": "S1",

@@ -2,6 +2,7 @@
  "schema": "ppe-plan/v1",
  "name": "ragged6",
  "description": "S1 40 s; S2 10 s; S3 10 s after S2; S4 20 s after S1 and S3; S5 30 s; S6 10 s after S4 and S5",
+ "expected_verdict": "OK",
  "steps": [
   {
    "id": "S1",

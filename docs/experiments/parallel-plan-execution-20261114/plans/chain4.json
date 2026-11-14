@@ -2,6 +2,7 @@
  "schema": "ppe-plan/v1",
  "name": "chain4",
  "description": "four steps in a line, 20 s each: nothing to overlap",
+ "expected_verdict": "OK",
  "steps": [
   {
    "id": "S1",

@@ -6,15 +6,22 @@ skill uses it. Every arm calls it through the host's own shell tool, so each com
 ledger (``RUN/ledger.jsonl``, one JSON object per line) is the ground truth for when each step ran.
 
   dagkit.py init     --plan PLAN.json --run RUN
-  dagkit.py ready    --run RUN [--claim]      one JSON line: ready, claimed, running, done, failed, blocked, waiting, complete
-  dagkit.py run      --run RUN --step ID      refuses (exit 3) a premature or repeated start; else works, then logs end
-  dagkit.py verify   --run RUN                VERIFY OK | PARTIAL | FAIL, from the ledger and the hash chain
-  dagkit.py timeline --run RUN                the ledger in order, with seconds from the first event
+  dagkit.py ready    --run RUN [--claim [--capacity N]]
+                     one JSON line: ready, deferred, claimed, running, done, failed, blocked, waiting, complete, capacity,
+                     claimed_age_s. With --claim the ready steps are claimed (at most N minus the claimed and running ones
+                     when --capacity is given); the rest are "deferred" and are offered again on a later call
+  dagkit.py release  --run RUN --step ID     give back a claim whose sub-agent never started (a failed launch)
+  dagkit.py run      --run RUN --step ID     refuses (exit 3) a premature, repeated, unknown or unsound-input start;
+                                             else works, then logs end (or fail for an injected fault)
+  dagkit.py verify   --run RUN               VERIFY OK | PARTIAL | FAIL, from the ledger, the plan and the hash chain
+  dagkit.py timeline --run RUN               the ledger in order, with seconds from the first event
 
 A step's work is a sleep of the step's declared seconds, then an output file whose hash chains the hashes of the
-steps it depends on, so a step that ran on a missing or stale input cannot produce a valid chain. ``PPE_TIME_SCALE``
-(tests only) scales the sleeps and is written into every start event, so a scaled trial is never mistaken for a
-live one. Exit codes: 0 done, 1 a step failed (an injected fault) or verify failed, 2 verify partial, 3 refused.
+steps it depends on, so a step that ran on a missing or stale input cannot produce a valid chain; ``run`` reads each
+predecessor's output file and refuses to start when it does not match the ledger. ``PPE_TIME_SCALE`` (tests only) scales
+the sleeps and is written into every start event, so a scaled trial is never mistaken for a live one. Exit codes: 0 done,
+1 a step failed (an injected fault) or verify failed, 2 verify partial, 3 refused. Every refusal is logged with a
+``category``: premature, duplicate, unknown, prerequisite-failed or input-invalid.
 """
 
 from __future__ import annotations
@@ -87,15 +94,17 @@ def out_hash(plan_sha: str, step: str, inputs: dict) -> str:
 
 def derive(plan: dict, events: list[dict]) -> dict:
     """The state of every step from the ledger alone."""
-    state = {s["id"]: {"state": "pending", "claimed": False, "starts": 0, "start": None, "end": None,
-                       "start_seq": None, "end_seq": None, "sha": None} for s in plan["steps"]}
+    state = {s["id"]: {"state": "pending", "claimed": False, "claim_ts": None, "starts": 0, "terminals": 0, "start": None,
+                       "end": None, "start_seq": None, "end_seq": None, "sha": None} for s in plan["steps"]}
     for event in events:
         step = event.get("step")
         if step not in state:
             continue
         item, kind = state[step], event["kind"]
         if kind == "claim":
-            item["claimed"] = True
+            item["claimed"], item["claim_ts"] = True, event["ts"]
+        elif kind == "release":
+            item["claimed"], item["claim_ts"] = False, None
         elif kind == "start":
             item["starts"] += 1
             if item["start"] is None:
@@ -104,16 +113,20 @@ def derive(plan: dict, events: list[dict]) -> dict:
                 item["state"] = "running"
         elif kind == "end":
             item.update(state="done", end=event["ts"], end_seq=event["seq"], sha=event["detail"].get("sha"))
+            item["terminals"] += 1
         elif kind == "fail":
             item.update(state="failed", end=event["ts"], end_seq=event["seq"])
+            item["terminals"] += 1
     for s in plan["steps"]:  # deps name earlier steps only, so one pass settles the blocked ones
         if state[s["id"]]["state"] == "pending" and any(state[d]["state"] in ("failed", "blocked") for d in s["deps"]):
             state[s["id"]]["state"] = "blocked"
     return state
 
 
-def classify(plan: dict, state: dict) -> dict:
-    groups = {name: [] for name in ("ready", "claimed", "running", "done", "failed", "blocked", "waiting")}
+def classify(plan: dict, state: dict, capacity: int | None = None) -> dict:
+    """Groups of steps; ``capacity`` limits how many ready steps are offered (None offers them all)."""
+    groups = {name: [] for name in ("ready", "deferred", "claimed", "running", "done", "failed", "blocked", "waiting")}
+    offered = []
     for s in plan["steps"]:
         item = state[s["id"]]
         if item["state"] == "done":
@@ -123,10 +136,12 @@ def classify(plan: dict, state: dict) -> dict:
         elif item["claimed"]:
             groups["claimed"].append(s["id"])
         elif all(state[d]["state"] == "done" for d in s["deps"]):
-            groups["ready"].append(s["id"])
+            offered.append(s["id"])
         else:
             groups["waiting"].append(s["id"])
-    groups["complete"] = not (groups["ready"] or groups["claimed"] or groups["running"] or groups["waiting"])
+    slots = len(offered) if capacity is None else max(0, capacity - len(groups["claimed"]) - len(groups["running"]))
+    groups["ready"], groups["deferred"] = offered[:slots], offered[slots:]
+    groups["complete"] = not (groups["ready"] or groups["deferred"] or groups["claimed"] or groups["running"] or groups["waiting"])
     return groups
 
 
@@ -160,15 +175,41 @@ def cmd_ready(args) -> int:
     run = Run(args.run)
     with run.locked():
         plan = run.plan()
-        groups = classify(plan, derive(plan, run.events()))
+        state = derive(plan, run.events())
+        groups = classify(plan, state, args.capacity if args.claim else None)
+        now = time.time()
         if args.claim:
             for step in groups["ready"]:
                 run.append("claim", step)
-        printed = {key: groups[key] for key in ("ready", "claimed", "running", "done", "failed", "blocked", "waiting")}
+        printed = {key: groups[key] for key in ("ready", "deferred", "claimed", "running", "done", "failed", "blocked", "waiting")}
         printed["complete"] = groups["complete"]
+        printed["capacity"] = args.capacity if args.claim else None
+        printed["claimed_age_s"] = {i: round(now - state[i]["claim_ts"], 1) for i in groups["claimed"] if state[i]["claim_ts"]}
         run.append("ready", None, result=printed, claim=bool(args.claim))
     print(json.dumps(printed, separators=(",", ":")))
     return 0
+
+
+def cmd_release(args) -> int:
+    run = Run(args.run)
+    with run.locked():
+        plan = run.plan()
+        state = derive(plan, run.events())
+        item = state.get(args.step)
+        if item is None or not item["claimed"] or item["starts"]:
+            reason = "unknown step" if item is None else "it is not a claim that never started"
+            run.append("refused", args.step, reason=reason, command="release", category="unknown" if item is None else "duplicate")
+            print(f"NOT RELEASED {args.step}: {reason}")
+            return 3
+        run.append("release", args.step)
+    print(f"RELEASED {args.step}")
+    return 0
+
+
+def _refuse(run: Run, step_id: str, category: str, reasons: list) -> int:
+    run.append("refused", step_id, reason="; ".join(reasons), command="run", category=category)
+    print(f"REFUSED {step_id}: " + "; ".join(reasons))
+    return 3
 
 
 def cmd_run(args) -> int:
@@ -177,21 +218,22 @@ def cmd_run(args) -> int:
         plan, meta = run.plan(), run.meta()
         steps = {s["id"]: s for s in plan["steps"]}
         if step_id not in steps:
-            run.append("refused", step_id, reason="unknown step", command="run")
-            print(f"REFUSED {step_id}: not a step of this plan")
-            return 3
+            return _refuse(run, step_id, "unknown", ["not a step of this plan"])
         state = derive(plan, run.events())
-        step, reasons = steps[step_id], []
+        step = steps[step_id]
         if state[step_id]["starts"]:
-            reasons.append("it already started; each step runs once")
+            return _refuse(run, step_id, "duplicate", ["it already started; each step runs once"])
         unfinished = [d for d in step["deps"] if state[d]["state"] != "done"]
         if unfinished:
-            reasons.append("its dependencies have not finished OK: " + ", ".join(f"{d} ({state[d]['state']})" for d in unfinished))
-        if reasons:
-            run.append("refused", step_id, reason="; ".join(reasons), command="run")
-            print(f"REFUSED {step_id}: " + "; ".join(reasons))
-            return 3
+            category = "prerequisite-failed" if any(state[d]["state"] in ("failed", "blocked") for d in unfinished) else "premature"
+            return _refuse(run, step_id, category, ["its dependencies have not finished OK: "
+                                                    + ", ".join(f"{d} ({state[d]['state']})" for d in unfinished)])
         inputs = {d: state[d]["sha"] for d in step["deps"]}
+        for d, sha in inputs.items():
+            target = run.dir / "out" / f"{d}.json"
+            written = json.loads(target.read_text()).get("sha") if target.is_file() else None
+            if written != sha:
+                return _refuse(run, step_id, "input-invalid", [f"the output file of {d} does not match the ledger"])
         run.append("start", step_id, deps=inputs, seconds=step["kit"]["seconds"], scale=SCALE)
     began = time.time()
     time.sleep(step["kit"]["seconds"] * SCALE)
@@ -213,24 +255,36 @@ def cmd_run(args) -> int:
 
 
 def verdict(run: Run) -> tuple[str, str]:
-    """(OK|PARTIAL|FAIL, the one line) recomputed from the ledger and the output files."""
-    plan, meta = run.plan(), run.meta()
-    state = derive(plan, run.events())
+    """(OK|PARTIAL|FAIL, the one line) recomputed from one consistent snapshot of the ledger, the plan and the outputs."""
+    with run.locked():
+        plan_text = (run.dir / "plan.json").read_text()
+        meta, events = run.meta(), run.events()
+        outputs = {p.stem: p.read_text() for p in (run.dir / "out").glob("*.json")}
+    plan = json.loads(plan_text)
+    state = derive(plan, events)
     problems = []
+    if _sha(plan_text) != meta["plan_sha"]:
+        problems.append("plan.json changed since init")
     for s in plan["steps"]:
         step, item = s["id"], state[s["id"]]
         if item["starts"] > 1:
             problems.append(f"{step} started {item['starts']} times")
+        if item["terminals"] > 1:
+            problems.append(f"{step} has {item['terminals']} terminal events")
+        if item["starts"] == 0 and item["terminals"]:
+            problems.append(f"{step} ended without a start")
         if item["state"] == "running":
             problems.append(f"{step} started and never ended")
         for d in s["deps"]:
-            if item["start_seq"] is not None and (state[d]["end_seq"] is None or item["start_seq"] < state[d]["end_seq"]):
+            if item["start_seq"] is None:
+                continue
+            if state[d]["end_seq"] is None or item["start_seq"] < state[d]["end_seq"]:
                 problems.append(f"{step} started before {d} ended")
+            elif state[d]["state"] != "done":
+                problems.append(f"{step} started after {d}, which did not end OK")
         if item["state"] == "done":
-            inputs = {d: state[d]["sha"] for d in s["deps"]}
-            expect = out_hash(meta["plan_sha"], step, inputs)
-            target = run.dir / "out" / f"{step}.json"
-            written = json.loads(target.read_text()).get("sha") if target.is_file() else None
+            expect = out_hash(meta["plan_sha"], step, {d: state[d]["sha"] for d in s["deps"]})
+            written = json.loads(outputs[step]).get("sha") if step in outputs else None
             if written != expect or item["sha"] != expect:
                 problems.append(f"{step} output does not chain from its dependencies")
     ok = [s["id"] for s in plan["steps"] if state[s["id"]]["state"] == "done"]
@@ -257,7 +311,7 @@ def cmd_timeline(args) -> int:
     events = Run(args.run).events()
     t0 = events[0]["ts"] if events else 0.0
     for e in events:
-        extra = {k: v for k, v in e["detail"].items() if k in ("reason", "sha", "seconds", "line", "deps") or k == "result"}
+        extra = {k: v for k, v in e["detail"].items() if k in ("reason", "sha", "seconds", "line", "deps", "category") or k == "result"}
         print(f"+{e['ts'] - t0:8.3f}s  #{e['seq']:<3} {e['kind']:<8} {e['step'] or '-':<4} pid={e['pid']} {json.dumps(extra, separators=(',', ':')) if extra else ''}")
     return 0
 
@@ -265,18 +319,21 @@ def cmd_timeline(args) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name, fn in (("init", cmd_init), ("ready", cmd_ready), ("run", cmd_run), ("verify", cmd_verify),
-                     ("timeline", cmd_timeline)):
+    for name, fn in (("init", cmd_init), ("ready", cmd_ready), ("release", cmd_release), ("run", cmd_run),
+                     ("verify", cmd_verify), ("timeline", cmd_timeline)):
         p = sub.add_parser(name)
         p.add_argument("--run", required=True)
         if name == "init":
             p.add_argument("--plan", required=True)
         if name == "ready":
             p.add_argument("--claim", action="store_true")
-        if name == "run":
+            p.add_argument("--capacity", type=int, default=None)
+        if name in ("run", "release"):
             p.add_argument("--step", required=True)
         p.set_defaults(fn=fn)
     args = parser.parse_args(argv)
+    if args.cmd == "ready" and args.capacity is not None and not args.claim:
+        parser.error("--capacity applies with --claim")
     return args.fn(args)
 
 

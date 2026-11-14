@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """score.py: the measures of the parallel-plan-execution probes, a merged timeline and an ASCII Gantt.
 
-Apparatus for docs/experiments/parallel-plan-execution-20261114 (see its README, "Measures"). Every measure is a
-script reading the trial's ledger, the host's raw events and the invocation record; no judge is involved.
+Apparatus for docs/experiments/parallel-plan-execution-20261114 (see its README, "Measures" and Amendments A2 to A4). Every
+measure is a script reading the trial's ledger, the host's raw events and the invocation record; no judge is involved.
 
   score.py TRIAL...             score each trial folder: writes score.json, timeline.txt, gantt.txt, prints a summary
-  score.py --compare TRIAL...   one table across trials, with each arm's realized fraction of the ideal saving
+  score.py --compare TRIAL...   one table across trials; an arm is compared only with the A0 of its own host, version, model,
+                                effort, feature profile and fixture, and only when both trials are valid
   score.py --shapes TRIAL       the host event types a trial's stream held (to extend the readers)
 
 A trial folder holds work/plan.json, work/run/ (ledger.jsonl, out/), events.raw.jsonl (one record per host stdout
@@ -26,8 +27,21 @@ sys.path.insert(0, str(HERE))
 import dagkit  # noqa: E402
 
 FINAL_RE = re.compile(r"^FINAL (\{.*\})\s*$", re.M)
-SPAWN_NAMES = ("agent", "task", "subagent", "spawn")
-SHELL_PARALLEL = re.compile(r"(\s&\s|\s&$|&\s*$|xargs\s+-P|\bparallel\b|\bnohup\b|\bsetsid\b|\bdisown\b|;\s*wait\b)")
+RUN_CALL = re.compile(r"dagkit\.py\s+run\b")
+# Whether a host's raw stream says which agent ran a tool call. Claude's stream-json carries parent_tool_use_id; Codex and
+# Grok are False until E1 shows their streams attribute (README, Amendment A2).
+ATTRIBUTABLE = {"claude": True, "codex": False, "grok": False}
+CLAUDE_SPAWN = ("agent", "task")
+
+
+def shell_parallel(command: str) -> bool:
+    """True when a shell command text backgrounds or fans out work (not a path that merely contains the word parallel)."""
+    c = command
+    for token in ("2>&1", ">&2", "1>&2", "&>", "&&"):
+        c = c.replace(token, " ")
+    if "&" in c:
+        return True
+    return bool(re.search(r"\b(nohup|setsid|disown)\b|xargs\s+(-\S+\s+)*-P|(^|[|;]\s*)parallel\s|;\s*wait\b", c))
 
 
 # ------------------------------------------------------------------ ledger measures (host independent)
@@ -60,6 +74,7 @@ def ledger_measures(plan: dict, events: list, run: dagkit.Run | None = None) -> 
     ended = [state[i]["end"] for i in ids if state[i]["end"] is not None]
     out: dict = {"steps": len(ids), "started": len(iv), "ended": len(ended)}
     out["makespan_s"] = round(max(ended) - min(starts), 3) if starts and ended else None
+    out["first_start_ts"], out["last_end_ts"] = (min(starts) if starts else None), (max(ended) if ended else None)
     out["serial_sum_declared_s"] = sum(s["kit"]["seconds"] for s in plan["steps"])
     cp: dict = {}
     for s in plan["steps"]:
@@ -78,22 +93,29 @@ def ledger_measures(plan: dict, events: list, run: dagkit.Run | None = None) -> 
     out["independent_pairs"] = len(pairs)
     out["pairs_overlapped"] = sum(1 for p in pairs if p["frac_of_shorter"] >= 0.5)
     out["pairs"] = pairs
-    out["refused"] = sum(1 for e in events if e["kind"] == "refused")
+    refused = [e for e in events if e["kind"] == "refused"]
+    out["refused"] = len(refused)
+    out["refused_by_category"] = dict(collections.Counter(e["detail"].get("category") or "uncategorised" for e in refused))
     out["starts_before_dep_end"] = sum(
         1 for i in iv for d in deps[i] if state[d]["end_seq"] is None or state[i]["start_seq"] < state[d]["end_seq"])
     out["steps_started_twice"] = sum(1 for i in ids if state[i]["starts"] > 1)
+    out["terminal_duplicates"] = sum(1 for i in ids if state[i]["terminals"] > 1)
     out["steps_without_end"] = sum(1 for i in ids if state[i]["state"] == "running")
+    out["claims_without_start"] = sum(1 for i in ids if state[i]["claimed"] and not state[i]["starts"])
     if run is not None and (run.dir / "meta.json").is_file():
         kind, line = dagkit.verdict(run)
         out["verify"], out["verify_line"] = kind, line
+    out["expected_verdict"] = plan.get("expected_verdict", "OK")
+    out["verify_as_expected"] = out.get("verify") == out["expected_verdict"]
     lat = {}
     for i in ids:
         if deps[i] and i in iv and all(state[d]["end"] is not None for d in deps[i]):
             lat[i] = round(iv[i][0] - max(state[d]["end"] for d in deps[i]), 3)
     out["dispatch_latency_s"] = lat
     out["dispatch_latency_mean_s"] = round(sum(lat.values()) / len(lat), 3) if lat else None
-    scales = {e["detail"].get("scale") for e in events if e["kind"] == "start"}
+    scales = {e["detail"].get("scale") for e in events if e["kind"] in ("init", "start")}
     out["time_scale"] = sorted(s for s in scales if s is not None)
+    out["scaled_trial"] = any(s != 1 for s in scales if s is not None)
     if plan.get("name") == "ragged6" and "S1" in iv and "S3" in iv:
         out["refill"] = bool(iv["S1"][0] <= iv["S3"][0] < iv["S1"][1])
     else:
@@ -103,7 +125,7 @@ def ledger_measures(plan: dict, events: list, run: dagkit.Run | None = None) -> 
 
 
 def fidelity(measures: dict, claim: dict | None) -> dict:
-    """M7: the FINAL object against the ledger's states."""
+    """M7: the parent's FINAL object against the ledger; it must name every planned step exactly once."""
     if claim is None:
         return {"final_found": False, "fidelity_ok": False}
     states = measures["states"]
@@ -111,12 +133,18 @@ def fidelity(measures: dict, claim: dict | None) -> dict:
               "not_run": {i for i, s in states.items() if s in ("blocked", "pending")}}
     out: dict = {"final_found": True}
     ok = True
+    named = [str(x) for key in ("done", "failed", "not_run") for x in claim.get(key, [])]
     for key in ("done", "failed", "not_run"):
         said = set(map(str, claim.get(key, [])))
         out[f"false_{key}"] = sorted(said - actual[key])
         out[f"missed_{key}"] = sorted(actual[key] - said)
         ok = ok and not out[f"false_{key}"] and not out[f"missed_{key}"]
-    out["fidelity_ok"] = ok
+    out["unaccounted"] = sorted(set(states) - set(named))
+    out["listed_twice"] = sorted(x for x in set(named) if named.count(x) > 1)
+    out["unknown_listed"] = sorted(set(named) - set(states))
+    out["running_at_end"] = sorted(i for i, s in states.items() if s == "running")
+    out["fidelity_ok"] = bool(ok and not out["unaccounted"] and not out["listed_twice"] and not out["unknown_listed"]
+                              and not out["running_at_end"])
     return out
 
 
@@ -132,15 +160,18 @@ def _text_of(content) -> str:
 
 
 def normalize(host: str, rec: dict) -> list:
-    """Host events as {t, actor, kind, name, text, extra}; kinds: call, spawn, result, return, text, final, usage."""
+    """Host events as {t, actor, kind, name, text, full, extra}; kinds: call, spawn, wait, return, result, text, final, usage.
+
+    ``text`` is cut for display; ``full`` keeps the whole command or prompt for classification."""
     t, ev = rec.get("recv"), rec.get("ev")
     if not isinstance(ev, dict):
         return []
     typ = ev.get("type")
     out = []
 
-    def add(kind, actor="parent", name="", text="", **extra):
-        out.append({"t": t, "actor": actor, "kind": kind, "name": name, "text": text, **extra})
+    def add(kind, actor="parent", name="", text="", full=None, **extra):
+        out.append({"t": t, "actor": actor, "kind": kind, "name": name, "text": text[:140] if kind in ("call", "spawn") else text,
+                    "full": text if full is None else full, **extra})
 
     if host == "claude":
         owner = ev.get("parent_tool_use_id")
@@ -151,10 +182,9 @@ def normalize(host: str, rec: dict) -> list:
                 if block.get("type") == "tool_use":
                     name = block.get("name", "")
                     inp = block.get("input") or {}
-                    spawn = name.lower() in SPAWN_NAMES
-                    text = (inp.get("description") or inp.get("prompt") or "") if spawn else (inp.get("command") or json.dumps(inp)[:120])
-                    add("spawn" if spawn else "call", actor, name, str(text)[:140], id=block.get("id"),
-                        background=bool(inp.get("run_in_background")))
+                    spawn = name.lower() in CLAUDE_SPAWN
+                    text = (str(inp.get("description") or "") + " | " + str(inp.get("prompt") or "")) if spawn else str(inp.get("command") or json.dumps(inp))
+                    add("spawn" if spawn else "call", actor, name, text, id=block.get("id"), background=bool(inp.get("run_in_background")))
                 elif block.get("type") == "text" and block.get("text", "").strip():
                     add("text", actor, "", block["text"])
             usage = msg.get("usage")
@@ -168,7 +198,7 @@ def normalize(host: str, rec: dict) -> list:
             add("final", "parent", "", str(ev.get("result") or ""), usage=ev.get("usage"), cost=ev.get("total_cost_usd"),
                 model_usage=ev.get("modelUsage"), turns=ev.get("num_turns"), duration_ms=ev.get("duration_ms"))
         elif typ == "system":
-            add("system", "parent", str(ev.get("subtype") or ""), json.dumps({k: v for k, v in ev.items() if k in ("subtype", "model", "description", "task_id", "tool_use_id", "status")})[:160])
+            add("system", "parent", str(ev.get("subtype") or ""), json.dumps({k: v for k, v in ev.items() if k in ("subtype", "model", "description", "task_id", "tool_use_id", "status", "tools")})[:300])
     elif host == "codex":
         thread = ev.get("thread_id") or (ev.get("item") or {}).get("thread_id")
         item = ev.get("item") or {}
@@ -177,8 +207,7 @@ def normalize(host: str, rec: dict) -> list:
         if typ in ("item.started", "item.completed"):
             started = typ == "item.started"
             if itype == "command_execution":
-                add("call" if started else "result", actor, "shell", str(item.get("command") or "")[:140], id=item.get("id"),
-                    exit=item.get("exit_code"))
+                add("call" if started else "result", actor, "shell", str(item.get("command") or ""), id=item.get("id"), exit=item.get("exit_code"))
             elif itype == "agent_message" and not started:
                 add("text", actor, "", str(item.get("text") or ""))
             elif itype == "collab_tool_call":  # Codex's multi-agent tools: spawn_agent, wait, send_input, close_agent, ...
@@ -189,9 +218,8 @@ def normalize(host: str, rec: dict) -> list:
                     kind = "wait" if started else "return"
                 else:
                     kind = "call" if started else "result"
-                detail = {k: item.get(k) for k in ("prompt", "receiver_thread_ids", "agents_states", "status")
-                          if item.get(k) not in (None, [], {})}
-                add(kind, actor, tool, json.dumps(detail)[:200], id=item.get("id"))
+                detail = {k: item.get(k) for k in ("prompt", "receiver_thread_ids", "agents_states", "status") if item.get(k) not in (None, [], {})}
+                add(kind, actor, tool, json.dumps(detail)[:300], id=item.get("id"))
             elif itype and itype not in ("reasoning", "agent_message", "error"):
                 add("call" if started else "result", actor, str(item.get("tool") or item.get("name") or itype),
                     json.dumps({k: v for k, v in item.items() if k in ("prompt", "status", "tool")})[:160], id=item.get("id"))
@@ -200,10 +228,10 @@ def normalize(host: str, rec: dict) -> list:
     elif host == "grok":
         if typ == "tool_call":
             name = str(ev.get("toolName") or ev.get("title") or "")
-            spawn = any(k in name.lower() for k in SPAWN_NAMES)
+            low = name.lower()
+            kind = "spawn" if low.startswith("spawn") else "wait" if ("subagent" in low and "output" in low) else "call"
             raw = ev.get("rawInput") or {}
-            add("spawn" if spawn else "call", "parent", name, str(raw.get("command") or raw.get("prompt") or json.dumps(raw))[:140],
-                id=ev.get("toolCallId"))
+            add(kind, "parent", name, str(raw.get("command") or raw.get("prompt") or json.dumps(raw)), id=ev.get("toolCallId"))
         elif typ == "tool_call_update" and ev.get("status") in ("completed", "failed"):
             add("result", "parent", "", "", id=ev.get("toolCallId"))
         elif typ == "text":
@@ -227,8 +255,9 @@ def host_view(trial: Path, host: str) -> list:
 
 
 def final_claim(view: list) -> dict | None:
+    """The parent's last FINAL object; a child's report is not the run's report."""
     for item in reversed(view):
-        if item["kind"] in ("final", "text"):
+        if item["kind"] in ("final", "text") and item["actor"] == "parent":
             found = FINAL_RE.findall(item["text"])
             if found:
                 try:
@@ -239,8 +268,10 @@ def final_claim(view: list) -> dict | None:
 
 
 def tokens(view: list, host: str) -> dict:
-    """M8: what the host reports, or None for an unreported figure (never zero)."""
-    out: dict = {"source": None, "input": None, "output": None, "cache_read": None, "cost_usd": None, "peak_parent_input": None}
+    """M8: what the host reports, or None for an unreported figure (never zero). Whether the figure includes sub-agent
+    threads and whether it is cumulative are unknown until E1 shows each host's stream (children_included stays None)."""
+    out: dict = {"source": None, "input": None, "output": None, "cache_read": None, "cost_usd": None,
+                 "peak_parent_input": None, "children_included": None}
     usages = [i for i in view if i["kind"] == "usage" and i.get("usage")]
     finals = [i for i in view if i["kind"] == "final"]
     if host == "claude" and finals and finals[-1].get("usage"):
@@ -252,37 +283,54 @@ def tokens(view: list, host: str) -> dict:
                  + (i["usage"].get("cache_creation_input_tokens") or 0) for i in usages]
         out["peak_parent_input"] = max(peaks) if peaks else None
     elif usages:
-        def total(key):
-            vals = [u["usage"].get(key) for u in usages if u["usage"].get(key) is not None]
+        def total(*keys):
+            vals = [u["usage"].get(k) for u in usages for k in keys if u["usage"].get(k) is not None]
             return sum(vals) if vals else None
         out.update(source=f"{host}.usage", input=total("input_tokens"), output=total("output_tokens"),
-                   cache_read=total("cache_read_input_tokens") if host != "codex" else total("cache_read_input_tokens"),
+                   cache_read=total("cache_read_input_tokens", "cached_input_tokens"), reasoning=total("reasoning_output_tokens"),
                    cost_usd=next((u.get("cost") for u in reversed(usages) if u.get("cost") is not None), None))
     return out
 
 
-def mechanism(view: list, measures: dict) -> dict:
-    """M10: how the work was run, from the events and the ledger."""
+def mechanism(view: list, measures: dict, attributable: bool = False) -> dict:
+    """M10: how the work was run. ``native-agents`` needs the kit's run calls attributed to child agents; spawns beside
+    parent-run steps are ``parent-executed``, and where the host cannot attribute calls the class says so."""
     spawns = [i for i in view if i["kind"] == "spawn"]
-    calls = [i for i in view if i["kind"] == "call" and "dagkit.py" in i["text"] and " run " in i["text"]]
-    shell_par = [c for c in view if c["kind"] == "call" and "dagkit.py" in c["text"] and SHELL_PARALLEL.search(c["text"])]
-    by_agent = collections.Counter(c["actor"] for c in calls)
-    attributed = any(a != "parent" for a in by_agent)
+    calls = [i for i in view if i["kind"] == "call" and RUN_CALL.search(i.get("full") or i["text"])]
+    shell_par = [i for i in view if i["kind"] == "call" and "dagkit.py" in (i.get("full") or i["text"]) and shell_parallel(i.get("full") or i["text"])]
+    by_actor = collections.Counter(c["actor"] for c in calls)
+    by_child = sum(n for a, n in by_actor.items() if a != "parent")
     peak = measures.get("peak_concurrency", 0)
     if shell_par:
         kind = "shell-parallel"
-    elif spawns and peak > 1:
-        kind = "native-agents"
+    elif spawns and attributable:
+        kind = "native-agents" if calls and by_child == len(calls) else "parent-executed" if by_child == 0 else "mixed"
     elif spawns:
-        kind = "native-agents-serial"
+        kind = "native-agents-unattributed" if peak > 1 else "native-agents-serial-unattributed"
     elif peak > 1:
         kind = "unknown-parallel"
     elif calls:
         kind = "parent-executed"
     else:
         kind = "serial"
-    return {"kind": kind, "spawns": len(spawns), "run_calls": len(calls), "run_calls_by_actor": dict(by_agent),
-            "attributed": attributed, "background_spawns": sum(1 for s in spawns if s.get("background"))}
+    return {"kind": kind, "spawns": len(spawns), "run_calls": len(calls), "run_calls_by_actor": dict(by_actor),
+            "attributable_host": attributable, "background_spawns": sum(1 for s in spawns if s.get("background"))}
+
+
+def tails(view: list, events: list, proc_end: float | None) -> dict:
+    """M6: seconds from the process's exit back to the last work terminal event, the parent's final report and the last
+    collection return, kept apart so late chatter cannot hide a long tail."""
+    ends = [e["ts"] for e in events if e["kind"] in ("end", "fail")]
+    report = next((i["t"] for i in view if i["kind"] in ("text", "final") and i["actor"] == "parent" and FINAL_RE.search(i["text"])), None)
+    if report is None:
+        marks = [i["t"] for i in view if i["kind"] in ("final", "usage") and i["actor"] == "parent" and i["t"]]
+        report = max(marks) if marks else None
+    returns = [i["t"] for i in view if i["kind"] == "return" and i["t"]]
+
+    def tail(t):
+        return round(proc_end - t, 3) if (proc_end and t) else None
+    return {"tail_from_last_end_s": tail(max(ends) if ends else None), "tail_from_final_report_s": tail(report),
+            "tail_from_last_child_return_s": tail(max(returns) if returns else None)}
 
 
 # ------------------------------------------------------------------ rendering
@@ -290,7 +338,7 @@ def mechanism(view: list, measures: dict) -> dict:
 def render_timeline(trial: Path, plan: dict, events: list, view: list, inv: dict) -> str:
     rows = []
     for e in events:
-        extra = {k: v for k, v in e["detail"].items() if k in ("reason", "sha", "seconds", "line", "result")}
+        extra = {k: v for k, v in e["detail"].items() if k in ("reason", "sha", "seconds", "line", "result", "category")}
         text = json.dumps(extra, separators=(",", ":")) if extra else ""
         rows.append((e["ts"], 0, e["seq"], "L", "ledger", e["kind"], e["step"] or "-", text[:150]))
     for n, i in enumerate(view):
@@ -359,14 +407,22 @@ def score_trial(trial: Path) -> dict:
     view = host_view(trial, host)
     m = ledger_measures(plan, events, run)
     m.update(fidelity(m, final_claim(view)))
-    m["mechanism"] = mechanism(view, m)
+    m["mechanism"] = mechanism(view, m, ATTRIBUTABLE.get(host, False))
     m["tokens"] = tokens(view, host)
+    proc_end, launched = inv.get("ended"), inv.get("started")
     ends = [i["t"] for i in view if i["t"]] + [e["ts"] for e in events]
-    last_activity = max(ends) if ends else None
     m["process"] = {"status": inv.get("status"), "returncode": inv.get("returncode"), "elapsed_s": inv.get("elapsed_s"),
-                    "tail_s": round(inv["ended"] - last_activity, 3) if inv.get("ended") and last_activity else None}
-    m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "loadavg",
-                                             "enabled_features")}
+                    "last_activity_tail_s": round(proc_end - max(ends), 3) if proc_end and ends else None,
+                    **tails(view, events, proc_end), "lingering_after_exit": inv.get("lingering_after_exit"),
+                    "orphans_terminated": inv.get("orphans_terminated")}
+    verified = [e["ts"] for e in events if e["kind"] == "verify" and e["detail"].get("verdict") in ("OK", "PARTIAL")]
+    m["timings"] = {"launch_to_first_start_s": round(m["first_start_ts"] - launched, 3) if launched and m["first_start_ts"] else None,
+                    "launch_to_last_end_s": round(m["last_end_ts"] - launched, 3) if launched and m["last_end_ts"] else None,
+                    "launch_to_verified_s": round(max(verified) - launched, 3) if launched and verified else None,
+                    "launch_to_exit_s": round(proc_end - launched, 3) if launched and proc_end else None}
+    m["valid"] = bool(inv.get("status") == "exited" and not m["scaled_trial"] and m["steps_without_end"] == 0
+                      and m["verify_as_expected"] and m["fidelity_ok"] and m["terminal_duplicates"] == 0)
+    m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "loadavg", "enabled_features")}
     (trial / "score.json").write_text(json.dumps(m, indent=1, default=str) + "\n")
     (trial / "timeline.txt").write_text(render_timeline(trial, plan, events, view, inv))
     (trial / "gantt.txt").write_text(render_gantt(plan, events, view))
@@ -377,26 +433,53 @@ def summary_line(trial: Path, m: dict) -> str:
     i, p, t = m["identity"], m["process"], m["tokens"]
     tag = "+v2" if "multi_agent_v2" in (i.get("enabled_features") or []) else ""
     return (f"{trial.name:<28} {(i.get('host') or '-') + tag:<9} {i.get('plan') or '-':<8} {i.get('arm') or '-':<3}{i.get('variant') or '':<2} "
-            f"{(p.get('status') or '-'):<8} makespan={m['makespan_s']} peak={m['peak_concurrency']} refused={m['refused']} "
+            f"{(p.get('status') or '-'):<8} valid={m['valid']} makespan={m['makespan_s']} peak={m['peak_concurrency']} refused={m['refused']} "
             f"early={m['starts_before_dep_end']} dup={m['steps_started_twice']} verify={m.get('verify')} "
             f"final={'ok' if m.get('fidelity_ok') else ('bad' if m.get('final_found') else 'none')} mech={m['mechanism']['kind']} "
-            f"refill={m['refill']} tail_s={p.get('tail_s')} tok_in={t.get('input')} tok_out={t.get('output')} cost={t.get('cost_usd')}")
+            f"refill={m['refill']} tail_end_s={p.get('tail_from_last_end_s')} tail_final_s={p.get('tail_from_final_report_s')} "
+            f"tok_in={t.get('input')} tok_out={t.get('output')} cost={t.get('cost_usd')}")
+
+
+def baseline_key(identity: dict) -> tuple:
+    return (identity.get("host"), identity.get("version"), identity.get("model"), identity.get("effort"),
+            tuple(sorted(identity.get("enabled_features") or [])), identity.get("plan"))
+
+
+def compare_rows(rows: list) -> list:
+    """Add vs_A0 (the arm's makespan over the matching A0's) and realized (the fraction of the ideal saving) to each valid
+    non-A0 row; the matching A0 shares host, version, model, effort, feature profile and fixture and is itself valid."""
+    base: dict = collections.defaultdict(list)
+    for r in rows:
+        if r["identity"].get("arm") == "A0" and r.get("valid") and r.get("makespan_s"):
+            base[baseline_key(r["identity"])].append(r["makespan_s"])
+    out = []
+    for r in rows:
+        r = dict(r)
+        same = base.get(baseline_key(r["identity"]), [])
+        r["n_baseline"] = len(same)
+        if same and r.get("valid") and r.get("makespan_s") and r["identity"].get("arm") != "A0":
+            a0 = sum(same) / len(same)
+            cp = r["critical_path_declared_s"]
+            r["vs_A0"] = round(r["makespan_s"] / a0, 3)
+            r["realized"] = round((a0 - r["makespan_s"]) / (a0 - cp), 3) if a0 > cp else None
+        out.append(r)
+    return out
 
 
 def compare(trials: list) -> str:
-    scored = [(Path(t), json.loads((Path(t) / "score.json").read_text()) if (Path(t) / "score.json").is_file() else score_trial(Path(t))) for t in trials]
-    base: dict = {}
-    for t, m in scored:
-        i = m["identity"]
-        if i.get("arm") == "A0" and m["makespan_s"]:
-            base[(i["host"], i["plan"])] = m["makespan_s"]
+    rows = []
+    for t in trials:
+        t = Path(t)
+        m = json.loads((t / "score.json").read_text()) if (t / "score.json").is_file() else score_trial(t)
+        rows.append({"path": str(t), "identity": m["identity"], "makespan_s": m["makespan_s"],
+                     "critical_path_declared_s": m["critical_path_declared_s"], "valid": m["valid"], "_m": m})
     lines = []
-    for t, m in scored:
-        i = m["identity"]
-        a0 = base.get((i["host"], i["plan"]))
-        cp, line = m["critical_path_declared_s"], summary_line(t, m)
-        if a0 and m["makespan_s"] and a0 > cp:
-            line += f" realized={(a0 - m['makespan_s']) / (a0 - cp):.2f} vs_A0={m['makespan_s'] / a0:.2f}x"
+    for r in compare_rows(rows):
+        line = summary_line(Path(r["path"]), r["_m"])
+        if "vs_A0" in r:
+            line += f" vs_A0={r['vs_A0']}x realized={r['realized']}"
+        elif r["identity"].get("arm") != "A0":
+            line += f" (no valid A0 of this profile: n={r['n_baseline']}, or this trial is invalid)"
         lines.append(line)
     return "\n".join(lines)
 

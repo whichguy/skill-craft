@@ -2,6 +2,7 @@
  "schema": "ppe-plan/v1",
  "name": "fail5",
  "description": "S1 and S2 independent; S3 after S1 fails; S4 after S2; S5 after S3 and S4 must not run",
+ "expected_verdict": "PARTIAL",
  "steps": [
   {
    "id": "S1",
