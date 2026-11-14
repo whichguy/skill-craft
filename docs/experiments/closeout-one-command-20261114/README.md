@@ -6,7 +6,8 @@ Owner, 2026-11-14:
 
 Standing rule the same day: change nothing unless it is materially different from current functionality.
 
-Status: **registered; samples not yet run.**
+Status: **run 2026-11-14. The registered conditions for adoption are met; whether to adopt is the owner's decision, and
+the limits under "Decision" apply.**
 
 ## Why: the measured cost of closing a stage
 
@@ -100,6 +101,113 @@ under a new number and reported. Failures the model causes count.
 
 No rescoring after the data. A better reading is its own line.
 
-## Results
+## Results (2026-11-14)
 
-Not yet run.
+Run: Codex gpt-6.1-sol at medium, `stages.py live`, 3 samples per case per arm, 2 at once per arm. B was built from
+`3474addc6a2a40c0a13313c3409841831252fe12` and T from `db725d10e31f869442f8ba0ec3b0401c4886b165`. Both arms ran at the
+same time and another session's Codex run was alive on the machine, so seconds are not a clean wall-time measure.
+Counts of calls are not affected by load. Results roots: `~/e2e-runs-sp/20261114/closeout-B` and `closeout-T`.
+Evidence: `evidence/` (`scores.json` holds every sample's measures, `scores.txt` the printed table,
+`closeout-commands.txt` each done sample's close-out calls, `live-B.txt` and `live-T.txt` the runner's tables).
+Scorer: `analysis/closeout_score.py`, which reads each sample's `stage-result.json`, `trace.jsonl`, `events.jsonl` and
+`timeline.jsonl`; no model judges anything.
+
+### M1, quality: the suite's own pass (every id caught or held)
+
+| Case | B | T |
+| --- | --- | --- |
+| `document/ui-verification-truth` | 3 of 3 | 2 of 3 |
+| `implement/ui-apply-saved-design` | 2 of 3 | 2 of 3 |
+| `step-plan/ui-backend-control` | 3 of 3 | 3 of 3 |
+| `validate-existing/broken-works-small-fix` | 3 of 3 | 3 of 3 |
+| `validate-existing/wrong-check` (control, send-back) | 2 of 3 | 3 of 3 |
+| **pooled** | **13 of 15** | **13 of 15** |
+
+All four misses were read from `stage-result.json` and the sample's calls. None is in the close-out, and every stage
+was accepted with its intended outcome:
+- B implement 1 and T implement 3: control C2 (`changed_only`). The model changed `docs/shiploop/environment.md`,
+  the same file in both arms, during implement.
+- T document 2: control C2. The model renamed test titles in `test/board-state.test.mjs` in the work phase (call 14).
+- B wrong-check 3: plant P1. The outcome was send-back, but one of P1's checks on the corrected check was not met.
+
+### M2 and M3 as registered (window matching)
+
+| | B | T |
+| --- | --- | --- |
+| done samples that ran `check` | 4 of 12 (the other 8 went from the work to the loop report and `complete`) | 12 of 12 |
+| M2 median, calls after the last `check` yes | 2 (n 4) | 0 (n 11) |
+| closed in one call (M2 0) | 0 | 8 |
+| M3 median seconds, last `check` yes to accepted `complete` | 10.3 (n 4) | 0.7 (n 12) |
+
+Every registered condition holds: T's M1 is not below B's, pooled (13 and 13) or on the send-back control (3 and 2);
+T's M2 median is 0; T's M3 median is 9.6 s below B's. The populations differ: B's M2 and M3 exist only for the 4
+samples that ran `check` at all.
+
+### The scorer's own defect, and a second matching (added after the first scoring, as its own line)
+
+The registered matching attaches a trace row to the call whose window, widened by 0.5 s, holds its time. Adjacent
+calls then overlap, and a zero-duration call (a file write) directly before a command can take its row. T step-plan 2
+read M2 = 1 where its fused command had run the last `check` and `complete` in one call. The registered fields are kept
+exactly as run (the first and the final `scores.json` agree on every one). A second matching reads the command text of
+each call: `shiploop check`, the loop's `done` and `shiploop complete` are recognised where they are run, the trace
+rows are walked against them in order, and a sample whose rows and recognised commands disagree is marked
+`unmatched`. Three samples are unmatchable (B implement 3, T document 2, T step-plan 3): the model ran the commands
+inside a Python script that calls them with `subprocess`.
+
+Read by text, over the done samples that matched (B 11, T 10):
+- T closed in one call in 8 of 10. Two ran `check && done` and then `complete` on its own (document 3, step-plan 1).
+- The close-out span, from the first close-out command of the final attempt to the accepted `complete`:
+
+  | | B | T |
+  | --- | --- | --- |
+  | calls | 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4 (median 3) | 1 in 6, 2 in 2, 3, 4 (median 1) |
+  | seconds, median | 10.5 | 3.6 |
+
+  The span flatters T by a reordering: T writes the result and the report before the span, and B sometimes writes the
+  result inside it. The whole-sample line below is the fair total.
+- Send-back control (3 samples each): B closes in 3 calls, T in 1, 2 and 2.
+
+### M4, whole samples (reported; not in the decision rule)
+
+| | B | T |
+| --- | --- | --- |
+| mean calls, mean seconds | 14.0, 93.2 | 13.4, 93.6 |
+| median calls, median seconds | 13.5, 90.8 | 15.5, 96.8 |
+
+Per case, median calls and seconds: document 18 and 144 against 16 and 145; implement 17 and 111 against 17 and 97;
+step-plan 14 and 91 against 17.5 and 110; broken-works-small-fix 11 and 56 against 8 and 53; wrong-check 10 and 50
+against 8 and 46. Samples of one arm on one case differ by 5 to 30 s (B step-plan 89 to 96, T step-plan 99 to 120, B
+document 134 to 151), several times the 7 s the span says T saves, so 15 samples an arm cannot resolve it either way.
+The mean differences are -0.6 calls (standard error 1.8, 14 samples each; the two samples whose accepted `complete`
+ran inside a Python wrapper have no call count) and +0.4 s (standard error 14.9, 15 each). The calls are compatible
+with the mechanism's two fewer calls and with no effect; the seconds could not show a 7 s change.
+
+### Hazards seen
+
+- **Duplicate checks.** 3 of 12 T done samples (document 3, step-plan 2, step-plan 3) passed `check` on its own and
+  again in the closing command. B had none (its extra checks were a refusal and its yes). A repeated `check` runs every
+  gate again: only `complete` takes a recorded yes (`shiploop_check.matching_yes`, read in the navigator's complete
+  path). On the test stage, where a check is the base run, the candidate run and the mutation check (median 5.1 s, 90th
+  percentile 17.4 s over 679 retained checks), a repeat costs about one more such run. In retained history a passing
+  check followed by another check is rare: 159 pairs in 290 runs, 104 s of script time in all (0.1% of inner-stage
+  time; `analysis/dupcheck.py`).
+- **Stages not covered.** The stage suite has no live scenario for the test or carry-forward stage, so this round says
+  nothing about the stage where a repeated check is dearest.
+- **Python wrappers.** 3 of 30 samples (1 B, 2 T) ran their close-out commands inside a Python script with
+  `subprocess`. That is the model's choice in either arm.
+- **Order.** The loop report is written before the check's answer exists, so its evidence cannot cite that answer. A
+  refused check never reaches the report (the chain stops).
+
+### Decision
+
+The registered conditions are "adopt only if", which are necessary and not sufficient. What this round shows: with the
+closing command, a done stage closes in 1 call instead of 3 (medians), the pass counts are equal (13 and 13) and the
+send-back control is undisturbed. What it does not show: a saving in whole-stage time (means 93.2 and 93.6 s), which
+rests on the mechanism and on the retained runs' median from a check yes to `complete` (8.8 s by trace times over
+2,078 closes, 10.3 s by host event times over 2,483; `analysis/eff.py`, `analysis/closeout.py`), not on a measured
+whole-stage difference. T was not adopted or rejected by this round.
+
+Open (owner): whether about 1 call in 3 at the close, roughly 7 s a stage on Sol at medium and about 10 s on the
+retained Terra runs, is material enough under the rule of 2026-11-14 (change only what is materially different). If it
+is, the round still lacks the test and carry-forward stages: two full deliveries on each arm (csv-report and
+shared-expenses, the earlier smoke deliveries) would cover them and would serve as the release round.

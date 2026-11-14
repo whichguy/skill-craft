@@ -1,0 +1,37 @@
+live plan: 5 scenarios x samples = 15 samples, 2 at once
+  step-plan/ui-backend-control: 3 samples, passes when 1 pass (live.pass 1)
+  validate-existing/broken-works-small-fix: 3 samples, passes when 3 pass
+  validate-existing/wrong-check: 3 samples, passes when 3 pass
+  implement/ui-apply-saved-design: 3 samples, passes when 1 pass (live.pass 1)
+  document/ui-verification-truth: 3 samples, passes when 1 pass (live.pass 1)
+  driver: codex/gpt-6.1-sol/medium
+  ref: 3474addc6a2a40c0a13313c3409841831252fe12
+  timeout: 3600 s per sample
+  results root: /Users/dadleet/e2e-runs-sp/20261114/closeout-B
+NOTE: a live run starts a real model for every sample and costs money (tokens, and minutes of host time).
+  PASS  step-plan/ui-backend-control #1  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/step-plan/ui-backend-control/1
+  PASS  step-plan/ui-backend-control #2  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/step-plan/ui-backend-control/2
+  PASS  validate-existing/broken-works-small-fix #1  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/validate-existing/broken-works-small-fix/1
+  PASS  step-plan/ui-backend-control #3  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/step-plan/ui-backend-control/3
+  PASS  validate-existing/broken-works-small-fix #2  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/validate-existing/broken-works-small-fix/2
+  PASS  validate-existing/broken-works-small-fix #3  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/validate-existing/broken-works-small-fix/3
+  PASS  validate-existing/wrong-check #1  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/validate-existing/wrong-check/1
+  PASS  validate-existing/wrong-check #2  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/validate-existing/wrong-check/2
+  FAIL  validate-existing/wrong-check #3  value 0.67  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/validate-existing/wrong-check/3
+  FAIL  implement/ui-apply-saved-design #1  value 0.75  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/implement/ui-apply-saved-design/1
+  PASS  implement/ui-apply-saved-design #2  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/implement/ui-apply-saved-design/2
+  PASS  implement/ui-apply-saved-design #3  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/implement/ui-apply-saved-design/3
+  PASS  document/ui-verification-truth #1  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/document/ui-verification-truth/1
+  PASS  document/ui-verification-truth #2  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/document/ui-verification-truth/2
+  PASS  document/ui-verification-truth #3  value 1.00  /Users/dadleet/e2e-runs-sp/20261114/closeout-B/document/ui-verification-truth/3
+
+results root: /Users/dadleet/e2e-runs-sp/20261114/closeout-B
+scenario                                  ran  P1   P2   P3   C1   C2   overshoot  pass  rule     driver
+document/ui-verification-truth            3/3  3/3  3/3  3/3  3/3  3/3  0/3        3/3   met      codex/gpt-6.1-sol/medium
+implement/ui-apply-saved-design           3/3  3/3  3/3  -    3/3  2/3  0/3        2/3   met      codex/gpt-6.1-sol/medium
+step-plan/ui-backend-control              3/3  3/3  -    -    3/3  3/3  0/3        3/3   met      codex/gpt-6.1-sol/medium
+validate-existing/broken-works-small-fix  3/3  3/3  -    -    3/3  3/3  0/3        3/3   met      codex/gpt-6.1-sol/medium
+validate-existing/wrong-check             3/3  2/3  -    -    3/3  3/3  0/3        2/3   NOT MET  codex/gpt-6.1-sol/medium
+P = planted condition caught, C = control held; k/n counts samples not run in n (they are never a catch or a pass)
+
+live: 1 scenario did not meet the pass rule: validate-existing/wrong-check

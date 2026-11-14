@@ -1,0 +1,44 @@
+== B: ~/e2e-runs-sp/20261114/closeout-B
+   pooled {"samples": 15, "pass": 13, "done": 12, "send_back": 3, "m2_median": 2.0, "m3_median": 10.3, "fused": 0, "no_check": 8, "m4_calls_median": 13.5, "m4_seconds_median": 90.8, "m2_text_median": 2.0, "m3_text_median": 10.3, "fused_text": 0, "co_calls_median": 3.0, "co_seconds_median": 9.05, "unmatched": 1, "check_refusals": 2, "complete_refusals": 0}
+   document/ui-verification-truth {"samples": 3, "pass": 3, "done": 3, "send_back": 0, "m2_median": 1, "m3_median": 7.0, "fused": 0, "no_check": 2, "m4_calls_median": 18, "m4_seconds_median": 143.9, "m2_text_median": 1, "m3_text_median": 7.0, "fused_text": 0, "co_calls_median": 3, "co_seconds_median": 10.1, "unmatched": 0, "check_refusals": 0, "complete_refusals": 0}
+   implement/ui-apply-saved-design {"samples": 3, "pass": 2, "done": 3, "send_back": 0, "m2_median": null, "m3_median": null, "fused": 0, "no_check": 3, "m4_calls_median": 17.0, "m4_seconds_median": 111.1, "m2_text_median": null, "m3_text_median": null, "fused_text": 0, "co_calls_median": 2.0, "co_seconds_median": 2.6, "unmatched": 1, "check_refusals": 0, "complete_refusals": 0}
+   step-plan/ui-backend-control {"samples": 3, "pass": 3, "done": 3, "send_back": 0, "m2_median": 2, "m3_median": 10.5, "fused": 0, "no_check": 0, "m4_calls_median": 14, "m4_seconds_median": 90.8, "m2_text_median": 2, "m3_text_median": 10.5, "fused_text": 0, "co_calls_median": 3, "co_seconds_median": 10.9, "unmatched": 0, "check_refusals": 2, "complete_refusals": 0}
+   validate-existing/broken-works-small-fix {"samples": 3, "pass": 3, "done": 3, "send_back": 0, "m2_median": null, "m3_median": null, "fused": 0, "no_check": 3, "m4_calls_median": 11, "m4_seconds_median": 56.3, "m2_text_median": null, "m3_text_median": null, "fused_text": 0, "co_calls_median": 3, "co_seconds_median": 11.8, "unmatched": 0, "check_refusals": 0, "complete_refusals": 0}
+   validate-existing/wrong-check {"samples": 3, "pass": 2, "done": 0, "send_back": 3, "m2_median": null, "m3_median": null, "fused": 0, "no_check": 0, "m4_calls_median": 10, "m4_seconds_median": 50.1, "m2_text_median": null, "m3_text_median": null, "fused_text": 0, "co_calls_median": 3, "co_seconds_median": 0.9, "unmatched": 0, "check_refusals": 0, "complete_refusals": 0}
+      document/ui-verification-truth/1 pass done m2 1 m3 7.0 m4 22 150.7 checks 1 refused 0 0 | text: ok m2 1 m3 7.0 co 4 8.0
+      document/ui-verification-truth/2 pass done m2 None m3 None m4 15 143.9 checks 0 refused 0 0 | text: ok m2 None m3 None co 2 11.3
+      document/ui-verification-truth/3 pass done m2 None m3 None m4 18 133.7 checks 0 refused 0 0 | text: ok m2 None m3 None co 3 10.1
+      implement/ui-apply-saved-design/1 FAIL done m2 None m3 None m4 16 111.1 checks 0 refused 0 0 | text: ok m2 None m3 None co 2 2.7
+      implement/ui-apply-saved-design/2 pass done m2 None m3 None m4 18 98.7 checks 0 refused 0 0 | text: ok m2 None m3 None co 2 2.5
+      implement/ui-apply-saved-design/3 pass done m2 None m3 None m4 None 157.6 checks 0 refused 0 0 | text: unmatched m2 None m3 None co None None
+      step-plan/ui-backend-control/1 pass done m2 2 m3 10.1 m4 14 89.0 checks 2 refused 1 0 | text: ok m2 2 m3 10.1 co 3 10.5
+      step-plan/ui-backend-control/2 pass done m2 2 m3 10.5 m4 16 96.3 checks 1 refused 0 0 | text: ok m2 2 m3 10.5 co 3 10.9
+      step-plan/ui-backend-control/3 pass done m2 2 m3 10.8 m4 13 90.8 checks 2 refused 1 0 | text: ok m2 2 m3 10.8 co 3 11.5
+      validate-existing/broken-works-small-fix/1 pass done m2 None m3 None m4 13 52.4 checks 0 refused 0 0 | text: ok m2 None m3 None co 3 11.8
+      validate-existing/broken-works-small-fix/2 pass done m2 None m3 None m4 11 65.3 checks 0 refused 0 0 | text: ok m2 None m3 None co 3 17.4
+      validate-existing/broken-works-small-fix/3 pass done m2 None m3 None m4 10 56.3 checks 0 refused 0 0 | text: ok m2 None m3 None co 3 4.1
+      validate-existing/wrong-check/1 pass send-back m2 None m3 None m4 10 50.1 checks 0 refused 0 0 | text: ok m2 None m3 None co 3 0.9
+      validate-existing/wrong-check/2 pass send-back m2 None m3 None m4 10 48.7 checks 0 refused 0 0 | text: ok m2 None m3 None co 3 0.9
+      validate-existing/wrong-check/3 FAIL send-back m2 None m3 None m4 10 54.1 checks 0 refused 0 0 | text: ok m2 None m3 None co 3 0.8
+== T: ~/e2e-runs-sp/20261114/closeout-T
+   pooled {"samples": 15, "pass": 13, "done": 12, "send_back": 3, "m2_median": 0, "m3_median": 0.7, "fused": 8, "no_check": 0, "m4_calls_median": 15.5, "m4_seconds_median": 96.8, "m2_text_median": 0.0, "m3_text_median": 0.7, "fused_text": 8, "co_calls_median": 1, "co_seconds_median": 2.7, "unmatched": 2, "check_refusals": 1, "complete_refusals": 0}
+   document/ui-verification-truth {"samples": 3, "pass": 2, "done": 3, "send_back": 0, "m2_median": 0, "m3_median": 0.7, "fused": 2, "no_check": 0, "m4_calls_median": 16, "m4_seconds_median": 145.3, "m2_text_median": 0.5, "m3_text_median": 1.0, "fused_text": 1, "co_calls_median": 3.0, "co_seconds_median": 19.35, "unmatched": 1, "check_refusals": 0, "complete_refusals": 0}
+   implement/ui-apply-saved-design {"samples": 3, "pass": 2, "done": 3, "send_back": 0, "m2_median": 0, "m3_median": 0.5, "fused": 3, "no_check": 0, "m4_calls_median": 17, "m4_seconds_median": 96.8, "m2_text_median": 0, "m3_text_median": 0.5, "fused_text": 3, "co_calls_median": 1, "co_seconds_median": 2.7, "unmatched": 0, "check_refusals": 0, "complete_refusals": 0}
+   step-plan/ui-backend-control {"samples": 3, "pass": 3, "done": 3, "send_back": 0, "m2_median": 1.0, "m3_median": 2.3, "fused": 0, "no_check": 0, "m4_calls_median": 17.5, "m4_seconds_median": 110.2, "m2_text_median": 0.5, "m3_text_median": 2.4, "fused_text": 1, "co_calls_median": 2.5, "co_seconds_median": 8.45, "unmatched": 1, "check_refusals": 1, "complete_refusals": 0}
+   validate-existing/broken-works-small-fix {"samples": 3, "pass": 3, "done": 3, "send_back": 0, "m2_median": 0, "m3_median": 0.9, "fused": 3, "no_check": 0, "m4_calls_median": 8, "m4_seconds_median": 52.7, "m2_text_median": 0, "m3_text_median": 0.9, "fused_text": 3, "co_calls_median": 1, "co_seconds_median": 1.7, "unmatched": 0, "check_refusals": 0, "complete_refusals": 0}
+   validate-existing/wrong-check {"samples": 3, "pass": 3, "done": 0, "send_back": 3, "m2_median": null, "m3_median": null, "fused": 0, "no_check": 0, "m4_calls_median": 8, "m4_seconds_median": 46.0, "m2_text_median": null, "m3_text_median": null, "fused_text": 0, "co_calls_median": 2, "co_seconds_median": 0.5, "unmatched": 0, "check_refusals": 0, "complete_refusals": 0}
+      document/ui-verification-truth/1 pass done m2 0 m3 0.7 m4 15 130.3 checks 1 refused 0 0 | text: ok m2 0 m3 0.7 co 2 14.8
+      document/ui-verification-truth/2 FAIL done m2 0 m3 0.7 m4 18 149.9 checks 1 refused 0 0 | text: unmatched m2 None m3 None co None None
+      document/ui-verification-truth/3 pass done m2 1 m3 1.3 m4 16 145.3 checks 2 refused 0 0 | text: ok m2 1 m3 1.3 co 4 23.9
+      implement/ui-apply-saved-design/1 pass done m2 0 m3 0.5 m4 17 96.8 checks 1 refused 0 0 | text: ok m2 0 m3 0.5 co 1 2.6
+      implement/ui-apply-saved-design/2 pass done m2 0 m3 0.5 m4 16 82.0 checks 1 refused 0 0 | text: ok m2 0 m3 0.5 co 1 2.7
+      implement/ui-apply-saved-design/3 FAIL done m2 0 m3 0.5 m4 23 168.5 checks 1 refused 0 0 | text: ok m2 0 m3 0.5 co 1 2.7
+      step-plan/ui-backend-control/1 pass done m2 1 m3 4.1 m4 17 99.1 checks 2 refused 1 0 | text: ok m2 1 m3 4.1 co 2 4.4
+      step-plan/ui-backend-control/2 pass done m2 1 m3 0.7 m4 18 110.2 checks 2 refused 0 0 | text: ok m2 0 m3 0.7 co 3 12.5
+      step-plan/ui-backend-control/3 pass done m2 None m3 2.3 m4 None 120.3 checks 2 refused 0 0 | text: unmatched m2 None m3 None co None None
+      validate-existing/broken-works-small-fix/1 pass done m2 0 m3 0.9 m4 9 52.7 checks 1 refused 0 0 | text: ok m2 0 m3 0.9 co 1 1.7
+      validate-existing/broken-works-small-fix/2 pass done m2 0 m3 3.6 m4 8 58.0 checks 1 refused 0 0 | text: ok m2 0 m3 3.6 co 1 5.3
+      validate-existing/broken-works-small-fix/3 pass done m2 0 m3 0.7 m4 6 52.6 checks 1 refused 0 0 | text: ok m2 0 m3 0.7 co 1 1.4
+      validate-existing/wrong-check/1 pass send-back m2 None m3 None m4 5 46.0 checks 0 refused 0 0 | text: ok m2 None m3 None co 1 0.5
+      validate-existing/wrong-check/2 pass send-back m2 None m3 None m4 11 43.6 checks 0 refused 0 0 | text: ok m2 None m3 None co 2 0.5
+      validate-existing/wrong-check/3 pass send-back m2 None m3 None m4 8 48.6 checks 0 refused 0 0 | text: ok m2 None m3 None co 2 0.7

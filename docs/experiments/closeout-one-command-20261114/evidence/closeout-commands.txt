@@ -1,0 +1,99 @@
+Close-out calls of each done sample: every call from the first check, loop done or complete of the final attempt
+to the accepted complete. Paths shortened; commands cut at 300 characters. Scorer: analysis/closeout_score.py.
+
+[B] document/ui-verification-truth/1: close-out span 4 call(s)
+    call 18: ['done'] /bin/zsh -lc "python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\",
+    call 19: ['other'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path r=Path('<S1>/.shiploop-runs/seed/run') x={'assumptions':[],'evidence_refs':[str(r/'loops/nav-182cd5c4a2664c7d9f3a0884dc116e38-terminal.json'),str(r/'scratch/document-browser-output.txt')], 'headline':'Summary placement and preserved
+    call 20: ['check'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH='/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright' export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2
+    call 21: ['complete'] /bin/zsh -lc 'python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[B] document/ui-verification-truth/2: close-out span 2 call(s)
+    call 13: ['done'] /bin/zsh -lc "python3 - <<'PY' import subprocess,os,json from pathlib import Path b=Path('<S2>/.shiploop-runs/seed');env=os.environ.copy();env.update(PLAYWRIGHT_NODE_PATH='/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright',BROWSER_EXECUTABLE_PATH='/
+    call 14: ['complete'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH=/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.3
+
+[B] document/ui-verification-truth/3: close-out span 3 call(s)
+    call 15: ['done'] /bin/zsh -lc "python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\",
+    call 16: ['other'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path r=Path('../.shiploop-runs/seed/run').resolve() result={\"outcome\":\"done\",\"summary\":\"Resolved the pending rendered verification with twelve passing browser checks; retained Node state evidence separately. No dependencies or ext
+    call 17: ['complete'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH='/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules/playwright-core' export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/s
+
+[B] implement/ui-apply-saved-design/1: close-out span 2 call(s)
+    call 14: ['done'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path b=Path('<S1>/.shiploop-runs/seed');r=b/'run';a='nav-9142d2faf61343a496e992cef3e868ac' (r/'notes'/f'{a}.md').write_text('Moved the existing status after the board; reversed its margin to 1rem auto 0. Reused current markup/styles; no 
+    call 15: ['complete'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH='/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright' export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2
+
+[B] implement/ui-apply-saved-design/2: close-out span 2 call(s)
+    call 16: ['done'] /bin/zsh -lc "python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\",
+    call 17: ['complete'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH='/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright' export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2
+
+[B] implement/ui-apply-saved-design/3: not text-matchable (commands run inside a Python wrapper); see the window fields in scores.json
+
+[B] step-plan/ui-backend-control/1: close-out span 3 call(s)
+    call 11: ['check'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path p=Path('<S1>/.shiploop-runs/seed/run/inbox/nav-cc3761ac293648e4b75b48c60bda9b4a.md') s=p.read_text(); d=json.loads(s.split('"'```shiploop-state'"\\n')[1].split('"'```'"')[0]) d['test_layers']=[dict(code='src/paginate.js',layer='unit
+    call 12: ['done'] /bin/zsh -lc "python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\",
+    call 13: ['complete'] /bin/zsh -lc 'python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[B] step-plan/ui-backend-control/2: close-out span 3 call(s)
+    call 13: ['check'] /bin/zsh -lc 'python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a>
+    call 14: ['done'] /bin/zsh -lc "python3 '<S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py' done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\
+    call 15: ['complete'] /bin/zsh -lc 'python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[B] step-plan/ui-backend-control/3: close-out span 3 call(s)
+    call 10: ['check'] /bin/zsh -lc 'python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a>
+    call 11: ['done'] /bin/zsh -lc "python3 - <<'PY' import json,subprocess from pathlib import Path r=Path.cwd().parent/\".shiploop-runs/seed/run\";d=json.loads((r/\"loops/nav-16ba1a7d15d94b5ea324df77e89d3c6e-terminal.json\").read_text());print(d.keys());argv=d.get(\"done_argv\") if argv: p=subprocess.run(argv,input=jso
+    call 12: ['complete'] /bin/zsh -lc 'python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[B] validate-existing/broken-works-small-fix/1: close-out span 3 call(s)
+    call 10: ['done'] /bin/zsh -lc "python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\",
+    call 11: ['other'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path r=Path('<S1>/.shiploop-runs/seed/run') d={'evidence_refs':[str(r/'loops/nav-0d9acb15a73243338e89943f78a1d44d-terminal.json')],'headline':'Baseline prerequisites repaired','outcome':'done','summary':'capitalize now accepts empty stri
+    call 12: ['complete'] /bin/zsh -lc 'python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[B] validate-existing/broken-works-small-fix/2: close-out span 3 call(s)
+    call 8: ['done'] /bin/zsh -lc "python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\",
+    call 9: ['other'] /bin/zsh -lc "python3 - <<'PY' from pathlib import Path import json r=Path('<S2>/.shiploop-runs/seed/run') a='nav-7e5389dd79c14c8c803a926aeb005bcf' d={'outcome':'done','headline':'Restored the small broken strings prerequisite; all baseline expectations now hold.','summary':'Removed the falsey-strin
+    call 10: ['complete'] /bin/zsh -lc 'python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[B] validate-existing/broken-works-small-fix/3: close-out span 3 call(s)
+    call 7: ['done'] /bin/zsh -lc "python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <state> --action=<a> <<'JSON' {\"classification\":\"non-trivial\",\"exit_assessment\":\"satisfied\",\"continuation_assessment\":\"allowed\",
+    call 8: ['other'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path r=Path('<S3>/.shiploop-runs/seed/run') x={'outcome':'done','headline':'Prerequisite empty-string handling restored; pagination defect reproduced','summary':'Existing strings regression confirms capitalize must accept empty strings. 
+    call 9: ['complete'] /bin/zsh -lc 'python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[T] document/ui-verification-truth/1: close-out span 2 call(s)
+    call 13: ['done'] /bin/zsh -lc "python3 - <<'PY' from pathlib import Path import json,subprocess,os b=Path('/Users/dadleet/e2e-runs-sp/20261114/closeout-T/document/ui-verification-truth/1');r=b/'.shiploop-runs/seed/run';w=r.parent/'worktree';a='nav-99e35ec4ff0a46aab939a3e78ae7cb5c' (r/'scratch').mkdir(exist_ok=True) 
+    call 14: ['check', 'done', 'complete'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH='/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright' export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2
+
+[T] document/ui-verification-truth/2: not text-matchable (commands run inside a Python wrapper); see the window fields in scores.json
+
+[T] document/ui-verification-truth/3: close-out span 4 call(s)
+    call 12: ['check'] /bin/zsh -lc 'python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a>
+    call 13: ['other'] /bin/zsh -lc "PLAYWRIGHT_NODE_PATH='/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright' BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#1
+    call 14: ['check', 'done'] /bin/zsh -lc "python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a> && python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <s
+    call 15: ['complete'] /bin/zsh -lc 'python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[T] implement/ui-apply-saved-design/1: close-out span 1 call(s)
+    call 16: ['check', 'done', 'complete'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH='/Users/dadleet/Documents/ChatGPT/rea/node_modules/playwright-core' export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shipl
+
+[T] implement/ui-apply-saved-design/2: close-out span 1 call(s)
+    call 15: ['check', 'done', 'complete'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path r=Path('<S2>/.shiploop-runs/seed/run') p=r/'notes/nav-65cc265c70554d8eab2f6939ba2b0e80.md' with p.open('a') as f:f.write('Initial browser Proof exit 1: environment variables absent. Located existing local Playwright and Chrome witho
+
+[T] implement/ui-apply-saved-design/3: close-out span 1 call(s)
+    call 22: ['check', 'done', 'complete'] /bin/zsh -lc "export PLAYWRIGHT_NODE_PATH=/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright export BROWSER_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' python3 <S3>/home/.codex/plugins/cache/whichguy/skill-craft/2.3
+
+[T] step-plan/ui-backend-control/1: close-out span 2 call(s)
+    call 15: ['check', 'done'] /bin/zsh -lc "python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a> && python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <s
+    call 16: ['complete'] /bin/zsh -lc 'python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop complete --run-dir=<run> --action=<a>
+
+[T] step-plan/ui-backend-control/2: close-out span 3 call(s)
+    call 15: ['check'] /bin/zsh -lc 'python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a>
+    call 16: ['other'] {"target_file": "<S2>/.shiploop-runs/seed/run/scratch/done.json", "paths": ["<S2>/.shiploop-runs/seed/run/scratch/done.json"]}
+    call 17: ['check', 'done', 'complete'] /bin/zsh -lc 'python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a> && python3 <S2>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <s
+
+[T] step-plan/ui-backend-control/3: not text-matchable (commands run inside a Python wrapper); see the window fields in scores.json
+
+[T] validate-existing/broken-works-small-fix/1: close-out span 1 call(s)
+    call 8: ['check', 'done', 'complete'] /bin/zsh -lc "python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/shiploop/scripts/shiploop check --run-dir=<run> --action=<a> && python3 <S1>/home/.codex/plugins/cache/whichguy/skill-craft/2.37.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py done --state <s
+
+[T] validate-existing/broken-works-small-fix/2: close-out span 1 call(s)
+    call 7: ['check', 'done', 'complete'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path r=Path('<S2>/.shiploop-runs/seed/run') a='nav-0182bf33784546418dc764b82210a72f' x={'outcome':'done','headline':'Baseline repaired: capitalize accepts empty strings','summary':'Removed the empty-string rejection from src/strings.js; 
+
+[T] validate-existing/broken-works-small-fix/3: close-out span 1 call(s)
+    call 5: ['check', 'done', 'complete'] /bin/zsh -lc "python3 - <<'PY' import json from pathlib import Path r=Path('<S3>/.shiploop-runs/seed/run') a='nav-a3e3c76080c04cffaa0ea6ad2776b524' d={'outcome':'done','headline':'Repaired empty-string capitalization prerequisite','summary':'Existing strings test requires capitalize empty string to 
+
