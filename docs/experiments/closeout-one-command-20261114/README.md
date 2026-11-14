@@ -211,3 +211,57 @@ Open (owner): whether about 1 call in 3 at the close, roughly 7 s a stage on Sol
 retained Terra runs, is material enough under the rule of 2026-11-14 (change only what is materially different). If it
 is, the round still lacks the test and carry-forward stages: two full deliveries on each arm (csv-report and
 shared-expenses, the earlier smoke deliveries) would cover them and would serve as the release round.
+
+## Round 2: whole deliveries (registered 2026-11-14, before any run)
+
+Owner, 2026-11-14, answering "do you want that minute?": "Yes". Round 1 could not reach the test and carry-forward
+stages, where a repeated `check` costs most. This round runs two whole deliveries per arm. If it is clean, T ships as a
+patch release; the owner's standing rule on releases (AGENTS.md, 2026-10-28) lets a release go out once the preflight and
+CI pass.
+
+### Arms, runner, cases
+
+- **B:** a detached worktree at `3474addc6a2a40c0a13313c3409841831252fe12` (ShipLoop 1.34.2).
+- **T:** this branch's worktree at launch; each run's `result.json` records its `local_head`. The candidate code is
+  `db725d10e31f869442f8ba0ec3b0401c4886b165`; the commits after it change only documents, the scorer and the journal.
+- **Runner:** `test/shiploop_e2e/run.py --host codex --model gpt-6.1-sol --effort medium --source checkout`, each arm from
+  its own checkout, default planning review, no turn or spend limit, `--timeout 5400` (a background task needs one).
+  Baseline rows go to a file of this experiment, not to the committed `baselines.jsonl`.
+- **Cases:** `csv-report` (style cli-files, 5 checks, one step) and `shared-expenses` (style stateful-service, 6 checks,
+  two steps in the earlier smoke delivery). Neither leases a port. One run of each case per arm: 4 runs.
+- **Lanes (2 at a time, one B and one T in each):** lane X runs csv-report B and then shared-expenses T; lane Y runs
+  shared-expenses B and then csv-report T. The two shared-expenses runs overlap for only part of their time, to keep two
+  models from choosing the same port at once. An apparatus failure (host crash, authentication, a port collision that is
+  not the model's choice) is rerun once under a new output name and reported; a failure the model causes counts.
+
+### Measures (script only, from each run's `trace.jsonl`, `events.jsonl`, `timeline.jsonl`, `metrics.json`, `result.json`)
+
+- **W1, delivery:** `result.json` `pass` (invoked, plugin, process, ShipLoop done, committed, every case check).
+- **W2, close-out by stage type:** for each inner action accepted with outcome done (step-plan, test-spec,
+  validate-existing, implement, test, document, carry-forward), the close-out calls and seconds read by command text as in
+  round 1 (the span from the first close-out command of the final attempt to the accepted `complete`), and whether it
+  closed in one call. Reported per stage type and pooled. The window matching is not used; a stage whose commands ran
+  inside a Python wrapper is counted as unmatched.
+- **W3, repeated checks:** done stages with two or more passing `check` rows for one action, and the script seconds of the
+  second and later ones (`ms` of the trace rows), by stage type.
+- **W4, whole run:** host tool calls, the metrics' `turns`, tokens and minutes. Reported, not in a rule.
+- **W5, refusals:** `check` and `complete` refusals per run by stage, and any refusal that names the loop.
+
+### Predictions and decisions
+
+- **Predictions:** all four deliveries pass; T's pooled median close-out is 1 or 2 calls against B's 3; no T test stage
+  closes more slowly than B's by more than one repeated `check`; no loop-named refusal in T beyond B's.
+- **Release T only if** all of these hold:
+  1. both T deliveries pass W1;
+  2. no T failure is caused by the close-out chain. Any T run that fails or stalls is read from its trace first. A loop
+     left active, a refusal that repeats because of the chain, or a half-submitted report rejects T;
+  3. T's pooled median close-out calls over done stages is below B's;
+  4. T's median close-out seconds on the test stage is no more than B's plus 5 s (the cost of about one repeated check
+     at the test stage's retained median, 5.1 s).
+- **If a condition fails,** T is not released. The failing run's trace is read before any change, and a revised wording is
+  registered here before a rerun.
+- **A B failure** is baseline noise unless the trace shows ShipLoop at fault; it is reported, not rerun, unless the
+  registered retry policy applies.
+
+With 2 runs an arm this round is a coverage and safety check, not an estimate of whole-run time: a difference in minutes
+is not read from it.
