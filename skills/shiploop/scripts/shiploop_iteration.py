@@ -199,7 +199,8 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
                     steps: Sequence[Mapping[str, Any]], number: int) -> list[dict[str, Any]]:
     """The recorded commands step ``number``'s test stage runs, as copies.
     - A command with ``ids`` runs from the first step one of them is due at, narrowed to the IDs due by step ``number``;
-      an ID no case names is due at the last step.  A narrowed command drops its ``min_tests``, which counts the tests
+      an ID no case names is due at the last step. A narrowed row keeps only original criteria named by retained
+      cases, in original order, and drops its ``min_tests``, which counts the tests
       of every ID it lists: it holds from the step at which all of them are due (step 3).
     - A regression command marked ``minimum`` runs at every step; an unmarked one, the exhaustive regression, only at
       the last (design T §9.1 2d; owner 2026-10-28: "we don't do exhaustive regressions on every iteration").  A
@@ -224,6 +225,12 @@ def active_commands(commands: Sequence[Mapping[str, Any]], cases: Sequence[Mappi
                                                                            "target")}
                 row["suite"] = "regression"
             elif len(row["ids"]) < len(ids):
+                retained_ids = {str(ident) for ident in row["ids"]}
+                retained_criteria = {str(case.get("criterion")) for case in cases
+                                     if str(case.get("id")) in retained_ids}
+                if "criteria" in row:
+                    row["criteria"] = [criterion for criterion in row["criteria"]
+                                       if str(criterion) in retained_criteria]
                 row.pop("min_tests", None)
         elif command.get("suite") == "regression":
             if not command.get("minimum") and number < len(steps):

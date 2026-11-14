@@ -100,7 +100,7 @@ TEST_CASE_KEYS = ("id", "criterion", "requirement", "oracle", "red", "green")
 # requirement silently, and a model copied a refusal's example requirement and wrote a spec entry to match (2026-10-17,
 # SPEC-3/X-5).  A row that keeps a placeholder is refused as one (the navigator's HANDOFF_PLACEHOLDERS lists these).
 CASE_PLACEHOLDERS = {"id": "<a focused command ID>", "criterion": "<a step-plan criterion id>", "requirement": "R-<n>",
-                     "oracle": "<what observes the behaviour, and where>", "red": "<the assertion that fails on the item's base because the behaviour is missing, not because a file is>",
+                     "oracle": "<what observes the behaviour, and where>", "red": "<the assertion that fails on the item's base because the behaviour is missing or its code does not load yet, never a file guard>",
                      "green": "<what the case shows once the change works>"}
 # A case may name the mock it runs against (design T §8.2, F5): what the mock stands in for, and the slow, failing or
 # out-of-order behaviour it plays.  The test stage builds it before the case's test.  The placeholders are refused as

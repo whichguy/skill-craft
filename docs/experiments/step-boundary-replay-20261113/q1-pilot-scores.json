@@ -1,0 +1,187 @@
+[
+ {
+  "scenario": "replay-p0-late-send-back",
+  "sample": "1",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 2,
+  "other_refusal_heads": [
+   "test_commands has a check row, so drop check_na",
+   "test_commands has a check row, so drop check_na Nothing was "
+  ],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 1.3
+ },
+ {
+  "scenario": "replay-p0-late-send-back",
+  "sample": "2",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 2,
+  "other_refusal_heads": [
+   "test_commands has a check row, so drop check_na",
+   "test_commands has a check row, so drop check_na Nothing was "
+  ],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 1.2
+ },
+ {
+  "scenario": "replay-p0-late-send-back",
+  "sample": "3",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 2,
+  "other_refusal_heads": [
+   "test_commands has a check row, so drop check_na",
+   "test_commands has a check row, so drop check_na Nothing was "
+  ],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 1.2
+ },
+ {
+  "scenario": "replay-p0-late-send-back",
+  "sample": "4",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 0,
+  "other_refusal_heads": [],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 1.1
+ },
+ {
+  "scenario": "replay-ticket-comments-late-send-back",
+  "sample": "1",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 0,
+  "other_refusal_heads": [],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 1.1
+ },
+ {
+  "scenario": "replay-ticket-comments-late-send-back",
+  "sample": "2",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 0,
+  "other_refusal_heads": [],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 1.1
+ },
+ {
+  "scenario": "replay-ticket-comments-late-send-back",
+  "sample": "3",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 0,
+  "other_refusal_heads": [],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 0.9
+ },
+ {
+  "scenario": "replay-ticket-comments-late-send-back",
+  "sample": "4",
+  "process": "stage-complete",
+  "outcome": "done",
+  "result_source": "parked",
+  "m1_accepted": true,
+  "m2_clean_first": true,
+  "fix_forward_refusals": 0,
+  "other_refusals": 0,
+  "other_refusal_heads": [],
+  "m3_fidelity": true,
+  "m4_correction": true,
+  "apparatus_overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "minutes": 1.0
+ }
+]

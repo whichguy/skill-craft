@@ -1,0 +1,1 @@
+{"fails": ["P1"], "why": "A-s1's form: inline code runs test/service.test.js, which the test stage writes after S1's implement. Since A1 (this branch) rule A reads the paths inside inline code and refuses it at the step-plan callback; the oracle fails it as P1."}

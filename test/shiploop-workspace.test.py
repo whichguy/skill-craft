@@ -1820,6 +1820,64 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(second["previous_receipt"], first)
         self.assertEqual((self.repo / "feature.txt").read_text(), "fixed\n")
 
+    def test_binding_snapshot_allows_dirty_builder_and_never_recovers_or_creates(self) -> None:
+        import fcntl
+        record = self._prepare(name="binding snapshot")
+        root = Path(record["run_dir"]).parent
+        worktree = Path(record["worktree"])
+        (worktree / "dirty.txt").write_text("active builder changes\n")
+        def observe(expected):
+            before = self._workspace_snapshot(root)
+            source = self._source_snapshot()
+            objects = self._common_object_snapshot()
+            found = self._call(workspace.binding_snapshot, root, worktree)
+            self.assertEqual(found is not None, expected)
+            if expected:
+                self.assertEqual(found["manifest"], record)
+            self.assertEqual(self._workspace_snapshot(root), before)
+            self._assert_source_unchanged(source)
+            self.assertEqual(self._common_object_snapshot(), objects)
+        observe(True)
+        with (root / ".workspace.lock").open() as held:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            observe(False)
+        (root / ".workspace.lock").unlink()
+        observe(False)
+        (root / ".workspace.lock").touch(mode=0o600)
+        def interrupted(phase, index):
+            if phase == "after-target" and index == 1:
+                raise RuntimeError("pending")
+        with self.assertRaises(RuntimeError):
+            store.transaction(root, {"pending.md": "pending\n"}, fault=interrupted)
+        observe(False)
+
+    def test_snapshot_apis_refuse_fifo_lock_without_waiting_or_mutation(self) -> None:
+        record = self._prepare(name="FIFO snapshot lock")
+        root = Path(record["run_dir"]).parent
+        lock = root / ".workspace.lock"
+        lock.unlink()
+        os.mkfifo(lock)
+        metadata = lock.lstat()
+        before = self._workspace_snapshot(root)
+        source = self._source_snapshot()
+        objects = self._common_object_snapshot()
+        script = (
+            "import sys; from pathlib import Path; "
+            "sys.path.insert(0, sys.argv[1]); import shiploop_workspace as w; "
+            "assert getattr(w, sys.argv[2])(Path(sys.argv[3]), Path(sys.argv[4])) is None"
+        )
+        for name in ("binding_snapshot", "completed_receipt_snapshot"):
+            with self.subTest(api=name):
+                # run() kills and reaps a timed-out child; no FIFO opener survives a red test.
+                result = subprocess.run([sys.executable, "-B", "-c", script, str(SCRIPTS), name,
+                                         str(root), record["worktree"]], env=self.env,
+                                        capture_output=True, text=True, timeout=3)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(lock.lstat(), metadata)
+        self.assertEqual(self._workspace_snapshot(root), before)
+        self._assert_source_unchanged(source)
+        self.assertEqual(self._common_object_snapshot(), objects)
+
     def test_receipt_snapshot_never_mutates_workspace_or_git_objects(self) -> None:
         """Display reads refuse uncertainty instead of creating locks or recovery writes."""
         root = self.base / "read-only receipt snapshot"

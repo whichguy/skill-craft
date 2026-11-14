@@ -127,13 +127,15 @@ class TestGroupTests(unittest.TestCase):
         # Grok chat adds one opt-in scenario adapter suite (2026-11-06).
         # Splitting the aggregate adds two; the full Grok case adds four suites (2026-11-07).
         # Roundtable adds one opt-in calibration suite (2026-11-07).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 138)
+        # Nonblocking recovery adds one real-worktree suite (2026-11-12).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 139)
         # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 60)
-        # The recorded Plan boundary and comparison consumer add two apparatus suites.
-        self.assertEqual(len(suite_catalog.SUITES), 202)
+        # The test-harness skill adds one core suite (2026-11-08): its bundled behaviour suite, the packaging contract and a narrow lint.
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
+        # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
+        self.assertEqual(len(suite_catalog.SUITES), 204)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -919,7 +921,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets", "shiploop-e2e-test-adequacy",
               "shiploop-e2e-delta", "shiploop-e2e-corpus", "shiploop-e2e-incremental-pilot", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-chain",
               "shiploop-e2e-user-directory",
-              "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
+              "shiploop-e2e-recovery", "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-roundtable", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle",
               "shiploop-e2e-predecessor", "shiploop-e2e-predecessor-wiring", "shiploop-e2e-intent-continuity"}
 

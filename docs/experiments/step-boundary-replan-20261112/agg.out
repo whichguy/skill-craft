@@ -1,0 +1,5 @@
+runs 300 items 283 items with >1 step 90 steps(final plans) 430
+step-plan versions per item {2: 57, 1: 214, 3: 12}
+send-backs by stage {'implement': 50, 'test-spec': 17, 'system-test': 2, 'validate-existing': 3, 'test': 10, 'document': 2} items with any send-back 72
+carry-forward done 214 with work_items (queue replaced) 4 blocked 0
+document done 344 with open items 15

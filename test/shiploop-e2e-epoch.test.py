@@ -209,8 +209,8 @@ class EpochTest(unittest.TestCase):
             output = Path(argv[argv.index("--output") + 1])
             output.mkdir()
             (output / "result.json").write_text('{"pass": false}')
-            self.assertEqual(argv[argv.index("--model") + 1], "gpt-6.1-sol")
-            self.assertEqual(argv[argv.index("--effort") + 1], "medium")
+            self.assertEqual(argv[argv.index("--model") + 1], "grok-4.6")
+            self.assertEqual(argv[argv.index("--effort") + 1], "xhigh")
             return 1
         with mock.patch.object(runner, "main", side_effect=fake):
             epoch.launch(self.root, "control-hello", self.plugin)

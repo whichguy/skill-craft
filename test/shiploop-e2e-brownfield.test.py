@@ -105,6 +105,55 @@ def base_tests(delivery: Path, subcommand: str) -> subprocess.CompletedProcess:
                           text=True, timeout=300, stdin=subprocess.DEVNULL)
 
 
+class PristineDiagnosticsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.check = _load("base_tests_diagnostics", "shiploop_e2e/checks/base_tests.py")
+
+    def test_timeout_expired_returns_explicit_diagnostic_without_waiting(self):
+        with mock.patch.object(self.check.subprocess, "run", side_effect=subprocess.TimeoutExpired("node", 120)) as runner:
+            result = self.check.node_test(Path("unused"), ["test/a.js"])
+        self.assertEqual(result[:3], (None, 0, 0))
+        self.assertIn("did not end within 120 s", result[3])
+        self.assertEqual(runner.call_args.kwargs["timeout"], self.check.RUN_SECONDS)
+
+    def pristine(self, result):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        base = Path(tmp.name)
+        (base / "test").mkdir()
+        (base / "test/a.js").write_text("// pristine fixture")
+        output = io.StringIO()
+        with mock.patch.object(self.check, "base_count", return_value=7), \
+                mock.patch.object(self.check, "copy_tree"), \
+                mock.patch.object(self.check, "node_test", return_value=result), contextlib.redirect_stdout(output):
+            try:
+                self.check.pristine(base)
+                code = 0
+            except SystemExit as exc:
+                code = exc.code
+        return code, output.getvalue()
+
+    def test_pristine_keeps_node_test_timeout_diagnostic(self):
+        code, output = self.pristine((None, 0, 0, "node --test did not end within 120 s"))
+        self.assertEqual(code, 1)
+        self.assertIn("did not end within 120 s", output)
+        self.assertIn("0 of 7 pass", output)
+
+    def test_failure_output_is_bounded_and_existing_failure_conditions_remain(self):
+        for result in [(1, 7, 0, "x" * 4000 + "diagnostic tail"), (0, 6, 0, "count mismatch"),
+                       (0, 7, 1, "✖ broken test")]:
+            with self.subTest(result=result[:3]):
+                code, output = self.pristine(result)
+                self.assertEqual(code, 1)
+                self.assertIn(result[3][-100:], output)
+                self.assertLess(len(output), 2000)
+        code, output = self.pristine((0, 7, 0, "pass diagnostic should stay hidden"))
+        self.assertEqual(code, 0)
+        self.assertNotIn("diagnostic", output)
+        self.assertIn("7 of 7 tests", output)
+
+
 class CaseDeclarationTest(unittest.TestCase):
     """The catalog entry: the base pin, the grades and the held-out files."""
 

@@ -55,6 +55,7 @@ _FILE = re.compile(r"N([1-9][0-9]{0,5})\.md")
 # own text cannot start a quote line.
 QUOTE_LINE = re.compile(r"^ {4}(N[1-9][0-9]{0,5}) \d\d:\d\dZ  ", re.M)
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
+_SURROGATE = re.compile("[\ud800-\udfff]")  # an undecodable command-line byte arrives as one
 
 HEADER = "Owner notes (the run owner wrote these during the run; verbatim, oldest first):"
 FOOTER = [
@@ -79,6 +80,8 @@ def clean(text: str) -> str:
         raise NoteError("the note is empty")
     if _CONTROL.search(body):
         raise NoteError("the note holds a control character; write plain text")
+    if _SURROGATE.search(body):
+        raise NoteError("the note holds a byte that is not UTF-8 text; write plain text")
     for marker in FORBIDDEN:
         if marker in body:
             raise NoteError(f"the note holds {marker!r}, which the ShipLoop hooks read in a print; leave it out")

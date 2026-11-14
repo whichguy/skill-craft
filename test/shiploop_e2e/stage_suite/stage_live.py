@@ -602,12 +602,13 @@ def _complete_settled_indices(state: dict | None, stage: str, action_id: str, ru
     return set(indices[1:])
 
 
-def overshoot(state: dict | None, stage: str, action_id: str, run_dir: Path | None = None) -> list[str]:
+def overshoot(state: dict | None, stage: str, action_id: str, run_dir: Path | None = None, after: int = 0) -> list[str]:
     """The stages the host went on to after the seeded action: the accepted results for a stage later than ``stage``
     (slice.overshoot_after's rule) and every history row after the seeded action's own row, whatever its stage, so a host that is
     sent back and redoes an earlier stage before it is ended is seen too. It excludes only contiguous later rows proven by the
     seeded action's own successful ``complete`` trace to have been accepted in that same call. Stage names, in history order,
-    once each."""
+    once each. ``after`` is the seed's history length: rows the seed itself recorded are never overshoot (a scenario's
+    seed_route records later stages, a done step and a send-back, before the run returns to the seeded stage)."""
     if not isinstance(state, dict):
         return []
     history = [row for row in state.get("history") or [] if isinstance(row, dict)]
@@ -615,7 +616,7 @@ def overshoot(state: dict | None, stage: str, action_id: str, run_dir: Path | No
     settled = _complete_settled_indices(state, stage, action_id, run_dir)
     later = set(step_slice.overshoot_after(state, stage))
     found = [row.get("stage") for index, row in enumerate(history)
-             if index not in settled and (row.get("stage") in later or (own is not None and index > own))]
+             if index >= after and index not in settled and (row.get("stage") in later or (own is not None and index > own))]
     return list(dict.fromkeys(name for name in found if isinstance(name, str)))
 
 
@@ -661,7 +662,9 @@ def grade_sample(sc: sb.Scenario, out: Path, *, regraded: bool = True) -> dict:
     held = {ident: accepted and found["held"][ident] is True for ident in controls}
     reached = accepted_reached(state, action_id)
     sessions = _sessions(out, reached)
-    over = overshoot(state, sb.base_stage(sc.stage), action_id, bundle.run_dir)
+    seed_rows = (invocation.get("seeded") or {}).get("history_length") if isinstance(invocation, dict) else None
+    over = overshoot(state, sb.base_stage(sc.stage), action_id, bundle.run_dir,
+                     after=seed_rows if isinstance(seed_rows, int) and not isinstance(seed_rows, bool) else 0)
     verdicts = {"process": bool(sessions) and sessions[-1]["status"] == STATUS_COMPLETE, "accepted": accepted,
                 "no_overshoot": not over, "oracle": accepted and bool(found["pass"])}
     total = len(caught) + len(held)

@@ -1,0 +1,13 @@
+{
+  "schema": "shiploop-e2e-workflow-assessment/1",
+  "status": "supported-gap",
+  "errors": [],
+  "gaps": [
+    "improve-evidence-and-reviewer-scope",
+    "incremental-behavior-and-source-lineage"
+  ],
+  "unverified": [
+    "current-run accepted planning-stage result has no Improve record"
+  ],
+  "note": "Validates analyst declarations and pinned evidence, not their semantic truth; no ShipLoop state changed."
+}

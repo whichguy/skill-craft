@@ -8619,3 +8619,329 @@ No subject resumed and no new Prepare action or live comparison ran.
 The replay supports the apparatus correction for these recorded cases.
 The earlier grades, rubric and product conclusions retain their original
 scope. Full CI, generated release verification and host qualification remain due.
+
+## 2026-11-11 — Owner accepts bounded interrupted-output recovery
+
+For `LR-20261108-15e9e9`, the owner answered exactly **Approved** on 2026-11-11 to the [informed proposal](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/owner-decision-proposal-02.md), SHA-256 `e27fc06e6fa49f577fd38fdc1715c7857e5132906a73dcd08e6b31349ba3212a`. The [accepted consequences](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/owner-decision-approved-20261111.json) cover persistent private raw prefixes, possible secrets and same-user access, synchronous best-effort publication without guaranteed latency, exclusion of nonempty stdin, and focused admission instead of a new exposing/contrasting campaign. This settles the available-output proposal separately from the earlier cleanup-C-only approval. It retains a bounded runtime fix, with no generic promotion, promotion/5 verdict, or comparative quality, cost or speed gain.
+
+Source `509ade275e4dfdf6387830b6d02ad6870151d648` supplies the eight frozen recovery paths. The isolated [integration audit](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/approved-release-prep-20261111/merge-audit.json) records merge `718e40f08532030aa342ba8f97c5925fd9a69c28` of published `6f54be18c2969023d207cff8b6f92c4cc66a0f96` into `ace9c81038c67969fa1e167d1a1e91708610bb6c`. Its 48 upstream paths overlap neither the recovery paths nor any shipped skill. All package inputs remain identical to ace. Preserve upstream's later Grok 4.6/xhigh driver default and frozen registrations; this campaign's explicit Sol6.1/medium execution and Astra/high judgment are per-call controls, not permission to revert that choice. Requested/session identity is not provider-served attestation.
+
+Eligible default POSIX commands use inherited or explicit empty stdin. On capture or timeout-teardown abort, recovery retains separate stdout/stderr bytes already read under the original run's `command-recovery/`, with 0600 files and 0700 directories. The original exception propagates; the action stays pending. An artifact cannot claim a passing check or advance state. There is no automatic printing, prompting, upload or deletion. Prefixes need not contain every byte produced and are not guaranteed power-loss durable. Publication remains best effort and synchronous.
+
+The [final Astra judgment](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/astra-final-03/answer.md), **CODE_ACCEPTABLE** with no remaining blocker, explains the narrowing. **F1:** restoring the existing first-interrupt grace lets a cooperative child finish and remove its lock; no new timer or loop cap was added. **F2:** resolve a legitimate authorized run alias before workload execution, while no-follow destination traversal still rejects later substitution. Both positive regressions failed on candidate1. **F3:** candidate2's stdin writer changed Python-version-dependent timeout semantics. Removing it and excluding nonempty input preserves each tested runtime's baseline. The accepted C ownership guard remains SHA-256 `0ef833eb24004308e88fdf44746c66be3b581e745db5c60e62a422ec6f27b8d2`.
+
+The evidence supports distinct scopes; counts overlap and must not be added as unique coverage.
+
+| Evidence | Completed observation | Qualification boundary |
+| --- | --- | --- |
+| [Final suites](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/final-suites-03/summary.json), [matrix](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/payload-boundary-01/receipt.json) | 325 tests: 129 lint and 196 test-loop, zero skips; 84 focused method executions, 28 each on Darwin 3.9, Darwin 3.15 and Linux 3.13. | Final frozen recovery bytes; overlapping selections. |
+| [Installed probe](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/installed-probe-03/final-receipt.json) | 406 exact package files; 28 focused methods passed. | Initial missing-helper attempt remains INCOMPLETE with zero methods. |
+| [Candidate2 Hello](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/hello-execution-02/terminal-verdict.json) | Full PASS: five harness verdicts, two public checks, 23 actions done at revision 30. | Earlier RH snapshot, not final stdin-exclusion bytes or interruption coverage. The [reviewed six-path delta](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/astra-final-03/hello-to-final.diff) connects the narrowing; Astra required no fresh Hello. |
+| [Source CI](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/source-ci-01/receipt.json) | Run 42562593903 passed 277 executions: 201 distinct plus 76 floor repeats; 109 browser checks. | Exact `9c9e5bfabb8fdd00968704c16118c7cffe619f86`; 56 conditional case skips remain separate. |
+| [Combined validation](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/combined-validation-03/receipt.json) | At `0e4d5621db2746e7a7a2368db3e27dbfc395f49c`: 22 suites PASS, 583 methods, zero skips; 441 plugin files, 429 skill plus 12 metadata, 26 skills. | Earlier dfe validation separately passed 23 suites with 420 files. Today's integration and journal await parent checks. |
+
+Preserve the original 199-suite attempt as 181 PASS/18 FAIL and overall INCOMPLETE; the separate corrected 18 passed on unchanged candidate1. Hello01 remains prelaunch-allowlist INCOMPLETE. No new E2E round occurred, and source509's justified `No-E2E-Round` remains literal. The two append-only ledger events accept this implementation, then defer only broader nonempty-stdin recovery and stronger durability. Reopen excluded-input work only with new contrary evidence or owner direction. Release and installed global-host refresh remain pending validation and parent publication.
+
+## 2026-11-11 — Cold additive Grok pilot: timeout, partial preservation, two evidence defects
+
+**Scope and frozen inputs.** One registered `ticket-escalation` follow-on used the passed
+`A1-ticket-assignment` predecessor at product HEAD
+`42180cb17bf98f5d527a214c98f3a2b5896766f1`, current source/release
+`e898dece9f90afb28aad600da94898b9acce4b01`, marketplace skill-craft 2.36.2 /
+ShipLoop 1.33.7, plugin `0fb97b42601d`, literal prompt SHA-256
+`d5421672cdce8dce7d9cdd9d93fc79bb7e654c6691bb35bccd3f0dd2220aa7ee`, and the owner-selected
+Grok 4.6/xhigh E2E driver from `db47982bcd9faf553041c26958abecd402002963`.
+The source harness was `test/shiploop_e2e/run.py`; planning review stayed `stage`.
+Registration SHA-256 is
+`b669ca0b7cb183d53d825e3fab221e0fb1920e3b2a1bd43eea4f48eafedfc763`.
+The predecessor remained untouched. The copied product contained no previous run directory;
+`shiploop-run.json` recorded an empty preexisting map and one new run,
+`nav-02e858b5731c4462b785be43c75490f2`. No predecessor-run dependency was observed,
+but the copy was not an OS access barrier.
+
+**Calibrated baseline.** In a disposable predecessor copy, the configured suite passed 122
+and the pristine base passed 117/117. Both new case checks failed before the run (exit 4),
+providing negative controls. Baseline-checks SHA-256 is
+`99c2abf3ace972346238bcb91f2469c0c5f439d152b8fe2d90c713e45da3f191`.
+The marketplace/freshness preflight passed with zero unreleased notes and green main CI.
+No deployment, account, browser or external service was involved.
+
+**Observed workflow.** Discovery ran the unchanged baseline in the execution worktree and
+wrote `notes/current-system-baseline.md`; Research used a discriminating persistence probe;
+Spec retained R-1–R-5 and added R-6–R-9; the accepted plan reused the Node HTTP/store/
+outbox/worker seams and divided reassignment and escalation into two serial items. No old
+feature rewrite was observed. Four inline planning Improve children used ten passes. They
+corrected replay start/isolation, independent fixtures, notifier/oracle assertions, empty
+change behavior and explicit-zero/default handling. These were inline same-host reviews,
+not independent external reviewers.
+
+**Stop and product evidence.** The host timed out with return code -9 at 7,201.3 seconds.
+ShipLoop remained active at W1/S1 document; W1/S2 HTTP reassignment and W2 escalation were
+not completed, and no source return, final product grade or release occurred. The planning
+window closed at 107.6 engine / 108.2 host minutes, including 57.5 Improve minutes; 11
+compactions and 318 main-thread calls (a lower bound) were recorded. Cleanup retained no
+surviving listener/process. These measurements describe this cell, not a general model or
+stage ranking.
+
+Run Review's candidate-at-stop observation, distinct from source-side checks, passed 125
+configured tests, 117/117 pristine base tests, existing assignment HTTP, file/dependency
+preservation and requirement retention/addition. Six of nine checks passed overall. The
+three failures were the unfinished HTTP reassignment, unfinished escalation and the absence
+of an escalation test line. Existing tests were unchanged. The partial execution worktree
+held three knowledge-document edits, `src/store.js`, and new `test/reassign.test.js`; it was
+not a delivered or accepted final tree. Result SHA-256 is
+`efd7b6e338ca20d4437ba5b474b9276b8f7bd98327afc3673a7d3ed4bc15a1ff`.
+
+**Two narrow evidence defects.** First, `active_commands` narrowed the focused execution to
+TC_7–TC_9 but retained C1–C6 in the receipt; C4–C6 belong to S2. The accepted test result
+truthfully says the S1 stimulus was `service.store.reassign` because HTTP belongs to S2, so
+this is not a hidden substitution or a failed product test. It is inaccurate criterion
+attribution. A direct no-model probe reproduced the mapping defect, and the independent
+Astra/high reviewer located the cause in `shiploop_iteration.py`: IDs are filtered without
+criteria. Preserve the store-level RED/GREEN/mutation evidence while leaving HTTP obligations
+open; a two-step hermetic regression can qualify the fix without another live run.
+
+Second, source-side `base_tests.py pristine` reported `0 of 117, rc None` and "no failing
+test named" after its node subprocess timed out. `node_test` retains an explicit timeout
+string, but `pristine` discards it. This is a harness diagnostic defect, not evidence of 117
+behavioral failures; the separate candidate-at-stop pristine run passed 117/117. A mocked
+`TimeoutExpired` regression can preserve the explanation. The hang's cause remains unknown.
+
+**Decision and contrary evidence.** Keep the current stages, fresh-run model, planning-review
+default, driver and loop limits unchanged on this evidence. The timeout is not a reason to
+remove reviews that caught real defects, and historical Codex Terra passes are a different
+host/model/build cell (`ba45b9d2ada380d6f2aafe4e628f62eef5b29356`). The broad continuity
+candidate remains dropped under
+`300ae9b0c5db8fcdded102d0ad7622f31be509bd`; nothing from it was revived. No comparative
+improvement, generic ShipLoop failure, completed additive delivery or source-side regression
+is claimed. No retry/resume or budget/default change is authorized by this record.
+
+The final workflow review has three findings and 21 selected-test/control rows. Its validator
+status is `supported-gap`, with zero errors: substituted TC_7–TC_9 observations, unrun later
+cases, incomplete delivery and unverified reviewer independence remain explicit. Review SHA-256
+is `e323f96312954ba03c5321896920c1faf26b974ff99278493645226b315c239a`; assessment SHA-256
+is `1e1efb1e8622ba0f0680492735ccca9d2026da18d892e3e03e91ed41f3622442`.
+The fresh read-only Astra review recorded requested `gpt-6-astra`, high effort and no fallback;
+provider-served identity is not exposed. Its JSON SHA-256 is
+`07d59b5e01f7e982a396db1d3905f6854696d8f08cd5d801f7dd4f1e7be7ebb1`.
+The Run Review bundle passed `export.py --check` with nine documents, zero failures and zero
+warnings. Artifact tools were unavailable, so the shared Run Review page was not updated;
+`review-export/run-review.html` is the retained local page.
+
+Raw evidence root:
+`/Users/dadleet/Documents/Codex/experiments/shiploop-stage-analysis-20261110.f9nJbg/cold-additive-20261111`.
+See `registration.json`, `baseline-checks.json`, `criterion-attribution-probe.json`,
+`ticket-escalation-grok/{result.json,metrics.json,mismatch.md,shiploop-run.json}`,
+`ticket-escalation-grok/review-export/`, `ticket-escalation-grok/audit-final/`, and
+`astra-review.json`. The initial review and validator-root correction remain retained under
+`ticket-escalation-grok/audit/`; they are not a second experiment.
+
+## 2026-11-12 — Run10 retrospective: external acceptance did not complete delivery
+
+This is a newly validated retrospective interpretation, not a review performed before later trial launches. Original **BLOCKED, pass=false at release-verify** remains: six final external checks passed, but operations/handoff never completed. The builder's earlier quality command returned **exit 2 after approximately 2700 seconds**, with dependent checks NOT_RUN; narrative exit-1 wording is less precise. Final review launched after builder termination. The [raw Astra findings_summary](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/historical-workflow-review-astra-10-11-01/response.json) attributes late/current-source callback publication to the operator/evaluator, while the engine preserved its independent-evidence boundary.
+
+The [Run10 result](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-10/audit-retrospective-20261112/evidence/sol-medium-run-10/result.json) identifies checkout `475d56531fe26838c2c86d2bfeb8b45f269547ec`, skill-craft 2.36.1/ShipLoop 1.33.6, plugin `739de3e76ec5`; warm-start source `884ec5c4b60d80c9335dece4238252e9f49287ed` returned as `eee174362ae0e1f0b828968da276e95b410c28d4`. Final whole-source identity was `356dd532ae3e77506db5320edcba49beaf489506a8dc21191d17e510f4a21f93`. Evidence separates **181 native methods, 25 independent oracle methods, rendered UI and six HTTP_200 native joins**. Builder controls selected gpt-6.1-sol/medium; separate judgment selected gpt-6-astra/high. Served identities remain unattested.
+
+The [retrospective review](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-10/audit-retrospective-20261112/workflow-review.json) retains a real owned-history recovery repair: system UI exposed deleted-fixture history failure; W2 narrowed two authorized Store failures to empty typed error history without broadening foreign-thread access. Astra corrected the regression interpretation: **C29 covers ownership transfer, denial and exact restoration**; C25 and the UI observation provide separate deletion coverage. Fifteen same-host inline Improve actions used 16 passes; one usefully made the existing four-case validator executable in the system catalog. That correction was self-review, not independent review or initial detection of the history defect.
+
+Original app cleanup passed. The [separate closeout](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-10/audit-retrospective-20261112/evidence/operator/run10-cleanup-reconcile-01/verification.json) supports covered restoration/provider readback; its raw post-provider baseline nonpass remains the expected removal of the registered provider PermissionSet, not failed app cleanup or proof of secret revocation.
+
+The [validation](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-10/audit-retrospective-20261112/validation.json) records `supported-gap`, `errors: []`: five gaps, 16 unverified items, 39 pinned evidence files ([materialization summary](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/historical-audit-materialize-sol-02/summary.json)). Missing digest bindings, full native DAG attribution and per-action independence remain unresolved. Validator success certifies declarations/bindings, not completion or semantic truth; no generic performance/model improvement follows.
+
+## 2026-11-12 — Run11 retrospective: unchanged runtime still needed current acceptance
+
+This is a 2026-11-12 retrospective interpretation, not evidence of review before later launches. Original **BLOCKED, pass=false at release-verify** remains: five of six final checks passed; quality timed out with **returncode=null**. Earlier release-quality command 16 separately returned exit 2 after approximately 2700 seconds and left dependent checks NOT_RUN. An initial bounded authentication failure, later builder acceptance and missing final acceptance are distinct observations ([Run11 result](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-11/audit-retrospective-20261112/evidence/sol-medium-run-11/result.json)).
+
+Run11 inherited Run10's repaired `eee174362ae0e1f0b828968da276e95b410c28d4` and the same checkout/package/model controls recorded above. Six documentation files changed, returning `7b04f511c632fc04ce6b6728849bfd6c1308f812`; application/tests stayed unchanged. Builder acceptance bound `2eae1e121ccbd729adef7e84a1c43965a64a6370a88d6148980e6be9d4a6c0a7`, whereas final whole-source identity was `10ca7c985d000e61592769335bc41bd6037f993130ab0f524967de41e849bbf3`. Deployment digest `6813775215e7259692d0f4667b32143558c33a4a5099dde950650f2fe18865f9` matched Run10. The [retrospective review](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-11/audit-retrospective-20261112/workflow-review.json) separates 181 native methods, 25 oracle methods, rendered UI and six HTTP_200 joins from absent final independent source-review publication. Earlier Astra/high builder approval could not supply it. Eight inline Improve actions used eight passes without material edits; they were same-host self-review. Sol6.1/medium and Astra/high launch settings are evidenced; served identity remains unattested.
+
+Original **cleanup=false** retained Invalid, Payload and Thread_del field extras. The [separate closeout](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-11/audit-retrospective-20261112/evidence/operator/run11-cleanup-reconcile-01/verification.json) later verified objects absent, fields restored and provider readback; stale inventory is an interpretation, not proven visibility timing. Raw post-provider baseline failure remains: registered provider PermissionSet removal is the expected external delta. Covered readback neither rewrites cleanup nor proves universal restoration/revocation.
+
+The [validation](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-11/audit-retrospective-20261112/validation.json) records `supported-gap`, `errors: []`, six gaps, nine unverified items and 31 pinned files. Digest bindings, native DAG attribution and reviewer independence remain limited.
+
+Retain one smallest future apparatus test family: automate existing receipt publication for the **returned root** and a legitimate **head-only/content-identical** case, while rejecting stale/wrong-source or late evidence. Current-source callback failure belongs to evaluator/operator orchestration; this is not generic prompt adoption. Inherited runtime and different handoff progress preclude generic performance/model improvement claims.
+
+
+## 2026-11-12 — Run12: normal engine completion, original failed outer, separate current acceptance
+
+Run12 reached normal engine completion: 23 accepted actions, Run Review wallMin 108.3, 312 main-thread calls, one compaction and eight inline Improve children/passes. The original outer result remains **FAILED, pass=false**, and raw cleanup remains false. The separately registered current Path A assessment passed 44 checks with 1,551 input hashes stable; it maps five original successful checks plus an actual new oracle command. [Assessment and handoff](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-current-acceptance-author-sol-02/assessment-final.json) are operator evidence, not a regrade. Assembler01's FAIL remains; raw/copy serialization and raw filename-scan checks were corrected using bound manifest proof.
+
+The table separates evidence units; overlapping counts cannot be added.
+
+| Evidence | Observation | Boundary |
+| --- | --- | --- |
+| Native | 181 exact named methods: Core11, Runtime61, Setup16, Store93 | Separate from 19 Node/8 local-source and four acceptance checks. |
+| Oracle | Old `575612a9edd54b92ad208497f9afc515`: 25/25 assertions, post-inventory fetch failed. New latest `f80df10c039d403ba11eec90fa64650f`: complete 25/25, exit 0 | Reserved component absent before/after; candidate/deployed Apex unchanged. |
+| Browser | Current `764aa17a1b8b4576834b18e77692710e`: real-key setup Save/readback, testConnection, six native HTTP200 joins, chat reads and confirmed create/update | Cancellation, stale/replay/reload; three supplements cover context, concurrent confirms/one write, rendered error/reload/Resume. |
+| Integration | Exact `ef2049d89fbf1b6ab95bf2ccdecd32df236fe333` CI43289450525: ten jobs, 279 executions (203 distinct +76 floor repeats); 288 local methods passed | 56 nested conditional unittest skips separate; overlapping CI/local units. |
+
+Fresh final-source judgment [response](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-final-review-review-resume-02/response.json) is COMPLETE/PASS across code, errors, comments, tombstones and tests. It binds global source `f7ee739e0a924734b138ce5d8a5ec04de5b9cec0777e0a2a50e4c9824a3c55c5` at returned HEAD `d2019927477d7c08acd9aa4583723f30ff1ee757`; the empty knowledge commit adds no source bytes. New oracle receipt SHA-256 is `abf3d4322c06418835aaaccadca426b4adaaea973295f263a799dd75335a3ec3`; its `098eb…` scope is not the global fingerprint. No second browser user was exercised; native System.runAs supplied that coverage. Provider 401/429/503 were mocked. Supplemental initial error was injected before dispatch; Resume joined the real provider. Identity also appeared in prompts, so context-tool causality is not exclusive.
+
+[App reconciliation](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-cleanup-reconcile-01/live-readback.json) passed five checks before provider cleanup despite two field names in the raw false cleanup. [Provider readback](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-provider-cleanup-01/after-cleanup.json) passed seven: owned credential resources gone, original key preserved. Final verification passed six, with only the registered provider PermissionSet missing as expected and no other covered org delta. No app remains deployed. Neither universal restoration nor delayed-visibility causation is proved.
+
+[Retained scan](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-retained-secret-scan-01/result.json) stays raw FAIL: 29 shapes, separately zero exact-known-key matches with scanning available. Classification resolves 24 Rust fingerprint paths and five proxy-log filenames from one capture, zero unresolved. UTF-8 scope was 14,887 files/838,311,150 bytes; credential homes, binaries and symlinks were excluded.
+
+Full merge message and `ee4ae13981f783cd67ef770b757fbb3b6a5db763` informed this append. Preserve `f6ff6417218476711c8268a76cbf645df19a2091` deploy-help exclusion; `c265203473fa252401cc4bf76d974b81db41f2ea` atomic cleanup publication, without freshness/durability claims; `a8a168c4507ce11bac94aa07620f0cc69ff4429b` registered latest-oracle selection; `ac3469f989d1e96ac374d7447b680d4e803a60f4` verified-user synthetic reset; `bb741347a74d170c260bc524379967028ba4d5c6` bounded browser failure evidence; and `475d56531fe26838c2c86d2bfeb8b45f269547ec` owner-authorized 900-to-2700-second observation allowance, not a loop cap. Prior Run10/11 outcomes remain literal.
+
+Operator-only head-reuse fix v2 passed 24 tests/six red controls. Fresh Astra02 rejected candidate1 attestation/ownership/selector gaps, then accepted corrected2; this is not shipped generic code. The twelve integrated paths repair calibrated harness/evaluator behavior. No current ShipLoop skill/package changed; release preflight found nothing to release, marketplace 2.36.4 unchanged, main not pushed. Warm start selected 2.36.1/ShipLoop1.33.6; integration's 2.36.4/1.33.8 does not qualify the newer package. Sol6.1/medium and Astra/high controls are known, served identities unattested; generic/model gains are unmeasured.
+
+Small future probes: public receipt production must accept valid current head-only/content-identical bindings and reject stale/wrong-source or late evidence; inventory-read-transient start/fail/new-start/pass must retain the old attempt. Investigate field-inventory timing only with new causal evidence. Concrete fixtures remain operator-retained and root-repo tests shipped. No new phase, blanket retry or prompt adoption follows. Generic setup-auth/key/admin-Save, independent readback, real request and cleanup illustrations need calibrated comparison before broad adoption. Raw RunReview export is copied exactly; human review is separate and locally published only.
+
+Fresh [Astra closeout judgment](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-closeout-review-astra-01/response.json) subsequently accepted **recovered current checks and covered cleanup**, while preserving the original FAILED result. Its [pinned workflow review](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/sol-medium-run-12/audit-closeout-20261112/workflow-review.json) reconciles 21 selected-test rows and eight single-pass inline self-reviews with no edits; these are not eight independent improvements. Validation reports supported-gap, zero errors, eight gaps/eight unverified items and 43 evidence files. Astra also corrected cleanup scope: the main trace removed 35 bound logs and retained seven unbound logs; the later supplement retained 14 diagnostic logs with removal scope unestablished. Both trace flag/debug-level resources were removed. Covered app/provider restoration does not imply deletion of all diagnostic logs. Publication remains subject to the final committed boundary and exact-head CI.
+
+## 2026-11-12 — Reusable recovery commands, with original failures preserved
+
+Source repair [17f5e10f34c6af9ff5054a7842c09e56d81f750e](https://github.com/whichguy/skill-craft/commit/17f5e10f34c6af9ff5054a7842c09e56d81f750e) implements a generic nonmutating checkout inspector and repository Grok quality preparation/reassessment. The full commit message records the design, prior influences and limits. `--inspect-recovery` uses pure selection and exact workspace ownership; final inspection requires verified returned content. `--prepare-only` validates actual immutable published requests. `--assess-only` reuses source-review and six-join validators without rewriting `result.json`. Preparation is not acceptance; a scoped quality PASS is not campaign completion.
+
+Fresh Astra adversarial review supplied hypotheses. Deterministic experiments decided which held:
+
+| Finding | Observed before repair | Accepted result |
+| --- | --- | --- |
+| Returned content changes during inspection | Binding stayed equal and inspection incorrectly resolved | Final receipt recheck returns UNKNOWN |
+| Selected request becomes malformed during assessment | FAIL retained stale current request/identity pointers | Both pointers clear |
+| Snapshot lock is a FIFO | Public and shared callers timed out | Nonblocking open reaches descriptor rejection |
+| Alleged syntax error | Exact reviewed bytes parsed successfully | Refuted; no syntax edit |
+
+The eight-method recovery suite uses real hello-family Git workspaces, manifests and returns. Quality coverage exercises HEAD-only commits with content-identical immutable source requests, current-HEAD UI requirements, tracked/untracked/ignored deployable changes, competing publication, later failed/incomplete/overlapping evidence and corrected reassessment while the original failed result remains unchanged. These are reusable control-path and apparatus qualifications, not a paired model benchmark.
+
+The final selected **13-suite Sol6.1/medium bank passed 750 tests with zero skips**, against 10,586 frozen file/mode entries, fingerprint `0090a3a9ef95aae0d0b6e3758d736c64b06b4ef954fea711e032ff4198a174b1`. Six valid first-bank suites supply 149 tests; seven corrected-environment commands supply 601. Counts from development, repeated verification and baseline controls overlap and are not added.
+
+The first bank stays failed/incomplete: workspace had 10 failures, lifecycle had 11 errors and platform had one failure. Its scratch directory inherited an ancestor Git repository, and process/socket permissions were missing. The same two existing cases failed on the baseline with that scratch setup, then passed on baseline and candidate in neutral `/private/tmp`. Host preflights and corrected execution passed the affected/pending suites without changing assertions or product source. The socket preflight followed workspace startup but preceded dependent suites; lifecycle ran concurrently with workspace. An external evidence directory does not itself guarantee a non-Git test environment.
+
+The new public inspector also resolved the **actual retained Run12 final returned checkout**, with retained inventory unchanged. Original `result.json` stays `pass=false`, SHA-256 `815c087c2fd6dc94f0262b0e006653d0911868a660b41879d20963b5c10b0f16`. This does not rerun the deployed app or replace the completed campaign's separate recovered-acceptance evidence.
+
+A fresh final **Astra/high review passed code, errors, comments, tombstones and tests**, with no findings. An initial Sol/high Improve run completed a material repair cycle followed by a distinct no-change review. After the owner's explicit model update, a **separately identified Sol6.1/xhigh** Improve invocation completed one substantive no-change review and fresh recovery8/quality42/diff verification. All frozen bytes/modes stayed equal, so the 750-test bank and independent judgment remained applicable. Fresh methods overlap that bank. Actual launch controls are recorded; provider-served identity remains unattested. Model defaults and historical runs were not relabeled.
+
+Scheduling preserves all existing coverage and 204 suite commands/groups. The recovery estimate uses the existing duration/provenance store: 24 seconds from one 23.188-second concurrent local observation, not observed Linux CI time or claimed pipeline acceleration. No new workflow stage, blanket retry, cleanup-timing theory, prompt adoption, universal recovery orchestrator or generic delivery-performance improvement follows. Removed execution-worktree recovery remains unsupported. Package generation, exact-head CI and main publication are pending at this journal commit.
+
+Evidence root: `/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205`. See [parent local verification](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205/local-validation-parent.json). Retain `adversarial-astra-02`, both Improve directories, `final-review-astra-01`, `final-bank-sol-medium-01` and `environment-correction-sol-medium-01`, including failed attempts, baseline-control setup and raw execution logs.
+
+## 2026-11-12 — Step-plan round 2 (A1, A2a, D): its two live rounds, journaled when it shipped
+
+The round 2 session (branch `stepplan2-cf7d87`, 2026-11-01) ran two live rounds. It planned this entry ("The LEARNINGS
+entry follows once the review workflow's findings are dealt with", ed81084c6be0fcfdb51b3616bb0a841083ef0b60) and never
+wrote it, and the branch never reached main. On 2026-11-12 the owner answered "Rebase and ship". It landed by merge
+01c307a98e52a0e7062048cc695997b173700a6c, so the round's cited hashes stay valid.
+
+| Round | Tree | Result | Evidence |
+| --- | --- | --- | --- |
+| Release round | branch head 2651317f (A1 with `itertools.pairwise`, A2a, D) | 6 of 6 pass, 33 of 33 hidden checks; A1 never fired; no RED send-back; 5 of 6 crashed once on A1's 3.10-only call and retried on a newer Python | `docs/experiments/step-plan-round2-20261101/` "Release round results", `release_scores.jsonl`; `~/e2e-runs-sp/20261101/round2-release` |
+| Verification round | built at 56670dca (`skills/` equals fd6aaf19's: A1 with the Python 3.9 and false-refusal fixes, A2a, D) | 6 of 6 pass, 33 of 33 hidden checks (csv-report 5 × 3, shared-expenses 6 × 3); no `Traceback` in any session log; minutes csv-report 19.2, 13.6, 13.7, shared-expenses 30.3, 23.6, 16.7 | `~/e2e-runs-sp/20261101/round2-verify/*/result.json` and `*.log` |
+
+Both rounds ran Codex gpt-6.1-terra at xhigh with `--source checkout`, on shared-expenses s1 to s3 and csv-report s1 to s3.
+The verification round's registered predictions held: no CLI traceback, no form-1 implement send-back, no test-spec send-back
+for RED, and 33 of 33 hidden checks. Its two send-backs were counted, not ruled:
+- csv-report s3, test-spec: S1's Proof was the focused `python3 -m unittest -v test_report`. That is form 2, which reverted
+  A2b targeted, written as a module name that `item_scope.proof_order_refusal` does not read.
+- shared-expenses s1, test: TC_1 needs the HTTP server a later step builds.
+
+No live round ran these, which are covered by hermetic checks only:
+- 87913a53 (A1 reads a relative test path inside a quoted command string): its replay over 489 saved Proofs read 0
+  differently.
+- 59db1f10 (scenario oracle) and b6fcfa46 (write-ups).
+- The 2026-11-12 merge onto main, and its selector-test fix e76663ec.
+
+The quick tier passed on the merged tree (98 suites, 746.8 s, `--changed-from` 3d42222e). A line-by-line render of
+offline node-fix-bug against main changes step-plan by -20 characters (A2a) and test-spec by +54 (D), and nothing else.
+
+## 2026-11-12 — Fix forward and two step-plan refusals: two smoke deliveries on the release tree
+
+The tree is 601f49130247fdb1ce4edfae421ed844e89a057c on branch `feat/fix-forward-5308ed`:
+- 636a02e2: fix forward. A send-back keeps every done step, and the amended plan carries its row marked done.
+- be98fb8e: the Proof refusal's repeat-safety line.
+- 34937ec7: the focused-search refusal.
+- 41f0b5ce: Sol's four fixes.
+- 601f4913: the done mark is no change in the revisit diff.
+
+The owner said "Merge to main and publish" before the six-delivery round I had planned. This is the smoke route instead:
+two whole deliveries on the exact tree, on the runner round 2 used (Codex gpt-6.1-terra at xhigh, `--source checkout`).
+
+| Case | Result | Hidden checks | Minutes | Steps |
+| --- | --- | --- | --- | --- |
+| csv-report s1 | pass | 5 of 5 | 18.1 | one: S1 |
+| shared-expenses s1 | pass | 6 of 6 | 25.4 | two: S1, then S2 (implement, test and document each), then carry-forward |
+
+Neither run had a refusal or a send-back, and neither session log holds a `Traceback`. The shared step cursor
+(`planning_revision.built_steps`) carried a real two-step item from S1 to S2 to carry-forward. Evidence:
+`~/e2e-runs-sp/20261112/fix-forward-smoke/*/result.json` and `*.log`.
+
+What this round does not show:
+- No late send-back occurred, so the amendment route ran only in the hermetic tests: the done rows, the frozen cases
+  and the packet's "Fix forward:" lines.
+- Neither new refusal fired live.
+- Whether a model copies the done rows exactly from the packet is open. The boundary replay the owner chose to run
+  next is where to measure it.
+
+Hermetic evidence on the same tree: the quick tier passed 46 of 46 (484.9 s, `--changed-from` 7ceaecf4). Fail-first
+records are in `docs/experiments/step-boundary-replan-20261112/`: `fix-forward-failfirst.txt` and
+`sol-fixes-failfirst.txt`. Sol's first review found four defects, fixed in 41f0b5ce. Its second found none material.
+
+## 2026-11-13 — Step-boundary replay, Q1 pilot: models keep the done steps exactly after a late send-back
+
+This is the open question the 2026-11-12 smoke round could not answer: no send-back happened there. The question is
+whether a model given the shipped fix-forward step-plan packet copies the done rows exactly and corrects the fault.
+
+Apparatus (E2E only): the stage suite's builder takes `seed_route` (f2df31f3). Two late send-backs were reconstructed
+from retained runs: p0 (stand-in-parser) and ticket-comments. Each carries:
+- the tree when S1 began;
+- the real planning fields and accepted results;
+- S1's committed change, split by kind;
+- the interrupted step's draft left uncommitted;
+- the recorded send-back.
+A script oracle is calibrated against the historical amendment and wrong variants (`docs/experiments/step-boundary-
+replay-20261113/calibration.txt`).
+
+| Measure (registered before any sample, d778b50a) | p0 | ticket-comments |
+| --- | --- | --- |
+| accepted done, stage-complete | 4 of 4 | 4 of 4 |
+| no fix-forward refusal before acceptance | 4 of 4 | 4 of 4 |
+| done rows exactly (oracle) | 4 of 4 | 4 of 4 |
+| fault corrected (oracle) | 4 of 4 | 4 of 4 |
+
+The runner was Codex gpt-6.1-terra at xhigh, `stages.py live --ref d778b50a`, about a minute a sample. 3 of the 4 p0
+samples met one unrelated refusal (`check_na` beside a new check row) and fixed it. A continuation of each sample's
+amendment through the route kept S1's commit, named S2 and accepted the frozen cases.
+
+What this round covers:
+- The build under test holds 67f0a329: the text-search classifier now honours quoting. That defect was found by Astra's
+  review of this design, on p0's exact command.
+- Step-plan ran live 8 times on that build. The classifier's refusal itself did not fire live: every p0 model moved the
+  search to `check` before submitting.
+- The fix is covered by fail-first tests and by calibration, where the original p0 plan is refused in the reconstructed
+  state.
+- The runner graded every sample "overshoot", an apparatus false positive from `seed_route`: the seed's own later-stage
+  rows. Fixed in the replay's results commit; the registered measures do not use it.
+
+Limits: two local cases with one done step each; the longer-prefix Salesforce cases are not run. Q2, the boundary
+question, is deferred. Evidence: `docs/experiments/step-boundary-replay-20261113/` (README results, scores,
+pilot-samples/, continuation output) and `~/e2e-runs-sp/20261113/replay-q1-pilot`.
+
+## 2026-11-13 — Three starting points and completed cold additive delivery: functional pass, knowledge gap
+
+The owner approved the three-scenario assessment and completion of additive validation. The shared 23-stage graph already distinguishes a fresh feature run from resuming an interrupted request. Blank-repo and unfamiliar-repo evidence remains historical and tied to its own builds/models; this new trial measures only the additive case. [Assessment](../../docs/shiploop-lifecycle-assessment-2026-11-13.md) records the stage/file mapping, research, contrary evidence and bounded follow-ups.
+
+Frozen source `4990932ee4a0e8f3e2c55bb8a16e4364ba24849e`, marketplace skill-craft 2.37.2 / ShipLoop 1.34.2, Grok 4.6/xhigh, planning-review stage and inline delegation. A Sol 6.1/medium execution-only worker ran the harness once. Fresh intake copied the passed ticket-assignment product `42180cb17bf98f5d527a214c98f3a2b5896766f1`; no prior run state was copied. Registration, source, predecessor and receipt remained unchanged. No new timeout, turn or resume ceilings, operator callbacks, product repair, coaching or silent retry. Six host sessions/five harness-managed resumes completed in 15,343.3757 seconds.
+
+| Final observation | Result |
+| --- | --- |
+| Catalog/regression/retention checks | 9/9 pass |
+| Held-out old behavior | 7/7 pass before and after |
+| Held-out new behavior | 7/7 fail before, 7/7 pass after |
+| Own/pristine suites | 133/133 and 117/117; overlapping evidence, not an additive total |
+| Product identity | clean 730b8b8a17d618e8aa90d8068777423c95783aa3, tree 20960c26f3bf0bdabee18f1777bd1410f49d7544 |
+| Scope | 17 files,+1132/−71; no dependency additions or edits to old tests |
+| Execution/reviews | 38 accepted actions;11 inline Improve children,17 passes,100.34 minutes |
+| Planning/context | initial 102.4engine minutes includes 56.6Improve minutes;822 calls,26 compactions |
+
+Reassignment composes existing unchanged assignment; escalation reuses worker/outbox/notifier/persistence with a store-level marker, preserving public ticket fields. This supports bounded additive reuse. One unquoted-pipe test command caused exit127 and a recorded W2/S1 send-back; the revised whole-file command passed 4focused/130suite with 4red baseline cases. W1 remained complete and reissued implementation changed no source. No retained process/listener was reported.
+
+**Knowledge continuity is a supported gap.** Final R5–R8 still contain unqualified pending/not-yet-implemented statements beside completion annotations. Step-marked historical entries are legitimate and should remain. The add-only step guard plausibly contributes, but existing carry-forward/handoff already require reconciliation. The first-return checkpoint 906a3a19 is real; final 730b8b8 differs only in environment documentation. Its label should be historical, not an impossible self-referential final hash. An inherited omission also leaves no SHIPLOOP index or README link to maintained knowledge. No next-feature consumption failure or gain was measured.
+
+**Audit apparatus finding:** the frozen workflow inventory treats every planning-stage acceptance as requiring Improve, ignoring first-item/outcome rules. Initial W2 correctly has no child, while its sent-back plan has one. Full history is retained. The analyst schema checker reports supported-gap, zero errors, with explicit inventory UNKNOWN. A separate schedule repair should cover first/later/sent-back/non-done/missing-required/unknown-protocol cases; no frozen validator or result was changed.
+
+Two fidelity flags are false matches: one prose note matched the verify filename glob (all 10 actual receipts parse), and the explicitly editable planning notebook matched script-owned paths. Raw counters remain 1 each. Five distinct refusals/check failures remain real recovered events. Original export intentionally predates quality; the separately named post-quality export includes 14/14. Context window, Grok memory writes and tool-use counters stay unknown; held_out_seen 0 does not prove isolation.
+
+Fresh read-only Astra requested gpt-6-astra/high, fallback false, exit 0. It verified all 327terminal snapshot hashes and supported functional reuse plus the knowledge gap, without executing product tests. Requested identity is not provider attestation; this is not a calibrated discovery judge or promotion. Inline Improve remains self-review. Preflight 35 tests / calibration 73 variants and package bytes/modes passed; these are apparatus checks, not additional live cells.
+
+Decision: retain the shared stages and defaults. Prioritize a narrow final-status/discovery pilot within existing closing stages, an apparatus-only inventory repair, and then exact-command readiness in Test Spec. No new stage/schema/loop limit or causal efficiency claim. The earlier stopped pilot remains STOPPED and the broad continuity candidate remains DROP; this trial does not retroactively qualify either. The older accepted planning-time-status finding o79 remains valid for its historical scope; current unqualified requirement status is a distinct problem.
+
+Evidence: `docs/experiments/lifecycle-validation-20261113/` and the committed `test/shiploop_e2e/evidence/grok-grok-4.6-2.37.2-ticket-escalation-20261113{,.review}.json`. Raw root `/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113`, including registration, live-worker completion, original result/export, post-quality export, terminal snapshot, workflow adapter and Astra response. Run Review check:15 documents, 0 failures, 0 warnings. Shared page unchanged because Artifact tools are unavailable. HTML preview produced; local-file browser security prevented visual inspection. No runtime source, package, release or installed host changed in this assessment unit.

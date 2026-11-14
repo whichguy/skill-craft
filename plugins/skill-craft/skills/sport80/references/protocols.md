@@ -19,10 +19,27 @@ component URL (`{{param_1}}` is `eid`).
    `{"columns": [], "filters": {name: value}}` (`filters` is `[]` when `has_advanced_filter`). Headers
    `X-Requested-With: XMLHttpRequest`, `X-Keep-Session: keepsession` and `X-XSRF-TOKEN` from the `XSRF-TOKEN` cookie.
 3. The reply is `{total, page, items_per_page, statistics, data[]}`; each row has its columns and an `action[]` list of
-   `{type, url, text}` (only `View` on Results rows has been seen). `l` sets the page size. Returned whole pages mean
+   `{type, url, text, ...}` (only `View` has been seen: `/public/rankings/results/<n>` on Results rows and
+   `public/rankings/member/<n>`, type external, on Rankings rows). `l` sets the page size. Returned whole pages mean
    `maxRows` is a minimum; `next` says where to continue and `complete` is true only when the response holds every row.
 4. Unfiltered quick search returns no rows. Date filters are `YYYY-MM-DD`. The Smart List descriptor lists only an action
    column: its rows need the saved view's column model in the body (not exercised).
+5. Filter values. A select or autocomplete filter lists its values inline in the descriptor (`items[{text, value}]`: about
+   1,100 weight categories on Rankings, four levels). The body takes the scalar `value` (`{"weight_class": 1089}`; an array or
+   an object returned no rows). The runtime sends a number when the items carry numbers. Rankings return nothing without a
+   weight category and a date range.
+
+What the runtime returns of a row: its columns, `actions` (labels) and, only where the catalogue names a route, `refs`:
+`{event_id}` from a Results row's View link, `{athlete_id}` from a Rankings row's. A reference is read from the link's path by an
+anchored pattern with one digit capture, on the portal origin only; nothing else of the link is returned, and rows of other
+entries carry none. Likewise a tab's URL prints as path plus parameter names, with `refs.addon_id` where the catalogue names it.
+`options` lists a reviewed filter's values (descriptor only, at most 50 per call, searched before the cap, no rows requested).
+Empty results carry the catalogue's own `hint`, never descriptor text.
+
+Origins: a request goes only to the portal origin or the rankings origin, compared exactly (a lookalike host is refused with
+`UNEXPECTED_ORIGIN`, nothing sent); a table's rows must come from the host that served its descriptor; no request follows a
+redirect except the discovery crawler's same-origin pages. Strings in any result lose the values of secret-looking query
+parameters (token, key, signature, session and similar) and UUID-shaped strings.
 
 ## Tab menus (`s80-tab-menu`) and profile tabs
 
@@ -55,14 +72,22 @@ actions Edit Columns, Download Report, Create Subscriber Group, Send Email, Lega
 | Path | Notes |
 |------|-------|
 | `/api/events/table?platform=1` | Results: meet, level, date, results, action; filters `date_range_start`, `date_range_end`, `level` |
-| `/api/categories/rankings/table?platform=1` | Rankings; filters add weight class, ages, level, WSO (and club when public) |
+| `/api/categories/rankings/table?platform=1` | Rankings; filters add weight class (required), ages, level, WSO and club |
 | `/api/events/<event_id>/table` | one event's results: lifter, bodyweight, six attempts, bests, total |
-| `/api/athletes/<athlete_id>/table?platform=1`, `.../rankings/table` | one athlete; the id is from the person's Results & Rankings tab, not the contact id |
+| `/api/athletes/<athlete_id>/table?platform=1`, `.../rankings/table` | one athlete; the id is the Rankings row's `refs.athlete_id`, not the contact id |
 | `/api/categories/featured` | featured rankings (JSON) |
 
 Credentials: logged in, two header values from `/ranking_module/access_token[?body_cid=]`; public, `X-API-Token` set to the
 page's public key. The club token scopes the Results list to the club's athletes; the personal token and the public key give the
 national list. CORS allows the portal origin. A bad or missing token is a readable 401.
+
+## Member statistics
+
+`GET /api/contact/statistics?contact_type=competitor&body_cid=` lists one tab per membership product; each tab's URL is
+`/api/contact/statistics/draw?addon_id=<n>&...`, which returns only a loader stub ("Loading Charts..."). The numbers are at
+`GET /api/contact/statistics/data/<addon_id>?contact_type=competitor&body_cid=`: JSON with four charts (a pie of Valid, Invalid and
+Action Required memberships, then counts by region, by membership type and by age range and gender). They count memberships,
+which need not equal people.
 
 ## Writes and flows (not exercised)
 

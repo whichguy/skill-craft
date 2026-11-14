@@ -1,0 +1,129 @@
+{
+  "schema": "run-review-export/v2",
+  "docs": {
+    "reviews": {
+      "codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112": {
+        "summary": [
+          "Run12 completed normally in the engine; the exact raw export retains FAILED from the outer harness.",
+          "Separate current Path A assessment passed 44 checks with 1551 stable input hashes; the new latest oracle completed 25/25.",
+          "Fresh independent final-source quality review passed all five dimensions; covered cleanup and scan classification are separate from raw failures.",
+          "Operator head-only reuse correction is local; repairs across twelve integrated apparatus paths are harness/evaluator changes with no release output.",
+          "Warm-start old-package evidence supports no generic/model comparison. Preserve outcomes and use bounded hermetic probes if selected."
+        ],
+        "basis": {
+          "P1": "Engine accepted 23 actions and reached done; outer checks did not change that state.",
+          "P5": "Examined separately: raw outer failure, registered current acceptance and exact source bindings; operator recovery remains scoped."
+        },
+        "reviewedAt": "2026-11-12T21:00:30.209093+00:00"
+      }
+    },
+    "observations": {
+      "run12-original-v-current": {
+        "title": "Normal engine completion did not make the original outer pass",
+        "criterion": "P5",
+        "kind": "recovered",
+        "status": "open",
+        "phase": 6,
+        "effect": "bent",
+        "expected": "Completion evidence must distinguish the engine, original harness verdict and separately registered recovery (S-9, S-11).",
+        "observed": "Engine done with 23 accepted actions; original FAILED/pass=false and cleanup=false unchanged. Current Path A passed 44 checks with 1551 input hashes stable; five original checks plus a new complete 25/25 oracle command support current acceptance.",
+        "evidence": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-current-acceptance-author-sol-02/assessment-final.json; /Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-final-oracle-retest-sol-01/completion.json",
+        "advice": "Preserve both outcomes and the failed oracle inventory-fetch attempt. Do not repeat all live checks merely to turn the original aggregate green.",
+        "figure": {
+          "kind": "bars",
+          "items": [
+            {
+              "label": "Required checks",
+              "value": 6,
+              "unit": "checks",
+              "tone": "expected"
+            },
+            {
+              "label": "Original passed",
+              "value": 5,
+              "unit": "checks",
+              "tone": "limit"
+            },
+            {
+              "label": "Recovered current",
+              "value": 6,
+              "unit": "checks",
+              "tone": "saw"
+            }
+          ]
+        },
+        "run": "codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112",
+        "createdAt": "2026-11-12T21:00:30.209093+00:00"
+      },
+      "run12-head-veto": {
+        "title": "Content-identical HEAD changes required an operator-only correction",
+        "criterion": "P5",
+        "kind": "decision",
+        "status": "open",
+        "phase": 6,
+        "effect": "bent",
+        "expected": "Current public receipts bind the actual returned source and reject stale or late evidence (S-9).",
+        "observed": "Returned d2019927477d7c08acd9aa4583723f30ff1ee757 retained global source f7ee739e0a924734b138ce5d8a5ec04de5b9cec0777e0a2a50e4c9824a3c55c5. Operator-only v2 passed 24 tests including six red controls; Astra rejected candidate1 before accepting corrected2. This is not a generic shipped producer repair.",
+        "evidence": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-current-acceptance-author-sol-02/handoff.json; /Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/full-terra-xhigh-20261108T031548Z/operator/run12-final-review-review-resume-02/source-identity.json",
+        "advice": "Keep the accepted operator correction within its scope. A small hermetic public-producer probe can distinguish legitimate head-only reuse from stale-source acceptance without another live campaign.",
+        "run": "codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112",
+        "createdAt": "2026-11-12T21:00:30.209093+00:00"
+      },
+      "run12-warm-start-limit": {
+        "title": "Warm-start completion does not measure a new-package or model gain",
+        "criterion": "P6",
+        "kind": "decision",
+        "status": "accepted",
+        "expected": "A comparative claim needs registered comparable inputs and the package actually tested.",
+        "observed": "Trial selected skill-craft 2.36.1/ShipLoop1.33.6 and inherited prior application work. Integration main carries 2.36.4/1.33.8; twelve harness/evaluator paths changed, no current runtime package. Sol6.1/medium and Astra/high were selected; served identities are unattested.",
+        "evidence": "test/shiploop_e2e/evidence/codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112.json; commit ef2049d89fbf1b6ab95bf2ccdecd32df236fe333",
+        "advice": "Record the measurement limit. Use calibrated registered comparison before any broad prompt or model adoption; no new comparison is required by this review.",
+        "run": "codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112",
+        "createdAt": "2026-11-12T21:00:30.209093+00:00"
+      }
+    },
+    "actions": {
+      "run12-preserve-recovery": {
+        "title": "Keep original failure beside current recovery",
+        "criterion": "P5",
+        "kind": "accept",
+        "effort": "S",
+        "status": "built",
+        "recommended": true,
+        "findings": [
+          "run12-original-v-current"
+        ],
+        "why": "A post-validation inventory fetch failure is not evidence that all application checks must be repeated; current Path A remains authorized.",
+        "goal": "Do: retain the original nonpass, old oracle receipt and separate current acceptance together; add no automatic retry. Files and symbols: test/shiploop_e2e/LEARNINGS.md and the Run12 review/export pair under test/shiploop_e2e/evidence/. Test: export.py --check on both bundles and byte-exact raw-export comparison. Done when: local checks pass and both outcomes remain explicit.",
+        "ref": "Local uncommitted test/shiploop_e2e/LEARNINGS.md and test/shiploop_e2e/evidence/codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112.review.json; publication not claimed."
+      },
+      "run12-producer-probe": {
+        "title": "Probe public receipt binding without another live run",
+        "criterion": "P5",
+        "kind": "gather-evidence",
+        "effort": "S",
+        "status": "open",
+        "recommended": true,
+        "findings": [
+          "run12-head-veto"
+        ],
+        "why": "The operator v2 is bounded evidence; S-9 still requires rejecting stale/wrong-source or late evidence. Unknown: whether the generic producer supports all valid current bindings.",
+        "goal": "Do: exercise valid head-only/content-identical binding and stale/wrong-source or late evidence using retained fixtures; include inventory-read start/fail/new-start/pass while retaining the old failure. Files and symbols: test/shiploop_e2e/checks/grok_chat_full_quality.py: snapshot, request_source_review, validate_review and run and test/shiploop-e2e-grok-chat-full-quality.test.py; inspect actual entry points before any edit. Test: focused hermetic receipt-producer cases, no model or live provider calls. Done when: valid current bindings pass, invalid bindings fail and the earlier failed attempt remains inspectable."
+      },
+      "run12-record-limit": {
+        "title": "Retain the warm-start measurement boundary",
+        "criterion": "P6",
+        "kind": "accept",
+        "effort": "S",
+        "status": "built",
+        "recommended": true,
+        "findings": [
+          "run12-warm-start-limit"
+        ],
+        "why": "No comparable fresh-build or newer-package cell was measured; accepting this limit spends no live-run budget.",
+        "goal": "Do: keep the selected old package, inherited source and unattested served identities explicit in the learning/review record; change no defaults. Files and symbols: test/shiploop_e2e/LEARNINGS.md and the Run12 review bundle. Test: none; this records a known limit. Done when: the record makes no generic/model gain or newer-package qualification claim.",
+        "ref": "Local uncommitted test/shiploop_e2e/LEARNINGS.md and test/shiploop_e2e/evidence/codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112.review.json; publication not claimed."
+      }
+    }
+  }
+}

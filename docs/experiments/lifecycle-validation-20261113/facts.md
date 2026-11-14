@@ -1,0 +1,42 @@
+# Run Review facts: grok-grok-4.6-2.37.2-ticket-escalation-20261113
+
+- Run: ShipLoop status done; 38 accepted actions (35 work, 3 recorded by ShipLoop, 0 seeded); 253.7 min from start to the last accept
+- Driver: grok grok-4.6 xhigh; case ticket-escalation; skill-craft 2.37.2, ShipLoop 1.34.2
+- Stage model: v6 (the 7-stage inner loop: each step built, tested, documented, reviewed and committed)
+- Verdicts: invoked pass, plugin pass, process pass, shiploop pass, committed pass, checks pass
+- Slowest stages (min, accept to accept): step-plan 45.1 (3x), document 37.6 (3x), test-strategy 21.5, implement 20.4 (4x), plan 18.8
+- Phases: Understand done, Specify done, Plan done, Build done, Carry forward done, System test done, Release done
+- Improve: 11 children, 17 review passes; most passes in one child: 3; 100.34 min bind to receipt
+- Model calls (main thread only): calls 822; context peak 205,125; window not measured (no result event named one context window in its modelUsage (the host reports none, the session ended before it reported, or several models reported different windows)); compactions 26
+- ShipLoop command failures: 5 (check 3, improve-pass 2)
+- Model glue: 1 commands
+- Planning documents: 3 files, 67.5 KB in work; largest docs/shiploop/environment.md 33.3 KB
+- Packets 1380.7 KB, results 217.5 KB over 38 accepted actions
+- Work items: 2; 3 step plans; 3 passes through the steps loop (1 send-backs); 4 done implement visits; steps planned 3, executed 3
+- Packet documents: 46 written, 1403.7 KB of packet files, 0 truncated; 0 packet files unreadable (no document written); 11 of the documents are an Improve child's packet
+- Packet text carried (producer packets read 35; 11 visits have a separate Improve packet file; 0 visits (old layout) keep only an Improve child's packet, not read): where 35, purpose 35, operates 35, checked 35, produces 35, recovery 35, inputs 34
+- Planning review option (state.md): stage
+- Backchain passes option (state.md): one
+- Backchain loops: none found under scratch/ or backchain/
+- Run directory: .shiploop-runs/work-20261113-203245-0a3f24/run
+- Ended: done; 6 sessions, 5 resumes
+- Left behind: none
+- Script checks (tests/<action>-verifyN.md): 10 records on 8 visits, 10 passed, 0 ran red
+- Unverified outcomes: product-acceptance 0; handoff 0
+- Tool use: not measured (metrics.json has no tool_use record: the harness reads tool use from a Claude run's tool_use blocks only, and only for a run whose events are all Claude's (host: grok))
+- Planning window: 102.4 min on the engine clock, 102.9 min on the host's, closed at test-spec, Improve 56.6 min over 4 children, 368,603 output tokens, 51.8% reasoning
+- Outcome: PASS, every verdict passed
+- Build: plugin 239299358efe, prompt d5421672cdce, host build grok 1.0.77 (50ca579fa996)
+- Environment: tools node v26.12.1, python3 Python 3.15.1, git git version 2.54.0 (Apple Git-157); browser not declared: no case or --need declares a browser; no sibling run overlapped (host events of the sibling folders only); the shared seconds are neither an upper nor a lower bound
+- Delivered: merged back into master (fast-forward-merge, 42180cb17bf9 to 730b8b8a17d6) from shiploop/run-bfc6176bf8ad573a
+- Delivered files (kept in the return plan): source 8, tests 3, docs 3, knowledge 3, skills 0
+- Delivered tests: 1 ran, 0 failed (release-verify, returned-result)
+- Delivered skill: assessed: Knowledge: environment.md records HEAD 674ad9a, npm test 132, whole-file focused escalation, C3/C6 greps, and why --test-name-pattern TC_6d is not a separate Commands entry (Node v26 ignores it after the filename). architecture.md and spec…
+- Delivered release: plan: Target: original branch master at 42180cb17bf98f5d527a214c98f3a2b5896766f1. Candidate: run branch shiploop/run-bfc6176bf8ad573a HEAD 906a3a19c524 (product 674ad9a plus ST_2 and standing release facts). Return plan: 17 keep (README.md, docs, src, test including test/system.test.j…; done: Plans: release-plan nav-ef4d0f7d68e746c5a35782a262bbc054, system-test-author nav-94593e9edd64420b8c2d682d85eadb17, release-check nav-c81c0f1e9c7c4ef5b5ea938291f28310. Grant: original request; local Git on the user's checkout; no push or hosted deploy. Effect: workspace return te…
+- Fresh starts: 26 (compaction at spec: re-grounded in 134 calls, 857 s, with shiploop next; compaction at spec: re-grounded in 55 calls, 302 s, with shiploop next; compaction at test-strategy: re-grounded in 190 calls, 1155 s, with shiploop next; compaction at test-strategy: re-grounded in 98 calls, 602 s, with shiploop next; compaction at plan: re-grounded in 147 calls, 1046 s, with shiploop next; compaction at plan: re-grounded in 67 calls, 558 s, with shiploop next; compaction at prepare: re-grounded in 32 calls, 314 s, with shiploop next; compaction at step-plan: re-grounded in 150 calls, 1211 s, with shiploop next; compaction at step-plan: re-grounded in 46 calls, 373 s, with shiploop next; compaction at implement: re-grounded in 53 calls, 242 s, with shiploop next; compaction at document: re-grounded in 163 calls, 845 s, with shiploop next; compaction at document: re-grounded in 71 calls, 329 s, with shiploop next; compaction at carry-forward: re-grounded in 45 calls, 228 s, with shiploop next; compaction at step-plan: re-grounded in 24 calls, 113 s, with shiploop next; compaction at implement: re-grounded in 58 calls, 244 s, from the packet; compaction at step-plan: re-grounded in 70 calls, 440 s, with shiploop next; compaction at test-spec: re-grounded in 22 calls, 133 s, with shiploop next; compaction at document: re-grounded in 126 calls, 705 s, with shiploop next; compaction at document: re-grounded in 37 calls, 207 s, with shiploop next; compaction at test: re-grounded in 73 calls, 352 s, with shiploop next; compaction at document: re-grounded in 51 calls, 244 s, with shiploop next; compaction at carry-forward: re-grounded in 73 calls, 287 s, with shiploop next; compaction at system-test-author: re-grounded in 111 calls, 566 s, with shiploop next; compaction at system-test-author: re-grounded in 8 calls, 27 s, with shiploop next; compaction at release-plan: re-grounded in 56 calls, 347 s, with shiploop next; compaction at release-check: re-grounded in 7 calls, 17 s, with shiploop next)
+- Quality (recorded after the run, never a verdict): held-out checks 14 of 14 pass
+- Fidelity, exit evidence of 38 accepted stages: script 24, loop 5, file 9, note 0, sentence 0, skipped 0, unclassified 0; declared script-run checks with no script record: none
+- Fidelity, validation: 11 records, 32 command runs, 12 distinct commands; 10 passed, 0 ran red, 0 could not run, 1 unreadable; 0 of 17 rows with a test count ran no test; 0 focused or regression rows with no test count
+- Fidelity, edits (a list to confirm, no hit is not proof): 1 script-owned edit, 0 kills by process name, 0 commands that ran git add or commit
+- Fidelity, refusals (a list to confirm, no repeat flagged is not proof): 5 in all, 0 repeated, 0 with no stage; by stage implement 2, improve 2, test 1
+- Improve packets (skill-craft 2.37.2, ShipLoop 1.34.2; read 11; 11 use the compact handoff layout and point to a separate handoff file; those packets do not use the five historical labels): goal 0, done when 0, checked by 0, output 0, recovery 0

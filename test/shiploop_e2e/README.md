@@ -17,6 +17,34 @@ Package builds exclude `test/`, so merging changes here makes them available fro
 checkout, without changing the installed skill. A plugin release is needed when its
 packaged source changes, not merely because this harness changed.
 
+## Inspect and repair retained evidence
+
+Identify the current owned checkout without starting a host or changing a saved run:
+
+```sh
+python3 -B test/shiploop_e2e/run.py --inspect-recovery "$RUN_OUT" --recovery-phase builder --json
+python3 -B test/shiploop_e2e/run.py --inspect-recovery "$RUN_OUT" --recovery-phase final --json
+```
+
+`RUN_OUT` is the harness output directory, not the selected ShipLoop `run_dir`.
+Builder inspection permits dirty active work. Final inspection requires a current,
+verified workspace return. The `shiploop-e2e-recovery-context/1` document separates
+`source` (current repo and HEAD), exact `binding`, `selected_run`, recorded `launches`
+and the current `inspector` implementation. Exit 0 / `resolved` means checkout
+ownership only; exit 2 / `UNKNOWN` includes a `reason`. It never records a new run
+choice. Missing or busy workspace locks, pending transactions, unreadable launches,
+ambiguous runs and invalid bindings remain unresolved. Returning after removal of
+the execution worktree is unsupported. Inspection does not recover transactions.
+
+Use the returned source with the case's existing checks. The full Grok quality
+adapter supports [request preparation and scoped reassessment](GROK_CHAT_FULL.md#nonblocking-recovery-operations).
+An operator still conducts independent review, executes missing tests and live
+observations, submits their actual proof, then reassesses the failed obligations.
+Retain separate evidence for every required command and covered cleanup; a quality
+PASS alone does not establish recovery completion. Keep the original failed run,
+result and receipts intact. `--grade-only` retains its existing regrade behavior
+and can rewrite `result.json`; it is not an append-only recovery assessment.
+
 The [standing specification](SPEC.md) governs adoption. Review findings and passing
 tests do not establish a measured winner. The delivery path below is coordinated
 separately from a one-shot run or exploratory `iterate.py` invocation:
@@ -35,24 +63,26 @@ flowchart TD
     V -->|No candidate| N[Record learning and keep the baseline]
 ```
 
-New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Sol / medium** (owner,
-2026-11-08). Subjects and improvers use this execution profile; independent reviewers and judges default to
-**Codex / GPT-6 Astra / high** and remain separate fresh sessions. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
+New runs, step slices and experiment invocations default to **Grok / Grok 4.6 / extra-high (`xhigh`)** as the driver
+(owner, 2026-11-10), replacing Codex / GPT-6.1 Sol / medium as the subject (owner, 2026-11-08). Independent reviewers
+and judges default to **Codex / GPT-6 Astra / high** and remain separate fresh sessions; the improver stays
+**Codex / GPT-6.1 Sol / medium**. Only the subject moved to Grok. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
 its `--host`, `--model` and `--effort` select the subject only. With no explicit override, existing runs resume
 their recorded identities. Continue an already registered strict epoch on its original pinned harness checkout;
 its qualification fingerprint binds the specification and launcher bytes as well as the product build.
 `--host claude` selects Claude's own models (Sonnet 5.5, `--backend anthropic`, the default since 2026-11-01); add
 `--backend ollama` to select DeepSeek flash on Ollama.
-`--host grok` selects Grok's existing profile. The separately installed Grok-only audit is retained.
-New Sol/medium results occupy their own host/model/effort baseline cells; frozen registrations and historical results
+`--host codex` selects Codex's existing profile (GPT-6.1 Sol, medium). The separately installed Grok-only audit is retained.
+New Grok 4.6 xhigh results occupy their own host/model/effort baseline cells; frozen registrations and historical results
 keep their original identities. Codex child defaults follow the resolved launch model and effort, including explicit overrides.
 Every stage launches a real
 model and costs money; none of it runs in default CI.
 
 Start a new experiment directory when changing a driver; preserve frozen registrations and historical evidence.
 Recalibrate for the selected driver before using measured comparison tolerances. Historical experiment kits keep
-their explicit pins and are not replications if any of their role identities change. This owner-selected default
-supersedes the earlier all-role Sol/high defaults;
+their explicit pins and are not replications if any of their role identities change. The driver default changed twice —
+this owner-selected Grok driver supersedes the Codex/Sol subject of 2026-11-08, which superseded the earlier all-role
+Sol/high defaults;
 it does not establish a measured improvement.
 
 Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
@@ -93,7 +123,8 @@ ended, and whether A and B overlapped as native workers. It takes about 10
 minutes:
 
 ```sh
-python3 test/shiploop_e2e/fanout.py --host codex
+python3 test/shiploop_e2e/fanout.py               # the shared default driver (the one named above)
+python3 test/shiploop_e2e/fanout.py --host codex  # explicitly another host, with that host's own model and effort
 ```
 
 A run that stops while ShipLoop is still active, for example because a host ran
@@ -1540,7 +1571,10 @@ nothing about any platform; it runs the shell commands the case names, in this o
 preflight recorded (with `model_bin`, `shell_path_pinned` and `model_bin_resolution`) and says whether this invocation was given `--keep-platform` (`keep_platform`). The start of the run prints the manual cleanup command, and so does the failure banner. It reads
 `env E2E_PLATFORM_DIR=<dir> E2E_CHECKS=<dir> sh -c '<the case's cleanup>'`: paste it into any shell, from any directory. (A plain
 `VAR=x command "$VAR"` prefix would not do: the shell expands `$VAR` before the assignment is visible to that same command, so
-`$E2E_CHECKS` in the case's text would be empty.) `<output>/platform/cleanup-record.json` is written by the cleanup itself. A
+`$E2E_CHECKS` in the case's text would be empty.) `<output>/platform/cleanup-record.json` is written by the cleanup itself. Each
+update is written and synced to a temporary file in the same directory, then atomically replaces the destination: a concurrent reader sees
+complete old or new JSON, not a truncated write. Failure before replacement leaves the prior record intact, but that old record does not prove
+the current invocation cleaned up. This is an atomic publication guarantee, not power-loss durability or evidence freshness. A
 regrade of a run whose cleanup succeeded restates the checks made while the work was deployed (`platform.checks_restated`):
 asking a cleaned platform again would find nothing and replace a pass with a fail. The stored checks are in `result.json`: a regrade of a run that
 never wrote one (a crash between the cleanup and the result) cannot restate them, so after a cleanup they are asked of the cleaned platform and fail
@@ -2470,7 +2504,7 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands independently admitted material findings to an
-improver agent. Subjects and improvers default to Codex / GPT-6.1 Sol / medium. Reviewers and judges default to
+improver agent. Subjects default to Grok / Grok 4.6 / extra-high (`xhigh`); improvers default to Codex / GPT-6.1 Sol / medium. Reviewers and judges default to
 Codex / GPT-6 Astra / high in separate fresh sessions. Subject flags do not silently switch the other roles.
 Use `--reviewer-*`, `--judge-*` and `--improver-*` to override their respective profiles.
 Only supported, material, implementation-eligible ShipLoop findings reach the improver. Design challenges and

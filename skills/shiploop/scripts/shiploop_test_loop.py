@@ -496,10 +496,7 @@ def step_number(state: Mapping[str, Any], work_item: str) -> Optional[int]:
     built."""
     action, plan = _step_plan(state, work_item)
     steps = _plan_steps(plan) if action else []
-    history = list(state.get("history", ()))
-    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
-    built = sum(1 for row in history[start + 1:]
-                if row.get("stage") == "implement" and row.get("workitem") == work_item and row.get("outcome") == "done")
+    built = planning_revision.built_steps(state, work_item) if action else 0
     return built if steps and 1 <= built <= len(steps) else None
 
 
@@ -1071,11 +1068,12 @@ def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str, *,
     """Per command, the most tests any run ShipLoop accepted for this work item has run since its latest step plan.
 
     Read from the item's ``tests/<action>-verify<N>.md`` records, so no state key holds it: the passed records of the
-    actions accepted after the item's latest accepted step plan (the history is append-only, so a revised step plan
-    starts the count again), and in them the runs ShipLoop accepted whose output it could count.  Empty for the outer
-    stages and the end-of-work review (``work_item`` is empty).  An action ShipLoop has not accepted yet is not in the
-    history, so its record sets no floor here (``action_counts`` reads it).  ``earlier_steps`` keeps only the runs of
-    the steps before the inline step being tested: the actions accepted before its build (design T §9.1 step 3).
+    actions accepted after the item's latest accepted step plan, and of the done steps that plan keeps (fix forward:
+    an amendment keeps their counts; a plan that marks none starts the count again), and in them the runs ShipLoop
+    accepted whose output it could count.  Empty for the outer stages and the end-of-work review (``work_item`` is
+    empty).  An action ShipLoop has not accepted yet is not in the history, so its record sets no floor here
+    (``action_counts`` reads it).  ``earlier_steps`` keeps only the runs of the steps before the inline step being
+    tested: the done steps kept and the actions accepted before its build (design T §9.1 step 3).
     """
     plan, _result = _step_plan(state, work_item)
     if not work_item or plan is None:
@@ -1087,8 +1085,12 @@ def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str, *,
         builds = [i for i, row in enumerate(history[first:], first) if row.get("stage") == "implement"
                   and row.get("workitem") == work_item and row.get("outcome") == "done"]
         last = builds[-1] if builds else first
+    position = {row.get("action"): index for index, row in enumerate(history)}
+    kept = [action for stage in planning_revision.PER_STEP_STAGES
+            for action in planning_revision.step_actions(state, work_item, stage) if position.get(action, first) < first]
     most: Dict[str, int] = {}
-    for action in dict.fromkeys(row.get("action") for row in history[first:last] if row.get("workitem") == work_item):
+    for action in dict.fromkeys([*kept, *(row.get("action") for row in history[first:last]
+                                          if row.get("workitem") == work_item)]):
         for number in range(1, _verify_count(root, str(action)) + 1):
             record = store.read_record(Path(root) / verify_path(str(action), number))
             if not isinstance(record, Mapping) or not record.get("passed"):
@@ -1450,7 +1452,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         return {}, ""
     refused = refused_runs(root, action)
     number = _verify_count(root, action) + 1
-    runner = runner or lint.run_argv
+    runner = lint.recovery_runner(root, action, "verify") if runner is None else runner
     clock = clock or time.monotonic
     repo = Path(str(state["repo"]))
     environment = dict(os.environ if env is None else env)
@@ -1673,7 +1675,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                   "runs": list(matched[1].get("runs") or ()), "trees": [tree],
                   "reused": {"path": matched[0], "created_at": matched[1].get("created_at"), "tree": tree}}
         return {step_proof_path(action, number): store.dumps(record, "ShipLoop step proof")}, "", [line]
-    runner = runner or lint.run_argv
+    runner = lint.recovery_runner(root, action, "step-proof") if runner is None else runner
     clock = clock or time.monotonic
     environment = dict(os.environ if env is None else env)
     fields, output = _run_command(runner, row["command"], repo, command_timeout, environment, clock)
@@ -1699,8 +1701,18 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     lines = ["ShipLoop step proof: " + headline + ". ShipLoop ran it from " + str(repo) + ":",
              "- " + row["command"] + " -> " + _explain(run, STEP_PROOF_STAGES[0]),
              *("    | " + line for line in tail),
-             "Full output: " + str(root / relative) + "."]
+             "Full output: " + str(root / relative) + ".",
+             *([REPEAT_LINE] if phase == "complete" else [])]
     return writes, "\n".join(lines), summary
+
+
+# The Proof-failure line for a Proof that passed in the model's own run (step-plan review §8 item 3, A2a: the step-plan
+# packet asks for a Proof safe to repeat; this says so where a repeat fails).  Fix forward keeps the done steps, so a
+# send-back that amends the Proof costs only this step (docs/shiploop-fix-forward-design-2026-11-12.md).
+REPEAT_LINE = ("If it passed when you ran it and fails in ShipLoop's run, it is not safe to repeat: it changes state that "
+               "its next run then finds (a create, assign or insert the target refuses twice). Make the work or the "
+               "Proof's own setup safe to repeat, or report send-back so the step plan amends this step's Proof; the "
+               "done steps stay done.")
 
 
 # ---------------------------------------------------------------- the base run (test stage, before the candidate run)
@@ -2024,7 +2036,7 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
     added = [_relative(path, base) for status, path in changes if status == "A" and path not in tests]
     record.update(test_files=[_relative(path, base) for path in tests], added_files=added)
     removed = _retired_removed(base, changes, retired, item_scope)
-    runner = runner or lint.run_argv
+    runner = lint.recovery_runner(root, action, "base") if runner is None else runner
     clock = clock or time.monotonic
     environment = dict(os.environ if env is None else env)
     runs: List[Dict[str, Any]] = []

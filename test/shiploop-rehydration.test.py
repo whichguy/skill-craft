@@ -30,7 +30,6 @@ import shiploop_context_index as context_index  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
-import shiploop_prompts as prompts  # noqa: E402
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import LoopBlock  # noqa: E402
 from shiploop_packet_view import assert_top_block  # noqa: E402
@@ -180,7 +179,8 @@ class MasterIndexTests(unittest.TestCase):
             index = (run / "context-index.md").read_text(encoding="utf-8")
             self.assertTrue({"state.md", "results/", "inbox/", "notes/", "packets/", "scratch/", "callback-attempts"} <= entries, entries)
         # Names the catalog lists (references/state-files.md: first path component of each backticked file or directory,
-        # minus the workspace files, which live beside the run) and the ones the code writes without listing them there.
+        # minus the workspace files, which live beside the run). The catalog is every run file: each entry of a populated run
+        # must be in it, and each name it lists must be in the index.
         catalog = (ROOT / "skills/shiploop/references/state-files.md").read_text(encoding="utf-8")
         table = catalog[catalog.index("| File or directory |"):catalog.index("The live Improve child keeps")]
         named = set()
@@ -189,8 +189,8 @@ class MasterIndexTests(unittest.TestCase):
                 if name not in ("workspace.md", "return-plan.md", "return-receipt.md"):
                     first = name.split("/")[0]
                     named.add(first + "/" if "/" in name else first)
-        named |= {"packets/", "scratch/", "reference.md", "context-index.md", "timeline.json", "backchain/",
-                  "transaction.md", ".lock", "callback-attempts", "run-baseline.txt"}
+        self.assertEqual([entry for entry in sorted(entries) if entry not in named], [],
+                         "references/state-files.md does not list these entries of a populated run")
         # quality/ (verify's Code craft rubric) retired with verify (design T §9.1 2b-4c).
         self.assertTrue({"state.md", "decisions/", "loops/", "tests/", "lint/", "expectations/", "improve/",
                          "report.html", "progress.html"} <= named, named)

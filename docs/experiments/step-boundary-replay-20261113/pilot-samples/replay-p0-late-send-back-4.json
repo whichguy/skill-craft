@@ -1,0 +1,236 @@
+{
+ "sample": "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4",
+ "verdict": {
+  "outcome": "done",
+  "result_source": "parked",
+  "run_status": "active",
+  "stage_at_stop": "step-plan",
+  "verdicts": {
+   "process": true,
+   "accepted": true,
+   "no_overshoot": false,
+   "oracle": true
+  },
+  "caught": {
+   "P1": true,
+   "P2": true
+  },
+  "value": 1.0,
+  "checks": [
+   {
+    "proves": "P1",
+    "kind": "outcome",
+    "pass": true,
+    "detail": "outcome done"
+   },
+   {
+    "proves": "P1",
+    "kind": "command",
+    "pass": true,
+    "detail": "exit 0"
+   },
+   {
+    "proves": "P2",
+    "kind": "command",
+    "pass": true,
+    "detail": "exit 0"
+   }
+  ],
+  "overshoot": [
+   "test-spec",
+   "validate-existing",
+   "implement",
+   "test",
+   "document"
+  ],
+  "ref": "d778b50a",
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh"
+ },
+ "sessions": [
+  {
+   "status": "stage-complete",
+   "seconds": 67.5
+  }
+ ],
+ "amendment": {
+  "criteria": [
+   {
+    "confirm": "executed",
+    "id": "C1",
+    "text": "R-1: parseRecords parses each nonblank line and trims values, preserving records and keys. Confirm by: TC-1 exact example and trimming assertions; pass when both exact arrays match."
+   },
+   {
+    "confirm": "executed",
+    "id": "C2",
+    "text": "R-1: parseRecords rejects missing equals, empty or invalid keys and duplicate keys with SyntaxError naming the 1-based source line, and rejects non-string input with TypeError. Confirm by: TC-2 rejection assertions; pass when every error has its specified type and line number."
+   },
+   {
+    "confirm": "searched",
+    "id": "C3",
+    "text": "R-1: parseRecords carries its public contract docstring. Confirm by: exact text search; pass when the docstring is /** Parse a string into records; throws TypeError or line-numbered SyntaxError. */"
+   },
+   {
+    "confirm": "executed",
+    "id": "C4",
+    "text": "R-1: select returns exact matching records in input order. Confirm by: TC-3 assertions against multiple matches, the requested example and no matches; pass when each exact array matches."
+   },
+   {
+    "confirm": "executed",
+    "id": "C5",
+    "text": "R-1: select rejects non-array records with TypeError. Confirm by: TC-4 rejection assertions; pass when the error is TypeError."
+   },
+   {
+    "confirm": "searched",
+    "id": "C6",
+    "text": "R-1: select carries its public contract docstring. Confirm by: exact text search; pass when the docstring is /** Select matching records in input order; throws TypeError for non-arrays. */"
+   }
+  ],
+  "evidence_refs": [
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/run/loops/nav-04669418d89342d9b9a9b8ed3548840b-terminal.json",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/run/results/nav-95934ceeee86449dab4e4eb8f95cb413.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/run/results/nav-eab531ba993f4337ab09bb019c7d516d.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/worktree/docs/shiploop/w1-plan-reference.md",
+   "/Users/dadleet/e2e-runs-sp/20261113/replay-q1-pilot/step-plan/replay-p0-late-send-back/4/.shiploop-runs/seed/worktree/test/records.test.js"
+  ],
+  "expectations": [
+   {
+    "check": "node -e \"const a=require('node:assert/strict');const {parseRecords:p}=require('./src/records');a.deepEqual(p('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepEqual(p('a=  x  \\n  \\nb_2= y'),[{a:'x'},{b_2:'y'}]);for(const x of ['bad','=x','A=x','a=1;a=2'])a.throws(()=>p('ok=1\\n'+x),e=>e instanceof SyntaxError&&/line 2\\b/.test(e.message));a.deepEqual(p('constructor=ok;z=1=2'),[{constructor:'ok',z:'1=2'}]);a.deepEqual(p('  \\n\\n'),[]);a.throws(()=>p(1),TypeError)\" && rg -F -q '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js",
+    "id": "E1",
+    "paths": [
+     "src/records.js"
+    ],
+    "state": "works",
+    "statement": "The committed parser module implements S1 and is available for selection.",
+    "steps": [
+     "S1",
+     "S2"
+    ]
+   },
+   {
+    "check": "npm test",
+    "id": "E2",
+    "paths": [
+     "package.json",
+     "test/text.test.js",
+     "src/text.js"
+    ],
+    "state": "works",
+    "statement": "The existing CommonJS Node test harness and regression suite run.",
+    "steps": [
+     "S1",
+     "S2"
+    ]
+   },
+   {
+    "check": "node --test --test-reporter=spec --test-name-pattern='TC-1|TC-2' test/records.test.js",
+    "id": "E3",
+    "paths": [
+     "test/records.test.js"
+    ],
+    "state": "works",
+    "statement": "The focused test file exists with parser coverage; the test stage adds selection coverage.",
+    "steps": [
+     "S1",
+     "S2"
+    ]
+   }
+  ],
+  "follows": [
+   "R-1",
+   "AD-1"
+  ],
+  "headline": "Correct the docstring search classification; Node tests and source checks prove the planned behavior.",
+  "outcome": "done",
+  "paths": [
+   "src/records.js",
+   "test/records.test.js"
+  ],
+  "steps": [
+   {
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "deps": [],
+    "done": true,
+    "id": "S1",
+    "paths": [
+     "src/records.js"
+    ],
+    "proof": "node -e \"const a=require('node:assert/strict');const {parseRecords:p}=require('./src/records');a.deepEqual(p('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepEqual(p('a=  x  \\n  \\nb_2= y'),[{a:'x'},{b_2:'y'}]);for(const x of ['bad','=x','A=x','a=1;a=2'])a.throws(()=>p('ok=1\\n'+x),e=>e instanceof SyntaxError&&/line 2\\b/.test(e.message));a.deepEqual(p('constructor=ok;z=1=2'),[{constructor:'ok',z:'1=2'}]);a.deepEqual(p('  \\n\\n'),[]);a.throws(()=>p(1),TypeError)\" && rg -F -q '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js",
+    "skills": [],
+    "task": "Implement C1, C2 and C3 following R-1 and AD-1."
+   },
+   {
+    "criteria": [
+     "C4",
+     "C5",
+     "C6"
+    ],
+    "deps": [
+     "S1"
+    ],
+    "id": "S2",
+    "paths": [
+     "src/records.js"
+    ],
+    "proof": "node -e \"const a=require('node:assert/strict');const {select:s}=require('./src/records');const example=[{name:'ada',team:'x'},{name:'bob',team:'y'}];a.deepEqual(s(example,'team','x'),[example[0]]);const rows=[{team:'x'},{team:'y'},{team:'x'}];a.deepEqual(s(rows,'team','x'),[rows[0],rows[2]]);a.deepEqual(s(rows,'team','z'),[]);a.throws(()=>s(null,'team','x'),TypeError)\" && rg -F -q '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js",
+    "skills": [],
+    "task": "Implement C4, C5 and C6 following R-1 and AD-1."
+   }
+  ],
+  "summary": "R-1 concerns: S1 supplies parsing, validation, numbered errors and its contract; S2 supplies ordered selection, array validation and its contract. Reuse node:test and npm test; seeded prior strategy had no specific decision and is refined with an available unit layer. Node v26.12.1 and npm 12.2.1, node --test and npm test passed the two existing tests; no browser, service, state, fixture setup or teardown is involved. test/text.test.js and src/text.js supply the existing test and CommonJS style. test/records.test.js is to be authored by test stage; TC-1 through TC-4 use node:test and strict assertions. No lint, type or build is configured. Match contract: src/text.js:1-7 uses strict mode, CommonJS exports, a concise public contract and TypeError; test/text.test.js:1-5 uses node:test, node:assert and named tests. New functions are public exports in local Node namespace, src/records.js is absent, and importing the module proves resolution; no persistence or migration. Assumption: split field at its first equals so remaining equals belong to the value; keys are validated as written. Exact source-check fixture comes from R-1. S1 diagnostics identify source line without echoing input; S2 throws TypeError for non-arrays. Baseline supplies runner; S1 supplies module to S2, both proofs run independently of future tests; test stage supplies durable focused cases for later regression. No other consumers or unresolved prerequisites found. Planning reference: docs/shiploop/w1-plan-reference.md; the focused suite must execute all four named cases, and the test stage owns authoring and revalidation. Backchain structural checker expects a different graph schema; its schema refusal is recorded in evidence_refs. This serial step-plan has no separate execution graph; dependency walk is documented in the planning reference. Send-back amendment: retain all criteria, S2, test layers, paths and test commands; classify the C3/C6 source search as check, not focused. S1 is done; E1 and E3 now record existing parser and test files. Selection work is present but uncommitted; selection tests must be restored by the test stage. Revalidated the runner: focused currently runs three parser tests and npm test runs five; TC-3 and TC-4 are not yet in the current test file. No other plan rows changed.",
+  "test_commands": [
+   {
+    "command": "node --test --test-reporter=spec --test-name-pattern='TC-1|TC-2|TC-3|TC-4' test/records.test.js",
+    "criteria": [
+     "C1",
+     "C2",
+     "C4",
+     "C5"
+    ],
+    "ids": [
+     "TC-1",
+     "TC-2",
+     "TC-3",
+     "TC-4"
+    ],
+    "min_tests": 4,
+    "suite": "focused"
+   },
+   {
+    "command": "rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js && rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js",
+    "criteria": [
+     "C3",
+     "C6"
+    ],
+    "suite": "check"
+   },
+   {
+    "command": "npm test",
+    "criteria": [
+     "C1",
+     "C2",
+     "C4",
+     "C5"
+    ],
+    "minimum": true,
+    "suite": "regression"
+   }
+  ],
+  "test_layers": [
+   {
+    "code": "src/records.js",
+    "harness": "node:test",
+    "layer": "unit",
+    "reason": "Node built-in runner is present and existing suite passed.",
+    "status": "available"
+   }
+  ]
+ }
+}

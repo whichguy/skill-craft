@@ -51,9 +51,9 @@ returns a receipt and absolute worktree path. A worker adds only
 preserving its original index and unrelated changes, then authorizes report
 archival and removal.
 
-Sources: [ask_agent_workspace.py - prepare: workspace creation and reuse](/Users/dadleet/src/skill-craft/skills/ask-agent/scripts/ask_agent_workspace.py:1406),
-[ask_agent_workspace.py - inspect: prepared and returned evidence](/Users/dadleet/src/skill-craft/skills/ask-agent/scripts/ask_agent_workspace.py:1438),
-[ask_agent_workspace.py - close: acceptance and preservation gates](/Users/dadleet/src/skill-craft/skills/ask-agent/scripts/ask_agent_workspace.py:1706).
+Sources: [ask_agent_workspace.py - prepare: workspace creation and reuse](../skills/ask-agent/scripts/ask_agent_workspace.py#L1406),
+[ask_agent_workspace.py - inspect: prepared and returned evidence](../skills/ask-agent/scripts/ask_agent_workspace.py#L1438),
+[ask_agent_workspace.py - close: acceptance and preservation gates](../skills/ask-agent/scripts/ask_agent_workspace.py#L1706).
 
 ## Mechanical validation
 
@@ -71,9 +71,9 @@ Sources: [ask_agent_workspace.py - prepare: workspace creation and reuse](/Users
 - Independent cleanup review found no remaining actionable findings after the
   regression-backed fixes.
 
-Tests: [ask-agent-workspace.test.py - dirty linked caller: Git-layer preservation](/Users/dadleet/src/skill-craft/test/ask-agent-workspace.test.py:708),
-[ask-agent-workspace.test.py - archive race: late writes retain work](/Users/dadleet/src/skill-craft/test/ask-agent-workspace.test.py:1229),
-[ask-agent-workspace.test.py - copied package: no source-checkout dependency](/Users/dadleet/src/skill-craft/test/ask-agent-workspace.test.py:1287).
+Tests: [ask-agent-workspace.test.py - dirty linked caller: Git-layer preservation](../test/ask-agent-workspace.test.py#L708),
+[ask-agent-workspace.test.py - archive race: late writes retain work](../test/ask-agent-workspace.test.py#L1229),
+[ask-agent-workspace.test.py - copied package: no source-checkout dependency](../test/ask-agent-workspace.test.py#L1287).
 
 ## Live experiments
 
@@ -99,12 +99,12 @@ Evidence root:
 
 Machine verdicts (original failed/partial verdicts remain beside regrades):
 
-- [verification-summary.json - Grok checks: complete native binding and lifecycle](/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/grok/operator/verification-summary.json:1).
-- [verification-summary-v2.json - Codex checks: complete lifecycle with explicit paths](/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/codex/operator/verification-summary-v2.json:1).
-- [verification-summary-v3.json - Claude normal profile: caller artifact failure](/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/claude/operator/verification-summary-v3.json:1).
-- [verification-summary.json - Claude controlled profile: complete lifecycle and caller hygiene](/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/claude-controlled/operator/verification-summary.json:1).
-- [verification-summary.json - Cursor pinned: callback and lifecycle evidence with strict-ordering limitation](/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/cursor-pinned/operator/verification-summary.json:1).
-- [verification-summary.json - Cursor timing control: provider-failure retention](/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/cursor-overlap/operator/verification-summary.json:1).
+- verification-summary.json - Grok checks: complete native binding and lifecycle (`/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/grok/operator/verification-summary.json:1`, outside the repository).
+- verification-summary-v2.json - Codex checks: complete lifecycle with explicit paths (`/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/codex/operator/verification-summary-v2.json:1`, outside the repository).
+- verification-summary-v3.json - Claude normal profile: caller artifact failure (`/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/claude/operator/verification-summary-v3.json:1`, outside the repository).
+- verification-summary.json - Claude controlled profile: complete lifecycle and caller hygiene (`/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/claude-controlled/operator/verification-summary.json:1`, outside the repository).
+- verification-summary.json - Cursor pinned: callback and lifecycle evidence with strict-ordering limitation (`/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/cursor-pinned/operator/verification-summary.json:1`, outside the repository).
+- verification-summary.json - Cursor timing control: provider-failure retention (`/Users/dadleet/Documents/Codex/experiments/ask-agent-managed-20260920T050515Z/cursor-overlap/operator/verification-summary.json:1`, outside the repository).
 
 The initial Cursor version probe reported 2026.05.04; the launcher later resolved
 to 2026.09.18. The exact executable used by the first run was not captured, so

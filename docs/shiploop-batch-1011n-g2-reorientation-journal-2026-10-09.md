@@ -184,7 +184,7 @@ ranges, both medians and the rewrote counts (4 of 21 and 24 of 58) were wrong fo
 | 11 | Replace the invented 1 s `settled` wait | Implemented as `after_kill`: three revisions compared, nothing waited for. K and the `:result` default are `--clear-at` questions, not built |
 | 12 | Specify the probe command | Implemented in the README: `--prompt` plus `--check` (not `--case hello --prompt`), `--planning-review none` with an absolute `--improve-skill`, a `none` probe at a planning stage never inside an Improve park (the later Improve children still run: the saved v1220 `none` run parked at system-test-author, release-plan and carry-forward) |
 | 13 | State what the probe tests; label r2 and r3 non-clean | In the SPEC amendment and the README |
-| 14 | Sequence with concurrent work | Not rebased (base is the plan commit). Phase 1 reads no store output and takes no snapshot, so the store's rehydration and recovery text does not enter; `revision_seen` parses the packet head `ShipLoop navigator | <stage> | revision N` and reads null if that line changes |
+| 14 | Sequence with concurrent work | Not rebased (base is the plan commit). Phase 1 reads no store output and takes no snapshot, so the store's rehydration and recovery text does not enter; `revision_seen` parses the packet head `ShipLoop navigator \| <stage> \| revision N` and reads null if that line changes |
 
 Missed unknowns of the audit: the SIGKILL final newline is fixed (`run.events_line_count`, 3 tests). Keepalive ownership surviving the
 kill, Claude's auto-memory and the global `CLAUDE.md` are not removed or recorded: the SPEC labels the memory and `CLAUDE.md` (they load

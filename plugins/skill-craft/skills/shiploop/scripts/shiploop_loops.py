@@ -29,6 +29,7 @@ from typing import Any, Mapping, Optional, Sequence
 
 import shiploop_knowledge_home as knowledge_home
 import shiploop_loop_contract as loop_contract
+import shiploop_planning_revision as planning_revision
 import shiploop_prompts as prompts
 import shiploop_stage_spec as stage_spec
 import shiploop_standalone_improve as standalone
@@ -314,11 +315,7 @@ def current_step(state: Mapping[str, Any], work_item: str) -> Optional[Mapping[s
     """The implement step the item is on: the first step of its latest step plan without an accepted implement done."""
     action, plan = _step_plan(state, work_item)
     steps = list(plan.get("steps") or ()) if action else []
-    history = list(state.get("history", ()))
-    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
-    done = sum(1 for row in history[start + 1:]
-               if row.get("stage") == "implement" and row.get("workitem") == work_item
-               and row.get("outcome") == "done")
+    done = planning_revision.built_steps(state, work_item) if action else 0
     return steps[done] if done < len(steps) and isinstance(steps[done], Mapping) else None
 
 

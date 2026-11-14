@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShipLoop security harness V7 — qualification report</title>
+<style>
+:root{color-scheme:light;--ink:#192634;--muted:#465969;--paper:#fff;--bg:#edf3f5;--line:#cad8dd;--teal:#0b665e;--warn:#824313}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.52 system-ui,sans-serif}
+main{width:min(100% - 38px,1000px);margin:26px auto 50px}header,section,footer{padding:clamp(17px,3.4vw,34px);background:var(--paper);border:1px solid var(--line);border-radius:15px;margin:0 0 14px}
+header{background:#132f3b;color:#f4fcff;border:0}header p{max-width:74ch}h1,h2,p,figure{margin:0}h1{font-size:clamp(2rem,5vw,3.55rem);line-height:1.03;letter-spacing:-.04em;margin:.23em 0 .32em}h2{font-size:1.45rem;line-height:1.2;margin-bottom:.6em;letter-spacing:-.02em}p+p,p+table,table+p,p+details,details+p{margin-top:.7em}
+small,.eyebrow{font-size:.82rem;letter-spacing:.07em;font-weight:750;text-transform:uppercase}.eyebrow{color:#a3e7de}.muted,figcaption{color:var(--muted)}a{color:#075c66;text-underline-offset:.16em}a:focus-visible,summary:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+code{font-size:.88em;overflow-wrap:anywhere}strong.good{color:var(--teal)}strong.caution{color:var(--warn)}
+nav{display:flex;gap:8px 15px;flex-wrap:wrap;margin-top:1em}nav a{color:#bcf5ed}
+table{border-collapse:collapse;width:100%;font-size:.94rem;text-align:left}th,td{padding:.6em .65em;vertical-align:top;border-bottom:1px solid var(--line)}th{background:#eef5f5}tbody tr:last-child td{border-bottom:0}
+figure{margin:.9em 0 0}figcaption{font-size:.91rem;margin-top:.55em}
+.flow{display:grid;grid-template-columns:1fr auto 1.35fr auto 1fr;align-items:center;gap:9px}.flow-group{display:grid;gap:6px}.node{background:#eff7f6;border:1px solid #b8d5d1;border-radius:8px;padding:.63em .75em;line-height:1.28}.node b{display:block;color:#124d47}.arrow{color:var(--teal);font-size:1.4em;text-align:center}.arrow span+span{display:none}
+.note{background:#fff8ef;border-color:#ead6bd}details{border-top:1px solid var(--line);padding-top:.65em}summary{color:#075c66;font-weight:700;cursor:pointer}details p{margin-top:.55em}footer{font-size:.92rem}
+@media(max-width:600px){main{width:calc(100% - 22px);margin:11px auto 25px}header,section,footer{padding:16px;margin-bottom:10px}.flow{grid-template-columns:1fr;gap:3px}.arrow{line-height:1}.arrow span:first-child{display:none}.arrow span+span{display:inline}.gaps thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.gaps,.gaps tbody,.gaps tr,.gaps td{display:block}.gaps tr{padding:.5em 0;border-bottom:1px solid var(--line)}.gaps td{padding:.1em 0;border:0}.gaps td:first-child{font-weight:750}.gaps td:last-child::before{content:"Limit: ";font-weight:700}.scores{font-size:.83rem}.scores th,.scores td{padding:.45em .3em}}
+</style>
+<main>
+<header>
+<div class="eyebrow">Experiment report · 8 November 2026</div>
+<h1>ShipLoop security harness V7</h1>
+<p><strong>Retain the V7 measurement repairs on the qualified source.</strong> They make public test replay and private checks easier to verify. One native smoke reached the registered acceptance endpoint. Neither frozen study met its promotion rule.</p>
+<nav aria-label="On this page"><a href="#changes">Repairs</a><a href="#qualification">Qualification</a><a href="#native">Native smoke</a><a href="#frozen">Frozen results</a><a href="#evidence">Evidence index</a></nav>
+</header>
+<section id="changes">
+<h2>What V7 can check</h2>
+<p>A Git-free grading copy caused three historical public suites to fail. V7 binds the exported product to its recorded Git state for public replay and keeps the private probes separate. The retained inputs let an operator regrade offline without relaunching a subject.</p>
+<figure aria-label="Retained product and Git context split into public Git replay and Git-free private probes, which join in offline grades and a decision.">
+<div class="flow" aria-hidden="true">
+<div class="node"><b>Bind inputs</b>Product export, lifecycle, scope and Git context</div>
+<div class="arrow"><span>→</span><span>↓</span></div>
+<div class="flow-group"><div class="node"><b>Public replay</b>Exact HEAD, refs, index and staged blobs</div><div class="node"><b>Private probes</b>Separate copy with no Git metadata</div></div>
+<div class="arrow"><span>→</span><span>↓</span></div>
+<div class="node"><b>Retain proof</b>Pre-execution inputs, offline grades and decision</div>
+</div>
+<figcaption>A replay needs the bound inputs; missing, damaged or misbound context leaves the observation incomplete.</figcaption>
+</figure>
+<table class="gaps" aria-label="Gaps, evidence and limits">
+<thead><tr><th scope="col">Gap</th><th scope="col">Evidence added</th><th scope="col">Limit</th></tr></thead>
+<tbody>
+<tr><td data-label="Gap">Git history</td><td data-label="Evidence">Reachable-history scanner found synthetic markers committed and later deleted.</td><td data-label="Limit">No subject-era injected canary; live historical leakage is unmeasured.</td></tr>
+<tr><td data-label="Gap">Task selection</td><td data-label="Evidence">Mixed valid and missing IDs in both orders; inspect all records and snapshots for partial mutation.</td><td data-label="Limit">Covers the exercised selections.</td></tr>
+<tr><td data-label="Gap">Diagnostics</td><td data-label="Evidence">Descriptor-based observation covers bytes, errors, long strings and failure paths. Incomplete inspection stays incomplete.</td><td data-label="Limit">Probe evidence does not establish OS isolation.</td></tr>
+<tr><td data-label="Gap">Mutation attribution</td><td data-label="Evidence">Requires discovered changed-file tests, passing normal and sham runs, a nonce-bound affected target call, and a structured assertion failure.</td><td data-label="Limit">Timeouts, crashes and no-tests outcomes do not count as kills.</td></tr>
+<tr><td data-label="Gap">Usage</td><td data-label="Evidence">An independent, append-only ledger of started invocations defines coverage; replay binds capture ranges to parent sessions and preserves partial observations.</td><td data-label="Limit">Missing terminal evidence leaves totals unknown. Child spend and provider-served identity are unattested.</td></tr>
+<tr><td data-label="Gap">Generated output</td><td data-label="Evidence">New writer emits byte- and mode-identical outputs under 022 and 077: private 0600 files and 0700 directories, with no clobber.</td><td data-label="Limit">The original report bundle’s byte-and-mode comparison remains a separate failure.</td></tr>
+<tr><td data-label="Gap">Terminal auth link</td><td data-label="Evidence">Unlinks only after owned processes and observer drain. Refuses unexpected entries and linked parents; never reads the link target.</td><td data-label="Limit">The retained link did not prove credential exposure. OS crash and SIGKILL cleanup are unverified.</td></tr>
+</tbody></table>
+</section>
+<section id="qualification">
+<h2>Source qualification</h2>
+<p><strong class="good">PASS on the named pins.</strong> Qualification 03 matched 94/94 V6 and 104/104 V7 references, including 10 added controls. All 73 V5 and 94 V6 dispositions were unchanged. It passed 66 focused methods, eight inert cases (two valid, six incomplete), two umask pairs, two damaged-grade refusals and four V2 guards. It verified 329 source pins and seven completion pins.</p>
+<p>Qualification 02 ran 73 unit methods (7 V6 + 66 V7, zero skips). Its separate qualifier was <strong class="caution">INCOMPLETE</strong> because the parent supplied a noncanonical reports path. Qualification 03 corrected the argument. Auth cleanup passed seven unit and three assembled controls, including real SIGTERM and recovery drain before unlink.</p>
+<h3>Supplemental collector regression</h3>
+<p>Astra F2 prompted one fixture test of the actual collector. A fake host creates a synthetic auth link, then setup fails. The test requires zero launches, the original exception, one cleanup, a removed link and an unchanged target. The Python 3.9 control passed; moving setup outside the cleanup block made the mutant fail because the link survived. The supplement changes no runtime code.</p>
+<p><strong class="good">Supplemental bank: 74 methods passed</strong> (7 V6 + 67 V7, zero skips), including the new collector setup failure test. All 35 scoped r6 rows and all 10,488 files were stable across the run.</p>
+<details><summary>Earlier attempts and timeout control</summary>
+<p>Qualification 01 and catalog refutation 01 remain <strong class="caution">FAIL</strong>. The catalog entry mismatch was fixed with <code>run_tests.py</code>. The old timeout control assumed the mutation would run within a shared 2.3-second budget; diagnostics showed that a normal run can time out first or the budget can expire before mutation. The repaired control simulates only the wrong-mutation spawn; the other subprocesses and assertion/stale controls are real. This does not test a live OS mutation timeout. The r3 unit pass (66 methods) and the earlier catalog pass (61 methods) are separate receipts; r4 qualification supersedes them for the named implementation.</p>
+</details>
+</section>
+<section id="native">
+<h2>One native smoke, two regrade results</h2>
+<p><strong class="good">Semantic replay verified.</strong> On historical source <code>1db0d579</code> with the pinned V7 assembly, the recorded Sol 6.1 medium subject reached <code>carry-forward-accepted</code> on one secret-exposure case. Functionality, preservation, scope and covered security checks passed. The independent offline verifier matched observations, grade fields, commands, exit/timeout and structured counts. The literal raw regrade remains <strong class="caution">INCOMPLETE</strong> for nine Node duration values. The smoke was noncomparative and did not establish outer delivery, campaign completion or prompt gain. No runtime or subject evidence was rerun on the later integration or main.</p>
+<p>The separate collector measured one complete parent invocation (16,410 input / 9 output tokens). Removed-session, truncated-capture and wrong-thread replays withheld totals. The native subject had only partial parent usage; its totals remain <strong>UNKNOWN</strong>. Collector totals do not recover subject totals. Astra high in the registration identifies the judge setting; deterministic offline grading and independent final judgment are separate.</p>
+</section>
+<section id="frozen">
+<h2>The frozen decisions stand</h2>
+<table class="scores" aria-label="Frozen arm results; counts shown A versus B">
+<thead><tr><th scope="col">Study / decision</th><th scope="col">Composite A/B</th><th scope="col">Security A/B</th><th scope="col">Exact p</th></tr></thead>
+<tbody>
+<tr><td data-label="Study">64 · <strong>Retain baseline</strong></td><td data-label="Composite">19/32 · 14/32</td><td data-label="Security">28/32 each</td><td data-label="p">1</td></tr>
+<tr><td data-label="Study">16 · <strong>No local promotion</strong></td><td data-label="Composite">7/8 · 4/8</td><td data-label="Security">8/8 each</td><td data-label="p">11/12</td></tr>
+</tbody></table>
+<p>The studies used different treatments, cases and settings (64: Sol 6.1 high; 16: Sol 6.1 medium, Astra high judgment). No risk case improved. Keep the registrations and models as recorded; the latest routing preference applies to new runs only.</p>
+<p>In the 16, three B public suites lacked Git metadata (one later-added-work, two help control). Two integration scope failures remain: one per arm changed five regular-file modes from 0600 to 0644. All covered private assertions passed; the copies had no Git history to scan. All 16 have partial usage and <strong>UNKNOWN</strong> totals.</p>
+<p>The original report bundle’s byte-and-mode comparison stays <strong class="caution">FAIL</strong>: 34 public files were byte equal, but under 077 all 34 file modes and 18 directory modes differed. That is separate from the new writer’s explicit permissions.</p>
+<p>Retain concern handoffs and reassessment of actual changed boundaries as source-contract improvements. The handoff has stronger evidence; the wording’s separate effect and cost remain unmeasured. No new security stage, gate, loop limit or A/B campaign was adopted.</p>
+</section>
+<section id="evidence">
+<h2>Evidence index</h2>
+<p><strong>Qualified implementation:</strong> <code>a8a391d7c00463f02bd3fc6a534ff4ef07dbef21</code>. The accepted r5 commit differs from qualified r4 by a canonical-path README clarification only.</p>
+<p><strong>Collector test:</strong> <code>6cc00a09a4c128ab976e2c13accd9ecba6c9b828</code>. <strong>Local integration:</strong> <code>746c37af28943012c5239c3321adb41432ce8560</code>. The security files retain their bytes and modes, with the collector test added and the shared suite catalog inheriting the planning entries. The integration receipt records this comparison and the separate source pins.</p>
+<p>The <a href="evidence-summary.json">evidence summary</a> gives exact commands, source hashes, and local receipt and log locators. The <a href="README.md">README</a> explains how to use them.</p>
+<p>Final preservation checked 300 selected files and 76 directories, plus 329 source pins in qualification. It did not repeat the earlier whole-archive audit of roughly 147,000 files. The durable local archive read back 510 paths across 223 distinct objects; relocation and execution were not tested.</p>
+<details><summary>Preserved attempts and original findings</summary>
+<p>The first final seal was incomplete because its wrapper dropped comparison metadata. The first archive was incomplete because policy refused a synthetic <code>.git/HEAD</code> fixture; an exact-path supplement completed readback. The earlier receipts remain unchanged.</p><p>The original closeout verified observer teardown before fixture removal, pinned remote CI collection with a wrong-revision refusal, and actual parent/child launch settings. Its published Skill Craft 2.35.5 / ShipLoop 1.33.5 release passed 10 CI jobs (274 suite executions across 198 distinct suites). That historical delivery is separate from this V7 report. The immutable findings and their rendered HTML are indexed by hash as local evidence; raw logs, model output and private Git packs are outside these publication files.</p>
+</details>
+</section>
+<section class="note" id="review">
+<h2>Independent review</h2>
+<p><strong style="overflow-wrap:anywhere">ACCEPT_FOR_PUBLICATION_WITH_LIMITS.</strong> Independent review approves the named source supplement and report; F2 is closed. Frozen outcomes and stated evidence limits remain unchanged. Final candidate CI and remote publication require separate delivery receipts.</p>
+</section>
+<footer>Scope: opt-in experiment apparatus on named source and harness pins. The evidence supports no broad production security or model-quality claim.</footer>
+</main>
+</html>

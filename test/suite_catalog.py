@@ -208,6 +208,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-ticket-sla.test.py",
     "test/shiploop-e2e-user-chain.test.py",
     "test/shiploop-e2e-user-directory.test.py",
+    "test/shiploop-e2e-recovery.test.py",
     "test/shiploop-e2e-lifecycle.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
@@ -303,6 +304,7 @@ _CORE_SUITES = (
     _suite("installed-skill-invocation", "core", "test/installed-skill-invocation.test.py", "python3", "test/installed-skill-invocation.test.py"),
     _suite("prompt-marketplace-contract", "core", "test/prompt-marketplace-contract.test.py", "python3", "test/prompt-marketplace-contract.test.py"),
     _suite("skill-frontmatter", "core", "test/skill-frontmatter.test.js", "node", "test/skill-frontmatter.test.js"),
+    _suite("test-harness", "core", "test/test-harness.test.py", "python3", "test/test-harness.test.py"),
     _suite("scaffold-skill", "core", "test/scaffold-skill.test.sh", "bash", "test/scaffold-skill.test.sh"),
     _suite("marketplace-run", "core", "test/marketplace-run.test.sh", "bash", "test/marketplace-run.test.sh"),
     _suite("install-targets", "core", "test/install-targets.test.sh", "bash", "test/install-targets.test.sh"),
@@ -332,8 +334,8 @@ _CORE_SUITES = (
     _suite("native-setup-pilot", "core", "test/native-setup-pilot.test.py", "python3", "-B", "test/native-setup-pilot.test.py"),
     _suite("planning-score", "core", "test/experiments/shiploop_spec_discovery/test_scoring.py",
            "python3", "-B", "test/experiments/shiploop_spec_discovery/test_scoring.py"),
-    _suite("security-harness", "core", "test/experiments/shiploop_security/test_scope.py",
-           "python3", "-B", "test/experiments/shiploop_security/test_scope.py"),
+    _suite("security-harness", "core", "test/experiments/shiploop_security/run_tests.py",
+           "python3", "-B", "test/experiments/shiploop_security/run_tests.py"),
 )
 
 SHIPLOOP_SUITES = tuple(_shiploop(path) for path in _SHIPLOOP_PATHS)

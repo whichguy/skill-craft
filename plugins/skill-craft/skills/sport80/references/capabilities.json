@@ -906,7 +906,7 @@
    "source": [
     "menu:club top > Members > Member Charts"
    ],
-   "notes": "One tab per membership product.",
+   "notes": "One tab per membership product. Each tab carries `refs.addon_id`, the membership product id that members.statistics takes.",
    "descriptor": {
     "tabs": {
      "protocol": "tabs",
@@ -914,7 +914,14 @@
       "Individual Membership"
      ]
     }
-   }
+   },
+   "refs": [
+    {
+     "name": "addon_id",
+     "from": "tab",
+     "query": "addon_id"
+    }
+   ]
   },
   {
    "id": "members.charts.draw",
@@ -948,12 +955,47 @@
    "source": [
     "tab:members.charts"
    ],
-   "notes": "HTML fragment with the chart.",
+   "notes": "A loader stub ('Loading Charts...') whose data-form-url points at the statistics data endpoint; the numbers are read with members.statistics. addon_id is the `refs.addon_id` of a members.charts tab.",
    "descriptor": {
     "html": {
      "protocol": "html"
     }
    }
+  },
+  {
+   "id": "members.statistics",
+   "title": "Member statistics",
+   "area": "members",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live",
+     "scope": "the club's own membership product through the club role: four charts read (2026-11-08)"
+    }
+   },
+   "path": "/api/contact/statistics/data/{addon_id}",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "addon_id",
+     "in": "path",
+     "required": true,
+     "identity": "membership product id: the `refs.addon_id` of a members.charts tab"
+    }
+   ],
+   "source": [
+    "tab:members.charts (the data-form-url of its draw fragment)"
+   ],
+   "notes": "Aggregate counts behind Member charts: four charts, a pie of Valid, Invalid and Action Required memberships, then counts by region, by membership type and by age range and gender. They count memberships, which need not equal people. Small groups can identify a person: say a group is small instead of describing it. Do not copy the counts into a file."
   },
   {
    "id": "members.send_email",
@@ -3765,7 +3807,14 @@
    "source": [
     "menu:top > Results"
    ],
-   "notes": "Rows: meet, level, date, results (athlete results counted), action. The club token scopes rows to the club's athletes; the personal token returns every event. The View action links to the public event results page."
+   "notes": "Rows: meet, level, date, results (athlete results counted), action. The club token scopes rows to the club's athletes; the personal token returns every event. The View action links to the public event results page. Each row carries `refs.event_id` (name `refs` in --fields), read from its View link /public/rankings/results/<number>; results.event takes it. Nothing else of the link is returned.",
+   "refs": [
+    {
+     "name": "event_id",
+     "from": "action",
+     "match": "^/public/rankings/results/(\\d{1,12})$"
+    }
+   ]
   },
   {
    "id": "results.rankings",
@@ -3788,7 +3837,8 @@
     },
     "public": {
      "seen": "bundle",
-     "verified": "descriptor"
+     "verified": "live",
+     "scope": "rows read with a weight class and a 2026 date range through the public key (2026-11-08): refs.athlete_id on every row; the personal and club roles were not read"
     }
    },
    "path": "/api/categories/rankings/table",
@@ -3833,6 +3883,11 @@
      "name": "wso",
      "in": "filter",
      "type": "autocomplete"
+    },
+    {
+     "name": "club",
+     "in": "filter",
+     "type": "autocomplete"
     }
    ],
    "operations": [
@@ -3848,7 +3903,22 @@
    "source": [
     "menu:top > Rankings"
    ],
-   "notes": "Columns: national_ranking, rank, total, name, gender, lifter_age, club, membership, bodyweight, lift_date, meet_date, level, wso. A 2026 date range alone returned no rows for either role; the public table also has a club filter. Row behaviour not established."
+   "notes": "The table is empty until a body weight category (weight_class, required) and a date range are given. List the categories with `--options weight_class --option-search TEXT` (about 1,100, for example \"Open Men's 89\") and pass the number as `--filter weight_class=<value>` with date_range_start and date_range_end. Each row carries `refs.athlete_id`, read from its View link /public/rankings/member/<number>; results.athlete takes it.",
+   "requires_filter": [
+    "weight_class"
+   ],
+   "refs": [
+    {
+     "name": "athlete_id",
+     "from": "action",
+     "match": "^/public/rankings/member/(\\d{1,12})$"
+    }
+   ],
+   "option_filters": [
+    "weight_class",
+    "level"
+   ],
+   "empty_hint": "Give a body weight category (weight_class) and a date range; list the categories with --options weight_class."
   },
   {
    "id": "results.event",
@@ -3883,7 +3953,7 @@
      "name": "event_id",
      "in": "path",
      "required": true,
-     "identity": "rankings-module event id (the id in a results.events row's View link)"
+     "identity": "rankings-module event id: the `refs.event_id` of a results.events row"
     }
    ],
    "row_actions": "unobserved",
@@ -3905,7 +3975,8 @@
    "roles": {
     "public": {
      "seen": "bundle",
-     "verified": "descriptor"
+     "verified": "live",
+     "scope": "an athlete reached through a rankings row's refs.athlete_id, counts only (2026-11-08)"
     }
    },
    "path": "/api/athletes/{athlete_id}/table",
@@ -3920,7 +3991,7 @@
      "name": "athlete_id",
      "in": "path",
      "required": true,
-     "identity": "rankings-module athlete id; not the contact id or membership number (both returned 404)"
+     "identity": "rankings-module athlete id: the `refs.athlete_id` of a results.rankings row; not the contact id or membership number (both returned 404)"
     }
    ],
    "row_actions": "unobserved",

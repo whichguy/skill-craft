@@ -874,6 +874,13 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                 _require_retry_lint(existing, getattr(args, "lint", None), root)
                 _require_retry_backchain_passes(existing, getattr(args, "backchain_passes", None), root)
                 _require_retry_planning_review(existing, getattr(args, "planning_review", None), root)
+                if args.command in ("init", "next"):
+                    # Recovery may restore only a snapshot's bound HEAD; never capture a resumed run's current bytes.
+                    import shiploop_knowledge_home as knowledge_home
+                    problem = knowledge_home.repair_baseline_pointer(root)
+                    if problem:
+                        print("ShipLoop knowledge: the run baseline pointer was not repaired (" + problem
+                              + "); packets print the spec diff as not recorded.", file=sys.stderr)
                 code = navigator.dispatch(
                     core, root, existing, args,
                     completion_guard=lambda before, after: workspace_completion_guard(root, before, after),

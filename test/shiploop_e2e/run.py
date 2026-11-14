@@ -48,7 +48,7 @@ metrics.json only, at most five printed lines, never a verdict). The run's Run R
 documents go to <output>/review-export/ (skills/shiploop-run-review/);
 an export problem is printed and never changes a verdict.
 
-The default host is Codex (gpt-6.1-sol, medium). By default the run tests what
+The default host is Grok (grok-4.6, xhigh). By default the run tests what
 the whichguy marketplace publishes now (--source marketplace, gated on local
 HEAD == origin/main and matching versions); --source checkout builds this
 checkout instead. The host is isolated from the user's configuration:
@@ -2347,10 +2347,25 @@ PENDING_CLEANUP = {"ran": False, "ok": False, "pending": True, "reason": "this i
 
 
 def write_cleanup_record(out: Path, record: dict) -> None:
-    """Write <output>/platform/cleanup-record.json, the file earlier_cleanup_record reads; a write that fails leaves what the file held."""
+    """Publish complete cleanup JSON atomically; a failed write leaves the prior record untouched."""
     with contextlib.suppress(OSError):
-        (out / "platform").mkdir(exist_ok=True)
-        (out / "platform" / "cleanup-record.json").write_text(json.dumps(record, indent=2) + "\n")
+        platform = out / "platform"
+        platform.mkdir(exist_ok=True)
+        temporary = None
+        try:
+            # Reviewers and resumed harnesses may read while cleanup finishes. Replace only a closed,
+            # synced same-directory file so they see complete old or new JSON, never a truncated target.
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=platform,
+                                             prefix=".cleanup-record-", suffix=".tmp", delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(json.dumps(record, indent=2) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, platform / "cleanup-record.json")
+            temporary = None
+        finally:
+            if temporary is not None:
+                temporary.unlink()
 
 
 def earlier_cleanup_record(out: Path) -> dict | None:
@@ -2617,9 +2632,9 @@ def parser() -> argparse.ArgumentParser:
                         f"Ollama server serves, default {hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed "
                         "(SPEC \"The Claude host can run on Ollama\"). A resume keeps its run's backend")
     p.add_argument("--model", help=f"default: {hosts.CodexHost.model} (codex), claude-sonnet-5-5 (claude), "
-                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama), grok-4.7 (grok)")
+                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama), {hosts.GrokHost.model} (grok)")
     p.add_argument("--effort", help=f"reasoning effort; default: {hosts.CodexHost.effort} (codex), "
-                                    "host default (claude), medium (grok)")
+                                    f"host default (claude), {hosts.GrokHost.effort} (grok)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude, codex), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
@@ -2659,7 +2674,10 @@ def parser() -> argparse.ArgumentParser:
                         "planning minutes. Starts no host and writes nothing; exits 0")
     p.add_argument("--runs", type=Path, nargs="+",
                    help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
-    p.add_argument("--json", action="store_true", help="with --baseline-report: print JSON instead of text")
+    p.add_argument("--inspect-recovery", type=Path, metavar="RUN_OUT",
+                   help="inspect the selected run checkout without writes or launch")
+    p.add_argument("--recovery-phase", choices=("builder", "final"), default="builder")
+    p.add_argument("--json", action="store_true", help="with --baseline-report or --inspect-recovery: print JSON instead of text")
     p.add_argument("--release-gate", action="store_true",
                    help="with --baseline-report: also print, per case style, the last pass a marketplace run recorded and how "
                         "many ShipLoop releases origin/main made since (the local ref; nothing is fetched)")
@@ -3926,6 +3944,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.inspect_recovery:
+        import recovery
+        context = recovery.inspect_context(args.inspect_recovery, args.recovery_phase)
+        print(json.dumps(context, indent=2) if args.json else
+              f"recovery context: {context['status']} ({context.get('reason') or context['source']['repo']})")
+        return 0 if context["status"] == "resolved" else 2
     if args.predecessor_registration or args.predecessor_registration_sha256:
         if args.baseline_report or args.preflight_only:
             raise SystemExit("registered predecessor is a new-run input, not a report or preflight override")

@@ -739,8 +739,9 @@ sections, from the implement result's `learned`, `decisions`, `evidence_refs` an
 `learned_from`, then a Knowledge home section from the document result's
 `knowledge`. Each inline implement packet quotes the last two commits
 that are not ShipLoop records (knowledge or leftover commits) as its look-back,
-one line each: the subject and its Key learnings. A
-redone step after a send-back names its own previous result and commit. A step
+one line each: the subject and its Key learnings. After
+a send-back the interrupted step names its own previous result, if it had one; a
+done step is never redone (fix forward, [inner loop](inner-loop.md#send-back-back-to-the-step-plan)). A step
 may add an acceptance line inside an existing R-<n> entry of `spec.md`, ending
 `(<item>/<step>)`, which its commit carries; any other spec change is refused, at
 implement's and document's complete and at the import of the step's review, and a

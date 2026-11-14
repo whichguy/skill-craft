@@ -4,12 +4,15 @@ from contextlib import redirect_stdout
 from datetime import datetime, timezone
 import hashlib
 import importlib.util
+import inspect
 import io
 import json
 import os
+import re
 from pathlib import Path
 import runpy
 import subprocess
+import sys
 import tempfile
 import time
 from types import SimpleNamespace
@@ -21,7 +24,9 @@ PATH = ROOT / "test/shiploop_e2e/checks/grok_chat_full_quality.py"
 spec = importlib.util.spec_from_file_location("grok_quality", PATH)
 quality = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(quality)
-positive_observation = runpy.run_path(str(ROOT / "test/shiploop-e2e-grok-chat-full-ui.test.py"))["positive_observation"]
+ui_fixtures = runpy.run_path(str(ROOT / "test/shiploop-e2e-grok-chat-full-ui.test.py"))
+positive_observation = ui_fixtures["positive_observation"]
+run_guarded_sf = ui_fixtures["run_guarded_sf"]
 
 BROWSER_BASE_MS = 1794182400000  # 2026-11-09T00:00:00Z
 USER_ID = "005000000000001AAA"
@@ -30,6 +35,28 @@ TRACE_ID = "7tf000000000001AAA"
 
 def stamp(milliseconds):
     return datetime.fromtimestamp(milliseconds // 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+class QualityBudgetTest(unittest.TestCase):
+    def test_full_observation_budget_is_2700_in_helper_catalog_and_guide(self):
+        cases = json.loads((ROOT / "test/shiploop_e2e/cases.json").read_text())
+        guide = (ROOT / "test/shiploop_e2e/GROK_CHAT_FULL.md").read_text()
+        budgets = {
+            "helper": quality.CHECK_SECONDS,
+            "run default": inspect.signature(quality.run).parameters["wait_seconds"].default,
+            "full case": cases["grok-chat-salesforce-full"]["platform"]["check_timeout"],
+            "public guide": [int(value) for value in re.findall(r"(\d+)-second hosted-check budget", guide)],
+        }
+        for location, value in budgets.items():
+            with self.subTest(location=location):
+                self.assertEqual(value, [2700] if location == "public guide" else 2700)
+
+    def test_other_cases_remain_identical_to_owner_budget_change_base(self):
+        cases = json.loads((ROOT / "test/shiploop_e2e/cases.json").read_text())
+        del cases["grok-chat-salesforce-full"]
+        # Canonical catalog excluding only the full case at bb741347a74d170c260bc524379967028ba4d5c6.
+        digest = hashlib.sha256(json.dumps(cases, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        self.assertEqual(digest, "25ae51d25ff04aa420ba36098e7a8e06fe6c832cc797e01c3d8996b86f118796")
 
 
 class QualityGateTest(unittest.TestCase):
@@ -80,10 +107,17 @@ class QualityGateTest(unittest.TestCase):
                          "source_binding": {"root": str(self.product), "before_sha256": metadata,
                                             "after_sha256": metadata, "full_package": full_package,
                                             "unchanged": True}})
+        self.append_calls(*rows)
+        return quality.ui._latest_successful_deploy(self.platform)
+
+    def append_calls(self, *rows):
         with (self.platform / "sf-calls.jsonl").open("a") as ledger:
             for row in rows:
                 ledger.write(json.dumps(row) + "\n")
-        return quality.ui._latest_successful_deploy(self.platform)
+
+    def start_deploy_help(self, call):
+        self.append_calls({"call": call, "argv": ["project:deploy:start", "-h"], "decision": "allowed",
+                           "org": quality.ui.EXPECTED_ORG, "prefix": quality.ui.PREFIX, "reason": "help"})
 
     def register_ui(self, number, phase="builder"):
         return quality.ui.register_ui_attempt(self.platform, phase, f"{number:032x}")
@@ -136,6 +170,210 @@ class QualityGateTest(unittest.TestCase):
         with redirect_stdout(output):
             code = quality.run(self.product, self.platform, phase, wait_seconds=wait_seconds)
         return code, output.getvalue()
+
+    def public(self, operation, *, code=0, phase="builder"):
+        def inventory():
+            return {str(p.relative_to(self.base)): (p.lstat().st_mode, p.lstat().st_mtime_ns,
+                    os.readlink(p) if p.is_symlink() else p.read_bytes())
+                    for p in self.base.rglob("*") if p.is_symlink() or p.is_file()}
+        before = inventory()
+        result = subprocess.run([sys.executable, "-B", str(PATH), "--repo", str(self.product),
+                                 operation, "--json"], capture_output=True, text=True, timeout=10,
+                                env={**os.environ, "E2E_PLATFORM_DIR": str(self.platform),
+                                     "E2E_CHECK_PHASE": phase})
+        after = inventory()
+        self.assertEqual([key for key in before if before[key] != after.get(key)], [])
+        added = after.keys() - before.keys()
+        if operation == "--assess-only":
+            self.assertEqual(added, set(), "assessment wrote evidence")
+        else:
+            self.assertTrue(all(name.startswith("platform/grok-chat-quality/") and name.endswith("/request.json")
+                                for name in added), added)
+        self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+        return json.loads(result.stdout)
+
+    def platform_bytes(self):
+        return {str(p.relative_to(self.platform)): p.read_bytes()
+                for p in self.platform.rglob("*") if p.is_file()}
+
+    def test_public_prepare_empty_commit_then_scoped_reassessment_preserves_failure(self):
+        original = self.base / "result.json"
+        original.write_bytes(b'{"pass":false,"failed":"quality"}\n')
+        frozen = original.read_bytes()
+        a = self.public("--prepare-only")
+        request = Path(a["source_request"])
+        historical = request.read_bytes()
+        self.assertEqual(a["status"], "pending")
+        deploy = self.deploy("12345678")
+        self.write_ui(deploy, 1)
+        subprocess.run(["git", "-C", str(self.product), "-c", "user.name=Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty",
+                        "-qm", "empty knowledge commit"], check=True)
+        b = self.public("--prepare-only")
+        self.assertEqual(request.read_bytes(), historical)
+        self.assertNotEqual(b["current_source"]["head"], b["historical_source"]["head"])
+        self.assertIsNone(b["live_request"])
+        self.identity = quality.snapshot(self.product)
+        self.write_ui(deploy, 2)
+        b = self.public("--prepare-only")
+        self.assertIsNotNone(b["live_request"])
+        live_path = Path(b["live_request"])
+        live = json.loads(live_path.read_bytes())
+        live_path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(live)))
+        review = self.valid()
+        review["status"] = "FAIL"
+        (self.directory / "review.json").write_text(json.dumps(review))
+        before = self.platform_bytes()
+        failed = self.public("--assess-only", code=1)
+        self.assertEqual(failed["status"], "FAIL")
+        self.assertEqual(self.platform_bytes(), before)
+        review["status"] = "PASS"
+        (self.directory / "review.json").write_text(json.dumps(review))
+        before = self.platform_bytes()
+        passed = self.public("--assess-only")
+        self.assertEqual(passed["status"], "PASS")
+        self.assertEqual(passed["scope"], "current-source-quality-and-live-evidence")
+        self.assertEqual(self.platform_bytes(), before)
+        self.assertEqual(original.read_bytes(), frozen)
+        self.assertEqual(request.read_bytes(), historical)
+
+    def test_public_changed_tracked_untracked_and_ignored_deployable_need_review(self):
+        self.public("--prepare-only")
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.deploy("12345678")
+        self.write_ui(quality.ui._latest_successful_deploy(self.platform), 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        self.public("--assess-only")
+        subprocess.run(["git", "-C", str(self.product), "add", "sfdx-project.json", "force-app"], check=True)
+        for name in ("force-app/Example.cls", "extra.txt", "force-app/ignored.cls"):
+            if name.endswith("ignored.cls"):
+                (self.product / ".git/info/exclude").write_text("ignored.cls\n")
+            target = self.product / name
+            previous = target.read_bytes() if target.exists() else None
+            target.write_text("changed deployable content\n")
+            result = self.public("--prepare-only")
+            self.assertNotEqual(result["current_source"]["sha256"], self.identity["sha256"])
+            assessment = self.public("--assess-only", code=2)
+            self.assertIn("independent-review-pending", assessment["pending"])
+            if previous is None:
+                target.unlink()
+            else:
+                target.write_bytes(previous)
+
+    def test_public_malformed_or_unsafe_request_is_preserved_and_invalid(self):
+        self.public("--prepare-only")
+        path = self.directory / "request.json"
+        valid = json.loads(path.read_bytes())
+        for value in ("{", json.dumps({**valid, "schema": "wrong"}),
+                      json.dumps({**valid, "source": {**valid["source"], "sha256": "0" * 64}})):
+            path.write_text(value)
+            result = self.public("--prepare-only", code=1)
+            self.assertEqual(result["status"], "invalid")
+            self.assertEqual(path.read_text(), value)
+        path.unlink()
+        path.symlink_to(self.product / "sfdx-project.json")
+        self.public("--prepare-only", code=1)
+
+    def test_public_newer_failed_incomplete_late_and_overlapping_evidence_withhold_old_credit(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        deploy = self.deploy("12345678")
+        old = self.write_ui(deploy, 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        self.public("--assess-only")
+        self.register_ui(2)
+        for changes in (None, {"status": "failed"}):
+            if changes:
+                self.write_ui(deploy, 2, directory=self.platform / "grok-chat-ui/builder" / f"{2:032x}", **changes)
+            # Rewriting old completion does not change latest start order.
+            old.write_bytes(old.read_bytes())
+            self.assertIsNone(self.public("--prepare-only")["live_request"])
+            self.public("--assess-only", code=2)
+        self.write_ui(deploy, 3)
+        current = self.public("--prepare-only")
+        current_path = Path(current["live_request"])
+        current_path.with_name("receipt.json").write_text(json.dumps(
+            self.live_receipt(json.loads(current_path.read_bytes()))))
+        self.public("--assess-only")
+        self.deploy("bbbbbbbb", completed=False)
+        self.assertIsNone(self.public("--prepare-only")["live_request"])
+        self.public("--assess-only", code=2)
+        self.deploy("cccccccc")  # B still active: C cannot establish serial remote order.
+        self.write_ui(quality.ui._latest_successful_deploy(self.platform), 4)
+        self.assertIsNone(self.public("--prepare-only")["live_request"])
+        self.public("--assess-only", code=2)
+
+    def test_public_busy_ui_ledger_is_nonblocking(self):
+        import fcntl
+        self.write_ui(self.deploy("12345678"), 1)
+        ledger = self.platform / "grok-chat-ui/builder" / quality.ui.UI_ATTEMPT_LEDGER
+        with ledger.open() as held:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            result = self.public("--prepare-only")
+        self.assertIsNone(result["live_request"])
+        self.assertIn("ui-evidence-busy", result["pending"])
+
+    def test_public_assessment_clears_current_pointer_when_evidence_changes_during_validation(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("12345678"), 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        validator = quality.validate_live_receipt
+        def supersede(receipt, request):
+            self.register_ui(2)
+            return validator(receipt, request)
+        with mock.patch.object(quality, "validate_live_receipt", side_effect=supersede):
+            with mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": str(self.platform), "E2E_CHECK_PHASE": "builder"}):
+                with redirect_stdout(io.StringIO()) as output:
+                    code = quality.main(["--repo", str(self.product), "--assess-only", "--json"])
+        self.assertEqual(code, 1)
+        result = json.loads(output.getvalue())
+        self.assertIn("live-acceptance-evidence-changed", result["errors"])
+        self.assertIsNone(result["live_request"])
+
+    def test_publication_race_validates_winner_not_proposed_request(self):
+        def competing(path, request):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('{"schema":"wrong"}')
+        with mock.patch.object(quality, "write_request", side_effect=competing):
+            with mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": str(self.platform), "E2E_CHECK_PHASE": "builder"}):
+                with redirect_stdout(io.StringIO()) as output:
+                    code = quality.main(["--repo", str(self.product), "--prepare-only", "--json"])
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(output.getvalue())["status"], "invalid")
+
+    def test_assessment_clears_both_current_pointers_when_request_becomes_malformed(self):
+        original = self.base / "result.json"
+        original.write_bytes(b'{"pass":false,"failed":"original"}\n')
+        frozen = original.read_bytes()
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("12345678"), 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        self.assertEqual(self.public("--assess-only")["status"], "PASS")
+        before = self.platform_bytes()
+        validator = quality.validate_live_receipt
+
+        def corrupt_after_validation(receipt, request):
+            errors = validator(receipt, request)
+            self.assertEqual(errors, [], 'race must start with valid live proof')
+            path.write_bytes(b'{')
+            return errors
+
+        with mock.patch.object(quality, "validate_live_receipt", side_effect=corrupt_after_validation) as validate:
+            result = quality.assess_current(self.product, self.platform, "builder")
+        validate.assert_called_once()
+        after = self.platform_bytes()
+        self.assertEqual(after, {**before, path.relative_to(self.platform).as_posix(): b'{'})
+        self.assertEqual(original.read_bytes(), frozen)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("evidence-changed-during-assessment", result["errors"])
+        self.assertEqual((result["live_request"], result["live_identity"]), (None, None))
 
     def test_accepts_exact_current_joins_and_reuses_review_across_phases(self):
         (self.directory / "review.json").write_text(json.dumps(self.valid()))
@@ -201,6 +439,23 @@ class QualityGateTest(unittest.TestCase):
         request = json.loads((self.directory / "request.json").read_text())
         self.assertEqual(request["source"]["sha256"], self.identity["sha256"])
 
+    def test_default_budget_expires_with_missing_evidence_still_unknown(self):
+        for review_present in (False, True):
+            with self.subTest(review_present=review_present):
+                if review_present:
+                    (self.directory / "review.json").write_text(json.dumps(self.valid()))
+                # Jump near the deadline, then exercise the final bounded poll.
+                with (mock.patch.object(quality.time, "monotonic", side_effect=[0, 2699, 2700]),
+                      mock.patch.object(quality.time, "sleep") as sleep, redirect_stdout(io.StringIO()) as output):
+                    code = quality.run(self.product, self.platform, "builder")
+                self.assertEqual(code, 2, output.getvalue())
+                self.assertIn("live-acceptance-pending", output.getvalue())
+                self.assertEqual("independent-review-pending" in output.getvalue(), not review_present)
+                sleep.assert_called_once_with(1)
+                result = json.loads((self.directory / "check-builder.json").read_text())
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertEqual(result["errors"], [])
+
     def test_actionable_findings_are_reported_without_ui_or_deployment(self):
         review = self.valid()
         review["findings"].append({"actionable": True, "message": "Missing authorization check"})
@@ -254,6 +509,68 @@ class QualityGateTest(unittest.TestCase):
         self.write_ui(self.deploy("cccccccc"), 2)
         self.assertEqual(self.run_quality()[0], 2)
         self.assertEqual(len(self.live_requests()), 1)
+
+    def test_unpinned_deploy_help_preserves_exact_live_request(self):
+        deploy = self.deploy("aaaaaaaa")
+        self.write_ui(deploy, 1)
+        request = quality.live_request(self.product, self.platform, "builder", self.identity)
+        self.assertIsNotNone(request)
+        self.assertEqual(request["identity"]["deployment_call_id"], deploy["call_id"])
+
+        argv = ["project", "deploy", "start", "--help"]
+        run_guarded_sf(self, self.product, self.platform, argv)
+        rows = (self.platform / "sf-calls.jsonl").read_text().splitlines()
+        start, end = map(json.loads, rows[-2:])
+        self.assertEqual(start["argv"], argv)
+        self.assertEqual((start["decision"], start["reason"]), ("allowed", "help"))
+        self.assertEqual(end["call"], start["call"])
+        self.assertIs(end["end"], True)
+        self.assertEqual(end["exit"], 0)
+        self.assertNotIn("source_binding", end)
+        self.assertEqual(quality.live_request(self.product, self.platform, "builder", self.identity), request)
+
+    def test_open_deploy_help_does_not_overlap_real_deployment(self):
+        self.start_deploy_help("aaaaaaaa")
+        self.assertIsNone(quality.ui._latest_successful_deploy(self.platform))
+        deploy = self.deploy("bbbbbbbb")
+        self.write_ui(deploy, 1)
+        self.assertTrue(quality.deploy_started_without_overlap(self.platform, deploy["call_id"]))
+        request = quality.live_request(self.product, self.platform, "builder", self.identity)
+        self.assertIsNotNone(request)
+        self.assertEqual(request["identity"]["deployment_call_id"], "bbbbbbbb")
+
+    def test_deploy_help_preserves_real_overlap_until_a_serial_deployment(self):
+        self.deploy("aaaaaaaa", completed=False)
+        self.start_deploy_help("bbbbbbbb")
+        overlapping = self.deploy("cccccccc")
+        self.write_ui(overlapping, 1)
+        self.append_calls({"call": "bbbbbbbb", "end": True, "exit": 0, "interrupted": False},
+                          {"call": "aaaaaaaa", "end": True, "exit": 0, "interrupted": False})
+        run_guarded_sf(self, self.product, self.platform, ["project", "deploy", "start", "--help"])
+        self.assertFalse(quality.deploy_started_without_overlap(self.platform, "cccccccc"))
+        self.assertIsNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+        selected_after_help = quality.ui._latest_successful_deploy(self.platform)
+
+        serial = self.deploy("dddddddd")
+        self.write_ui(serial, 2)
+        request = quality.live_request(self.product, self.platform, "builder", self.identity)
+        self.assertIsNotNone(request)
+        self.assertEqual(request["identity"]["deployment_call_id"], "dddddddd")
+        self.assertEqual(selected_after_help, overlapping)
+
+    def test_deploy_help_preserves_newest_ui_attempt_invalidation(self):
+        deploy = self.deploy("aaaaaaaa")
+        run_guarded_sf(self, self.product, self.platform, ["project", "deploy", "start", "--help"])
+        for number, changes in enumerate(({"status": "failed"}, {"chat_turns": []}, {"mode": "observe"}), 1):
+            with self.subTest(changes=changes):
+                self.write_ui(deploy, number * 2)
+                self.assertIsNotNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+                self.write_ui(deploy, number * 2 + 1, **changes)
+                self.assertIsNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+        self.write_ui(deploy, 8)
+        self.assertIsNotNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+        self.register_ui(9)
+        self.assertIsNone(quality.live_request(self.product, self.platform, "builder", self.identity))
 
     def test_new_failed_or_incomplete_ui_attempt_cannot_fall_back(self):
         (self.directory / "review.json").write_text(json.dumps(self.valid()))

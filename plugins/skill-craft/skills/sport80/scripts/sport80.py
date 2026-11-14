@@ -7,6 +7,7 @@ code for the host's JavaScript tool, which runs it in the owner's already signed
   sport80 show ID
   sport80 js ID [--role personal|club|public|<body_cid>] [--param k=v] [--filter k=v] [--rows N] [--fields a,b] [--search S] [--sort C] [--desc]
                 [--page N] [--per-page N] [--pick k,k] [--plain] [--max-chars N] [--unverified] [--with-runtime] [--wrap expr|function]
+                [--options FILTER [--option-search TEXT]]
   sport80 runtime
   sport80 discover
   sport80 diff LIVE.json [--json] [--write-descriptors]
@@ -43,6 +44,8 @@ SCOPES = {"body", "none"}
 HOSTS = {"portal", "rankings"}
 AUTHS = {"public", "role"}
 PARAM_IN = {"path", "query", "filter", "option"}
+OPTION_TYPES = {"select", "autocomplete", "radio"}
+REF_NAME = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 SURFACES = {"reachable", "flow", "renderer", "out-of-scope", "unmapped", "inaccessible"}
 DENY = re.compile(r"logout|auth\.sport80\.com|/body/setup|\.(xlsx|pdf|csv)(\?|$)|/uploads/", re.IGNORECASE)
 LINT = [("email address", re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")), ("uuid", re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.IGNORECASE)),
@@ -155,6 +158,37 @@ def validate(doc):
         for op in e.get("operations", []):
             if not (op.get("label") and op.get("source")) or not set(op.get("effects", [])) <= EFFECTS or not op.get("effects"):
                 e_("operation needs label, source and effects")
+        # Route-specific references: the only way an id leaves a link (journal Round 9 and its design review). Anchored, digits only.
+        for r in e.get("refs", []):
+            if not (isinstance(r, dict) and REF_NAME.match(str(r.get("name", ""))) and r.get("from") in ("action", "tab")):
+                e_("a ref needs a name like event_id and from action|tab")
+                continue
+            if e.get("data") == "sensitive":
+                e_("a sensitive entry has no refs")
+            if r["from"] == "action":
+                m = str(r.get("match", ""))
+                if e.get("kind") != "datatable":
+                    e_("an action ref belongs to a datatable entry")
+                if not (m.startswith("^/") and m.endswith("$") and m.count("(") == 1 and "(\\d{1,12})" in m):
+                    e_("an action ref's match is anchored (^/...$) and captures exactly one (\\d{1,12})")
+                try:
+                    re.compile(m)
+                except re.error:
+                    e_("a ref's match does not compile")
+            else:
+                if e.get("kind") != "tabs":
+                    e_("a tab ref belongs to a tabs entry")
+                if not re.fullmatch(r"[a-z_]{1,32}", str(r.get("query", ""))):
+                    e_("a tab ref names one query parameter")
+        offered = e.get("option_filters", [])
+        if offered and (e.get("kind") != "datatable" or e.get("data") == "sensitive"):
+            e_("option_filters belong to a non-sensitive datatable entry")
+        for f in offered:
+            if not any(p.get("name") == f and p.get("in") == "filter" and p.get("type") in OPTION_TYPES for p in params):
+                e_("option_filters names a filter without options: " + str(f))
+        hint = e.get("empty_hint")
+        if hint is not None and (not isinstance(hint, str) or len(hint) > 160 or re.search(r"https?://|\?\w+=", hint)):
+            e_("empty_hint is plain text up to 160 characters with no URL")
         ra = e.get("row_actions", "unobserved")
         if ra != "unobserved" and not (isinstance(ra, list) and all(isinstance(x, str) for x in ra)):
             e_("row_actions is 'unobserved' or a list of observed labels")
@@ -217,7 +251,7 @@ def verified_for(e, role):
 
 
 def runtime_entry(e, role):
-    keep = ("id", "kind", "mode", "data", "path", "query", "scope", "host", "auth", "via", "params", "requires_filter")
+    keep = ("id", "kind", "mode", "data", "path", "query", "scope", "host", "auth", "via", "params", "requires_filter", "refs", "option_filters", "empty_hint")
     out = {k: e[k] for k in keep if k in e}
     out["defaultRole"] = default_role(e)
     out["verified"] = verified_for(e, role)
@@ -344,6 +378,24 @@ def cmd_js(a):
     if e["data"] == "sensitive" and ((a.rows and a.rows > 0 and e["kind"] == "datatable") or pick) and not fields:
         say(f"sport80: {a.id} is sensitive data. Name the fields to return with --fields (or use --rows 0 for counts only).")
         return 2
+    if a.options:
+        if e["kind"] != "datatable":
+            say(f"sport80: --options applies to datatable entries; {a.id} is a {e['kind']}.")
+            return 2
+        if e["data"] == "sensitive":
+            say(f"sport80: {a.id} is sensitive data; its filter options are not offered.")
+            return 2
+        offered = e.get("option_filters", [])
+        if a.options not in offered:
+            say(f"sport80: {a.id} does not offer options for filter {a.options!r}; it offers: {', '.join(offered) or 'none'}")
+            return 2
+    elif a.option_search:
+        say("sport80: --option-search needs --options FILTER")
+        return 2
+    needs = e.get("requires_filter") or []
+    if needs and not a.options and not any(filters.get(k) for k in needs):
+        say(f"sport80: {a.id} needs at least one filter of: {', '.join(needs)}. " + (e.get("empty_hint") or "Pass --filter NAME=VALUE."))
+        return 2
     opts = {"role": selector}
     for k, v in (("params", params), ("filters", filters), ("fields", fields), ("pick", pick)):
         if v:
@@ -355,8 +407,12 @@ def cmd_js(a):
         opts["desc"] = True
     if a.plain:
         opts["plain"] = True
+    if a.options:
+        opts["options"] = a.options
+        if a.option_search:
+            opts["optionSearch"] = a.option_search
     call = "await S80.exec(" + json.dumps(runtime_entry(e, role), separators=(",", ":")) + ", " + json.dumps(opts, separators=(",", ":")) + ")"
-    guard = "if (!globalThis.S80) throw new Error('Load the runtime first: sport80 runtime');"
+    guard = "if (!globalThis.S80 || globalThis.S80.version < 2) throw new Error('Load the runtime first: sport80 runtime');"
     head = f"// sport80 js {a.id} role={selector} ({e['mode']}; {e['data']}; verified {ver}); run in a signed-in tab on {doc['portal']}"
     body = f"async () => {{ {guard} return {call}; }}" if a.wrap == "function" else f"{guard}\n{call}"
     say((RUNTIME.read_text() + "\n" if a.with_runtime else "") + head + "\n" + body)
@@ -568,6 +624,7 @@ def main(argv=None):
     j.add_argument("--rows", type=int); j.add_argument("--fields"); j.add_argument("--pick"); j.add_argument("--search"); j.add_argument("--search-type"); j.add_argument("--sort"); j.add_argument("--desc", action="store_true")
     j.add_argument("--page", type=int); j.add_argument("--per-page", type=int); j.add_argument("--max-chars", type=int); j.add_argument("--plain", action="store_true"); j.add_argument("--unverified", action="store_true")
     j.add_argument("--with-runtime", action="store_true"); j.add_argument("--wrap", choices=["expr", "function"], default="expr")
+    j.add_argument("--options", help="list the values a select or autocomplete filter accepts (descriptor only, no rows)"); j.add_argument("--option-search", help="substring to match in the option text")
     sub.add_parser("runtime"); sub.add_parser("discover")
     d = sub.add_parser("diff"); d.add_argument("live"); d.add_argument("--json", action="store_true"); d.add_argument("--write-descriptors", action="store_true")
     v = sub.add_parser("coverage"); v.add_argument("--json", action="store_true")

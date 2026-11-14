@@ -268,6 +268,61 @@ class DueCaseTests(unittest.TestCase):
         game = dict(GAME, min_tests=6)  # every ID due at S1: held from S1 on
         self.assertEqual(iteration.active_commands([game], BATTLESHIP_CASES, BATTLESHIP_STEPS, 1), [game])
 
+    def test_live_tc7_to_tc9_receipt_names_only_their_criteria(self):
+        steps = [{"id": "S1", "criteria": ["C1", "C2", "C3"]},
+                 {"id": "S2", "criteria": ["C4", "C5", "C6"]}]
+        cases = [{"id": "TC_" + str(i + 7), "criterion": "C" + str(i + 1)} for i in range(6)]
+        command = {"command": "node --test", "suite": "focused", "min_tests": 6,
+                   "ids": [case["id"] for case in cases],
+                   "criteria": ["C3", "C1", "C2", "C4", "C5", "C6"]}
+        narrowed = iteration.active_commands([command], cases, steps, 1)[0]
+        self.assertEqual(narrowed["ids"], ["TC_7", "TC_8", "TC_9"])
+        self.assertEqual(narrowed["criteria"], ["C3", "C1", "C2"])
+        self.assertNotIn("min_tests", narrowed)
+        self.assertEqual(iteration.active_commands([command], cases, steps, 2), [command])
+
+    def test_narrowing_uses_retained_cases_not_due_criteria_or_orphan_ids(self):
+        steps = [{"id": "S1", "criteria": ["C1", "C2"]}, {"id": "S2", "criteria": ["C3"]}]
+        cases = [{"id": "TC_7", "criterion": "C1"}, {"id": "excluded", "criterion": "C2"}]
+        command = {"command": "check", "ids": ["TC_7", "orphan"], "criteria": ["C2", "C1", "C3"]}
+        self.assertEqual(iteration.active_commands([command], cases, steps, 1),
+                         [{**command, "ids": ["TC_7"], "criteria": ["C1"]}])
+        # Unknown IDs keep their last-step scheduling; no narrowing means no criteria rewrite.
+        self.assertEqual(iteration.active_commands([command], cases, steps, 2), [command])
+
+    def test_spanning_criteria_wait_and_narrowing_never_adds_unlisted_criteria(self):
+        steps = [{"id": "S1", "criteria": ["C1", "C2"]},
+                 {"id": "S2", "criteria": ["C2"]}, {"id": "S3", "criteria": ["C3"]}]
+        cases = [{"id": "early", "criterion": "C1"}, {"id": "span", "criterion": "C2"},
+                 {"id": "late", "criterion": "C3"}]
+        command = {"command": "check", "ids": ["early", "span", "late"], "criteria": ["C2", "C3"]}
+        for number, ids, criteria in ((1, ["early"], []), (2, ["early", "span"], ["C2"])):
+            with self.subTest(step=number):
+                self.assertEqual(iteration.active_commands([command], cases, steps, number),
+                                 [{**command, "ids": ids, "criteria": criteria}])
+        self.assertEqual(iteration.active_commands([command], cases, steps, 3), [command])
+        unmodified = {**command, "ids": ["early"], "min_tests": 1}
+        self.assertEqual(iteration.active_commands([unmodified], cases, steps, 1), [unmodified])
+        without_criteria = {key: value for key, value in command.items() if key != "criteria"}
+        self.assertNotIn("criteria", iteration.active_commands([without_criteria], cases, steps, 1)[0])
+
+    def test_cases_sharing_a_spanning_criterion_wait_together_for_its_last_listing(self):
+        steps = [{"id": "S1", "criteria": ["C1"]},
+                 {"id": "S2", "criteria": ["C1"]}, {"id": "S3", "criteria": ["C2"]}]
+        cases = [{"id": "shared-a", "criterion": "C1"},
+                 {"id": "shared-b", "criterion": "C1"}]
+        command = {"command": "check-shared", "suite": "focused", "min_tests": 2,
+                   "ids": ["shared-b", "shared-a"], "criteria": ["C1"]}
+        self.assertEqual(iteration.case_step("C1", steps), "S2")
+        # Neither case can make a partial S1 claim for their shared criterion.
+        self.assertEqual(iteration.due_cases(cases, steps, 1), [])
+        self.assertEqual(iteration.new_cases(cases, steps, 1), [])
+        self.assertEqual(iteration.active_commands([command], cases, steps, 1), [])
+        self.assertEqual(iteration.due_cases(cases, steps, 2), ["shared-a", "shared-b"])
+        self.assertEqual(iteration.new_cases(cases, steps, 2), ["shared-a", "shared-b"])
+        # S2 is not the final step: the original row, ordering and floor survive.
+        self.assertEqual(iteration.active_commands([command], cases, steps, 2), [command])
+
     def test_the_last_step_runs_every_command_as_recorded(self):
         self.assertEqual(iteration.active_commands(BATTLESHIP_COMMANDS, BATTLESHIP_CASES, BATTLESHIP_STEPS, 3),
                          BATTLESHIP_COMMANDS)

@@ -1952,7 +1952,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         return [(name, record["host"], record["model"], record["effort"]) for name, record in run.runrecord.launches(out)]
 
     def test_a_resume_that_names_no_host_continues_on_the_host_the_run_was_launched_on(self):
-        out = self.stopped()
+        out = self.stopped("--model", "grok-4.7", "--effort", "medium")
         code, result, printed = self.resume(out)
         self.assertEqual(result["host"], "grok")
         self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "grok"])
@@ -2079,7 +2079,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         self.assertNotIn("the last launch used", quiet)
 
     def test_a_regrade_still_restates_the_recorded_identity_whatever_the_flags_say(self):
-        out = self.stopped()
+        out = self.stopped("--model", "grok-4.7", "--effort", "medium")
         self.blocked_workspace(out)
         before = len(self.sessions())
         code, result, printed = self.resume(out, "--host", "claude", "--model", "other")

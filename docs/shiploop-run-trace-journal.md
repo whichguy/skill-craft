@@ -697,7 +697,102 @@ not refreshed.
 **Not covered by this audit** (status: not audited, not a finding): the journal files other than `trace.jsonl` and
 `skill-calls.jsonl`. These are the write-ahead save journal `transaction.md` (`shiploop_store`, schema
 `shiploop-transaction`), lint's `pending-*.patch` journal, the stored formats of `timeline.json`, `progress-observer.json`
-and `callback-attempts` beyond their catalog rows, and the structure of the research journals under `docs/`.
+and `callback-attempts` beyond their catalog rows, and the structure of the research journals under `docs/`. Superseded 2026-11-13: audited, in the entry below.
+
+## 2026-11-13: audit of the other journals (firm for the fixes; the open items are listed)
+
+**Question** (owner, "Yes, audit them", answering the scope question the 2026-11-08 entry ended on): are the journals other
+than the run trace sound and properly formatted, do the scripts read and write them correctly, and is there legacy or
+debt around them? Four areas: the write-ahead save journal `transaction.md`, lint's `pending-*.patch` journal, the stored
+formats of `timeline.json`, `progress-observer.json` and `callback-attempts`, and the structure of the research journals
+under `docs/`.
+
+**Data first, by script** (`docs/shiploop-run-trace-evidence/2026-11-13-run-dir-survey.py`): 2,636 `state.md` files under
+the home directory, 1,403 of them runs of navigator protocol 4 (the rest are protocols 1 to 3, refused by design, or not
+runs), 345,890 files walked. Every engine record has exactly one `shiploop-state` fence and parses (state 1,403; results
+10,705; checks 1,865; tests 3,872; lint 4,456; Improve receipts 3,015; expectations 467). Every JSON file parses:
+`timeline.json` 1,228, each an object with exactly `started` and `accepted`; `progress-observer.json` 1,179, each with its
+schema; loop contracts and receipts 6,030. `callback-attempts` holds an integer in all 456. No run holds a leftover
+`transaction.md`, `pending-*.patch` or atomic-write temp file. As in the first audit, the format on disk was sound; the
+defects were around it.
+
+**Method**: one session, with no workflow and no independent review this time: every writer and reader read directly, each
+finding reproduced (a negative control for the two tests), and git history read for every citation judged missing.
+Compact results: `docs/shiploop-run-trace-evidence/2026-11-13-other-journals-audit.json`; the journal checker:
+`2026-11-13-journal-docs-check.py`.
+
+**Findings and what was done**:
+
+| Finding | Evidence | Outcome |
+|---|---|---|
+| `references/state-files.md`, which the master index tells a model lists "every run file", omitted twelve names the code writes: `.lock`, `transaction.md`, `context-index.md`, `reference.md`, `scratch/`, `backchain/`, `run-baseline.txt`, `run-starting-knowledge.json`, `follow-on-request.md`, `improve/<action>-bind-result.json`, `loops/<action>-send-back-open`, `inbox/<action>-improve-notes.md`. The rehydration test hid seven of them behind a hard-coded `named \|=` list: the master index commit (`f3f6a6bc98cdc46aecb38aee5b2fddea0f476d31`) checked that the index lists what the catalog names, never that the catalog lists what a run holds. | A fresh `init` run, the survey's file names, and each name's writer. | Rows added. The list is gone from the test and an assertion now fails when an entry of a populated run is not in the catalog: against the old catalog it fails naming `['.lock', 'context-index.md', 'reference.md', 'scratch/']`; against the new one the suite passes (17 OK). |
+| `shiploop note --text` with a byte that is not UTF-8 (an undecodable command-line byte arrives as a lone surrogate) ended in a Python traceback, exit 1; the same bytes in a `--file` were refused cleanly. | Reproduced on a scratch run: `UnicodeEncodeError` from `shiploop_owner_notes.write`. `init --prompt` and `halt --reason` refuse (exit 2) with the encoder's message; only `note` has its own entry point outside the guarded dispatch. | `clean()` refuses a surrogate with "the note holds a byte that is not UTF-8 text; write plain text", exit 2, nothing written. Test `test_text_with_a_byte_that_is_not_utf8_is_refused_and_writes_nothing` fails with the traceback before the change and passes after it (owner-notes suite 17 OK). |
+| The `timeline.json` row said the file held "when each stage was first issued and accepted"; it holds `started` and `accepted` only. | The writer `_updated_timeline`; 1,228 files. | The row states the two keys, the stamp format, and that an unreadable file is recreated at the next save and stamps every accepted action at that moment (the limit the Run Review schema already documents). |
+| `callback-attempts` and lint's `pending-<action>.patch` had no format in the catalog. | Code. | Rows say what each holds. The save journal row says an unreadable `transaction.md` blocks every command (probed). |
+| Three tables split a cell at an unescaped `\|` inside a code span (`tests\|quality/...`, a quoted packet line `ShipLoop navigator \| <stage> \| revision N`): the register's "Loop progress" row, correction 14 of the G2 journal and the SPEC's `packets` row. | The checker's cell count per table. | Escaped. |
+| The efficiency journal had seven H1 headings: the unit rows folded into it (`bcd59f70b922e3595e0aa9c882befa80e6b558a2`) kept their own headings under each `### U<n>`. | The checker. | 41 headings re-levelled under their unit headings; its 12-test suite passes. |
+| Two September results docs linked evidence with absolute `/Users/dadleet/...:line` targets, which resolve nowhere else. | 24 broken links. | 17 relative links, 1 code span for a removed file, 6 code spans for evidence outside the repository. |
+| The Run Review journal cited a review file under the name it had before `381190145c7fbf4d12f2d25921d39c19417e92a9` renamed it; the chess journal cites a summary file no commit ever held. | Git history of both paths. | The first citation now names the current file and the rename; the second is annotated as never committed. |
+| An unused import in the rehydration test. | `ruff --select F` (F401). | Removed. |
+
+**Checked and sound** (no change): the store's record format (duplicate keys, NaN and Infinity, the fence, U+2028 and
+U+0085 inside strings, CRLF, a fence-like string and a 400-digit integer all round-trip); the journal-first order
+(validated twice, `recover` under the run lock before every command, the observer skips a run that has a journal);
+lint's journal (`git apply -R --check` passes for plain text, a missing final newline, CRLF, a form feed with U+2028, and a
+path with a space; lines are split on newline only; the lint catalog's account matches the code); the readers of
+`timeline.json` (navigator and trace share one; the progress view and the Run Review exporter differ in strictness, each as
+documented); the progress page, which escapes every value on the server and embeds no JSON.
+
+**Probed** (a scratch run, each file damaged and then a verb run): an unreadable `transaction.md`, and one of another
+schema version, each stop `next` with a blocked refusal naming the file (exit 2); a damaged `timeline.json` reads as
+absent in all three readers; a non-integer `callback-attempts` reads as 0; a damaged `progress-observer.json` stops
+`view --status` (exit 2) and makes the automatic start print one line, with the run unaffected.
+
+**Not taken** (each stays open; none breaks a normal run, which the owner's KISS rule asks for before a fix):
+- A lone surrogate in a record (`init --prompt`, `halt --reason`, a model's `\ud83d` with no pair) makes `store.dumps`
+  succeed and the write raise `UnicodeEncodeError`. The protocol prints a refusal naming a position in the record, not the
+  argument, and no partial file is left. Replacing the error with a `StorageError` (a `RuntimeError`) would escape the
+  `except ValueError` sites; no real run had one.
+- `shiploop_knowledge_home` keeps a HEAD-only "legacy" path for runs saved before `run-starting-knowledge.json` existed
+  (`47dab8fc51ec96db76503fd719b4eddd74751564`: "Existing HEAD-only runs retain legacy behavior"). That is a compatibility
+  path, against the one-supported-version rule, and the new catalog row describes it as it is. The owner decides whether to
+  refuse such runs instead.
+- `callback-attempts` is written with `write_text` and read without the lock; a torn read gives 0, which only changes the
+  keepalive progress string. Lint's `_write_private` truncates then writes with no temp file or fsync; a kill between the
+  two leaves an empty journal that the next pass reports as interrupted, before any product file was touched.
+- 23 cited commits exist only on local refs (26 on 2026-10-31); the SPEC cites two of them
+  (`42bfd829302d7844dca81a1112f201744df3ac01`, `2736d7cf063a8c876cb317e26a852ff2ac6f3548`), both on other sessions' local
+  branches. 224 citations in 30 journal and results documents name evidence outside the repository (99 in LEARNINGS); all
+  but one of the paths exist on this machine today. Both are the "keep evidence in the repo" rule, not format defects;
+  exporting the evidence is a large job.
+- The 162 remaining missing-path citations (occurrences, counted before this entry quoted some of them) are not defects: 52 name the subject product's `docs/shiploop/`
+  files, 36 name pending change notes a release consumed, 29 are skill-relative `scripts/` shorthand, 27 name the E2E
+  subject's own tests or placeholders, 8 name run ids and old plugin directories, and 8 name three files once in this
+  repository and later removed (`test/shiploop-revise.test.py`, `test/shiploop-retire.test.py`,
+  `shiploop_navigator_v3_prompts.py`). Two name evidence no commit held: the chess summary (annotated above) and
+  `records-single-source.json`, whose entry already says its script was not kept. The `SKILL.md:NNN` hits in LEARNINGS
+  quote what a judge recorded about an earlier file.
+- Older plan documents (not journals) use the same absolute-link style (26 in
+  `docs/ask-agent-backchain-modern-harness-plan-2026-09-19.md`); not rewritten.
+
+**Checks**: the suites the changes reach, each alone (a live Codex run by another session was on the machine, so no tier
+ran beside it): rehydration 17, owner-notes 17, efficiency-journal 12, navigator-contract 149, e2e-analysis 298,
+e2e-resources 111, e2e-stage-build 54, e2e-run-trace 28, e2e-status-card 20, keepalive 86, skill-calls 35, trace 29,
+status-display 16, progress 26, packet-bounds 21, domain-words 5, retired-terms 6, all OK. Lint (`ruff --isolated --select
+F,E9`) is clean on the changed Python; the wider rule set adds only E501 lines to files that already carry 80 to 110 of
+them. The E2E family reads `SPEC.md` (one escaped pipe) and runs in CI's quick tier.
+
+**Commits**: `709b1f015c25ff379523a3a574faf8563c2ec4a3` holds the shipped files (the catalog, `note`, the two tests, two change notes); the commit that holds this entry holds the journal repairs and the evidence.
+
+**Published** (2026-11-13) as skill-craft 2.37.2 / shiploop 1.34.2, release commit `e6e9d1f90bf7e61c348b4a5d937ace69e47bcf5e`, cut in a
+detached worktree from the fetched `origin/main` (`358a462a6b5dc21af0b15e04949260b285bb7beb`); `release-push.py` ran its four checks
+(`sync-plugin-views --check`, `check-marketplace-packages`, `check-release-boundary --base 358a462a6b5dc21af0b15e04949260b285bb7beb`,
+`test-groups` 64 OK) and pushed it as a fast-forward. CI on `358a462a6b5dc21af0b15e04949260b285bb7beb` had passed every job before
+the push (release-boundary, plan, browser-fixtures, quick and hermetic); its quick tier included the E2E family that the `SPEC.md`
+edit selects, which no local run covered. Hosts refreshed: Claude 2.37.1 to 2.37.2 (a restart applies it), Codex marketplace upgraded
+with the plugin at 2.37.2, Grok 2.37.1 to 2.37.2; each installed copy was read for both changes (`_SURROGATE` in
+`shiploop_owner_notes.py` and the `transaction.md` catalog row) and has them. Cursor refreshes only from its own app and was not
+refreshed. CI on the release commit was still running when this was written and is not claimed here.
 
 ## Open (exploratory)
 

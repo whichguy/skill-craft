@@ -279,8 +279,10 @@ _ROWS = (
         goal='Map each requirement to the checks that prove it: harnesses and commands in KNOWLEDGE/environment.md, boundaries in KNOWLEDGE/architecture.md.',
         short_goal='plan the test strategy',
         done_when=(
-            "every acceptance line the spec changes add or change, and each preserved behaviour they touch, maps to a "
-            "check, its surface and the stage it is due, and the existing suite covers the rest",
+            "every acceptance line the current request adds, changes or touches, including named pending requirements "
+            "unchanged since init, and each preserved behaviour they touch, maps to a check, its surface and the stage "
+            "it is due, an empty textual diff does not remove requested scope, and the existing suite "
+            "covers the rest",
             "testing tools are discovered through the host and repository, preferring available, suitable Chrome DevTools "
             "for browser work, with selected harnesses' setup and isolation stated",
             "planned checks are marked planned, not passed",
@@ -295,7 +297,7 @@ _ROWS = (
         deploy="Plan which checks run against the deployed target, and how.",
         tools="Name the test runner and any coverage or report tool the checks use.",
         improve="always",
-        reads=("spec", "research"),
+        reads=("intake", "spec", "research", "discovery"),
         blocks=frozenset({"test-facility"}),
     ),
     Stage(

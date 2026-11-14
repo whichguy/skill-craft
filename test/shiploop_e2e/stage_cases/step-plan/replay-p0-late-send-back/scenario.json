@@ -1,0 +1,371 @@
+{
+ "stage": "step-plan",
+ "about": "Replay of the 2026-10-30 stand-in-parser run (p0) at its late send-back: S1 is done (built, tested, documented, reviewed, committed); S2 was built, and its test stage sent the item back because the plan records a text search (rg over the docstrings) as a focused command, which prints no test IDs or counts. The amendment must keep S1 exactly and record that search as a check.",
+ "tags": [
+  "replay",
+  "fix-forward"
+ ],
+ "tiers": [
+  "render",
+  "live"
+ ],
+ "fixture": "node-records",
+ "request_from": "stand-in-parser",
+ "options": {
+  "delegation": "inline",
+  "seed_home": false
+ },
+ "seed_records": {},
+ "seed_route": [
+  {
+   "stage": "step-plan",
+   "result": {
+    "check_na": "No lint, type or build check is configured in the existing package or environment.",
+    "criteria": [
+     {
+      "confirm": "executed",
+      "id": "C1",
+      "text": "R-1: parseRecords parses each nonblank line and trims values, preserving records and keys. Confirm by: TC-1 exact example and trimming assertions; pass when both exact arrays match."
+     },
+     {
+      "confirm": "executed",
+      "id": "C2",
+      "text": "R-1: parseRecords rejects missing equals, empty or invalid keys and duplicate keys with SyntaxError naming the 1-based source line, and rejects non-string input with TypeError. Confirm by: TC-2 rejection assertions; pass when every error has its specified type and line number."
+     },
+     {
+      "confirm": "searched",
+      "id": "C3",
+      "text": "R-1: parseRecords carries its public contract docstring. Confirm by: exact text search; pass when the docstring is /** Parse a string into records; throws TypeError or line-numbered SyntaxError. */"
+     },
+     {
+      "confirm": "executed",
+      "id": "C4",
+      "text": "R-1: select returns exact matching records in input order. Confirm by: TC-3 assertions against multiple matches, the requested example and no matches; pass when each exact array matches."
+     },
+     {
+      "confirm": "executed",
+      "id": "C5",
+      "text": "R-1: select rejects non-array records with TypeError. Confirm by: TC-4 rejection assertions; pass when the error is TypeError."
+     },
+     {
+      "confirm": "searched",
+      "id": "C6",
+      "text": "R-1: select carries its public contract docstring. Confirm by: exact text search; pass when the docstring is /** Select matching records in input order; throws TypeError for non-arrays. */"
+     }
+    ],
+    "evidence_refs": [],
+    "expectations": [
+     {
+      "check": "test ! -e src/records.js",
+      "id": "E1",
+      "paths": [
+       "src/records.js"
+      ],
+      "state": "absent",
+      "statement": "The requested module path is available.",
+      "steps": [
+       "S1",
+       "S2"
+      ]
+     },
+     {
+      "check": "npm test",
+      "id": "E2",
+      "paths": [
+       "package.json",
+       "test/text.test.js",
+       "src/text.js"
+      ],
+      "state": "works",
+      "statement": "The existing CommonJS Node test harness and regression suite run.",
+      "steps": [
+       "S1",
+       "S2"
+      ]
+     },
+     {
+      "check": "test ! -e test/records.test.js",
+      "id": "E3",
+      "paths": [
+       "test/records.test.js"
+      ],
+      "state": "absent",
+      "statement": "The test stage can create the planned focused test file.",
+      "steps": [
+       "S1",
+       "S2"
+      ]
+     }
+    ],
+    "follows": [
+     "R-1",
+     "AD-1"
+    ],
+    "headline": "Plan parseRecords and select with independent Node behavior checks and contract searches.",
+    "outcome": "done",
+    "paths": [
+     "src/records.js",
+     "test/records.test.js"
+    ],
+    "steps": [
+     {
+      "criteria": [
+       "C1",
+       "C2",
+       "C3"
+      ],
+      "deps": [],
+      "id": "S1",
+      "paths": [
+       "src/records.js"
+      ],
+      "proof": "node -e \"const a=require('node:assert/strict');const {parseRecords:p}=require('./src/records');a.deepEqual(p('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepEqual(p('a=  x  \\n  \\nb_2= y'),[{a:'x'},{b_2:'y'}]);for(const x of ['bad','=x','A=x','a=1;a=2'])a.throws(()=>p('ok=1\\n'+x),e=>e instanceof SyntaxError&&/line 2\\b/.test(e.message));a.deepEqual(p('constructor=ok;z=1=2'),[{constructor:'ok',z:'1=2'}]);a.deepEqual(p('  \\n\\n'),[]);a.throws(()=>p(1),TypeError)\" && rg -F -q '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js",
+      "skills": [],
+      "task": "Implement C1, C2 and C3 following R-1 and AD-1."
+     },
+     {
+      "criteria": [
+       "C4",
+       "C5",
+       "C6"
+      ],
+      "deps": [
+       "S1"
+      ],
+      "id": "S2",
+      "paths": [
+       "src/records.js"
+      ],
+      "proof": "node -e \"const a=require('node:assert/strict');const {select:s}=require('./src/records');const example=[{name:'ada',team:'x'},{name:'bob',team:'y'}];a.deepEqual(s(example,'team','x'),[example[0]]);const rows=[{team:'x'},{team:'y'},{team:'x'}];a.deepEqual(s(rows,'team','x'),[rows[0],rows[2]]);a.deepEqual(s(rows,'team','z'),[]);a.throws(()=>s(null,'team','x'),TypeError)\" && rg -F -q '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js",
+      "skills": [],
+      "task": "Implement C4, C5 and C6 following R-1 and AD-1."
+     }
+    ],
+    "summary": "R-1 concerns: S1 supplies parsing, validation, numbered errors and its contract; S2 supplies ordered selection, array validation and its contract. Reuse node:test and npm test; seeded prior strategy had no specific decision and is refined with an available unit layer. Node v26.12.1 and npm 12.2.1, node --test and npm test passed the two existing tests; no browser, service, state, fixture setup or teardown is involved. test/text.test.js and src/text.js supply the existing test and CommonJS style. test/records.test.js is to be authored by test stage; TC-1 through TC-4 use node:test and strict assertions. No lint, type or build is configured. Match contract: src/text.js:1-7 uses strict mode, CommonJS exports, a concise public contract and TypeError; test/text.test.js:1-5 uses node:test, node:assert and named tests. New functions are public exports in local Node namespace, src/records.js is absent, and importing the module proves resolution; no persistence or migration. Assumption: split field at its first equals so remaining equals belong to the value; keys are validated as written. Exact source-check fixture comes from R-1. S1 diagnostics identify source line without echoing input; S2 throws TypeError for non-arrays. Baseline supplies runner; S1 supplies module to S2, both proofs run independently of future tests; test stage supplies durable focused cases for later regression. No other consumers or unresolved prerequisites found. Planning reference: docs/shiploop/w1-plan-reference.md; the focused suite must execute all four named cases, and the test stage owns authoring and revalidation. Backchain structural checker expects a different graph schema; its schema refusal is recorded in evidence_refs. This serial step-plan has no separate execution graph; dependency walk is documented in the planning reference.",
+    "test_commands": [
+     {
+      "command": "node --test --test-reporter=spec --test-name-pattern='TC-1|TC-2|TC-3|TC-4' test/records.test.js",
+      "criteria": [
+       "C1",
+       "C2",
+       "C4",
+       "C5"
+      ],
+      "ids": [
+       "TC-1",
+       "TC-2",
+       "TC-3",
+       "TC-4"
+      ],
+      "min_tests": 4,
+      "suite": "focused"
+     },
+     {
+      "command": "rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js && rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js",
+      "criteria": [
+       "C3",
+       "C6"
+      ],
+      "suite": "focused"
+     },
+     {
+      "command": "npm test",
+      "criteria": [
+       "C1",
+       "C2",
+       "C4",
+       "C5"
+      ],
+      "minimum": true,
+      "suite": "regression"
+     }
+    ],
+    "test_layers": [
+     {
+      "code": "src/records.js",
+      "harness": "node:test",
+      "layer": "unit",
+      "reason": "Node built-in runner is present and existing suite passed.",
+      "status": "available"
+     }
+    ]
+   }
+  },
+  {
+   "stage": "test-spec",
+   "result": {
+    "assumptions": [],
+    "evidence_refs": [],
+    "headline": "Specify four isolated Node tests for parsing, validation, and ordered selection.",
+    "outcome": "done",
+    "summary": "Retain AD-1's unit layer for src/records.js using node:test and node:assert/strict, refining the synthetic strategy with the step plan and existing package.json/test/text.test.js. Test stage creates test/records.test.js, registers four named cases TC-1 through TC-4; focused command node --test --test-reporter=spec --test-name-pattern='TC-1|TC-2|TC-3|TC-4' test/records.test.js runs at least four cases, and npm test runs the complete regression suite including those cases (smoke membership: all four). Each test starts with fresh local literals, calls the public CommonJS exports directly, is stateless with no teardown or mocks, and is due at test stage. Test and suite must be revalidated after authoring. C3 and C6 are searched, not test cases: run the step plan's exact two rg -F -n docstring searches; their unit layer is src/records.js. The field-split-at-first-equals interpretation is the accepted plan assumption; test it along with keys such as constructor. The base has no records module, so the exported functions and their behavior are absent; distinguish inability to import on base from an assertion demonstrating behavior after exports exist. The test stage should capture this limitation in RED evidence rather than claim a behavioral assertion ran on the absent module.",
+    "test_cases": [
+     {
+      "criterion": "C1",
+      "green": "All exact arrays match, including blank lines, trim, key grammar, first equals, and empty input.",
+      "id": "TC-1",
+      "oracle": "R-1 in docs/shiploop/spec.md: assert.deepStrictEqual on parseRecords('name=ada;team=x\\n\\nname=bob;team=y') yields [{name:'ada',team:'x'},{name:'bob',team:'y'}]; parseRecords('a=  x  \\n  \\nb_2= y') yields [{a:'x'},{b_2:'y'}]; whitespace-only input yields []; constructor=ok;z=1=2 yields [{constructor:'ok',z:'1=2'}] under the recorded first-equals assumption. These expected literals are independent of implementation.",
+      "red": "On the item base the parseRecords public export is absent, so importing the module prevents execution; this is a missing-entry-point RED, not a claimed behavioral assertion. Once a callable stub exists, exact array assertions fail for a stub returning [] or untrimmed fields.",
+      "requirement": "R-1"
+     },
+     {
+      "criterion": "C2",
+      "green": "Every malformed field is rejected with SyntaxError naming its actual 1-based source line; all non-strings throw TypeError identifying text and retained inputs are unchanged.",
+      "id": "TC-2",
+      "oracle": "For each fresh input call parseRecords with 'ok=1\\n' followed by bad, =x, A=x, a-b=x, 1a=x, or a=1;a=2. Assert SyntaxError and message naming line 2 with a numeric boundary. Test non-strings undefined, null, 1, {}, and [] independently, asserting TypeError identifying text. Inputs are immutable primitives or locally retained values; confirm retained non-string references and values remain unchanged. Line 2 follows the valid first line, as R-1 counts original source lines. Also check duplicate on line 3 after a blank line to verify blank lines count.",
+      "red": "The base has no parser export, so loading it fails before assertions; with a callable no-validation stub, the SyntaxError and TypeError assertions fail. No file-existence guard is used.",
+      "requirement": "R-1"
+     },
+     {
+      "criterion": "C4",
+      "green": "The exact first example and both ordered matches are returned; no-match case is empty while the source remains populated, and equality distinguishes the tested values.",
+      "id": "TC-3",
+      "oracle": "Using fresh literal arrays call select with field team and value x: for the R-1 Ada/Bob example assert deepStrictEqual to [rows[0]]; for [{team:'x'},{team:'y'},{team:'x'}] assert [rows[0],rows[2]] in that order and the output length is 2; for team z assert [] and length 0 while verifying the input remains length 3. Include strict equality discrimination with numeric 1 versus string '1', comparing exact returned records. R-1 selects equal fields in input order.",
+      "red": "The base has no select export, so the module cannot load; with a callable stub returning [] the positive exact-array assertions fail.",
+      "requirement": "R-1"
+     },
+     {
+      "criterion": "C5",
+      "green": "Each non-array is rejected by TypeError identifying records without changing it, and the empty array is accepted with an empty result.",
+      "id": "TC-4",
+      "oracle": "For each fresh records value undefined, null, 1, 'x', and {}, call select(value,'team','x'); assert TypeError identifying records, and verify locally retained input value or object remains unchanged. R-1 permits arrays as the records argument and rejects non-arrays; verify separately that select([], 'team','x') returns [] to pair the rejection with a valid boundary.",
+      "red": "The base has no select export, so the module cannot load; with a callable stub accepting all inputs, the TypeError assertions fail.",
+      "requirement": "R-1"
+     }
+    ]
+   }
+  },
+  {
+   "stage": "implement",
+   "result": {
+    "decisions": [
+     "Created the planned separate parser because the existing whitespace helper has a different contract; split each field at its first equals and define own properties to preserve valid prototype-named keys."
+    ],
+    "evidence_refs": [],
+    "headline": "Implemented record parsing with numbered validation errors.",
+    "learned": [
+     "Source line numbering includes blank lines; validation diagnostics avoid echoing input."
+    ],
+    "learned_from": [
+     "c3da8ed"
+    ],
+    "not_covered": [
+     {
+      "behaviour": "A field with an empty value is accepted as an empty string.",
+      "reason": "TC-1 and TC-2 contain no empty-value example."
+     }
+    ],
+    "outcome": "done",
+    "summary": "Parser uses the existing CommonJS style; selection and durable tests remain for their assigned stages. No step skills were listed."
+   },
+   "overlay": "route/1-implement"
+  },
+  {
+   "stage": "test",
+   "result": {
+    "evidence_refs": [],
+    "headline": "Parser tests verify valid records, empty values, and numbered errors.",
+    "mutant_dispositions": [
+     {
+      "disposition": "equivalent",
+      "evidence": "indexOf returns -1 or a nonnegative index; the only changed case is 0, for which the key is empty and the adjacent key grammar check rejects it in both versions. TC-2 covers =x.",
+      "mutant": "src/records.js:16:20"
+     },
+     {
+      "disposition": "equivalent",
+      "evidence": "This changes only the configurable property descriptor. R-1 specifies parsed keys and values and validation, not subsequent property deletion or reconfiguration; the returned record values and specified errors are unchanged.",
+      "mutant": "src/records.js:20:96"
+     }
+    ],
+    "outcome": "done",
+    "summary": "TC-1 checks exact parsed records, trimming, blank lines, empty input, prototype-named keys and first-equals handling; TC-1 (a) checks empty values; TC-2 checks malformed fields, original line numbers and non-string rejection without mutating retained inputs. Retained node:test, CommonJS, and the local unit boundary; no mocks or external service apply. The empty-value subcase addresses the implement handoff gap. These were initial tests, not changes made to pass a run. The item base lacks the module, so red-check demonstrates a missing entry point rather than a behavioral assertion. Plan-test was applied inline; selection cases belong to S2."
+   },
+   "overlay": "route/1-test"
+  },
+  {
+   "stage": "document",
+   "result": {
+    "assumptions": [],
+    "evidence_refs": [],
+    "headline": "Documented observed parser behavior and its errors.",
+    "knowledge": {
+     "architecture": "No new decision: AD-1 already records the CommonJS and local Node boundary.",
+     "environment": "Recorded the passing focused and npm test commands and noted the seeded combined command awaits S2 selection.",
+     "spec": "Added the W1/S1 R-1 line recording verified key validation, first-equals splitting, empty values, and blank-line numbering."
+    },
+    "outcome": "done",
+    "summary": "README documents the parser and links its tests and specification. Selection belongs to S2; the seeded combined command currently fails there because select is not yet implemented. No stage skills were listed."
+   },
+   "overlay": "route/1-document"
+  },
+  {
+   "stage": "implement",
+   "result": {
+    "decisions": [
+     "Use Array.prototype.filter with strict equality to preserve input order and the source array without a duplicate selection helper."
+    ],
+    "evidence_refs": [],
+    "headline": "Selection returns ordered strict matches and rejects non-array records.",
+    "learned": [
+     "TC-3 and TC-4 remain for the test stage; the implementation proof and supplemental boundary checks pass."
+    ],
+    "learned_from": [
+     "ae6774d",
+     "c3da8ed"
+    ],
+    "not_covered": [],
+    "outcome": "done",
+    "summary": "No step skills were listed. The test stage owns the durable selection cases; lint found no new findings, with syntax-only JavaScript coverage."
+   },
+   "overlay": "route/2-draft"
+  },
+  {
+   "stage": "test",
+   "result": {
+    "evidence_refs": [],
+    "headline": "Send back the docstring search classification for correction.",
+    "outcome": "send-back",
+    "summary": "The accepted step plan records the command rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js && rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js as suite focused. It exits 0 and verifies C3 and C6, but ShipLoop check refuses it because it is not a test runner and emits no test count; the plan must classify this source search as suite check. The check gate, including mutation verification, remains unverified. TC-3 and TC-4 were added and the focused command passed all five tests; npm test passed seven, red-check showed both new IDs fail on the base because select is absent, and lint reported zero findings. No required command was unavailable. Plan-test was applied inline; node:test and the local CommonJS unit boundary were retained, and the suite decision was updated. No test was changed to pass a failing run."
+   }
+  }
+ ],
+ "planted": [
+  {
+   "id": "P1",
+   "what": "Steps S1 are done; the amendment keeps them exactly",
+   "signature": "Fix forward:"
+  },
+  {
+   "id": "P2",
+   "what": "The plan records an rg search of the docstrings as a focused command; a search prints no test IDs or counts, so a test stage can never pass it."
+  }
+ ],
+ "render": [
+  {
+   "proves": "P1",
+   "packet_contains": "Fix forward: S1"
+  }
+ ],
+ "oracle": [
+  {
+   "proves": "P1",
+   "outcome": [
+    "done"
+   ]
+  },
+  {
+   "proves": "P1",
+   "command": "python3 \"$STAGE_ORACLE/q1_oracle.py\" fidelity",
+   "exit": 0
+  },
+  {
+   "proves": "P2",
+   "command": "python3 \"$STAGE_ORACLE/q1_oracle.py\" correction",
+   "exit": 0
+  }
+ ],
+ "live": {
+  "samples": 4,
+  "pass": 1
+ }
+}

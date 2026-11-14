@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import errno
 import io
 import json
 import os
 import re
+import select
 import shutil
 import signal
 import socket
@@ -349,6 +351,26 @@ class Fixture(unittest.TestCase):
 
 
 class LintPassTests(Fixture):
+    def test_tool_calls_bind_the_original_run_and_preserve_an_injected_runner(self):
+        self.commit({"a.py": "x = 1\n"})
+        self.base()
+        self.edit({"a.py": "x = 2  # lint\n"})
+        real = lint.run_argv
+        with mock.patch.object(lint, "run_argv", wraps=real) as default:
+            report = self.run_pass(mode="report")
+        self.assertTrue(report["gating"])
+        self.assertGreater(default.call_count, 0)
+        for call in default.call_args_list:
+            self.assertEqual(call.kwargs["recovery"], lint.capture_io.Recovery(self.run_dir, "A1", "lint"))
+        self.assertFalse((self.run_dir / "command-recovery").exists())
+
+        def injected(argv, cwd, timeout, *, input_bytes, env):
+            return real(argv, cwd, timeout, input_bytes=input_bytes, env=env)
+
+        with mock.patch.object(lint, "run_argv") as default:
+            self.assertTrue(self.run_pass(mode="report", runner=injected)["gating"])
+        default.assert_not_called()
+
     def test_snapshot_skips_an_ignored_run_directory_inside_the_checkout(self):
         """A literal exclude naming an ignored path makes ``add -A`` fail; the snapshot omits it."""
         self.commit({".gitignore": "runs/\n", "a.py": "x = 1\n"})
@@ -1486,11 +1508,11 @@ class DiscoveredLinterTests(Fixture):
 
 
 class CommandCaptureAbortTests(unittest.TestCase):
-    def capture_abort(self, process, primary):
+    def capture_abort(self, process, primary, **kwargs):
         stderr = mock.Mock()
         with mock.patch.object(lint.subprocess, "Popen", return_value=process), \
              contextlib.redirect_stderr(stderr), self.assertRaises(type(primary)) as raised:
-            lint.run_argv(["tool"], Path.cwd(), 5, input_bytes=b"original input")
+            lint.run_argv(["tool"], Path.cwd(), 5, input_bytes=b"original input", **kwargs)
         self.assertIs(raised.exception, primary)
         self.assertEqual(stderr.mock_calls, [])
 
@@ -1637,6 +1659,39 @@ class CommandCaptureAbortTests(unittest.TestCase):
         self.assertEqual(process.mock_calls, [mock.call.communicate(input=b"original input", timeout=5),
                                               mock.call.communicate(timeout=0.2), mock.call.wait(timeout=0.2)])
 
+    @unittest.skipUnless(os.name == "posix", "POSIX recovery exclusion")
+    def test_nonempty_input_abort_stays_on_baseline_capture_and_cleanup(self):
+        for timed_out in (False, True):
+            with self.subTest(timed_out=timed_out), tempfile.TemporaryDirectory() as tmp:
+                primary = KeyboardInterrupt("capture aborted")
+                process = mock.Mock(pid=4000, returncode=None)
+                process.communicate.side_effect = ([subprocess.TimeoutExpired(["tool"], 5), primary]
+                                                    if timed_out else primary)
+                recovery = lint.capture_io.Recovery(Path(tmp), "A1", "lint")
+                with mock.patch.object(lint.subprocess, "Popen", return_value=process) as launch, \
+                     mock.patch.object(lint.capture_io, "PipeCapture", side_effect=primary) as capture, \
+                     mock.patch.object(lint.capture_io, "close_aborted") as close_aborted, \
+                     mock.patch.object(lint.capture_io, "publish") as publish, \
+                     mock.patch.object(lint.signal, "getsignal", return_value=signal.SIG_DFL), \
+                     mock.patch.object(lint.os, "waitpid", return_value=(0, 0)), \
+                     mock.patch.object(lint.os, "killpg") as killpg, self.assertRaises(KeyboardInterrupt) as raised:
+                    lint.run_argv(["tool"], Path(tmp), 5, input_bytes=b"original input", recovery=recovery)
+                self.assertIs(raised.exception, primary)
+                capture.assert_not_called()
+                close_aborted.assert_not_called()
+                publish.assert_not_called()
+                self.assertEqual(list(Path(tmp).iterdir()), [])
+                launch.assert_called_once_with(["tool"], cwd=tmp, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE, start_new_session=True)
+                expected = [mock.call.communicate(input=b"original input", timeout=5)]
+                if timed_out:
+                    expected.append(mock.call.communicate(timeout=0.2))
+                self.assertEqual(process.mock_calls, [*expected, mock.call.wait(timeout=0.2)])
+                self.assertEqual(killpg.call_args_list, [
+                    *([mock.call(process.pid, signal.SIGTERM)] if timed_out else []),
+                    mock.call(process.pid, signal.SIGKILL),
+                ])
+
     def test_non_posix_abort_preserves_existing_capture_and_timeout_calls(self):
         primary = KeyboardInterrupt("capture aborted")
         for timed_out in (False, True):
@@ -1646,11 +1701,442 @@ class CommandCaptureAbortTests(unittest.TestCase):
                                                     if timed_out else primary)
                 # No POSIX APIs exist on this stand-in.
                 with mock.patch.object(lint, "os", types.SimpleNamespace(name="nt", fspath=os.fspath)):
-                    self.capture_abort(process, primary)
+                    self.capture_abort(process, primary, recovery=lint.capture_io.Recovery(Path.cwd(), "A1", "lint"))
                 expected = [mock.call.communicate(input=b"original input", timeout=5)]
                 if timed_out:
                     expected.extend([mock.call.kill(), mock.call.communicate()])
                 self.assertEqual(process.mock_calls, expected)
+
+
+@unittest.skipUnless(os.name == "posix", "configured POSIX command capture")
+class CommandRecoveryTests(unittest.TestCase):
+    OUT = b"out\x00\xff\r\n"
+    ERR = b"err\x80\x00\n"
+    MARKERS = f"import os, signal; os.write(1, {OUT!r}); os.write(2, {ERR!r}); "
+
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name).resolve()
+
+    def run_command(self, code, *, timeout=10, input_bytes=b"", run_dir=None):
+        recovery = lint.capture_io.Recovery(run_dir or self.root, "nav-fixture", "verify")
+        return lint.run_argv([sys.executable, "-B", "-c", code], self.root, timeout,
+                             input_bytes=input_bytes, recovery=recovery)
+
+    @contextlib.contextmanager
+    def watch_capture(self, before_select):
+        """Run the barrier between reads, after any previous bytes were retained."""
+        module = lint.capture_io
+        default = module.selectors.DefaultSelector
+        capture = module.PipeCapture.capture
+        current = None
+
+        def observe(reader, **kwargs):
+            nonlocal current
+            current = reader
+            return capture(reader, **kwargs)
+
+        def observing_selector():
+            selector = default()
+            select_ready = selector.select
+
+            def ready(timeout=None):
+                before_select(current)
+                return select_ready(timeout)
+
+            selector.select = ready
+            return selector
+
+        with mock.patch.object(module.PipeCapture, "capture", observe), \
+             mock.patch.object(module.selectors, "DefaultSelector", observing_selector):
+            yield
+
+    def abort_after(self, ready, *, code=None, run_dir=None, timeout=10):
+        primary = KeyboardInterrupt("primary capture abort")
+        captured = []
+
+        def at_barrier(reader):
+            if ready(reader):
+                captured.append(reader)
+                raise primary
+
+        with self.watch_capture(at_barrier), self.assertRaises(KeyboardInterrupt) as raised:
+            self.run_command(code or self.MARKERS + "signal.pause()", timeout=timeout, run_dir=run_dir)
+        self.assertIs(raised.exception, primary)
+        reader, = captured
+        self.assertTrue(reader.process.stdout.closed)
+        self.assertTrue(reader.process.stderr.closed)
+        if reader.process.stdin is not None:
+            self.assertTrue(reader.process.stdin.closed)
+        self.assertEqual(reader.process.wait(timeout=10), -signal.SIGKILL)
+        return reader
+
+    def has_markers(self, reader):
+        return (b"".join(reader.chunks["stdout"]), b"".join(reader.chunks["stderr"])) == (self.OUT, self.ERR)
+
+    def attempt(self, root=None):
+        attempt, = (self.root if root is None else root).joinpath("command-recovery").iterdir()
+        return attempt
+
+    def assert_prefixes(self, attempt, out, err, *, eof=(False, False)):
+        self.assertEqual((attempt / "stdout").read_bytes(), out)
+        self.assertEqual((attempt / "stderr").read_bytes(), err)
+        self.assertEqual(json.loads((attempt / "metadata.json").read_bytes()), {
+            "action": "nav-fixture", "operation": "verify", "publication": "complete",
+            "streams": {"stdout": {"bytes": len(out), "eof": eof[0]},
+                        "stderr": {"bytes": len(err), "eof": eof[1]}},
+            "incomplete_capture": not all(eof),
+        })
+
+    def test_binary_prefixes_at_capture_barrier_without_abort_io(self):
+        stopped = False
+        after_abort = []
+        read, write = os.read, os.write
+
+        def barrier(reader):
+            nonlocal stopped
+            stopped = self.has_markers(reader)
+            return stopped
+
+        def check_read(fd, size):
+            if stopped:
+                after_abort.append("read")
+            return read(fd, size)
+
+        def check_write(fd, data):
+            if stopped and not stat.S_ISREG(os.fstat(fd).st_mode):
+                after_abort.append("pipe write")
+            return write(fd, data)
+
+        with mock.patch.object(os, "read", side_effect=check_read), \
+             mock.patch.object(os, "write", side_effect=check_write):
+            self.abort_after(barrier)
+        self.assertEqual(after_abort, [])
+        self.assert_prefixes(self.attempt(), self.OUT, self.ERR)
+
+    @unittest.skipUnless(hasattr(signal, "pthread_sigmask"), "requires POSIX SIGINT mask control")
+    def test_pipe_interrupt_lets_the_child_remove_its_lock_and_exit(self):
+        lock = self.root / "workload.lock"
+        script = ("import fcntl, time\n"
+                  f"path = {str(lock)!r}\n"
+                  "with open(path, 'xb') as lock:\n"
+                  " fcntl.flock(lock, fcntl.LOCK_EX)\n"
+                  f" os.write(1, {self.OUT!r}); os.write(2, {self.ERR!r})\n"
+                  " peer.sendall(b'R')\n"
+                  " if peer.recv(1) != b'g': sys.exit(1)\n"
+                  # Model shutdown work after release, inside the inherited 250 ms grace.
+                  " time.sleep(0.1)\n"
+                  " os.unlink(path)\n")
+        primary = KeyboardInterrupt("runner interrupted during pipe capture")
+        for interrupted in (False, True):
+            with self.subTest(interrupted=interrupted), self.socket_fixture(script) as (peer, process):
+                self.assertEqual(peer.recv(1), b"R")
+                self.assertTrue(lock.is_file())
+                self.assertEqual(os.getpgid(process.pid), process.pid)
+                self.assertNotEqual(process.pid, os.getpgrp())
+                released = False
+
+                def interrupt_runner(*_):
+                    peer.sendall(b"g")
+                    raise primary
+
+                def release(reader):
+                    nonlocal released
+                    if not released and self.has_markers(reader):
+                        released = True
+                        if interrupted:
+                            signal.raise_signal(signal.SIGINT)
+                        else:
+                            peer.sendall(b"g")
+
+                def signal_owned_group(pgid, sig):
+                    if pgid == process.pid:
+                        real_killpg(pgid, sig)
+
+                real_killpg = os.killpg
+                previous_handler = signal.signal(signal.SIGINT, interrupt_runner)
+                previous_mask = signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
+                try:
+                    with mock.patch.object(lint.subprocess, "Popen", return_value=process), \
+                         mock.patch.object(os, "killpg", side_effect=signal_owned_group) as killpg, \
+                         self.watch_capture(release):
+                        if interrupted:
+                            with self.assertRaises(KeyboardInterrupt) as raised:
+                                self.run_command("unused")
+                            self.assertIs(raised.exception, primary)
+                        else:
+                            self.assertEqual(self.run_command("unused"), ("passed", 0, self.OUT, self.ERR))
+                finally:
+                    signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+                    signal.signal(signal.SIGINT, previous_handler)
+                self.assertTrue(released)
+                self.assertEqual(process.returncode, 0)
+                self.assertFalse(lock.exists())
+                killpg.assert_not_called()
+                if interrupted:
+                    attempt = self.attempt()
+                    self.assert_prefixes(attempt, self.OUT, self.ERR)
+                    for path in (attempt.parent, attempt):
+                        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o700)
+                    for path in attempt.iterdir():
+                        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+                else:
+                    self.assertFalse((self.root / "command-recovery").exists())
+
+    def test_bound_runner_recovers_through_a_run_alias_but_refuses_a_recovery_symlink(self):
+        run = self.root / "runs" / "original"
+        run.mkdir(parents=True)
+        alias = self.root / "alias"
+        alias.symlink_to(run.parent, target_is_directory=True)
+        unrelated = self.root / "unrelated"
+        unrelated.mkdir()
+        sentinel = unrelated / "sentinel"
+        sentinel.write_bytes(b"untouched")
+        argv = [sys.executable, "-B", "-c", self.MARKERS + "signal.pause()"]
+        for substitute in (False, True):
+            with self.subTest(substitute=substitute):
+                # Use a separate run for the refusal so it starts without an artifact.
+                original = run if not substitute else run.with_name("refused")
+                original.mkdir(exist_ok=True)
+                recovery = original / "command-recovery"
+                runner = lint.recovery_runner(alias / original.name, "nav-fixture", "verify")
+                primary = KeyboardInterrupt("abort after captured markers")
+
+                def interrupt(reader):
+                    if self.has_markers(reader):
+                        if substitute:
+                            recovery.symlink_to(unrelated, target_is_directory=True)
+                        raise primary
+
+                with self.watch_capture(interrupt), self.assertRaises(KeyboardInterrupt) as raised:
+                    runner(argv, self.root, 10)
+                self.assertIs(raised.exception, primary)
+                if substitute:
+                    self.assertTrue(recovery.is_symlink())
+                    self.assertEqual(list(unrelated.iterdir()), [sentinel])
+                    self.assertEqual(sentinel.read_bytes(), b"untouched")
+                else:
+                    self.assertTrue(recovery.is_dir(), "no recovery in the canonical run")
+                    self.assert_prefixes(self.attempt(original), self.OUT, self.ERR)
+
+    def test_normal_tuples_are_byte_exact_including_large_dual_streams(self):
+        for status, code, out, err in (("passed", 0, b"", b""), ("failed", 17, self.OUT, self.ERR),
+                                        ("passed", 0, self.OUT * 65536, self.ERR * 65536)):
+            with self.subTest(status=status, exit=code, size=len(out) + len(err)):
+                # Alternate large writes across both pipes and require exact bytes, including invalid UTF-8.
+                script = (f"import sys; o, e = sys.stdout.buffer, sys.stderr.buffer\n"
+                          f"for _ in range({len(out)//len(self.OUT)}):\n o.write({self.OUT!r}); e.write({self.ERR!r})\n"
+                          f"sys.exit({code})")
+                self.assertEqual(self.run_command(script), (status, code, out, err))
+        self.assertFalse((self.root / "command-recovery").exists())
+
+    def test_empty_input_closes_stdin_but_none_inherits_it(self):
+        echo = "import sys; sys.stdout.buffer.write(b'EOF:' + sys.stdin.buffer.read())"
+        with (self.root / "inherited").open("w+b") as source:
+            source.write(self.OUT)
+            source.seek(0)
+            # Supply real inherited stdin without changing the test runner's fd 0.
+            popen = subprocess.Popen
+            def with_inherited_stdin(*args, **kwargs):
+                kwargs.setdefault("stdin", source)
+                return popen(*args, **kwargs)
+
+            with mock.patch.object(lint.subprocess, "Popen", side_effect=with_inherited_stdin):
+                self.assertEqual(self.run_command(echo, input_bytes=b""), ("passed", 0, b"EOF:", b""))
+                self.assertEqual(source.tell(), 0)
+                self.assertEqual(self.run_command(echo, input_bytes=None), ("passed", 0, b"EOF:" + self.OUT, b""))
+        self.assertFalse((self.root / "command-recovery").exists())
+
+    def test_nonempty_input_matches_baseline_for_exit_and_early_closure(self):
+        payload = bytes(range(256)) * 8192
+        echo = f"import sys; sys.stdout.buffer.write(sys.stdin.buffer.read()); sys.stderr.buffer.write({self.ERR!r})"
+        for code, expected in (
+            (echo, ("passed", 0, payload, self.ERR)),
+            (echo + "; sys.exit(17)", ("failed", 17, payload, self.ERR)),
+            ("import os; os.close(0); os.write(1, b'closed')", ("passed", 0, b"closed", b"")),
+        ):
+            with self.subTest(code=code):
+                argv = [sys.executable, "-B", "-c", code]
+                self.assertEqual(lint.run_argv(argv, self.root, 10, input_bytes=payload), expected)
+                self.assertEqual(self.run_command(code, input_bytes=payload), expected)
+        self.assertFalse((self.root / "command-recovery").exists())
+
+    @contextlib.contextmanager
+    def socket_fixture(self, script):
+        """Supervise a leader and release any pipe holder via the fixture socket."""
+        parent, child = socket.socketpair()
+        with parent, child:
+            parent.settimeout(10)
+            process = subprocess.Popen([sys.executable, "-B", "-c",
+                                        "import os, signal, socket, sys\n"
+                                        "peer = socket.socket(fileno=int(sys.argv[1]))\n" + script,
+                                        str(child.fileno())], pass_fds=(child.fileno(),),
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       start_new_session=True, bufsize=0)
+            child.close()
+            try:
+                yield parent, process
+            finally:
+                parent.close()  # socket EOF releases descendants even if a test assertion failed
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=10)
+                process.stdout.close()
+                process.stderr.close()
+
+    def test_pipe_eof_does_not_reap_early_or_replace_a_live_leader(self):
+        tail = b"from descendant after leader exit"
+        with self.socket_fixture("peer.recv(1)\nif os.fork() == 0:\n"
+                                 f" peer.sendall(b'R')\n if peer.recv(1): os.write(1, {tail!r})\n"
+                                 "os._exit(0)") as (peer, process), contextlib.ExitStack() as events:
+            kernel_queue = None
+            if not hasattr(os, "waitid"):
+                kernel_queue = events.enter_context(contextlib.closing(select.kqueue()))
+                kernel_queue.control([select.kevent(process.pid, filter=select.KQ_FILTER_PROC,
+                                                    flags=select.KQ_EV_ADD, fflags=select.KQ_NOTE_EXIT)], 0, 0)
+            peer.sendall(b"g")
+            self.assertEqual(peer.recv(1), b"R")
+            if kernel_queue is None:
+                deadline = time.monotonic() + 10
+                while os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is None:
+                    self.assertLess(time.monotonic(), deadline, "leader did not exit")
+                    time.sleep(0.01)
+            else:
+                self.assertEqual(len(kernel_queue.control(None, 1, 10)), 1, "leader did not exit")
+            released = []
+
+            def release(reader):
+                if not released:
+                    self.assertEqual(reader.eof, {"stdout": False, "stderr": False})
+                    self.assertIsNone(process.returncode)
+                    wait.assert_not_called()
+                    poll.assert_not_called()
+                    peer.sendall(b"g")
+                    released.append(True)
+
+            with mock.patch.object(lint.subprocess, "Popen", return_value=process), \
+                 mock.patch.object(process, "poll", wraps=process.poll) as poll, \
+                 mock.patch.object(process, "wait", wraps=process.wait) as wait, self.watch_capture(release):
+                self.assertEqual(self.run_command("unused"), ("passed", 0, tail, b""))
+                wait.assert_called_once()
+                poll.assert_not_called()
+            self.assertEqual(released, [True])
+
+        with self.socket_fixture("os.close(1)\nos.close(2)\npeer.sendall(b'R')\npeer.recv(1)\nos._exit(23)"
+                                 ) as (peer, process):
+            wait = process.wait
+
+            def both_pipes_closed(**kwargs):
+                self.assertTrue(process.stdout.closed)
+                self.assertTrue(process.stderr.closed)
+                self.assertEqual(peer.recv(1), b"R")
+                self.assertIsNone(process.poll(), "EOF occurred while the leader was still alive")
+                peer.sendall(b"g")
+                return wait(**kwargs)
+
+            with mock.patch.object(lint.subprocess, "Popen", return_value=process), \
+                 mock.patch.object(process, "wait", side_effect=both_pipes_closed) as waiting:
+                self.assertEqual(self.run_command("unused"), ("failed", 23, b"", b""))
+                waiting.assert_called_once()
+
+    def test_escaped_holder_leaves_one_stream_incomplete(self):
+        script = (f"os.write(1, {self.OUT!r})\nos.close(1)\nos.write(2, {self.ERR!r})\n"
+                  "if os.fork() == 0:\n"
+                  " os.setsid()\n peer.sendall(b'R')\n while peer.recv(1): peer.sendall(b'p')\n os._exit(0)\n"
+                  "while True: signal.pause()")
+        with self.socket_fixture(script) as (peer, process):
+            self.assertEqual(peer.recv(1), b"R")
+            with mock.patch.object(lint.subprocess, "Popen", return_value=process):
+                self.abort_after(lambda reader: reader.eof["stdout"] and self.has_markers(reader))
+            self.assert_prefixes(self.attempt(), self.OUT, self.ERR, eof=(True, False))
+            peer.sendall(b"p")
+            self.assertEqual(peer.recv(1), b"p")
+            peer.shutdown(socket.SHUT_WR)
+            self.assertEqual(peer.recv(1), b"")
+
+    def test_timeout_retains_both_streams_through_term_and_kill(self):
+        for exits in (True, False):
+            with self.subTest(exits_on_term=exits):
+                code = ("import os, signal, sys\ndef term(*_):\n os.write(2, b'TERM')\n"
+                        + (" sys.exit(9)\n" if exits else "")
+                        + f"signal.signal(signal.SIGTERM, term)\nos.write(1, {self.OUT!r})\nsignal.pause()\n"
+                          "while True: signal.pause()")
+                with mock.patch.object(os, "killpg", wraps=os.killpg) as signals:
+                    self.assertEqual(self.run_command(code, timeout=0.7), ("timeout", None, self.OUT, b"TERM"))
+                self.assertEqual([call.args[1] for call in signals.call_args_list],
+                                 [signal.SIGTERM] if exits else [signal.SIGTERM, signal.SIGKILL])
+        self.assertFalse((self.root / "command-recovery").exists())
+
+    def test_abort_during_real_timeout_teardown_retains_continued_capture(self):
+        code = ("import os, signal\ndef term(*_): os.write(2, b'TERM')\n"
+                f"signal.signal(signal.SIGTERM, term)\nos.write(1, {self.OUT!r})\nwhile True: signal.pause()")
+        with mock.patch.object(os, "killpg", wraps=os.killpg) as signals:
+            self.abort_after(lambda reader: b"".join(reader.chunks["stderr"]) == b"TERM",
+                             code=code, timeout=0.7)
+        self.assertEqual([call.args[1] for call in signals.call_args_list], [signal.SIGTERM, signal.SIGKILL])
+        self.assert_prefixes(self.attempt(), self.OUT, b"TERM")
+
+    def test_storage_short_writes_and_failures_preserve_capture_abort(self):
+        mkdir, write, op = os.mkdir, os.write, os.open
+        for fault in ("short", "denied", "zero", "ENOSPC", "interrupted", "symlink"):
+            with self.subTest(fault=fault):
+                root = self.root / fault
+                root.mkdir()
+                unrelated = root / "unrelated"
+                unrelated.mkdir()
+                sentinel = unrelated / "sentinel"
+                sentinel.write_bytes(b"untouched")
+                if fault == "symlink":
+                    (root / "command-recovery").symlink_to(unrelated)
+                metadata_fd = None
+                writes = []
+
+                def create(name, *args, **kwargs):
+                    if fault == "denied" and name == "command-recovery":
+                        raise PermissionError(errno.EACCES, "fixture denial")
+                    return mkdir(name, *args, **kwargs)
+
+                def open_file(name, *args, **kwargs):
+                    nonlocal metadata_fd
+                    fd = op(name, *args, **kwargs)
+                    if name == ".metadata.tmp":
+                        metadata_fd = fd
+                    return fd
+
+                def store(fd, data):
+                    if not stat.S_ISREG(os.fstat(fd).st_mode):
+                        return write(fd, data)
+                    writes.append((fd, len(data)))
+                    if fault == "zero":
+                        return 0
+                    if fault == "ENOSPC" and len(writes) == 2:
+                        raise OSError(errno.ENOSPC, "fixture disk full")
+                    if fault == "interrupted" and fd == metadata_fd:
+                        # Interrupt after a real partial metadata write.
+                        write(fd, data[:1])
+                        raise KeyboardInterrupt("secondary publication abort")
+                    return write(fd, data[:2])
+
+                with mock.patch.object(os, "mkdir", side_effect=create), \
+                     mock.patch.object(os, "open", side_effect=open_file), \
+                     mock.patch.object(os, "write", side_effect=store):
+                    self.abort_after(self.has_markers, run_dir=root)
+                self.assertEqual(list(unrelated.iterdir()), [sentinel])
+                self.assertEqual(sentinel.read_bytes(), b"untouched")
+                if fault == "short":
+                    self.assertGreater(len(writes), 3)
+                    self.assert_prefixes(self.attempt(root), self.OUT, self.ERR)
+                elif fault in ("zero", "ENOSPC", "interrupted"):
+                    attempt = self.attempt(root)
+                    self.assertFalse((attempt / "metadata.json").exists())
+                    partial = attempt / (".metadata.tmp" if fault == "interrupted" else "stdout")
+                    self.assertEqual(len(partial.read_bytes()), {"zero": 0, "ENOSPC": 2, "interrupted": 1}[fault])
+                else:
+                    self.assertFalse(writes)
+                    self.assertFalse(list((root / "command-recovery").glob("*/metadata.json")))
 
 
 class InvokerLogTests(unittest.TestCase):

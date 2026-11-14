@@ -30,7 +30,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**25 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**26 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
@@ -54,11 +54,12 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
 | [rubric-eval](skills/rubric-eval/SKILL.md) | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default), grade blind with one evidence-first judge, and decide by… |
-| [shiploop](skills/shiploop/SKILL.md) | 1.33.6 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact callback until the script reports completion with… |
+| [shiploop](skills/shiploop/SKILL.md) | 1.34.2 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact callback until the script reports completion with… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.7.17 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
-| [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.5.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
+| [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.5.1 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
-| [sport80](skills/sport80/SKILL.md) | 0.1.1 | Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account (memberships, certifications, entries, results, orders) and club… |
+| [sport80](skills/sport80/SKILL.md) | 0.2.0 | Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account (memberships, certifications, entries, results, orders) and club… |
+| [test-harness](skills/test-harness/SKILL.md) | 0.1.0 | Run a repository's test suite and audit what the run did beyond its exit code: unintended writes to tracked files, leftover artifacts, live service calls, secret-shaped or… |
 
 <!-- skill-craft:inventory:end -->
 

@@ -109,16 +109,16 @@ and on accept commits the skill's directory. When to create or update a skill:
 A fixable problem is never `blocked`. When a work item's goal proves wrong or
 unachievable while it is being built, from `test-spec` through
 `document`, the stage reports `send-back`: the item goes back to
-`step-plan` with that result as evidence, and its earlier results from the step
-plan on stop counting as current. No count of send-backs stops an item;
-state.md `revisions` records how many there were. A script-run loop has no iteration limit: it runs until its
-exit condition holds. One that stops blocked because the item's goal proved wrong
-reports `send-back`; a cancelled loop is refused, because a user's stop is the
-packet's `pause` command. The per-item
-count is kept in `state.md` `revisions`. The redone step-plan packet names the
-item's previous step plan and the result that sent it back (both under
-`results/`) and asks for an amendment: its Done-when has the summary say which
-rows are new or changed and which are carried over.
+`step-plan` with that result as evidence. No count of send-backs stops an item
+(state.md `revisions` counts them). A loop that stops blocked because the goal
+proved wrong reports `send-back`; a cancelled loop is refused (stop is `pause`).
+
+Fix forward: a step whose `document` was accepted is done and never reruns. The
+interrupted step's results drop; its edits stay. The redone step-plan packet
+names the previous plan and the send-back and prints the done rows: the
+amendment starts `steps` with them exactly, each `"done": true`, then at least
+one step to run. A fix to done work is a new step with new criterion IDs; cases
+due at a done step stay as accepted. ShipLoop refuses any reopening.
 
 ## After carry-forward
 

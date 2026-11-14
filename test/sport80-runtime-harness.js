@@ -404,6 +404,189 @@ async function test(name, fn) {
     assert.strictEqual(w.sandbox.S80D.error, "AUTH_REQUIRED");
   });
 
+  const rankDescriptor = (extra) => descriptor("Rankings", ["name"], ORIGIN + "/api/r/data", Object.assign({ filters: [
+    { name: "weight_class", type: "autocomplete", label: "Weight", items: [{ text: "Open Men's 89kg", value: 1089 }, { text: "Open Women's 59kg", value: 2059 }, { text: "Masters Men's 89kg", value: 3089 }]
+      .concat(Array.from({ length: 100 }, (_, i) => ({ text: "Filler " + i, value: 5000 + i }))) },
+    { name: "level", type: "select", label: "Level", items: [{ text: "Local", value: 1 }, { text: "National", value: 3 }] },
+    { name: "club", type: "autocomplete", label: "Club" },
+    { name: "first_name", type: "text", label: "First" },
+    { name: "date_range_start", type: "datepicker", label: "From" }] }, extra || {}));
+  const rankEntry = (over) => tableEntry(Object.assign({ id: "t.rank", path: "/api/r/table", requires_filter: ["weight_class"], option_filters: ["weight_class", "level", "club", "first_name", "ghost"] }, over || {}));
+  const rankRoutes = (extra) => std((u) => (u.pathname === "/api/r/table" ? { json: rankDescriptor(extra) } : u.pathname === "/api/r/data" ? pageRows(people)(u) : { status: 404, json: {} }));
+
+  await test("filter options: reviewed filters only, from the descriptor, searched before the cap; refusals make no row request", async () => {
+    const w = world(rankRoutes());
+    const e = rankEntry();
+    const all = await w.run(e, { role: "personal", options: "weight_class" });
+    assert.strictEqual(all.ok, true, JSON.stringify(all));
+    assert.strictEqual(all.result.options.of, 103); assert.strictEqual(all.result.options.matching, 103); assert.strictEqual(all.result.options.returned, 50);
+    assert.strictEqual(all.result.options.complete, false); assert.strictEqual(all.result.options.items.length, 50); assert.strictEqual(all.result.options.available, true);
+    eq(all.result.options.items[0], { text: "Open Men's 89kg", value: 1089 });
+    const found = await w.run(e, { role: "personal", options: "weight_class", optionSearch: "men's 89" });
+    eq(found.result.options.items, [{ text: "Open Men's 89kg", value: 1089 }, { text: "Masters Men's 89kg", value: 3089 }]);
+    assert.strictEqual(found.result.options.complete, true);
+    const filler = await w.run(e, { options: "weight_class", optionSearch: "filler" });
+    assert.strictEqual(filler.result.options.matching, 100); assert.strictEqual(filler.result.options.returned, 50);
+    eq((await w.run(e, { options: "level" })).result.options.items, [{ text: "Local", value: 1 }, { text: "National", value: 3 }]);
+    const none = await w.run(e, { options: "club" });
+    assert.strictEqual(none.result.options.available, false); assert.ok(!("items" in none.result.options));
+    assert.ok(!w.calls.some((c) => c.method === "POST"), "options never request rows");
+    const before = w.calls.length;
+    assert.strictEqual((await w.run(e, { options: "ghost" })).error, "UNKNOWN_FILTER");
+    assert.strictEqual((await w.run(e, { options: "first_name" })).error, "BAD_PARAM");
+    const notOffered = await w.run(e, { options: "date_range_start" });
+    assert.strictEqual(notOffered.error, "BAD_PARAM"); assert.match(notOffered.message, /not offered/); eq(notOffered.have, ["weight_class", "level", "club", "first_name", "ghost"]);
+    const sens = await w.run(Object.assign({}, e, { data: "sensitive" }), { options: "weight_class" });
+    assert.strictEqual(sens.error, "BAD_PARAM"); assert.match(sens.message, /not offered/);
+    assert.strictEqual((await w.run({ id: "j.json", kind: "json", mode: "read", data: "public", path: "/j", scope: "none" }, { options: "x" })).error, "BAD_PARAM");
+    assert.strictEqual(w.calls.length - before, 4, "two descriptor-level refusals fetched the roles and the descriptor; the other three fetched nothing");
+  });
+
+  await test("filter options: unusable items are skipped and counted, and the envelope is bounded without cutting a value", async () => {
+    const odd = [{ text: "ok one", value: 1 }, { text: "nested", value: { a: 1 } }, { text: "x".repeat(200), value: 2 }, { text: "id 123e4567-e89b-12d3-a456-426614174000", value: 3 }, { text: "ok two", value: "v2" }, null, 7];
+    const w = world(rankRoutes({ filters: [{ name: "weight_class", type: "select", label: "W", items: odd.concat(Array.from({ length: 40 }, (_, i) => ({ text: "bulk item number " + i, value: 9000 + i }))) }] }));
+    const r = await w.run(rankEntry(), { options: "weight_class" });
+    eq(r.result.options.items.slice(0, 3), [{ text: "ok one", value: 1 }, { text: "ok two", value: "v2" }, { text: "7", value: 7 }]);
+    assert.strictEqual(r.result.options.skipped, 4);
+    const small = await w.run(rankEntry(), { options: "weight_class", maxChars: 700 });
+    assert.ok(JSON.stringify(small).length <= 700, "bounded: " + JSON.stringify(small).length);
+    assert.strictEqual(small.result.options.complete, false); assert.strictEqual(small.result.options.returned, small.result.options.items.length);
+    for (const it of small.result.options.items) assert.ok(!String(it.value).includes("<") && String(it.text).length <= 120);
+  });
+
+  await test("a filter whose items carry numeric values is sent the number; text filters and other values pass through", async () => {
+    const w = world(rankRoutes());
+    const r = await w.run(rankEntry(), { filters: { weight_class: "1089", level: "3", first_name: "42", date_range_start: "2026-01-01", club: "7" }, maxRows: 1 });
+    assert.strictEqual(r.ok, true, JSON.stringify(r));
+    const sent = JSON.parse(w.calls.find((c) => c.method === "POST").body).filters;
+    eq(sent, { weight_class: 1089, level: 3, first_name: "42", date_range_start: "2026-01-01", club: "7" });
+    assert.strictEqual(typeof sent.weight_class, "number"); assert.strictEqual(typeof sent.first_name, "string"); assert.strictEqual(typeof sent.club, "string");
+  });
+
+  await test("an empty table says why with the catalogue's own hint, never with the descriptor's text", async () => {
+    const msg = "descriptor text <script>alert(1)</script> that must not be echoed";
+    let w = world(std((u) => (u.pathname === "/api/r/table" ? { json: rankDescriptor({ no_data_message: msg }) } : { json: { total: 0, page: 0, items_per_page: 1, data: [] } })));
+    const e = rankEntry({ empty_hint: "Give a body weight category and a date range." });
+    const empty = await w.run(e, { filters: { weight_class: "1089" }, maxRows: 1 });
+    assert.strictEqual(empty.result.total, 0); assert.strictEqual(empty.result.hint, "Give a body weight category and a date range.");
+    assert.ok(!JSON.stringify(empty).includes("alert(1)"));
+    const nohint = await w.run(rankEntry(), { filters: { weight_class: "1089" }, maxRows: 1 });
+    assert.ok(!("hint" in nohint.result));
+    w = world(rankRoutes());
+    const full = await w.run(e, { filters: { weight_class: "1089" }, maxRows: 1 });
+    assert.ok(!("hint" in full.result));
+  });
+
+  await test("a required filter counts only when it holds a value: blank, null, empty list and empty object are refused, zero is accepted", async () => {
+    const w = world(rankRoutes());
+    const e = rankEntry({ requires_filter: ["first_name"] });
+    for (const v of [undefined, null, "", "   ", [], {}]) assert.strictEqual((await w.run(e, { filters: { first_name: v } })).error, "FILTER_REQUIRED", JSON.stringify(v));
+    assert.ok(!w.calls.some((c) => c.path === "/api/r/table"), "nothing was fetched for a refused request");
+    assert.strictEqual((await w.run(e, { filters: { first_name: 0 }, maxRows: 1 })).ok, true);
+  });
+
+  const viewRows = (urls) => urls.map((url, i) => ({ meet: "m" + i, action: [{ type: "external", text: "View", url }] }));
+  const refEntry = (over) => tableEntry(Object.assign({ id: "t.events", path: "/api/e/table", refs: [{ name: "event_id", from: "action", match: "^/public/rankings/results/(\\d{1,12})$" }] }, over || {}));
+  const refRoutes = (urls) => std((u) => (u.pathname === "/api/e/table" ? { json: descriptor("Events", ["meet"], ORIGIN + "/api/e/data") } : u.pathname === "/api/e/data" ? pageRows(viewRows(urls))(u) : { status: 404, json: {} }));
+
+  await test("row references come only from approved routes: a digit id from a matching portal link, and nothing else of the URL", async () => {
+    const urls = ["/public/rankings/results/123", "public/rankings/results/456", ORIGIN + "/public/rankings/results/789?token=SECRETQUERY&x=1",
+      "https://evil.test/public/rankings/results/1", "/public/rankings/results/abc", "/public/rankings/results/1234567890123", "/public/rankings/results/5/edit",
+      "/public/rankings/results/%31", "/contact/delete/5", "/public/rankings/results/77#frag"];
+    const w = world(refRoutes(urls));
+    const r = await w.run(refEntry(), { maxRows: 10, perPage: 10 });
+    assert.strictEqual(r.ok, true, JSON.stringify(r));
+    const refs = r.result.rows.map((x) => x.refs && x.refs.event_id);
+    eq(refs, ["123", "456", "789", undefined, undefined, undefined, undefined, undefined, undefined, "77"]);
+    assert.ok(r.result.rows.every((x) => x.actions[0] === "View" && !("action" in x) && !("links" in x)));
+    const blob = JSON.stringify(r);
+    for (const leak of ["SECRETQUERY", "token=", "/contact/delete", "evil.test", "%31"]) assert.ok(!blob.includes(leak), "leaked " + leak);
+    const none = await world(refRoutes(urls)).run(refEntry({ refs: undefined }), { maxRows: 10, perPage: 10 });
+    assert.ok(none.result.rows.every((x) => !("refs" in x)), "an entry without refs returns none");
+    const picked = await world(refRoutes(urls)).run(refEntry(), { maxRows: 2, perPage: 2, fields: ["meet"] });
+    assert.ok(picked.result.rows.every((x) => !("refs" in x)), "refs follow the fields rule");
+    const named = await world(refRoutes(urls)).run(refEntry(), { maxRows: 2, perPage: 2, fields: ["meet", "refs"] });
+    eq(named.result.rows.map((x) => x.refs.event_id), ["123", "456"]);
+    // Defence in depth: even a loose spec (the validator forbids it) can only ever yield digits.
+    const loose = await world(refRoutes(["/public/rankings/results/abc", "/public/rankings/results/42"])).run(refEntry({ refs: [{ name: "event_id", from: "action", match: "^/public/rankings/results/(.+)$" }] }), { maxRows: 2, perPage: 2 });
+    eq(loose.result.rows.map((x) => x.refs && x.refs.event_id), [undefined, "42"]);
+  });
+
+  await test("tab references: one numeric query value of an approved name; URLs still print names only; no raw URL on a parse failure", async () => {
+    const tabs = [{ title: "A", vue_component_data: { url: "/api/stat/draw?addon_id=830&contact_type=competitor&body_cid=202&token=SECRETTAB" } },
+      { title: "B", vue_component_data: { url: "/api/stat/draw?addon_id=1&addon_id=2" } }, { title: "C", vue_component_data: { url: "/api/stat/draw?addon_id=abc" } },
+      { title: "D", vue_component_data: { url: "http://[::1/leak?token=SECRETPARSE" } }, { title: "E", vue_component_data: { url: "/api/stat/draw?other_id=9" } }];
+    const w = world(std((u) => (u.pathname === "/api/stat" ? { json: { name: "Stats", tabs } } : { status: 404, json: {} })));
+    const e = { id: "t.tabs", kind: "tabs", mode: "read", data: "personal", path: "/api/stat", scope: "body", refs: [{ name: "addon_id", from: "tab", query: "addon_id" }] };
+    const r = await w.run(e, { role: "club" });
+    assert.strictEqual(r.ok, true, JSON.stringify(r));
+    eq(r.result.tabs.map((t) => t.refs && t.refs.addon_id), ["830", undefined, undefined, undefined, undefined]);
+    assert.strictEqual(r.result.tabs[0].url, "/api/stat/draw?addon_id,contact_type,body_cid,token");
+    assert.strictEqual(r.result.tabs[3].url, "<unparsed url>");
+    assert.ok(!JSON.stringify(r).includes("SECRETTAB") && !JSON.stringify(r).includes("SECRETPARSE"));
+  });
+
+  await test("exact origins: a lookalike host, a table pointing elsewhere and a rankings redirect receive nothing", async () => {
+    const lookalike = "https://portal.test.other.test";
+    let w = world(std((u) => (u.pathname === "/api/things/datatable" ? { json: descriptor("Things", ["name"], lookalike + "/steal") } : { status: 404, json: {} })));
+    let r = await w.run(tableEntry(), { maxRows: 1 });
+    assert.strictEqual(r.error, "UNEXPECTED_ORIGIN");
+    assert.ok(!w.calls.some((c) => c.url.startsWith(lookalike)), "nothing was sent to the lookalike");
+    w = world(std((u) => (u.pathname === "/api/things/datatable" ? { json: { tabs: [{ title: "Memberships", vue_component_data: { url: lookalike + "/tabs/x" } }] } } : { status: 404, json: {} })));
+    r = await w.run(tableEntry({ via: { tabs: "/api/things/datatable", match: ["Memberships"] } }), { maxRows: 1 });
+    assert.strictEqual(r.error, "UNEXPECTED_ORIGIN");
+    assert.ok(!w.calls.some((c) => c.url.startsWith(lookalike)));
+    const rank = { id: "r.rank", kind: "datatable", mode: "read", data: "public", path: "/api/events/table", scope: "none", host: "rankings", auth: "role", verified: "live" };
+    w = world(std((u) => (u.origin === RANK && u.pathname === "/api/events/table" ? { json: descriptor("Events", ["meet"], ORIGIN + "/api/portal/rows") } : { status: 404, json: {} })));
+    r = await w.run(rank, { role: "club", maxRows: 1 });
+    assert.strictEqual(r.error, "UNEXPECTED_ORIGIN");
+    assert.ok(!w.calls.some((c) => c.path === "/api/portal/rows"), "rankings tokens never go to a descriptor-chosen host");
+    w = world(std((u) => (u.origin === RANK && u.pathname === "/api/events/table" ? { type: "opaqueredirect", status: 0 } : { status: 404, json: {} })));
+    r = await w.run(rank, { role: "club", maxRows: 1 });
+    assert.strictEqual(r.error, "UNEXPECTED_REDIRECT");
+    for (const c of w.calls.filter((x) => x.host === RANK)) { assert.strictEqual(c.redirect, "manual"); assert.strictEqual(c.credentials, "omit"); }
+    for (const c of w.calls) if (c.host !== ORIGIN) assert.ok(!("X-XSRF-TOKEN" in c.headers) && !("X-Requested-With" in c.headers), "no portal headers off the portal origin");
+  });
+
+  await test("a stale runtime is replaced, and a snippet refuses to run against version 1", async () => {
+    const w = world(std());
+    w.sandbox.S80 = { version: 1 };
+    assert.match(vm.runInContext(RUNTIME, w.sandbox), /loaded \(v2\)/);
+    assert.strictEqual(w.sandbox.S80.version, 2);
+    assert.match(vm.runInContext(RUNTIME, w.sandbox), /already loaded \(v2\)/);
+    const snippet = execFileSync("python3", [CLI, "js", "account.roles"], { encoding: "utf8" });
+    const body = snippet.split("\n").filter((l) => !l.startsWith("//")).join("\n").replace(/^await /m, "return await ");
+    const old = world(std());
+    old.sandbox.S80 = { version: 1 };
+    await assert.rejects(async () => vm.runInContext("(async () => {" + body + "})()", old.sandbox), /Load the runtime first/);
+    const ok = await vm.runInContext("(async () => {" + body + "})()", w.sandbox);
+    assert.strictEqual(ok.ok, true);
+  });
+
+  await test("strings in a result never carry secret-looking query values, even from ordinary columns", async () => {
+    const w = world(std((u) => (u.pathname === "/j" ? { json: { link: "https://files.test/x?token=SECRETCELL&id=5&sig=ABCDEF&expires=99", benign: "a?b=1&c=2", n: 7 } } : { status: 404, json: {} })));
+    const r = await w.run({ id: "j.json", kind: "json", mode: "read", data: "public", path: "/j", scope: "none" }, {});
+    assert.strictEqual(r.result.data.link, "https://files.test/x?token=<redacted>&id=5&sig=<redacted>&expires=<redacted>");
+    assert.strictEqual(r.result.data.benign, "a?b=1&c=2");
+    assert.ok(!JSON.stringify(r).includes("SECRETCELL"));
+  });
+
+  await test("the output bound holds after plain-text expansion", async () => {
+    const rows = Array.from({ length: 60 }, (_, i) => ({ id: i, note: "a=b&c=d?e=f ".repeat(6) }));
+    const w = world(std((u) => (u.pathname === "/api/things/datatable" ? { json: descriptor("Things", ["note"], ORIGIN + "/api/things/data") } : pageRows(rows)(u))));
+    const r = await w.run(tableEntry(), { maxRows: 60, perPage: 60, plain: true, maxChars: 1500 });
+    assert.ok(JSON.stringify(r).length <= 1500, "bounded after expansion: " + JSON.stringify(r).length);
+    assert.strictEqual(r.result.complete, false); assert.match(r.note, /cut/);
+  });
+
+  await test("one row that alone exceeds the output limit is dropped, not returned over it", async () => {
+    const rows = [{ id: 1, note: "x".repeat(3000) }];
+    const w = world(std((u) => (u.pathname === "/api/things/datatable" ? { json: descriptor("Things", ["note"], ORIGIN + "/api/things/data") } : pageRows(rows)(u))));
+    const r = await w.run(tableEntry(), { maxRows: 5, maxChars: 1000 });
+    assert.ok(JSON.stringify(r).length <= 1000, "bounded: " + JSON.stringify(r).length);
+    eq(r.result.rows, []); assert.strictEqual(r.result.total, 1); assert.strictEqual(r.result.complete, false); assert.match(r.note, /One row alone/);
+  });
+
   await test("no secret sentinel appears in any result, error or log produced by the scenarios", async () => {
     const blob = everything.join("\n");
     for (const v of Object.values(SECRET)) assert.ok(!blob.includes(v), "leaked " + v);

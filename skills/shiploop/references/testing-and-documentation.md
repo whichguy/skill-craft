@@ -216,6 +216,36 @@ ShipLoop accepts it on its own record of the attempt without a new loop packet;
 report `blocked` only for what the user, an access grant or an outside
 dependency must supply.
 
+### Recover output after an interruption
+
+On POSIX, default command runners try to save interrupted output when a command
+inherits stdin or receives an explicit empty input. An empty-file formatter call
+can qualify. Commands sent non-empty input on stdin keep the existing input,
+timeout output, and abort cleanup behavior; they produce no recovery artifact.
+An absent artifact can therefore be intentional.
+
+Look in the original run's `command-recovery/<attempt>/` for separate raw
+`stdout` and `stderr` files (mode 0600 in a fresh mode 0700 directory). A final
+`metadata.json` identifies the action and operation and records byte counts and
+EOF for each stream. If an attempt directory has no metadata, publication did
+not finish. Even a complete publication contains only the captured prefixes;
+a child may have written bytes ShipLoop never read.
+
+ShipLoop stops reading and writing the pipes on abort. A keyboard interrupt
+during pipe capture retains Python's first-interrupt teardown grace: the child
+can exit during a wait of up to 0.25 seconds, within any existing command
+deadline. ShipLoop tries to stop the private process group only when the
+original child still establishes ownership.
+Escaped processes, already exited or reaped leaders, and nonstandard child
+reapers are outside that cleanup guarantee. ShipLoop resolves the original run
+directory before running the command; publication follows no symlinks in that
+resolved path or below it. Publication is synchronous and best effort. It
+requires a writable destination, and storage delays have no guaranteed bound.
+The original exception still propagates and the pending action and check records
+keep their usual behavior. The files may contain secrets: ShipLoop does not
+print, import into prompts, upload, or automatically delete them. File modes do
+not hide them from other processes running as the same user.
+
 ### Release entry and release-check
 
 A done `release-plan` records `consumer_entry`: how a person reaches the result

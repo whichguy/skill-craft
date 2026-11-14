@@ -1,0 +1,16 @@
+{"scenario": "replay-p0-late-send-back", "sample": "1", "steps": ["S1", "S2"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true, "last_step_runs_full_regression": true}
+{"scenario": "replay-p0-late-send-back", "sample": "2", "steps": ["S1", "S2"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true, "last_step_runs_full_regression": true}
+{"scenario": "replay-p0-late-send-back", "sample": "3", "steps": ["S1", "S2"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true, "last_step_runs_full_regression": true}
+{"scenario": "replay-p0-late-send-back", "sample": "4", "steps": ["S1", "S2"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true, "last_step_runs_full_regression": true}
+{"scenario": "replay-ticket-comments-late-send-back", "sample": "1", "steps": ["S1", "S2", "S3"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true}
+{"scenario": "replay-ticket-comments-late-send-back", "sample": "2", "steps": ["S1", "S2", "S3"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true}
+{"scenario": "replay-ticket-comments-late-send-back", "sample": "3", "steps": ["S1", "S2", "S3"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true}
+{"scenario": "replay-ticket-comments-late-send-back", "sample": "4", "steps": ["S1", "S2", "S3"], "amendment_imported": true, "frozen_cases_accepted": true, "at_implement": true, "cursor_names_S2": true, "done_and_built_1": true, "S1_commit_kept": true, "S2_draft_uncommitted": true}
+amendment_imported: 8 of 8
+frozen_cases_accepted: 8 of 8
+at_implement: 8 of 8
+cursor_names_S2: 8 of 8
+done_and_built_1: 8 of 8
+S1_commit_kept: 8 of 8
+S2_draft_uncommitted: 8 of 8
+last_step_runs_full_regression: 4 of 4

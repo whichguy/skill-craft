@@ -1,0 +1,101 @@
+{
+  "schema": "shiploop-lifecycle-validation-registration/1",
+  "registered_at": "2026-11-13T20:26:40.613946+00:00",
+  "kind": "single-cell completion validation, not comparative promotion",
+  "authorization": "Approved, continue with the three-scenario assessment and complete the additive-run validation.",
+  "source_head": "4990932ee4a0e8f3e2c55bb8a16e4364ba24849e",
+  "source_tree": "0824fe16e96882b5907c4784bad796f43010a37e",
+  "harness": "/Users/dadleet/src/skill-craft-lifecycle-validation-20261113/test/shiploop_e2e",
+  "source_hashes": {
+    "test/shiploop_e2e/run.py": "5622cc5be88940a508a4176e6b93cd7b846db741b275dea087ba365221892a31",
+    "test/shiploop_e2e/cases.json": "4a7861bc487e16577747ad3b5dcd5d74aadaf81e517c2bbd90fda6e5c062f60d",
+    "test/shiploop_e2e/hosts.py": "ae4558219827853c70b9a3f8548004558cb52f4c914172495c1333a1b0de6fd2",
+    "test/shiploop_e2e/quality.py": "995d88c1de9ba41cf214dd6ab40db06db2430ab50c266e5f07fb4c28c29b79c6",
+    "test/shiploop_e2e/checks/ticket_escalation_accept.py": "bd1f0596b0030a5f16a913a73932641993e4d1b8b9058544ca3eb4d73dc1debd",
+    "test/shiploop_e2e/checks/ticket_assignment_accept.py": "c5b5d1074f5b28aac12b86e3621e2058534e6be2eec6620e72c003ef6e4f608e",
+    "test/shiploop_e2e/SPEC.md": "47cd1b28ba446d7a61087506a1bed8d226632331803b6a7a77b8a3b919b9c972"
+  },
+  "case": "ticket-escalation",
+  "literal_prompt": "Extend the ticket service with bulk reassignment and escalation. `POST /tickets/reassign` with `{\"from\": \"<agent>\", \"to\": \"<agent>\"}` moves every open or in-progress ticket assigned to `from` over to `to` and answers `{\"moved\": <how many>, \"ids\": [<their ids in id order>]}`; `from` and `to` must be two different agents. Each moved ticket's new agent is notified as for a single assignment. Urgent tickets must not wait unassigned: when an open, unassigned, urgent ticket is older than ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60), the agent named in the ONCALL environment variable is notified that the ticket was escalated; without ONCALL nothing is escalated. A ticket is escalated at most once, even across restarts of the service. Everything the service already does keeps working, assignment included, and the existing tests must still pass. Add node:test tests for the new behaviour.",
+  "prompt_sha256": "d5421672cdce8dce7d9cdd9d93fc79bb7e654c6691bb35bccd3f0dd2220aa7ee",
+  "predecessor": {
+    "path": "/Users/dadleet/e2e-runs-multipass/20261031/e2/A1-ticket-assignment",
+    "head": "42180cb17bf98f5d527a214c98f3a2b5896766f1",
+    "tree": "d9d47f6cbcd76c66727eb1363c0b9612a93fc7eb",
+    "receipt_sha256": "eb76b2ca16d934bac02c7d49ff8a4b43545f34c3eb766bbf806bd3968d92401a",
+    "original_pass": true,
+    "historical_driver": "Codex gpt-6.1-terra xhigh",
+    "mutations": "none permitted; checks use disposable copies"
+  },
+  "subject": {
+    "host": "grok",
+    "model": "grok-4.6",
+    "effort": "xhigh",
+    "permission_mode": "auto",
+    "reason": "same E2E subject as prior pilot and current owner-selected repository default db47982bcd9faf553041c26958abecd402002963"
+  },
+  "limits": {
+    "timeout": null,
+    "max_turns": null,
+    "max_resumes": null,
+    "reason": "Use current harness defaults without new timers, turn limits or loop ceilings. Previous stopped pilot is preserved; this new cell is not a timing comparison."
+  },
+  "planning_review": "stage (unchanged engine default)",
+  "prelaunch_requirements": [
+    "established 54-variant calibration suite passes",
+    "current-source marketplace freshness receipt passes",
+    "unchanged predecessor: 3 catalog checks pass, 2 new-feature catalog checks fail for absent behavior, 7 held-out old behaviors pass and 7 held-out new behaviors fail",
+    "source and installed package identities retained"
+  ],
+  "completion_requirements": [
+    "intake-to-done without seeded stages or operator callbacks/coaching",
+    "verified return into the new copied source repo with clean committed product",
+    "all 9 catalog, regression and retention checks pass",
+    "all 14 held-out acceptance checks pass; compare to frozen baseline controls",
+    "original predecessor unchanged",
+    "inspect plan, diff, knowledge and trace for prior-feature reconstruction or loss",
+    "new work starts in a fresh run with no predecessor run directory copied",
+    "independent Astra high review of final evidence; raw process, product, workflow and incrementality outcomes separate"
+  ],
+  "semantic_questions": [
+    "Were existing requirements and decisions retained with accurate current status?",
+    "Did planning scope new work and impacted integration points rather than reassign existing features?",
+    "Do test records support their stated scope and actual boundary?",
+    "Did only material knowledge change and are prior choices consumed rather than just cited?"
+  ],
+  "nonclaims": [
+    "No generic speed/cost/quality improvement or causal model comparison",
+    "No OS-enforced inability to read historical state; test absence from copied product and observed accesses",
+    "No implementation change, package publication, source repair or product repair by auditor",
+    "No renewal of old frozen comparison or automatic fresh retry after failure"
+  ],
+  "cleanup": [
+    "No remote deployment",
+    "Harness owns local process groups and port4180 lease",
+    "Preserve original predecessor, stopped pilot, all new trial artifacts",
+    "Confirm terminal cleanup; unknown cleanup prevents reuse"
+  ],
+  "command": [
+    "/opt/homebrew/bin/python3",
+    "-I",
+    "/Users/dadleet/src/skill-craft-lifecycle-validation-20261113/test/shiploop_e2e/run.py",
+    "--case",
+    "ticket-escalation",
+    "--continue-from",
+    "/Users/dadleet/e2e-runs-multipass/20261031/e2/A1-ticket-assignment",
+    "--host",
+    "grok",
+    "--model",
+    "grok-4.6",
+    "--effort",
+    "xhigh",
+    "--source",
+    "marketplace",
+    "--permission-mode",
+    "auto",
+    "--baseline",
+    "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/baselines.jsonl",
+    "--output",
+    "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok"
+  ]
+}

@@ -1078,5 +1078,22 @@
         ]
       }
     }
+  },
+  "shared-expenses-w1": {
+    "about": "Step-plan round 2 (docs/experiments/step-plan-round2-20261101): the shared-expenses run case (R3, 47ed1804) cut to its one work item, from an empty repository whose knowledge home (fixture) is the one Codex Terra high's A-shared-expenses-s9 had when its step plan proved S1 with the focused suite `node --test`, which ran no test at implement. The stage suite's step-plan scenario replays that state.",
+    "fixture": "shared-expenses-at-step-plan",
+    "prompt": "Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {\"id\": \"<group id>\", \"members\": [\"<name>\", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"equal\"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"exact\", \"shares\": {\"<name>\": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {\"expense\": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {\"from\", \"to\", \"cents\"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.",
+    "work_item": {
+      "id": "W1",
+      "title": "Implement and verify shared expenses service",
+      "context": "Ready: empty checkout, Node available; no existing behaviour. Scope server.js, test/ and README. CommonJS; tests spawn server.js as the seam. First build HTTP node:test fixtures and confirm fail on base; then implement R-1 through R-6 and run node --test. Spec: docs/shiploop/spec.md; test and fixture setup: docs/shiploop/environment.md; architecture: docs/shiploop/architecture.md. Verify persistence via restart, parallel expenses, all validation and settlement tie rules; no remote operation. Done: full suite passes and documentation explains execution and limits. Source return via ShipLoop at release. Revalidate assumptions if runtime or target changes."
+    },
+    "expect_paths": [
+      "server.js",
+      "test/*.test.js"
+    ],
+    "checks": [
+      "node --check server.js"
+    ]
   }
 }

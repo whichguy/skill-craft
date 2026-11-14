@@ -1,0 +1,695 @@
+{
+  "recorded": "2026-11-08",
+  "source": {
+    "commit": "41ee32f1ba2abe1e9bb432fb4fb9cf4f82ae14ee",
+    "repository": "private (identified by commit only)",
+    "files": 22,
+    "bytes": 390528,
+    "method": "git archive of skills/test-harness; tracked files only"
+  },
+  "base": {
+    "skill_craft_origin_main": "d4ff1a47ce89aec5ee546d1601c401850561c58f"
+  },
+  "environment": {
+    "macos": "27.2 arm64",
+    "python": "3.15.1",
+    "bash": "3.2.57",
+    "git": "2.54.0 (Apple Git-157)",
+    "node": "v26.12.1",
+    "cpus": 18,
+    "load": "other work was running on the machine at times; each run carries its own load note"
+  },
+  "self_test_runs": {
+    "unmodified export (HOME and TMPDIR redirected)": [
+      {
+        "label": "baseline-pristine",
+        "load": "busy (one sample during the series: 1 min 87.9, 5 min 71.3, 15 min 44.3)",
+        "exit": 1,
+        "wall_seconds": 90,
+        "passed": 264,
+        "failed": 2,
+        "failed_assertions": [
+          "hard lifecycle duration stays below advertised cap",
+          "blocked path setup finishes below advertised cap"
+        ]
+      },
+      {
+        "label": "pristine-q1",
+        "load": "busy (same series)",
+        "exit": 1,
+        "wall_seconds": 87,
+        "passed": 264,
+        "failed": 2,
+        "failed_assertions": [
+          "hard lifecycle duration stays below advertised cap",
+          "blocked path setup finishes below advertised cap"
+        ]
+      },
+      {
+        "label": "pristine-q2",
+        "load": "busy (same series)",
+        "exit": 1,
+        "wall_seconds": 87,
+        "passed": 264,
+        "failed": 2,
+        "failed_assertions": [
+          "hard lifecycle duration stays below advertised cap",
+          "blocked path setup finishes below advertised cap"
+        ]
+      },
+      {
+        "label": "pristine-q3",
+        "load": "busy (same series)",
+        "exit": 1,
+        "wall_seconds": 87,
+        "passed": 264,
+        "failed": 2,
+        "failed_assertions": [
+          "hard lifecycle duration stays below advertised cap",
+          "blocked path setup finishes below advertised cap"
+        ]
+      },
+      {
+        "label": "pristine-quiet",
+        "load": "quiet (1 min average 11.3 before, 9.2 after)",
+        "exit": 0,
+        "wall_seconds": 50,
+        "passed": 266,
+        "failed": 0,
+        "failed_assertions": []
+      }
+    ],
+    "modified, iteration 1 (before the hang-case budget change)": {
+      "label": "mod1",
+      "load": "very busy (1 min average 155 at one sample)",
+      "exit": 1,
+      "wall_seconds": 155,
+      "passed": 273,
+      "failed": 3,
+      "failed_assertions": [
+        "hanging classifier exits through hard timeout",
+        "hanging classifier process is reaped",
+        "hanging classifier records hard-timeout evidence"
+      ]
+    },
+    "modified, iteration 2": {
+      "label": "mod2",
+      "load": "busy (1 min averages 85, 63, 55 at three samples)",
+      "exit": 0,
+      "wall_seconds": 111,
+      "passed": 276,
+      "failed": 0,
+      "failed_assertions": []
+    },
+    "modified, Linux container, intermediate content (Debian 13 aarch64, bash 5.2.37, Python 3.13.13, git 2.47.3, --network none, skill mounted read-only)": {
+      "label": "linux1",
+      "exit": 0,
+      "wall_seconds": 57,
+      "passed": 276,
+      "failed": 0,
+      "failed_assertions": []
+    },
+    "modified, run directly from the worktree, intermediate content": [
+      {
+        "label": "worktree-quiet",
+        "load": "quiet (1 min average 10.3 before)",
+        "exit": 0,
+        "wall_seconds": 67,
+        "passed": 276,
+        "failed": 0,
+        "failed_assertions": []
+      },
+      {
+        "label": "worktree-final1",
+        "load": "quiet (1 min average 8.9 before)",
+        "note": "after the first independent read's fixes",
+        "exit": 0,
+        "wall_seconds": 63,
+        "passed": 276,
+        "failed": 0,
+        "failed_assertions": []
+      }
+    ],
+    "final content, run directly from the worktree": [
+      {
+        "label": "worktree-final2",
+        "load": "quiet (1 min average 9.0 before)",
+        "note": "before the merge of origin/main",
+        "exit": 0,
+        "wall_seconds": 69,
+        "passed": 279,
+        "failed": 0,
+        "failed_assertions": []
+      },
+      {
+        "label": "worktree-head",
+        "load": "quiet (1 min average 12.6 before)",
+        "note": "on the journal and evidence commit, first merged tree",
+        "exit": 0,
+        "wall_seconds": 73,
+        "passed": 279,
+        "failed": 0,
+        "failed_assertions": []
+      },
+      {
+        "label": "worktree-head2",
+        "load": "quiet (1 min average 13.8 before)",
+        "note": "on the second merged tree (the other candidate's release merged in)",
+        "exit": 0,
+        "wall_seconds": 80,
+        "passed": 279,
+        "failed": 0,
+        "failed_assertions": []
+      }
+    ],
+    "final content, Linux container (same image and flags)": {
+      "label": "linux2",
+      "exit": 0,
+      "wall_seconds": 58,
+      "passed": 279,
+      "failed": 0,
+      "failed_assertions": []
+    }
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "bytes": 16916,
+      "sha256": "91a81426763be80c7c1116d00b12a75ef1fb01fb33f72ee0adbf793bc292c6ee",
+      "vs_export": "changed",
+      "export_sha256": "5c02095bc8fe5efdbbe40ff7fe6a3728159832627fcc38ecfbfb890b3bd2e909"
+    },
+    {
+      "path": "references/discovery-matrix.md",
+      "bytes": 3871,
+      "sha256": "d38060af5aab98ba902b46b82fb76a921fb473f21d813337298a77776a80f8ba",
+      "vs_export": "changed",
+      "export_sha256": "820a2edf36bd5615040e2db7dc2d5548748af31da44226eea50eb32a3f102327"
+    },
+    {
+      "path": "references/gate-snippet.md",
+      "bytes": 553,
+      "sha256": "e022f5ed3988af9a4fb324b403c8ea0db84643abd1fbf92bd28c92e2d5a11cf3",
+      "vs_export": "changed",
+      "export_sha256": "fc27a6267a64a42226f07e6ddfda215cf3221140b088c362e4091d4d96e0b906"
+    },
+    {
+      "path": "references/local-change-gate.md",
+      "bytes": 6339,
+      "sha256": "56a6c13c724514c0928eabd6111f842f539d627b770fa5d62e34acc618d86dc6",
+      "vs_export": "changed",
+      "export_sha256": "9f2e606218d43188e65a93ef901dfcb9f79557e804f94444cc241662c71ec956"
+    },
+    {
+      "path": "references/operator-guide.md",
+      "bytes": 4216,
+      "sha256": "040d513d2197910d60eeabe5b3de91ff20f93f21fc545c1e79ff3871654fec7d",
+      "vs_export": "changed",
+      "export_sha256": "eac4ea05e9d568bb077fab3fddaa279c03fea64b7a9c3590a699c6a04cad15cd"
+    },
+    {
+      "path": "references/report-template.md",
+      "bytes": 5268,
+      "sha256": "877935f895186c262eb7c6eda020eb728f08289e41544f2cf11b319a6fa06eba",
+      "vs_export": "changed",
+      "export_sha256": "759c62264f7e1143a49e8c1ddb0f2e672b9bd8b31213e62ed1f749bf00b564fc"
+    },
+    {
+      "path": "references/self-test-matrix.md",
+      "bytes": 843,
+      "sha256": "dd350ba841609aa36aadc018456f2b62ad010220473a31f52fb9a810ff579fd8",
+      "vs_export": "new (renamed from dogfood-matrix.md)"
+    },
+    {
+      "path": "references/side-effect-taxonomy.md",
+      "bytes": 3560,
+      "sha256": "e2948fed96254e411eddde08b98fcec95faea64c0eba9e5fa73d208cb4fe0fc9",
+      "vs_export": "changed",
+      "export_sha256": "66fb02face923395a4e26f68b329d1234c80e7ba09e766e9062d1ccc86339121"
+    },
+    {
+      "path": "scripts/classify-side-effects.py",
+      "bytes": 19580,
+      "sha256": "c671f860b85f6108b89f243d70141d9ef13a0b7d55417087874083c3eea439a3",
+      "vs_export": "changed",
+      "export_sha256": "c32f4441a1603f95b19fafa6b7cdbb51d2f54b6e46474c91ba5f01e0eeed068a"
+    },
+    {
+      "path": "scripts/control_policy.py",
+      "bytes": 20650,
+      "sha256": "9fd5b9753379b9edef5d114a520af5944386263d11c51b7f715ec326b49665a9",
+      "vs_export": "changed",
+      "export_sha256": "ed0e14b06d78c4c2e7969e59c46d15961007abe634da83e60d49972d867e6cb4"
+    },
+    {
+      "path": "scripts/discover-test-cmd.sh",
+      "bytes": 7583,
+      "sha256": "625328cfb4fc50a6af96bf1c62a6345ecbf762e9a4970b079854c67a73db27f2",
+      "vs_export": "changed",
+      "export_sha256": "ff89ce8fa58405ed5ed3cd32b204fceb4c8159cc05a5bfc16762b6f1e9c322a9"
+    },
+    {
+      "path": "scripts/emit-report.py",
+      "bytes": 86228,
+      "sha256": "af1a4395b7007d22adc81c94d29995463df805b00801dcbbc0f93ba9e1ac9a33",
+      "vs_export": "changed",
+      "export_sha256": "ff02eee3694178122e66e90a16ad034ce3e3a2eb4270c8a90dc55a14c583afcd"
+    },
+    {
+      "path": "scripts/init-run.py",
+      "bytes": 4481,
+      "sha256": "b5fb92383ec6cafbd8537787cbaaa9a4df430683a6854a6bc71173ca9f19e7d4",
+      "vs_export": "unchanged"
+    },
+    {
+      "path": "scripts/porcelain-delta.py",
+      "bytes": 25762,
+      "sha256": "4b36c2584d516c907974dbaa2d0c14aa19ae8fb68c469fed90815ae5bcbb02b3",
+      "vs_export": "unchanged"
+    },
+    {
+      "path": "scripts/resolve-scope.py",
+      "bytes": 2394,
+      "sha256": "3e7a93365ff4e3a833d75718adb9ec40718dc185ddc8dd01003bb5b7e58440cd",
+      "vs_export": "unchanged"
+    },
+    {
+      "path": "scripts/run-harness-hard-supervisor.py",
+      "bytes": 12883,
+      "sha256": "2e9afab75d2fe89dbdfb92bd39ba599b07d01056653b49d60561df4832b54fc2",
+      "vs_export": "changed",
+      "export_sha256": "45e76483da21cb2afe8bdd1b86162f207e5a55c7609d57223f51399c5be4a46e"
+    },
+    {
+      "path": "scripts/run-harness.sh",
+      "bytes": 24317,
+      "sha256": "8c6c45e2d0c14ad9f8c4b3094d711a7a9d4c9303dc1f74ce3f4c294a947657f4",
+      "vs_export": "changed",
+      "export_sha256": "587ed7882fe3c4b0547f9b3b8dc9bfee52a1d3e5288cead5bdc4995343df51af"
+    },
+    {
+      "path": "scripts/run-suite.sh",
+      "bytes": 12076,
+      "sha256": "04be6252eb9d487d7a76a3ce848fb3a947ae3baaf339b3c9b679982b804336e8",
+      "vs_export": "unchanged"
+    },
+    {
+      "path": "scripts/supervise.py",
+      "bytes": 15355,
+      "sha256": "f3f8685d12b6a20d384552d9c717cadd39a3ce6d79b89a975a212084ea6aadb5",
+      "vs_export": "unchanged"
+    },
+    {
+      "path": "scripts/test-harness-tests.sh",
+      "bytes": 115840,
+      "sha256": "bc1d1f4899a962a500e509e6f2063e4554e3a296667624ff66ba458a9d0755ea",
+      "vs_export": "changed",
+      "export_sha256": "ffdf1eb928ed01884d5ff6592724101ac0c92ee1f36623e17084dc951370f99d"
+    },
+    {
+      "path": "scripts/worktree-fixloop.sh",
+      "bytes": 6373,
+      "sha256": "636a96c997edbb2fb2ddac39ff541ab66a2c3bc13b3c890b98653a81b2ebb29e",
+      "vs_export": "changed",
+      "export_sha256": "290d5646a4fd1e9757e833286a475d1f29e71c2e79853d39feea46090b2403a1"
+    }
+  ],
+  "deleted_from_export": [
+    "references/dogfood-log.md"
+  ],
+  "renamed_from": {
+    "references/self-test-matrix.md": "references/dogfood-matrix.md"
+  },
+  "commits": {
+    "feature": "162d8b6e16433329f54a6cd953d5cb42a0891c15",
+    "first_merge_of_origin_main": "74653f0365f49464ef05f91678e7e5b44a20301b",
+    "origin_main_first_merged": "a4c773afb6c6320af4b54bedf801985e097aacd9",
+    "second_merge_of_origin_main": "09297ba07cbad85b125e32baaf7cf8a2ce00987b",
+    "origin_main_second_merged": "03f68d93a44500aca958db74440c1483e9038e11 (release: skill-craft 2.35.10, pushpress 0.1.0)",
+    "note": "the evidence and journal commits come after the merges; the journal and this file describe the tree of the second merge"
+  },
+  "home_after_self_test": {
+    "note": "entries left under a scratch HOME (redirected before the run) after one run of the self-test",
+    "unmodified_export": {
+      "entries": [
+        "<one host-named directory>"
+      ],
+      "run_slugs": 2,
+      "run_folders": 4
+    },
+    "modified": {
+      "entries": []
+    }
+  },
+  "group_claims": {
+    "note": "five ordinary test names passed to the case-grouping function",
+    "names": [
+      "test_compile_succeeds_on_empty_input",
+      "test_when_user_is_anonymous",
+      "test_import_rejects_bad_csv",
+      "test_nested_dict_roundtrip",
+      "test_harness_setup"
+    ],
+    "unmodified_export": {
+      "assigned_to_a_project_specific_group": 5,
+      "distinct_groups": 3
+    },
+    "modified": {
+      "group": "Other cases",
+      "claim": "suite-reported case (see name)",
+      "assigned": 5
+    }
+  },
+  "source_defects_reproduced": {
+    "fix_loop_branch_name": {
+      "repository_folder": "my repo.v2",
+      "unmodified_export_enter_exit_code": 255,
+      "message": "not a valid branch name",
+      "after_fix": "enter exit 0; the whole driver in fix-loop mode gave RESULT=PASS_CLEAN"
+    },
+    "yaml_policy_glob_key": "ignored_write_note_globs items were appended to the preceding list key or dropped; read as a list of its own after the fix, with a self-test case"
+  },
+  "python_start_ms": {
+    "python3 -c pass": {
+      "min": 27.5,
+      "median": 29.5,
+      "max": 45.0
+    },
+    "bash -c true": {
+      "median": 6.4
+    }
+  },
+  "checks": [
+    {
+      "command": "bash skills/test-harness/scripts/test-harness-tests.sh (HOME and TMPDIR in scratch folders), from the worktree, final content",
+      "exit": 0,
+      "result": "PASS=279 FAIL=0",
+      "wall_seconds": 69,
+      "load_1min_before": 9.0
+    },
+    {
+      "command": "the same script in a Debian 13 aarch64 container, --network none, skill mounted read-only, final content",
+      "exit": 0,
+      "result": "PASS=279 FAIL=0",
+      "wall_seconds": 58
+    },
+    {
+      "command": "python3 -B test/test-harness.test.py (before the merge)",
+      "exit": 0,
+      "result": "8 tests OK",
+      "wall_seconds": 78
+    },
+    {
+      "command": "node test/skill-frontmatter.test.js",
+      "exit": 0,
+      "result": "PASS 25 skills"
+    },
+    {
+      "command": "python3 -B test/test-groups.test.py (before the merge)",
+      "exit": 0,
+      "result": "61 tests OK"
+    },
+    {
+      "command": "python3 -B test/test-groups.test.py (merged tree)",
+      "exit": 0,
+      "result": "64 tests OK (core 60, total 202)"
+    },
+    {
+      "command": "python3 -B scripts/build-packages.py <new dir>; then python3 -B scripts/check-marketplace-packages.py --root <that dir> (merged tree)",
+      "exit": [
+        0,
+        0
+      ],
+      "result": "1/1 passed; the packaged copy of the skill is identical to the source, 0 symlinks"
+    },
+    {
+      "command": "python3 -B scripts/release.py --dry-run",
+      "exit": 0,
+      "result": "test-harness 0.1.0 -> 0.1.0 (1 note); skill-craft 2.35.7 -> 2.35.8 before the merge, 2.35.9 -> 2.35.10 on the merged tree"
+    },
+    {
+      "command": "python3 -B scripts/check-release-boundary.py --base origin/main (merged tree)",
+      "exit": 0,
+      "result": "OK"
+    },
+    {
+      "command": "bash test/run-all.sh --group quick --changed-from origin/main --jobs 4 (merged tree)",
+      "exit": 0,
+      "result": "17 suites passed in 249 s wall; test-harness 77 s; the selected suites: test-groups, ci-policy, skill-frontmatter, test-harness, and thirteen ShipLoop baseline suites"
+    },
+    {
+      "command": "the same quick tier before the merge",
+      "exit": 1,
+      "result": "46 suites in 408 s; one failure, test-harness: the wrapper's tree-unchanged assertion tripped because a stray bytecode directory was deleted while the run was going; the wrapper alone then passed, and the assertion now ignores bytecode caches",
+      "wall_seconds": 415
+    },
+    {
+      "command": "python3 -B scripts/check-release-boundary.py --base origin/main (second merged tree)",
+      "exit": 0,
+      "result": "OK"
+    },
+    {
+      "command": "python3 -B scripts/release.py --dry-run (second merged tree)",
+      "exit": 0,
+      "result": "test-harness 0.1.0 -> 0.1.0 (1 note); skill-craft 2.35.10 -> 2.35.11"
+    },
+    {
+      "command": "python3 -B test/test-groups.test.py; node test/skill-frontmatter.test.js (second merged tree)",
+      "exit": [
+        0,
+        0
+      ],
+      "result": "64 tests OK (core 61, total 203); PASS 26 skills"
+    },
+    {
+      "command": "python3 -B scripts/build-packages.py <new dir>; python3 -B scripts/check-marketplace-packages.py --root <that dir> (second merged tree)",
+      "exit": [
+        0,
+        0
+      ],
+      "result": "1/1 passed; the packaged copy of the skill is identical to the source; 26 skills in the package"
+    },
+    {
+      "command": "bash test/run-all.sh --group quick --changed-from origin/main --jobs 4 (second merged tree)",
+      "exit": 0,
+      "result": "17 suites passed in 259 s wall; test-harness 73 s; slowest shiploop-navigator-contract 254 s"
+    }
+  ],
+  "privacy_scan": {
+    "tool": "an external script kept outside the repository; every path is its own argument",
+    "files_read": 25,
+    "bytes_read": 451084,
+    "expected_files": 25,
+    "shapes": [
+      "email",
+      "home path",
+      "host home directory",
+      "host dot-directory",
+      "secret shape",
+      "key assignment",
+      "url",
+      "ip address"
+    ],
+    "denylist": "44 entries of owner, machine and private project names, kept outside the repository",
+    "findings": {
+      "ip address": "loopback addresses only (127.0.0.1)",
+      "email": 0,
+      "home path": 0,
+      "host home directory": 0,
+      "secret shape": 0,
+      "url": 0,
+      "denylisted names": "2 mentions of a skill that was unreleased when the denylist was written and is now public on main, inside a quoted release commit subject; no private name"
+    },
+    "vendor_name_mentions_reviewed": "generic: provider API hostnames and standard environment-variable names used as redaction and live-call data, one CSS property, one repository document name",
+    "controls": {
+      "seeded_leaks": "6 files (email, home path, host home directory, secret shape, a denylisted name, a clean file): findings in all 5 categories, exit 1",
+      "unquoted_variable_holding_two_paths_in_zsh": "refused as one non-file argument, exit 2",
+      "no_paths": "refused, exit 2",
+      "clean_file_alone": "read 1 file, exit 0"
+    },
+    "note": "the last run, including the journal and this evidence file; 24 files and 427,327 bytes before the evidence file existed"
+  },
+  "independent_reads": {
+    "pass_1": {
+      "items": 25,
+      "high": 4,
+      "medium": 10,
+      "low": 11,
+      "files_read": "all"
+    },
+    "pass_2": {
+      "fixed_of_the_25": 21,
+      "partly_open": 3,
+      "new_items": 10,
+      "new_medium": 4,
+      "new_low": 6,
+      "all_new_fixed": true,
+      "note": "one new item read an older copy of the journal"
+    }
+  },
+  "shared_files": {
+    "other_candidate_tip_checked": "c5b48560df50c2c97911a3b7c428b5fec5f24cec (also d33177a13c863a89525e12be85571d7498b6d49d earlier)",
+    "method": "git merge-tree --write-tree against a dangling commit of this tree; no ref touched",
+    "result": {
+      "test/suite_catalog.py": "auto-merged",
+      "test/suite_durations.json": "auto-merged",
+      "test/test-groups.test.py": "conflict: both change the same two count assertions"
+    },
+    "counts": "core 61 and total 203 on the second merged tree",
+    "outcome": "the other candidate was released first (skill-craft 2.35.10); merging it into this branch conflicted only in test/test-groups.test.py, as simulated, and was resolved to core 61 and total 203"
+  },
+  "published": {
+    "recorded": "2026-11-08",
+    "instruction": "the owner answered \"Publish\" in chat to the report that listed the commands and the decisions left open; it covers this skill only",
+    "remote_main_before_the_push": "57dd76f396314f74ac03cab9f540a9f282ce4c29",
+    "third_merge_of_origin_main": {
+      "commit": "011949df0675afede3ae04bf541ea7149a24c343",
+      "origin_main_merged": "57dd76f396314f74ac03cab9f540a9f282ce4c29 (docs(sport80): record the publication of sport80 0.2.0 in skill-craft 2.36.0; it brought the sport80 feature commit, release: skill-craft 2.36.0, sport80 0.2.0, and the pushpress publication record)",
+      "files_changed_on_this_side_since_the_merge_base": 28,
+      "files_changed_upstream_since_the_merge_base": 34,
+      "files_changed_on_both_sides": 0,
+      "shared_test_files_touched_upstream": 0,
+      "tree_simulated_before_merging": "aabf014a812e5b02c07871be63885b652f3c9f0a",
+      "tree_after_merging": "aabf014a812e5b02c07871be63885b652f3c9f0a"
+    },
+    "dry_run": [
+      "test-harness 0.1.0 -> 0.1.0 (1 note(s))",
+      "skill-craft 2.36.0 -> 2.36.1"
+    ],
+    "release": {
+      "commit": "ff0ba75549f747ba79e4fa50053db041c47902e3",
+      "tree": "cace7f7042463f417e3f8c1786728fdc85e400ad",
+      "parent": "011949df0675afede3ae04bf541ea7149a24c343",
+      "subject": "release: skill-craft 2.36.1, test-harness 0.1.0",
+      "trailer": "skill-craft@2.36.1, test-harness@0.1.0",
+      "files_by_area": {
+        "plugins/skill-craft": 25,
+        "host catalogs (marketplace.json)": 3,
+        "catalog": 1,
+        "CHANGELOG.md": 1,
+        "README.md": 1,
+        "changes/test-harness (the consumed note)": 1
+      },
+      "versions": "skill-craft 2.36.1, test-harness 0.1.0"
+    },
+    "published_copy_equals_source": "diff -rq of skills/test-harness and its copy under plugins/skill-craft: identical, 21 files",
+    "release_tree_checks": [
+      {
+        "command": "bash scripts/sync-plugin-views.sh --check",
+        "exit": 0,
+        "result": "CHECK OK",
+        "wall_seconds": 2
+      },
+      {
+        "command": "python3 -B scripts/check-marketplace-packages.py",
+        "exit": 0,
+        "result": "complete marketplace payload OK (offline payload validation only)",
+        "wall_seconds": 0
+      },
+      {
+        "command": "python3 -B scripts/check-release-boundary.py --base origin/main",
+        "exit": 0,
+        "result": "check-release-boundary: OK",
+        "wall_seconds": 5
+      },
+      {
+        "command": "python3 -B test/test-groups.test.py",
+        "exit": 0,
+        "result": "64 tests OK",
+        "wall_seconds": 14
+      },
+      {
+        "command": "node test/skill-frontmatter.test.js",
+        "exit": 0,
+        "result": "PASS 26 skills",
+        "wall_seconds": 0
+      },
+      {
+        "command": "python3 -B test/test-harness.test.py",
+        "exit": 0,
+        "result": "8 tests OK",
+        "wall_seconds": 67
+      }
+    ],
+    "machine_load_1min_during_checks": {
+      "before": 5.8,
+      "after": 6.54
+    },
+    "push": {
+      "tool": "scripts/release-push.py",
+      "forced": false,
+      "checks_run_by_the_helper": "the same six commands; 6 of 6 passed against the frozen candidate",
+      "range": "57dd76f3..ff0ba755 on main",
+      "remote_main_after": "ff0ba75549f747ba79e4fa50053db041c47902e3",
+      "verified_with": "git ls-remote of the remote main after the push, then a fetch: remote, local ref and HEAD equal; worktree clean including ignored files"
+    },
+    "commits_landed_on_main": [
+      "162d8b6e16433329f54a6cd953d5cb42a0891c15",
+      "74653f0365f49464ef05f91678e7e5b44a20301b",
+      "7a296a52b6696a08234417b6cd34c9f3c0b499e4",
+      "db060c4cf444fffa7f232f588ddb974af5d4e4b4",
+      "09297ba07cbad85b125e32baaf7cf8a2ce00987b",
+      "03790c2bdcf8894527c2d739fc79fed5b91ca604",
+      "011949df0675afede3ae04bf541ea7149a24c343",
+      "ff0ba75549f747ba79e4fa50053db041c47902e3"
+    ],
+    "plugin_version_by_dry_run_while_waiting": [
+      "2.35.7 -> 2.35.8",
+      "2.35.9 -> 2.35.10",
+      "2.35.10 -> 2.35.11",
+      "2.36.0 -> 2.36.1 (the release)"
+    ],
+    "hosts": "none refreshed by this work (release checklist step 5 is for installers); the owner's installed copies stay at the previous plugin version until refreshed",
+    "ci": "the push run for the release commit had passed its release-boundary, plan and browser-fixtures jobs and had six jobs still running (core, python-floor, three shiploop shards, e2e-apparatus) when this was recorded; not waited on",
+    "not_covered": "no host installed or ran the published version; the published copy equals the source byte for byte and passed the offline package checks only",
+    "host_refresh_20261109": {
+      "recorded": "2026-11-09",
+      "instruction": "the owner answered \"Refresh hosts\" to the question that closed the publication round",
+      "cli_versions": {
+        "claude_code": "2.1.319",
+        "codex": "0.167.0",
+        "grok": "1.0.77",
+        "cursor_agent": "2026.09.23"
+      },
+      "before": {
+        "claude_code": "skill-craft 2.36.0",
+        "grok": "skill-craft 2.36.0, no test-harness in its marketplace cache",
+        "codex": "skill-craft 2.36.1 (marketplace clone 3dddea1b, which contains the release)",
+        "cursor": "whichguy registered at ff0ba755, its cache holds 2.36.1"
+      },
+      "run": {
+        "claude_code": [
+          "claude plugin marketplace update whichguy",
+          "claude plugin update skill-craft@whichguy --scope user"
+        ],
+        "grok": [
+          "grok plugin marketplace update whichguy",
+          "grok plugin update skill-craft"
+        ],
+        "codex": [],
+        "cursor": []
+      },
+      "after": {
+        "claude_code": "2.36.1, enabled; the update command says to restart",
+        "grok": "2.36.1",
+        "codex": "2.36.1, unchanged",
+        "cursor": "2.36.1, unchanged"
+      },
+      "two_commands_needed": "after the marketplace refresh alone, claude plugin update reported 'updated from 2.36.0 to 2.36.1' and grok plugin details skill-craft still reported v2.36.0 until grok plugin update reported '2.36.0 -> 2.36.1'",
+      "grok_marketplace_update_argument": "takes the marketplace name; the URL that grok plugin marketplace list prints answered 'not found'",
+      "installed_copies_equal_release": {
+        "reference": "plugins/skill-craft/skills/test-harness at origin/main 85a7cda7, 21 files",
+        "claude_code": "byte-identical",
+        "codex": "byte-identical",
+        "grok": "byte-identical",
+        "cursor": "byte-identical",
+        "identical_control": "the reference compared with itself: byte-identical",
+        "must_differ_control": "an older private copy of the skill, 26 files: differed on 20 diff lines"
+      },
+      "marketplace_payload_unchanged_since_record_commit": "git diff --stat 404dcb0c origin/main over plugins/skill-craft, the four host catalogs and catalog/skill-craft-plugin.json printed nothing; the seven later commits are tests and docs",
+      "invalid_first_comparison": "in zsh a loop variable named path replaces PATH, so diff was not found and every row printed DIFFERS; rerun with another variable name, an identical-pair control and a must-differ control",
+      "ci": "the push runs for ff0ba755 and 404dcb0c finished success",
+      "not_covered": "no host has run the skill; Claude Code sessions already running keep the previous copy until it is restarted"
+    }
+  }
+}

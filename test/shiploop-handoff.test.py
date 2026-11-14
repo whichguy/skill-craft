@@ -11,9 +11,11 @@ Expected tables are written out by hand here, never read back from READS or CONS
 from __future__ import annotations
 
 import contextlib
+import base64
 import hashlib
 import html
 import io
+import json
 import os
 import re
 import subprocess
@@ -148,14 +150,15 @@ class QuotedBelowTests(RepoCase):
             for found in re.finditer(r"KNOWLEDGE/([\w.]+)[^\n]{0,80}\(quoted below\)", text):
                 said.add(stage)
                 self.assertIn(found.group(1), EXPECTED_READS[stage], stage + " says " + found.group(0))
-        self.assertEqual(said, {"test-strategy"})      # the one stage that quotes the spec and says so
+        # A duty may instead tell the reader to reopen the file. No duty must claim a quote exists.
+        self.assertNotIn("spec", said)
 
     def test_the_spec_stage_quotes_nothing_so_its_duty_tells_it_to_read_the_file(self) -> None:
         import shiploop_prompts as prompts
         self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
         self.assertEqual(navigator.reads_lines(self.state, "spec"), [])
         duty = " ".join(prompts.duty("spec", delegation="inline").split())
-        self.assertIn("Start from KNOWLEDGE/spec.md (read it whole)", duty)
+        self.assertRegex(duty, r"(?:Start from KNOWLEDGE/spec\.md \(read it whole\)|Read KNOWLEDGE/spec\.md whole)")
         self.assertNotIn("quoted below", duty)
 
     def test_test_strategy_lists_the_spec_by_contents_and_is_handed_the_spec_diff(self) -> None:
@@ -316,6 +319,530 @@ class BaselineTests(RepoCase):
 
 
 # ------------------------------------------------------------------------------------- lessons (owner decision 4, X8)
+
+class StartingKnowledgeTests(RepoCase):
+    """Starting working bytes, rather than HEAD/index bytes, own a new run's delta."""
+
+    snapshot_name = "run-starting-knowledge.json"
+
+    def snapshot(self) -> Path:
+        return self.root / self.snapshot_name
+
+    def test_dirty_staged_unstaged_and_untracked_start_is_not_a_change(self) -> None:
+        for kind in ("unstaged", "staged", "untracked"):
+            with self.subTest(kind=kind):
+                run = self.root / kind
+                run.mkdir()
+                spec = self.home("spec.md", "committed " + kind + "\n")
+                arch = self.home("architecture.md", "committed decision\n")
+                git(self.repo, "add", "--", str(spec), str(arch))
+                git(self.repo, "commit", "-qm", "starting knowledge")
+                if kind == "untracked":
+                    git(self.repo, "rm", "--cached", "--", str(spec), str(arch))
+                    git(self.repo, "commit", "-qm", "untrack knowledge")
+                spec.write_text("pending owner requirement already present\n")
+                arch.write_text("pending owner decision already present\n")
+                if kind == "staged":
+                    git(self.repo, "add", "--", str(spec), str(arch))
+                    spec.write_text("pending owner requirement already present\nunstaged too\n")
+                before = git(self.repo, "status", "--porcelain=v1")
+                head = self.head()
+                self.assertIsNone(knowledge.record_baseline(run, self.state))
+                self.assertEqual(knowledge.spec_diff(run, self.state), "")
+                self.assertEqual(git(self.repo, "status", "--porcelain=v1"), before)
+                self.assertEqual(self.head(), head)
+                spec.write_text(spec.read_text() + "after init\n")
+                diff = knowledge.spec_diff(run, self.state)
+                self.assertIn("+after init", diff)
+                self.assertNotIn("+pending owner", diff)
+
+    def test_preinit_deletion_is_absent_and_postinit_empty_addition_is_new(self) -> None:
+        spec = self.home("spec.md", "old\n")
+        git(self.repo, "add", "--", str(spec))
+        git(self.repo, "commit", "-qm", "old knowledge")
+        spec.unlink()
+        self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
+        spec.write_bytes(b"")
+        diff = knowledge.spec_diff(self.root, self.state)
+        self.assertIn("diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md\nnew file mode", diff)
+        self.assertNotIn("deleted file", diff)
+
+    def test_empty_start_deleted_is_not_absent_start(self) -> None:
+        spec = self.home("spec.md", "")
+        self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        spec.unlink()
+        self.assertIn("deleted file mode", knowledge.spec_diff(self.root, self.state))
+
+    def test_snapshot_is_complete_byte_safe_and_published_before_head(self) -> None:
+        import shiploop_store as store
+        spec = self.home("spec.md", "")
+        raw = b"\xef\xbb\xbf\xff\x00\r\nno final newline"
+        spec.write_bytes(raw)
+        publish = store.atomic_write_text
+        seen = []
+
+        def capture(path, text):
+            if Path(path).name == knowledge.RUN_BASELINE:
+                self.assertTrue(self.snapshot().is_file())
+                record = json.loads(self.snapshot().read_text())
+                self.assertEqual(record, {"version": 1, "head": self.head(), "files": {
+                    "docs/shiploop/spec.md": base64.b64encode(raw).decode("ascii"),
+                    "docs/shiploop/architecture.md": None}})
+            seen.append(Path(path).name)
+            publish(path, text)
+
+        with mock.patch.object(store, "atomic_write_text", side_effect=capture):
+            self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        self.assertEqual(seen, [self.snapshot_name, knowledge.RUN_BASELINE])
+        self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
+
+    def test_snapshot_failure_stops_head_publication(self) -> None:
+        import shiploop_store as store
+        for error in (OSError, store.StorageError):
+            with self.subTest(error=error.__name__):
+                with mock.patch.object(store, "atomic_write_text",
+                                       side_effect=error("injected snapshot publication failure")) as publish:
+                    note = knowledge.record_baseline(self.root, self.state)
+                self.assertIn("cannot record run baseline", note)
+                self.assertIn("injected snapshot publication failure", note)
+                self.assertEqual(publish.call_count, 1)
+                self.assertEqual(publish.call_args.args[0], self.snapshot())
+                self.assertFalse(self.snapshot().exists())
+                self.assertFalse((self.root / knowledge.RUN_BASELINE).exists())
+
+    def test_head_failure_repairs_bound_pointer_without_recapture(self) -> None:
+        import shiploop_store as store
+        self.home("spec.md", "before\n")
+        publish = store.atomic_write_text
+
+        def fail(path, text):
+            if Path(path).name == knowledge.RUN_BASELINE:
+                raise store.StorageError("injected HEAD publication failure")
+            publish(path, text)
+
+        with mock.patch.object(store, "atomic_write_text", side_effect=fail):
+            self.assertIn("injected", knowledge.record_baseline(self.root, self.state) or "")
+        before = self.snapshot().read_bytes()
+        start_head = self.head()
+        spec = self.home("spec.md", "later\n")
+        git(self.repo, "add", "--", str(spec))
+        git(self.repo, "commit", "-qm", "after failed publication")
+        self.assertNotEqual(self.head(), start_head)
+        self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+        with mock.patch.object(knowledge, "_starting_bytes", side_effect=AssertionError("must not recapture")):
+            self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        self.assertEqual(self.snapshot().read_bytes(), before)
+        self.assertEqual((self.root / knowledge.RUN_BASELINE).read_text(), start_head + "\n")
+        self.assertIn("-before\n+later\n", knowledge.spec_diff(self.root, self.state))
+
+    def test_pointer_repair_failure_keeps_snapshot_and_returns_note(self) -> None:
+        import shiploop_store as store
+        knowledge.record_baseline(self.root, self.state)
+        before = self.snapshot().read_bytes()
+        record = self.root / knowledge.RUN_BASELINE
+        for error in (OSError, store.StorageError):
+            with self.subTest(error=error.__name__):
+                record.unlink(missing_ok=True)
+                with mock.patch.object(knowledge, "_starting_bytes", side_effect=AssertionError("must not recapture")):
+                    with mock.patch.object(store, "atomic_write_text",
+                                           side_effect=error("injected repair failure")) as publish:
+                        note = knowledge.record_baseline(self.root, self.state)
+                self.assertIn("cannot record run baseline", note)
+                self.assertIn("injected repair failure", note)
+                publish.assert_called_once_with(record, self.head() + "\n")
+                self.assertEqual(self.snapshot().read_bytes(), before)
+                self.assertFalse(record.exists())
+                self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+        self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
+
+    def test_postinit_commits_and_resume_do_not_recapture(self) -> None:
+        spec = self.home("spec.md", "starting\n")
+        knowledge.record_baseline(self.root, self.state)
+        before = self.snapshot().read_bytes()
+        spec.write_text("changed\n")
+        git(self.repo, "add", "--", str(spec))
+        git(self.repo, "commit", "-qm", "after init")
+        knowledge.record_baseline(self.root, self.state)
+        self.assertEqual(self.snapshot().read_bytes(), before)
+        diff = knowledge.spec_diff(self.root, self.state)
+        self.assertIn("-starting\n+changed\n", diff)
+        spec.unlink()
+        diff = knowledge.spec_diff(self.root, self.state)
+        self.assertIn("deleted file mode", diff)
+        self.assertIn("--- a/docs/shiploop/spec.md\n+++ /dev/null", diff)
+
+    def test_malformed_snapshot_is_unavailable_never_legacy_or_recaptured(self) -> None:
+        (self.root / knowledge.RUN_BASELINE).write_text(self.head() + "\n")
+        self.home("spec.md", "current\n")
+        for raw in (b"{", b"\xff", b"[]", b'{"version": 1, "files": {}}',
+                    b'{"version": 2, "version": 1, "files": {"docs/shiploop/spec.md": null, '
+                    b'"docs/shiploop/architecture.md": null}}',
+                    b'{"version": true, "files": {"docs/shiploop/spec.md": null, '
+                    b'"docs/shiploop/architecture.md": null}}',
+                    json.dumps({"version": 1, "files": {"docs/shiploop/spec.md": "!bad!",
+                                                       "docs/shiploop/architecture.md": None}}).encode()):
+            raw = raw.replace(b'"files":', b'"head": "' + self.head().encode() + b'", "files":')
+            with self.subTest(raw=raw):
+                self.snapshot().write_bytes(raw)
+                self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+                with mock.patch.object(knowledge, "_starting_bytes", side_effect=AssertionError("must not recapture")):
+                    self.assertIn("unavailable", knowledge.record_baseline(self.root, self.state) or "")
+                self.assertEqual(self.snapshot().read_bytes(), raw)
+
+    def test_malformed_head_with_snapshot_repairs_only_pointer(self) -> None:
+        knowledge.record_baseline(self.root, self.state)
+        before = self.snapshot().read_bytes()
+        record = self.root / knowledge.RUN_BASELINE
+        for content in (b"", b"not a commit\n", b"\xff"):
+            with self.subTest(content=content):
+                record.write_bytes(content)
+                self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+                self.assertIn("evidence is unavailable", "\n".join(navigator._spec_diff_section(self.state, self.root)))
+                with mock.patch.object(knowledge, "_starting_bytes", side_effect=AssertionError("must not recapture")):
+                    self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+                self.assertEqual(record.read_text(), self.head() + "\n")
+                self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
+                self.assertEqual(self.snapshot().read_bytes(), before)
+
+    def test_head_only_record_remains_legacy(self) -> None:
+        (self.root / knowledge.RUN_BASELINE).write_text(self.head() + "\n")
+        spec = self.home("spec.md", "legacy working edit\n")
+        git(self.repo, "add", "-N", "--", str(spec))
+        knowledge.record_baseline(self.root, self.state)
+        self.assertFalse(self.snapshot().exists())
+        self.assertIn("+legacy working edit", knowledge.spec_diff(self.root, self.state))
+
+    def test_read_failures_are_unavailable_not_absence(self) -> None:
+        self.home("spec.md", "starting\n")
+        read = Path.read_bytes
+
+        def fail(path):
+            if path == self.repo / "docs/shiploop/architecture.md":
+                raise PermissionError("injected read failure")
+            return read(path)
+
+        with mock.patch.object(Path, "read_bytes", fail):
+            self.assertIn("injected read failure", knowledge.record_baseline(self.root, self.state) or "")
+        self.assertFalse(self.snapshot().exists())
+        self.assertFalse((self.root / knowledge.RUN_BASELINE).exists())
+        knowledge.record_baseline(self.root, self.state)
+        with mock.patch.object(Path, "read_bytes", fail):
+            self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+
+    def test_headers_contents_hunks_and_no_final_newline_are_preserved(self) -> None:
+        spec = self.home("spec.md", "--- old header\n+++ old header\nlast")
+        knowledge.record_baseline(self.root, self.state)
+        spec.write_bytes(b"--- new header\r\n+++ new header\r\nlast changed")
+        diff = knowledge.spec_diff(self.root, self.state)
+        self.assertTrue(diff.startswith("diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md\n"), diff)
+        self.assertIn("--- a/docs/shiploop/spec.md\n+++ b/docs/shiploop/spec.md\n", diff)
+        self.assertIn("@@ -1,3 +1,3 @@", diff)
+        self.assertIn("---- old header\n-+++ old header\n", diff)
+        self.assertIn("+--- new header\r\n++++ new header\r\n", diff)
+        self.assertEqual(diff.count("\\ No newline at end of file"), 2)
+        self.assertNotIn(str(self.base), diff)
+
+    def test_each_file_is_separate_no_rename_and_renderer_sees_new_file(self) -> None:
+        spec = self.home("spec.md", "## Requirements\n- R-1: one\n")
+        knowledge.record_baseline(self.root, self.state)
+        spec.rename(spec.with_name("architecture.md"))
+        git(self.repo, "config", "diff.renames", "true")
+        git(self.repo, "config", "diff.external", "/does/not/exist")
+        (self.repo / ".gitattributes").write_text("*.md diff=trap\n")
+        git(self.repo, "config", "diff.trap.textconv", "/does/not/exist")
+        diff = knowledge.spec_diff(self.root, self.state)
+        self.assertIn("deleted file mode", diff)
+        self.assertIn("new file mode", diff)
+        self.assertNotIn("rename", diff)
+        self.assertEqual(len(navigator._diff_chunks(diff)), 2)
+        rendered = navigator._spec_diff_lines(diff)
+        self.assertTrue(any(line.startswith("KNOWLEDGE/architecture.md: new since the baseline") for line in rendered))
+        self.assertIn("--- /dev/null\n+++ b/docs/shiploop/architecture.md", diff)
+
+    def test_clean_managed_worktree_uses_starting_bytes_without_repo_writes(self) -> None:
+        spec = self.home("spec.md", "clean\n")
+        git(self.repo, "add", "--", str(spec))
+        git(self.repo, "commit", "-qm", "knowledge")
+        managed = self.base / "managed"
+        git(self.repo, "worktree", "add", "--detach", str(managed), "HEAD")
+        state = dict(self.state, repo=str(managed))
+        before = self.head()
+        self.assertIsNone(knowledge.record_baseline(self.root, state))
+        self.assertEqual(knowledge.spec_diff(self.root, state), "")
+        (managed / "docs/shiploop/spec.md").write_text("managed edit\n")
+        self.assertIn("+managed edit", knowledge.spec_diff(self.root, state))
+        self.assertEqual(self.head(), before)
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_real_init_captures_dirty_start_and_renders_snapshot_label(self) -> None:
+        self.home("spec.md", "pending requirement present before init\n")
+        done = BaselineTests.init(self, self.repo)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(self.snapshot().is_file())
+        self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
+        self.home("spec.md", "pending requirement present before init\nnew line\n")
+        diff = knowledge.spec_diff(self.root, self.state)
+        source = navigator.Source("spec_diff", None, None, None, diff)
+        lines = navigator._source_lines(self.root, self.state, source)
+        self.assertIn("baseline starting bytes; HEAD " + self.head()[:12], lines[0])
+        self.assertFalse(any("new since the baseline" in line for line in lines))
+        self.assertIn("baseline starting bytes; HEAD " + self.head()[:12],
+                      "\n".join(navigator._spec_diff_section(self.state, self.root)))
+
+    def resume_cli(self, verb: str) -> subprocess.CompletedProcess:
+        if verb == "init":
+            return BaselineTests.init(self, self.repo)
+        return subprocess.run([sys.executable, "-B", str(CLI), verb, "--run-dir", str(self.root)],
+                              capture_output=True, text=True, cwd=self.base,
+                              env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
+                                       GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1"))
+
+    def test_cli_resume_repairs_original_pointer_without_recapture(self) -> None:
+        self.home("spec.md", "original starting bytes\n")
+        self.assertEqual(self.resume_cli("init").returncode, 0)
+        saved = self.snapshot().read_bytes()
+        start = self.head()
+        record = self.root / knowledge.RUN_BASELINE
+        for verb in ("init", "next"):
+            for broken in (None, b"invalid pointer\n", b"\xff"):
+                with self.subTest(verb=verb, broken=broken):
+                    record.unlink(missing_ok=True)
+                    if broken is not None:
+                        record.write_bytes(broken)
+                    self.home("spec.md", "later " + verb + " bytes\n")
+                    git(self.repo, "add", "--", "docs/shiploop/spec.md")
+                    git(self.repo, "commit", "--allow-empty", "-qm", "advance HEAD")
+                    self.assertNotEqual(self.head(), start)
+                    done = self.resume_cli(verb)
+                    self.assertEqual(done.returncode, 0, done.stderr)
+                    self.assertTrue(record.is_file(), done.stderr)
+                    self.assertEqual(record.read_bytes(), (start + "\n").encode())
+                    self.assertEqual(self.snapshot().read_bytes(), saved)
+                    self.assertIn("-original starting bytes\n+later " + verb + " bytes\n",
+                                  knowledge.spec_diff(self.root, self.state))
+
+    def test_cli_resume_without_artifacts_never_captures_current_bytes(self) -> None:
+        self.assertEqual(self.resume_cli("init").returncode, 0)
+        self.snapshot().unlink()
+        (self.root / knowledge.RUN_BASELINE).unlink()
+        self.home("spec.md", "must never become starting bytes\n")
+        git(self.repo, "add", "--", "docs/shiploop/spec.md")
+        git(self.repo, "commit", "-qm", "later content")
+        for verb in ("init", "next"):
+            with self.subTest(verb=verb):
+                done = self.resume_cli(verb)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertFalse(self.snapshot().exists())
+                self.assertFalse((self.root / knowledge.RUN_BASELINE).exists())
+                self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+
+    def test_cli_resume_reports_invalid_snapshot_and_pointer_write_failure(self) -> None:
+        self.assertEqual(self.resume_cli("init").returncode, 0)
+        saved = self.snapshot().read_bytes()
+        record = self.root / knowledge.RUN_BASELINE
+        record.unlink()
+        self.snapshot().write_text("{broken")
+        done = self.resume_cli("init")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("snapshot/pointer evidence unavailable", done.stderr)
+        self.assertFalse(record.exists())
+        self.snapshot().write_bytes(saved)
+        record.mkdir()  # real atomic pointer publication cannot replace a directory
+        done = self.resume_cli("next")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("snapshot/pointer evidence unavailable", done.stderr)
+        self.assertEqual(self.snapshot().read_bytes(), saved)
+        self.assertTrue(record.is_dir())
+
+    def test_read_only_cli_does_not_repair_and_resume_preserves_valid_conflict(self) -> None:
+        self.assertEqual(self.resume_cli("init").returncode, 0)
+        saved = self.snapshot().read_bytes()
+        record = self.root / knowledge.RUN_BASELINE
+        record.unlink()
+        for verb in ("status", "report"):
+            with self.subTest(verb=verb):
+                done = self.resume_cli(verb)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertFalse(record.exists())
+                self.assertEqual(self.snapshot().read_bytes(), saved)
+        git(self.repo, "commit", "--allow-empty", "-qm", "conflicting HEAD")
+        conflict = (self.head() + "\n").encode()
+        record.write_bytes(conflict)
+        for verb in ("init", "next"):
+            with self.subTest(verb=verb):
+                done = self.resume_cli(verb)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertIn("HEAD conflict", done.stderr)
+                self.assertEqual(record.read_bytes(), conflict)
+                self.assertEqual(self.snapshot().read_bytes(), saved)
+                self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+
+    def test_snapshot_only_repair_returns_storage_error_note(self) -> None:
+        import shiploop_store as store
+        knowledge.record_baseline(self.root, self.state)
+        saved = self.snapshot().read_bytes()
+        record = self.root / knowledge.RUN_BASELINE
+        record.unlink()
+        with mock.patch.object(knowledge, "_starting_bytes", side_effect=AssertionError("must not capture")):
+            with mock.patch.object(store, "atomic_write_text", side_effect=store.StorageError("injected repair")):
+                note = knowledge.repair_baseline_pointer(self.root)
+        self.assertIn("snapshot/pointer evidence unavailable", note or "")
+        self.assertIn("injected repair", note or "")
+        self.assertFalse(record.exists())
+        self.assertEqual(self.snapshot().read_bytes(), saved)
+
+    def test_dangling_link_read_failure_leaves_no_partial_baseline(self) -> None:
+        spec = self.home("spec.md", "readable first file\n")
+        arch = spec.with_name("architecture.md")
+        arch.symlink_to("missing-target.md")
+        note = knowledge.record_baseline(self.root, self.state)
+        self.assertIn("cannot record run baseline", note or "")
+        self.assertIn("architecture.md", note or "")
+        self.assertFalse(self.snapshot().exists())
+        self.assertFalse((self.root / knowledge.RUN_BASELINE).exists())
+        arch.unlink()
+        self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        saved = self.snapshot().read_bytes()
+        arch.symlink_to("missing-target.md")
+        self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+        self.assertEqual(self.snapshot().read_bytes(), saved)
+
+    def test_dangling_directory_link_leaves_no_partial_baseline(self) -> None:
+        home = self.repo / knowledge.HOME
+        home.parent.mkdir(parents=True)
+        home.symlink_to("missing-directory", target_is_directory=True)
+        note = knowledge.record_baseline(self.root, self.state)
+        self.assertIn("cannot record run baseline", note or "")
+        self.assertFalse(self.snapshot().exists())
+        self.assertFalse((self.root / knowledge.RUN_BASELINE).exists())
+
+    def test_readable_directory_link_becoming_unavailable_has_no_diff(self) -> None:
+        target = self.repo / "knowledge-target"
+        target.mkdir()
+        (target / "spec.md").write_bytes(b"linked specification\n")
+        (target / "architecture.md").write_bytes(b"linked architecture\n")
+        home = self.repo / knowledge.HOME
+        home.parent.mkdir(parents=True)
+        home.symlink_to(target, target_is_directory=True)
+        self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        saved = self.snapshot().read_bytes()
+        self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
+        target.rename(target.with_name("unavailable-target"))
+        self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+        self.assertEqual(self.snapshot().read_bytes(), saved)
+
+    def test_readable_link_snapshot_tracks_content_only(self) -> None:
+        target = self.repo / "target.md"
+        target.write_bytes(b"linked content\n")
+        spec = self.home("spec.md", "")
+        spec.unlink()
+        spec.symlink_to(target)
+        self.assertIsNone(knowledge.record_baseline(self.root, self.state))
+        payload = json.loads(self.snapshot().read_text())
+        self.assertEqual(base64.b64decode(payload["files"]["docs/shiploop/spec.md"]), target.read_bytes())
+        spec.unlink()
+        spec.write_bytes(target.read_bytes())
+        self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
+        spec.write_bytes(b"changed content\n")
+        self.assertIn("-linked content\n+changed content", knowledge.spec_diff(self.root, self.state))
+
+    def test_non_utf8_snapshot_is_exact_and_diff_text_is_safe(self) -> None:
+        spec = self.home("spec.md", "")
+        starting = b"old \xff caf\xc3\xa9\r\nlast"
+        spec.write_bytes(starting)
+        knowledge.record_baseline(self.root, self.state)
+        saved = self.snapshot().read_bytes()
+        payload = json.loads(saved)
+        self.assertEqual(base64.b64decode(payload["files"]["docs/shiploop/spec.md"]), starting)
+        spec.write_bytes(b"new \xfe caf\xc3\xa9\r\nchanged")
+        diff = knowledge.spec_diff(self.root, self.state)
+        self.assertIn("-old \ufffd café\r\n", diff)
+        self.assertIn("+new \ufffd café\r\n", diff)
+        self.assertEqual(self.snapshot().read_bytes(), saved)
+        self.assertEqual(diff.count("\\ No newline at end of file"), 2)
+        diff.encode("utf-8")
+
+    def test_non_utf8_diff_renders_through_packet_and_report_utf8_outputs(self) -> None:
+        spec = self.home("spec.md", "")
+        spec.write_bytes(b"old \xff\n")
+        knowledge.record_baseline(self.root, self.state)
+        spec.write_bytes(b"new \xfe <tag> caf\xc3\xa9\n")
+        diff = knowledge.spec_diff(self.root, self.state)
+        source = navigator.Source("spec_diff", None, None, None, diff)
+        outputs = {
+            "packet.md": "\n".join(navigator._source_lines(self.root, self.state, source)),
+            "report.html": "\n".join(navigator._spec_diff_section(self.state, self.root)),
+        }
+        for name, text in outputs.items():
+            with self.subTest(renderer=name, output="write"):
+                path = self.root / name
+                path.write_text(text, encoding="utf-8")
+                self.assertIn("café", path.read_text(encoding="utf-8"))
+            with self.subTest(renderer=name, output="print"):
+                buffer = io.BytesIO()
+                with io.TextIOWrapper(buffer, encoding="utf-8", errors="strict") as stream:
+                    print(text, file=stream)
+                    stream.flush()
+                    self.assertIn("café".encode(), buffer.getvalue())
+            with self.subTest(renderer=name, output="replacement"):
+                self.assertIn("+new \ufffd", text)
+        self.assertIn("&lt;tag&gt;", outputs["report.html"])
+
+    def test_valid_conflicting_head_is_never_overwritten_or_diffed(self) -> None:
+        knowledge.record_baseline(self.root, self.state)
+        snapshot = self.snapshot().read_bytes()
+        git(self.repo, "commit", "--allow-empty", "-qm", "another HEAD")
+        record = self.root / knowledge.RUN_BASELINE
+        conflicting = self.head() + "\n"
+        record.write_text(conflicting)
+        self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+        self.assertIn("conflict", knowledge.record_baseline(self.root, self.state) or "")
+        self.assertEqual(record.read_text(), conflicting)
+        self.assertEqual(self.snapshot().read_bytes(), snapshot)
+
+    def test_unbound_or_invalid_snapshot_prevents_pointer_repair_and_recapture(self) -> None:
+        knowledge.record_baseline(self.root, self.state)
+        payload = json.loads(self.snapshot().read_text())
+        record = self.root / knowledge.RUN_BASELINE
+        for head in (None, "bad", True):
+            with self.subTest(head=head):
+                broken = dict(payload)
+                if head is None:
+                    broken.pop("head", None)
+                else:
+                    broken["head"] = head
+                raw = json.dumps(broken).encode()
+                self.snapshot().write_bytes(raw)
+                record.unlink(missing_ok=True)
+                with mock.patch.object(knowledge, "_starting_bytes", side_effect=AssertionError("must not recapture")):
+                    self.assertIn("unavailable", knowledge.record_baseline(self.root, self.state) or "")
+                self.assertFalse(record.exists())
+                self.assertEqual(self.snapshot().read_bytes(), raw)
+                record.write_text(self.head() + "\n")
+                self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+
+    def test_non_git_and_unborn_keep_no_artifacts(self) -> None:
+        for kind in ("plain", "unborn"):
+            with self.subTest(kind=kind):
+                repo = self.base / kind
+                repo.mkdir()
+                if kind == "unborn":
+                    git(repo, "init", "-q")
+                (repo / "docs/shiploop").mkdir(parents=True)
+                (repo / "docs/shiploop/spec.md").write_text("preexisting\n")
+                state = dict(self.state, repo=str(repo))
+                reason = knowledge.record_baseline(self.root, state)
+                if kind == "unborn":
+                    self.assertIn("names no commit", reason)
+                else:
+                    self.assertIsNone(reason)
+                self.assertFalse(self.snapshot().exists())
+                self.assertFalse((self.root / knowledge.RUN_BASELINE).exists())
+                self.assertIsNone(knowledge.spec_diff(self.root, state))
+
+
 
 def done_release_verify(state: dict, lessons: dict | None) -> dict:
     result = {"outcome": "done", "summary": "Verified."}
@@ -828,9 +1355,38 @@ class TestLayerGateTests(RepoCase):
         navigator._check_submitted_layers(state, "step-plan", dict(
             plan, criteria=[{"id": "C1", "text": "x", "confirm": "searched"}]))
         for command, only in (("grep -q x a.js", True), ("cd src && rg -q x", True), ("! grep -q TypeError log", True),
-                              ("node cli.js | grep -q ok", False), ("FOO=1 npm test", False), ("true", False)):
+                              ("node cli.js | grep -q ok", False), ("FOO=1 npm test", False), ("true", False),
+                              # quoted text is one word (the step-boundary replay, Astra's finding on p0's search)
+                              (P0_SEARCH, True), ("grep -q 'a|b' f && node t.js", False),
+                              ("rg -q x\nrg -q y", True), ('grep -q "unclosed f', False)):
             with self.subTest(command=command):
                 self.assertEqual(layers.search_only(command), only)
+
+    def test_the_historical_p0_search_recorded_as_focused_is_refused(self) -> None:
+        # The exact command whose late send-back motivated the refusal (2026-10-30 run, step plan
+        # nav-49a22f541c1b4ca4af8b7e062965166d): its quoted docstrings hold semicolons, which the first classifier split as
+        # commands, so 1.34.0 let it through (Astra's review of the step-boundary replay, 2026-11-13).
+        state = self.strategy_state([self.UNIT])
+        plan = {"outcome": "done", "summary": "s", "criteria": [{"id": "C3", "text": "x", "confirm": "searched"}],
+                "test_commands": [{"command": P0_SEARCH, "suite": "focused", "criteria": ["C3"]}]}
+        self.assertIn("is recorded suite focused but only searches text", self.refused(state, "step-plan", plan))
+
+    def test_a_search_recorded_as_a_focused_command_is_refused_and_a_check_passes(self) -> None:
+        # A focused command prints test IDs and counts for the test stage; a search prints neither, so it can only fail
+        # there (p0-terra's late send-back and its 16 minutes of replayed steps; csv-report s2 in step-plan round 2).
+        state = self.strategy_state([self.UNIT])
+        search = {"command": "rg -F -n 'Parse a string into records' src/records.js", "suite": "focused",
+                  "ids": ["TC-3"], "criteria": ["C3"]}
+        plan = {"outcome": "done", "summary": "s", "criteria": [{"id": "C3", "text": "x", "confirm": "searched"}],
+                "test_commands": [search]}
+        message = self.refused(state, "step-plan", plan)
+        self.assertIn("is recorded suite focused but only searches text", message)
+        self.assertIn("Record it with suite check and no ids or min_tests", message)
+        check = {"command": search["command"], "suite": "check", "criteria": ["C3"]}
+        navigator._check_submitted_layers(state, "step-plan", dict(plan, test_commands=[check]))
+        runs = dict(search, command="node --test test/records.test.js && rg -q 'Parse' src/records.js")
+        navigator._check_submitted_layers(state, "step-plan", dict(
+            plan, criteria=[{"id": "C3", "text": "x", "confirm": "executed"}], test_commands=[runs]))
 
     def test_a_step_plan_with_code_lists_its_own_rows_when_the_run_recorded_none(self) -> None:
         state = self.strategy_state(None, test_layers_na="The run planned documents only.")
@@ -1603,12 +2159,21 @@ class ConsumesTests(RepoCase):
         cf = row("cf1", "carry-forward", "W1", {"assumptions": []})
         settled = dict(state, history=state["history"] + [cf[0]], accepted=dict(state["accepted"], cf1=cf[1]))
         self.assertEqual(found(settled), [])
-        # A send-back replans the item: the steps documented before it are gone, and a later document is the only one.
+        # Fix forward (owner 2026-11-12): a send-back keeps the done steps, so their open items stay through the amended
+        # plan that marks them done, until the item's carry-forward.  A plan that marks none starts again (every plan
+        # before fix forward; ShipLoop now refuses one after a send-back that left a done step).
         back = row("im3", "implement", "W1", {}, outcome="send-back")
-        again = row("dc3", "document", "W1", {"assumptions": [open_row("S1-F2", "carry-forward")]})
-        replanned = dict(state, history=state["history"] + [back[0], again[0]],
-                         accepted=dict(state["accepted"], im3=back[1], dc3=again[1]))
-        self.assertEqual(found(replanned), [("document", "dc3", "S1-F2")])
+        amended = row("sp2", "step-plan", "W1", {"follows": [], "steps": [
+            {"id": "S1", "task": "t", "done": True}, {"id": "S2", "task": "t", "done": True}, {"id": "S3", "task": "t"}]})
+        again = row("dc3", "document", "W1", {"assumptions": [open_row("S3-F1", "carry-forward")]})
+        kept = dict(state, history=state["history"] + [back[0], amended[0], again[0]],
+                    accepted=dict(state["accepted"], im3=back[1], sp2=amended[1], dc3=again[1]))
+        self.assertEqual(found(kept), [("document", "dc1", "S1-F1"), ("document", "dc2", "S2-F1"),
+                                       ("document", "dc3", "S3-F1")])
+        fresh = row("sp3", "step-plan", "W1", {"follows": [], "steps": [{"id": "S1", "task": "t"}]})
+        restarted = dict(state, history=state["history"] + [back[0], fresh[0], again[0]],
+                         accepted=dict(state["accepted"], im3=back[1], sp3=fresh[1], dc3=again[1]))
+        self.assertEqual(found(restarted), [("document", "dc3", "S3-F1")])
         # Another item's document rows are its own.
         other = row("dc9", "document", "W2", {"assumptions": [open_row("W2-F1", "carry-forward")]})
         both = dict(state, history=state["history"] + [other[0]], accepted=dict(state["accepted"], dc9=other[1]))
@@ -2037,39 +2602,40 @@ class SameBlockDuplicateTests(LongHomeCase):
 # blocks (19-, 23- and 32-document) list it by contents and no longer hash as their item's verify block; every other
 # block hashes as before.  Renumbered 2026-10-28 by design T section 9.1 2b-4c (verify retired): the two verify blocks
 # (25- and 34-verify) are gone and the walk's later packet numbers shift; every other block's hash, in order, is
-# unchanged.
+# unchanged. Re-pinned 2026-11-11 only for the nine diff consumers: unavailable evidence now includes malformed
+# starting snapshots, rather than claiming only a missing HEAD baseline. Both routes retain the same hashes.
 SMALL_HOME_FINGERPRINTS: dict = {
     "01-intake": "20425423036e",
     "02-discovery": "e3b0c44298fc",
     "03-research": "e3b0c44298fc",
     "04-spec": "e3b0c44298fc",
-    "06-test-strategy": "c3d1dcf21c01",
-    "08-plan": "c384b412d4d4",
+    "06-test-strategy": "ae54b4945871",
+    "08-plan": "4f393426828c",
     "10-prepare": "7a195e151115",
     "11-step-plan": "34d4ded0cbd4",
     "13-test-spec": "603a3bd68476",
     "14-validate-existing": "fd56ae387ab8",
     "15-implement": "78542e80fa7e",
     "16-test": "9ac7795d7ff5",
-    "19-document": "1dac24adc67e",
+    "19-document": "da020dade1fa",
     "21-implement": "84d5d7f4412f",
     "22-test": "47512f89e19d",
-    "23-document": "68da442e2a67",
-    "25-carry-forward": "644fb96deb86",
+    "23-document": "a3f2ed5a00c3",
+    "25-carry-forward": "1b56bb9895e1",
     "26-step-plan": "6d1756f3cf4b",
     "27-test-spec": "a6f458c2ef70",
     "28-validate-existing": "fd56ae387ab8",
     "29-implement": "7f5ec4c052ae",
     "30-test": "3aa81f32adf2",
-    "31-document": "b9bf90857943",
-    "33-carry-forward": "50e264bc8291",
+    "31-document": "f58024eafdd1",
+    "33-carry-forward": "fcf610ff5c20",
     "35-system-test-author": "9c09062ca617",
     "37-system-test": "5c1876049e88",
-    "38-product-acceptance": "d957aea6fbd1",
+    "38-product-acceptance": "b6f629a51612",
     "39-release-plan": "d18a852bbe13",
     "41-release-check": "283571c24c3a",
     "42-release": "283571c24c3a",
-    "43-release-verify": "3bf63126c3e6",
+    "43-release-verify": "5691052c27b4",
     "44-operations": "283571c24c3a",
     "45-handoff": "7e50c8910839",
 }
@@ -3091,14 +3657,22 @@ class StepAggregateTests(RepoCase):
         self.assertEqual([planning_revision.step_actions(state, "W1", stage) for stage in ("implement", "test", "document")],
                          [["im1", "im2"], ["te1", "te2"], ["dc1", "dc2"]])
 
-    def test_a_send_back_or_a_new_step_plan_starts_the_aggregate_again(self) -> None:
+    def test_a_send_back_keeps_the_done_steps_and_a_plan_without_marks_starts_the_aggregate_again(self) -> None:
+        # Fix forward: the two documented steps stay done across the send-back (planning_revision._StepLists), with
+        # done_steps naming how many the next plan must keep; a step plan that marks none starts the aggregate again.
         import shiploop_planning_revision as planning_revision
         state = self.two_step_item("step-plan", row("dc3", "document", "W1", {}, outcome="send-back"))
-        self.assertEqual(planning_revision.step_actions(state, "W1", "test"), [])
+        self.assertEqual(planning_revision.step_actions(state, "W1", "test"), ["te1", "te2"])
+        self.assertEqual(planning_revision.done_steps(state, "W1"), 2)
         state = self.two_step_item("test", row("sp2", "step-plan", "W1", {"steps": [{"id": "S1"}]}),
                                    row("im3", "implement", "W1", {}), row("te3", "test", "W1", {}))
         self.assertEqual(planning_revision.step_actions(state, "W1", "test"), ["te3"])
         self.assertEqual(planning_revision.step_actions(state, "W2", "test"), [])
+
+
+# The focused command of the 2026-10-30 run's first step plan, as recorded (its late send-back cost 16 minutes of replay).
+P0_SEARCH = ("rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js "
+             "&& rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js")
 
 
 def stage_spec_duty(stage: str) -> str:

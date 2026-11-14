@@ -1,0 +1,91 @@
+{
+  "schema": "shiploop-lifecycle-assessment-evidence/1",
+  "source_commit": "4990932ee4a0e8f3e2c55bb8a16e4364ba24849e",
+  "trial": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+  "external_root": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113",
+  "final_product_head": "730b8b8a17d618e8aa90d8068777423c95783aa3",
+  "final_product_tree": "20960c26f3bf0bdabee18f1777bd1410f49d7544",
+  "predecessor_head": "42180cb17bf98f5d527a214c98f3a2b5896766f1",
+  "catalog": {
+    "pass": 9,
+    "total": 9
+  },
+  "held_out": {
+    "pass": 14,
+    "total": 14,
+    "preserved": 7,
+    "added": 7
+  },
+  "own_tests": 133,
+  "pristine_tests": 117,
+  "elapsed_seconds": 15343.3757,
+  "functional": "supported-pass",
+  "semantic": "supported-gap",
+  "comparison": "not a comparative experiment or promotion",
+  "artifacts": [
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/registration.json",
+      "sha256": "48894609774c783ec8e59fd6a64ee1a888af91e5ab361e5c96b8e193b5a5ce82"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/live-worker/manifest.json",
+      "sha256": "4d3e523a41d527d25d12f6f2313fb3dae553465d08f7acd4059b46fcb567ca23"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/live-worker/collection.json",
+      "sha256": "88783fd1057cd380441462b013f3d21e8393a31e7c8f49ebdb800447eeec535a"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/astra-review.json",
+      "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/astra-review-brief.md",
+      "sha256": "f6a138dd8963b0806f61c107baa875120689a6912509c5862a49b62352b7c8cf"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-inventory-probe.json",
+      "sha256": "f9cada7581f9cdbcc0acbae40804aa46868d1d97187d50b8f7786039571d009b"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-review/audit-input.json",
+      "sha256": "18f53009c065a75ff11f0fccef80d19e0585f46fc6570c7afa92d40a0515f1f7"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-review/workflow-review.json",
+      "sha256": "1365aa9c43038f61ddcd69d7cd5f915e5cba7dfccb92167ed21b6dc71cde78e8"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-review/assessment.json",
+      "sha256": "1ab69e80cff51a6bc307c00a5ee977a724658ff2930defffbb92bce5bc8cc437"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-review/evidence-manifest.json",
+      "sha256": "a5b59e1dcd270b584da77d2edea92c1b2fce4be722e35ea6be6f4fb9370e69e4"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/result.json",
+      "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/metrics.json",
+      "sha256": "a33982410017071d439a5515c38802ded04265a3d201ec57756ec0703e46aede"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/invocation.json",
+      "sha256": "b5848b5104db332ed9cba4d7120084576f61ff0061e6db86b4268fd2c48518b4"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/review-export/review-export.json",
+      "sha256": "265624946e49babda717c9aa9fabd177cc064fa3d559a90add2a045ceb2c7765"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/audit-terminal/evidence-manifest.json",
+      "sha256": "fbf99c4332f98f1c48d6857a6348e69dd8c4a4f5ff670b58ec319986c29d2fab"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/post-quality-export/review-export.json",
+      "sha256": "a1f9c0727e5e5e464c7516200bb9c61fe43bad1c63e93758a997873335019bd5"
+    }
+  ]
+}

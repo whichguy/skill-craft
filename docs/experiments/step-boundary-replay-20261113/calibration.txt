@@ -1,0 +1,10 @@
+Calibration, 2026-11-13, fresh builds of each scenario; gate = shiploop check (rc 0 accept, 2 refuse); oracle exit 0 pass
+p0 (replay-p0-late-send-back): state step-plan, done_steps 1, HEAD = S1 commit, dirty src/records.js
+  historical-amendment-marked  check_rc=0 fidelity=0 correction=0
+  original-unmarked            check_rc=2 (focused-search refusal first) fidelity=1 correction=1
+  S1-changed                   check_rc=2 (fix-forward: done step S1 differs) fidelity=1 correction=0
+  focused-search-kept          check_rc=2 (focused-search refusal) fidelity=0 correction=1
+ticket-comments (replay-ticket-comments-late-send-back): state step-plan, done 1, dirty src/app.js src/tickets/validate.js
+  historical-amendment-marked  check_rc=0 fidelity=0 correction=0 (amended S2 Proof exits 0 on the draft)
+  original-unmarked            check_rc=2 fidelity=1 correction=1
+  S2-proof-unchanged           check_rc=0 fidelity=0 correction=1 (the gate cannot know a Proof is broken; the oracle can)

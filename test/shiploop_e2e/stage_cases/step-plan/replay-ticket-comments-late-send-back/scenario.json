@@ -1,0 +1,628 @@
+{
+ "stage": "step-plan",
+ "about": "Replay of the 2026-11-01 ticket-comments run at its late send-back: S1 is done (built, tested, documented, reviewed, committed); S2 was being built when its implement stage sent the item back, because S2's Proof quoting makes its assertions unachievable (the expected author string becomes the assert function). The amendment must keep S1 exactly and give S2 a Proof that runs.",
+ "tags": [
+  "replay",
+  "fix-forward"
+ ],
+ "tiers": [
+  "render",
+  "live"
+ ],
+ "fixture": "node-tickets",
+ "request": {
+  "prompt": "Extend the ticket service with comments on tickets. `POST /tickets/:id/comments` with a JSON body `{\"author\": \"<name>\", \"body\": \"<text>\"}` adds a comment to the ticket and answers 201 with the comment, which has an `id`, the `author`, the `body` and when it was `created`. An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters. A ticket in any status except `closed` takes comments; a closed one answers 409. `GET /tickets/:id` shows the ticket's `comments`, oldest first, an empty list when it has none. When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment. Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+  "work_item": {
+   "context": "Ready: unchanged baseline npm test passed 124 cases, /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/scratch/baseline.log. Implement R-8 and AD-4 in one coherent CommonJS item: add node:test tests first against existing createService seam in test/helpers.js; validate HTTP, state boundaries, audit, notifications, persistence, legacy loading; then implement and run focused and full suite. Follow CONTRIBUTING.md, docs/api.md, /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/environment.md and /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/notes/research.md. Store owns changes, outbox and audit; compare normalized agent names exactly; body may contain line breaks. Check that resolved accepts and closed rejects, duplicate timestamps preserve order, each pending notification is distinct and rendered, and copies cannot mutate state. Persist version 1 records with defaults for absent comments. No extra dependencies or remote writes. Delivery is guarded local return. Done when tests and documentation pass and R-8 is observed. Dependency audit: /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/notes/plan-dependencies.md.",
+   "follows": [
+    "R-8",
+    "AD-4"
+   ],
+   "id": "W1",
+   "title": "Implement and verify ticket comments"
+  },
+  "checks": [
+   "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+   "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+   "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc"
+  ]
+ },
+ "options": {
+  "delegation": "inline",
+  "seed_home": false
+ },
+ "seed_records": {
+  "intake": {
+   "question_categories": [
+    {
+     "applies": "yes",
+     "id": "K1"
+    },
+    {
+     "applies": "yes",
+     "id": "K2"
+    },
+    {
+     "applies": "yes",
+     "id": "K3"
+    },
+    {
+     "applies": "yes",
+     "id": "K4"
+    },
+    {
+     "applies": "yes",
+     "id": "K5"
+    },
+    {
+     "applies": "yes",
+     "id": "K6"
+    },
+    {
+     "applies": "yes",
+     "id": "K7"
+    },
+    {
+     "applies": "yes",
+     "id": "K8"
+    },
+    {
+     "applies": "yes",
+     "id": "K9"
+    },
+    {
+     "applies": "yes",
+     "id": "K10"
+    },
+    {
+     "applies": "yes",
+     "id": "K11"
+    }
+   ],
+   "questions": [
+    {
+     "blocks": "nothing: discovery inspects before specification",
+     "category": "K3",
+     "changes": "API contract and tests",
+     "default": "Follow existing conventions",
+     "id": "Q1",
+     "question": "What existing error and response conventions apply?",
+     "route": "inspect"
+    },
+    {
+     "blocks": "implementation until discovery",
+     "category": "K5",
+     "changes": "notification and storage implementation",
+     "default": "Reuse existing store and outbox semantics",
+     "id": "Q2",
+     "question": "How are assignment identities, notifications and durable state represented?",
+     "route": "inspect"
+    },
+    {
+     "blocks": "nothing: discovery inspects",
+     "category": "K6",
+     "changes": "test and delivery commands",
+     "default": "Use repository scripts and installed runtime",
+     "id": "Q3",
+     "question": "What runtime and setup are required?",
+     "route": "inspect"
+    },
+    {
+     "blocks": "feature work if a prerequisite is broken",
+     "category": "K11",
+     "changes": "baseline and regression strategy",
+     "default": "Record failures without changing baseline",
+     "id": "Q4",
+     "question": "Does the existing suite pass before changes?",
+     "route": "experiment"
+    }
+   ]
+  },
+  "spec": {
+   "primary": [
+    "R-8"
+   ]
+  },
+  "test-strategy": {
+   "targets": [
+    {
+     "base_state_route": "new isolated service and fixture each test; new tests fail against baseline",
+     "keeps_state": "no",
+     "target": "local isolated Node service and temporary data file"
+    }
+   ],
+   "test_layers": [
+    {
+     "code": "src/app.js and src/tickets/validate.js",
+     "harness": "node:test with test/helpers.js",
+     "layer": "component",
+     "reason": "Existing HTTP service helper and baseline suite available",
+     "status": "available"
+    },
+    {
+     "code": "src/store.js and src/persistence.js",
+     "harness": "node:test with test/helpers.js",
+     "layer": "component",
+     "reason": "Existing HTTP service helper and baseline suite available",
+     "status": "available"
+    },
+    {
+     "code": "src/templates.js and worker",
+     "harness": "node:test with test/helpers.js",
+     "layer": "component",
+     "reason": "Existing HTTP service helper and baseline suite available",
+     "status": "available"
+    }
+   ]
+  },
+  "plan": {
+   "assumptions": [
+    {
+     "assumption": "Version 1 data and worker outbox can be extended in existing modules",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/src/persistence.js",
+      "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/src/outbox.js"
+     ],
+     "id": "A1"
+    },
+    {
+     "assumption": "Existing test harness works",
+     "check": "npm test",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/scratch/baseline.log"
+     ],
+     "id": "A2"
+    }
+   ],
+   "concerns": {
+    "W1": [
+     {
+      "applies": "no",
+      "id": "ui",
+      "reason": "No new ui requirement or external target"
+     },
+     {
+      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
+      "applies": "yes",
+      "decision": "HTTP route and validation",
+      "id": "api",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
+      "applies": "yes",
+      "decision": "outbox and worker template",
+      "id": "messaging",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
+      "applies": "yes",
+      "decision": "version-1 ticket records, legacy defaults and restart",
+      "id": "state",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "migrate-before",
+      "reason": "No new migrate-before requirement or external target"
+     },
+     {
+      "applies": "no",
+      "id": "migrate-after",
+      "reason": "No new migrate-after requirement or external target"
+     },
+     {
+      "applies": "no",
+      "id": "switchover",
+      "reason": "No new switchover requirement or external target"
+     },
+     {
+      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
+      "applies": "yes",
+      "decision": "existing synchronous store operations",
+      "id": "concurrency",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "platform-services",
+      "reason": "No new platform-services requirement or external target"
+     },
+     {
+      "applies": "no",
+      "id": "scale",
+      "reason": "No new scale requirement or external target"
+     },
+     {
+      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
+      "applies": "yes",
+      "decision": "existing body-size limit and validation",
+      "id": "security",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
+      "applies": "yes",
+      "decision": "audit and existing outbox report",
+      "id": "observability",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "config",
+      "reason": "No new config requirement or external target"
+     },
+     {
+      "applies": "no",
+      "id": "performance",
+      "reason": "No new performance requirement or external target"
+     },
+     {
+      "applies": "no",
+      "id": "accessibility",
+      "reason": "No new accessibility requirement or external target"
+     }
+    ]
+   }
+  }
+ },
+ "seed_route": [
+  {
+   "stage": "step-plan",
+   "result": {
+    "concerns": [
+     {
+      "id": "api",
+      "steps": [
+       "S2"
+      ]
+     },
+     {
+      "id": "messaging",
+      "steps": [
+       "S1",
+       "S3"
+      ]
+     },
+     {
+      "id": "state",
+      "steps": [
+       "S1"
+      ]
+     },
+     {
+      "id": "concurrency",
+      "steps": [
+       "S1"
+      ]
+     },
+     {
+      "id": "security",
+      "steps": [
+       "S2"
+      ]
+     },
+     {
+      "id": "observability",
+      "steps": [
+       "S1"
+      ]
+     }
+    ],
+    "criteria": [
+     {
+      "confirm": "executed",
+      "id": "C1",
+      "text": "R-8 comments preserve order and state, reject closed tickets, audit and enqueue distinct notifications. Confirm by: TC_Comments_Store and TC_Comments_Persist; pass when all assertions and restart/legacy checks succeed."
+     },
+     {
+      "confirm": "executed",
+      "id": "C2",
+      "text": "R-8 POST and GET expose comments and validate inputs. Confirm by: TC_Comments_API; pass when valid and invalid boundaries and status cases succeed."
+     },
+     {
+      "confirm": "executed",
+      "id": "C3",
+      "text": "R-8 notification delivers comment content. Confirm by: TC_Comments_Notify; pass when assigned recipient receives authored text and self/unassigned cases do not enqueue."
+     },
+     {
+      "confirm": "searched",
+      "id": "C4",
+      "text": "R-8 comment validator documents its input contract. Confirm by: search its docstring; pass when the public comment validator describes author and body."
+     }
+    ],
+    "evidence_refs": [],
+    "expectations": [
+     {
+      "check": "node --test test/store.test.js test/persistence.test.js",
+      "id": "E1",
+      "paths": [
+       "src/store.js",
+       "src/persistence.js"
+      ],
+      "state": "works",
+      "statement": "Existing store and persistence modules load and baseline tests pass",
+      "steps": [
+       "S1"
+      ]
+     },
+     {
+      "check": "node --test test/api.test.js test/validate.test.js",
+      "id": "E2",
+      "paths": [
+       "src/app.js",
+       "src/tickets/validate.js"
+      ],
+      "state": "works",
+      "statement": "Existing HTTP routes and validation load",
+      "steps": [
+       "S2"
+      ]
+     },
+     {
+      "check": "node --test test/notifier.test.js",
+      "id": "E3",
+      "paths": [
+       "src/templates.js"
+      ],
+      "state": "works",
+      "statement": "Existing template renders",
+      "steps": [
+       "S3"
+      ]
+     }
+    ],
+    "follows": [
+     "R-8",
+     "AD-4"
+    ],
+    "headline": "Plan stored comments, HTTP validation and notifications with focused and regression checks",
+    "outcome": "done",
+    "paths": [
+     "src/store.js",
+     "src/persistence.js",
+     "src/app.js",
+     "src/tickets/validate.js",
+     "src/templates.js",
+     "test/comments.test.js",
+     "docs/api.md",
+     "docs/decisions/0011-ticket-comments.md",
+     "docs/decisions/README.md",
+     "CHANGELOG.md",
+     "package.json"
+    ],
+    "steps": [
+     {
+      "criteria": [
+       "C1"
+      ],
+      "deps": [],
+      "id": "S1",
+      "paths": [
+       "src/store.js",
+       "src/persistence.js"
+      ],
+      "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{TicketStore}=require('\"'\"'./src/store'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"'),{toDocument,fromDocument}=require('\"'\"'./src/persistence'\"'\"');const s=new TicketStore({clock:manualClock()}),t=s.create({title:'\"'\"'x'\"'\"',priority:'\"'\"'normal'\"'\"',requester:'\"'\"'r'\"'\"'},'\"'\"'r'\"'\"');s.assign(t.id,'\"'\"'agent'\"'\"','\"'\"'actor'\"'\"');let before=s.outboxReport().pending.length;const c=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'hello'\"'\"'},'\"'\"'guest'\"'\"'),d=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'second'\"'\"'},'\"'\"'guest'\"'\"');a.deepEqual(s.get(t.id).comments,[c,d]);a.equal(s.outboxReport().pending.length,before+2);a.equal(s.history(t.id).at(-1).action,'\"'\"'ticket.commented'\"'\"');let file=toDocument(s.snapshot(),new Date()),saved=fromDocument(file,Error);a.deepEqual(saved.tickets[0].comments,[c,d]);delete file.tickets[0].comments;a.deepEqual(fromDocument(file,Error).tickets[0].comments,[]);s.transition(t.id,'\"'\"'in_progress'\"'\"','\"'\"'actor'\"'\"');s.transition(t.id,'\"'\"'resolved'\"'\"','\"'\"'actor'\"'\"');s.comment(t.id,{author:'\"'\"'agent'\"'\"',body:'\"'\"'ok'\"'\"'},'\"'\"'agent'\"'\"');s.transition(t.id,'\"'\"'closed'\"'\"','\"'\"'actor'\"'\"');a.throws(()=>s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'no'\"'\"'},'\"'\"'guest'\"'\"'),{status:409});'",
+      "skills": [],
+      "task": "Implement stored comments and persistence for C1, including audit and outbox event."
+     },
+     {
+      "criteria": [
+       "C2",
+       "C4"
+      ],
+      "deps": [
+       "S1"
+      ],
+      "id": "S2",
+      "paths": [
+       "src/app.js",
+       "src/tickets/validate.js"
+      ],
+      "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),v=require('\"'\"'./src/tickets/validate'\"'\"'),{withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"');for(const b of [{author:'\"'\"''\"'\"',body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"''\"'\"'},{author:'\"'\"'a'\"'\"'.repeat(65),body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'.repeat(2001)},{author:3,body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"',extra:1}])a.throws(()=>v.comment(b));a.equal(v.comment({author:'\"'\"'a'\"'\"'.repeat(64),body:'\"'\"'x'\"'\"'.repeat(2000)}).body.length,2000);withService({},async api=>{const t=await api.post('\"'\"'/tickets'\"'\"',ticketBody());a.deepEqual((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments,[]);const c=await api.post('\"'\"'/tickets/'\"'\"'+t.body.id+'\"'\"'/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'hello'\"'\"'});a.equal(c.status,201);a.ok(c.body.id);a.equal(c.body.author,'a');a.equal(c.body.body,'hello');a.ok(!Number.isNaN(Date.parse(c.body.created)));a.equal((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments[0].body,'\"'\"'hello'\"'\"');a.equal((await api.post('\"'\"'/tickets/missing/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'})).status,404)}).catch(e=>{console.error(e);process.exitCode=1});' && rg 'POST /tickets/:id/comments' src/tickets/validate.js",
+      "skills": [],
+      "task": "Implement HTTP endpoint and validation for C2."
+     },
+     {
+      "criteria": [
+       "C3"
+      ],
+      "deps": [
+       "S1"
+      ],
+      "id": "S3",
+      "paths": [
+       "src/templates.js"
+      ],
+      "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{createNotifier}=require('\"'\"'./src/notifier'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"');const n=createNotifier({clock:manualClock()}),m=n.deliver({id:1,key:'\"'\"'c:1'\"'\"',type:'\"'\"'ticket.commented'\"'\"',to:'\"'\"'agent'\"'\"',ticket:'\"'\"'T-0001'\"'\"',data:{title:'\"'\"'x'\"'\"',author:'\"'\"'a'\"'\"',body:'\"'\"'hello'\"'\"'}});a.equal(m.to,'\"'\"'agent'\"'\"');a.match(m.body,/hello/);a.match(m.body,/a/);'",
+      "skills": [],
+      "task": "Implement notification rendering for C3."
+     }
+    ],
+    "summary": "S1 owns state, concurrency and audit; S2 owns API and input safety; S3 owns notification rendering. Tests use existing CommonJS helpers and local isolated files. Proof commands run without unwritten tests, while planned node:test cases exercise boundary and regression behavior. No external services or new dependencies. Review strengthened proof commands to exercise statuses, persistence, notification multiplicity, input boundaries and rendered delivery.",
+    "test_commands": [
+     {
+      "command": "node --test test/comments.test.js",
+      "criteria": [
+       "C1",
+       "C2",
+       "C3"
+      ],
+      "ids": [
+       "TC_Comments_Store",
+       "TC_Comments_Persist",
+       "TC_Comments_API",
+       "TC_Comments_Notify"
+      ],
+      "min_tests": 4,
+      "suite": "focused"
+     },
+     {
+      "command": "npm test",
+      "minimum": true,
+      "suite": "regression"
+     },
+     {
+      "command": "node --check src/store.js",
+      "suite": "check"
+     },
+     {
+      "command": "rg 'POST /tickets/:id/comments' src/tickets/validate.js",
+      "criteria": [
+       "C4"
+      ],
+      "suite": "check"
+     }
+    ]
+   }
+  },
+  {
+   "stage": "test-spec",
+   "result": {
+    "assumptions": [],
+    "evidence_refs": [],
+    "headline": "Specified isolated comment, API, notification and persistence cases",
+    "outcome": "done",
+    "summary": "Keep node:test and test/helpers.js local component harness; each case uses fresh state, manual clock or temporary directory and teardown, no remote target. Tests run under focused node --test test/comments.test.js and npm test. The manual clock simulates tied times; actual local data file and notifier exercise real boundaries. C4 is a searched docstring criterion, not a test case. Lifecycle walk: open to in_progress to resolved to closed is permitted, resolved permits comments, closed rejects. No cases have run yet.",
+    "test_cases": [
+     {
+      "criterion": "C1",
+      "green": "All assertions succeed",
+      "id": "TC_Comments_Store",
+      "oracle": "Create store and ticket, assign agent, add two comments with equal clock values, check distinct IDs and insertion order; check history and unique outbox keys; comment as agent and assert no extra event. Transition open to in_progress to resolved, add comment, transition to closed, assert conflict and unchanged snapshot.",
+      "red": "Store comment method absent on base",
+      "requirement": "R-8"
+     },
+     {
+      "criterion": "C1",
+      "green": "Both restart and legacy cases succeed",
+      "id": "TC_Comments_Persist",
+      "oracle": "Create isolated temp data file, start store, create comment, reopen and compare exact fields and order; load version-1 fixture lacking comments and assert empty list while retaining other fields; clean fixture.",
+      "red": "Base store cannot create comments and legacy retrieval lacks list",
+      "requirement": "R-8"
+     },
+     {
+      "criterion": "C2",
+      "green": "Valid and boundary cases pass and invalid cases reject without side effects",
+      "id": "TC_Comments_API",
+      "oracle": "Start fresh test/helpers.js service on port 0 and create ticket; GET empty, POST valid 201 with id, author, body, created and GET same values. Exercise missing, wrong types, blanks, 64/65 author and 2000/2001 body, extra fields, missing ticket, and closed 409; assert error envelope and unchanged state.",
+      "red": "POST returns 404 on base rather than 201",
+      "requirement": "R-8"
+     },
+     {
+      "criterion": "C3",
+      "green": "Two separate rendered notifications delivered and exclusions observed",
+      "id": "TC_Comments_Notify",
+      "oracle": "Fresh assigned ticket: post two other-author comments, verify two pending events, deliver via worker/notifier and check recipient and authored bodies; self and unassigned comments generate no events.",
+      "red": "No comment API or event on base",
+      "requirement": "R-8"
+     }
+    ]
+   }
+  },
+  {
+   "stage": "implement",
+   "result": {
+    "decisions": [
+     "Extend ticket records and existing outbox rather than add a separate store; stable IDs also deduplicate each event independently."
+    ],
+    "evidence_refs": [],
+    "headline": "Implemented durable comment state, audit and distinct outbox events",
+    "learned": [
+     "Equal timestamps preserve insertion order; outbox keys must include comment ID."
+    ],
+    "learned_from": [
+     "c2c90bf"
+    ],
+    "not_covered": [],
+    "outcome": "done",
+    "summary": "S1 uses per-ticket sequential IDs, copies comments on reads, records audit, suppresses self/unassigned notifications, saves version-1 records and loads absent comments as empty. Proof and existing suite pass. No helper skill was listed."
+   },
+   "overlay": "route/1-implement"
+  },
+  {
+   "stage": "test",
+   "result": {
+    "evidence_refs": [],
+    "headline": "Added regression tests for comment state and persistence",
+    "outcome": "done",
+    "summary": "TC_Comments_Store checks order, unique events, audit, self suppression, closed conflict and defensive copies; TC_Comments_Persist checks restart and legacy file. Retained node:test and isolated fixture strategy. Both cases fail on base and pass on candidate; npm test passes. No existing tests changed. plan-test used inline with existing test helpers and patterns."
+   },
+   "overlay": "route/1-test"
+  },
+  {
+   "stage": "document",
+   "result": {
+    "added_tests": [
+     {
+      "command": "node --test test/comments.test.js",
+      "id": "TC_Comments_Store (a)"
+     }
+    ],
+    "assumptions": [],
+    "evidence_refs": [],
+    "headline": "Recorded verified storage behavior and test commands",
+    "knowledge": {
+     "architecture": "AD-4 already describes chosen state and outbox design",
+     "environment": "Recorded focused and full suite counts and fixture details",
+     "spec": "R-8 adds test and implementation locators with W1/S1 marker"
+    },
+    "outcome": "done",
+    "summary": "Store and legacy-file behavior are now recorded; API documentation awaits its implementation. README unchanged because no comment endpoint is yet available. No helper skill listed. Review records comment ID in audit to preserve append-only data against mutable nested objects; regression test added."
+   },
+   "overlay": "route/1-document"
+  },
+  {
+   "stage": "implement",
+   "result": {
+    "evidence_refs": [],
+    "headline": "Repair invalid quoting in API proof",
+    "outcome": "send-back",
+    "summary": "C2 proof is unachievable: shell quoting turns expected string author into the assert function and body into a variable. Correct response is a JSON string and cannot equal the function; revise the S2 proof quoting while preserving the assertions. S2 implementation remains in worktree; lint exit 0."
+   },
+   "overlay": "route/2-draft"
+  }
+ ],
+ "planted": [
+  {
+   "id": "P1",
+   "what": "Steps S1 are done; the amendment keeps them exactly",
+   "signature": "Fix forward:"
+  },
+  {
+   "id": "P2",
+   "what": "S2's recorded Proof quotes its JavaScript so that the expected author string becomes the assert function and the body a variable: it cannot pass whatever S2 builds."
+  }
+ ],
+ "render": [
+  {
+   "proves": "P1",
+   "packet_contains": "Fix forward: S1"
+  }
+ ],
+ "oracle": [
+  {
+   "proves": "P1",
+   "outcome": [
+    "done"
+   ]
+  },
+  {
+   "proves": "P1",
+   "command": "python3 \"$STAGE_ORACLE/q1_oracle.py\" fidelity",
+   "exit": 0
+  },
+  {
+   "proves": "P2",
+   "command": "python3 \"$STAGE_ORACLE/q1_oracle.py\" correction",
+   "exit": 0
+  }
+ ],
+ "live": {
+  "samples": 4,
+  "pass": 1
+ }
+}

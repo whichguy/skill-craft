@@ -1,0 +1,160 @@
+{
+  "schema": "run-review-export/v2",
+  "docs": {
+    "reviews": {
+      "grok-grok-4.6-2.36.2-ticket-escalation-20261111": {
+        "summary": [
+          "A fresh Grok 4.6/xhigh run on marketplace skill-craft 2.36.2 / ShipLoop 1.33.7 copied a passed ticket-assignment product, with no predecessor run state, and accepted 12 actions through W1/S1 test.",
+          "The run is STOPPED: the host hit 7,201.3 seconds at W1/S1 document. Planning used 107.6 engine minutes, including 57.5 minutes in four inline Improve children; 11 compactions were recorded. No final delivery or held-out quality result exists.",
+          "Cold recovery and partial preservation worked: Discovery created a current-system baseline, planning retained R-1\u2013R-5 and added R-6\u2013R-9, and the unreturned worktree passed 125 configured tests, 117/117 pristine tests and the existing assignment HTTP check.",
+          "The requested HTTP reassignment and escalation remain unfinished. Reviews made substantive replay/oracle/default-value corrections, so their cost does not establish waste. No same-cell control supports changing stages, review or driver defaults.",
+          "Two evidence defects remain open: narrowed S1 test receipts retain later-step criteria, and the source-side pristine helper discards its subprocess-timeout explanation. Both have small hermetic regression routes; no retry is authorized."
+        ],
+        "basis": {
+          "P1": "Holds for the accepted prefix: 12 actions advanced through ShipLoop records; the host timeout, not a model-selected transition, ended the attempt.",
+          "P2": "Holds with a scope limit: four inline Improve children have receipts and ten passes; they are not independent external reviewers.",
+          "P3": "Holds for the observed prefix: two ShipLoop check refusals were corrected without operator-supplied callbacks or coaching.",
+          "P4": "Holds through the last accepted test action; document was never accepted and no later stage was claimed.",
+          "P5": "Broken by the narrowed-receipt criterion overstatement; the pristine helper also loses its timeout explanation. Partial worktree evidence is separately preserved.",
+          "P6": "Examined, not rated: there is no same-cell control and no completed Grok delivery, so model independence cannot be inferred.",
+          "B2": "Not applicable to a product conclusion: Plan explicitly used dependency audit only and no Backchain loop was launched."
+        },
+        "reviewedAt": "2026-11-11T22:13:55.131298+00:00"
+      }
+    },
+    "observations": {
+      "cold-additive-timeout-20261111": {
+        "title": "Cold additive run exhausted its two-hour cap before W1 documentation",
+        "criterion": "phase-3",
+        "kind": "decision",
+        "status": "open",
+        "run": "grok-grok-4.6-2.36.2-ticket-escalation-20261111",
+        "phase": 3,
+        "effect": "broken",
+        "expected": "The registered run reaches a terminal ShipLoop outcome within its explicit 7,200-second host allowance.",
+        "observed": "STOPPED at 7,201.3 seconds with document active; 107.6 planning minutes, 57.5 Improve minutes and 11 compactions. Partial worktree preservation passed; no delivery was returned.",
+        "evidence": "ticket-escalation-grok/result.json; ticket-escalation-grok/metrics.json; ticket-escalation-grok/review-export/facts.md",
+        "advice": "Retain this as a stopped measurement pilot, not proof that planning review or the Grok driver should change. Inferred: avoidable cost exists, but this run cannot separate review yield from host and compaction cost.",
+        "figure": {
+          "kind": "bars",
+          "items": [
+            {
+              "label": "Host cap",
+              "value": 120,
+              "unit": "min",
+              "tone": "limit"
+            },
+            {
+              "label": "Planning window",
+              "value": 107.6,
+              "unit": "min",
+              "tone": "saw"
+            },
+            {
+              "label": "Improve",
+              "value": 57.5,
+              "unit": "min",
+              "tone": "saw"
+            }
+          ]
+        },
+        "createdAt": "2026-11-11T22:13:55.131298+00:00"
+      },
+      "narrowed-criteria-overstated-20261111": {
+        "title": "A narrowed S1 test receipt retained later-step criteria",
+        "criterion": "P5",
+        "kind": "defect",
+        "status": "open",
+        "run": "grok-grok-4.6-2.36.2-ticket-escalation-20261111",
+        "phase": 3,
+        "effect": "broken",
+        "expected": "When active_commands narrows a focused command to TC_7\u2013TC_9 for S1, its receipt names only the criteria those cases exercise: C1\u2013C3.",
+        "observed": "The accepted verify record names TC_7\u2013TC_9 with C1\u2013C6. C4\u2013C6 belong to S2; the three store-level tests ran and passed, but their HTTP stimuli were deliberately replaced by service.store.reassign.",
+        "evidence": "ticket-escalation-grok/.shiploop-runs/work-20261111-200137-203e45/run/tests/nav-957ee8a552004f4b919697d1222dccbc-verify1.md; skills/shiploop/scripts/shiploop_iteration.py active_commands",
+        "advice": "Filter criteria with the same due-step projection used for IDs, preserving store-level credit while leaving HTTP obligations open. This is receipt accuracy, not a product failure or lifecycle change.",
+        "createdAt": "2026-11-11T22:13:55.131298+00:00"
+      },
+      "pristine-timeout-diagnostic-20261111": {
+        "title": "The pristine-test failure discarded its subprocess-timeout reason",
+        "criterion": "P5",
+        "kind": "defect",
+        "status": "open",
+        "run": "grok-grok-4.6-2.36.2-ticket-escalation-20261111",
+        "effect": "bent",
+        "expected": "A source-side pristine-test timeout reports that node --test exceeded its allowance.",
+        "observed": "The result says 0 of 117 pass, 0 fail, rc None and no failing test named. node_test had the timeout explanation, but pristine replaced it with the generic failing-names text. The partial worktree pristine check separately passed 117/117.",
+        "evidence": "ticket-escalation-grok/result.json; test/shiploop_e2e/checks/base_tests.py node_test and pristine",
+        "advice": "Retain the node_test output in the pristine failure so the operator can diagnose the source-side hang. Do not interpret 0/117 here as 117 behavioral failures.",
+        "createdAt": "2026-11-11T22:13:55.131298+00:00"
+      }
+    },
+    "actions": {
+      "accept-cold-additive-stopped-20261111": {
+        "title": "Retain the stopped pilot without changing lifecycle defaults",
+        "criterion": "phase-3",
+        "kind": "accept",
+        "effort": "S",
+        "recommended": true,
+        "status": "open",
+        "findings": [
+          "cold-additive-timeout-20261111"
+        ],
+        "goal": "Do: record the cold additive attempt as STOPPED, preserving its partial preservation evidence and the absence of a same-cell control; change no stage, review, driver or loop default. Files and symbols: test/shiploop_e2e/LEARNINGS.md and this run review. Test: none; this records a known limit. Done when: the learning entry names the timeout, partial worktree results, contrary review value and raw evidence location.",
+        "why": "The run does not isolate an avoidable mechanism or qualify a replacement. The partial handoff and reviews worked, while completion remains unknown."
+      },
+      "compare-cold-additive-cell-20261111": {
+        "title": "Separately register a completed cold-additive comparison",
+        "criterion": "phase-3",
+        "kind": "gather-evidence",
+        "effort": "L",
+        "status": "open",
+        "cost": "Another live model run; not authorized by this investigation.",
+        "findings": [
+          "cold-additive-timeout-20261111"
+        ],
+        "goal": "Do: if the owner later prioritizes this question, register a fresh comparison with a fixed predecessor, literal request, host/model/effort and explicit budget; measure fail-to-pass, pass-to-pass, unnecessary rework and material review corrections. Files and symbols: test/shiploop_e2e/run.py follow-on controls and a new external registration. Test: run the registered baseline and candidate checks with old run state absent. Done when: the retained result supports a bounded decision or remains explicitly failed, stopped or inconclusive with its evidence.",
+        "why": "Only a separately controlled completed comparison can distinguish stage value from host and compaction cost. No retry or budget change is presumed."
+      },
+      "fix-narrowed-criteria-20261111": {
+        "title": "Filter narrowed command criteria to the cases that remain",
+        "criterion": "P5",
+        "kind": "fix-shiploop",
+        "effort": "S",
+        "recommended": true,
+        "status": "built",
+        "findings": [
+          "narrowed-criteria-overstated-20261111"
+        ],
+        "goal": "Do: when active_commands narrows a focused command IDs list, derive its criteria from the retained cases due at that step instead of carrying later-step criteria. Files and symbols: active_commands in skills/shiploop/scripts/shiploop_iteration.py and its contract in test/shiploop-iteration.test.py. Test: add a fail-first two-step fixture matching TC_7\u2013TC_9 and C1\u2013C6, then replay the retained verify record. Done when: S1 reports TC_7\u2013TC_9 with C1\u2013C3, S2 retains its own obligations, minimum/full regression behavior is unchanged, and the focused suites pass.",
+        "why": "For: removes a demonstrated overstatement with a small local change. Against: criteria can span steps, so the projection must use the existing due rule rather than list position. Verdict: worth a focused repair; no live run is needed to establish the mapping.",
+        "ref": "66ca45252b5990d6d34503c15d5b2abe607ffc86"
+      },
+      "fix-pristine-timeout-diagnostic-20261111": {
+        "title": "Preserve the pristine subprocess timeout explanation",
+        "criterion": "P5",
+        "kind": "fix-harness",
+        "effort": "S",
+        "recommended": true,
+        "status": "built",
+        "findings": [
+          "pristine-timeout-diagnostic-20261111"
+        ],
+        "goal": "Do: include the output returned by node_test when pristine rejects a run, including its explicit timeout text when return code is None. Files and symbols: pristine and failing_names in test/shiploop_e2e/checks/base_tests.py and its harness tests. Test: simulate subprocess.TimeoutExpired and verify the failure names the elapsed allowance instead of only no failing test named. Done when: that regression passes and an ordinary pristine pass remains unchanged.",
+        "why": "For: preserves the actual diagnostic needed to investigate a hang. Against: this changes reporting only and does not diagnose or fix the hang. Verdict: retain as a small harness repair.",
+        "ref": "b3f57d13b30b55c7c0bb6f4553abdb6bfa5dd289"
+      },
+      "accept-pristine-cause-unknown-20261111": {
+        "title": "Keep the source-side pristine hang unresolved",
+        "criterion": "P5",
+        "kind": "accept",
+        "effort": "S",
+        "status": "open",
+        "findings": [
+          "pristine-timeout-diagnostic-20261111"
+        ],
+        "goal": "Do: record that the source-side pristine subprocess timed out with its cause unknown and that the partial worktree pristine check passed; do not claim a product regression. Files and symbols: test/shiploop_e2e/LEARNINGS.md and the retained result.json. Test: none; this records a known limit. Done when: the learning distinguishes the timeout from assertion failures and names both source-side and worktree observations.",
+        "why": "The run ended at its host deadline and the diagnostic was incomplete; no cause is established."
+      }
+    }
+  }
+}
