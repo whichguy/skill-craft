@@ -1,0 +1,24 @@
+{
+  "journal_prefix_unchanged": true,
+  "pinned_external_artifacts": 16,
+  "report_relative_links": "all resolve",
+  "final_product_clean": true,
+  "final_catalog": "9/9",
+  "final_held_out": "14/14",
+  "original_export_unchanged": true,
+  "workflow_validation": {
+    "schema": "shiploop-e2e-workflow-assessment/1",
+    "status": "supported-gap",
+    "errors": [],
+    "gaps": [
+      "improve-evidence-and-reviewer-scope",
+      "incremental-behavior-and-source-lineage"
+    ],
+    "unverified": [
+      "current-run accepted planning-stage result has no Improve record"
+    ],
+    "note": "Validates analyst declarations and pinned evidence, not their semantic truth; no ShipLoop state changed."
+  },
+  "render": "Pandoc conversion passed; browser local-file security prevented visual inspection",
+  "runtime_source_changed": false
+}

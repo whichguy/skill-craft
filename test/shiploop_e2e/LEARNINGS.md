@@ -8914,3 +8914,34 @@ What this round covers:
 Limits: two local cases with one done step each; the longer-prefix Salesforce cases are not run. Q2, the boundary
 question, is deferred. Evidence: `docs/experiments/step-boundary-replay-20261113/` (README results, scores,
 pilot-samples/, continuation output) and `~/e2e-runs-sp/20261113/replay-q1-pilot`.
+
+## 2026-11-13 — Three starting points and completed cold additive delivery: functional pass, knowledge gap
+
+The owner approved the three-scenario assessment and completion of additive validation. The shared 23-stage graph already distinguishes a fresh feature run from resuming an interrupted request. Blank-repo and unfamiliar-repo evidence remains historical and tied to its own builds/models; this new trial measures only the additive case. [Assessment](../../docs/shiploop-lifecycle-assessment-2026-11-13.md) records the stage/file mapping, research, contrary evidence and bounded follow-ups.
+
+Frozen source `4990932ee4a0e8f3e2c55bb8a16e4364ba24849e`, marketplace skill-craft 2.37.2 / ShipLoop 1.34.2, Grok 4.6/xhigh, planning-review stage and inline delegation. A Sol 6.1/medium execution-only worker ran the harness once. Fresh intake copied the passed ticket-assignment product `42180cb17bf98f5d527a214c98f3a2b5896766f1`; no prior run state was copied. Registration, source, predecessor and receipt remained unchanged. No new timeout, turn or resume ceilings, operator callbacks, product repair, coaching or silent retry. Six host sessions/five harness-managed resumes completed in 15,343.3757 seconds.
+
+| Final observation | Result |
+| --- | --- |
+| Catalog/regression/retention checks | 9/9 pass |
+| Held-out old behavior | 7/7 pass before and after |
+| Held-out new behavior | 7/7 fail before, 7/7 pass after |
+| Own/pristine suites | 133/133 and 117/117; overlapping evidence, not an additive total |
+| Product identity | clean 730b8b8a17d618e8aa90d8068777423c95783aa3, tree 20960c26f3bf0bdabee18f1777bd1410f49d7544 |
+| Scope | 17 files,+1132/−71; no dependency additions or edits to old tests |
+| Execution/reviews | 38 accepted actions;11 inline Improve children,17 passes,100.34 minutes |
+| Planning/context | initial 102.4engine minutes includes 56.6Improve minutes;822 calls,26 compactions |
+
+Reassignment composes existing unchanged assignment; escalation reuses worker/outbox/notifier/persistence with a store-level marker, preserving public ticket fields. This supports bounded additive reuse. One unquoted-pipe test command caused exit127 and a recorded W2/S1 send-back; the revised whole-file command passed 4focused/130suite with 4red baseline cases. W1 remained complete and reissued implementation changed no source. No retained process/listener was reported.
+
+**Knowledge continuity is a supported gap.** Final R5–R8 still contain unqualified pending/not-yet-implemented statements beside completion annotations. Step-marked historical entries are legitimate and should remain. The add-only step guard plausibly contributes, but existing carry-forward/handoff already require reconciliation. The first-return checkpoint 906a3a19 is real; final 730b8b8 differs only in environment documentation. Its label should be historical, not an impossible self-referential final hash. An inherited omission also leaves no SHIPLOOP index or README link to maintained knowledge. No next-feature consumption failure or gain was measured.
+
+**Audit apparatus finding:** the frozen workflow inventory treats every planning-stage acceptance as requiring Improve, ignoring first-item/outcome rules. Initial W2 correctly has no child, while its sent-back plan has one. Full history is retained. The analyst schema checker reports supported-gap, zero errors, with explicit inventory UNKNOWN. A separate schedule repair should cover first/later/sent-back/non-done/missing-required/unknown-protocol cases; no frozen validator or result was changed.
+
+Two fidelity flags are false matches: one prose note matched the verify filename glob (all 10 actual receipts parse), and the explicitly editable planning notebook matched script-owned paths. Raw counters remain 1 each. Five distinct refusals/check failures remain real recovered events. Original export intentionally predates quality; the separately named post-quality export includes 14/14. Context window, Grok memory writes and tool-use counters stay unknown; held_out_seen 0 does not prove isolation.
+
+Fresh read-only Astra requested gpt-6-astra/high, fallback false, exit 0. It verified all 327terminal snapshot hashes and supported functional reuse plus the knowledge gap, without executing product tests. Requested identity is not provider attestation; this is not a calibrated discovery judge or promotion. Inline Improve remains self-review. Preflight 35 tests / calibration 73 variants and package bytes/modes passed; these are apparatus checks, not additional live cells.
+
+Decision: retain the shared stages and defaults. Prioritize a narrow final-status/discovery pilot within existing closing stages, an apparatus-only inventory repair, and then exact-command readiness in Test Spec. No new stage/schema/loop limit or causal efficiency claim. The earlier stopped pilot remains STOPPED and the broad continuity candidate remains DROP; this trial does not retroactively qualify either. The older accepted planning-time-status finding o79 remains valid for its historical scope; current unqualified requirement status is a distinct problem.
+
+Evidence: `docs/experiments/lifecycle-validation-20261113/` and the committed `test/shiploop_e2e/evidence/grok-grok-4.6-2.37.2-ticket-escalation-20261113{,.review}.json`. Raw root `/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113`, including registration, live-worker completion, original result/export, post-quality export, terminal snapshot, workflow adapter and Astra response. Run Review check:15 documents, 0 failures, 0 warnings. Shared page unchanged because Artifact tools are unavailable. HTML preview produced; local-file browser security prevented visual inspection. No runtime source, package, release or installed host changed in this assessment unit.

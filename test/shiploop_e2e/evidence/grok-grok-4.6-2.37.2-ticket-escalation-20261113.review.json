@@ -1,0 +1,216 @@
+{
+  "schema": "run-review-export/v2",
+  "docs": {
+    "reviews": {
+      "grok-grok-4.6-2.37.2-ticket-escalation-20261113": {
+        "summary": [
+          "A fresh intake on the passed assignment product completed reassignment and escalation on frozen marketplace2.37.2/ShipLoop1.34.2.",
+          "All9 catalog and14 held-out checks pass;133 own and117 pristine tests pass. Final clean product730b8b8; no dependency or old-test changes.",
+          "Functional reuse is supported; final current knowledge still contains pending/completed contradictions and lacks an explicit navigation link.",
+          "One command send-back recovered without rebuilding W1. Eleven inline reviews are not independent; a fresh Astra/high assessment confirms the bounded conclusions.",
+          "Keep shared stages. Pilot final-status reconciliation, repair audit inventory separately, and measure command readiness; no causal speed or generic qualification claim."
+        ],
+        "basis": {
+          "P1": "38 accepted actions and done state support script-owned progression.",
+          "P2": "11 completed inline Improve receipts; contracts script-owned, independence limited.",
+          "P3": "Five recorded refusals recovered, no operator callback/coaching.",
+          "P4": "Accepted stages and send-back/replan are retained with exact action IDs.",
+          "P5": "Broken current-status knowledge; auditor mismatch separately retained as UNKNOWN. Raw evidence and original exports preserved.",
+          "P6": "Not established: one Grok cell, no cross-model comparison.",
+          "B1": "Descriptive cost only; material corrections and closing passes both occurred.",
+          "B2": "No independent Backchain-loop efficacy claim; plan dependency audit recorded.",
+          "B3": "Two serial work items executed; no general graph scheduling conclusion.",
+          "B4": "Source reuse supported; planning redundancy not causally measured.",
+          "B5": "Bent by a visible command-assembly error caught after implementation."
+        },
+        "reviewedAt": "2026-11-14T01:04:31.000945+00:00"
+      }
+    },
+    "observations": {
+      "lifecycle-current-status-20261113": {
+        "title": "Completed requirements still read pending",
+        "criterion": "P5",
+        "kind": "defect",
+        "status": "open",
+        "run": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+        "expected": "Accurate current knowledge, usable evidence and script-owned progression under the frozen contract.",
+        "observed": "R5–R8 retain unqualified pending status beside implementation annotations. Historical step-marked entries are not inherently wrong. First-return identity also needs an as-of label; knowledge lacks a navigation link.",
+        "evidence": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/work/docs/shiploop/spec.md; /Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/astra-review.json",
+        "advice": "Reconcile current status and discoverability at existing closing stages. Inferred: this may prevent redundant future planning, but no such failure or improvement has been measured.",
+        "createdAt": "2026-11-14T01:04:31.000945+00:00",
+        "effect": "broken",
+        "phase": 4
+      },
+      "lifecycle-inventory-20261113": {
+        "title": "Audit inventory ignores valid first-item exception",
+        "criterion": "P5",
+        "kind": "defect",
+        "status": "open",
+        "run": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+        "expected": "Accurate current knowledge, usable evidence and script-owned progression under the frozen contract.",
+        "observed": "Frozen validator reports unknown for initial W2 step-plan without Improve; runtime and replay legitimately skip it. Revised W2 after send-back has Improve. Full history retained.",
+        "evidence": "skills/shiploop-e2e-audit/harness/workflow_review.py; /Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-inventory-probe.json",
+        "advice": "Repair the apparatus against the recorded runtime schedule; retain the original UNKNOWN.",
+        "createdAt": "2026-11-14T01:04:31.000945+00:00",
+        "effect": "bent"
+      },
+      "lifecycle-command-20261113": {
+        "title": "Planned shell command caused a recovered send-back",
+        "criterion": "B5",
+        "kind": "recovered",
+        "status": "open",
+        "run": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+        "expected": "Accurate current knowledge, usable evidence and script-owned progression under the frozen contract.",
+        "observed": "Unquoted pipes caused exit127 and a replan. Whole-file replacement passed4 focused/130suite; W1 stayed complete and reissued implementation changed no source. S2 ignored option broadened execution to6 tests.",
+        "evidence": "run/results/nav-5912a1b7cb2649dbbce281a980cee951.md; docs/shiploop/environment.md",
+        "advice": "Pilot exact command and selected-ID readiness in Test Spec, without adding a stage.",
+        "createdAt": "2026-11-14T01:04:31.000945+00:00",
+        "effect": "bent",
+        "phase": 3
+      },
+      "lifecycle-counter-noise-20261113": {
+        "title": "Two fidelity flags are false matches",
+        "criterion": "P5",
+        "kind": "noise",
+        "status": "accepted",
+        "run": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+        "expected": "Accurate current knowledge, usable evidence and script-owned progression under the frozen contract.",
+        "observed": "One unread verify is a prose note; all10 actual records parse. One script-owned edit is the explicitly editable planning notebook. Raw counters remain1 and1.",
+        "evidence": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-review/evidence/analyst-reconciliation.json",
+        "advice": "Keep raw metrics and the source-backed classification. Separate any detector change from product qualification.",
+        "createdAt": "2026-11-14T01:04:31.000945+00:00"
+      },
+      "lifecycle-cost-20261113": {
+        "title": "One completed run does not establish review efficiency",
+        "criterion": "B1",
+        "kind": "decision",
+        "status": "accepted",
+        "run": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+        "expected": "Accurate current knowledge, usable evidence and script-owned progression under the frozen contract.",
+        "observed": "255m43s elapsed;11 Improve children/17passes took100.34min. Initial planning102.4min includes56.6 Improve min.822calls/26compactions. Reviews corrected real oracles and docs.",
+        "evidence": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/metrics.json; /Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/post-quality-export/facts.md",
+        "advice": "Retain descriptive measurements and review yield. Defer review/default changes without a registered comparison.",
+        "createdAt": "2026-11-14T01:04:31.000945+00:00"
+      },
+      "lifecycle-refusals-20261113": {
+        "title": "Five recorded refusals recovered without operator intervention",
+        "criterion": "P3",
+        "kind": "recovered",
+        "status": "open",
+        "run": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+        "expected": "Accurate current knowledge, usable evidence and script-owned progression under the frozen contract.",
+        "observed": "Five distinct recorded refusals/check failures, no repeated refusal; missing review file, spec write-back, disallowed knowledge field, mutation evidence, and ended-child receipt. No operator callbacks.",
+        "evidence": "runs.grok-grok-4.6-2.37.2-ticket-escalation-20261113.failures in test/shiploop_e2e/evidence/grok-grok-4.6-2.37.2-ticket-escalation-20261113.json",
+        "advice": "Retain as observed recovery. The known command and knowledge findings have separate prospective options.",
+        "createdAt": "2026-11-14T01:04:31.000945+00:00",
+        "effect": "bent",
+        "phase": 3
+      },
+      "lifecycle-measurement-limits-20261113": {
+        "title": "Some host measurements and original export quality are absent",
+        "criterion": "P5",
+        "kind": "decision",
+        "status": "accepted",
+        "run": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+        "expected": "Accurate current knowledge, usable evidence and script-owned progression under the frozen contract.",
+        "observed": "Original export precedes quality; a separate post-quality export now includes14/14. Context window, Grok memory writes and tool-use counters are unmeasured. held_out_seen0 is not isolation proof.",
+        "evidence": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/post-quality-export/facts.md; /Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/ticket-escalation-grok/review-export/review-export.json",
+        "advice": "Preserve both export identities, missing-value reasons and model-attestation limits.",
+        "createdAt": "2026-11-14T01:04:31.000945+00:00"
+      }
+    },
+    "actions": {
+      "lifecycle-reconcile-status": {
+        "title": "Pilot final knowledge reconciliation",
+        "kind": "fix-shiploop",
+        "criterion": "P5",
+        "status": "open",
+        "effort": "M",
+        "findings": [
+          "lifecycle-current-status-20261113"
+        ],
+        "recommended": true,
+        "goal": "Do: Clarify current status at carry-forward/handoff while preserving requirement intent, deferred work and step history; expose authoritative knowledge through an existing index. Files and symbols: skills/shiploop/scripts/shiploop_prompts.py carry-forward/handoff; references/project-knowledge.md; existing knowledge tests Test: Use completed, deferred and explicitly historical fixtures; a fresh reader must identify each accurately without the old run. Done when: current status is unambiguous, deferred intent survives, and a separately identified pilot supports the claimed reader improvement.",
+        "why": "For: current status contradicts completed behavior. Against: broad rewriting can erase intent. Verdict: narrow pilot; keep step guard and stage graph."
+      },
+      "lifecycle-fix-inventory": {
+        "title": "Align audit inventory with runtime schedule",
+        "kind": "fix-harness",
+        "criterion": "P5",
+        "status": "open",
+        "effort": "S",
+        "findings": [
+          "lifecycle-inventory-20261113"
+        ],
+        "recommended": true,
+        "goal": "Do: Evaluate each checkpoint from its preceding history and outcome, retaining all accepted rows. Files and symbols: skills/shiploop-e2e-audit/harness/workflow_review.py _observed_improve_actions and its existing contract tests Test: First W1, initial W2, sent-back W2, non-done outcome, missing required receipt and unknown protocol. Done when: valid later-item histories inventory correctly and missing required reviews still fail; corrected replay is separately identified.",
+        "why": "For: a valid runtime sequence is misclassified. Against: weakened inventory could hide missing reviews. Verdict: bounded schedule regression."
+      },
+      "lifecycle-command-pilot": {
+        "title": "Probe exact planned command readiness",
+        "kind": "gather-evidence",
+        "criterion": "B5",
+        "status": "open",
+        "effort": "M",
+        "findings": [
+          "lifecycle-command-20261113"
+        ],
+        "recommended": true,
+        "goal": "Do: Determine whether the existing Test Spec boundary can expose command assembly and selection errors before implementation. Files and symbols: skills/shiploop/scripts/shiploop_prompts.py test-spec; retained W2 command and verify records Test: Replay unquoted-pipe, ignored-option, absent-file and legitimate-red examples in disposable fixtures. Done when: the probe distinguishes invocation defects from expected feature failures and records any remaining gaps.",
+        "why": "This is a bounded pilot, not a mandate to execute arbitrary or destructive planned commands."
+      },
+      "lifecycle-keep-counter-context": {
+        "title": "Retain counter interpretation",
+        "kind": "accept",
+        "criterion": "P5",
+        "status": "open",
+        "effort": "S",
+        "findings": [
+          "lifecycle-counter-noise-20261113"
+        ],
+        "recommended": false,
+        "goal": "Do: Preserve raw counters with their exact matched paths and authority, without changing original metrics. Files and symbols: test/shiploop_e2e/evidence/ and the external analyst-reconciliation.json Test: none; this records a known limit. Done when: both raw matches and their source-backed classifications remain visible.",
+        "why": "These two paths are benign here; broad counts alone do not establish tampering or missing checks."
+      },
+      "lifecycle-keep-defaults": {
+        "title": "Keep stages and review defaults",
+        "kind": "accept",
+        "criterion": "B1",
+        "status": "open",
+        "effort": "S",
+        "findings": [
+          "lifecycle-cost-20261113"
+        ],
+        "recommended": true,
+        "goal": "Do: Retain the current graph and review defaults while recording time and substantive corrections as descriptive evidence. Files and symbols: docs/shiploop-lifecycle-assessment-2026-11-13.md; test/shiploop_e2e/LEARNINGS.md Test: none; this records a known limit. Done when: the record makes no causal speed claim and adds no loop ceiling.",
+        "why": "No same-cell control separates useful review from avoidable overhead."
+      },
+      "lifecycle-retain-refusals": {
+        "title": "Keep the recovered refusal record",
+        "kind": "accept",
+        "criterion": "P3",
+        "status": "open",
+        "effort": "S",
+        "findings": [
+          "lifecycle-refusals-20261113"
+        ],
+        "recommended": false,
+        "goal": "Do: Retain each refusal and its recovery; infer no new retry policy from these five events. Files and symbols: test/shiploop_e2e/evidence/grok-grok-4.6-2.37.2-ticket-escalation-20261113.json; external session log Test: none; this records a known limit. Done when: raw refusal evidence and the no-operator-intervention limit stay explicit.",
+        "why": "All recovered; no repeated-failure mechanism was isolated."
+      },
+      "lifecycle-retain-measurement-limits": {
+        "title": "Retain limits and both export identities",
+        "kind": "accept",
+        "criterion": "P5",
+        "status": "open",
+        "effort": "S",
+        "findings": [
+          "lifecycle-measurement-limits-20261113"
+        ],
+        "recommended": false,
+        "goal": "Do: Keep original and post-quality export hashes distinct; show missing counters as unknown. Files and symbols: test/shiploop_e2e/evidence/ and external audit manifest Test: none; this records a known limit. Done when: quality is linked to final result, original export stays unchanged and missing host measurements remain unknown.",
+        "why": "No new host integration or measurement claim is required."
+      }
+    }
+  }
+}

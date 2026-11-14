@@ -1,0 +1,867 @@
+{
+  "trial_id": "grok-grok-4.6-2.37.2-ticket-escalation-20261113",
+  "candidate_digest": "be5f98847ae2b6f4e0ea1fe2ecaee60e984f1d727973a97859890f96e890a5bb",
+  "baseline_digest": "32028f7f7cec44f23b7a238efa16f91d5716d5a5615ed7d1f0692eadda71b967",
+  "skill_digest": "a36c85c834f498b80fbe32b18bf6e3bf772d8356d6acc5850405f43f1cc7c628",
+  "schema": "shiploop-e2e-workflow-review/2",
+  "harness_digest": "b8265cda24ad9a67cc1acf7d3303444910ebf966b7de25ca53868a64aa9c6e77",
+  "reviewed_at": "2026-11-14T01:04:31.000945+00:00",
+  "reviewer": "Codex coordinator; separate fresh gpt-6-astra/high read-only consultation retained",
+  "scope": "Single-cell additive completion assessment, not a promotion or independently calibrated discovery qualification.",
+  "external_evidence_root": "/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113/workflow-review/evidence",
+  "dimensions": [
+    {
+      "id": "literal-request-and-selected-source",
+      "status": "supported-pass",
+      "notes": "Frozen registration, literal prompt, marketplace/source equality, predecessor and launch controls retained.",
+      "evidence": [
+        {
+          "path": "registration.json",
+          "sha256": "48894609774c783ec8e59fd6a64ee1a888af91e5ab361e5c96b8e193b5a5ce82"
+        },
+        {
+          "path": "invocation.json",
+          "sha256": "b5848b5104db332ed9cba4d7120084576f61ff0061e6db86b4268fd2c48518b4"
+        },
+        {
+          "path": "worker-collection.json",
+          "sha256": "88783fd1057cd380441462b013f3d21e8393a31e7c8f49ebdb800447eeec535a"
+        }
+      ]
+    },
+    {
+      "id": "dag-execution-and-callback-attribution",
+      "status": "supported-pass",
+      "notes": "38 accepted actions end done. Initial W2 no-review is valid; sent-back W2 is reviewed. No operator callbacks.",
+      "evidence": [
+        {
+          "path": "state.md",
+          "sha256": "9b5ef93bcefb0d06de7282ec24260d2bda3b4ab8b9c308f77117d1bb0ba83419"
+        },
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        },
+        {
+          "path": "analyst-reconciliation.json",
+          "sha256": "647c73dbcdb370775d6d5d739135e9e2f26126abeaee6b00232a3f0174da8332"
+        }
+      ]
+    },
+    {
+      "id": "platform-and-consumer-contract-preserved",
+      "status": "supported-pass",
+      "notes": "Existing Node API/CLI/outbox/persistence preserved; final acceptance passes. Release consumer check was 906a3a19, final730b8b8 changed only environment documentation.",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        },
+        {
+          "path": "candidate.diff",
+          "sha256": "d8664e4da5c59940975fa15ff559fc3397b3860b39511d9d48d6a2869b8ba767"
+        },
+        {
+          "path": "astra-review.json",
+          "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+        }
+      ]
+    },
+    {
+      "id": "planned-tests-reconciled-with-observations",
+      "status": "supported-pass",
+      "notes": "23 required final checks pass; baseline7old pass/7new fail. Command failure retained with successful send-back; all ten actual verify records parse.",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        },
+        {
+          "path": "baseline-controls.json",
+          "sha256": "5e69f98b2d5faeaa451f703f189d4d1ef3c40c00c01ef83d33ceef11086a46e7"
+        },
+        {
+          "path": "analyst-reconciliation.json",
+          "sha256": "647c73dbcdb370775d6d5d739135e9e2f26126abeaee6b00232a3f0174da8332"
+        }
+      ]
+    },
+    {
+      "id": "improve-evidence-and-reviewer-scope",
+      "status": "supported-gap",
+      "notes": "11 inline child receipts exist and made material corrections, but did not catch final stale status. Frozen validator additionally has an inventory UNKNOWN; all history is retained.",
+      "evidence": [
+        {
+          "path": "state.md",
+          "sha256": "9b5ef93bcefb0d06de7282ec24260d2bda3b4ab8b9c308f77117d1bb0ba83419"
+        },
+        {
+          "path": "workflow-inventory-probe.json",
+          "sha256": "f9cada7581f9cdbcc0acbae40804aa46868d1d97187d50b8f7786039571d009b"
+        },
+        {
+          "path": "astra-review.json",
+          "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+        }
+      ]
+    },
+    {
+      "id": "recovery-return-and-context-hygiene",
+      "status": "supported-pass",
+      "notes": "Six sessions/five harness-managed resumes; send-back preserved W1 and reused S1 source; clean final return and no retained processes. No stronger old-artifact isolation claim.",
+      "evidence": [
+        {
+          "path": "worker-collection.json",
+          "sha256": "88783fd1057cd380441462b013f3d21e8393a31e7c8f49ebdb800447eeec535a"
+        },
+        {
+          "path": "state.md",
+          "sha256": "9b5ef93bcefb0d06de7282ec24260d2bda3b4ab8b9c308f77117d1bb0ba83419"
+        },
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "incremental-behavior-and-source-lineage",
+      "status": "supported-gap",
+      "notes": "Functional reuse supported by actual diff and controls; current knowledge has unresolved pending claims and inherited index omission. No next-reader validation.",
+      "evidence": [
+        {
+          "path": "candidate.diff",
+          "sha256": "d8664e4da5c59940975fa15ff559fc3397b3860b39511d9d48d6a2869b8ba767"
+        },
+        {
+          "path": "product-knowledge/spec.md",
+          "sha256": "1dd37135a60b0f314ad1da8e3b92a00e56690a2ad07aa89490d33546c07574eb"
+        },
+        {
+          "path": "astra-review.json",
+          "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+        }
+      ]
+    },
+    {
+      "id": "performance-and-model-settings-observable",
+      "status": "supported-pass",
+      "notes": "255m43s elapsed, 822 calls/26 compactions, 100.34 Improve min. Planning102.4 includes56.6 Improve min. Explicit controls; served effort unverified. No causal comparison.",
+      "evidence": [
+        {
+          "path": "metrics.json",
+          "sha256": "a33982410017071d439a5515c38802ded04265a3d201ec57756ec0703e46aede"
+        },
+        {
+          "path": "facts.md",
+          "sha256": "b2ebf449718ff3f99025d7e9d002b8d035c571a375cbe0c99370c0fb4d207a05"
+        },
+        {
+          "path": "invocation.json",
+          "sha256": "b5848b5104db332ed9cba4d7120084576f61ff0061e6db86b4268fd2c48518b4"
+        },
+        {
+          "path": "worker-collection.json",
+          "sha256": "88783fd1057cd380441462b013f3d21e8393a31e7c8f49ebdb800447eeec535a"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "priority": "medium",
+      "owner": "shiploop",
+      "observed": "Final maintained requirements contain unresolved pending/completed contradictions.",
+      "consequence": "Current handoff knowledge is not fully reconciled; downstream confusion is plausible, not observed.",
+      "smallest_change": "Clarify current completion status at existing carry-forward/handoff; preserve accepted intent and historical observations.",
+      "regression_or_pilot": "Completed/deferred/historical controlled examples and a prospective next-reader test.",
+      "evidence": [
+        {
+          "path": "astra-review.json",
+          "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+        },
+        {
+          "path": "analyst-reconciliation.json",
+          "sha256": "647c73dbcdb370775d6d5d739135e9e2f26126abeaee6b00232a3f0174da8332"
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "priority": "medium",
+      "owner": "audit apparatus",
+      "observed": "Valid initial W2 step-plan has no Improve; frozen inventory validator calls it missing.",
+      "consequence": "Audit qualification remains unknown despite legitimate runtime schedule.",
+      "smallest_change": "Use the history prefix and outcome/first-item/send-back rules in the inventory checker.",
+      "regression_or_pilot": "First item, later item, sent-back item, non-done result and genuinely missing required receipt.",
+      "evidence": [
+        {
+          "path": "astra-review.json",
+          "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+        },
+        {
+          "path": "analyst-reconciliation.json",
+          "sha256": "647c73dbcdb370775d6d5d739135e9e2f26126abeaee6b00232a3f0174da8332"
+        }
+      ]
+    },
+    {
+      "id": "F3",
+      "priority": "low",
+      "owner": "planned command readiness",
+      "observed": "Unquoted pipes caused exit127; recorded send-back recovered with a whole-file command.",
+      "consequence": "Avoidable replan; broader S2 test execution still covered its due cases.",
+      "smallest_change": "Pilot exact invocation and selected-ID readiness inside Test Spec.",
+      "regression_or_pilot": "Distinguish shell error, ignored option, absent planned file and legitimate red behavior.",
+      "evidence": [
+        {
+          "path": "astra-review.json",
+          "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+        },
+        {
+          "path": "analyst-reconciliation.json",
+          "sha256": "647c73dbcdb370775d6d5d739135e9e2f26126abeaee6b00232a3f0174da8332"
+        }
+      ]
+    },
+    {
+      "id": "F4",
+      "priority": "low",
+      "owner": "knowledge navigation",
+      "observed": "No SHIPLOOP.md and README has no maintained-knowledge link, inherited from predecessor.",
+      "consequence": "Knowledge discovery is less explicit; actual future-reader failure is unobserved.",
+      "smallest_change": "Use an existing index or small link, without introducing a second knowledge store.",
+      "regression_or_pilot": "Fresh-reader finds the authoritative homes without old run directory.",
+      "evidence": [
+        {
+          "path": "astra-review.json",
+          "sha256": "daa4ec1a5308d37b8759376359a6e3c730cd7502952d399c44a7220930ba8f69"
+        },
+        {
+          "path": "analyst-reconciliation.json",
+          "sha256": "647c73dbcdb370775d6d5d739135e9e2f26126abeaee6b00232a3f0174da8332"
+        }
+      ]
+    }
+  ],
+  "selected_tests": [
+    {
+      "id": "catalog-own-suite",
+      "required_method": "engine",
+      "observed_method": "engine",
+      "disposition": "passed",
+      "notes": "the delivery's own node --test passes 133 tests, the base's 117 and 16 more\n",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-pristine-suite",
+      "required_method": "engine",
+      "observed_method": "engine",
+      "disposition": "passed",
+      "notes": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-assignment-http",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "Recorded command exit 0; raw command retained in result.json.",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-reassignment-http",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "Recorded command exit 0; raw command retained in result.json.",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-escalation-worker",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "Recorded command exit 0; raw command retained in result.json.",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-prior-files",
+      "required_method": "source",
+      "observed_method": "source",
+      "disposition": "passed",
+      "notes": "Recorded command exit 0; raw command retained in result.json.",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-dependencies",
+      "required_method": "source",
+      "observed_method": "source",
+      "disposition": "passed",
+      "notes": "Recorded command exit 0; raw command retained in result.json.",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-new-tests",
+      "required_method": "engine",
+      "observed_method": "engine",
+      "disposition": "passed",
+      "notes": "tests 122 -> 133\nno fewer tests pass, and the added test lines name reassignment and escalation\n",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "catalog-requirement-ids",
+      "required_method": "source",
+      "observed_method": "source",
+      "disposition": "passed",
+      "notes": "earlier ids:        5; missing: ; added: R-6 R-7 R-8 ; feature in spec: yes\n",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-existing-api-kept",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "create, read, change, the lifecycle, the envelope and the audit trail answer as the base does",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-assignment-kept",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "3 checks of the first request still pass",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-assignment-listing-kept",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "3 checks of the first request still pass",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-assignment-notified-kept",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "each new agent's notification waits in the outbox, and the worker delivers it once",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-assignment-persists-kept",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "assignees survive a restart from the data file, and the filter finds them",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-cli-raw-columns-kept",
+      "required_method": "interaction",
+      "observed_method": "interaction",
+      "disposition": "passed",
+      "notes": "list --raw keeps id, status, priority and title in their places and the weekly report counts right",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-worker-off-is-quiet",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "with the worker off, reads and edits of an urgent ticket enqueue nothing but the requester's notification",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-reassign-moves",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "the open and in-progress tickets of one agent move to the other, answered in id order",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-reassign-validation",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "the same agent twice and a malformed body are 400 invalid in the envelope, and move nothing",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-reassign-notifies",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "each moved ticket's new agent is notified through the outbox, once",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-reassign-audited",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "each moved ticket gains one audit entry with the actor and the assignee before and after",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-escalation-notifies-oncall",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "an old, open, unassigned urgent ticket is escalated to ONCALL through the outbox; without ONCALL, nothing is",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-escalation-rules",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "only open, unassigned, urgent tickets older than ESCALATE_AFTER_MINUTES minutes are escalated",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    },
+    {
+      "id": "held-out-escalation-at-most-once",
+      "required_method": "http",
+      "observed_method": "http",
+      "disposition": "passed",
+      "notes": "each ticket is escalated once, and a restart with the data file escalates it no second time",
+      "evidence": [
+        {
+          "path": "result.json",
+          "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+        }
+      ]
+    }
+  ],
+  "improve_reviews": [
+    {
+      "action_id": "nav-0cbe0a115a4b41d58be8e7d1f0ae4ad8",
+      "scope": "plan accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-0cbe0a115a4b41d58be8e7d1f0ae4ad8/receipt.md",
+          "sha256": "2315342ff3729dfe5e87eac5162de64ce04110c7e8b28ecb9fef6fb4c0fff685"
+        },
+        {
+          "path": "run/improve/nav-0cbe0a115a4b41d58be8e7d1f0ae4ad8/evidence/01-review-1.md",
+          "sha256": "7b25307149949d3b64fdb04dfd82159c31006f7ec699db42b99fd1b34c0c0762"
+        },
+        {
+          "path": "run/improve/nav-0cbe0a115a4b41d58be8e7d1f0ae4ad8/evidence/02-checks.md",
+          "sha256": "367b8068896d5b231dd0bfffe007123dfaf02bdb5b3f8f6c35917f912407ba61"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-25ea7f177c77475a9224ad7873a9c8e3",
+      "scope": "test-strategy accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-25ea7f177c77475a9224ad7873a9c8e3/receipt.md",
+          "sha256": "282b8f21818530f0464f100e50ecbdfc8e7e53b5cdf95e3fd25c4fed5749f6e6"
+        },
+        {
+          "path": "run/improve/nav-25ea7f177c77475a9224ad7873a9c8e3/evidence/01-review-2.md",
+          "sha256": "5dff3f8d8f5e6cf5231ae9daa5586bc68d552c89b29bc2c97b626a9cd9ab024f"
+        },
+        {
+          "path": "run/improve/nav-25ea7f177c77475a9224ad7873a9c8e3/evidence/02-checks.md",
+          "sha256": "b3b0d0937f45cd92879e052391df424e5be59403a9dc3f1bfae9bf33c4416d05"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-3600ab850f0641b39e23958d6275a3a5",
+      "scope": "step-plan accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-3600ab850f0641b39e23958d6275a3a5/receipt.md",
+          "sha256": "29eee65fa3d4d0406112e1bef58f6310635fea34912c74aaabe45e4f22c35e17"
+        },
+        {
+          "path": "run/improve/nav-3600ab850f0641b39e23958d6275a3a5/evidence/01-review-1.md",
+          "sha256": "adff45ee7cb956e3de688c6cdd0372c6fea837d440246b50a33ede9d7604726d"
+        },
+        {
+          "path": "run/improve/nav-3600ab850f0641b39e23958d6275a3a5/evidence/02-checks.md",
+          "sha256": "a3828f02f15e8f068a459f8c054dd61f27f811e6c5c78c5d0b22fd47e768ac07"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-3bfb0117595b48f9be75226fed50397a",
+      "scope": "step-plan accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-3bfb0117595b48f9be75226fed50397a/receipt.md",
+          "sha256": "aa249f9304ef8bf4e95db905ba112ab9c6182539e6491c6e816f09b7e65334a3"
+        },
+        {
+          "path": "run/improve/nav-3bfb0117595b48f9be75226fed50397a/evidence/01-review-3.md",
+          "sha256": "a20682e53963fd62499e9f4702ff47106b74855c3213b33549175db80584a686"
+        },
+        {
+          "path": "run/improve/nav-3bfb0117595b48f9be75226fed50397a/evidence/02-checks.md",
+          "sha256": "82c5e9ab3f330a3f1e20f6ba863ce8ce83e3a1fa4a43984ec01e116da680161e"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-4b4045f9623f41a1ae42d5751457e714",
+      "scope": "document accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-4b4045f9623f41a1ae42d5751457e714/receipt.md",
+          "sha256": "7902f14574ecb12b9bb9ba1b01aac0aba98495dfbd5246d14c117afeae22a067"
+        },
+        {
+          "path": "run/improve/nav-4b4045f9623f41a1ae42d5751457e714/evidence/01-review-2.md",
+          "sha256": "93e0941665f6f2257968b5ad0ea0142c8073551619534ddceefc6e68e143e754"
+        },
+        {
+          "path": "run/improve/nav-4b4045f9623f41a1ae42d5751457e714/evidence/02-checks.md",
+          "sha256": "8dcf572833f21879116e7f7ffa2c9ce1a5334c1f70e79f7f7b27089f0d2440f4"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-74240720f9fe495cb582e1712e88f5cf",
+      "scope": "document accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-74240720f9fe495cb582e1712e88f5cf/receipt.md",
+          "sha256": "eaa815f920a5472b04bdbc15d466840f7c3943165121ba61adef045c99a7e662"
+        },
+        {
+          "path": "run/improve/nav-74240720f9fe495cb582e1712e88f5cf/evidence/01-review-1.md",
+          "sha256": "898c59f6d88e3342a58369eb94116ee30e55cf752263e4f398e2a41b2aff8fcc"
+        },
+        {
+          "path": "run/improve/nav-74240720f9fe495cb582e1712e88f5cf/evidence/02-checks.md",
+          "sha256": "991bcb8d4c47c48943cacf755a989f0ab4fb9c08689aeb9fe2a3f77ee7e45540"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-91c8846904154e1e9973c0e896879eeb",
+      "scope": "carry-forward accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-91c8846904154e1e9973c0e896879eeb/receipt.md",
+          "sha256": "ebe367b8b69b5b2a63cbba3db8d8e89badea0fbc61d7629fb2bfd7536fa86778"
+        },
+        {
+          "path": "run/improve/nav-91c8846904154e1e9973c0e896879eeb/evidence/01-review-1.md",
+          "sha256": "856c66f3e7b961b4ad6db0d2ca4aaa85a381f89aa810e13bdef60f6d3c86f2a7"
+        },
+        {
+          "path": "run/improve/nav-91c8846904154e1e9973c0e896879eeb/evidence/02-checks.md",
+          "sha256": "48f76fd38b8cbf094265e395458f40349e3c4d90fc5d19629c3628a458d1873b"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-94593e9edd64420b8c2d682d85eadb17",
+      "scope": "system-test-author accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-94593e9edd64420b8c2d682d85eadb17/receipt.md",
+          "sha256": "da36df304d2a38fca51d48f19e15807a4f1b4aa5e6290b7fddf5337db62bb117"
+        },
+        {
+          "path": "run/improve/nav-94593e9edd64420b8c2d682d85eadb17/evidence/01-review-1.md",
+          "sha256": "12dd919d2fd52db26e8da14b7f567d484d90935484995ccd586d8adf9984b8e4"
+        },
+        {
+          "path": "run/improve/nav-94593e9edd64420b8c2d682d85eadb17/evidence/02-checks.md",
+          "sha256": "29d7100d4b52bc49ab3fd614175c97a49d1f31bf4c9424b2e1c2c9734aa2db6b"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-eadbf6f0fa894e448665a2f6214f450c",
+      "scope": "spec accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-eadbf6f0fa894e448665a2f6214f450c/receipt.md",
+          "sha256": "15ccf1fbadf0d949d1826639b0d9c20e1e44a9506fb943e166cc79fe4944f172"
+        },
+        {
+          "path": "run/improve/nav-eadbf6f0fa894e448665a2f6214f450c/evidence/01-review-2.md",
+          "sha256": "173e44a46e79256fe82f2b24313afd3b5eb914e5aad8b135aea56933559afea9"
+        },
+        {
+          "path": "run/improve/nav-eadbf6f0fa894e448665a2f6214f450c/evidence/02-checks.md",
+          "sha256": "15d8825b6d8ae9d542d9d5285b91f1185fdeff879d15512ce9a0d8a2f8913497"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-ef4d0f7d68e746c5a35782a262bbc054",
+      "scope": "release-plan accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-ef4d0f7d68e746c5a35782a262bbc054/receipt.md",
+          "sha256": "2c41ab176f5fe0be8f05e2de76fa34ca9a5f40dc24b1119404a49ebbbaef8810"
+        },
+        {
+          "path": "run/improve/nav-ef4d0f7d68e746c5a35782a262bbc054/evidence/01-review-1.md",
+          "sha256": "6d1fc47fd453a6ff3df5fd1a1c3159631420943b363c3f4b5096bd96accd1b8d"
+        },
+        {
+          "path": "run/improve/nav-ef4d0f7d68e746c5a35782a262bbc054/evidence/02-checks.md",
+          "sha256": "bb0c16954c70130af7831f289793903aa96dbbd8e3e92bb5f2b0c0469711e3a4"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-f710729af9f244d8a6606f27b23ccf08",
+      "scope": "document accepted current-candidate result; carry-forward reviews W1 and W2 together, document reviews its changed step.",
+      "current_candidate": true,
+      "independent_availability": "unavailable",
+      "fallback_limitation": "The recorded inline execution supplies self-review only; no separate independent reviewer was launched for this child. General advisor availability is not measured. Post-run Astra is separate audit evidence, not retroactive child independence.",
+      "evidence": [
+        {
+          "path": "run/improve/nav-f710729af9f244d8a6606f27b23ccf08/receipt.md",
+          "sha256": "ac42cbd513b7d68deefb7170430817bdf6ccaac1ae1f432a1794c95dbf17b7cb"
+        },
+        {
+          "path": "run/improve/nav-f710729af9f244d8a6606f27b23ccf08/evidence/01-review-2.md",
+          "sha256": "c4bb69cd019343492e56a0761e1659fdae500c25209a44d7171d8cab961b1297"
+        },
+        {
+          "path": "run/improve/nav-f710729af9f244d8a6606f27b23ccf08/evidence/02-checks.md",
+          "sha256": "e411a573ef4779e989b6fd03ec2d5867c43b299bfe946ca688d5de5b694be43e"
+        }
+      ]
+    }
+  ],
+  "inventory": {
+    "selected_test_ids": [
+      "catalog-own-suite",
+      "catalog-pristine-suite",
+      "catalog-assignment-http",
+      "catalog-reassignment-http",
+      "catalog-escalation-worker",
+      "catalog-prior-files",
+      "catalog-dependencies",
+      "catalog-new-tests",
+      "catalog-requirement-ids",
+      "held-out-existing-api-kept",
+      "held-out-assignment-kept",
+      "held-out-assignment-listing-kept",
+      "held-out-assignment-notified-kept",
+      "held-out-assignment-persists-kept",
+      "held-out-cli-raw-columns-kept",
+      "held-out-worker-off-is-quiet",
+      "held-out-reassign-moves",
+      "held-out-reassign-validation",
+      "held-out-reassign-notifies",
+      "held-out-reassign-audited",
+      "held-out-escalation-notifies-oncall",
+      "held-out-escalation-rules",
+      "held-out-escalation-at-most-once"
+    ],
+    "improve_action_ids": [
+      "nav-0cbe0a115a4b41d58be8e7d1f0ae4ad8",
+      "nav-25ea7f177c77475a9224ad7873a9c8e3",
+      "nav-3600ab850f0641b39e23958d6275a3a5",
+      "nav-3bfb0117595b48f9be75226fed50397a",
+      "nav-4b4045f9623f41a1ae42d5751457e714",
+      "nav-74240720f9fe495cb582e1712e88f5cf",
+      "nav-91c8846904154e1e9973c0e896879eeb",
+      "nav-94593e9edd64420b8c2d682d85eadb17",
+      "nav-eadbf6f0fa894e448665a2f6214f450c",
+      "nav-ef4d0f7d68e746c5a35782a262bbc054",
+      "nav-f710729af9f244d8a6606f27b23ccf08"
+    ],
+    "evidence": [
+      {
+        "path": "state.md",
+        "sha256": "9b5ef93bcefb0d06de7282ec24260d2bda3b4ab8b9c308f77117d1bb0ba83419"
+      },
+      {
+        "path": "result.json",
+        "sha256": "227d54357aa77c65ff77aac3647095e90f3554a7fb9c41c0763fe6b3c3217988"
+      }
+    ]
+  },
+  "proposed_experiments": [
+    "Completed/deferred/historical controlled examples and a prospective next-reader test.",
+    "First item, later item, sent-back item, non-done result and genuinely missing required receipt.",
+    "Distinguish shell error, ignored option, absent planned file and legitimate red behavior.",
+    "Fresh-reader finds the authoritative homes without old run directory."
+  ],
+  "unresolved_limits": [
+    "n=1, no control; no general speed/reliability gain",
+    "next feature consuming returned knowledge not run",
+    "Grok memory writes and context window unmeasured",
+    "held_out_seen 0 does not prove isolation",
+    "requested model/effort controls are not provider attestation",
+    "Frozen inventory checker reports unknown; no corrected validator run or runtime fix adopted.",
+    "Shared Run Review page unavailable; retained local review only."
+  ],
+  "harness_reflection": {
+    "learning_retention": {
+      "answer": "Keep original receipts and frozen outcomes; retain post-quality export and analyst reconciliations separately. Product current knowledge needs an explicit final-status account, not a replay of all run history.",
+      "proposals": [
+        "Separate historical snapshots from current-status statements using existing knowledge homes."
+      ]
+    },
+    "further_learning": {
+      "answer": "A new reader must distinguish completed from deferred intent; no next-reader run occurred. Review cost and material corrections are both measured, but causal value is unknown.",
+      "proposals": [
+        "Prospectively test completed, deferred and historical statements; measure reader decisions before claiming a gain."
+      ]
+    },
+    "evaluation_criteria": {
+      "answer": "Existing old/new behavioral checks establish functional completion; semantic current-status and real knowledge discovery require explicit inspection. Frozen first-item inventory mismatch prevents clean audit qualification.",
+      "proposals": [
+        "Repair schedule inventory in a separately pinned apparatus revision; retain its original UNKNOWN."
+      ]
+    }
+  }
+}
