@@ -8945,3 +8945,53 @@ Fresh read-only Astra requested gpt-6-astra/high, fallback false, exit 0. It ver
 Decision: retain the shared stages and defaults. Prioritize a narrow final-status/discovery pilot within existing closing stages, an apparatus-only inventory repair, and then exact-command readiness in Test Spec. No new stage/schema/loop limit or causal efficiency claim. The earlier stopped pilot remains STOPPED and the broad continuity candidate remains DROP; this trial does not retroactively qualify either. The older accepted planning-time-status finding o79 remains valid for its historical scope; current unqualified requirement status is a distinct problem.
 
 Evidence: `docs/experiments/lifecycle-validation-20261113/` and the committed `test/shiploop_e2e/evidence/grok-grok-4.6-2.37.2-ticket-escalation-20261113{,.review}.json`. Raw root `/Users/dadleet/Documents/Codex/experiments/shiploop-lifecycle-validation-20261113`, including registration, live-worker completion, original result/export, post-quality export, terminal snapshot, workflow adapter and Astra response. Run Review check:15 documents, 0 failures, 0 warnings. Shared page unchanged because Artifact tools are unavailable. HTML preview produced; local-file browser security prevented visual inspection. No runtime source, package, release or installed host changed in this assessment unit.
+
+## 2026-11-14 — One-command stage close-out, stage suite on Codex Sol medium: the close-out shrinks, pass counts are equal, whole-stage time is unresolved
+
+The owner asked whether any efficiency can be had without losing function, then approved building and testing a closing
+command on simple cases with Codex Sol at medium. The candidate (`db725d10e31f869442f8ba0ec3b0401c4886b165`, ShipLoop
+1.34.2 plus one changed result line in `shiploop_loops._RESULT_HEAD`) tells a model that finishes with outcome done to
+close with one shell command: `check`, then the loop's satisfied report, then `complete`, each only if the one before
+succeeded. Baseline: `3474addc6a2a40c0a13313c3409841831252fe12`. The plan, measures and decision rules were registered in
+`docs/experiments/closeout-one-command-20261114/README.md` before any sample.
+
+Ran the stage suite live on both builds: 5 cases (document, implement, step-plan and two validate-existing scenarios, the
+second a send-back control), 3 samples a case, 15 samples an arm, Codex gpt-6.1-sol at medium. Another session's Codex
+run was alive on the machine, so seconds are not a clean wall-time measure.
+
+Read over the 15 samples an arm unless a population is named:
+
+| Measure | B (shipped) | T (candidate) |
+| --- | --- | --- |
+| Suite pass (every id caught or held) | 13 of 15 | 13 of 15 |
+| Send-back control | 2 of 3 | 3 of 3 |
+| Done samples that ran `check` | 4 of 12 | 12 of 12 |
+| Close-out calls, done samples matched by text (B 11, T 10), median | 3 | 1 |
+| Close-out seconds, same population, median | 10.5 | 3.6 |
+| Closed in one call, same population | 0 | 8 of 10 |
+| Mean calls and seconds for a whole sample | 14.0 and 93.2 | 13.4 and 93.6 |
+
+- The four misses are not close-out faults: both implement misses (one in each arm) changed `docs/shiploop/environment.md`,
+  T's document miss renamed test titles in the work phase, B's send-back control found the fault but missed one check
+  of P1.
+- The registered conditions for adoption hold (M1 not below B's, M2 median 0, M3 median 9.6 s below B's). They are
+  "only if" conditions, not an instruction to ship. B's M2 and M3 exist only for the 4 samples that ran `check`.
+- **The scorer's registered matching had a defect.** It attached a trace row to the call whose window, widened by 0.5 s,
+  held its time; adjacent calls overlap, so a zero-duration file write before a command can take its row (T step-plan 2
+  read M2 = 1, truly 0). The registered fields are kept as run, and a second matching by command text is its own line.
+  Three samples cannot be matched by text: the model ran the commands inside a Python script.
+- **Whole-sample time is unresolved.** Samples of one arm on one case differ by 5 to 30 s, several times the 7 s the span
+  says T saves: the mean difference is +0.4 s (standard error 14.9), so 15 samples an arm could not show it either way.
+  The close-out span also flatters T by a reordering (T writes the result and report before the span).
+- **Hazard.** 3 of 12 T done samples ran `check` on its own and again in the closing command; a repeated `check` runs
+  every gate again (only `complete` takes a recorded yes). History says a passing check followed by another is rare: 159
+  pairs in 290 retained runs, 104 s of script time. On the test stage a repeat would cost about one more base, candidate
+  and mutation run (median 5.1 s, 90th percentile 17.4 s over 679 retained checks).
+
+What this round does not cover: the test and carry-forward stages (the suite has no live scenario for them), a whole run,
+other hosts or models, and a measured whole-stage saving. T is neither adopted nor rejected; the entry's owner question
+is whether about 1 call in 3 at the close, roughly 7 s a stage on Sol at medium, is material under the owner's rule of
+2026-11-14. If it is, two full deliveries a build (csv-report and shared-expenses) cover the missing stages.
+
+Evidence: `docs/experiments/closeout-one-command-20261114/` (README, `analysis/`, `evidence/`) and the run folders
+`~/e2e-runs-sp/20261114/closeout-B` and `closeout-T`.
