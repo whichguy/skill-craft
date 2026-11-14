@@ -590,6 +590,51 @@ All six gates passed and every file is complete (no run error, no invalid run). 
 
 **Not done.** A push, a merge, a release and a plugin update; P24; round a's stage 2 and round b's quiet prompts (not needed after L3 failed); C5b; a baseline pilot before the gain line; another model, another host and the installed 2.36.1 payload; anything on the live tenant.
 
+## Round 14 - rehearsal of the 0.1.1 release (2026-11-14)
+
+**Request.** The owner wrote "Merge and publish" right after this session had reported that a sibling session, working in the owner's own repository, was waiting for a yes to merge its branch. The same words shipped `sport80` through skill-craft on 2026-11-08, so here they could also mean releasing `pushpress` 0.1.1 from this branch. I read them narrowly (the sibling's branch), said so, and asked; for the release the owner chose "Rehearse first": merge main into a copy of the branch and run the release preflight and the tests locally, with no push, tag, publish or plugin update until a separate "publish". Branch `pushpress-card-fixes`, head `7241588baee5` before this entry. One local commit: this record with its evidence. No change to `skills/`, the tests or the pending notes.
+
+**Question.** If the owner says "publish", does the branch release cleanly on today's `origin/main`: does it merge, does `release.py` ship only `pushpress` with both pending notes, do the repository's checks and tests pass on the release tree, and what exactly would become public?
+
+**Where.** `docs/evidence/pushpress-release-rehearsal-20261114/` (its README has the layout and the commands): the release output, the 61-suite receipt, and the summary of the privacy scan.
+
+**Method.** A scratch worktree and branch outside the repository, cut from the head: `git fetch origin`, `git merge --no-ff origin/main` (`3474addc`, 108 commits past the published head `ffbc1cb8`), `release.py --dry-run`, then the real `release.py` on the scratch branch (it commits locally and never pushes). On the release commit: the release-boundary guard and the marketplace package check, a comparison of the card's source with its plugin copy (with an identical-pair and a must-differ control), the `core` test group with the key variables unset and CI's stand-in session markers, the extractor harness, and a scan of every file that differs from `origin/main` (the repository's lint plus owner, gym, home-path and live-key checks; a seeded control file and an in-memory key control had to be flagged first). Then checks that nothing left the machine.
+
+| check | result |
+|---|---|
+| merge of `origin/main` into the scratch copy | clean, no conflicts |
+| `release.py --dry-run` | `pushpress` 0.1.0 to 0.1.1 with both pending notes (`card-key-and-member-list-rules`, `description-loads-card-before-a-key-is-pasted`), `skill-craft` 2.37.2 to 2.37.3, nothing else pending |
+| `release.py` on the scratch branch | one release commit of 15 files (6 under `plugins/skill-craft`, the 2 notes deleted, the skill's version line, the plugin catalog, the README, the changelog, 3 host catalogs); its own sync checks OK; 0 notes left; 0 uncommitted files |
+| release-boundary guard, before and after the release commit | OK, OK |
+| marketplace package check | OK (offline payload validation only) |
+| plugin copy of the card against its source | identical (`diff -rq` 0; identical-pair control 0; must-differ control 1) |
+| `core` group, 61 suites including `pushpress.test.py` | 61 of 61 passed in 607 s (receipt status `passed`, 0 non-OK lines) |
+| extractor harness | PASS, 17 checks |
+| privacy scan, 326 files | no category in 312; the 14 others are synthetic fixtures or older published lines (`scan-summary.txt`); the changelog's 11 added lines are clean |
+| nothing left the machine | the exact scratch ref on the remote 0; remote branches holding the release commit 0; tags on it 0; the real branch's head and worktree unchanged |
+| state of `origin/main` | CI success on its head and the three runs before; the repository is public |
+
+**What the release would make public.** 326 files differ from `origin/main`: 305 of them under `docs/evidence` (the test evidence of Rounds 9 to 13, which is not on main yet), 6 under `plugins/skill-craft`, 2 under `skills/pushpress` (the card's changes from the two pending notes), 3 test fixtures, two new extractor tests, the unit test, this journal, the changelog, the README and the catalogs.
+
+**Cost.** No model run: scripts and the repository's own suites (607 s of wall time here).
+
+**Findings.**
+- **F21 (`firm` for this moment)** The branch releases cleanly on `origin/main` at `3474addc`: a clean merge, a dry-run that ships only this skill, a release commit that passes the guard, the package check and the source-to-copy comparison, 61 of 61 suites and the extractor harness, and a scan with no private shape in what is added. Main is 108 commits past the published head and moves several times an hour, so this stays true only until the next push to main.
+- **F22 (`firm`, about the work)** A check that fails quietly reads like a zero. `git ls-remote --heads origin "rehearse/*"` printed one head, which looked like a pushed scratch branch; the pattern matches the tail of a ref and had found an old archived branch of the same tail. The exact ref (`refs/heads/<name>`) gave 0. Earlier, `pgrep -c` does not exist on this OS: its two answers were empty (the usage error went to the screen) and could have been read as zeros, but the control line, a process that must exist, was empty too, which showed the check had not run. Ask for the exact ref, and run the control through the same command.
+
+**Decisions.**
+- R14-D1 No publish yet. The owner's answer covers this rehearsal only. A publish, a push, a tag and a plugin update each still wait for their own word, and R12-D4 holds: the two pending notes ship together.
+- R14-D2 The scratch worktree and branch are removed. The release commit `8967070e` was never pushed and is not kept: a real release repeats the merge on the newer `origin/main` and cuts its own commit.
+- R14-D3 What a real publish would run, in this order: `git fetch`; merge `origin/main` into the branch; `release.py --dry-run` (it must again list only `pushpress`); `release.py`; the suites on the release tree; `release-push.py` with the literal head, tree and base commits and the checks as `--check` arguments; `git ls-remote` to confirm; CI on the pushed commit. A host refresh is a separate yes.
+
+**Proposed changes.** None for the skill.
+
+**Marks on earlier items (2026-11-14).** R12-D4 and R13-D4 (release the two notes together): rehearsed, ready, waiting for "publish". G7's warning held: main moved while the branch waited, and a cut ships whatever is pending on main, which here is only this skill's two notes.
+
+**Limits.** The groups that CI adds for a full run were not run here (`shiploop-1` to `shiploop-3`, `e2e-apparatus`, `python-floor` on Python 3.9, the browser fixtures); they run on a pushed commit. The merge and the checks are a snapshot of one moment on main. The scan knows the shapes of the repository's lint, the owner's and the gym's names, home paths and the live key; a private fact written as ordinary prose is not a shape, and the 305 evidence files were scanned, not re-read line by line, for this rehearsal.
+
+**Not done.** A publish, a push, a tag and a plugin update; the CI-only groups locally; anything on the live tenant.
+
 ## Still unknown
 
 - **G1 (`superseded` 2026-11-08 by Round 6; it was `firm`).** The generalized skill had not been run against a live tenant after generalization. It has now had one read-only pass

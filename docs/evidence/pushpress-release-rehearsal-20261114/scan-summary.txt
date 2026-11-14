@@ -1,0 +1,23 @@
+Privacy scan of what the 0.1.1 release would add (rehearsal, 2026-11-14)
+
+What was scanned: every file that differs from origin/main on the release tree (added, modified or renamed): 326 files.
+By area: 305 under docs/evidence (the test evidence of Rounds 9 to 13, not yet on main), 6 under plugins/skill-craft, 3 in test/fixtures,
+2 under skills/pushpress, the unit test, the two new extractor tests, the journal, the plugin catalog, the README, the changelog and the host catalogs.
+
+How: each file is read as UTF-8 text (an unreadable file would have failed the run; 0 did) and passed through the repository's own lint
+(lint_text in test/pushpress.test.py: email, record id, phone number, key shape, uuid, long number, machine-specific path) plus three extra checks
+(owner or gym name, personal mail host, user home path) and a check for the live PushPress key and company id values, which are read from the
+process environment and never printed. Controls, which had to pass before any file was read: a control file seeded with one leak in each of nine
+categories (all nine flagged) and an in-memory string holding the live key (flagged). Output shows only file names and category names.
+
+Result: 312 of 326 files have no category. 14 files have one: every hit in a new file is a synthetic fixture or a constant, and the two hits in
+older files are not in the lines this release adds.
+- uuid (9 files: 6 eval history files, 2 case generators and the extractor known-gaps test): patterned ids with a "5eed" prefix in the generated
+  eval histories and their generators, and one sequential id (a planted value in a known-gaps case).
+- long number (5 files): the date used as a random seed (the quiz report and results summary), planted fixture numbers in the known-gaps test, a
+  numeric constant in the property test, and older planted lint values in the unit test (next point).
+- Whole-file hits in the changelog (owner or gym name, user home path, machine-specific path, record id) and in the unit test (long number) come
+  from older, already published lines; the lines this release adds to them have no category (the changelog gains 11 lines; the unit test's 85
+  added lines have no uuid or long-number token).
+In the lines this release adds there is no owner or gym name, personal mail host, user home path, email address, phone number, key shape or live key.
+The 305 evidence files were scanned here; they were not re-read line by line for this rehearsal.
