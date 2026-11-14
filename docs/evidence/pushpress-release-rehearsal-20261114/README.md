@@ -1,6 +1,6 @@
 # Rehearsal of the pushpress 0.1.1 release (journal Round 14, 2026-11-14)
 
-If the owner says "publish", does branch `pushpress-card-fixes` (head `7241588b` when the rehearsal ran) release cleanly on the current `origin/main`, and what would become public?
+If the owner says "publish", does branch `pushpress-card-fixes` (head `2c095996` when the rehearsal ran; it was `7241588b` before the identity normalization noted in the journal) release cleanly on the current `origin/main`, and what would become public?
 **Result: it does, and every check passed.** Nothing was pushed, tagged or published: the rehearsal ran in a scratch worktree on a scratch branch, and both were removed afterwards.
 
 ## Files
