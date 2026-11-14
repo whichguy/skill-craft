@@ -584,6 +584,28 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   evidence/census.json, sample.jsonl, prompts/, judge/, retest/, scores.json, labelled-rows.jsonl, beyond-rows.md,
   quote-check.json.
 
+### E24 — 2026-11-14: does planning cover migration, release, documentation and setup when a request needs them? (live, Grok 4.6 xhigh)
+
+- **Question.** E23 could not reach the owner's deployment, migration, documentation and setup points: switchover,
+  migrate-before and migrate-after apply in 11, 9 and 1 of 416 recorded work items, and documentation and setup have no row
+  (F38, F41). Given a request that needs all of them, does planning cover each, and do the release and migration rows bind what
+  is delivered? The two questions to answer: does documentation or setup need its own concern row (recommend one only if a run
+  misses it), and do the release and migration rows bind in practice?
+- **Case.** `ticket-due-times` (test/shiploop_e2e/cases.json) on ticket-assignment's base, `fixtures/node-tickets`: due times
+  per priority with changeable hours, fixed once set; an `overdue=true` listing; due times for the tickets already in the
+  production data file; `DUE_TIMES=on` only once the data file holds them; a way back to 1.4.0 on the data file the new release
+  wrote. Documentation is the one point left to the repository (README.md's settings table, docs/operations.md, docs/api.md,
+  CONTRIBUTING.md's decision-record and CHANGELOG rules). The base reads only data-file version 1 and its pristine tests pin it,
+  so the way back needs an additive change.
+- **Held-out probe.** test/shiploop_e2e/checks/due_times_probe.py, six modes (migrate, restart, switch, rollback, off,
+  cli) over a version-1 file the base writes, servers on free ports, stopped with SIGTERM. Calibrated before any run against
+  test/fixtures/quality/reference_due_times.py (base, reference, six defects): 0 of 56 cells off the expectation.
+- **Registered design** (docs/experiments/planning-points-probe-20261114/README.md, committed before any run): 3 runs on the E2E
+  default subject (Grok `grok-4.6`, `xhigh`), marketplace source (skill-craft 2.37.4, ShipLoop 1.34.3), side by side; measures
+  M1-M9 and binding, all by script, no judge; predictions P1-P17; decision rules for a documentation row, a setup row and
+  binding.
+- **Status.** Registered; runs pending.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.

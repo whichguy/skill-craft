@@ -54,6 +54,9 @@ class QualityBudgetTest(unittest.TestCase):
     def test_other_cases_remain_identical_to_owner_budget_change_base(self):
         cases = json.loads((ROOT / "test/shiploop_e2e/cases.json").read_text())
         del cases["grok-chat-salesforce-full"]
+        # Cases added to the catalog after that base are not the ones this guard is about; each is named here.
+        for added in ("ticket-due-times",):  # docs/experiments/planning-points-probe-20261114/, 2026-11-14
+            del cases[added]
         # Canonical catalog excluding only the full case at bb741347a74d170c260bc524379967028ba4d5c6.
         digest = hashlib.sha256(json.dumps(cases, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         self.assertEqual(digest, "25ae51d25ff04aa420ba36098e7a8e06fe6c832cc797e01c3d8996b86f118796")

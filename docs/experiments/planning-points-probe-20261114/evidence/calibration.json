@@ -1,0 +1,520 @@
+{
+ "probe": "test/shiploop_e2e/checks/due_times_probe.py",
+ "reference": "test/fixtures/quality/reference_due_times.py",
+ "expected": {
+  "base": {
+   "migrate": false,
+   "restart": false,
+   "switch": false,
+   "rollback": true,
+   "off": true,
+   "cli": true,
+   "pristine": true
+  },
+  "reference": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "off": true,
+   "cli": true,
+   "pristine": true
+  },
+  "version-two": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": false,
+   "off": true,
+   "cli": true,
+   "pristine": false
+  },
+  "priority-moves-due": {
+   "migrate": true,
+   "restart": false,
+   "switch": true,
+   "rollback": true,
+   "off": true,
+   "cli": true,
+   "pristine": true
+  },
+  "due-not-persisted": {
+   "migrate": true,
+   "restart": false,
+   "switch": true,
+   "rollback": true,
+   "off": true,
+   "cli": true,
+   "pristine": true
+  },
+  "no-backfill": {
+   "migrate": false,
+   "restart": false,
+   "switch": false,
+   "rollback": true,
+   "off": true,
+   "cli": true,
+   "pristine": true
+  },
+  "flag-ignored": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "off": false,
+   "cli": true,
+   "pristine": true
+  },
+  "overdue-active": {
+   "migrate": false,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "off": true,
+   "cli": true,
+   "pristine": true
+  }
+ },
+ "cells": {
+  "base": {
+   "own_suite_exit": 0,
+   "migrate": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 1.6,
+    "fails": [
+     "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0007 (low, created 2026-11-14T15:26:39.000Z) shows no `due`",
+     "FAIL: migrate: T-0008 (urgent, created 2026-11-14T11:26:39.000Z) shows no `due`"
+    ]
+   },
+   "restart": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 4.9,
+    "fails": [
+     "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0007 (low, created 2026-11-14T15:26:40.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0008 (urgent, created 2026-11-14T11:26:40.000Z) shows no `due`"
+    ]
+   },
+   "switch": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 3.9,
+    "fails": [
+     "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0007 (low, created 2026-11-14T15:26:45.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0008 (urgent, created 2026-11-14T11:26:45.000Z) shows no `due`"
+    ]
+   },
+   "rollback": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 4.8,
+    "fails": []
+   },
+   "off": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.7,
+    "fails": []
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   },
+   "pristine": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.2,
+    "fails": []
+   }
+  },
+  "reference": {
+   "own_suite_exit": 0,
+   "migrate": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.5,
+    "fails": []
+   },
+   "restart": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   },
+   "switch": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.8,
+    "fails": []
+   },
+   "rollback": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.5,
+    "fails": []
+   },
+   "off": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.5,
+    "fails": []
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   },
+   "pristine": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   }
+  },
+  "version-two": {
+   "own_suite_exit": 1,
+   "migrate": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.4,
+    "fails": []
+   },
+   "restart": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.1,
+    "fails": []
+   },
+   "switch": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.8,
+    "fails": []
+   },
+   "rollback": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 1.4,
+    "fails": [
+     "FAIL: the candidate exited (rc 2) before it listened on PORT=64434: 2026-11-14T16:27:10.471Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-_cdfs8x0/off/tickets.json: has version 2; this service reads version 1",
+     "FAIL: rollback (DUE_TIMES unset): 1.4.0 does not start on the data file the new release wrote",
+     "FAIL: the candidate exited (rc 2) before it listened on PORT=64460: 2026-11-14T16:27:11.022Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-_cdfs8x0/on/tickets.json: has version 2; this service reads version 1",
+     "FAIL: rollback (DUE_TIMES=on): 1.4.0 does not start on the data file the new release wrote"
+    ]
+   },
+   "off": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.4,
+    "fails": []
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.9,
+    "fails": []
+   },
+   "pristine": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 1.1,
+    "fails": [
+     "FAIL: the base's pristine tests against the delivered source: 115 of 117 pass, 2 fail (rc 1); failing: a version this service does not read (1.989375ms); output tail: 4:18)"
+    ]
+   }
+  },
+  "priority-moves-due": {
+   "own_suite_exit": 0,
+   "migrate": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.5,
+    "fails": []
+   },
+   "restart": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 1.4,
+    "fails": [
+     "FAIL: restart: T-0003's priority change moved its due time from 2025-09-06T10:15:00.000Z to 2025-09-03T14:15:00.000Z",
+     "FAIL: restart, after a priority change: T-0003 is due '2025-09-03T14:15:00.000Z', not '2025-09-06T10:15:00.000Z' as before",
+     "FAIL: restart, after a second restart: T-0003 is due '2025-09-03T14:15:00.000Z', not '2025-09-06T10:15:00.000Z' as before"
+    ]
+   },
+   "switch": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.8,
+    "fails": []
+   },
+   "rollback": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   },
+   "off": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.1,
+    "fails": []
+   },
+   "pristine": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.1,
+    "fails": []
+   }
+  },
+  "due-not-persisted": {
+   "own_suite_exit": 0,
+   "migrate": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.4,
+    "fails": []
+   },
+   "restart": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 1.0,
+    "fails": [
+     "FAIL: restart, after a second restart: T-0003 is due '2025-09-03T14:15:00.000Z', not '2025-09-06T10:15:00.000Z' as before"
+    ]
+   },
+   "switch": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.8,
+    "fails": []
+   },
+   "rollback": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.4,
+    "fails": []
+   },
+   "off": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.2,
+    "fails": []
+   },
+   "pristine": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.1,
+    "fails": []
+   }
+  },
+  "no-backfill": {
+   "own_suite_exit": 0,
+   "migrate": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 0.4,
+    "fails": [
+     "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`",
+     "FAIL: migrate: T-0007 (low, created 2026-11-14T15:27:30.000Z) shows no `due`",
+     "FAIL: migrate: T-0008 (urgent, created 2026-11-14T11:27:30.000Z) shows no `due`"
+    ]
+   },
+   "restart": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 0.9,
+    "fails": [
+     "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0007 (low, created 2026-11-14T15:27:31.000Z) shows no `due`",
+     "FAIL: restart, first start: T-0008 (urgent, created 2026-11-14T11:27:31.000Z) shows no `due`"
+    ]
+   },
+   "switch": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 0.6,
+    "fails": [
+     "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0007 (low, created 2026-11-14T15:27:32.000Z) shows no `due`",
+     "FAIL: switch, after DUE_TIMES=on: T-0008 (urgent, created 2026-11-14T11:27:32.000Z) shows no `due`"
+    ]
+   },
+   "rollback": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.2,
+    "fails": []
+   },
+   "off": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.2,
+    "fails": []
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.8,
+    "fails": []
+   },
+   "pristine": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.8,
+    "fails": []
+   }
+  },
+  "flag-ignored": {
+   "own_suite_exit": 0,
+   "migrate": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.3,
+    "fails": []
+   },
+   "restart": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.0,
+    "fails": []
+   },
+   "switch": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.5,
+    "fails": []
+   },
+   "rollback": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.3,
+    "fails": []
+   },
+   "off": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 1.4,
+    "fails": [
+     "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\", \"due\": \"2025-09-01T12:00:00.000Z\"}, {\"id\": \"T-0002\", \"title\": \"VPN drops ever; 1.4.0 answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\"}, {\"id\": \"T-0002\", \"title\": \"VPN drops every hour\", \"priority\": \"high\", \"reque",
+     "FAIL: off (DUE_TIMES unset): GET /tickets?overdue=true answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\", \"due\": \"2025-09-01T12:00:00.000Z\"}, {\"id\": \"T-0002\", \"title\": \"VPN drops ever; 1.4.0 answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\"}, {\"id\": \"T-0002\", \"title\": \"VPN drops every hour\", \"priority\": \"high\", \"reque",
+     "FAIL: off (DUE_TIMES unset): GET /tickets?status=open answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\", \"due\": \"2025-09-01T12:00:00.000Z\"}, {\"id\": \"T-0003\", \"title\": \"New starter ne; 1.4.0 answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\"}, {\"id\": \"T-0003\", \"title\": \"New starter needs a laptop\", \"priority\": \"normal\"",
+     "FAIL: off (DUE_TIMES unset): GET /tickets?priority=low answers 200 {\"items\": [{\"id\": \"T-0004\", \"title\": \"Mailbox is full\", \"priority\": \"low\", \"requester\": \"dee@example.com\", \"status\": \"resolved\", \"created\": \"2025-09-04T11:45:00.000Z\", \"updated\": \"2025-09-05T09:00:00.000Z\", \"due\": \"2025-09-11T11:45:00.000Z\"}, {\"id\": \"T-0006\", \"title\": \"Shared drive is slow\", \"priori; 1.4.0 answers 200 {\"items\": [{\"id\": \"T-0004\", \"title\": \"Mailbox is full\", \"priority\": \"low\", \"requester\": \"dee@example.com\", \"status\": \"resolved\", \"created\": \"2025-09-04T11:45:00.000Z\", \"updated\": \"2025-09-05T09:00:00.000Z\"}, {\"id\": \"T-0006\", \"title\": \"Shared drive is slow\", \"priority\": \"low\", \"requester\": \"fay@examp",
+     "FAIL: off (DUE_TIMES unset): GET /tickets?limit=3 answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\", \"due\": \"2025-09-01T12:00:00.000Z\"}, {\"id\": \"T-0002\", \"title\": \"VPN drops ever; 1.4.0 answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\"}, {\"id\": \"T-0002\", \"title\": \"VPN drops every hour\", \"priority\": \"high\", \"reque",
+     "FAIL: off (DUE_TIMES unset): GET /tickets/T-0001 answers 200 {\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\", \"due\": \"2025-09-01T12:00:00.000Z\"}; 1.4.0 answers 200 {\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"updated\": \"2025-09-01T08:00:00.000Z\"}",
+     "FAIL: off (DUE_TIMES unset): GET /tickets/T-0008 answers 200 {\"id\": \"T-0008\", \"title\": \"Payroll system is down\", \"priority\": \"urgent\", \"requester\": \"hal@example.com\", \"status\": \"in_progress\", \"created\": \"2026-11-14T11:27:40.000Z\", \"updated\": \"2026-11-14T12:27:40.000Z\", \"due\": \"2026-11-14T15:27:40.000Z\"}; 1.4.0 answers 200 {\"id\": \"T-0008\", \"title\": \"Payroll system is down\", \"priority\": \"urgent\", \"requester\": \"hal@example.com\", \"status\": \"in_progress\", \"created\": \"2026-11-14T11:27:40.000Z\", \"updated\": \"2026-11-14T12:27:40.000Z\"}",
+     "FAIL: off (DUE_TIMES unset): POST /tickets answers 201 {\"id\": \"T-0009\", \"title\": \"Keyboard is missing keys\", \"priority\": \"high\", \"requester\": \"ivy@example.com\", \"status\": \"open\", \"created\": \"<a time of the probe>\", \"updated\": \"<a time of the probe>\", \"due\": \"<a time of the probe>\"}; 1.4.0 answers 201 {\"id\": \"T-0009\", \"title\": \"Keyboard is missing keys\", \"priority\": \"high\", \"requester\": \"ivy@example.com\", \"status\": \"open\", \"created\": \"<a time of the probe>\", \"updated\": \"<a time of the probe>\"}"
+    ]
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.0,
+    "fails": []
+   },
+   "pristine": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.9,
+    "fails": []
+   }
+  },
+  "overdue-active": {
+   "own_suite_exit": 0,
+   "migrate": {
+    "pass": false,
+    "exit": 1,
+    "seconds": 0.3,
+    "fails": [
+     "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0007'])",
+     "FAIL: migrate: the new ticket T-0009, due in 4 hours, is listed as overdue"
+    ]
+   },
+   "restart": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.9,
+    "fails": []
+   },
+   "switch": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.6,
+    "fails": []
+   },
+   "rollback": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.1,
+    "fails": []
+   },
+   "off": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 1.2,
+    "fails": []
+   },
+   "cli": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.9,
+    "fails": []
+   },
+   "pristine": {
+    "pass": true,
+    "exit": 0,
+    "seconds": 0.9,
+    "fails": []
+   }
+  }
+ },
+ "mismatches": []
+}
