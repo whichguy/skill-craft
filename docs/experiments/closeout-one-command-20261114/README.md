@@ -7,8 +7,8 @@ Owner, 2026-11-14:
 Standing rule the same day: change nothing unless it is materially different from current functionality.
 
 Status: **both rounds run 2026-11-14. Round 1 (stage suite) and round 2 (whole deliveries) met every registered
-condition; the owner answered "Yes" to releasing it as a patch. The release follows this entry; a "Release" section
-below records it once it is published.**
+condition; the owner answered "Yes" to releasing it as a patch, and it is published as skill-craft 2.37.4 / ShipLoop 1.34.3
+(release commit `48bc8d63cc64f090f26ba46ee7c273611d14f1de`, see "Release").**
 
 ## Why: the measured cost of closing a stage
 
@@ -363,3 +363,33 @@ never committed, so no recorded figure was corrected: only the two T test-stage 
 Every registered condition holds. The owner's answer to "do you want that minute?" was "Yes", with a patch release if this
 round was clean, so T ships as a patch (ShipLoop 1.34.2 to 1.34.3, skill-craft 2.37.2 to 2.37.3) with the change note
 `changes/shiploop/closeout-one-command.md`.
+
+## Release (2026-11-14)
+
+- **Numbers.** The registration expected skill-craft 2.37.3. Another session published 2.37.3 (the pushpress card fixes,
+  release commit `2e96482d9c53cd27c471c0278358d23dc537a284`) while round 2 ran, so this change shipped as skill-craft 2.37.4
+  and ShipLoop 1.34.3 (ShipLoop was untouched by 2.37.3). origin/main was merged into the branch, not rebased, to keep every
+  hash cited in the journals valid (merge `6357e4d8cde943657972aaf72a3a5cb1d10b3efb`); the upstream diff touched nothing
+  under `skills/shiploop`, `changes/shiploop`, `test/shiploop_e2e` or this folder.
+- **Quick tier**, `--changed-from 2e96482d9c53cd27c471c0278358d23dc537a284`, `--jobs 6`: the first run passed 33 of 34 suites
+  (249.0 s). `shiploop-head-order` pinned the old opening `Result: when the Receipt` of the loop block's result line in two token
+  lists, so every inner producer packet failed it. The pins were updated in `2276efbd5765e3395db9c6238910ce3a4d2bf0a7` and the tier
+  rerun passed 34 of 34 (268.6 s, `PASS (quick hermetic group selection)`). My narrow runs after the candidate had been the
+  loops and packet-anatomy suites; only the tier selected by changed files reached the suite that pins a phrase in another file.
+- **Release commit** `48bc8d63cc64f090f26ba46ee7c273611d14f1de`, cut by `scripts/release.py` in a detached worktree from
+  `2276efbd5765e3395db9c6238910ce3a4d2bf0a7` (dry run first: shiploop 1.34.2 to 1.34.3, skill-craft 2.37.3 to 2.37.4, one
+  note, E2E-round preflight passed). 16 files: the three host catalogs and the plugin manifests' versions, the changelog, the
+  README inventory, the consumed note, ShipLoop's `SKILL.md` and `README.md` versions, and the packaged
+  `shiploop_loops.py`, whose diff is the one `_RESULT_HEAD` change.
+- **Guarded push** by `scripts/release-push.py` as a fast-forward from the remote head
+  `2e96482d9c53cd27c471c0278358d23dc537a284`, candidate tree `ab226b306a2f675f046343f9a88535d2a82ded99`: four checks passed
+  (`sync-plugin-views.sh --check`, `check-marketplace-packages.py`, `check-release-boundary.py --base 2e96482d...`, and
+  `test/test-groups.test.py`, 64 tests OK). CI on the release commit was not watched: it is a wording-only change under the owner's
+  exception of 2026-09-25, and the local tier had passed.
+- **Hosts**, each installed copy read for the new wording (`Result: write the result first`) and not only its version: Claude
+  2.37.2 to 2.37.4 (a restart applies it), Grok 2.37.2 to 2.37.4. **Codex is pending**: another session has a live
+  `codex exec --profile shiploop` run on the real profile, and replacing the plugin under a live run is not mine to do, so a
+  waiter refreshes Codex once no such session is alive (its result is in the LEARNINGS entry's follow-up if it has run). Cursor
+  refreshes only from the owner's app.
+- **Unknowns kept open:** other hosts and models (only Codex Sol at medium was measured), and whole-run minutes (no whole-run
+  saving was observed in round 2).
