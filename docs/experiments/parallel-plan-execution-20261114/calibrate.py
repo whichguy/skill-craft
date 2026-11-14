@@ -369,9 +369,107 @@ def qualification_cells() -> tuple[int, int, list]:
     return cells, off, lines
 
 
+def task_cells() -> tuple[int, int, list]:
+    """Real-agent-work mode (README Amendment A5): the kit's begin, complete and outcome, the evidence oracle, the readers on the
+    real E1 streams when PPE_E1_DIR names them, the FINAL line in pieces, and the launcher's task path with a fake host."""
+    import tempfile
+    import evidence
+    lines: list = []
+    cells = off = 0
+
+    def cell(group, name, fn, want):
+        nonlocal cells, off
+        c, o = _cell(lines, group, name, fn, want)
+        cells, off = cells + c, off + o
+    k = [sys.executable, str(HERE / "dagkit.py")]
+    with tempfile.TemporaryDirectory() as root:
+        env = dict(os.environ)
+
+        def sh(*args):
+            return subprocess.run(k + list(args), env=env, capture_output=True, text=True)
+        run = str(Path(root) / "work" / "run")
+        (Path(root) / "work").mkdir()
+        sh("init", "--plan", str(HERE / "plans" / "analysis5.json"), "--run", run)
+        premature = sh("begin", "--run", run, "--step", "T5")
+        cell("kit: task mode", "a dependent task is refused before its inputs", lambda: premature.returncode, 3)
+        wrong = sh("run", "--run", run, "--step", "T1")
+        cell("kit: task mode", "run is refused on a task step", lambda: wrong.returncode, 3)
+        nostart = sh("complete", "--run", run, "--step", "T1", "--result", '{"answer": 1}')
+        cell("kit: task mode", "complete before begin is refused", lambda: nostart.returncode, 3)
+        begun = sh("begin", "--run", run, "--step", "T1")
+        cell("kit: task mode", "begin prints the task and the exact callback", lambda: ("complete --run" in begun.stdout and "log_1.txt" in begun.stdout and begun.returncode == 0), True)
+        bad = sh("complete", "--run", run, "--step", "T1", "--result", '{"answer": "five"}')
+        cell("kit: task mode", "a result with no integer answer is refused", lambda: bad.returncode, 3)
+        good = sh("complete", "--run", run, "--step", "T1", "--result", '{"answer": 5, "method": "x"}')
+        cell("kit: task mode", "complete records the outcome", lambda: (good.returncode, "RECORDED T1" in good.stdout), (0, True))
+        again = sh("begin", "--run", run, "--step", "T1")
+        cell("kit: task mode", "a second begin is a duplicate", lambda: again.returncode, 3)
+        out1 = sh("outcome", "--run", run, "--step", "T1")
+        cell("kit: task mode", "outcome prints a finished step's result", lambda: json.loads(out1.stdout)["result"]["answer"], 5)
+        out2 = sh("outcome", "--run", run, "--step", "T2")
+        cell("kit: task mode", "outcome refuses an unfinished step", lambda: out2.returncode, 3)
+        for step, answer in (("T2", 7), ("T3", 3), ("T4", 100)):
+            sh("begin", "--run", run, "--step", step)
+            sh("complete", "--run", run, "--step", step, "--result", json.dumps({"answer": answer}))
+        sh("begin", "--run", run, "--step", "T5")
+        sh("complete", "--run", run, "--step", "T5", "--result", '{"answer": 115}')
+        cell("kit: task mode", "a finished task plan verifies OK", lambda: dagkit.verdict(dagkit.Run(run))[0], "OK")
+        cats = [e["detail"].get("category") for e in dagkit.Run(run).events() if e["kind"] == "refused"]
+        cell("kit: task mode", "refusal categories", lambda: cats, ["premature", "wrong-command", "not-started", "bad-result", "duplicate", "premature"])
+        tamper = Path(run) / "out" / "T2.json"
+        record = json.loads(tamper.read_text())
+        record["result"]["answer"] = 8
+        tamper.write_text(json.dumps(record))
+        cell("kit: task mode", "an outcome edited after it was recorded breaks the chain", lambda: dagkit.verdict(dagkit.Run(run))[0], "FAIL")
+    files_a, expected_a = evidence.generate(11, 150)
+    files_b, expected_b = evidence.generate(11, 150)
+    cell("evidence", "the same seed gives the same logs and answers", lambda: files_a == files_b and expected_a == expected_b, True)
+    cell("evidence", "the final answer is the sum of the four", lambda: expected_a["T5"] == sum(expected_a[f"T{n}"] for n in range(1, 5)), True)
+    cell("evidence", "the oracle's sliding-window reader equals the brute-force one", lambda: all(
+        evidence.q1(evidence.generate(s, 120)[0]["log_1.txt"]) == evidence.q1_brute(evidence.generate(s, 120)[0]["log_1.txt"]) for s in range(1, 9)), True)
+    # the FINAL line streamed in pieces, and an answer scored against the oracle
+    pieces = _view("grok", [{"type": "text", "data": "done\nFIN"}, {"type": "text", "data": 'AL {"done":["T1"],"failed":[],"not_run":[],"answer":9}'}])
+    cell("scorer: report", "a FINAL line split across text deltas is read", lambda: score.final_claim(pieces), {"done": ["T1"], "failed": [], "not_run": [], "answer": 9})
+    with tempfile.TemporaryDirectory() as root:
+        trial = Path(root)
+        (trial / "work" / "run" / "out").mkdir(parents=True)
+        (trial / "oracle.json").write_text(json.dumps({"T1": 5, "T2": 7, "T3": 3, "T4": 100, "T5": 115}))
+        plan = json.loads((HERE / "plans" / "analysis5.json").read_text())
+        for step, answer in (("T1", 5), ("T2", 7), ("T3", 4), ("T5", 115)):
+            (trial / "work" / "run" / "out" / f"{step}.json").write_text(json.dumps({"result": {"answer": answer}}))
+        scored = score.answers(trial, plan)
+        cell("scorer: answers", "three right, one wrong, one never recorded", lambda: (scored["correct"], scored["tasks"]["T3"]["correct"], scored["tasks"]["T4"]["recorded"]), (3, False, None))
+    # the readers on the real E1 streams, when they are on this machine
+    e1 = os.environ.get("PPE_E1_DIR")
+    if e1 and (Path(e1) / "e1-claude").is_dir():
+        for host in ("claude", "codex", "grok"):
+            trial = Path(e1) / f"e1-{host}"
+            cell(f"readers on real E1: {host}", "one native sub-agent, its command attributed to it", lambda: (
+                len(score.native_agents(trial, host)["agents"]),
+                score.mechanism(score.host_view(trial, host), {"peak_concurrency": 1}, True)["kind"]), (1, "native-agents"))
+        cell("readers on real E1: grok", "the FINAL line is found in the streamed text", lambda: score.final_claim(score.host_view(Path(e1) / "e1-grok", "grok")), {"done": ["S1"], "failed": [], "not_run": []})
+        cell("readers on real E1: codex", "the child thread records its multi-agent version", lambda: score.codex_threads(Path(e1) / "e1-codex")[-1]["version"] in ("v1", "v2"), True)
+    # the launcher's task path through the real adapters and the fake host
+    sys.path.insert(0, str(HERE))
+    import launch
+    with tempfile.TemporaryDirectory() as root:
+        for host in ("claude", "codex", "grok"):
+            out = Path(root) / f"task-{host}"
+
+            def run_launch():
+                import io
+                import contextlib
+                with contextlib.redirect_stdout(io.StringIO()):
+                    launch.main(["--host", host, "--plan", "analysis5", "--arm", "A0", "--binary", str(HERE / "fakehost.py"), "--out", str(out), "--timeout", "60", "--lines", "80"])
+                m = json.loads((out / "score.json").read_text())
+                return (m.get("verify"), m["answers"]["correct"], m.get("final_answer_ok"), m["mechanism"]["kind"], (out / "oracle.json").is_file(), (out / "work" / "evidence" / "log_1.txt").is_file())
+            cell("launcher: task path", f"{host}: evidence, oracle, answers and report", run_launch, ("OK", 5, True, "parent-executed", True, True))
+    return cells, off, lines
+
+
 def main() -> int:
     total = bad = 0
-    for part in (check(CASES), view_cells(), kit_end_to_end(), qualification_cells()):
+    for part in (check(CASES), view_cells(), kit_end_to_end(), qualification_cells(), task_cells()):
         n, off, lines = part
         print("\n".join(lines))
         total, bad = total + n, bad + off

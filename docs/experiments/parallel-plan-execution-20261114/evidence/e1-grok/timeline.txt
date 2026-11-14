@@ -1,0 +1,142 @@
+trial   e1-grok
+host    grok grok 1.0.77 (50ca579fa996) grok-4.6 xhigh
+plan    one1  arm A1  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   2.468  H  parent        text     -            I'll
++   2.468  H  parent        text     -            read
++   2.468  H  parent        text     -            the
++   2.468  H  parent        text     -            plan
++   2.480  H  parent        text     -            first
++   2.499  H  parent        text     -            ,
++   2.515  H  parent        text     -            then
++   2.530  H  parent        text     -            run
++   2.539  H  parent        text     -            each
++   2.550  H  parent        text     -            ready
++   2.599  H  parent        text     -            step
++   2.619  H  parent        text     -            through
++   2.640  H  parent        text     -            its
++   2.663  H  parent        text     -            own
++   2.683  H  parent        text     -            sub
++   2.705  H  parent        text     -            -
++   2.727  H  parent        text     -            agent
++   2.755  H  parent        text     -            ,
++   2.770  H  parent        text     -            one
++   2.793  H  parent        text     -            at
++   2.816  H  parent        text     -            a
++   2.842  H  parent        text     -            time
++   2.862  H  parent        text     -            .
++   3.621  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tria
++   3.621  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tria
++   3.625  H  parent        result   -            
++   3.629  H  parent        result   -            
++   8.595  H  parent        text     -            S
++   8.606  H  parent        text     -            1
++   8.615  H  parent        text     -            has
++   8.622  H  parent        text     -            no
++   8.631  H  parent        text     -            deps
++   8.641  H  parent        text     -            ,
++   8.651  H  parent        text     -            so
++   8.659  H  parent        text     -            I’ll
++   8.669  H  parent        text     -            start
++   8.677  H  parent        text     -            one
++   8.689  H  parent        text     -            sub
++   8.696  H  parent        text     -            -
++   8.706  H  parent        text     -            agent
++   8.715  H  parent        text     -            for
++   8.723  H  parent        text     -            it
++   8.733  H  parent        text     -            and
++   8.741  H  parent        text     -            wait
++   8.752  H  parent        text     -            for
++   8.761  H  parent        text     -            it
++   8.768  H  parent        text     -            to
++   8.777  H  parent        text     -            finish
++   8.787  H  parent        text     -            .
++  10.077  H  parent        spawn    spawn_subage spawn_subagent Your only job is to run exactly this command and reply with the one line it prints. Do not run anything else.  python3 /private/tmp/cla
++  19.142  H  agent:7a0a38  call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  19.266  L  ledger        start    S1           {"seconds":5}
++  24.270  L  ledger        end      S1           {"sha":"2a10a2d9fcfade44f89dd2492e4874702ef6d41d122c7b38a7d040871de86119","seconds":5.002}
++  24.278  H  agent:7a0a38  result   -            
++  25.378  H  parent        text     -            STEP
++  25.378  H  parent        text     -            S
++  25.378  H  parent        text     -            1
++  25.378  H  parent        text     -            OK
++  25.389  H  parent        text     -            sha
++  25.389  H  parent        text     -            =
++  25.389  H  parent        text     -            2
++  25.389  H  parent        text     -            a
++  25.389  H  parent        text     -            10
++  25.389  H  parent        text     -            a
++  25.389  H  parent        text     -            2
++  25.389  H  parent        text     -            d
++  25.389  H  parent        text     -            9
++  25.389  H  parent        text     -            fc
++  25.389  H  parent        text     -            fa
++  25.389  H  parent        text     -            seconds
++  25.389  H  parent        text     -            =
++  25.389  H  parent        text     -            5
++  25.389  H  parent        text     -            .
++  25.390  H  parent        text     -            002
++  25.390  H  parent        text     -            (
++  25.390  H  parent        text     -            finished
++  25.390  H  parent        text     -            ;
++  25.390  H  parent        text     -            do
++  25.390  H  parent        text     -            not
++  25.390  H  parent        text     -            run
++  25.390  H  parent        text     -            it
++  25.390  H  parent        text     -            again
++  25.390  H  parent        text     -            )
++  25.757  H  parent        result   -            
++  27.809  H  parent        text     -            S
++  27.816  H  parent        text     -            1
++  27.833  H  parent        text     -            finished
++  27.841  H  parent        text     -            .
++  27.857  H  parent        text     -            Next
++  27.869  H  parent        text     -            I’ll
++  27.883  H  parent        text     -            run
++  27.895  H  parent        text     -            verify
++  27.907  H  parent        text     -            ,
++  27.923  H  parent        text     -            then
++  27.941  H  parent        text     -            report
++  27.949  H  parent        text     -            the
++  27.962  H  parent        text     -            final
++  27.971  H  parent        text     -            status
++  28.116  H  parent        text     -            .
++  28.881  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  29.006  L  ledger        verify   -            {"line":"VERIFY OK steps=1 chain=3d5ef9fd4432"}
++  29.011  H  parent        result   -            
++  30.797  H  parent        text     -            VERIFY
++  30.797  H  parent        text     -            OK
++  30.797  H  parent        text     -            steps
++  30.797  H  parent        text     -            =
++  30.797  H  parent        text     -            1
++  30.797  H  parent        text     -            chain
++  30.797  H  parent        text     -            =
++  30.797  H  parent        text     -            3
++  30.797  H  parent        text     -            d
++  30.798  H  parent        text     -            5
++  30.798  H  parent        text     -            ef
++  30.798  H  parent        text     -            9
++  30.798  H  parent        text     -            fd
++  30.798  H  parent        text     -            443
++  30.798  H  parent        text     -            2
++  30.798  H  parent        text     -            
++  30.798  H  parent        text     -            FINAL
++  30.798  H  parent        text     -            {"
++  30.798  H  parent        text     -            done
++  30.798  H  parent        text     -            ":
++  30.798  H  parent        text     -            ["
++  30.798  H  parent        text     -            S
++  30.799  H  parent        text     -            1
++  30.799  H  parent        text     -            "],
++  30.799  H  parent        text     -            "
++  30.799  H  parent        text     -            failed
++  30.799  H  parent        text     -            ":
++  30.799  H  parent        text     -            [],
++  30.799  H  parent        text     -            "
++  30.799  H  parent        text     -            not
++  30.799  H  parent        text     -            _
++  30.799  H  parent        text     -            run
++  30.799  H  parent        text     -            ":
++  30.799  H  parent        text     -            []}

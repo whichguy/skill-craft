@@ -69,11 +69,19 @@ def main(argv: list) -> int:
             emit({"type": "tool_call_update", "toolCallId": f"c{n}", "status": "completed"})
         return line
 
+    task_mode = plan["steps"][0].get("kit", {}).get("mode") == "task"
+    oracle = json.loads((Path(run).parent.parent / "oracle.json").read_text()) if task_mode else {}
     for step in plan["steps"]:
-        out.append(shell([sys.executable, kit, "run", "--run", run, "--step", step["id"]]))
+        if task_mode:
+            shell([sys.executable, kit, "begin", "--run", run, "--step", step["id"]])
+            out.append(shell([sys.executable, kit, "complete", "--run", run, "--step", step["id"], "--result",
+                              json.dumps({"answer": oracle[step["id"]], "method": "fake"})]))
+        else:
+            out.append(shell([sys.executable, kit, "run", "--run", run, "--step", step["id"]]))
     verify = shell([sys.executable, kit, "verify", "--run", run])
     state = json.loads(subprocess.run([sys.executable, kit, "ready", "--run", run], env=env, capture_output=True, text=True).stdout)
-    final = "FINAL " + json.dumps({"done": state["done"], "failed": state["failed"], "not_run": state["blocked"] + state["waiting"]})
+    answer = {"answer": oracle[plan["steps"][-1]["id"]]} if task_mode else {}
+    final = "FINAL " + json.dumps({"done": state["done"], "failed": state["failed"], "not_run": state["blocked"] + state["waiting"], **answer})
     text = verify + "\n" + final
     if flavor == "claude":
         emit({"type": "result", "result": text, "usage": {"input_tokens": 12, "output_tokens": 5, "cache_read_input_tokens": 400},

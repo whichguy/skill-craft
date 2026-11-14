@@ -1,0 +1,19 @@
+trial   e1-codex-v2
+host    codex codex-cli 0.169.0 gpt-6.1-sol medium
+plan    one1  arm A1  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   5.987  H  parent        text     -            I’ll read the plan, run each eligible step through a fresh sub-agent one at a time, then verify the run.
++   7.668  H  parent        call     shell        shell /bin/zsh -lc 'cat /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++   7.669  H  parent        result   shell        shell /bin/zsh -lc 'cat /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/
++  13.271  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"step_s1","fork_turns":"none","message":"gAAAAABq-NzDcW-TGYVaxkJ2lalmIMKDDDdAbKxKF9sHsITMM1XpbosUQpeYClVZJaGrD0ZyDRljfcanJjDs
++  14.911  H  parent        wait     wait         wait {"status": "in_progress"}
++  19.058  H  thread:dbc3bd call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e1-cod
++  19.198  L  ledger        start    S1           {"seconds":5}
++  24.205  L  ledger        end      S1           {"sha":"2a10a2d9fcfade44f89dd2492e4874702ef6d41d122c7b38a7d040871de86119","seconds":5.005}
++  26.009  H  parent        return   wait         wait {"status": "completed"}
++  30.968  L  ledger        verify   -            {"line":"VERIFY OK steps=1 chain=3d5ef9fd4432"}
++  30.994  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  30.995  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++  33.154  H  parent        text     -            FINAL {"done":["S1"],"failed":[],"not_run":[]}

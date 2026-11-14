@@ -13,6 +13,11 @@ ledger (``RUN/ledger.jsonl``, one JSON object per line) is the ground truth for 
   dagkit.py release  --run RUN --step ID     give back a claim whose sub-agent never started (a failed launch)
   dagkit.py run      --run RUN --step ID     refuses (exit 3) a premature, repeated, unknown or unsound-input start;
                                              else works, then logs end (or fail for an injected fault)
+  dagkit.py begin    --run RUN --step ID     task steps (README Amendment A5): refuses like run; else logs start and prints the
+                                             step's task and the exact complete command; a fresh agent does the work in between
+  dagkit.py complete --run RUN --step ID --result JSON
+                                             the callback: records the agent's outcome ({"answer": integer, ...}) and logs end
+  dagkit.py outcome  --run RUN --step ID     prints a completed step's result, so a dependent step reads it from the script
   dagkit.py verify   --run RUN               VERIFY OK | PARTIAL | FAIL, from the ledger, the plan and the hash chain
   dagkit.py timeline --run RUN               the ledger in order, with seconds from the first event
 
@@ -150,8 +155,9 @@ def check_plan(plan: dict) -> None:
     for s in plan["steps"]:
         if s["id"] in seen or any(d not in seen for d in s["deps"]):
             raise SystemExit(f"plan invalid at {s['id']}: ids must be unique and deps must name earlier steps")
-        if not isinstance(s.get("kit", {}).get("seconds"), (int, float)):
-            raise SystemExit(f"plan invalid at {s['id']}: kit.seconds is required")
+        kit = s.get("kit", {})
+        if kit.get("mode") != "task" and not isinstance(kit.get("seconds"), (int, float)):
+            raise SystemExit(f"plan invalid at {s['id']}: kit.seconds is required (or kit.mode \"task\")")
         seen.add(s["id"])
 
 
@@ -206,34 +212,47 @@ def cmd_release(args) -> int:
     return 0
 
 
-def _refuse(run: Run, step_id: str, category: str, reasons: list) -> int:
-    run.append("refused", step_id, reason="; ".join(reasons), command="run", category=category)
+def _refuse(run: Run, step_id: str, category: str, reasons: list, command: str = "run") -> int:
+    run.append("refused", step_id, reason="; ".join(reasons), command=command, category=category)
     print(f"REFUSED {step_id}: " + "; ".join(reasons))
     return 3
+
+
+def _admit(run: Run, plan: dict, step_id: str, command: str):
+    """Under the lock: ((step, inputs), None) when the step may start now, else (None, exit code) after logging the refusal."""
+    steps = {s["id"]: s for s in plan["steps"]}
+    if step_id not in steps:
+        return None, _refuse(run, step_id, "unknown", ["not a step of this plan"], command)
+    step = steps[step_id]
+    is_task = step.get("kit", {}).get("mode") == "task"
+    if is_task != (command == "begin"):
+        return None, _refuse(run, step_id, "wrong-command",
+                             ["this step is a task: use begin and complete" if is_task else "this step is a timed unit: use run"], command)
+    state = derive(plan, run.events())
+    if state[step_id]["starts"]:
+        return None, _refuse(run, step_id, "duplicate", ["it already started; each step runs once"], command)
+    unfinished = [d for d in step["deps"] if state[d]["state"] != "done"]
+    if unfinished:
+        category = "prerequisite-failed" if any(state[d]["state"] in ("failed", "blocked") for d in unfinished) else "premature"
+        return None, _refuse(run, step_id, category, ["its dependencies have not finished OK: "
+                                                      + ", ".join(f"{d} ({state[d]['state']})" for d in unfinished)], command)
+    inputs = {d: state[d]["sha"] for d in step["deps"]}
+    for d, sha in inputs.items():
+        target = run.dir / "out" / f"{d}.json"
+        written = json.loads(target.read_text()).get("sha") if target.is_file() else None
+        if written != sha:
+            return None, _refuse(run, step_id, "input-invalid", [f"the output file of {d} does not match the ledger"], command)
+    return (step, inputs), None
 
 
 def cmd_run(args) -> int:
     run, step_id = Run(args.run), args.step
     with run.locked():
         plan, meta = run.plan(), run.meta()
-        steps = {s["id"]: s for s in plan["steps"]}
-        if step_id not in steps:
-            return _refuse(run, step_id, "unknown", ["not a step of this plan"])
-        state = derive(plan, run.events())
-        step = steps[step_id]
-        if state[step_id]["starts"]:
-            return _refuse(run, step_id, "duplicate", ["it already started; each step runs once"])
-        unfinished = [d for d in step["deps"] if state[d]["state"] != "done"]
-        if unfinished:
-            category = "prerequisite-failed" if any(state[d]["state"] in ("failed", "blocked") for d in unfinished) else "premature"
-            return _refuse(run, step_id, category, ["its dependencies have not finished OK: "
-                                                    + ", ".join(f"{d} ({state[d]['state']})" for d in unfinished)])
-        inputs = {d: state[d]["sha"] for d in step["deps"]}
-        for d, sha in inputs.items():
-            target = run.dir / "out" / f"{d}.json"
-            written = json.loads(target.read_text()).get("sha") if target.is_file() else None
-            if written != sha:
-                return _refuse(run, step_id, "input-invalid", [f"the output file of {d} does not match the ledger"])
+        admitted, code = _admit(run, plan, step_id, "run")
+        if code is not None:
+            return code
+        step, inputs = admitted
         run.append("start", step_id, deps=inputs, seconds=step["kit"]["seconds"], scale=SCALE)
     began = time.time()
     time.sleep(step["kit"]["seconds"] * SCALE)
@@ -251,6 +270,67 @@ def cmd_run(args) -> int:
     with run.locked():
         run.append("end", step_id, sha=sha, seconds=actual)
     print(f"STEP {step_id} OK sha={sha[:12]} seconds={actual} (finished; do not run it again)")
+    return 0
+
+
+def cmd_begin(args) -> int:
+    run, step_id = Run(args.run), args.step
+    with run.locked():
+        plan = run.plan()
+        admitted, code = _admit(run, plan, step_id, "begin")
+        if code is not None:
+            return code
+        step, inputs = admitted
+        run.append("start", step_id, deps=inputs, mode="task", scale=SCALE)
+    kit = str(Path(__file__).resolve())
+    text = step["task"].replace("{evidence}", str(run.dir.parent / "evidence")).replace("{run}", str(run.dir)).replace("{kit}", kit)
+    print(f"STEP {step_id} BEGUN. You are a fresh agent; this is your whole task. Do only this.\n\n{text}\n\n"
+          "When you have the answer, report it by running exactly this command, with your integer in place of N and one short "
+          "line in place of METHOD:\n"
+          f"  python3 {kit} complete --run {run.dir} --step {step_id} --result '{{\"answer\": N, \"method\": \"METHOD\"}}'\n"
+          "Then reply with the one line that command prints. Do not run begin again.")
+    return 0
+
+
+def cmd_complete(args) -> int:
+    run, step_id = Run(args.run), args.step
+    try:
+        result = json.loads(args.result)
+    except ValueError:
+        result = None
+    with run.locked():
+        plan, meta = run.plan(), run.meta()
+        steps = {s["id"]: s for s in plan["steps"]}
+        if step_id not in steps:
+            return _refuse(run, step_id, "unknown", ["not a step of this plan"], "complete")
+        item = derive(plan, run.events())[step_id]
+        if not item["starts"]:
+            return _refuse(run, step_id, "not-started", ["it was never begun"], "complete")
+        if item["terminals"]:
+            return _refuse(run, step_id, "duplicate", ["it already has its outcome"], "complete")
+        if not isinstance(result, dict) or not isinstance(result.get("answer"), int) or isinstance(result.get("answer"), bool):
+            return _refuse(run, step_id, "bad-result", ["the result must be a JSON object with an integer answer"], "complete")
+        state = derive(plan, run.events())
+        inputs = {d: state[d]["sha"] for d in steps[step_id]["deps"]}
+        sha = out_hash(meta["plan_sha"], step_id, {**inputs, "_result": result})
+        target = run.dir / "out" / f"{step_id}.json"
+        tmp = target.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"step": step_id, "inputs": inputs, "result": result, "sha": sha}))
+        os.replace(tmp, target)
+        run.append("end", step_id, sha=sha, result=result)
+    print(f"RECORDED {step_id} answer={result['answer']} (finished; do not report it again)")
+    return 0
+
+
+def cmd_outcome(args) -> int:
+    run, step_id = Run(args.run), args.step
+    with run.locked():
+        plan = run.plan()
+        state = derive(plan, run.events())
+        if step_id not in state or state[step_id]["state"] != "done":
+            return _refuse(run, step_id, "premature", [f"{step_id} has no outcome yet"], "outcome")
+        rec = json.loads((run.dir / "out" / f"{step_id}.json").read_text())
+    print(json.dumps({"step": step_id, "result": rec.get("result")}, separators=(",", ":")))
     return 0
 
 
@@ -283,8 +363,10 @@ def verdict(run: Run) -> tuple[str, str]:
             elif state[d]["state"] != "done":
                 problems.append(f"{step} started after {d}, which did not end OK")
         if item["state"] == "done":
-            expect = out_hash(meta["plan_sha"], step, {d: state[d]["sha"] for d in s["deps"]})
-            written = json.loads(outputs[step]).get("sha") if step in outputs else None
+            record = json.loads(outputs[step]) if step in outputs else {}
+            inputs = {d: state[d]["sha"] for d in s["deps"]}
+            expect = out_hash(meta["plan_sha"], step, {**inputs, "_result": record.get("result")} if s.get("kit", {}).get("mode") == "task" else inputs)
+            written = record.get("sha")
             if written != expect or item["sha"] != expect:
                 problems.append(f"{step} output does not chain from its dependencies")
     ok = [s["id"] for s in plan["steps"] if state[s["id"]]["state"] == "done"]
@@ -319,8 +401,8 @@ def cmd_timeline(args) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name, fn in (("init", cmd_init), ("ready", cmd_ready), ("release", cmd_release), ("run", cmd_run),
-                     ("verify", cmd_verify), ("timeline", cmd_timeline)):
+    for name, fn in (("init", cmd_init), ("ready", cmd_ready), ("release", cmd_release), ("run", cmd_run), ("begin", cmd_begin),
+                     ("complete", cmd_complete), ("outcome", cmd_outcome), ("verify", cmd_verify), ("timeline", cmd_timeline)):
         p = sub.add_parser(name)
         p.add_argument("--run", required=True)
         if name == "init":
@@ -328,8 +410,10 @@ def main(argv=None) -> int:
         if name == "ready":
             p.add_argument("--claim", action="store_true")
             p.add_argument("--capacity", type=int, default=None)
-        if name in ("run", "release"):
+        if name in ("run", "release", "begin", "complete", "outcome"):
             p.add_argument("--step", required=True)
+        if name == "complete":
+            p.add_argument("--result", required=True)
         p.set_defaults(fn=fn)
     args = parser.parse_args(argv)
     if args.cmd == "ready" and args.capacity is not None and not args.claim:

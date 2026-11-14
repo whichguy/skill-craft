@@ -1,0 +1,4 @@
+{"seq":1,"ts":1794694326.432,"at":"2026-11-14T22:12:06.431Z","kind":"init","step":null,"pid":25263,"ppid":25261,"detail":{"plan":"one1","steps":["S1"],"scale":1.0}}
+{"seq":2,"ts":1794694333.095,"at":"2026-11-14T22:12:13.094Z","kind":"start","step":"S1","pid":25541,"ppid":25536,"detail":{"deps":{},"seconds":5,"scale":1.0}}
+{"seq":3,"ts":1794694338.1,"at":"2026-11-14T22:12:18.099Z","kind":"end","step":"S1","pid":25541,"ppid":25536,"detail":{"sha":"2a10a2d9fcfade44f89dd2492e4874702ef6d41d122c7b38a7d040871de86119","seconds":5.004}}
+{"seq":4,"ts":1794694341.678,"at":"2026-11-14T22:12:21.678Z","kind":"verify","step":null,"pid":25586,"ppid":25579,"detail":{"verdict":"OK","line":"VERIFY OK steps=1 chain=3d5ef9fd4432"}}

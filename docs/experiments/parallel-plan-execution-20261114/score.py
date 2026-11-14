@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+from datetime import datetime
 import json
 from pathlib import Path
 import re
@@ -27,7 +28,7 @@ sys.path.insert(0, str(HERE))
 import dagkit  # noqa: E402
 
 FINAL_RE = re.compile(r"^FINAL (\{.*\})\s*$", re.M)
-RUN_CALL = re.compile(r"dagkit\.py\s+run\b")
+RUN_CALL = re.compile(r"dagkit\.py\s+(?:run|begin)\b")
 # Whether a host's raw stream says which agent ran a tool call. Claude's stream-json carries parent_tool_use_id; Codex and
 # Grok are False until E1 shows their streams attribute (README, Amendment A2).
 ATTRIBUTABLE = {"claude": True, "codex": False, "grok": False}
@@ -75,11 +76,14 @@ def ledger_measures(plan: dict, events: list, run: dagkit.Run | None = None) -> 
     out: dict = {"steps": len(ids), "started": len(iv), "ended": len(ended)}
     out["makespan_s"] = round(max(ended) - min(starts), 3) if starts and ended else None
     out["first_start_ts"], out["last_end_ts"] = (min(starts) if starts else None), (max(ended) if ended else None)
-    out["serial_sum_declared_s"] = sum(s["kit"]["seconds"] for s in plan["steps"])
+    secs = [s.get("kit", {}).get("seconds") for s in plan["steps"]]
+    declared = all(isinstance(x, (int, float)) for x in secs)      # a task step declares no duration: its time is the agent's
+    out["serial_sum_declared_s"] = sum(secs) if declared else None
     cp: dict = {}
-    for s in plan["steps"]:
-        cp[s["id"]] = max([cp[d] for d in s["deps"]], default=0) + s["kit"]["seconds"]
-    out["critical_path_declared_s"] = max(cp.values()) if cp else 0
+    if declared:
+        for s in plan["steps"]:
+            cp[s["id"]] = max([cp[d] for d in s["deps"]], default=0) + s["kit"]["seconds"]
+    out["critical_path_declared_s"] = max(cp.values()) if cp else None
     out["peak_concurrency"] = peak_concurrency(list(iv.values())) if iv else 0
     anc = ancestors(plan)
     pairs = []
@@ -251,34 +255,188 @@ def host_view(trial: Path, host: str) -> list:
             out.extend(normalize(host, json.loads(line)))
         except ValueError:
             continue
+    if host == "codex":   # the stream shows neither spawns nor children's commands; the rollout files do
+        for th in codex_threads(trial):
+            for c in th["calls"]:
+                if c["kind"] == "agent_tool" and c["name"] == "spawn_agent":
+                    out.append({"t": c["t"], "actor": "parent", "kind": "spawn", "name": "spawn_agent", "text": c["text"][:140], "full": c["text"]})
+                elif c["kind"] == "cmd" and th["child"]:
+                    out.append({"t": c["t"], "actor": th["actor"], "kind": "call", "name": "shell", "text": c["text"][:140], "full": c["text"]})
+    elif host == "grok":  # re-attribute each call to the session the log says ran it
+        _, owner = grok_agents(trial)
+        for i in out:
+            if i.get("id") in owner:
+                i["actor"] = owner[i["id"]]
+    out.sort(key=lambda i: (i["t"] is None, i["t"] or 0.0))
     return out
 
 
+
+# ------------------------------------------------------------------ native agent records (each host's own account of its sub-agents)
+
+def _epoch(iso: str) -> float:
+    return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp()
+
+
+def _jsonl(path: Path) -> list:
+    rows = []
+    if path.is_file():
+        for line in path.read_text(errors="replace").splitlines():
+            try:
+                rows.append(json.loads(line))
+            except ValueError:
+                continue
+    return rows
+
+
+def claude_agents(trial: Path) -> list:
+    """Claude's stream carries task_started (with subagent_type), task_progress (tokens) and task_notification per sub-agent."""
+    agents: dict = {}
+    for rec in _jsonl(trial / "events.raw.jsonl"):
+        ev = rec.get("ev") or {}
+        if ev.get("type") != "system":
+            continue
+        sub, tid = ev.get("subtype"), ev.get("task_id")
+        if sub == "task_started" and ev.get("subagent_type"):
+            agents[tid] = {"id": tid, "actor": f"agent:{str(ev.get('tool_use_id'))[-6:]}", "kind": ev.get("subagent_type"),
+                           "start": rec["recv"], "end": None, "background": ev.get("is_backgrounded"), "depth": ev.get("spawn_depth"),
+                           "tokens": None, "success": None}
+        elif tid in agents and sub == "task_progress":
+            agents[tid]["tokens"] = (ev.get("usage") or {}).get("total_tokens", agents[tid]["tokens"])
+        elif tid in agents and sub == "task_notification":
+            agents[tid]["end"], agents[tid]["success"] = rec["recv"], ev.get("status") == "completed"
+        elif tid in agents and sub == "task_updated" and agents[tid]["end"] is None and (ev.get("patch") or {}).get("status") == "completed":
+            agents[tid]["end"] = rec["recv"]
+    return list(agents.values())
+
+
+def _codex_cmds(payload: dict) -> list:
+    """The shell commands inside a Codex `exec` tool call (a script wrapped around tools.exec_command)."""
+    text = str(payload.get("input") or payload.get("arguments") or "")
+    out = []
+    for m in re.finditer(r'cmd:\s*("(?:[^"\\]|\\.)*")', text):
+        try:
+            out.append(json.loads(m.group(1)))
+        except ValueError:
+            continue
+    return out
+
+
+def codex_threads(trial: Path) -> list:
+    """One record per Codex thread from its rollout file: the parent and every sub-agent (its metadata names its parent and depth)."""
+    out = []
+    for path in sorted((trial / "home" / ".codex" / "sessions").glob("*/*/*/rollout-*.jsonl")):
+        rows = _jsonl(path)
+        meta = next((r["payload"] for r in rows if r.get("type") == "session_meta" and isinstance(r.get("payload"), dict)), None)
+        if not meta or not rows:
+            continue
+        source = meta.get("source")
+        spawn = ((source.get("subagent") or {}).get("thread_spawn") if isinstance(source, dict) else None) or None
+        tokens = [r["payload"]["info"]["total_token_usage"] for r in rows if isinstance(r.get("payload"), dict)
+                  and r["payload"].get("type") == "token_count" and r["payload"].get("info")]
+        calls = []
+        for r in rows:
+            pl = r.get("payload")
+            if isinstance(pl, dict) and pl.get("type") in ("custom_tool_call", "function_call") and r.get("timestamp"):
+                ts = _epoch(r["timestamp"])
+                if pl.get("name") in ("spawn_agent", "wait_agent", "close_agent", "send_input", "resume_agent"):
+                    calls.append({"t": ts, "kind": "agent_tool", "name": pl["name"], "text": str(pl.get("arguments") or "")[:160]})
+                else:
+                    calls += [{"t": ts, "kind": "cmd", "name": "shell", "text": c} for c in _codex_cmds(pl)]
+        out.append({"id": meta.get("id"), "actor": f"thread:{str(meta.get('id'))[-6:]}" if spawn else "parent", "child": bool(spawn),
+                    "depth": (spawn or {}).get("depth"), "nickname": meta.get("agent_nickname"), "version": meta.get("multi_agent_version"),
+                    "start": _epoch(rows[0]["timestamp"]), "end": _epoch(rows[-1]["timestamp"]), "tokens": tokens[-1] if tokens else None,
+                    "calls": calls})
+    return out
+
+
+def grok_agents(trial: Path) -> tuple[list, dict]:
+    """(sub-agent records, tool_call_id to actor) from Grok's unified.jsonl, which names every tool call's session."""
+    rows = _jsonl(trial / "home" / ".grok" / "logs" / "unified.jsonl")
+    agents: dict = {}
+    session_of: dict = {}
+    for r in rows:
+        msg, ctx = r.get("msg", ""), r.get("ctx") or {}
+        if msg == "subagent spawn credentials" and ctx.get("subagent_id"):
+            agents[ctx["subagent_id"]] = {"id": ctx["subagent_id"], "actor": f"agent:{ctx['subagent_id'][-6:]}", "kind": ctx.get("subagent_type"),
+                                          "model": ctx.get("effective_model"), "start": _epoch(r["ts"]), "end": None, "success": None,
+                                          "tokens": None, "turns": None}
+        elif msg == "subagent completed" and ctx.get("subagent_id") in agents:
+            a = agents[ctx["subagent_id"]]
+            a.update(end=_epoch(r["ts"]), success=ctx.get("success"), turns=ctx.get("turns"), tokens=ctx.get("total_tokens"), duration_ms=ctx.get("duration_ms"))
+        elif msg == "shell.tool.exec_done" and ctx.get("tool_call_id"):
+            session_of[ctx["tool_call_id"]] = r.get("sid")
+    owner = {}
+    for call_id, sid in session_of.items():
+        child = next((a for aid, a in agents.items() if sid and (aid == sid or aid.endswith(sid[-8:]))), None)
+        owner[call_id] = child["actor"] if child else "parent"
+    return list(agents.values()), owner
+
+
+def native_agents(trial: Path, host: str) -> dict:
+    """The host's own record of its sub-agents: {"source", "agents": [...]} with start and end seconds (epoch), kind, depth, tokens."""
+    if host == "claude":
+        return {"source": "claude stream (system task events)", "agents": claude_agents(trial)}
+    if host == "codex":
+        threads = codex_threads(trial)
+        return {"source": "codex rollout files", "agents": [a for a in threads if a["child"]], "threads": len(threads), "parent": next((a for a in threads if not a["child"]), None)}
+    if host == "grok":
+        agents, _ = grok_agents(trial)
+        return {"source": "grok logs/unified.jsonl", "agents": agents}
+    return {"source": None, "agents": []}
+
+
+def agent_peak(agents: list) -> int:
+    return peak_concurrency([(a["start"], a["end"]) for a in agents if a.get("start") and a.get("end")])
+
+
+def _load(text: str) -> dict | None:
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
+
+
 def final_claim(view: list) -> dict | None:
-    """The parent's last FINAL object; a child's report is not the run's report."""
+    """The parent's last FINAL object; a child's report is not the run's report. A host that streams its closing message in
+    pieces (Grok's text deltas) is read from the trailing run of the parent's text, joined."""
+    pieces: list = []
     for item in reversed(view):
-        if item["kind"] in ("final", "text") and item["actor"] == "parent":
+        if item["actor"] != "parent":
+            continue
+        if item["kind"] in ("final", "text"):
             found = FINAL_RE.findall(item["text"])
             if found:
-                try:
-                    return json.loads(found[-1])
-                except ValueError:
-                    return None
-    return None
+                return _load(found[-1])
+            if item["kind"] == "text":
+                pieces.append(item["text"])
+        elif item["kind"] in ("call", "spawn", "wait", "return", "result"):
+            break
+    found = FINAL_RE.findall("".join(reversed(pieces)))
+    return _load(found[-1]) if found else None
 
 
-def tokens(view: list, host: str) -> dict:
-    """M8: what the host reports, or None for an unreported figure (never zero). Whether the figure includes sub-agent
-    threads and whether it is cumulative are unknown until E1 shows each host's stream (children_included stays None)."""
-    out: dict = {"source": None, "input": None, "output": None, "cache_read": None, "cost_usd": None,
-                 "peak_parent_input": None, "children_included": None}
+def tokens(view: list, host: str, native: dict | None = None) -> dict:
+    """M8: what the host reports, or None for an unreported figure (never zero). ``input`` is the host's uncached input field;
+    ``input_all`` adds cached reads and writes. Claude's final ``usage`` is the parent only and ``modelUsage`` is the whole
+    run (it is larger by the sub-agent's share in E1); Codex's turn usage is the parent and each child's rollout adds its own;
+    whether Grok's end usage includes its sub-agents is not established."""
+    out: dict = {"source": None, "input": None, "output": None, "cache_read": None, "cost_usd": None, "peak_parent_input": None,
+                 "children_included": None, "parent_input_all": None, "children_input_all": None, "input_all": None, "output_all": None}
     usages = [i for i in view if i["kind"] == "usage" and i.get("usage")]
     finals = [i for i in view if i["kind"] == "final"]
     if host == "claude" and finals and finals[-1].get("usage"):
         u = finals[-1]["usage"]
         out.update(source="claude.result", input=u.get("input_tokens"), output=u.get("output_tokens"),
-                   cache_read=u.get("cache_read_input_tokens"), cache_create=u.get("cache_creation_input_tokens"),
-                   cost_usd=finals[-1].get("cost"))
+                   cache_read=u.get("cache_read_input_tokens"), cache_create=u.get("cache_creation_input_tokens"), cost_usd=finals[-1].get("cost"))
+        parent_all = sum(u.get(k) or 0 for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
+        out["parent_input_all"] = parent_all
+        mu = finals[-1].get("model_usage") or {}
+        if mu:
+            out["input_all"] = sum((m.get("inputTokens") or 0) + (m.get("cacheReadInputTokens") or 0) + (m.get("cacheCreationInputTokens") or 0) for m in mu.values())
+            out["output_all"] = sum(m.get("outputTokens") or 0 for m in mu.values())
+            out["children_input_all"] = out["input_all"] - parent_all
+            out["children_included"] = False
         peaks = [(i["usage"].get("input_tokens") or 0) + (i["usage"].get("cache_read_input_tokens") or 0)
                  + (i["usage"].get("cache_creation_input_tokens") or 0) for i in usages]
         out["peak_parent_input"] = max(peaks) if peaks else None
@@ -289,6 +447,15 @@ def tokens(view: list, host: str) -> dict:
         out.update(source=f"{host}.usage", input=total("input_tokens"), output=total("output_tokens"),
                    cache_read=total("cache_read_input_tokens", "cached_input_tokens"), reasoning=total("reasoning_output_tokens"),
                    cost_usd=next((u.get("cost") for u in reversed(usages) if u.get("cost") is not None), None))
+        if host == "codex":   # the parent's turn usage counts input_tokens including its cached part
+            parent_in = out["input"]
+            kids = [a["tokens"] for a in (native or {}).get("agents", []) if a.get("tokens")]
+            kids_in = sum(k.get("input_tokens") or 0 for k in kids)
+            out.update(parent_input_all=parent_in, children_input_all=kids_in if native else None, children_included=False if native else None,
+                       input_all=(parent_in or 0) + kids_in, output_all=(out["output"] or 0) + sum(k.get("output_tokens") or 0 for k in kids))
+        else:
+            out.update(parent_input_all=(out["input"] or 0) + (out["cache_read"] or 0), input_all=(out["input"] or 0) + (out["cache_read"] or 0),
+                       output_all=out["output"])
     return out
 
 
@@ -315,6 +482,24 @@ def mechanism(view: list, measures: dict, attributable: bool = False) -> dict:
         kind = "serial"
     return {"kind": kind, "spawns": len(spawns), "run_calls": len(calls), "run_calls_by_actor": dict(by_actor),
             "attributable_host": attributable, "background_spawns": sum(1 for s in spawns if s.get("background"))}
+
+
+
+def answers(trial: Path, plan: dict) -> dict | None:
+    """Each task's recorded answer against the oracle the launcher wrote beside work/ (None for a timed-unit plan)."""
+    oracle = trial / "oracle.json"
+    if not oracle.is_file():
+        return None
+    expected = json.loads(oracle.read_text())
+    got, rows = 0, {}
+    for s in plan["steps"]:
+        path = trial / "work" / "run" / "out" / f"{s['id']}.json"
+        recorded = json.loads(path.read_text()).get("result", {}).get("answer") if path.is_file() else None
+        ok = recorded is not None and recorded == expected.get(s["id"])
+        got += ok
+        rows[s["id"]] = {"expected": expected.get(s["id"]), "recorded": recorded, "correct": ok}
+    return {"correct": got, "total": len(plan["steps"]), "all_correct": got == len(plan["steps"]), "tasks": rows,
+            "expected_final": expected.get(plan["steps"][-1]["id"])}
 
 
 def tails(view: list, events: list, proc_end: float | None) -> dict:
@@ -405,10 +590,24 @@ def score_trial(trial: Path) -> dict:
     inv = json.loads((trial / "invocation.json").read_text()) if (trial / "invocation.json").is_file() else {}
     host = inv.get("host", "")
     view = host_view(trial, host)
+    native = native_agents(trial, host)
     m = ledger_measures(plan, events, run)
-    m.update(fidelity(m, final_claim(view)))
-    m["mechanism"] = mechanism(view, m, ATTRIBUTABLE.get(host, False))
-    m["tokens"] = tokens(view, host)
+    claim = final_claim(view)
+    m.update(fidelity(m, claim))
+    ans = answers(trial, plan)
+    m["answers"] = ans
+    if ans is not None and claim is not None:
+        m["final_answer_ok"] = claim.get("answer") == ans["expected_final"]
+    # attribution: Claude's stream names the agent of every call; Codex's rollouts and Grok's log name it for theirs
+    attributable = bool(host == "claude" or native["agents"] or (host == "codex" and native.get("threads")) or (host == "grok" and native["agents"]))
+    m["mechanism"] = mechanism(view, m, attributable)
+    m["native"] = {"source": native["source"], "agents": len(native["agents"]), "peak": agent_peak(native["agents"]),
+                   "kinds": sorted({str(a.get("kind")) for a in native["agents"]}), "depths": sorted({a.get("depth") for a in native["agents"] if a.get("depth") is not None}),
+                   "background": sorted({bool(a.get("background")) for a in native["agents"] if "background" in a}),
+                   "intervals_s": [{"actor": a["actor"], "start": round(a["start"] - (m["first_start_ts"] or a["start"]), 2) if a.get("start") else None,
+                                    "end": round(a["end"] - (m["first_start_ts"] or a["end"]), 2) if a.get("end") else None, "tokens": a.get("tokens")}
+                                   for a in native["agents"]]}
+    m["tokens"] = tokens(view, host, native)
     proc_end, launched = inv.get("ended"), inv.get("started")
     ends = [i["t"] for i in view if i["t"]] + [e["ts"] for e in events]
     m["process"] = {"status": inv.get("status"), "returncode": inv.get("returncode"), "elapsed_s": inv.get("elapsed_s"),
@@ -421,7 +620,8 @@ def score_trial(trial: Path) -> dict:
                     "launch_to_verified_s": round(max(verified) - launched, 3) if launched and verified else None,
                     "launch_to_exit_s": round(proc_end - launched, 3) if launched and proc_end else None}
     m["valid"] = bool(inv.get("status") == "exited" and not m["scaled_trial"] and m["steps_without_end"] == 0
-                      and m["verify_as_expected"] and m["fidelity_ok"] and m["terminal_duplicates"] == 0)
+                      and m["verify_as_expected"] and m["fidelity_ok"] and m["terminal_duplicates"] == 0
+                      and (ans is None or ans["all_correct"]))
     m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "loadavg", "enabled_features")}
     (trial / "score.json").write_text(json.dumps(m, indent=1, default=str) + "\n")
     (trial / "timeline.txt").write_text(render_timeline(trial, plan, events, view, inv))
@@ -437,7 +637,9 @@ def summary_line(trial: Path, m: dict) -> str:
             f"early={m['starts_before_dep_end']} dup={m['steps_started_twice']} verify={m.get('verify')} "
             f"final={'ok' if m.get('fidelity_ok') else ('bad' if m.get('final_found') else 'none')} mech={m['mechanism']['kind']} "
             f"refill={m['refill']} tail_end_s={p.get('tail_from_last_end_s')} tail_final_s={p.get('tail_from_final_report_s')} "
-            f"tok_in={t.get('input')} tok_out={t.get('output')} cost={t.get('cost_usd')}")
+            f"agents={m['native']['agents']} agent_peak={m['native']['peak']} "
+            + (f"correct={m['answers']['correct']}/{m['answers']['total']} " if m.get("answers") else "")
+            + f"in_all={t.get('input_all')} out_all={t.get('output_all')} cost={t.get('cost_usd')}")
 
 
 def baseline_key(identity: dict) -> tuple:
@@ -461,7 +663,7 @@ def compare_rows(rows: list) -> list:
             a0 = sum(same) / len(same)
             cp = r["critical_path_declared_s"]
             r["vs_A0"] = round(r["makespan_s"] / a0, 3)
-            r["realized"] = round((a0 - r["makespan_s"]) / (a0 - cp), 3) if a0 > cp else None
+            r["realized"] = round((a0 - r["makespan_s"]) / (a0 - cp), 3) if cp is not None and a0 > cp else None
         out.append(r)
     return out
 

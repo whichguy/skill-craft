@@ -1,0 +1,63 @@
+{
+ "host": "codex",
+ "binary": "codex",
+ "version": "codex-cli 0.169.0",
+ "model": "gpt-6.1-sol",
+ "effort": "medium",
+ "permission_mode": "auto",
+ "allow": [
+  "Bash(python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e1-codex-v2/work/dagkit.py:*)"
+ ],
+ "plan": "one1",
+ "arm": "A1",
+ "variant": "N",
+ "capacity": 1,
+ "enabled_features": [
+  "multi_agent_v2"
+ ],
+ "timeout_s": 600,
+ "budget_usd": null,
+ "argv": [
+  "codex",
+  "exec",
+  "--json",
+  "-m",
+  "gpt-6.1-sol",
+  "--skip-git-repo-check",
+  "-s",
+  "danger-full-access",
+  "-c",
+  "approval_policy=\"never\"",
+  "--dangerously-bypass-hook-trust",
+  "-C",
+  "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e1-codex-v2/work",
+  "-c",
+  "agents.default_subagent_model=\"gpt-6.1-sol\"",
+  "-c",
+  "model_reasoning_effort=medium",
+  "-c",
+  "agents.default_subagent_reasoning_effort=medium",
+  "--enable",
+  "multi_agent_v2",
+  "<packet.md>"
+ ],
+ "cwd": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e1-codex-v2/work",
+ "loadavg": [
+  4.81,
+  4.65,
+  5.64
+ ],
+ "kit_sha256": "1b1bd6408032b2e8cc3998283c85a34bf8cbb968242159a3470a8f94a1f2c954",
+ "packet_sha256": "3566c4f3bb2e8a532ab354df48a6aa33d92117573dd1dcddf7127029241009ce",
+ "machine": "Darwin 27.2.0",
+ "status": "exited",
+ "started": 1794694326.607,
+ "returncode": 0,
+ "ended": 1794694360.797,
+ "elapsed_s": 34.2,
+ "elapsed_monotonic_s": 34.189,
+ "reader_joined": true,
+ "reader_error": null,
+ "lingering_after_exit": [],
+ "orphans_terminated": []
+}
