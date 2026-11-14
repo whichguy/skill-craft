@@ -149,6 +149,21 @@ def view_cells() -> tuple[int, int, list]:
     cell("claude FINAL parsed", score.final_claim(view), {"done": ["S1"], "failed": [], "not_run": []})
     cell("claude tokens input", score.tokens(view, "claude")["input"], 100)
     cell("claude tokens peak parent", score.tokens(view, "claude")["peak_parent_input"], 100)
+    codex = [
+        {"recv": 1.0, "ev": {"type": "item.started", "item": {"id": "item_1", "type": "collab_tool_call", "tool": "spawn_agent",
+                                                              "sender_thread_id": "t0", "receiver_thread_ids": [], "prompt": "run S1"}}},
+        {"recv": 1.5, "ev": {"type": "item.completed", "item": {"id": "item_1", "type": "collab_tool_call", "tool": "spawn_agent",
+                                                                "receiver_thread_ids": ["t1"], "status": "completed"}}},
+        {"recv": 2.0, "ev": {"type": "item.started", "item": {"id": "item_2", "type": "collab_tool_call", "tool": "wait"}}},
+        {"recv": 9.0, "ev": {"type": "item.completed", "item": {"id": "item_2", "type": "collab_tool_call", "tool": "wait", "status": "completed"}}},
+        {"recv": 9.5, "ev": {"type": "item.started", "item": {"id": "item_3", "type": "command_execution", "command": "python3 dagkit.py verify"}}},
+        {"recv": 10.0, "ev": {"type": "item.completed", "item": {"id": "item_4", "type": "agent_message",
+                                                                 "text": "FINAL {\"done\":[\"S1\"],\"failed\":[],\"not_run\":[]}"}}},
+    ]
+    cview = [i for r in codex for i in score.normalize("codex", r)]
+    cell("codex kinds in order", [i["kind"] for i in cview], ["spawn", "result", "wait", "return", "call", "text"])
+    cell("codex wait is not a spawn", sum(1 for i in cview if i["kind"] == "spawn"), 1)
+    cell("codex FINAL parsed", score.final_claim(cview), {"done": ["S1"], "failed": [], "not_run": []})
     shell = [{"t": 1.0, "actor": "parent", "kind": "call", "name": "Bash", "text": "for s in S1 S2; do python3 dagkit.py run --run r --step $s & done; wait"}]
     cell("mechanism shell-parallel", score.mechanism(shell, {"peak_concurrency": 2})["kind"], "shell-parallel")
     cell("mechanism serial", score.mechanism([], {"peak_concurrency": 1})["kind"], "serial")

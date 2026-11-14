@@ -181,11 +181,20 @@ def normalize(host: str, rec: dict) -> list:
                     exit=item.get("exit_code"))
             elif itype == "agent_message" and not started:
                 add("text", actor, "", str(item.get("text") or ""))
+            elif itype == "collab_tool_call":  # Codex's multi-agent tools: spawn_agent, wait, send_input, close_agent, ...
+                tool = str(item.get("tool") or "")
+                if "spawn" in tool:
+                    kind = "spawn" if started else "result"
+                elif "wait" in tool:
+                    kind = "wait" if started else "return"
+                else:
+                    kind = "call" if started else "result"
+                detail = {k: item.get(k) for k in ("prompt", "receiver_thread_ids", "agents_states", "status")
+                          if item.get(k) not in (None, [], {})}
+                add(kind, actor, tool, json.dumps(detail)[:200], id=item.get("id"))
             elif itype and itype not in ("reasoning", "agent_message", "error"):
-                label = str(item.get("tool") or item.get("name") or itype)
-                spawn = any(k in (itype + label).lower() for k in ("collab", "spawn", "agent"))
-                add(("spawn" if started else "return") if spawn else ("call" if started else "result"), actor, label,
-                    json.dumps({k: v for k, v in item.items() if k in ("prompt", "receiver_thread_ids", "status", "tool")})[:160], id=item.get("id"))
+                add("call" if started else "result", actor, str(item.get("tool") or item.get("name") or itype),
+                    json.dumps({k: v for k, v in item.items() if k in ("prompt", "status", "tool")})[:160], id=item.get("id"))
         elif typ == "turn.completed":
             add("usage", actor, "", "", usage=ev.get("usage"))
     elif host == "grok":
