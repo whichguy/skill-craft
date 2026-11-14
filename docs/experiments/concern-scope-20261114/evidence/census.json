@@ -1,0 +1,192 @@
+{
+ "roots": [
+  "/Users/dadleet/e2e-runs",
+  "/Users/dadleet/e2e-runs-brownfield",
+  "/Users/dadleet/e2e-runs-brownfield-interrupted",
+  "/Users/dadleet/e2e-runs-f31",
+  "/Users/dadleet/e2e-runs-hostonly",
+  "/Users/dadleet/e2e-runs-multipass",
+  "/Users/dadleet/e2e-runs-outcome",
+  "/Users/dadleet/e2e-runs-owner-note",
+  "/Users/dadleet/e2e-runs-pf",
+  "/Users/dadleet/e2e-runs-qb",
+  "/Users/dadleet/e2e-runs-qr",
+  "/Users/dadleet/e2e-runs-r3",
+  "/Users/dadleet/e2e-runs-s7",
+  "/Users/dadleet/e2e-runs-sp",
+  "/Users/dadleet/e2e-runs-startroute",
+  "/Users/dadleet/e2e-runs-tl",
+  "/Users/dadleet/e2e-runs-x4",
+  "/Users/dadleet/e2e-runs-xr"
+ ],
+ "plans": 392,
+ "work_items": 416,
+ "applicable_rows": 1503,
+ "families": 56,
+ "applicable_per_item": {
+  "0": 147,
+  "1": 17,
+  "2": 30,
+  "3": 12,
+  "4": 20,
+  "5": 34,
+  "6": 46,
+  "7": 58,
+  "8": 19,
+  "9": 28,
+  "10": 1,
+  "11": 4
+ },
+ "by_concern": {
+  "ui": {
+   "yes": 71,
+   "no": 345,
+   "anchors": {
+    "file or text": 43,
+    "R-<n>": 13,
+    "AD-<n>": 10,
+    "cites R-<n>": 5
+   }
+  },
+  "api": {
+   "yes": 249,
+   "no": 167,
+   "anchors": {
+    "file or text": 165,
+    "R-<n>": 28,
+    "cites R-<n>": 27,
+    "cites AD-<n>": 9,
+    "AD-<n>": 20
+   }
+  },
+  "messaging": {
+   "yes": 86,
+   "no": 330,
+   "anchors": {
+    "file or text": 53,
+    "R-<n>": 10,
+    "AD-<n>": 10,
+    "cites AD-<n>": 9,
+    "cites R-<n>": 4
+   }
+  },
+  "state": {
+   "yes": 244,
+   "no": 172,
+   "anchors": {
+    "file or text": 180,
+    "AD-<n>": 29,
+    "R-<n>": 13,
+    "cites R-<n>": 10,
+    "cites AD-<n>": 12
+   }
+  },
+  "migrate-before": {
+   "yes": 9,
+   "no": 407,
+   "anchors": {
+    "file or text": 7,
+    "R-<n>": 1,
+    "AD-<n>": 1
+   }
+  },
+  "migrate-after": {
+   "yes": 1,
+   "no": 415,
+   "anchors": {
+    "file or text": 1
+   }
+  },
+  "switchover": {
+   "yes": 11,
+   "no": 405,
+   "anchors": {
+    "R-<n>": 6,
+    "AD-<n>": 4,
+    "file or text": 1
+   }
+  },
+  "concurrency": {
+   "yes": 140,
+   "no": 276,
+   "anchors": {
+    "file or text": 104,
+    "AD-<n>": 8,
+    "cites AD-<n>": 10,
+    "R-<n>": 13,
+    "cites R-<n>": 5
+   }
+  },
+  "platform-services": {
+   "yes": 62,
+   "no": 354,
+   "anchors": {
+    "file or text": 53,
+    "R-<n>": 7,
+    "AD-<n>": 2
+   }
+  },
+  "scale": {
+   "yes": 32,
+   "no": 384,
+   "anchors": {
+    "file or text": 27,
+    "R-<n>": 3,
+    "cites R-<n>": 2
+   }
+  },
+  "security": {
+   "yes": 181,
+   "no": 235,
+   "anchors": {
+    "file or text": 143,
+    "AD-<n>": 4,
+    "R-<n>": 25,
+    "cites AD-<n>": 2,
+    "cites R-<n>": 7
+   }
+  },
+  "observability": {
+   "yes": 119,
+   "no": 297,
+   "anchors": {
+    "file or text": 91,
+    "R-<n>": 9,
+    "cites AD-<n>": 10,
+    "AD-<n>": 4,
+    "cites R-<n>": 5
+   }
+  },
+  "config": {
+   "yes": 167,
+   "no": 249,
+   "anchors": {
+    "file or text": 124,
+    "cites R-<n>": 10,
+    "R-<n>": 10,
+    "AD-<n>": 15,
+    "cites AD-<n>": 8
+   }
+  },
+  "performance": {
+   "yes": 66,
+   "no": 350,
+   "anchors": {
+    "file or text": 39,
+    "R-<n>": 6,
+    "AD-<n>": 19,
+    "cites R-<n>": 2
+   }
+  },
+  "accessibility": {
+   "yes": 65,
+   "no": 351,
+   "anchors": {
+    "file or text": 43,
+    "R-<n>": 19,
+    "cites AD-<n>": 1,
+    "AD-<n>": 2
+   }
+  }
+ }
+}

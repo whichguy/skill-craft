@@ -543,6 +543,27 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   - The run folders ~/e2e-runs-sp/20261101/round2/ (X-A) and ~/e2e-runs-sp/20261101/round2-release/ (the release round).
   - The crash evidence: each run's Codex session logs under home/.codex/sessions.
 
+### E23 — 2026-11-14: are the plan's applicable concern rows requested, implied or beyond the request? (saved plans, Opus judge)
+
+- **Question.** The owner proposed (2026-11-14) a fixed set of points that planning must settle before it exits, as one
+  question per gate, not one interaction per point, and added a scope rule: no work beyond what the request asks "unless
+  it was material and identified as an unanticipated or missed implicit requirement". Mapped against the source, the
+  points are already the concern map (fff7fa13fd537d7152e9d71a476b716e4f5e6839; owner delivery
+  e0c9a19cd5e4ec1588a340b32b7cf7d58fca98bc) plus plan duties 3 to 8 and the `prepare` and `release-plan` stages: the plan
+  writes every row in one result, `check_plan` refuses a missing row, and step-plan's Until Loop exits on its concern
+  clause. Not recorded anywhere: why a row applies. The owner chose "Yes, measure first" before any change.
+- **Census (no model).** 392 plans with a concern map in `~/e2e-runs*`, 416 work items, 1,503 applicable rows, 56 request
+  families; 147 of 416 items have no applicable concern; 1,068 of the 1,503 rows (71%) anchor to a whole file or free text
+  (most often `docs/shiploop/spec.md`), not to an R-<n> or AD-<n>; switchover, migrate-before and migrate-after apply in
+  11, 9 and 1 of 416 items, so the corpus barely exercises release and migration. `census.json`.
+- **Registered design** (docs/experiments/concern-scope-20261114/README.md, committed before any judge call): 64 plans
+  from 41 families (up to 2 per family, seed 20261114), 376 rows; judge Opus 5.5 medium through rubric-eval `model_call`,
+  no tools, one call per plan, prompt v1 built on rubric-eval architecture-v4's P3 scope criterion
+  (abb0d23861d53b6aa85e66210e386412f0fdcae5, e18cbce9ec577a61a8cdea353c6794804b09f1d9); 10 plans re-judged for
+  agreement (seed 20261115). Predictions P1-P7 and the decision rule are in the README.
+- **Result.** Pending.
+- **Status.** Registered.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
