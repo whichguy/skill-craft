@@ -350,10 +350,47 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
   `e1h-claude`), launched after the instruction. From here a new reader, packet or launcher change gets its first basic check on Grok before the other
   hosts; the registered cells still run on all three.
 
+- **A7 (2026-11-14, after the pilot's token correction (a80d73d4072571484e397624b48ac01cca17fb20) and before any E10, E11 or E12 trial): the owner's two questions.**
+  - *The owner's words, mid-session:* "Dig deeper on the timeline analysis as well as the costs for things, and make sure that we're not over-pivoting on small tasks and small
+    measurements. If the startup, shutdown, and merging are all excessive relative to much more lengthy runs, this could be problematic. If we use just small test cases where the
+    amount of work was so small that the actual startup and merging time of multiple agents was actually material, that might be a different story. Help me understand how we should
+    review and think about this." And: "Again, my intention is to introduce a skill layer that abstracts shiploop from the mechanics, hopefully of a particular harness that we're running
+    in. We would be able to differentiate, in the skill, which harness we're running in, and then make the appropriate call on how to dispatch and merge the agent."
+  - *Reading.* The pilot's tasks took 5 s to 24 s, so it measured the fixed costs of fan-out (journal R4 splits them into per-agent, per-round and tail costs and puts the break-even at about
+    3 s to 5 s more per task) and says nothing yet about long tasks. Three things decide whether a skill layer that detects the harness and chooses dispatch mechanics is worth building, and each
+    gets one small experiment, Grok first (A6): E10 whether the skill can tell its harness, in the parent and in a sub-agent; E11 whether host-specific wording beats the anonymous packet; E12
+    how the whole run scales with task length. The skill-layer contract is drafted after them, in `skill-layer-contract.md`, as a proposal; no skill, agent card or default changes.
+  - *E10, identity (identity.py, whoami.py).* Per host, one trial: the parent runs whoami.py, starts one fresh native sub-agent that runs it too, and reports both lines and the names of the tools each
+    has for starting or waiting for another agent. Measures: `detect_host` (the repository's own function) in each context against the launched host; marker names (never values) and the last six
+    characters of thread and session ids, parent against child; the tool names each context reports; the host's own sub-agent record (the child was native). Order: Grok, Claude (`--effort high`), Codex.
+    **P25 (85%):** the parent's `detect_host` names the launched host on all three hosts. **P26 (75%):** the sub-agent's `detect_host` does too. **P27 (60%):** on at least two hosts the sub-agent's
+    thread or session id differs from the parent's. **P28 (75%):** the parent's tool names include the native agent tool on all three (Claude `Agent`, Codex `spawn_agent`, Grok `spawn_subagent`).
+    **P29 (65%):** no host's sub-agent has a tool for starting a further agent.
+  - *E11, host-specific wording (H against N).* H appends one short host binding to the A3 packet (`packets/H-<host>.txt`, pinned by the sha256 in each invocation record): all spawn calls for the ready
+    ids in one response, and a long wait instead of short polls; Codex's capacity is 3 (it holds one of four slots). The pilot's N cells are the baseline; Grok gets one more N trial, since a single trial
+    of 22 s is not a baseline. Grok: N once more and H twice. Only if P30 holds does H run once each on Claude and Codex. Measures: spawn phase (first `ready` to the last spawn), join phase, whole run,
+    parent calls (context.py), correctness. **P30 (60%):** on Grok H shortens the spawn phase by at least 8 s against the mean of the two N trials. **P31 (80%):** every H trial answers 5 of 5 with verify OK and
+    no refused attempt. **P32 (50%):** on Grok H shortens the whole run by at least 8 s against that mean. **P33 (65%, if run):** on Claude H changes the whole run by under 5 s (the pilot's parent already
+    issued its four spawns in one message). **P34 (55%, if run):** on Codex H shortens the whole run by at least 8 s.
+  - *E12, scaling.* The settle dial (dagkit.py `settle`, `launch.py --settle`) makes every task run a verification of S seconds before it reports, so a task takes about S s more than it did; the pilot is S = 0.
+    Cells: A0 and A3 (packet N, as the pilot) on each host at S = 30 and S = 90, one trial per cell, 12 trials; Grok at S = 30 first (A3 then A0) as the basic check, then Claude (`--effort high`) and Codex,
+    each host one trial at a time, hosts side by side, arm order counterbalanced, S = 90 only after S = 30 ran on that host. Timeout 1,200 s. A trial is valid only with five correct answers, verify OK, a faithful
+    report, exit 0 and every task settled. The dial adds wall-clock, not tokens: this answers "does the fixed cost stay fixed against longer tasks", not the token question. Measures: the phases (phases.py), the
+    whole run, the ratio A3/A0, the model-call counts, cost where reported. The pilot's cells give S = 0. **P35 (85%):** all twelve trials are valid. **P36 (80%):** at S = 30 A3's whole run is below A0's on all three
+    hosts (Claude 90%, Grok 85%, Codex 65%). **P37 (85%):** at S = 90 A3's whole run is below A0's on all three hosts. **P38 (60%):** the cost outside the work phase (A3 minus A0 in orient, spawn, start, join, integrate
+    and tail) at S = 90 is within 15 s of its value at S = 30 on every host: the fixed cost stays fixed. **P39 (65%):** the ratio A3/A0 at S = 90 is below its value at S = 30 on every host and below 0.6 on Claude and
+    Grok (the model's 2S against 5S: 0.48 and 0.52). **P40 (55%):** the total model calls of A0 and of A3 at S = 90 are within 25% of their pilot values (no host polls a long command into extra calls).
+  - *Decision rules.* **R7 (break-even):** report, per host, the task length at which A3's whole run equals A0's, read by interpolation over S = 0, 30 and 90 and stated with its n = 1 limit. **R8 (binding):** H goes
+    into the contract for a host only if P30 holds there and P31 holds; otherwise the contract carries N plus the host's capacity. **R9:** nothing here is a product claim: E12 gives a cost curve for one
+    read-only workload; the ShipLoop decision needs the owner's rule (quality, then tokens, then time), a write fixture for merging and isolation, and a second dial for tokens.
+  - *Stop rules.* If a host cuts or backgrounds the 90 s command (a `settled` event missing), record it, keep S = 30 for that host and say so; a trial that fails validity is kept, labelled, and rerun once if the fault is
+    the apparatus's. Limits: the settle stands for a slow verification, not for a model's own thinking; one workload; read-only (no merge, no conflict, no isolation); one trial per cell, so differences of a few
+    seconds are noise and the claims are about the shape of the curve; three hosts side by side with a machine load of 5 to 8 and caches the earlier trial may have warmed.
+
 ## Files
 
 `README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,
 `launch.py` (one trial), `score.py` (measures, text timeline, ASCII Gantt), `calibrate.py` (the scorer, the kit and the launcher
 path against runs with known answers, run before any model call), `fakehost.py` (a stand-in host for that), `export.py`
 (compact evidence into `evidence/`), `evidence.py` (the seeded logs and the oracle for `analysis5`), `render_html.py` (the timeline page), `pilot_table.py`
-(the pilot's table from the score files), `evidence/` (the Astra review and its question; every exported trial; the timeline pages).
+(the pilot's table from the score files), `phases.py` (the phase split), `context.py` (per-call context), `whoami.py` and `identity.py` (E10), `evidence/` (the Astra review and its question; every exported trial; the timeline pages).

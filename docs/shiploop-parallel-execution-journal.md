@@ -236,6 +236,55 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   write conflict, no commit, no isolation; three hosts ran side by side and a later trial may have profited from caches an earlier one warmed (order counterbalanced, not removed);
   load average 5 to 8 on the machine; Grok's and Codex's agent types and models were the hosts' defaults (Grok inherited its model, Codex pinned the child to Sol medium).
 
+### R4 — 2026-11-14: where the pilot's time and tokens went, and how to read a 5 s to 24 s result (analysis of the nine pilot trials; no new trial)
+
+- The owner's questions (mid-session): "Dig deeper on the timeline analysis as well as the costs for things, and make sure that we're not over-pivoting on small tasks and small measurements.
+  If the startup, shutdown, and merging are all excessive relative to much more lengthy runs, this could be problematic. If we use just small test cases where the amount of work was so small that
+  the actual startup and merging time of multiple agents was actually material, that might be a different story. Help me understand how we should review and think about this." And: "my intention
+  is to introduce a skill layer that abstracts shiploop from the mechanics ... We would be able to differentiate, in the skill, which harness we're running in, and then make the appropriate call on
+  how to dispatch and merge the agent." Reading: the pilot's tasks (5 s to 24 s) show the fixed costs of fan-out; the owner's doubt is exactly whether those costs stay fixed or look large only
+  because the work was small. The second message sets the product shape: a skill layer with a contract (what ShipLoop asks) and per-harness bindings (how each host dispatches and collects).
+- Method: `phases.py` splits each trial, from the ledger and the host's own agent record, into orient (launch to the first `ready`), spawn (first `ready` to the last spawn of the first round), start (last spawn
+  to the first task `begin`), work (first `begin` to the last independent task's end), join (that end to the dependent task's `begin`), integrate (the dependent task) and tail (its end to the process exit).
+  `context.py` reads every model call's context size per thread from each host's own record. A correction that came out of reading both is in E9 and in the commit a80d73d4072571484e397624b48ac01cca17fb20.
+- The phases (seconds from launch; n = 1 per cell, so these locate costs and do not size them):
+
+  | trial | orient | spawn | start | work | join | integrate | tail | whole |
+  |---|---|---|---|---|---|---|---|---|
+  | Claude A0 / A3 | 2.3 / 2.4 | 0 / 7.9 | 2.2 / 2.0 | 21.1 / 7.5 | 2.3 / 6.7 | 4.2 / 7.8 | 3.3 / 9.0 | 35.4 / 43.2 |
+  | Grok A0 / A3 | 4.0 / 3.4 | 0 / 22.0 | 3.6 / 7.5 | 52.3 / 24.1 | 3.8 / 15.8 | 9.2 / 10.5 | 8.5 / 12.7 | 81.4 / 96.1 |
+  | Codex A0 / A3 | 7.5 / 8.9 | 0 / 12.9 | 3.1 / 0.4 | 58.0 / 41.0 | 6.9 / 19.8 | 10.7 / 9.6 | 14.0 / 17.4 | 100.3 / 109.9 |
+
+- What each cost scales with. Per agent (serial parent turns): spawn, 7.9 s, 22.0 s and 12.9 s for four, four and three spawns (Claude issued its four `Agent` calls in one assistant message about 1.9 s apart, consistent with the model
+  writing each child's prompt in turn; Grok's four `spawn_subagent` calls came 4.3, 5.6 and 3.5 s apart and Codex's three `spawn_agent` calls 6.8 and 5.6 s apart, so they look like separate model turns
+  but the streams do not prove it, which is what E11 tests). Per round: the join (+4.4, +12.0, +12.9 s: the parent notices the return, asks `ready`, spawns the dependent task, the child starts; Codex also polls
+  `wait_agent` in 10 s slices) and the tail (+5.7, +4.2, +3.4 s). Proportional to the work: the work phase (21.1 to 7.5 s on Claude and so on), and, in A0, the growth of the single context. Not scaling with
+  anything measured: orient and start are the same in both arms to within a few seconds (orient 0.1, -0.6 and 1.4 s; start -0.2, 3.9 and -2.7 s).
+- Break-even from these cells. Outside the work phase A3 added 21.5 s (Claude), 42.8 s (Grok) and 26.8 s (Codex) and took 13.6 s, 28.2 s and 17.0 s off the work phase, net +7.8 s, +14.7 s and +9.6 s. If every task
+  took S seconds longer, A0's work phase would grow by 4S and A3's by S (Claude, Grok: four children at once) or 2S (Codex: three children, the fourth in a second wave), so the saving grows 3S (Claude, Grok) and 2S
+  (Codex). The whole run then breaks even at S = (21.5 - 13.6) / 3 = 2.6 s (Claude), (42.8 - 28.2) / 3 = 4.9 s (Grok) and (26.8 - 17.0) / 2 = 4.9 s (Codex) more per task than the pilot's: the pilot's tasks were
+  about 5 s, 13 s and 15 s each in A0, so the fan-out pays from roughly 8 s, 18 s and 19 s a task. The pilot sat 3 s to 5 s per task short of break-even on every host. Its verdict (the whole run was longer) is true and
+  is mostly a statement about how short the tasks were. The model's whole-run predictions, registered before E12 runs (A0 = pilot + 5S; A3 = pilot + 2S on Claude and Grok, + 3S on Codex, whose three slots run
+  T1 to T3, then T4, then T5): S = 30: Claude 185 / 103 s (ratio 0.56), Grok 231 / 156 (0.67), Codex 250 / 200 (0.80); S = 90: Claude 485 / 223 (0.46), Grok 531 / 276 (0.52), Codex 550 / 380 (0.69).
+- Where the model can be wrong (a cost that is not fixed): the join waits for the slowest of four, so spread among the children grows with S (the expected maximum of four draws is about one standard deviation
+  above their mean); a parent that polls turns waiting into model calls; four simultaneous model calls can meet a rate limit that one does not; a long command can be cut or backgrounded by the host; and for writes
+  there is a merge or an integration check the read-only fixture does not have (unmeasured). E12 tests the first four; the last needs a write fixture.
+- Tokens: a different shape, and a model, not a measurement. Per-call context (context.json): A0's single context grows 495 (Claude), 1,276 (Grok) and 342 (Codex) tokens a call; a fresh child starts at 24,152,
+  9,948 and 18,234 tokens against the parent's 33,316, 14,417 and 15,847. At the pilot's three to five calls a task, a child costs about what a task costs inside A0 (Claude: about 105.5k against 111k), so A3's extra
+  tokens on Claude and Codex are the parent's orchestration turns (Claude 10 calls and 404,872 tokens against A0's whole 555,668; Codex 18 calls and 328,246 against 449,485), and on Grok A3 is cheaper outright
+  (children 473,246 plus the parent's 185,909 = 659,155 against 867,154). A0's total is quadratic in the work (the sum of a growing context over all calls); each child's is quadratic only in its own task. Fitted to the
+  measured start, slope and parent constant, with n = A0 calls per task and children one call longer: Claude A0(n) = 165,343 n + 6,188 n^2 and A3(n) = 1,238 n^2 + 121,998 n + 525,632 (the fit gives 551,715 and 902,762
+  at n = 3 against the measured 555,668 and 932,405), equal at n = 6.8 calls a task and 0.50 at n = 30 and 0.32 at n = 100; the same fit on Codex gives equal at about n = 12; Grok's A3 is already below A0 at the pilot's
+  n = 5. Assumptions: linear growth per call (compaction would reset it), a parent constant that does not grow with task length (a polling parent breaks it), no cache pricing (dollar cost counts cache reads at a
+  tenth). It says the pilot's "more tokens" is a small-task effect, not that long tasks are cheaper; the settle dial adds time, not calls, so it cannot test this: that needs a second dial (tasks with many more calls).
+- How to read a result like the pilot's (the owner asked): (1) split each cost by what it scales with (per run, per agent, per round, per unit of work) before judging a total; a total at one task length hides which
+  part moves. (2) Compare with the real unit: a recorded ShipLoop step iteration has median 154 s (F11), 20 to 30 times the pilot's tasks. (3) Report a cost curve, here a break-even task length per host, not
+  a win or a loss at one point. (4) List the costs that are not fixed and test those. (5) With one trial per cell, differences of a few seconds are noise; read shapes and orders of magnitude. (6) Keep the owner's order,
+  quality then tokens then time: both the fan-out's time and its token cost depend on the task length, in opposite directions for tokens in A0. (7) The pilot is silent on merging, isolation and write conflicts: for
+  read-only work the integration is one cheap outcome read; for writes that is the part most likely to be fixed-cost-heavy or not fixed at all, and it needs its own fixture before any claim.
+- Next, registered in README A7 before it runs: E10 (can the skill tell its harness, in the parent and in a sub-agent), E11 (does host-specific wording beat the anonymous packet), E12 (the settle dial: the same
+  two arms at S = 30 and S = 90 on all three hosts). The skill-layer contract follows them. Nothing here changes a skill, an agent card or a default.
+
 ## Findings
 
 | # | Finding | Status | Entry |
@@ -265,3 +314,8 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F23 | Host differences a portable route must absorb: Codex allows four concurrency slots including the parent (three children; its parent released the fourth claim itself); Claude and Grok spawn in background mode and their children begin together when the parent yields, not at each spawn; Claude picks the sub-agent type itself (general-purpose, once `claude`); the waits differ (`wait_agent` in slices, `get_command_or_subagent_output`, Claude's notifications); usage figures differ in scope (Claude `usage` is the parent's and `modelUsage` the whole run) | interim | E9 |
 | F24 | A script-owned ready set with a claim, a capacity and a release was reliable on all three hosts: no refused attempt, no duplicate start, no stranded claim, one release used by Codex's parent when its host's slots ran out | interim | E9 |
 | F25 | The sub-agents in every trial were native by each host's own account (Claude's task events, Codex's rollout threads at depth 1, Grok's log with a session id per tool call), and the timeline page `evidence/pilot-timeline.html` shows the interleaving: a staircase of tasks in A0 and overlapping agent lifetimes in A3 | firm (read from the real runs) | E9 |
+| F26 | In the pilot the whole-run cost of fan-out outside the work phase was 21.5 s (Claude), 42.8 s (Grok) and 26.8 s (Codex): per agent (spawn: 7.9, 22.0, 12.9 s), per round (join +4.4, +12.0, +12.9 s; tail +5.7, +4.2, +3.4 s); orient and start were the same in both arms to within a few seconds. The work phase fell 13.6, 28.2 and 17.0 s | interim (n = 1 per cell; phases.py) | R4 |
+| F27 | The pilot's tasks were 3 s to 5 s of per-task time short of break-even on every host: with S seconds more per task the saving grows 3S (Claude, Grok) or 2S (Codex, three slots), so the fan-out pays from about 8 s, 18 s and 19 s a task; the model predicts a whole-run ratio A3/A0 of 0.56, 0.67 and 0.80 at S = 30 and 0.46, 0.52 and 0.69 at S = 90 (to be tested by E12) | interim (a model from n = 1 cells) | R4 |
+| F28 | The pilot's token accounting had two defects, both mine and both reproduced as failing cells: Claude `-p` emits one result event per parent turn (the scorer read the last), so the parent's input in Claude A3 is 404,872 (0.73 times A0), not 133,640; Grok's end usage covers its sub-agents (659,155 = parent 185,909 + children 473,246), so Grok's A3 used 0.76 times A0's input. Times, costs, answers and all-contexts totals were unaffected | firm (two independent sources agree on all six Claude trials) | R4 |
+| F29 | A single context's input grows with the work, quadratically in total (495, 1,276 and 342 tokens a call on Claude, Grok and Codex), while a fresh child restarts from 24,152, 9,948 and 18,234 tokens; at the pilot's three to five calls a task the two are close and A3's extra tokens are the parent's orchestration turns. A fit says A3 uses fewer input tokens than A0 from about 7 calls a task on Claude and about 12 on Codex, and Grok already does at 5 | exploratory (a fit to n = 1 cells; linear growth, no compaction, no cache pricing) | R4 |
+

@@ -1,0 +1,1 @@
+Host binding (Claude Code). Start every sub-agent with the Agent tool, subagent_type "general-purpose", and make all the Agent calls for the ready ids together in one response (parallel tool calls), not one per turn. Keep each sub-agent prompt exactly as short as the instruction above. A sub-agent's return reaches you as a message: do not poll for it and do not use TaskOutput.
