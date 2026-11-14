@@ -1,0 +1,36 @@
+conflict-aware bound over evidence/census.json (ideal: unlimited workers, unchanged step times, no merge cost)
+plans in the evidence: 928
+
+STRICT (a step with no paths conflicts with every other step)
+  timed_plans: 323
+  timed_multi_step: 75
+  T_s: 104644.5
+  ideal_saving: 0.1158
+  gated_saving: 0.0989
+  ideal_saving_multi: 0.2078
+  gated_saving_multi: 0.1773
+  plans_with_a_disjoint_independent_pair_timed: 21
+  time_share_of_those_plans: 0.3199
+  plans_with_gated_saving_above_zero: 21
+  plans_with_ideal_saving_above_zero: 21
+  structure, all deps-complete plans with n >= 2, plans_with_a_disjoint_independent_pair: 47
+  structure, all deps-complete plans with n >= 2, independent_pairs: 348
+  structure, all deps-complete plans with n >= 2, disjoint_pairs: 122
+  structure, all deps-complete plans with n >= 2, plans_skipped_ids_not_by_position: 1
+
+FREE (a step with no paths conflicts with none)
+  timed_plans: 323
+  timed_multi_step: 75
+  T_s: 104644.5
+  ideal_saving: 0.1158
+  gated_saving: 0.0989
+  ideal_saving_multi: 0.2078
+  gated_saving_multi: 0.1773
+  plans_with_a_disjoint_independent_pair_timed: 21
+  time_share_of_those_plans: 0.3199
+  plans_with_gated_saving_above_zero: 21
+  plans_with_ideal_saving_above_zero: 21
+  structure, all deps-complete plans with n >= 2, plans_with_a_disjoint_independent_pair: 67
+  structure, all deps-complete plans with n >= 2, independent_pairs: 348
+  structure, all deps-complete plans with n >= 2, disjoint_pairs: 159
+  structure, all deps-complete plans with n >= 2, plans_skipped_ids_not_by_position: 1

@@ -46,6 +46,50 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
     (the owner's own profile), each recorded and never pooled (README Amendment A1). Why: F6, found while checking the
     launcher with no model call.
 
+### E0 — 2026-11-14: census of recorded step plans (offline, no model)
+
+- Question (Q1): how much parallelism do the recorded step plans' `deps` expose, and what would perfect step-level
+  parallelism save in recorded wall-clock?
+- Method: [census/census.py](experiments/parallel-plan-execution-20261114/census/README.md), written and run by a read-only
+  Opus agent, over all 19 `~/e2e-runs*` roots (hidden `.shiploop-runs/` included): one row per step-plan action id, shape
+  from `deps`, write-set overlap from the plan's declared `paths`, and per-step iteration time from `trace.jsonl` (the
+  first implement packet after the plan's acceptance to the `complete` that accepts the step's `document` stage, so it
+  holds implement, test, document, the Improve review and any send-back; cross-checked against the commit ledger, 459 of 459
+  checkable steps agree). I re-extracted the structure independently with my own walk and definitions: the same 322
+  multi-step plans, 92 with an independent pair, 218 chains, 90 mixed, 12 ordered non-chains and 2 all-independent (my stricter
+  filter keeps 921 plans, dropping the 6 legacy plans and 1 single-step plan). [census/gated.py](experiments/parallel-plan-execution-20261114/census/gated.py)
+  (mine) adds a conflict-aware bound: independent steps whose declared paths overlap run in list order.
+- Result (denominators named; all in evidence/census.json, summary.txt, gated.txt): 928 step plans from 787 work items, 750
+  runs and 75 request families, dated 2026-10-03 to 2026-11-14. `deps` on every step in 922, on none in 6 (legacy), on some in 0;
+  none names a later or unknown step. Of the 922: 600 single-step, 218 chain, 90 mixed, 12 ordered non-chain, 2
+  all-independent. An independent pair exists in 92 (10.0% of 922; 28.6% of the 322 with two or more steps); width 3 in 23
+  plans and 4 or more in 5. Of 203 same-level pairs, 90 overlap on declared paths, 86 are disjoint, 27 have no paths (51% of
+  the 176 with paths overlap); of all 351 independent pairs, 61% of the 314 with paths overlap. A step iteration has median 154 s
+  (p25 116, p75 212, max 1,866; 476 steps). Times exist for 323 of the 922 plans (243 predate `trace.jsonl`, 155 are seeded runs
+  absent from the trace, 49 have fewer windows than steps, 152 are single-step with no implement packet in their window).
+  Time-weighted ideal saving, 1 minus the sum of critical paths over the sum of serial times: 11.6% over the 323 timed plans
+  (92,522 of 104,645 s), 20.8% over the 75 timed plans with two or more steps; per plan with two or more steps the median is 0 and
+  the maximum 0.55, and only 21 of the 323 save anything; family-weighted (56 timed families) 1.6%, concentrated in ticket-service
+  extensions, Battleship and chess. With overlapping-path steps kept in list order: 9.9% (17.7% for multi-step plans); the 21
+  plans with a disjoint independent pair hold 32% of all timed time and, inside them, a gated saving of about 31% (the only plans
+  that save anything). All timed
+  plans have `paths`, so the strict and free readings of a missing `paths` agree.
+- Predictions scored as registered (README, E0): **C1 held** (28.6% is within 10% to 35%); **C2 held as written** (11.6% is
+  under 12%, by 0.4 points); **C3 held** (51% of pairs with paths overlap, at least 30%); **C4 held** (323 of 928, 35%, timed,
+  fewer than half); **C5 missed** (6 of 928, 0.6% carry no `deps`, against at least a quarter predicted). Four of five held
+  against probabilities of 55%, 60%, 50%, 65% and 45%.
+- Readings, each on its own line, none a rescore: (a) C2's population includes 248 single-step plans, which dilute; over
+  the 75 timed multi-step plans the saving is 20.8%. (b) R0 as registered turns on the ideal saving, 11.6%, which is in the band
+  10% to 25%: "an opt-in for plans that expose width at least 2 and disjoint paths, a predicate a script can compute from the
+  plan". The gated 9.9% was computed after the agent's numbers were in; it sits at the band's lower edge and does not move the
+  outcome, because that band's action already includes the disjoint-paths gate.
+- Contrary evidence and limits: the population is E2E test cases (small, specified, repeated); the time rests on 75 timed
+  multi-step plans from a few families; the bound assumes unlimited workers, unchanged step times, no merge cost and that a step's
+  test, document, review and commit could run beside another step's, which design T's per-step iteration and commit stage do not
+  allow without isolation; `paths` are declared, not the files changed. A true dependency the plan failed to declare would make a
+  pair look independent: the three hand-read cases (Apex chess S2 to S5, Battleship S2 and S3, a Node chess step that names S2
+  without depending on it) are anecdotes, not a rate.
+
 ## Findings
 
 | # | Finding | Status | Entry |
@@ -56,3 +100,9 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F4 | The history digest said no script validates step `deps`; that is wrong: the navigator rejects non-list, duplicate, unknown, self and forward dependencies. What no script proves is that a recorded `deps` is the true set (a missing or a forced dependency) | firm (source reading) | R0 |
 | F5 | The three CLIs on this machine can all run headless with a native sub-agent facility present: Claude Code 2.1.325 (`--agents`, `stream-json`), Codex 0.169.0 (`multi_agent_v2` stable; `enable_fanout` removed), Grok Build 1.0.77 (subagents on by default, `--no-subagents`, `streaming-json`). Presence is not behaviour; that is what E1 to E3 test | firm (CLI reading) | R0 |
 | F6 | Codex's native multi-agent feature depends on the profile: in the throwaway `CODEX_HOME` the E2E harness builds (sign-in only) `multi_agent_v2` is off and the deprecated `multi_agent` is on, while the owner's own profile has both on. A harness result on Codex is therefore a result for one profile; "Codex can do it" needs both | firm (`codex features list` in each profile, 0.169.0) | R0 |
+| F7 | Planning reliably records dependencies: 922 of 928 recorded step plans (99.4%) have `deps` on every step, none names a later or unknown step, and the 6 without are legacy | firm (census, re-extracted independently) | E0 |
+| F8 | Most recorded plans have nothing to overlap: 600 of 922 are single-step (65%), 218 are pure chains (24%); 92 (10.0%) have an independent pair, 28.6% of the 322 multi-step plans; 28 plans have width 3 or more | firm for these runs (E2E cases) | E0 |
+| F9 | The ideal wall-clock saving from step-level parallelism is 11.6% of recorded step time over the 323 timed plans (20.8% over the 75 multi-step ones; per-plan median 0; 21 plans save anything; family-weighted 1.6%); with overlapping-path steps kept in order, 9.9% (17.7%). It is concentrated in a few families and is an upper bound (unlimited workers, no merge cost, per-step stages assumed able to overlap) | interim (75 timed multi-step plans) | E0 |
+| F10 | "Independent by `deps`" often means "shares files": 51% of same-level pairs and 61% of all independent pairs (with paths) overlap on declared paths; hand-read cases show an undeclared order (Apex chess S2 to S5, Battleship S2 and S3). A path-disjointness gate computed from the plan removes 61% of the independent pairs that have paths (192 of 314) but only about 15% of the ideal saving (11.6% to 9.9%), because the plans that save most have disjoint pairs | firm (census), anecdotal (the cases) | E0 |
+| F11 | A recorded step iteration (implement, test, document, Improve review, commit) has median 154 s (p25 116 s, p75 212 s, max 1,866 s; 476 steps), so round 1's 30 s synthetic steps are about five times shorter than a real step and overstate the fixed cost of a fresh agent | firm for these runs | E0 |
+| F12 | Step times can be recovered for only 323 of 922 plans (35%): runs before 2026-10-25 have no `trace.jsonl`, seeded runs omit the plan action from the trace, and single-step plans have no implement window | firm (census) | E0 |
