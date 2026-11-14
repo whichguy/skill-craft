@@ -1,0 +1,172 @@
+Output of pin-mutations.py run from this folder at e385f8124f50501bdbf4da1be7380da58ac09248 (the round-8 revision), 2026-11-10.
+[
+ {
+  "mutation": "none (control)",
+  "test_passes": true,
+  "kind": "ok"
+ },
+ {
+  "mutation": "card without: **An API key never goes through chat.**",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that you know or suspect would show one: ask the user to look and tell you what they find, never the key",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: The routes that show a key, and what is exempt, are in [settings-and-admin.md \u00a72](references/settings-and-admin.md#2-api-keys-settings--security--access).",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: The webhook tools of [api-and-mcp-tools.md](references/api-and-mcp-tools.md) are exempt from that run-or-read clause (follow that file's rules for them, and never print a secret any of them returns)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned and has to be rotated",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: Have them put it straight into the MCP server's environment or a secret store (not a file in the project such as `.env` or `.mcp.json`, committed or not)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: If one is pasted, or shown to you anywhere but in a webhook tool's result, do not save or reuse it, and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or page script) until the user says the dialog is closed (after storing the value, or cancelling); rule 4's check waits for that",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: 4. **Close, don't Save.**",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: then confirm no dialog remains open",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: Never write names, emails, phones, birthdays, addresses, `usr_\u2026` IDs or screenshots of person pages and reports into repo files, journals, your memory or messages: structure only",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: Asked for a project file, a project note, your memory or an outbound message whose text lists members', leads' or parents' names, emails, phones or birthdays, do not write it",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: do not offer to build one from the live report, the API tools, a script, pasted rows or an exported report",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: say member data stays out of project files, your memory and outbound messages",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: offer counts, column names, or the PushPress screen, where the user can read the list",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "heading 'Rules that matter, and why' renamed",
+  "test_passes": false,
+  "kind": "error"
+ },
+ {
+  "mutation": "the rules moved out of their section",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Never print, copy into chat or write a key value anywhere.",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Creating a key is **CONFIG / SECURITY**: ask first, and have the user place the value straight into the MCP server's environment or their secret store, never through chat.",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Treat a key that reaches a transcript as burned: the user rotates it, not you (you could not pass the new key on without reading it).",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Routes that show a key without a print command.",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Do not run these commands or read these files: ask the user to look and tell you what they find, never the key",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: `ps`, `env`, `printenv` or `set` output that shows the server's arguments or any environment you know or suspect holds the key (the server is started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: `claude mcp list` (each server's command line) or `claude mcp get` (its command line and environment), or the host's equivalent",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: shell history",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: a search or echo that prints the key's value (`grep -r` over files that may hold it, `git log -p -S`, `echo $VAR` of the key's variable)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: a file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry in an MCP config)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: a verbose or traced run that sends the key (`curl -v`, `set -x`)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Exempt: a check that prints no value (`ps -o pid,comm`, `env | cut -d= -f1`, `[ -n \"$VAR\" ]`), the API Keys table (it lists no value), the webhook tools of [api-and-mcp-tools.md](api-and-mcp-tools.md) (follow that file's rules for them, and never print a secret one returns), and another server's entry in an MCP config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: To add or change a server in a shared MCP config, the PushPress one included, write the edit with a filter whose output goes straight to a file and never to the screen (for example `jq '\u2026' f > f.new && mv f.new f`; rewriting the file this way is not writing the key), or have the user do it",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: To test that the key works, call `company-get`.",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "none (control, after)",
+  "test_passes": true,
+  "kind": "ok"
+ }
+]
+mutations that the test did NOT catch: []
+controls pass: True
+pinned phrases: 29 (card 15 + settings 14 ) + 2 structural mutations
+caught: 31 of 31

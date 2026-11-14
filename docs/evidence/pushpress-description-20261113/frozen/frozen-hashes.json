@@ -1,0 +1,6 @@
+{
+ "frozen": "2026-11-13, before any confirmation run (the dev stage came first and is described in design.md)",
+ "n_files": 11,
+ "sha256_over_manifest_lines": "2017f9c8d50267018bfeb69d71d7f019f61831938fbae46551e59186850ccc1a",
+ "note": "manifest = sha256 of every file under this folder except the two frozen-* files; the Round 9 prompts file is referenced by its hash, not copied"
+}

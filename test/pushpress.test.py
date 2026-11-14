@@ -142,6 +142,21 @@ class Card(unittest.TestCase):
         self.assertLessEqual(len(description(text)), 1024)
         self.assertRegex(text, r"(?m)^    kind: (mixed|script-backed)$")
 
+    def test_description_loads_the_card_before_a_key_is_pasted(self):
+        """P1(b), journal Round 12: a user who only announces that they will paste a key did not load the card with the published
+        description (k1 0 of 4, q15 0 of 2), so Rule 6 never applied. Pinned so an edit cannot drop the trigger or the older ones."""
+        desc = description(card_text())
+        for needle in (
+            "Use whenever the user mentions PushPress",
+            "Also load it BEFORE a PushPress API key or webhook secret is pasted, saved, created or tested, even if the user "
+            "only says they are about to paste one",
+            "it says where a key may go and what to say if one reaches the chat",
+            "sign-in through the host's approved credential flow (never a typed password)",
+            "safety rules for member data, money and outbound messages",
+        ):
+            self.assertIn(needle, desc, needle)
+        self.assertLessEqual(len(desc), 1024)
+
     def test_references_are_exactly_the_generic_set_with_no_tenant_overlay(self):
         found = {p.stem for p in REFS.iterdir() if p.is_file()}
         self.assertEqual(found, EXPECTED_REFERENCES)
@@ -173,6 +188,76 @@ class Card(unittest.TestCase):
         self.assertIn("take no screenshot and no page-text read until it is masked", card)
         self.assertNotIn("length-only probe", card + browser)
         self.assertIn("never read its `value` or its length", browser)
+
+    def test_a_key_never_goes_through_chat_and_a_member_list_is_declined(self):
+        """The two safety misses of the 2026-11-09 quiz (q15 and q16). Pinned so an edit cannot drop the rules unseen."""
+        card = " ".join(card_text().split())
+        rules = card.split("## Rules that matter, and why")[1].split("## Sign in")[0]
+        for needle in (
+            "**An API key never goes through chat.**",
+            "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or "
+            "read anything that you know or suspect would show one: ask the user to look and tell you what they find, "
+            "never the key",
+            "The routes that show a key, and what is exempt, are in "
+            "[settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access).",
+            "The webhook tools of [api-and-mcp-tools.md](references/api-and-mcp-tools.md) are exempt from that "
+            "run-or-read clause (follow that file's rules for them, and never print a secret any of them returns)",
+            "If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is "
+            "burned and has to be rotated",
+            "Have them put it straight into the MCP server's environment or a secret store (not a file in the project "
+            "such as `.env` or `.mcp.json`, committed or not)",
+            "If one is pasted, or shown to you anywhere but in a webhook tool's result, do not save or reuse it, and "
+            "tell the user to rotate it themselves (you could not pass the new secret on without reading or printing "
+            "it)",
+            "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more "
+            "in it (no screenshot, page text, accessibility tree or page script) until the user says the dialog is "
+            "closed (after storing the value, or cancelling); rule 4's check waits for that",
+            # Rule 6 cites rule 4 by number: pin the rule it points at
+            "4. **Close, don't Save.**",
+            "then confirm no dialog remains open",
+        ):
+            self.assertIn(needle, rules, needle)
+        settings = " ".join((REFS / "settings-and-admin.md").read_text(encoding="utf-8").split())
+        for needle in (
+            "Never print, copy into chat or write a key value anywhere.",
+            "Creating a key is **CONFIG / SECURITY**: ask first, and have the user place the value straight into the "
+            "MCP server's environment or their secret store, never through chat.",
+            "Treat a key that reaches a transcript as burned: the user rotates it, not you (you could not pass the new "
+            "key on without reading it).",
+            "Routes that show a key without a print command.",
+            "Do not run these commands or read these files: ask the user to look and tell you what they find, never the "
+            "key",
+            "`ps`, `env`, `printenv` or `set` output that shows the server's arguments or any environment you know or "
+            "suspect holds the key (the server is started as `mcp start --api-key <key>`, so the key is in its command "
+            "line; `pgrep -a` shows it too)",
+            "`claude mcp list` (each server's command line) or `claude mcp get` (its command line and environment), or "
+            "the host's equivalent",
+            "shell history",
+            "a search or echo that prints the key's value (`grep -r` over files that may hold it, `git log -p -S`, "
+            "`echo $VAR` of the key's variable)",
+            "a file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry "
+            "in an MCP config)",
+            "a verbose or traced run that sends the key (`curl -v`, `set -x`)",
+            "Exempt: a check that prints no value (`ps -o pid,comm`, `env | cut -d= -f1`, `[ -n \"$VAR\" ]`), the API "
+            "Keys table (it lists no value), the webhook tools of [api-and-mcp-tools.md](api-and-mcp-tools.md) (follow "
+            "that file's rules for them, and never print a secret one returns), and another server's entry in an MCP "
+            "config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file)",
+            "To add or change a server in a shared MCP config, the PushPress one included, write the edit with a filter "
+            "whose output goes straight to a file and never to the screen (for example `jq '…' f > f.new && mv f.new "
+            "f`; rewriting the file this way is not writing the key), or have the user do it",
+            "To test that the key works, call `company-get`.",
+        ):
+            self.assertIn(needle, settings, needle)
+        for needle in (
+            "Never write names, emails, phones, birthdays, addresses, `usr_…` IDs or screenshots of person pages and "
+            "reports into repo files, journals, your memory or messages: structure only",
+            "Asked for a project file, a project note, your memory or an outbound message whose text lists members', "
+            "leads' or parents' names, emails, phones or birthdays, do not write it",
+            "do not offer to build one from the live report, the API tools, a script, pasted rows or an exported report",
+            "say member data stays out of project files, your memory and outbound messages",
+            "offer counts, column names, or the PushPress screen, where the user can read the list",
+        ):
+            self.assertIn(needle, rules, needle)
 
     def test_safety_classes_are_consistent_between_the_card_and_the_profile_reference(self):
         card = card_text()

@@ -1,0 +1,136 @@
+'use strict';
+
+// Deliberately broken copies of skills/pushpress/scripts/pp-extract.js, shared by the real-browser fixture and the property test.
+// Each removes one protection that the live pass or the harness found necessary; a test that stays green on its copy is blind to
+// that protection. `from` must occur exactly once in the extractor: when it does not, the control is stale and the caller must say so.
+//
+// A control counts as caught only when the test fails FOR THE RIGHT REASON: `expect` names what each test must report for this
+// mutation (a crash, a syntax error or an unrelated failure must read as an error, never as a catch).
+//   property: property tags the test prints (P1 contract, P2 structure, P3 edge, P4 icons, P5 path, P6 sidebar ...)
+//   fixture:  'leak:<label prefix>' (a planted value of that kind reached a field) or 'problem:<text>' (a structure or sidebar problem)
+// `tests` names the tests that must catch it: 'fixture' (privacy-fixture.cjs) and 'property' (test/pushpress-extractor-property.js).
+// `cases` (fixture only) lists the fixture cases that exercise the protection, so a control runs a few pages instead of all of them.
+const MUTATIONS = [
+  { name: 'no-person-scrub', tests: ['fixture', 'property'], cases: ['person/plain'], expect: { property: ['P1 contract'], fixture: ['leak:owner'] },
+    from: 'if (!onPerson()) return [];', to: 'return [];' },
+  { name: 'fixed-290px-edge', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P2 structure', 'P3 edge'], fixture: ['problem:lacks'] },
+    from: 'const sideEdge = () => {', to: 'const sideEdge = () => { return 290;' },
+  { name: 'sidebar-not-parked', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P6 sidebar'], fixture: ['problem:did not park'] },
+    from: "dumpEl().textContent = '### sidebar\\n' + out.join('\\n');", to: '' },
+  { name: 'combobox-values-recorded', tests: ['fixture', 'property'], cases: ['person/plain'], expect: { property: ['P1 contract'], fixture: ['leak:combo'] },
+    from: "person && e.getAttribute('role') === 'combobox'", to: "false && e.getAttribute('role') === 'combobox'" },
+  { name: 'user-menu-listed', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P6 sidebar'], fixture: ['leak:staff'] },
+    from: "if (el.tagName === 'BUTTON' && !names.includes(clean(el.innerText))) return;", to: '' },
+  { name: 'headings-cap-removed', tests: ['property'], expect: { property: ['P4 caps'] },
+    from: "[role=heading]').map(e => safe(e.innerText))).slice(0, 25),", to: "[role=heading]').map(e => safe(e.innerText)))," },
+  { name: 'buttons-cap-removed', tests: ['property'], expect: { property: ['P4 caps'] },
+    from: '.filter(b => !isChrome(b)).slice(0, 45),', to: '.filter(b => !isChrome(b)),' },
+  { name: 'named-icon-buttons-counted-as-unnamed', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P4 icons'], fixture: ['problem:icon-only'] },
+    from: "!clean(b.innerText) && !b.getAttribute('aria-label') && !b.title", to: '!clean(b.innerText) && !b.title' },
+  // masks that a later review showed no generated page exercised: removing each must now be noticed
+  { name: 'title-not-scrubbed', tests: ['fixture', 'property'], cases: ['person/titleonly'], expect: { property: ['P1 contract'], fixture: ['leak:owner'] },
+    from: "/\\s/.test(title) ? title : ''", to: "''" },
+  { name: 'scrub-shortest-first', tests: ['fixture', 'property'], cases: ['person/shared'], expect: { property: ['P1 contract'], fixture: ['leak:guardianA'] },
+    from: '.sort((a, b) => b.length - a.length)', to: '.sort((a, b) => a.length - b.length)' },
+  { name: 'scrub-case-sensitive', tests: ['fixture', 'property'], cases: ['person/upper'], expect: { property: ['P1 contract'], fixture: ['leak:owner'] },
+    from: "'gi'), '$1<value>'", to: "'g'), '$1<value>'" },
+  { name: 'link-id-seg-unmasked', tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "if (ID_SEG.test(p) || PERSON.test(p)) return '<item> -> ' + maskPath(p);", to: "if (PERSON.test(p)) return '<item> -> ' + maskPath(p);" },
+  { name: 'link-person-regex-unmasked', tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "if (ID_SEG.test(p) || PERSON.test(p)) return '<item> -> ' + maskPath(p);", to: "if (ID_SEG.test(p)) return '<item> -> ' + maskPath(p);" },
+  { name: 'maskpath-id-unmasked', tests: ['fixture', 'property'], cases: ['page/plan', 'list/payments'], expect: { property: ['P5 path', 'P1 contract'], fixture: ['leak:plan', 'leak:pay'] },
+    from: "p.replace(/\\/([A-Za-z]*[_-])?[0-9a-f]{10,}.*/, '/<id>')", to: "p.replace(/\\/([A-Za-z]*[_-])?[0-9a-f]{999,}.*/, '/<id>')" },
+  { name: 'link-query-values-recorded', tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "(u.search ? ' [q:' + [...u.searchParams.keys()].join(',') + ']' : '')", to: 'u.search' },
+  { name: 'contact-links-unmasked', tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "if (isContact(a.getAttribute('href') || '')) return '<item> -> <contact>';", to: '' },
+  { name: 'sidebar-contact-unmasked', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P6 sidebar'], fixture: ['leak:staff'] },
+    from: "out.push(isContact(href) ? 'LINK  <item>  ->  <contact>'", to: "out.push(false ? 'LINK  <item>  ->  <contact>'" },
+  { name: 'th-text-unsafe', tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "th: uniq(q('th,[role=columnheader]').map(e => safe(e.innerText)))", to: "th: uniq(q('th,[role=columnheader]').map(e => clean(e.innerText)))" },
+  { name: 'tabs-text-unsafe', tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "tabs: uniq(q('[role=tab]').map(e => safe(e.innerText)))", to: "tabs: uniq(q('[role=tab]').map(e => clean(e.innerText)))" },
+  { name: 'link-text-unsafe', tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "return safe(a.innerText).slice(0, 40) + ' -> ' + p;", to: "return clean(a.innerText).slice(0, 40) + ' -> ' + p;" },
+  { name: 'sidebar-link-text-unsafe', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P6 sidebar'], fixture: ['leak:staff'] },
+    from: ": 'LINK  ' + safe(el.innerText || el.getAttribute('aria-label')).slice(0, 50) + '  ->  ' + p);", to: ": 'LINK  ' + clean(el.innerText || el.getAttribute('aria-label')).slice(0, 50) + '  ->  ' + p);" },
+  { name: 'sidebar-id-links-unmasked', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P6 sidebar'], fixture: ['leak:nav'] },
+    from: ": (ID_SEG.test(p) || PERSON.test(p)) ? 'LINK  <item>  ->  ' + maskPath(p)", to: ": false ? 'LINK  <item>  ->  ' + maskPath(p)" },
+  // found by a sweep of single-mask removals (property test only): each is noticed by planted values, and now each is pinned by a control
+  { name: "h-text-unsafe", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: "h: uniq(q('h1,h2,h3,h4,[role=heading]').map(e => safe(e.innerText)))", to: "h: uniq(q('h1,h2,h3,h4,[role=heading]').map(e => clean(e.innerText)))" },
+  { name: "lbl-text-unsafe", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: "lbl: uniq(q('label,legend,h5,h6').map(e => safe(e.innerText).slice(0, 60)))", to: "lbl: uniq(q('label,legend,h5,h6').map(e => clean(e.innerText).slice(0, 60)))" },
+  { name: "region-text-unsafe", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: "uniq(q('[role=complementary],aside')\n        .map(e => safe(e.innerText).slice(0, 200)))", to: "uniq(q('[role=complementary],aside')\n        .map(e => clean(e.innerText).slice(0, 200)))" },
+  { name: "input-labels-row-mask-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: "inp: uniq(q('input,select,textarea').map(e => safeRow(", to: "inp: uniq(q('input,select,textarea').map(e => clean(" },
+  { name: "toggle-labels-row-mask-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: ".map(e => safeRow(e.getAttribute('aria-label') || (e.closest('label')", to: ".map(e => clean(e.getAttribute('aria-label') || (e.closest('label')" },
+  { name: "select-label-mask-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: ".replace(/^Select (?!all$|row$).{2,}$/i, 'Select <item>')", to: "" },
+  { name: "button-verb-mask-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: ".replace(/^(Select|Edit|View|Delete|Remove|Open) (?!all$|row$).{2,}$/i, '$1 <item>')", to: "" },
+  { name: "button-for-of-mask-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: ".replace(/\\b(for|of) .{2,}$/i, '$1 <item>')", to: "" },
+  { name: "button-email-or-digits-drop-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: ".filter(t => t && !/@|\\d{3,}/.test(t))", to: ".filter(t => t)" },
+  { name: "email-mask-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: ".replace(/\\S*@\\S*/g, '<email>')", to: "" },
+  { name: "phone-formatted-alternative-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: "(?:\\+?\\d{1,3}[\\s.-]?)?\\(?\\d{3}\\)?[\\s.-]\\d{3}[\\s.-]\\d{4}\\b|\\+\\d{8,15}\\b|\\b\\d{10,15}\\b", to: "\\+\\d{8,15}\\b|\\b\\d{10,15}\\b" },
+  { name: "phone-bare-digits-alternative-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: "(?:\\+?\\d{1,3}[\\s.-]?)?\\(?\\d{3}\\)?[\\s.-]\\d{3}[\\s.-]\\d{4}\\b|\\+\\d{8,15}\\b|\\b\\d{10,15}\\b", to: "(?:\\+?\\d{1,3}[\\s.-]?)?\\(?\\d{3}\\)?[\\s.-]\\d{3}[\\s.-]\\d{4}\\b|\\+\\d{8,15}\\b" },
+  { name: "region-recorded-on-person-routes", tests: ['property'], expect: { property: ['P1 region'] },
+    from: "region: person ? '' : uniq(", to: "region: uniq(" },
+  { name: "input-values-not-scrubbed", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: "uniq([...vals, /\\s/.test(title) ? title : ''])", to: "uniq([/\\s/.test(title) ? title : ''])" },
+  { name: "title-suffix-not-split-off", tests: ['property'], expect: { property: ['P1 contract'] },
+    from: ".split(/\\s[|–-]\\s/)[0]", to: "" },
+  { name: "path-field-unmasked", tests: ['property'], expect: { property: ['P5 path'] },
+    from: "p: maskPath(location.pathname) +", to: "p: location.pathname +" },
+  { name: "person-path-not-a-person-route", tests: ['property'], expect: { property: ['P1 contract', 'P1 region'] },
+    from: "const onPerson = () => /^\\/user\\//.test(location.pathname) || PERSON.test(location.pathname);", to: "const onPerson = () => /^\\/user\\//.test(location.pathname);" },
+  // found by a later review (boundary and quantifier mutants): shapes the generators never planted
+  { name: "external-links-not-masked", tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "if (u.origin !== location.origin) return 'EXT ' + u.hostname;", to: "" },
+  { name: "sms-not-a-contact-link", tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "(?:mailto|tel|sms)", to: "(?:mailto|tel)" },
+  { name: "button-verbs-cut-to-select-and-edit", tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "^(Select|Edit|View|Delete|Remove|Open) ", to: "^(Select|Edit) " },
+  { name: "sidebar-person-routes-unmasked", tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P6 sidebar'], fixture: ['leak:nav'] },
+    from: ": (ID_SEG.test(p) || PERSON.test(p)) ? 'LINK  <item>  ->  ' + maskPath(p)", to: ": (ID_SEG.test(p)) ? 'LINK  <item>  ->  ' + maskPath(p)" },
+  { name: "scrub-ignores-textareas", tests: ['fixture', 'property'], cases: ['person/plain'], expect: { property: ['P1 contract'], fixture: ['leak:guardianA'] },
+    from: "const vals = [...document.querySelectorAll('input,textarea')]", to: "const vals = [...document.querySelectorAll('input')]" },
+  { name: "id-pattern-needs-12-hex-characters", tests: ['fixture', 'property'], cases: ['list/payments', 'table/class-types'], expect: { property: ['P1 contract', 'P6 sidebar'], fixture: ['leak:pay', 'leak:nav'] },
+    from: "const ID_SEG = /\\/([A-Za-z]*[_-])?[0-9a-f]{10,}/;", to: "const ID_SEG = /\\/([A-Za-z]*[_-])?[0-9a-f]{12,}/;" },
+  { name: "path-id-mask-needs-12-hex-characters", tests: ['fixture', 'property'], cases: ['page/plan', 'list/payments'], expect: { property: ['P5 path', 'P1 contract'], fixture: ['leak:plan', 'leak:pay'] },
+    from: "p.replace(/\\/([A-Za-z]*[_-])?[0-9a-f]{10,}.*/, '/<id>')", to: "p.replace(/\\/([A-Za-z]*[_-])?[0-9a-f]{12,}.*/, '/<id>')" },
+  { name: "id-prefix-underscore-only", tests: ['fixture', 'property'], cases: ['list/payments', 'table/class-types'], expect: { property: ['P1 contract', 'P6 sidebar'], fixture: ['leak:pay', 'leak:nav'] },
+    from: "const ID_SEG = /\\/([A-Za-z]*[_-])?[0-9a-f]{10,}/;", to: "const ID_SEG = /\\/([A-Za-z]*_)?[0-9a-f]{10,}/;" },
+  { name: "scrub-left-boundary-whitespace-only", tests: ['fixture', 'property'], cases: ['person/plain'], expect: { property: ['P1 contract'], fixture: ['leak:owner', 'leak:guardianA'] },
+    from: "'(^|[^A-Za-z0-9])' + esc(v)", to: "'(^|\\\\s)' + esc(v)" },
+  // found by a later review's journal reviewer: masks that were noticed but not pinned, or not noticed
+  { name: "scrub-pattern-unescaped", tests: ['fixture', 'property'], cases: ['person/nickname'], expect: { property: ['P1 contract'], fixture: ['leak:owner', 'leak:guardianA'] },
+    from: "'(^|[^A-Za-z0-9])' + esc(v) + ", to: "'(^|[^A-Za-z0-9])' + v + " },
+  { name: "input-and-toggle-labels-text-mask-off", tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
+    from: "const safeRow = t => safe(t)", to: "const safeRow = t => clean(t)" },
+  { name: "path-field-query-values-recorded", tests: ['fixture', 'property'], cases: ['url/query'], expect: { property: ['P5 path'], fixture: ['leak:url'] },
+    from: "(location.search ? ' [q:' + [...new URLSearchParams(location.search).keys()].join(',') + ']' : '')", to: "location.search" },
+  { name: "visibility-filter-off", tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P3 edge'], fixture: ['leak:staff'] },
+    from: "const vis = el => { const r = el.getBoundingClientRect(); return (r.width || r.height) && r.left >= edge; };", to: "const vis = el => true;" },
+  { name: "path-mask-person-rule-off", tests: ['fixture', 'property'], cases: ['url/lead-slug'], expect: { property: ['P5 path'], fixture: ['leak:url'] },
+    from: ".replace(/^(\\/(user|people))\\/(?!(?:non-members|members|leads|staff)(?:[/?#]|$))[^/?]{8,}.*/, '$1/<id>')", to: "" },
+  { name: "chrome-button-list-ignored", tests: ['fixture'], cases: ['table/class-types'], expect: { fixture: ['problem:top-bar button'] },
+    from: "const isChrome = b => CHROME.includes(b) ||", to: "const isChrome = b => false ||" },
+  { name: "company-switcher-filter-off", tests: ['fixture'], cases: ['table/class-types'], expect: { fixture: ['problem:company switcher'] },
+    from: "|| (!!cfg().company && b === cfg().company)", to: "|| false" },
+];
+
+function apply(source, mutation) {
+  const parts = source.split(mutation.from);
+  if (parts.length !== 2) return null;                                       // stale: the text it breaks is gone or no longer unique
+  return parts.join(mutation.to);
+}
+
+module.exports = { MUTATIONS, apply };

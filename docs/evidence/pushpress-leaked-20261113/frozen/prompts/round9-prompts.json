@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "purpose": "T1.4 trigger test: does the published pushpress description fire on gym-operations prompts and stay quiet on near misses",
+  "frozen": "written before the first counting run; no prompt is tuned after a result",
+  "counts": {
+    "should_fire": 12,
+    "explicit": 6,
+    "implicit": 6,
+    "should_not_fire": 12,
+    "sport80": 3,
+    "second_pass": 8
+  },
+  "prompts": [
+    {
+      "id": "E1",
+      "expect_fire": true,
+      "category": "explicit",
+      "text": "Open PushPress and tell me what our cheapest membership plan costs per month.",
+      "second_pass": true
+    },
+    {
+      "id": "E2",
+      "expect_fire": true,
+      "category": "explicit",
+      "text": "In PushPress, where do I see which members had a failed payment this week?",
+      "second_pass": false
+    },
+    {
+      "id": "E3",
+      "expect_fire": true,
+      "category": "explicit",
+      "text": "Can the PushPress API give me a list of our class types, or do I have to look at the admin pages?",
+      "second_pass": true
+    },
+    {
+      "id": "E4",
+      "expect_fire": true,
+      "category": "explicit",
+      "text": "How do I check in PushPress whether a member has signed their waiver?",
+      "second_pass": false
+    },
+    {
+      "id": "E5",
+      "expect_fire": true,
+      "category": "explicit",
+      "text": "In the gym software, where do I see check-ins by class for last month?",
+      "second_pass": false
+    },
+    {
+      "id": "E6",
+      "expect_fire": true,
+      "category": "explicit",
+      "text": "Log in to the gym software and tell me when our next deposit is due.",
+      "second_pass": false
+    },
+    {
+      "id": "I1",
+      "expect_fire": true,
+      "category": "implicit",
+      "text": "One of our gym members' monthly payments failed last night. Where do I see every failed payment and the reason for each?",
+      "second_pass": true
+    },
+    {
+      "id": "I2",
+      "expect_fire": true,
+      "category": "implicit",
+      "text": "How many people came to our 6am classes last week? Where would I find attendance by class?",
+      "second_pass": false
+    },
+    {
+      "id": "I3",
+      "expect_fire": true,
+      "category": "implicit",
+      "text": "Which of our gym members haven't signed the liability waiver yet, and where would I check?",
+      "second_pass": false
+    },
+    {
+      "id": "I4",
+      "expect_fire": true,
+      "category": "implicit",
+      "text": "What does our unlimited membership cost per month? I need the exact number to quote a prospect.",
+      "second_pass": true
+    },
+    {
+      "id": "I5",
+      "expect_fire": true,
+      "category": "implicit",
+      "text": "When is our next bank deposit from membership payments, and how do I see what's in it?",
+      "second_pass": false
+    },
+    {
+      "id": "I6",
+      "expect_fire": true,
+      "category": "implicit",
+      "text": "Someone filled in the contact form on our gym's website. Where do I read their message and answer it?",
+      "second_pass": false
+    },
+    {
+      "id": "N1",
+      "expect_fire": false,
+      "category": "neg-mindbody",
+      "text": "How do I add a 10-class pass for a client in Mindbody and set it to expire after three months?",
+      "second_pass": true
+    },
+    {
+      "id": "N2",
+      "expect_fire": false,
+      "category": "neg-wix",
+      "text": "In Wix, how do I add a new page for our summer camp and keep it out of the site menu?",
+      "second_pass": false
+    },
+    {
+      "id": "N3",
+      "expect_fire": false,
+      "category": "neg-saas-pricing",
+      "text": "We're pricing our new software product. Should the plans be per-seat or usage-based, and how many tiers make sense?",
+      "second_pass": false
+    },
+    {
+      "id": "N4",
+      "expect_fire": false,
+      "category": "neg-budget-workbook",
+      "text": "In our Google Sheets budget workbook, how do I total monthly revenue by category with a QUERY formula?",
+      "second_pass": false
+    },
+    {
+      "id": "N5",
+      "expect_fire": false,
+      "category": "neg-stripe-code",
+      "text": "Write a Node.js Express handler that verifies a Stripe webhook signature and ignores duplicate events.",
+      "second_pass": false
+    },
+    {
+      "id": "N6",
+      "expect_fire": false,
+      "category": "neg-sport80",
+      "text": "On the USA Weightlifting Sport80 portal, how do I look up the results of last month's meet?",
+      "second_pass": false
+    },
+    {
+      "id": "N7",
+      "expect_fire": false,
+      "category": "neg-sport80",
+      "text": "How do I renew my USA Weightlifting membership on Sport80 before it expires?",
+      "second_pass": false
+    },
+    {
+      "id": "N8",
+      "expect_fire": false,
+      "category": "neg-sport80",
+      "text": "In Sport80, how can I see which of our club's members have an expired USAW membership?",
+      "second_pass": true
+    },
+    {
+      "id": "N9",
+      "expect_fire": false,
+      "category": "neg-other-gym-software",
+      "text": "In Wodify, how do I set up a drop-in rate for visitors?",
+      "second_pass": false
+    },
+    {
+      "id": "N10",
+      "expect_fire": false,
+      "category": "neg-gym-pricing-advice",
+      "text": "What's a sensible monthly price for a small-group strength training membership in a suburban town?",
+      "second_pass": true
+    },
+    {
+      "id": "N11",
+      "expect_fire": false,
+      "category": "neg-attendance-code",
+      "text": "Write a Python function that takes a list of check-in dates and returns a member's longest attendance streak in weeks.",
+      "second_pass": true
+    },
+    {
+      "id": "N12",
+      "expect_fire": false,
+      "category": "neg-mailchimp",
+      "text": "How do I send a monthly newsletter to our gym's mailing list in Mailchimp and avoid the spam folder?",
+      "second_pass": false
+    }
+  ]
+}

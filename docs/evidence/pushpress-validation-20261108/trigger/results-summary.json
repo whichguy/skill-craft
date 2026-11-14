@@ -1,0 +1,1675 @@
+{
+  "recorded": "2026-11-09",
+  "question": "Does the published pushpress description fire on gym-operations prompts and stay quiet on near misses, in an isolated Claude Code -p run where all skill-craft skills compete?",
+  "conditions": {
+    "claude_code_version": "2.1.319",
+    "model": "claude-sonnet-5-5 (alias sonnet)",
+    "effort": "default (no effort flag set)",
+    "payload": "git archive of origin/main 85a7cda7 plugins/skill-craft (skill-craft 2.36.1, 26 skills, pushpress blobs identical to the released ones)",
+    "main_flags": [
+      "claude",
+      "-p",
+      "--restricted",
+      "--strict-mcp-config",
+      "--plugin-dir",
+      "<payload>",
+      "--tools",
+      "Skill",
+      "--max-turns",
+      "2",
+      "--max-budget-usd",
+      "0.5",
+      "--no-session-persistence",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--model",
+      "sonnet"
+    ],
+    "main_cwd": "an empty scratch directory outside every repo",
+    "env": {
+      "SHIPLOOP_KEEPALIVE": "off"
+    },
+    "tools_available_to_a_run": [
+      "Skill"
+    ],
+    "mcp_servers_started": 0,
+    "session_persistence": "off",
+    "stdin": "/dev/null",
+    "parallelism": 2,
+    "per_run_cap_usd": 0.5,
+    "total_stop_usd": 25
+  },
+  "prompts": {
+    "file": "prompts.json",
+    "sha256": "ce269ffaa4c6958a2ffae939b2ba6a8b3a548f5a544c388a2a556bea3fa6fd0b",
+    "counts": {
+      "should_fire": 12,
+      "explicit": 6,
+      "implicit": 6,
+      "should_not_fire": 12,
+      "sport80": 3,
+      "second_pass": 8
+    }
+  },
+  "step0": {
+    "claude_code_version": "2.1.319",
+    "model": "claude-sonnet-5-5",
+    "init_lists_skills": true,
+    "skills_in_init": 48,
+    "skill_craft_skills": 26,
+    "bundled_or_other_skills": [
+      "deep-research",
+      "design",
+      "slides",
+      "design-sync",
+      "dataviz",
+      "artifact-diagramming",
+      "artifact-capabilities",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "schedule",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "plugin-authoring"
+    ],
+    "skill_craft_pushpress_visible": true,
+    "bare_pushpress_visible": false,
+    "plugins": [
+      "skill-craft 2.36.1 (inline)"
+    ],
+    "installed_skill_craft_loaded_in_isolated_runs": false,
+    "installed_copy_now": "skill-craft 2.36.1 at commit 85a7cda7, user scope, enabled, last updated 2026-11-09 08:21 local; its skills/pushpress is identical to the payload tested here. The plan assumed 2.35.8, so skill-craft:pushpress is already installed on this Mac.",
+    "tools": [
+      "Skill"
+    ],
+    "mcp_servers": 0,
+    "skills_sha16": "9122ab2071701599",
+    "one_turn_self_report": "the model's own available-skills list held 26 skill-craft names incl. skill-craft:pushpress and 17 others, no bare pushpress (43 names; the init event lists 48, the 5 extra are hidden from the model)",
+    "max_turns_flag": "accepted although absent from claude --help",
+    "stdin_note": "every run needs stdin from /dev/null; otherwise the CLI waits 3 s for piped data"
+  },
+  "t04_smoke": {
+    "question": "How do I find out what a membership plan costs in PushPress, and can the PushPress API give me a list of all our plans?",
+    "tool_calls": [
+      {
+        "tool": "Skill",
+        "skill": "skill-craft:pushpress"
+      }
+    ],
+    "fired_target": true,
+    "result": {
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 3,
+      "total_cost_usd": 0.0672,
+      "duration_ms": 8521,
+      "stop_reason": "end_turn"
+    },
+    "answer_uses_door_router_read_by_hand": "yes: sends the price to the admin UI (Plans page) or the landing-page JSON, says the API has no plan list and plans-get returns no price, says it did not browse the account and cites the card's 2026-11-08 check",
+    "pass": true
+  },
+  "main_pass": {
+    "prompt_level": {
+      "note": "the two runs of a prompt are repeats, so the sample is the prompts, not the runs; Wilson 95% intervals over prompts",
+      "should_fire_prompts_that_fired": [
+        12,
+        12
+      ],
+      "should_fire_interval": [
+        0.757,
+        1.0
+      ],
+      "quiet_prompts_that_fired": [
+        0,
+        12
+      ],
+      "quiet_interval": [
+        0.0,
+        0.243
+      ]
+    },
+    "runs_recorded": 48,
+    "infra_errors_after_retries": 0,
+    "isolation_held_in_every_run": true,
+    "pass_lines": {
+      "explicit_recall": {
+        "fired": 12,
+        "runs": 12,
+        "threshold": "at least 11 of 12",
+        "pass": true
+      },
+      "implicit_recall": {
+        "fired": 12,
+        "runs": 12,
+        "threshold": "at least 8 of 12 (a measurement, not a gate)",
+        "met": true,
+        "misses": []
+      },
+      "false_fires": {
+        "fired": 0,
+        "runs": 24,
+        "threshold": "at most 1 of 24",
+        "pass": true,
+        "by_prompt": []
+      },
+      "sport80": {
+        "fired": 0,
+        "runs": 6,
+        "threshold": "0 of 6",
+        "pass": true
+      }
+    },
+    "other_skills_fired_by_prompt": {
+      "N6": {
+        "skill-craft:sport80": 2
+      },
+      "N8": {
+        "skill-craft:sport80": 2
+      },
+      "N7": {
+        "skill-craft:sport80": 2
+      }
+    },
+    "per_prompt": [
+      {
+        "id": "E1",
+        "category": "explicit",
+        "expect_fire": true,
+        "text": "Open PushPress and tell me what our cheapest membership plan costs per month.",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0633,
+            "wall_s": 9.6,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0618,
+            "wall_s": 9.3,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "E2",
+        "category": "explicit",
+        "expect_fire": true,
+        "text": "In PushPress, where do I see which members had a failed payment this week?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.066,
+            "wall_s": 11.6,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0644,
+            "wall_s": 8.9,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "E3",
+        "category": "explicit",
+        "expect_fire": true,
+        "text": "Can the PushPress API give me a list of our class types, or do I have to look at the admin pages?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0629,
+            "wall_s": 8.8,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0632,
+            "wall_s": 10.1,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "E4",
+        "category": "explicit",
+        "expect_fire": true,
+        "text": "How do I check in PushPress whether a member has signed their waiver?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0649,
+            "wall_s": 10.6,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.064,
+            "wall_s": 8.9,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "E5",
+        "category": "explicit",
+        "expect_fire": true,
+        "text": "In the gym software, where do I see check-ins by class for last month?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0675,
+            "wall_s": 11.9,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0655,
+            "wall_s": 12.2,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "E6",
+        "category": "explicit",
+        "expect_fire": true,
+        "text": "Log in to the gym software and tell me when our next deposit is due.",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0645,
+            "wall_s": 10.3,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0639,
+            "wall_s": 10.7,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "I1",
+        "category": "implicit",
+        "expect_fire": true,
+        "text": "One of our gym members' monthly payments failed last night. Where do I see every failed payment and the reason for each?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0668,
+            "wall_s": 10.0,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0666,
+            "wall_s": 13.5,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "I2",
+        "category": "implicit",
+        "expect_fire": true,
+        "text": "How many people came to our 6am classes last week? Where would I find attendance by class?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0667,
+            "wall_s": 12.7,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0657,
+            "wall_s": 12.4,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "I3",
+        "category": "implicit",
+        "expect_fire": true,
+        "text": "Which of our gym members haven't signed the liability waiver yet, and where would I check?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.067,
+            "wall_s": 12.4,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0657,
+            "wall_s": 11.3,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "I4",
+        "category": "implicit",
+        "expect_fire": true,
+        "text": "What does our unlimited membership cost per month? I need the exact number to quote a prospect.",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0663,
+            "wall_s": 11.8,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0646,
+            "wall_s": 10.9,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "I5",
+        "category": "implicit",
+        "expect_fire": true,
+        "text": "When is our next bank deposit from membership payments, and how do I see what's in it?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0683,
+            "wall_s": 9.2,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0668,
+            "wall_s": 12.8,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "I6",
+        "category": "implicit",
+        "expect_fire": true,
+        "text": "Someone filled in the contact form on our gym's website. Where do I read their message and answer it?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0689,
+            "wall_s": 9.6,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": true,
+            "skills_called": [
+              "skill-craft:pushpress"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.067,
+            "wall_s": 9.0,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 2,
+        "n_runs": 2
+      },
+      {
+        "id": "N1",
+        "category": "neg-mindbody",
+        "expect_fire": false,
+        "text": "How do I add a 10-class pass for a client in Mindbody and set it to expire after three months?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0385,
+            "wall_s": 11.0,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0393,
+            "wall_s": 12.8,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N2",
+        "category": "neg-wix",
+        "expect_fire": false,
+        "text": "In Wix, how do I add a new page for our summer camp and keep it out of the site menu?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0385,
+            "wall_s": 12.3,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0345,
+            "wall_s": 8.3,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N3",
+        "category": "neg-saas-pricing",
+        "expect_fire": false,
+        "text": "We're pricing our new software product. Should the plans be per-seat or usage-based, and how many tiers make sense?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0396,
+            "wall_s": 13.4,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0392,
+            "wall_s": 10.4,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N4",
+        "category": "neg-budget-workbook",
+        "expect_fire": false,
+        "text": "In our Google Sheets budget workbook, how do I total monthly revenue by category with a QUERY formula?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0391,
+            "wall_s": 9.6,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0368,
+            "wall_s": 8.3,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N5",
+        "category": "neg-stripe-code",
+        "expect_fire": false,
+        "text": "Write a Node.js Express handler that verifies a Stripe webhook signature and ignores duplicate events.",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0435,
+            "wall_s": 13.7,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0424,
+            "wall_s": 12.5,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N6",
+        "category": "neg-sport80",
+        "expect_fire": false,
+        "text": "On the USA Weightlifting Sport80 portal, how do I look up the results of last month's meet?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [
+              "skill-craft:sport80"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.052,
+            "wall_s": 11.3,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [
+              "skill-craft:sport80"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0504,
+            "wall_s": 10.9,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N7",
+        "category": "neg-sport80",
+        "expect_fire": false,
+        "text": "How do I renew my USA Weightlifting membership on Sport80 before it expires?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [
+              "skill-craft:sport80"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.053,
+            "wall_s": 13.2,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [
+              "skill-craft:sport80"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0537,
+            "wall_s": 13.6,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N8",
+        "category": "neg-sport80",
+        "expect_fire": false,
+        "text": "In Sport80, how can I see which of our club's members have an expired USAW membership?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [
+              "skill-craft:sport80"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0507,
+            "wall_s": 11.0,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [
+              "skill-craft:sport80"
+            ],
+            "other_tools": null,
+            "turns": 3,
+            "cost_usd": 0.0499,
+            "wall_s": 10.7,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N9",
+        "category": "neg-other-gym-software",
+        "expect_fire": false,
+        "text": "In Wodify, how do I set up a drop-in rate for visitors?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0389,
+            "wall_s": 11.5,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0386,
+            "wall_s": 12.4,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N10",
+        "category": "neg-gym-pricing-advice",
+        "expect_fire": false,
+        "text": "What's a sensible monthly price for a small-group strength training membership in a suburban town?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0376,
+            "wall_s": 11.2,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0369,
+            "wall_s": 11.2,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N11",
+        "category": "neg-attendance-code",
+        "expect_fire": false,
+        "text": "Write a Python function that takes a list of check-in dates and returns a member's longest attendance streak in weeks.",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0392,
+            "wall_s": 10.1,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0386,
+            "wall_s": 11.9,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      },
+      {
+        "id": "N12",
+        "category": "neg-mailchimp",
+        "expect_fire": false,
+        "text": "How do I send a monthly newsletter to our gym's mailing list in Mailchimp and avoid the spam folder?",
+        "runs": [
+          {
+            "run": 1,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.0448,
+            "wall_s": 17.6,
+            "attempts": 1,
+            "result": "success"
+          },
+          {
+            "run": 2,
+            "status": "ok",
+            "fired": false,
+            "skills_called": [],
+            "other_tools": null,
+            "turns": 1,
+            "cost_usd": 0.043,
+            "wall_s": 15.1,
+            "attempts": 1,
+            "result": "success"
+          }
+        ],
+        "fired_runs": 0,
+        "n_runs": 2
+      }
+    ],
+    "cost_usd": 2.591,
+    "meta": {
+      "pass": "main",
+      "runs_requested": 48,
+      "total_cost_usd": 2.591,
+      "wall_s": 273.7,
+      "cost_stop_hit": false,
+      "flags": [
+        "claude",
+        "-p",
+        "--restricted",
+        "--strict-mcp-config",
+        "--plugin-dir",
+        "<payload>",
+        "--tools",
+        "Skill",
+        "--max-turns",
+        "2",
+        "--max-budget-usd",
+        "0.5",
+        "--no-session-persistence",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "sonnet"
+      ],
+      "cwd": "an empty scratch directory outside every repo",
+      "env": {
+        "SHIPLOOP_KEEPALIVE": "off"
+      },
+      "frozen_prompts_sha256": "ce269ffaa4c6958a2ffae939b2ba6a8b3a548f5a544c388a2a556bea3fa6fd0b"
+    },
+    "sport80_positive_control": {
+      "sport80_skill_fired": 6,
+      "runs": 6
+    }
+  },
+  "overlap_pass": {
+    "runs_recorded": 16,
+    "meta": {
+      "pass": "overlap",
+      "runs_requested": 16,
+      "total_cost_usd": 2.1852,
+      "wall_s": 131.9,
+      "cost_stop_hit": false,
+      "flags": [
+        "claude",
+        "-p",
+        "--strict-mcp-config",
+        "--plugin-dir",
+        "<payload>",
+        "--tools",
+        "Skill",
+        "--max-turns",
+        "2",
+        "--max-budget-usd",
+        "0.5",
+        "--no-session-persistence",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "sonnet"
+      ],
+      "cwd": "the owner's project checkout (read only)",
+      "env": {
+        "SHIPLOOP_KEEPALIVE": "off"
+      },
+      "frozen_prompts_sha256": "ce269ffaa4c6958a2ffae939b2ba6a8b3a548f5a544c388a2a556bea3fa6fd0b",
+      "repo_status_unchanged": false,
+      "repo_status_lines_before_after": [
+        11,
+        8
+      ]
+    },
+    "rows": [
+      {
+        "id": "E1",
+        "run": 1,
+        "category": "explicit",
+        "expect_fire": true,
+        "status": "ok",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1247,
+        "wall_s": 14.2,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "E1",
+        "run": 2,
+        "category": "explicit",
+        "expect_fire": true,
+        "status": "ok",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1194,
+        "wall_s": 11.7,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "E3",
+        "run": 1,
+        "category": "explicit",
+        "expect_fire": true,
+        "status": "ok",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1232,
+        "wall_s": 14.2,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "E3",
+        "run": 2,
+        "category": "explicit",
+        "expect_fire": true,
+        "status": "ok",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1191,
+        "wall_s": 13.9,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "I1",
+        "run": 1,
+        "category": "implicit",
+        "expect_fire": true,
+        "status": "error_max_turns: two Skill calls inside the 2-turn cap, no answer (last of 3 attempts)",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress",
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1148,
+        "wall_s": 6.6,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "I1",
+        "run": 2,
+        "category": "implicit",
+        "expect_fire": true,
+        "status": "ok",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1208,
+        "wall_s": 13.7,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "I4",
+        "run": 1,
+        "category": "implicit",
+        "expect_fire": true,
+        "status": "ok",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1215,
+        "wall_s": 15.7,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "I4",
+        "run": 2,
+        "category": "implicit",
+        "expect_fire": true,
+        "status": "ok",
+        "bare_pushpress_fired": true,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "pushpress"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.0839,
+        "wall_s": 13.7,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N1",
+        "run": 1,
+        "category": "neg-mindbody",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [],
+        "other_tools": null,
+        "cost_usd": 0.0948,
+        "wall_s": 13.9,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N1",
+        "run": 2,
+        "category": "neg-mindbody",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [],
+        "other_tools": null,
+        "cost_usd": 0.0953,
+        "wall_s": 13.3,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N10",
+        "run": 1,
+        "category": "neg-gym-pricing-advice",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [],
+        "other_tools": null,
+        "cost_usd": 0.094,
+        "wall_s": 12.6,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N10",
+        "run": 2,
+        "category": "neg-gym-pricing-advice",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [],
+        "other_tools": null,
+        "cost_usd": 0.0572,
+        "wall_s": 12.7,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N11",
+        "run": 1,
+        "category": "neg-attendance-code",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [],
+        "other_tools": null,
+        "cost_usd": 0.0966,
+        "wall_s": 12.7,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N11",
+        "run": 2,
+        "category": "neg-attendance-code",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [],
+        "other_tools": null,
+        "cost_usd": 0.0595,
+        "wall_s": 12.3,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N8",
+        "run": 1,
+        "category": "neg-sport80",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "skill-craft:sport80"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1101,
+        "wall_s": 14.3,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      },
+      {
+        "id": "N8",
+        "run": 2,
+        "category": "neg-sport80",
+        "expect_fire": false,
+        "status": "ok",
+        "bare_pushpress_fired": false,
+        "skill_craft_pushpress_fired": false,
+        "skills_called": [
+          "skill-craft:sport80"
+        ],
+        "other_tools": null,
+        "cost_usd": 0.1097,
+        "wall_s": 12.9,
+        "init": {
+          "skills_n": 334,
+          "bare_pushpress_visible": true,
+          "pushpress_names": [
+            "pushpress",
+            "skill-craft:pushpress"
+          ],
+          "plugins_n": 32,
+          "skill_craft_entries": [
+            "skill-craft 2.36.1 (inline)"
+          ],
+          "tools": [
+            "Skill"
+          ],
+          "mcp_servers_n": 0,
+          "permission_mode": "auto"
+        }
+      }
+    ],
+    "init_variants": [
+      {
+        "bare_pushpress_visible": true,
+        "mcp_servers_n": 0,
+        "permission_mode": "auto",
+        "plugins_n": 32,
+        "pushpress_names": [
+          "pushpress",
+          "skill-craft:pushpress"
+        ],
+        "skill_craft_entries": [
+          "skill-craft 2.36.1 (inline)"
+        ],
+        "skills_n": 334,
+        "tools": [
+          "Skill"
+        ]
+      }
+    ],
+    "cost_usd": 1.6446,
+    "observation": {
+      "should_fire_runs": 8,
+      "bare_project_pushpress_fired": 8,
+      "skill_craft_pushpress_fired": 0
+    },
+    "repo_check": {
+      "status_lines_before_after": [
+        11,
+        8
+      ],
+      "explained_by": "another session's commit at 08:32 in the shared checkout",
+      "traces_of_the_runs": "none seen"
+    }
+  },
+  "total_cost_usd": 4.8817
+}

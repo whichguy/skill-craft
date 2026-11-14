@@ -1,0 +1,182 @@
+{
+ "label": "control-published",
+ "started": "2026-11-13T10:29:21-08:00",
+ "model": "sonnet",
+ "max_turns": 1,
+ "runs_per_prompt": 2,
+ "payload_pushpress_skill_sha256": "ea4ba9fa141967b4ca6d8be040b2b4f1d58e2bb06c4c9e4a99206c936e474292",
+ "prompts_sha256": "ce269ffaa4c6958a2ffae939b2ba6a8b3a548f5a544c388a2a556bea3fa6fd0b",
+ "claude": "2.1.323 (Claude Code)",
+ "partial": false,
+ "total_cost_usd": 0.2376,
+ "records": [
+  {
+   "id": "E1",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.0294,
+   "seconds": 1.8,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "E1",
+   "run": 2,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.02941,
+   "seconds": 1.9,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "E3",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.02942,
+   "seconds": 1.8,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "E3",
+   "run": 2,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.02943,
+   "seconds": 1.7,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "I1",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03023,
+   "seconds": 2.1,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "I1",
+   "run": 2,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03024,
+   "seconds": 2.1,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "N6",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:sport80"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.0294,
+   "seconds": 2.0,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "N6",
+   "run": 2,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:sport80"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03006,
+   "seconds": 2.0,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  }
+ ]
+}

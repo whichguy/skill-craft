@@ -1,0 +1,3 @@
+4acdd7834d1ce33f3f21b827b4455c2b5183ca30dffc057dfc255c7997ec819f  design-b.md
+3a2676c4df2cc1732e06174257a5fb22fcf7a73b9f25f7ca09bb9d64f2fc607b  make_leak_prompts_b.py
+f8febcb0c6bf5f1cecae57468aa2720a24a8cf1c1e72b99320cf16cede902bab  prompts/author-brief-b.md

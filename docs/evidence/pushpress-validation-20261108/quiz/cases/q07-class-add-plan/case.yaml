@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: q07-class-add-plan
+runs: 2
+expected_outcome: |
+  Group: class. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. names-profile-section [fact] - source: references/people-and-plans.md §3 (the profile section 'Plans & Appointment Credits' holds Add Credit and Add Plan), observed
+    2. not-safe-to-click [rule] - source: SKILL.md Rule 1 and the Action classes table (MONEY: confirm person, amount and method)
+    3. reported-money-effect [reported only] - source: SKILL.md Action classes (Add Plan = MONEY; [not exercised])
+    4. skill-fired [indicator, never scored] - whether the skill was invoked

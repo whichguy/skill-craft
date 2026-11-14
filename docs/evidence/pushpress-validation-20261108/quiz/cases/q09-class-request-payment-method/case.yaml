@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: q09-class-request-payment-method
+runs: 2
+expected_outcome: |
+  Group: class. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. names-payment-methods-label [fact] - source: references/people-and-plans.md §3 (Billing: 'Payment Methods' holds Add Payment Method and Request Payment Method), observed
+    2. not-safe-to-click [rule] - source: SKILL.md Rule 1 and the Action classes table (OUTBOUND: confirm recipients and wording)
+    3. reported-emails-member [reported only] - source: references/money-and-reports.md §2 and references/people-and-plans.md §3 (Request Payment Method = OUTBOUND, emails members; [not exercised])
+    4. skill-fired [indicator, never scored] - whether the skill was invoked

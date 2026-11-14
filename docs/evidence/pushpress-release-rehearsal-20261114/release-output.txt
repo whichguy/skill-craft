@@ -1,0 +1,11 @@
+# release.py --dry-run on the merged tree
+release: pushpress 0.1.0 -> 0.1.1 (2 note(s))
+release: skill-craft 2.37.2 -> 2.37.3
+
+# release.py on the scratch branch (it commits locally and never pushes)
+skill-frontmatter-to-plugin-json: CHECK OK skill-craft
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (26 skills)
+sync-plugin-views: CHECK OK
+release: pushpress 0.1.0 -> 0.1.1 (2 note(s))
+release: skill-craft 2.37.2 -> 2.37.3
+release: committed 8967070e; publish with scripts/release-push.py

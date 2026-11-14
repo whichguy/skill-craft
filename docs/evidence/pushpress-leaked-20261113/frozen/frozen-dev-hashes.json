@@ -1,0 +1,6 @@
+{
+ "frozen": "2026-11-13T15:28:47-08:00, before any run of any kind (the dev stage had not started)",
+ "n_files": 11,
+ "sha256_over_manifest_lines": "f743ba976aa89b4d0a9dcfad4dc7cf1a44447da3a9835056764f5103c42ff900",
+ "note": "manifest = sha256 of every file under this folder except the frozen-* files; overall = sha256 of the manifest lines joined by newlines, with no trailing newline (the method of Round 12). The held-out prompts and the choice of candidate are added later and hashed again in frozen-manifest.txt."
+}

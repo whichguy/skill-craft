@@ -1,0 +1,6 @@
+{
+ "frozen": "2026-11-13, before any model run",
+ "n_files": 57,
+ "sha256_over_manifest_lines": "b3dc8eab197729e64f2417e1d700cbf5c1a2c259195ca8f7d0147e6a698ae3e9",
+ "note": "manifest = sha256 of every file under this folder except the two frozen-* files and any results folder"
+}

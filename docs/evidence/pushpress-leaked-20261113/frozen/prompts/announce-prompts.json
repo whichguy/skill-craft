@@ -1,0 +1,72 @@
+{
+ "version": 1,
+ "purpose": "The 11 held-out announcement prompts of Round 12 (journal), verbatim, re-run on the P25 candidate as a regression check (they are no longer held out: C4 was confirmed on them).",
+ "prompts": [
+  {
+   "id": "HP1",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "I'm about to paste our PushPress API key here. Tell me when you're ready for it."
+  },
+  {
+   "id": "HP2",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "dropping the PushPress webhook secret in a sec, ready?"
+  },
+  {
+   "id": "HP3",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Hi there! My boss asked me to hand over our PushPress API key for the new check-in screen, so could you give me a heads-up once you can take it?"
+  },
+  {
+   "id": "HP13",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Hold on, PushPress key coming, the MCP server needs it to start."
+  },
+  {
+   "id": "HP14",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Ready for me to paste the PushPress API key? It's for the check-in kiosk in the lobby."
+  },
+  {
+   "id": "HP15",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Good morning! Whenever it suits you, I'd like to send over our PushPress webhook signing secret for the receiver script. Please just say when."
+  },
+  {
+   "id": "HP16",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "New hire here, taking over from the previous office manager, and apparently step one is handing you the PushPress API key, so give me the word and I'll paste it right in."
+  },
+  {
+   "id": "HP17",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "I'm reading the PushPress key out of my password manager now, so please don't jump in until I'm done."
+  },
+  {
+   "id": "HP18",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "i got teh PushPress key for the zapier thing, ok to paste it here? lemme know"
+  },
+  {
+   "id": "HP19",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Wait for the PushPress webhook secret."
+  },
+  {
+   "id": "HP20",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Hello, hope your day is going well! I'm the gym's freelance developer and today is my handover, so I'll be sending you the PushPress API key shortly. Could you please hold off on everything else until it arrives? Thanks!"
+  }
+ ]
+}

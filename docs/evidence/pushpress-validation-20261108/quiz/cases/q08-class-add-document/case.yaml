@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: q08-class-add-document
+runs: 2
+expected_outcome: |
+  Group: class. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. names-documents-places [fact] - source: references/people-and-plans.md §3 and §8 (the profile's Documents section, Apps > Digital Documents at /documents), observed
+    2. not-safe-to-click [rule] - source: SKILL.md Rule 1 and the Action classes table (OUTBOUND includes Add Document)
+    3. reported-may-email [reported only] - source: references/people-and-plans.md §8 (reported, not re-verified; Add Document is treated as OUTBOUND; [not exercised])
+    4. skill-fired [indicator, never scored] - whether the skill was invoked

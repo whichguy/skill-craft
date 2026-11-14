@@ -1,0 +1,731 @@
+{
+  "recorded": "2026-11-09",
+  "extractor": "pp-extract.js",
+  "tally": {
+    "XFAIL": 41,
+    "PASS": 16
+  },
+  "entries": [
+    {
+      "id": "non-latin-name",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "h",
+        "btn"
+      ],
+      "why": "the scrub keeps only values that contain a Latin letter (A-Z)",
+      "error": ""
+    },
+    {
+      "id": "letterless-field-values",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 3,
+      "leaking": 3,
+      "fields": [
+        "h",
+        "lbl"
+      ],
+      "why": "a field value with no letter (a date, a short number, a postal code) is not a secret (keeping values with 4 or more digits as secrets flips all three values, and so does a text mask for runs of 4 or more digits placed after the phone mask)",
+      "error": ""
+    },
+    {
+      "id": "owner-first-name-alone-with-no-fields",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "btn"
+      ],
+      "why": "with no text field that holds the name, the only secret is the part of the title before its separator, taken as a whole string, so a first name on its own is not scrubbed (a secret for each word of the title flips it; so does adding the button's verb to the verb mask, which would not generalise)",
+      "error": ""
+    },
+    {
+      "id": "title-with-an-em-dash-separator",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "h"
+      ],
+      "why": "the title is split only on a pipe, an en dash or a hyphen with a space each side, so with an em dash the whole title is the secret and it never equals the heading (splitting on an em dash, or a secret for each word of the title, catches it)",
+      "error": ""
+    },
+    {
+      "id": "title-with-the-name-second",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "h"
+      ],
+      "why": "only the part before the first separator is used, and here that part is the product and not the person (a secret for every title part that holds a space flips it, and so does a secret for each word of the title; using only the last part flips it too but stops scrubbing the pipe and en dash titles that are masked today)",
+      "error": ""
+    },
+    {
+      "id": "title-written-last-comma-first",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "h"
+      ],
+      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\" (a comma split alone changes nothing; a comma split with the space rule dropped scrubs the last name and leaves the first; a secret for each word of the title, split on spaces and commas, scrubs both)",
+      "error": ""
+    },
+    {
+      "id": "second-person-plain-text",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "h"
+      ],
+      "why": "recorded as H3: a second person shown only as text on a person page is not a secret",
+      "error": ""
+    },
+    {
+      "id": "phone-no-space-after-parenthesis",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-seven-digits-with-space",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-slashes",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-international-spacing",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-international-parenthesised-area-code",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-glued-extension",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-glued-ext-word",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-seven-digit-local",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-en-dash",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-spaces-around-dash",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-underscores",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-uk-national",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-french",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-full-width-digits",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "button-label-with-a-phone-in-short-groups",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "btn"
+      ],
+      "why": "a button label is not passed through the text mask and is dropped only when it holds an @ or a run of 3 digits, so a number written in groups of two survives; today's text mask would not catch it either (phone-french leaks the same way through a label); a lower drop rule flips it, and so does counting the digits after the separators are removed, or adding the label's verb to the verb mask (which would not generalise)",
+      "error": ""
+    },
+    {
+      "id": "email-full-width-at-sign",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the email mask needs an ASCII at sign, so an address written with the full-width character passes",
+      "error": ""
+    },
+    {
+      "id": "contact-link-whatsapp",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-callto",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-facetime",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-skype",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-viber",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-sgnl",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-https-wa-me",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "email-in-a-same-origin-path",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "a"
+      ],
+      "why": "an email in a path segment is not masked (the text mask runs on text, not on paths)",
+      "error": ""
+    },
+    {
+      "id": "person-link-with-numeric-id",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 3,
+      "leaking": 3,
+      "fields": [
+        "a"
+      ],
+      "why": "a 5-digit id is caught by neither rule: the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/, and the id rule needs 10 or more hex characters",
+      "error": ""
+    },
+    {
+      "id": "person-link-under-people-members",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 3,
+      "leaking": 3,
+      "fields": [
+        "a"
+      ],
+      "why": "the person test looks only at the first segment after /people/ (8 or more characters, not a list name), and the id rule needs 10 or more hex characters, so an 8-digit id one segment below a list page is seen by neither (a 10-character hex id there is masked by the id rule)",
+      "error": ""
+    },
+    {
+      "id": "person-id-in-a-query",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "a"
+      ],
+      "why": "only the path is tested for a person id",
+      "error": ""
+    },
+    {
+      "id": "person-link-that-is-a-role-button",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "btn"
+      ],
+      "why": "the link is masked in the link list but its text is also a button label, which the person-link mask does not see",
+      "error": ""
+    },
+    {
+      "id": "uuid-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask covers emails and phone-like numbers and has no id rule, so an id in text is not masked unless a run of digits in it happens to look like a phone number",
+      "error": ""
+    },
+    {
+      "id": "prefixed-hex-id-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the id shape that the path mask knows is not masked in text either",
+      "error": ""
+    },
+    {
+      "id": "payment-processor-id-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "a processor customer id in text is not masked",
+      "error": ""
+    },
+    {
+      "id": "invoice-number-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
+      "fields": [
+        "lbl"
+      ],
+      "why": "invoice and order numbers in text are not masked",
+      "error": ""
+    },
+    {
+      "id": "card-last-four-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the last four digits of a card are not masked",
+      "error": ""
+    },
+    {
+      "id": "street-address-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "a street address is not masked",
+      "error": ""
+    },
+    {
+      "id": "checker-finds-a-word-in-a-heading",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "h"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "checker-finds-a-word-in-a-button",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "btn"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "checker-finds-a-word-in-a-link",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "a"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "checker-finds-a-short-number-in-a-label",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "checker-folds-a-full-width-number-in-a-label",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "phone-parenthesis-and-space",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "phone-international-plus-one",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "email-in-text",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "button-edit-name",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "person-link-hex-id",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 3,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "person-link-non-hex-slug",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 3,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "record-id-link-that-is-not-a-person",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 3,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "mailto-link-with-a-name",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "title-pipe-separator-and-no-fields",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "title-en-dash-separator-and-no-fields",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "input-value-scrubbed-on-a-person-route",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    }
+  ]
+}

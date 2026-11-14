@@ -1,0 +1,138 @@
+{
+ "label": "diagnostic-C4-DL1",
+ "started": "2026-11-13T15:37:50-08:00",
+ "model": "sonnet",
+ "max_turns": 1,
+ "runs_per_prompt": 6,
+ "payload_pushpress_skill_sha256": "19717fca6f7b674ef395718fb8c5d1e162c5d9495ed0e5c7ecde573c2c2f1b1b",
+ "prompts_sha256": "e4eba9be910d6a5aabcb9a212915947b8c74d75df179fe0848ee4e92944ba092",
+ "claude": "2.1.323 (Claude Code)",
+ "partial": false,
+ "total_cost_usd": 0.2103,
+ "records": [
+  {
+   "id": "DL1",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03657,
+   "seconds": 10.0,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DL1",
+   "run": 2,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03145,
+   "seconds": 3.7,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DL1",
+   "run": 3,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03707,
+   "seconds": 10.5,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DL1",
+   "run": 4,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03584,
+   "seconds": 8.9,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DL1",
+   "run": 5,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03202,
+   "seconds": 3.7,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DL1",
+   "run": 6,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.0373,
+   "seconds": 11.6,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  }
+ ]
+}

@@ -1,0 +1,52 @@
+{
+  "recorded": "2026-11-09",
+  "mode": "flip-check",
+  "applied": 5,
+  "results": [
+    {
+      "name": "text mask: fold with NFKC, and any run of 7 or more digits with separators or an extension is a phone",
+      "status": "OK",
+      "flipped": 16,
+      "expected": 16,
+      "targeted": 15,
+      "partial": 1,
+      "controls_broken": 0
+    },
+    {
+      "name": "scrub: keep values with a letter in any script or 4 or more digits (the word boundary is left as it is: a Unicode one would stop scrubbing a name that touches a non-ASCII letter)",
+      "status": "OK",
+      "flipped": 2,
+      "expected": 2,
+      "targeted": 2,
+      "partial": 0,
+      "controls_broken": 0
+    },
+    {
+      "name": "contact links: any scheme other than http and https, and the wa.me and api.whatsapp.com hosts, count as contact links",
+      "status": "OK",
+      "flipped": 7,
+      "expected": 7,
+      "targeted": 7,
+      "partial": 0,
+      "controls_broken": 0
+    },
+    {
+      "name": "title: an em dash, a middle dot and a colon also separate the name from the product",
+      "status": "OK",
+      "flipped": 1,
+      "expected": 1,
+      "targeted": 1,
+      "partial": 0,
+      "controls_broken": 0
+    },
+    {
+      "name": "person link: any id after /user/ or /people/, not only 8 or more characters (in the person test and in the path mask)",
+      "status": "OK",
+      "flipped": 1,
+      "expected": 1,
+      "targeted": 1,
+      "partial": 0,
+      "controls_broken": 0
+    }
+  ]
+}

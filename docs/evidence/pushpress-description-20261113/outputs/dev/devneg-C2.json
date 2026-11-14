@@ -1,0 +1,244 @@
+{
+ "label": "devneg-C2",
+ "started": "2026-11-13T10:31:29-08:00",
+ "model": "sonnet",
+ "max_turns": 1,
+ "runs_per_prompt": 2,
+ "payload_pushpress_skill_sha256": "1b08d805be8138269df7a64b32be3ecf415a0cf536a16304330f90ad3f91c1ce",
+ "prompts_sha256": "8945203443c12b0bc6c862ed37b081a0ef1c41970a4bd28d956e7646d20f4152",
+ "claude": "2.1.323 (Claude Code)",
+ "partial": false,
+ "total_cost_usd": 0.3936,
+ "records": [
+  {
+   "id": "DN1",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03197,
+   "seconds": 6.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN1",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03117,
+   "seconds": 5.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN2",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03045,
+   "seconds": 5.5,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN2",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03125,
+   "seconds": 3.7,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN3",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03632,
+   "seconds": 9.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN3",
+   "run": 2,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "update-config"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03094,
+   "seconds": 3.0,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN4",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03372,
+   "seconds": 7.3,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN4",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03428,
+   "seconds": 8.3,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN5",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.0354,
+   "seconds": 8.6,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN5",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03565,
+   "seconds": 8.7,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN6",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.0313,
+   "seconds": 6.6,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN6",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03118,
+   "seconds": 5.8,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  }
+ ]
+}

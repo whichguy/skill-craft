@@ -1,0 +1,8 @@
+diagnostic-C4-DL1: 6 runs, cost $0.210, partial=False, errors=0, distinct init skill lists: [(48, '67260e599d83c13c')]
+  DL1   expect=fire  fired 2/6  others=-  | Help, our PushPress API key just got pushed to a public GitHub repo. R
+diagnostic-C5a-DL1: 6 runs, cost $0.184, partial=False, errors=0, distinct init skill lists: [(48, '67260e599d83c13c')]
+  DL1   expect=fire  fired 6/6  others=-  | Help, our PushPress API key just got pushed to a public GitHub repo. R
+diagnostic-C4-DL2-4: 6 runs, cost $0.200, partial=False, errors=0, distinct init skill lists: [(48, '67260e599d83c13c')]
+  DL2   expect=fire  fired 2/2  others=-  | I accidentally posted a screenshot of our PushPress API key page in th
+  DL3   expect=fire  fired 2/2  others=-  | Our PushPress webhook signing secret is sitting in a config.js we comm
+  DL4   expect=fire  fired 0/2  others=-  | The PushPress API key showed up in our deploy logs and the whole contr

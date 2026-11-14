@@ -1,0 +1,36 @@
+{
+ "label": "dev-C5a-ctl",
+ "started": "2026-11-13T15:29:19-08:00",
+ "model": "sonnet",
+ "max_turns": 1,
+ "runs_per_prompt": 1,
+ "payload_pushpress_skill_sha256": "b00da1d6d083d02bcc446d1fed87997d864b1f09fc7d726924fd094dbf5427b8",
+ "prompts_sha256": "e4eba9be910d6a5aabcb9a212915947b8c74d75df179fe0848ee4e92944ba092",
+ "claude": "2.1.323 (Claude Code)",
+ "partial": false,
+ "total_cost_usd": 0.0307,
+ "records": [
+  {
+   "id": "DC1",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03067,
+   "seconds": 2.3,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  }
+ ]
+}

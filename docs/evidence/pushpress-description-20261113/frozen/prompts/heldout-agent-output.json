@@ -1,0 +1,27 @@
+{"P":[
+{"id":"P1","type":"announce","text":"I'm about to paste our PushPress API key here. Tell me when you're ready for it."},
+{"id":"P2","type":"announce","text":"dropping the PushPress webhook secret in a sec, ready?"},
+{"id":"P3","type":"announce","text":"Hi there! My boss asked me to hand over our PushPress API key for the new check-in screen, so could you give me a heads-up once you can take it?"},
+{"id":"P4","type":"task","text":"Save [KEY] as PUSHPRESS_API_KEY in our .env so the PushPress MCP server can start, then confirm it connects."},
+{"id":"P5","type":"task","text":"Our Node receiver needs to verify the PushPress webhook signature. The secret is already in .env as PP_WEBHOOK_SECRET, so please wire it in and add a test with a fake payload."},
+{"id":"P6","type":"task","text":"pls test ppk_demo_123 agianst PushPress's API, the check-in tablet is dead and class starts in 10"},
+{"id":"P7","type":"question","text":"PushPress API key, where do I get one?"},
+{"id":"P8","type":"question","text":"Quick question: where should a PushPress webhook signing secret live so the receiving script can verify calls without it ever landing in git?"},
+{"id":"P9","type":"question","text":"how do i rotate our PushPress API key without breaking the MCP server, and how will i know it picked up the new one?"},
+{"id":"P10","type":"after","text":"I pasted our PushPress API key into an AI chat window last week. Is that a problem, and what should I do now?"},
+{"id":"P11","type":"after","text":"Help, our PushPress API key just got pushed to a public GitHub repo. Rotate it first, or clean up the git history first?"},
+{"id":"P12","type":"after","text":"So our old web guy emailed me the PushPress API key months ago, and it's probably still in my inbox and a shared folder. I made a new key since. Should I delete the old one, and how do I find every copy?"}
+],"N":[
+{"id":"N1","type":"other-service","text":"Somebody posted a screenshot in the staff Slack channel yesterday and our Stripe secret key is visible in it. Half the coaches have probably seen it by now. What's the safest way to rotate it without breaking shop checkout?"},
+{"id":"N2","type":"other-service","text":"Twilio auth token incoming, wait for it before you touch anything."},
+{"id":"N3","type":"other-service","text":"Budget script needs a Google service account key for the Sheets API, stored somewhere gitignored. Walk me through setting that up?"},
+{"id":"N4","type":"other-service","text":"need the Wix API key for our site by tonite, a script has to pull the class schedule page and idk where to find it"},
+{"id":"N5","type":"other-gym-product","text":"I finally got Mindbody to approve our API access and they emailed a key. Where should I keep it so the old schedule widget script can use it?"},
+{"id":"N6","type":"other-gym-product","text":"can you turn our Zen Planner member export into a clean csv? the phone colum is a mess"},
+{"id":"N7","type":"other-gym-product","text":"Wodify locked our coach login again. I can paste the new password here if that helps, just say when."},
+{"id":"N8","type":"other-gym-product","text":"Test whether the TeamUp token in my .env still authenticates, our attendance sync died overnight."},
+{"id":"N9","type":"no-product","text":"Copied the secret key to my clipboard. Say when and I'll paste it."},
+{"id":"N10","type":"no-product","text":"Safe to paste secrets here?"},
+{"id":"N11","type":"no-product","text":"Would you mind adding [KEY] to the .env file as SECRET_KEY? Thanks so much."},
+{"id":"N12","type":"no-product","text":"Token got pasted into a public channel last night by accident. Is deleting the message enough, or must it be replaced?"}
+]}

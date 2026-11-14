@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: q11-class-change-role
+runs: 2
+expected_outcome: |
+  Group: class. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. names-user-role [fact] - source: references/people-and-plans.md §3 and §9 (profile > Settings > User Role > Change Role), observed
+    2. not-safe-to-click [rule] - source: SKILL.md Rule 1 and the Action classes table (Change Role = WRITE-DATA / CONFIG: confirm the exact change)
+    3. reported-admin-only [reported only] - source: references/people-and-plans.md §9 ([documented])
+    4. skill-fired [indicator, never scored] - whether the skill was invoked

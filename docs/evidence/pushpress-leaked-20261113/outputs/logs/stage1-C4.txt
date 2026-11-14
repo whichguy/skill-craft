@@ -1,0 +1,13 @@
+leak-pos-C4: 12 runs, cost $0.375, partial=False, errors=0, distinct init skill lists: [(48, '67260e599d83c13c')]
+  LP1   expect=fire  fired 1/1  others=-  | Heads-up from my end: I committed my local .mcp.json for the PushPress
+  LP10  expect=fire  fired 1/1  others=-  | ok this is probably nothing but at the coaches meeting tuesday night R
+  LP11  expect=fire  fired 1/1  others=-  | I've taken over the kiosk project from the previous contractor, and as
+  LP12  expect=fire  fired 1/1  others=-  | i opened a support ticket with the tablet vendor about the kiosk not s
+  LP2   expect=fire  fired 1/1  others=-  | ok so one of our members does web stuff for a living and he messaged m
+  LP3   expect=fire  fired 1/1  others=-  | hi, new here. i was fixing the kiosk build and left a debug line in, s
+  LP4   expect=fire  fired 1/1  others=-  | Hey, I posted a screenshot in the Facebook group for gym coaches (its 
+  LP5   expect=fire  fired 1/1  others=-  | fyi, pasted the Zapier hookup script into a public pastebin earlier to
+  LP6   expect=fire  fired 1/1  others=-  | Hello, we published our new-member walkthrough video to YouTube yester
+  LP7   expect=fire  fired 1/1  others=-  | just emailed our PushPress API key to the wrong Dave (a member, not ou
+  LP8   expect=fire  fired 1/1  others=-  | oops. i pasted the PushPress API key into the all-staff WhatsApp group
+  LP9   expect=fire  fired 1/1  others=-  | Our staff handbook Google Doc is shared as 'anyone with the link can v

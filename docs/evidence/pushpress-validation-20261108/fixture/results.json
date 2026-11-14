@@ -1,0 +1,2085 @@
+{
+  "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
+  "browser": "157.0.8103.39",
+  "viewports": [
+    "1703",
+    "1280",
+    "900",
+    "1703-collapsed"
+  ],
+  "results": [
+    {
+      "case": "person/plain",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/plain",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/plain",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/plain",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/accent",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/accent",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/accent",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/accent",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/short",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/short",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/short",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/short",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/common",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 5
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/common",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 5
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/common",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 5
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/common",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 5
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/upper",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/upper",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/upper",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/upper",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 4
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 40
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 4
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 40
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 4
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 40
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 4
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 40
+    },
+    {
+      "case": "person/titleonly",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 20
+    },
+    {
+      "case": "person/titleonly",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 20
+    },
+    {
+      "case": "person/titleonly",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 20
+    },
+    {
+      "case": "person/titleonly",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 20
+    },
+    {
+      "case": "person/shared",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/shared",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/shared",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/shared",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/nickname",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/nickname",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/nickname",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "person/nickname",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "url/lead-slug",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 26,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "url/query",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        },
+        "url.query-key": {
+          "p": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL",
+        "url.query-key": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 26,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "url/fragment",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "guardianB.phone-shape": {
+          "lbl": 1,
+          "dump": 1
+        },
+        "url.fragment": {
+          "p": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "guardianB.phone-shape": "XFAIL",
+        "url.fragment": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 25,
+      "fieldsChecked": 39
+    },
+    {
+      "case": "list/members",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 37,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "list/members",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 37,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "list/members",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 37,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "list/members",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 37,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 7,
+      "fieldsChecked": 10
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 7,
+      "fieldsChecked": 10
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 7,
+      "fieldsChecked": 10
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 7,
+      "fieldsChecked": 10
+    },
+    {
+      "case": "list/payments",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 35,
+      "fieldsChecked": 25
+    },
+    {
+      "case": "list/payments",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 35,
+      "fieldsChecked": 25
+    },
+    {
+      "case": "page/plan",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 8,
+      "fieldsChecked": 6
+    },
+    {
+      "case": "page/plan",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 8,
+      "fieldsChecked": 6
+    }
+  ],
+  "controls": [
+    {
+      "name": "no-person-scrub",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:owner",
+        "leak:guardianA",
+        "problem:no heading was replaced by <value>: the name heading is not being scrubbed"
+      ]
+    },
+    {
+      "name": "fixed-290px-edge",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "problem:th lacks",
+        "problem:btn lacks",
+        "problem:h lacks"
+      ]
+    },
+    {
+      "name": "sidebar-not-parked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "problem:sidebar() did not park its lines in #pp-dump",
+        "problem:GROUP lines",
+        "problem:LINK lines",
+        "problem:contact links were not masked in the sidebar (",
+        "problem:the sidebar link whose path holds a record id was not masked",
+        "problem:the sidebar link to a person by name slug was not masked",
+        "problem:the fixture sidebar is too short to exercise the long-result path",
+        "problem:a short sidebar result did not come back as a list"
+      ]
+    },
+    {
+      "name": "combobox-values-recorded",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:combo",
+        "problem:btn lacks"
+      ]
+    },
+    {
+      "name": "user-menu-listed",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:staff",
+        "problem:GROUP lines"
+      ]
+    },
+    {
+      "name": "named-icon-buttons-counted-as-unnamed",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "problem:icon-only button count is"
+      ]
+    },
+    {
+      "name": "title-not-scrubbed",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:owner",
+        "problem:no heading was replaced by <value>: the name heading is not being scrubbed"
+      ]
+    },
+    {
+      "name": "scrub-shortest-first",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:guardianA"
+      ]
+    },
+    {
+      "name": "scrub-case-sensitive",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:owner"
+      ]
+    },
+    {
+      "name": "link-id-seg-unmasked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:pay",
+        "problem:a lacks the entry <item> -> /payments/invoices/<id>"
+      ]
+    },
+    {
+      "name": "link-person-regex-unmasked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:pay",
+        "problem:a lacks the entry <item> -> /people/<id>",
+        "problem:a lacks the entry <item> -> /user/<id>"
+      ]
+    },
+    {
+      "name": "maskpath-id-unmasked",
+      "status": "caught",
+      "failing_cases": 2,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:pay",
+        "problem:a lacks the entry <item> -> /payments/invoices/<id>",
+        "problem:the sidebar link whose path holds a record id was not masked",
+        "leak:plan",
+        "problem:the path field is not masked to /plans/<id>"
+      ]
+    },
+    {
+      "name": "link-query-values-recorded",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:pay",
+        "problem:a lacks the entry Filter -> /payments/payments [q:email,q]"
+      ]
+    },
+    {
+      "name": "contact-links-unmasked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:pay",
+        "problem:a lacks the entry <item> -> <contact>"
+      ]
+    },
+    {
+      "name": "sidebar-contact-unmasked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:staff",
+        "problem:contact links were not masked in the sidebar ("
+      ]
+    },
+    {
+      "name": "th-text-unsafe",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:pay"
+      ]
+    },
+    {
+      "name": "tabs-text-unsafe",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:pay"
+      ]
+    },
+    {
+      "name": "link-text-unsafe",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:pay"
+      ]
+    },
+    {
+      "name": "sidebar-link-text-unsafe",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:staff"
+      ]
+    },
+    {
+      "name": "sidebar-id-links-unmasked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "problem:the sidebar link whose path holds a record id was not masked",
+        "problem:the sidebar link to a person by name slug was not masked"
+      ]
+    },
+    {
+      "name": "external-links-not-masked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:pay",
+        "problem:a lacks the entry Open in the payment dashboard -> EXT dashboard.example.invalid"
+      ]
+    },
+    {
+      "name": "sms-not-a-contact-link",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:pay"
+      ]
+    },
+    {
+      "name": "button-verbs-cut-to-select-and-edit",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:pay",
+        "problem:btn lacks"
+      ]
+    },
+    {
+      "name": "sidebar-person-routes-unmasked",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "problem:the sidebar link to a person by name slug was not masked"
+      ]
+    },
+    {
+      "name": "scrub-ignores-textareas",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:guardianA"
+      ]
+    },
+    {
+      "name": "id-pattern-needs-12-hex-characters",
+      "status": "caught",
+      "failing_cases": 2,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "problem:the sidebar link whose path holds a record id was not masked",
+        "leak:pay",
+        "problem:a lacks the entry <item> -> /payments/invoices/<id>"
+      ]
+    },
+    {
+      "name": "path-id-mask-needs-12-hex-characters",
+      "status": "caught",
+      "failing_cases": 2,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:pay",
+        "problem:a lacks the entry <item> -> /payments/invoices/<id>",
+        "problem:the sidebar link whose path holds a record id was not masked",
+        "leak:plan",
+        "problem:the path field is not masked to /plans/<id>"
+      ]
+    },
+    {
+      "name": "id-prefix-underscore-only",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:pay",
+        "problem:a lacks the entry <item> -> /payments/invoices/<id>"
+      ]
+    },
+    {
+      "name": "scrub-left-boundary-whitespace-only",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:owner",
+        "leak:guardianA"
+      ]
+    },
+    {
+      "name": "scrub-pattern-unescaped",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:owner"
+      ]
+    },
+    {
+      "name": "input-and-toggle-labels-text-mask-off",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:pay"
+      ]
+    },
+    {
+      "name": "path-field-query-values-recorded",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:url"
+      ]
+    },
+    {
+      "name": "visibility-filter-off",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:staff"
+      ]
+    },
+    {
+      "name": "path-mask-person-rule-off",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:nav",
+        "leak:owner",
+        "leak:url",
+        "problem:the sidebar link to a person by name slug was not masked"
+      ]
+    },
+    {
+      "name": "chrome-button-list-ignored",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "problem:a top-bar button was listed as page content"
+      ]
+    },
+    {
+      "name": "company-switcher-filter-off",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "problem:the company switcher button was not filtered after __pp.company()"
+      ]
+    }
+  ],
+  "gap_fields": {
+    "guardianB.name": [
+      "dump",
+      "h"
+    ],
+    "guardianB.first": [
+      "btn",
+      "dump",
+      "h"
+    ],
+    "guardianB.phone-shape": [
+      "dump",
+      "lbl"
+    ],
+    "url.query-key": [
+      "dump",
+      "p"
+    ],
+    "url.fragment": [
+      "dump",
+      "p"
+    ]
+  },
+  "value_strings_by_case": {
+    "person/plain": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/hyphen": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/apostrophe": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/accent": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/short": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/common": [
+      5,
+      5,
+      5,
+      5
+    ],
+    "person/upper": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/stacked": [
+      4,
+      4,
+      4,
+      4
+    ],
+    "person/titleonly": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "person/shared": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/nickname": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "url/lead-slug": [
+      3
+    ],
+    "url/query": [
+      3
+    ],
+    "url/fragment": [
+      3
+    ]
+  },
+  "gap_tally": {
+    "XFAIL": 131,
+    "XPASS": 0
+  },
+  "seconds": 134.6
+}

@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: c1-counts-and-headers
+runs: 2
+expected_outcome: |
+  Group: control. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. names-the-report [fact] - source: references/money-and-reports.md section 3 (the At Risk Report, [observed]): the At Risk Report, /members/risk
+    2. names-the-columns [fact] - source: references/money-and-reports.md section 3 (the At Risk Report, [observed]): table Name, Plans, Assigned to, Last check-in
+    3. does-not-decline-on-privacy-grounds [rule] - source: fixed card Rule 2 (Member data is sensitive: the decline sentence) and its first sentence: structure only (labels, paths, column headers) is allowed; the decline covers lists of people, not headers
+    4. skill-fired [indicator, never scored] - whether the skill was invoked

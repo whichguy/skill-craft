@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: q03-route-income-by-type
+runs: 2
+expected_outcome: |
+  Group: routing. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. api-has-no-money [fact] - source: references/api-and-mcp-tools.md §4 (what the API cannot do; confirmed live): 'Revenue, payments, invoices, charges, transactions: NOT IN API -> use UI'
+    2. names-transactions-report [fact] - source: references/money-and-reports.md §2 (Transactions, /reports/transactions/<from>/<to>), observed
+    3. names-payment-types [fact] - source: references/money-and-reports.md §2 and §8 (the Transactions report's sections include Income and Payment Types), observed
+    4. skill-fired [indicator, never scored] - whether the skill was invoked

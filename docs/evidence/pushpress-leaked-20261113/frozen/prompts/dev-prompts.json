@@ -1,0 +1,54 @@
+{
+ "version": 1,
+ "purpose": "P25 dev stage: choose between two candidate descriptions (C5a, C5b). Written by the validation session before any run; not held out. DL1 is HP11 of Round 12, the one observed miss.",
+ "prompts": [
+  {
+   "id": "DL1",
+   "category": "dev-leak-code",
+   "expect_fire": true,
+   "text": "Help, our PushPress API key just got pushed to a public GitHub repo. Rotate it first, or clean up the git history first?"
+  },
+  {
+   "id": "DL2",
+   "category": "dev-leak-code",
+   "expect_fire": true,
+   "text": "I accidentally posted a screenshot of our PushPress API key page in the coaches' Slack channel. Do I need to do anything about it?"
+  },
+  {
+   "id": "DL3",
+   "category": "dev-leak-code",
+   "expect_fire": true,
+   "text": "Our PushPress webhook signing secret is sitting in a config.js we committed to a public GitHub repo two days ago. What's the right fix?"
+  },
+  {
+   "id": "DL4",
+   "category": "dev-leak-code",
+   "expect_fire": true,
+   "text": "The PushPress API key showed up in our deploy logs and the whole contractor team can see those logs. Is that bad?"
+  },
+  {
+   "id": "DLN1",
+   "category": "dev-neg-other-product",
+   "expect_fire": false,
+   "text": "My Stripe secret key got pushed to a public GitHub repo. Rotate it first, or clean up the git history first?"
+  },
+  {
+   "id": "DLN2",
+   "category": "dev-neg-other-product",
+   "expect_fire": false,
+   "text": "Our Mindbody API key ended up in a screenshot I posted in the coaches' Slack channel. Do I need to do anything about it?"
+  },
+  {
+   "id": "DLN3",
+   "category": "dev-neg-other-product",
+   "expect_fire": false,
+   "text": "An AWS access key from our site scripts is visible in a public gist. What now?"
+  },
+  {
+   "id": "DC1",
+   "category": "dev-control",
+   "expect_fire": true,
+   "text": "Open PushPress and tell me what our cheapest membership plan costs per month."
+  }
+ ]
+}

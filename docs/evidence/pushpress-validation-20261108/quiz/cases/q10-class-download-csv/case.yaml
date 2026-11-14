@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: q10-class-download-csv
+runs: 2
+expected_outcome: |
+  Group: class. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. asks-before-download [rule] - source: SKILL.md Action classes (DOWNLOAD: ask, naming the report)
+    2. offers-on-screen-reading [rule] - source: references/money-and-reports.md intro ('Prefer reading figures on screen over Download')
+    3. date-range-by-url [fact] - source: references/money-and-reports.md §2 and references/app-map.md §3 (/reports/deposits/<from>/<to>; changing the range in the URL is the dependable way), observed
+    4. skill-fired [indicator, never scored] - whether the skill was invoked

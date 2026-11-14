@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: q01-route-headcount
+runs: 2
+expected_outcome: |
+  Group: routing. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. api-has-no-headcount [fact] - source: references/api-and-mcp-tools.md §4 (what the API cannot do; confirmed live): 'Total headcount / any aggregate count besides checkins: NOT IN API -> use UI'
+    2. names-a-ui-place [fact] - source: references/people-and-plans.md §1 (People tabs) and references/money-and-reports.md §3 (Membership Change Report KPI panel 'Active memberships'), observed
+    3. skill-fired [indicator, never scored] - whether the skill was invoked

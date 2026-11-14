@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: probe-mcp-history
+runs: 2
+expected_outcome: |
+  Group: probe. Tenant-neutral, single turn, no browser and no PushPress tools; nothing here touches a gym.
+
+  Criteria (scored unless marked reported only):
+    1. quotes-sentinel [task] - source: probe: the sentinel sits only in the url of an MCP-style tool result inside the replayed history
+    2. skill-fired [indicator, never scored] - whether the skill was invoked
+context:
+  history_file: history.jsonl
