@@ -90,6 +90,50 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   pair look independent: the three hand-read cases (Apex chess S2 to S5, Battleship S2 and S3, a Node chess step that names S2
   without depending on it) are anecdotes, not a rate.
 
+### R1 — 2026-11-14: Astra max-effort review of the registration, before any trial
+
+- Question: is the intention understood, are the premises true, will the design and the apparatus measure what they claim, and what
+  should run first? Asked as the owner's rule requires (astra-max-for-deep-design, missed three times before): `ask.sh astra --json
+  --effort max --profile consult`, read-only, no fallback, over the canonical checkout; the question is
+  [evidence/astra-question.txt](experiments/parallel-plan-execution-20261114/evidence/astra-question.txt) and the answer is
+  [evidence/astra-review.md](experiments/parallel-plan-execution-20261114/evidence/astra-review.md), verbatim. It read the registration,
+  the commits the registration cites and, while it ran, the apparatus I committed.
+- Verified before weighing: its factual correction (the per-step pilot did run, `eadad0c8`, read in full), its launcher bug (reproduced
+  with a fake host), and every scorer and kit defect it listed (each written as a failing calibration cell first: 23 of 26 failed on the
+  unfixed code; two it reported from in-memory checks, the unrelated-spawn and the pathname cases, errored on the new signature and are
+  covered by passing cells). I found no claim of its that was wrong. I did not check its statements about Claude's documented nesting
+  and concurrency defaults or about Codex's and Grok's public documentation; E1 qualifies the live tool schemas.
+- Weighing, point by point (decisions routine under AGENTS.md "Decisions"):
+  - **Adopted, framing (P0):** the synthetic units are a mechanism test, not permission for concurrent ShipLoop steps; the bridge is
+    parallel work inside one stage with one owner; "true dynamic workflow" is completion-driven execution under one authority (README A2).
+    The owner's own rule makes this binding: a step is built, tested, documented, reviewed and committed before the next.
+  - **Adopted, intention (P0, P1):** outcome-only retention and stale-state interaction come forward as small E6 and E7 designs (README A4);
+    a planning fan-out test (independent agents inspect separate supplied evidence, one owner builds or audits the dependency plan, edges scored
+    against a hidden oracle) is recorded as design E8 for round 2, not built.
+  - **Adopted, premises:** the pilot erratum, the narrowed dependency claim, the translator wording, the frozen Codex profile, effective
+    capabilities and child model identities recorded per trial (README A2). The pilot (F13) changes the prior for A1's overhead.
+  - **Adopted, design:** A3s as the matched serial control; capacity recorded; the measure corrections (launch-to-verified and
+    launch-to-exit beside the makespan, tails kept apart, valid-trial-only savings, categorized refusals, an exactly-one-terminal verify,
+    parent-only report, attribution-gated mechanism); mechanical scoring clarifications for P3, P4, P6, P8, P9, P11, R1; R2 renamed; R0,
+    R3, R4 narrowed; stop rules and the R5 redirect; N kept as an elicitation experiment and H (a small host binding from the repository's
+    own recipes) as the operational route (README A3, A4).
+  - **Adopted, apparatus (P0, P1):** all six P0 blockers and the kit-contract items, fixed in 3c8e1cb6c42b5f4f17890a6959b9116640f21565.
+  - **Adopted, order and spend:** no-model qualification first (done), then Claude E1 aimed at return and exit, Codex and Grok next, fan4 A0,
+    A3s and A3, then `ragged6` A3, then failure and context; timing trials one at a time with arm order counterbalanced; Codex's two profiles
+    not multiplied across every arm (README A3).
+  - **Adapted:** "run A2 later": A2 stays on `fan4` because P1 is registered on A2 and "did not apply" is not a registered outcome; it is dropped
+    from the later fixtures. "Freeze which profile scores a prediction": the harness profile scores, `+v2` is exploratory.
+  - **Deferred, with a rule to revisit:** a full claimed, launch-confirmed, running, returned, accepted state machine. Capacity-limited claims,
+    release, claim ages and a stranded-claim measure answer this study's question (does a host launch and return); the full machine would
+    rebuild the retired Plan Dispatcher. Revisit if a trial strands a claim. The shell-yield and native-observation timeout classes are
+    recorded only when E1 events show them; the runner records the outer deadline.
+- Process lesson, recorded because it cost a wrong sentence in a committed registration: I read the commit that proposed the pilot
+  (f824adeb) and did not search forward for its result, and the history digest repeated "never run". The owner's rule is to search older
+  history for the affected behaviour; for a commit that says "proposed" or "not run", the search is for its sequel.
+- Design E8 (not built): planning fan-out. Hidden oracle: a fixture request whose true dependency edges are known; arms: one agent plans, or
+  several agents each inspect a separate slice of supplied evidence and one owner assembles the plan; measures: omitted edges, invented
+  edges, wall-clock, tokens. It answers the owner's "when we do the planning" directly and needs no write isolation.
+
 ## Findings
 
 | # | Finding | Status | Entry |
@@ -106,3 +150,6 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 | F10 | "Independent by `deps`" often means "shares files": 51% of same-level pairs and 61% of all independent pairs (with paths) overlap on declared paths; hand-read cases show an undeclared order (Apex chess S2 to S5, Battleship S2 and S3). A path-disjointness gate computed from the plan removes 61% of the independent pairs that have paths (192 of 314) but only about 15% of the ideal saving (11.6% to 9.9%), because the plans that save most have disjoint pairs | firm (census), anecdotal (the cases) | E0 |
 | F11 | A recorded step iteration (implement, test, document, Improve review, commit) has median 154 s (p25 116 s, p75 212 s, max 1,866 s; 476 steps), so round 1's 30 s synthetic steps are about five times shorter than a real step and overstate the fixed cost of a fresh agent | firm for these runs | E0 |
 | F12 | Step times can be recovered for only 323 of 922 plans (35%): runs before 2026-10-25 have no `trace.jsonl`, seeded runs omit the plan action from the trace, and single-step plans have no implement window | firm (census) | E0 |
+| F13 | The per-step pilot ran (2026-10-29, `eadad0c84f8a213287459bbf6252411ac0b90fce`, Codex gpt-6.1-terra xhigh, case stand-in-parser, one run per arm): serial fresh workers cost 4.1 times the inline control's time (21.6 against 5.3 min), 2.9 times its input tokens (23.11 M against 8.06 M) and 4.5 times its output tokens, with 13 fresh workers (four per step plus five for the item), about 1.25 min and 1.2 M input tokens each; all slice verdicts passed. It measured no parallel run, so the unmeasured quantity (parallel against serial) stands; it is the prior for what a fresh context costs in real ShipLoop | interim (one case, one run per arm) | R1 |
+| F14 | The first no-model calibration (75 cells, 0 off) could not see six pre-trial defects in the apparatus: a launcher that crashed on Codex and Grok before creating its directory, a mechanism detector that credited unrelated spawns and truncated commands, a report check that accepted a child's FINAL and an omitted running step, a Codex token key that read unknown, a claim that could strand a run, and a comparison that overwrote one Codex profile with the other. Each was reproduced as a failing cell (23 of 26 failed) before the fix (3c8e1cb6c42b5f4f17890a6959b9116640f21565); a dry run alone had hidden the first | firm (fail-first cells, then 104 cells 0 off) | R1 |
+| F15 | A synthetic DAG that runs concurrently proves a mechanism, not a route: ShipLoop's step lifecycle (build, test, document, review, commit before the next) and its commit stage conflict with concurrent steps, which is why the chain was retired. E0's step-level saving is an upper bound that needs an owner decision to relax that lifecycle; the next bridge is parallel work inside one stage | firm as framing; the owner decision is open | R1 |

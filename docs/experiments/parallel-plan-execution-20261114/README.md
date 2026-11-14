@@ -28,7 +28,7 @@ plans, no change to any code), run as subprocesses of each harness.
   iteration "conflict in four of the chain's own rules", and "Parallel build's gain was never measured: the live runs
   show overlap ... not a serial counterfactual. What the chain does demonstrably buy is isolation, and the unattended
   retry of a lost worker". The pilot that would measure the per-step ask-agent route was proposed and never run
-  (f824adeb3f108e34f4acb5ebd9ca10eeed32128f).
+  (f824adeb3f108e34f4acb5ebd9ca10eeed32128f). **[Wrong, found by the review: it ran later on 2026-10-29; see Amendment A2.]**
 - **Earlier live evidence is overlap, on the heavy protocol.** `test/shiploop_e2e/fanout.py` (A and B in parallel, then
   J, 30 s sleeps, through Plan Dispatcher): Codex gpt-5.6-luna medium passed in 587 s, A and B overlapped 29.3 of 30 s,
   J started about 240 s after both ended (f810a78f38f996086f6beba9eceb54403052e8bc); Claude Sonnet 5.5 overlapped
@@ -225,9 +225,84 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
   the harness profile (v1 only) and, where it matters, again with `--enable multi_agent_v2` (the launcher's
   `--enable-feature`), the effective state recorded in each trial's invocation. P1, P2 and P8 are scored on the profile as
   run; a trial in the other profile is a separate cell and is never pooled with it.
+- **A2 (2026-11-14, before any trial): corrections and framing, from Astra's max-effort review**
+  ([evidence/astra-review.md](evidence/astra-review.md), verbatim; the weighing is in the journal, entry R1).
+  - *Erratum.* "Proposed and never run" about the per-step pilot is wrong. It ran on 2026-10-29
+    (eadad0c84f8a213287459bbf6252411ac0b90fce; Codex gpt-6.1-terra xhigh, case stand-in-parser, one run per arm, "indicative"):
+    inline 5.3 min, 1 thread, 8.06 M input and 23.5 k output tokens; per-step ask-agent 21.6 min, 14 threads (13 fresh workers),
+    23.11 M and 105.2 k; item-level ask-agent 17.3 min, 9 threads, 19.94 M and 85.1 k; all slice verdicts pass. Its workers ran one at a
+    time, so it supplies no parallel-against-serial counterfactual, and the killed-worker question stayed unmeasured; it does give A1 a
+    prior for the cost of a fresh context in real ShipLoop: about (21.6 - 5.3) / 13 = 1.25 min and 1.2 M input tokens per worker
+    (four per step, one each for implement, test, document and the step's review). I read the commit that proposed the pilot and did
+    not search forward for its result.
+  - *Narrowed claim.* The navigator's accepted step-plan schema carries explicit step-to-step dependencies (`deps`), validated in form;
+    an omitted `deps` means unknown, not independent; planning notes, expectations and Backchain hold other prerequisite information; neither
+    valid `deps` nor disjoint `paths` proves semantic independence. "Dependencies at one level only" above reads that way.
+  - *Translator wording.* `CodexTranslator` does not drop every agent item (its generic branch keeps other item types as synthesized tool
+    calls); raw events are kept to preserve exact structure, timing and attribution, not to recover items it always discards.
+  - *Profiles frozen.* Codex predictions P1, P2 and P8 are scored on the harness profile (multi_agent v1); `+v2` trials are exploratory
+    cells. Each trial records the effective tool list from the host's init event and the model identity of every thread where the stream
+    shows it; the roughly 86k-token start-up figure is a dated local observation, not a constant.
+  - *Unit of work (the review's P0).* The synthetic units are generic parallel work units. Running ShipLoop steps concurrently would
+    break the owner's per-step iteration (build, test, document, review and commit before the next), so a result here licenses a
+    claim about a mechanism, not about concurrent ShipLoop steps, and E0's step-level saving is an upper bound that needs a separate
+    owner decision. The bridge after the mechanism is parallel work inside one authorized stage (bounded investigations or reviews,
+    one owner accepting them) with a context reset and a stale-state case; E6 and E7 are small and come forward (below).
+  - *"True dynamic workflow"* means completion-driven execution under one authority: the script recomputes what is eligible when an
+    outcome is accepted, a prerequisite fails or capacity changes; workers never choose successors or revise the graph. A2 (the model
+    reads the plan) is a diagnostic of model scheduling and is not a candidate architecture; A3 is.
+- **A3 (2026-11-14, before any trial): arms, variants and order.**
+  - A new arm **A3s** is A3 at capacity one: the same readiness, worker and return contract, one sub-agent at a time, the matched
+    serial control. A3 gains a capacity (default the plan's step count), a `release` for a claim whose launch failed and a `deferred`
+    list (`ready --claim --capacity N`); the A3 packet's sha256 is now 882b30386126ef763041f9bb1e5c8106392cce2b568601fab59868167a91cf8e
+    (A0, A1 and A2 are unchanged). A1 stays as the model-navigated serial control.
+  - **N** (anonymous wording) is the experiment on spontaneous elicitation. **H** is the operational route: one small host binding
+    taken from the repository's own recipes (`skills/ask-agent/references/host-capabilities.md`: Claude a fresh general-purpose
+    `Agent` or `Task`; Codex native asynchronous spawn with `fork_turns` "none" and native wait; Grok a general-purpose `spawn_subagent`
+    collected with `get_command_or_subagent_output`, never a restricted `explore` or `plan` worker). Each H sentence is written after
+    E1 shows the host's real tool schema and is pinned by hash before its first use.
+  - Round-1 order: E1 on Claude first, aimed at return and exit (the strongest known host-lifecycle uncertainty), then Codex (harness
+    profile; `+v2` once) and Grok; then on each qualifying host fan4 A0, A3s and A3 (and A2 where P1 needs it), `ragged6` A3, then
+    `fail5` and the small context fixtures. Timing trials run one at a time, arm order counterbalanced; trials are repeated only when the
+    result could change the next decision; not every arm is multiplied across both Codex profiles.
+- **A4 (2026-11-14, before any trial): measures, scoring clarifications, stop rules.** The registered predictions stand as written.
+  - M1, M2: the makespan (first start to last end) is reported with launch to first start, launch to verified result and launch to
+    process exit; a saving is credited only to a valid trial (the process exited, nothing scaled, no step started and never ended, the
+    verdict the fixture expects, a parent report that names every step once and matches the ledger, no duplicate terminal event); `chain4`
+    has no saving to credit.
+  - M4, M5: refusals are counted by category (premature, duplicate, unknown, prerequisite-failed, input-invalid); verify requires exactly
+    one start and one terminal event per started step, successful prerequisites, the plan unchanged since init and one consistent snapshot.
+  - M6: three tails from the process's exit: since the last work terminal event, since the parent's final report, since the last collection
+    return. P10 is scored as exit code 0 and a tail of at most 60 s since the final report.
+  - M7: only the parent's last `FINAL` line counts. M8: as the host reports; whether its figure includes sub-agent threads and whether it
+    is cumulative is settled in E1 and stated; unknown stays unknown; Codex cached input is `cached_input_tokens`.
+  - M10: `native-agents` needs the kit's run calls attributed to child agents in the host's own stream (Claude's stream attributes; Codex
+    and Grok are treated as unattributable until E1 shows otherwise and are then `native-agents-unattributed`); spawns beside parent-run
+    steps are `parent-executed`; command text is classified in full.
+  - P3, P4, P6: a host with no qualifying trial (peak at least 2 for P3, a completed A3 trial for P4, a valid A3 `ragged6` trial for P6)
+    scores missed, never vacuously held. P8: the eligible arms are the valid A3 trials on `ragged6` on the host's scoring profile, compared
+    with the valid A0 of that profile; none eligible scores missed. P9: "a parallel arm" is every valid A2 or A3 trial of that host;
+    unreported tokens are not scored and say so. P11 and R1 are scored on packet N with A3 (and A2 for P1). P12 needs the calibrated detector.
+  - R2 now reads "completed the guarded fixture correctly with attribution established" and keeps model refusals, guard correctness and
+    task completion apart. R0 orders rounds only and a census average does not argue against an opt-in tail. R3: results are reported and
+    no payoff is claimed from round 1 (quality, then tokens, then time). R4: script-owned readiness stays the design because it is an owner
+    rule; A3 against A2 is reported, not a condition.
+  - **Stop rules.** Stop a host and condition when attribution cannot be established where it is claimed, when the scorer would credit a
+    known-invalid trace, when the host cannot return and exit reliably, or when work this trial started is still running after the process
+    exits; record it as unqualified or censored, never as a general failure of the host. A loss on cost with 30 s tasks is a granularity
+    result, not a stop. **R5 redirect:** if the only demonstrated benefit needs steps to run concurrently across the per-step lifecycle,
+    redirect to bounded parallel work inside one stage unless the owner changes that constraint.
+  - New predictions, registered before any trial: **P13 (70%):** on every host with valid A0 and A1 trials of `chain4`, A1's makespan
+    exceeds A0's by 5 s to 60 s per fresh sub-agent ((A1 - A0) / 4). **P14 (75%):** A1's total input tokens are at least twice A0's
+    wherever the host reports them (the pilot's real-ShipLoop ratio was 2.9).
+  - **E6 and E7, small, brought forward (designs, run after the mechanism qualifies):** E6 outcome-only retention: a worker reads about
+    20 KB of irrelevant material and returns a short result with an evidence locator; a fresh parent continuation must answer the next
+    question from that result alone. E7 stale state: a worker starts against a state file at revision R1, the parent changes it to R2
+    before the worker returns, and the parent must record a disposition for the stale result (accept, redo or ask) rather than accept it.
 
 ## Files
 
-`README.md` (this registration), `census/` (E0: script, README, evidence), `dagkit.py`, `plans/`, `packets/`,
-`launch.py` (one trial), `score.py` (measures, text timeline, ASCII Gantt, HTML timeline), `calibrate.py` (the scorer
-against synthetic ledgers with known answers, run before any model call), `evidence/`.
+`README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,
+`launch.py` (one trial), `score.py` (measures, text timeline, ASCII Gantt), `calibrate.py` (the scorer, the kit and the launcher
+path against runs with known answers, run before any model call), `fakehost.py` (a stand-in host for that), `export.py`
+(compact evidence into `evidence/`), `evidence/` (the Astra review and its question; trial evidence as it is exported).
