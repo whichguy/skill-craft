@@ -502,6 +502,12 @@ def task_cells() -> tuple[int, int, list]:
                 score.mechanism(score.host_view(trial, host), {"peak_concurrency": 1}, True)["kind"]), (1, "native-agents"))
         cell("readers on real E1: grok", "the FINAL line is found in the streamed text", lambda: score.final_claim(score.host_view(Path(e1) / "e1-grok", "grok")), {"done": ["S1"], "failed": [], "not_run": []})
         cell("readers on real E1: codex", "the child thread records its multi-agent version", lambda: score.codex_threads(Path(e1) / "e1-codex")[-1]["version"] in ("v1", "v2"), True)
+    # the parent's model calls on real pilot and E11 trials (README Amendment A8): how many spawn calls each model call issued
+    if e1 and all((Path(e1) / n).is_dir() for n in ("r1h-claude-a3", "r1-grok-a3", "e11-grok-h1", "r1-codex-a3")):
+        import context
+        for name, want in (("r1h-claude-a3", [4, 1]), ("r1-grok-a3", [4, 1]), ("e11-grok-h1", [4, 1]), ("r1-codex-a3", [1, 1, 1, 1, 1])):
+            cell("readers on real trials: model calls", f"{name}: spawn calls issued per parent model call", lambda: [
+                n for n in (len([x for x in turn["tools"] if "spawn" in str(x).lower() or x in ("Agent", "Task")]) for turn in context.read_trial(Path(e1) / name)["parent_turns"]) if n], want)
     # the launcher's task path through the real adapters and the fake host
     sys.path.insert(0, str(HERE))
     import launch

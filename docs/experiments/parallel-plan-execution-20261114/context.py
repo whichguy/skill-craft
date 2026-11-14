@@ -12,7 +12,11 @@ calls, the first and last call's input tokens (the base and the size when it fin
           and the model's own elapsed milliseconds
 
   python3 context.py TRIAL_DIR [TRIAL_DIR ...]            print the table
-  python3 context.py TRIAL_DIR --export evidence/NAME     also write evidence/NAME/context.json (compact: the series only)
+  python3 context.py TRIAL_DIR --export evidence/NAME     also write evidence/NAME/context.json (compact: the series and the parent's model calls)
+
+The parent's model calls (``parent_turns``) say which tools each call issued, so a stagger between spawns can be told apart: four spawn
+calls in one model call were issued together and any gap between them is the host's (starting each child in turn); one spawn per call is the
+model's.
 """
 
 from __future__ import annotations
@@ -100,17 +104,84 @@ def grok_series(trial: Path) -> dict:
     return named
 
 
+def _epoch(stamp: str) -> float:
+    from datetime import datetime
+    return datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
+
+
+def claude_turns(trial: Path, t0: float) -> list:
+    """The parent's model calls: one per assistant message id, with the tools it issued (a message with four Agent calls is one call)."""
+    order, calls = [], {}
+    for rec in _rows(trial / "events.raw.jsonl"):
+        ev = rec.get("ev")
+        if not isinstance(ev, dict) or ev.get("type") != "assistant" or ev.get("parent_tool_use_id"):
+            continue
+        msg = ev.get("message") or {}
+        key = msg.get("id")
+        if key not in calls:
+            calls[key] = {"done_s": None, "tools": []}
+            order.append(key)
+        calls[key]["done_s"] = round((rec.get("recv") or t0) - t0, 1)
+        calls[key]["tools"] += [b.get("name") for b in (msg.get("content") or []) if b.get("type") == "tool_use"]
+    return [{"i": n, **calls[k]} for n, k in enumerate(order, 1)]
+
+
+def codex_turns(trial: Path, t0: float) -> list:
+    """The parent's model calls: the function calls issued between one token_count and the next belong to the call that ended at the later one."""
+    for path in sorted(glob.glob(str(trial / "home" / ".codex" / "sessions" / "*" / "*" / "*" / "rollout-*.jsonl"))):
+        rows = _rows(Path(path))
+        meta = next((r["payload"] for r in rows if r.get("type") == "session_meta" and isinstance(r.get("payload"), dict)), {})
+        source = meta.get("source")
+        if isinstance(source, dict) and (source.get("subagent") or {}).get("thread_spawn"):
+            continue
+        out, pending, last_total = [], [], None
+        for r in rows:
+            pl = r.get("payload")
+            if not isinstance(pl, dict):
+                continue
+            if pl.get("type") in ("function_call", "custom_tool_call"):
+                pending.append(pl.get("name"))
+            elif pl.get("type") == "token_count" and pl.get("info"):
+                total = pl["info"].get("total_token_usage", {}).get("total_tokens")
+                if total == last_total:
+                    continue
+                last_total = total
+                out.append({"i": len(out) + 1, "done_s": round(_epoch(r["timestamp"]) - t0, 1), "tools": pending, "output": (pl["info"].get("last_token_usage") or {}).get("output_tokens")})
+                pending = []
+        return out
+    return []
+
+
+def grok_turns(trial: Path, t0: float) -> list:
+    """The parent's model calls (shell.turn.inference_done) with the tools executed after each: tool calls of one response share a call-id prefix."""
+    path = trial / "home" / ".grok" / "logs" / "unified.jsonl"
+    rows = _rows(path) if path.is_file() else []
+    parent = next((r["sid"] for r in rows if r.get("msg") == "shell.turn.inference_done" and r.get("sid")), None)
+    out = []
+    for r in rows:
+        if r.get("sid") != parent:
+            continue
+        ctx = r.get("ctx") or {}
+        if r.get("msg") == "shell.turn.inference_done":
+            out.append({"i": ctx.get("loop_index"), "done_s": round(_epoch(r["ts"]) - t0, 1), "model_s": round((ctx.get("model_elapsed_ms") or 0) / 1000, 1), "output": ctx.get("completion_tokens"), "tools": []})
+        elif r.get("msg") == "shell.tool.exec_done" and out:
+            out[-1]["tools"].append(ctx.get("tool_name"))
+            out[-1]["tools_done_s"] = round(_epoch(r["ts"]) - t0, 1)
+    return out
+
+
 def read_trial(trial: Path) -> dict:
     inv = json.loads((trial / "invocation.json").read_text())
     host = inv["host"]
     threads = {"claude": claude_series, "codex": codex_series, "grok": grok_series}[host](trial)
+    turns = {"claude": claude_turns, "codex": codex_turns, "grok": grok_turns}[host](trial, inv["started"])
     out = {}
     for actor, t in threads.items():
         s = t["series"]
         n = len(s)
         out[actor] = {"calls": n, "first": s[0], "last": s[-1], "sum": sum(s), "growth_per_call": round((s[-1] - s[0]) / (n - 1), 1) if n > 1 else None,
                       "output": t.get("output"), "model_ms": t.get("model_ms"), "series": s}
-    return {"trial": trial.name, "host": host, "arm": inv.get("arm"), "threads": out}
+    return {"trial": trial.name, "host": host, "arm": inv.get("arm"), "threads": out, "parent_turns": turns}
 
 
 def table(item: dict) -> str:
@@ -121,6 +192,8 @@ def table(item: dict) -> str:
         lines.append(f"  {actor:<14}{t['calls']:>6}{t['first']:>9,}{t['last']:>9,}{g:>13}{t['sum']:>11,}{(t['output'] or 0):>8,}")
     total = sum(t["sum"] for t in item["threads"].values())
     lines.append(f"  {'all threads':<14}{sum(t['calls'] for t in item['threads'].values()):>6}{'':>9}{'':>9}{'':>13}{total:>11,}")
+    spawn = [len([x for x in turn["tools"] if "spawn" in str(x).lower() or x in ("Agent", "Task")]) for turn in item["parent_turns"]]
+    lines.append(f"  the parent's model calls: {len(item['parent_turns'])}; spawn calls issued per model call: {[n for n in spawn if n]}")
     return "\n".join(lines)
 
 

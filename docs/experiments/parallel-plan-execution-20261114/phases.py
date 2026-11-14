@@ -15,6 +15,11 @@ budget for, in seconds from the launch:
 
 For A0 the parent does the tasks itself, so `spawn` and `start` are zero and `join` is the parent's gap between tasks.
 
+Where the host starts each child as it is spawned (Codex), the first child's `begin` comes before the parent's later spawns, so
+`spawn` is the time to the first spawn and the later spawns sit inside `work`; where the children begin when the parent yields
+(Claude, Grok) all the spawns are in `spawn`. The whole run is the same either way: read `spawn + start + work` together when
+comparing hosts, and `spawn` alone only within one host.
+
   python3 phases.py [TRIAL...]        trial names under evidence/ (default: the six registered-cell trials)
 """
 

@@ -387,10 +387,19 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
     the apparatus's. Limits: the settle stands for a slow verification, not for a model's own thinking; one workload; read-only (no merge, no conflict, no isolation); one trial per cell, so differences of a few
     seconds are noise and the claims are about the shape of the curve; three hosts side by side with a machine load of 5 to 8 and caches the earlier trial may have warmed.
 
+- **A8 (2026-11-14, after E11's four Grok trials and before any Claude or Codex H trial): the A7 gate rested on a premise the Grok logs falsify.**
+  A7 ran H on Claude and Codex only if P30 held (H shortens Grok's spawn phase by 8 s), on the guess that the staggered spawns were separate model turns. P30 is missed, and the reason is that Grok's parent already
+  issued all four `spawn_subagent` calls in one model call under N (`context.py` `parent_turns`: [4, 1] spawn calls per model call in all four Grok trials), so the stagger between them (3.4 s to 5.6 s) is the host
+  starting each child in turn. The same reading of the pilot's parent records gives Claude four `Agent` calls in one model call (about 1.9 s apart: the model writing each prompt) and Codex one `spawn_agent` per model
+  call (five calls, 5.6 s to 6.8 s apart): only on Codex does wording have a mechanism to act on. So H runs once on Codex (capacity 3) and once on Claude (`--effort high`) as exploratory cells, labelled so and never pooled with the
+  registered cells, each after that host's E12 chain ends (no two trials of one host at once). Predictions registered before they run: **P41 (60%):** in Codex H at least two `spawn_agent` calls come in the same parent model call
+  (the pilot's N had one per model call). **P42 (50%):** Codex H's whole run is at least 8 s shorter than the pilot's N (same-condition spread on Grok was 3 s to 11 s, so this bar is loose and a pass is weak evidence).
+  **P33 stands as registered (65%):** Claude H's whole run is within 5 s of the pilot's N. R8 stands: H does not enter the contract for Grok.
+
 ## Files
 
 `README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,
 `launch.py` (one trial), `score.py` (measures, text timeline, ASCII Gantt), `calibrate.py` (the scorer, the kit and the launcher
 path against runs with known answers, run before any model call), `fakehost.py` (a stand-in host for that), `export.py`
 (compact evidence into `evidence/`), `evidence.py` (the seeded logs and the oracle for `analysis5`), `render_html.py` (the timeline page), `pilot_table.py`
-(the pilot's table from the score files), `phases.py` (the phase split), `context.py` (per-call context), `whoami.py` and `identity.py` (E10), `evidence/` (the Astra review and its question; every exported trial; the timeline pages).
+(the pilot's table from the score files), `phases.py` (the phase split), `context.py` (per-call context and the parent's model calls), `scaling_table.py` (E11 and E12 tables and predictions), `whoami.py` and `identity.py` (E10), `evidence/` (the Astra review and its question; every exported trial; the timeline pages).

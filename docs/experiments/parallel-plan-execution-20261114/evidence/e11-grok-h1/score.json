@@ -1,0 +1,242 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 51.124,
+ "first_start_ts": 1794697916.984,
+ "last_end_ts": 1794697968.108,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 4,
+ "independent_pairs": 6,
+ "pairs_overlapped": 6,
+ "pairs": [
+  {
+   "pair": [
+    "T1",
+    "T2"
+   ],
+   "overlap_s": 11.273,
+   "frac_of_shorter": 0.977
+  },
+  {
+   "pair": [
+    "T1",
+    "T3"
+   ],
+   "overlap_s": 17.339,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "T1",
+    "T4"
+   ],
+   "overlap_s": 17.627,
+   "frac_of_shorter": 0.985
+  },
+  {
+   "pair": [
+    "T2",
+    "T3"
+   ],
+   "overlap_s": 11.073,
+   "frac_of_shorter": 0.96
+  },
+  {
+   "pair": [
+    "T2",
+    "T4"
+   ],
+   "overlap_s": 11.535,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "T3",
+    "T4"
+   ],
+   "overlap_s": 17.339,
+   "frac_of_shorter": 1.0
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 0,
+ "settled_steps": 0,
+ "settled_all": null,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=11ad8f08a7c0",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "T5": 14.847
+ },
+ "dispatch_latency_mean_s": 14.847,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "T1": "done",
+  "T2": "done",
+  "T3": "done",
+  "T4": "done",
+  "T5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": {
+  "correct": 5,
+  "total": 5,
+  "all_correct": true,
+  "tasks": {
+   "T1": {
+    "expected": 5,
+    "recorded": 5,
+    "correct": true
+   },
+   "T2": {
+    "expected": 20,
+    "recorded": 20,
+    "correct": true
+   },
+   "T3": {
+    "expected": 10,
+    "recorded": 10,
+    "correct": true
+   },
+   "T4": {
+    "expected": 660,
+    "recorded": 660,
+    "correct": true
+   },
+   "T5": {
+    "expected": 695,
+    "recorded": 695,
+    "correct": true
+   }
+  },
+  "expected_final": 695
+ },
+ "final_answer_ok": true,
+ "mechanism": {
+  "kind": "native-agents",
+  "spawns": 5,
+  "run_calls": 5,
+  "run_calls_by_actor": {
+   "agent:cabdd7": 1,
+   "agent:b11fd2": 1,
+   "agent:4b5272": 1,
+   "agent:f6f0ab": 1,
+   "agent:e0a356": 1
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "grok logs/unified.jsonl",
+  "agents": 5,
+  "peak": 4,
+  "kinds": [
+   "general-purpose"
+  ],
+  "depths": [],
+  "background": [],
+  "intervals_s": [
+   {
+    "actor": "agent:b11fd2",
+    "start": -2.68,
+    "end": 13.01,
+    "tokens": null
+   },
+   {
+    "actor": "agent:cabdd7",
+    "start": -2.67,
+    "end": 19.28,
+    "tokens": null
+   },
+   {
+    "actor": "agent:f6f0ab",
+    "start": -2.67,
+    "end": 19.29,
+    "tokens": null
+   },
+   {
+    "actor": "agent:4b5272",
+    "start": -2.66,
+    "end": 28.88,
+    "tokens": null
+   },
+   {
+    "actor": "agent:e0a356",
+    "start": 39.45,
+    "end": 53.11,
+    "tokens": null
+   }
+  ]
+ },
+ "tokens": {
+  "source": "grok.usage",
+  "input": 146750,
+  "output": 11541,
+  "cache_read": 461696,
+  "cost_usd": 0.593594,
+  "peak_parent_input": null,
+  "children_included": true,
+  "parent_input_all": null,
+  "children_input_all": null,
+  "input_all": 608446,
+  "output_all": 11541,
+  "reasoning": null
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 93.4,
+  "last_activity_tail_s": 0.617,
+  "tail_from_last_end_s": 10.708,
+  "tail_from_final_report_s": 0.617,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 31.571,
+  "launch_to_last_end_s": 82.695,
+  "launch_to_verified_s": 90.52,
+  "launch_to_exit_s": 93.403
+ },
+ "valid": true,
+ "identity": {
+  "host": "grok",
+  "version": "grok 1.0.77 (50ca579fa996)",
+  "model": "grok-4.6",
+  "effort": "xhigh",
+  "plan": "analysis5",
+  "arm": "A3",
+  "variant": "H",
+  "loadavg": [
+   4.64,
+   4.72,
+   5.06
+  ],
+  "enabled_features": []
+ }
+}
