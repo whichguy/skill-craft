@@ -387,9 +387,13 @@ round was clean, so T ships as a patch (ShipLoop 1.34.2 to 1.34.3, skill-craft 2
   `test/test-groups.test.py`, 64 tests OK). CI on the release commit was not watched: it is a wording-only change under the owner's
   exception of 2026-09-25, and the local tier had passed.
 - **Hosts**, each installed copy read for the new wording (`Result: write the result first`) and not only its version: Claude
-  2.37.2 to 2.37.4 (a restart applies it), Grok 2.37.2 to 2.37.4. **Codex is pending**: another session has a live
-  `codex exec --profile shiploop` run on the real profile, and replacing the plugin under a live run is not mine to do, so a
-  waiter refreshes Codex once no such session is alive (its result is in the LEARNINGS entry's follow-up if it has run). Cursor
+  2.37.2 to 2.37.4 (a restart applies it), Grok 2.37.2 to 2.37.4, and Codex 2.37.3 to 2.37.4. Codex was held back at first:
+  another session had a live `codex exec --profile shiploop` run on the real profile, and replacing the plugin under a live run
+  is not mine to do. A background waiter was set to refresh it when that run ended, but it failed (`failed to resolve current
+  directory`): its shell had been started in my release worktree, which I removed before the other run ended, so no refresh
+  happened then. I ran `codex plugin marketplace upgrade whichguy` by hand from the canonical checkout once no such session
+  was alive (0 live), and read the cache back: only 2.37.4 remained, with the new wording. The cache keeps no older version
+  after the upgrade, so a refresh under the other session's live run would have removed the scripts it was calling. Cursor
   refreshes only from the owner's app.
 - **Unknowns kept open:** other hosts and models (only Codex Sol at medium was measured), and whole-run minutes (no whole-run
   saving was observed in round 2).
