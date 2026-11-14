@@ -1,0 +1,8 @@
+seconds from the first step start; one column = 7.79 s; █ ran, ▒ failed, ░ never ended
+T1  |█████████████                                                   |    0.0 to  102.4  (102.4 s)
+T2  |             █████████████                                      |  106.3 to  203.3  ( 97.0 s)
+T3  |                          ████████████                          |  203.4 to  301.3  ( 97.9 s)
+T4  |                                      █████████████             |  301.3 to  398.2  ( 96.9 s)
+T5  |                                                   ████████████ |  400.4 to  498.8  ( 98.4 s)
+    |             r                                     r            | r = a ready call, ^ = a sub-agent started
+     0       62      125     187     249     312     374     436     

@@ -1,0 +1,30 @@
+{"seq":1,"ts":1794697720.406,"at":"2026-11-14T23:08:40.406Z","kind":"init","step":null,"pid":66427,"ppid":66425,"detail":{"plan":"analysis5","steps":["T1","T2","T3","T4","T5"],"scale":1.0,"settle":30.0}}
+{"seq":2,"ts":1794697724.489,"at":"2026-11-14T23:08:44.489Z","kind":"claim","step":"T1","pid":66501,"ppid":66498,"detail":{}}
+{"seq":3,"ts":1794697724.49,"at":"2026-11-14T23:08:44.489Z","kind":"claim","step":"T2","pid":66501,"ppid":66498,"detail":{}}
+{"seq":4,"ts":1794697724.49,"at":"2026-11-14T23:08:44.489Z","kind":"claim","step":"T3","pid":66501,"ppid":66498,"detail":{}}
+{"seq":5,"ts":1794697724.49,"at":"2026-11-14T23:08:44.490Z","kind":"claim","step":"T4","pid":66501,"ppid":66498,"detail":{}}
+{"seq":6,"ts":1794697724.49,"at":"2026-11-14T23:08:44.490Z","kind":"ready","step":null,"pid":66501,"ppid":66498,"detail":{"result":{"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,"capacity":5,"claimed_age_s":{}},"claim":true}}
+{"seq":7,"ts":1794697755.156,"at":"2026-11-14T23:09:15.155Z","kind":"start","step":"T1","pid":66826,"ppid":66822,"detail":{"deps":{},"mode":"task","scale":1.0}}
+{"seq":8,"ts":1794697755.221,"at":"2026-11-14T23:09:15.220Z","kind":"start","step":"T2","pid":66831,"ppid":66828,"detail":{"deps":{},"mode":"task","scale":1.0}}
+{"seq":9,"ts":1794697755.242,"at":"2026-11-14T23:09:15.242Z","kind":"start","step":"T3","pid":66835,"ppid":66832,"detail":{"deps":{},"mode":"task","scale":1.0}}
+{"seq":10,"ts":1794697755.272,"at":"2026-11-14T23:09:15.272Z","kind":"start","step":"T4","pid":66839,"ppid":66836,"detail":{"deps":{},"mode":"task","scale":1.0}}
+{"seq":11,"ts":1794697758.456,"at":"2026-11-14T23:09:18.456Z","kind":"settle","step":"T3","pid":66892,"ppid":66889,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":12,"ts":1794697758.79,"at":"2026-11-14T23:09:18.790Z","kind":"settle","step":"T2","pid":66898,"ppid":66895,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":13,"ts":1794697758.887,"at":"2026-11-14T23:09:18.886Z","kind":"settle","step":"T4","pid":66902,"ppid":66899,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":14,"ts":1794697759.245,"at":"2026-11-14T23:09:19.245Z","kind":"settle","step":"T1","pid":66908,"ppid":66905,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":15,"ts":1794697788.468,"at":"2026-11-14T23:09:48.467Z","kind":"settled","step":"T3","pid":66892,"ppid":66889,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":16,"ts":1794697788.801,"at":"2026-11-14T23:09:48.801Z","kind":"settled","step":"T2","pid":66898,"ppid":66895,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":17,"ts":1794697788.898,"at":"2026-11-14T23:09:48.897Z","kind":"settled","step":"T4","pid":66902,"ppid":66899,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":18,"ts":1794697789.256,"at":"2026-11-14T23:09:49.256Z","kind":"settled","step":"T1","pid":66908,"ppid":66905,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":19,"ts":1794697799.282,"at":"2026-11-14T23:09:59.282Z","kind":"end","step":"T3","pid":67166,"ppid":67163,"detail":{"sha":"3625c78697a1ba10a70e8639f1f48711f74805a54f141e0b55f443e7d463f991","result":{"answer":10,"method":"Parsed 400 log lines into ok/fail IP sets; counted intersection"}}}
+{"seq":20,"ts":1794697803.043,"at":"2026-11-14T23:10:03.042Z","kind":"end","step":"T2","pid":67219,"ppid":67216,"detail":{"sha":"0d9c673bd941c168e64ede83e6bd8d6ce008145e9f4874a4054a1f1dc11d27e4","result":{"answer":20,"method":"count download+ok per user; take max"}}}
+{"seq":21,"ts":1794697807.502,"at":"2026-11-14T23:10:07.501Z","kind":"end","step":"T4","pid":67310,"ppid":67307,"detail":{"sha":"dd00ccce593d2ae63439e61be8099cf55fc93325e669411156fd0998093f918a","result":{"answer":660,"method":"parsed log_4.txt u03 timestamps in file order; max consecutive UTC second delta"}}}
+{"seq":22,"ts":1794697813.793,"at":"2026-11-14T23:10:13.793Z","kind":"end","step":"T1","pid":67395,"ppid":67392,"detail":{"sha":"8bbfaaba0629f0c8dd9fcbcd3506f86e351161e67012ae7e6ce2057021a10d74","result":{"answer":5,"method":"per-user failed-login timestamps; count users with a triple where t3-t1<=600s"}}}
+{"seq":23,"ts":1794697818.524,"at":"2026-11-14T23:10:18.523Z","kind":"claim","step":"T5","pid":67412,"ppid":67409,"detail":{}}
+{"seq":24,"ts":1794697818.524,"at":"2026-11-14T23:10:18.524Z","kind":"ready","step":null,"pid":67412,"ppid":67409,"detail":{"result":{"ready":["T5"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity":5,"claimed_age_s":{}},"claim":true}}
+{"seq":25,"ts":1794697830.924,"at":"2026-11-14T23:10:30.924Z","kind":"start","step":"T5","pid":67554,"ppid":67551,"detail":{"deps":{"T1":"8bbfaaba0629f0c8dd9fcbcd3506f86e351161e67012ae7e6ce2057021a10d74","T2":"0d9c673bd941c168e64ede83e6bd8d6ce008145e9f4874a4054a1f1dc11d27e4","T3":"3625c78697a1ba10a70e8639f1f48711f74805a54f141e0b55f443e7d463f991","T4":"dd00ccce593d2ae63439e61be8099cf55fc93325e669411156fd0998093f918a"},"mode":"task","scale":1.0}}
+{"seq":26,"ts":1794697839.23,"at":"2026-11-14T23:10:39.230Z","kind":"settle","step":"T5","pid":67605,"ppid":67597,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":27,"ts":1794697869.241,"at":"2026-11-14T23:11:09.240Z","kind":"settled","step":"T5","pid":67605,"ppid":67597,"detail":{"seconds":30.0,"scale":1.0}}
+{"seq":28,"ts":1794697872.141,"at":"2026-11-14T23:11:12.140Z","kind":"end","step":"T5","pid":67863,"ppid":67860,"detail":{"sha":"98b69b93b4502dbf5e357f188fbc4349ca09d61200fe0285c2a9c669b2e1d97a","result":{"answer":695,"method":"sum of T1-T4 integer answers"}}}
+{"seq":29,"ts":1794697876.374,"at":"2026-11-14T23:11:16.373Z","kind":"ready","step":null,"pid":67893,"ppid":67890,"detail":{"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4","T5"],"failed":[],"blocked":[],"waiting":[],"complete":true,"capacity":5,"claimed_age_s":{}},"claim":true}}
+{"seq":30,"ts":1794697879.995,"at":"2026-11-14T23:11:19.994Z","kind":"verify","step":null,"pid":67927,"ppid":67923,"detail":{"verdict":"OK","line":"VERIFY OK steps=5 chain=cde99ae859a2"}}

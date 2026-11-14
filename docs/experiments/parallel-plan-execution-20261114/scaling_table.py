@@ -10,6 +10,7 @@ evidence/<trial>/ (score.json, ledger.jsonl, native.json, context.json, events.t
   E11  Grok: the N trials against the H trials (spawn, join, whole run, parent calls, correctness), then P30 to P34
 
   python3 scaling_table.py [--e11] [--e12]       (both by default)
+  python3 scaling_table.py --json                 the E12 points as JSON (host, S, arm, whole run, calls, cost, tokens) for a chart
 """
 
 from __future__ import annotations
@@ -150,7 +151,19 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--e11", action="store_true")
     parser.add_argument("--e12", action="store_true")
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
+    if args.json:
+        out = []
+        for host in PILOT:
+            for s in (0, 30, 90):
+                for arm in ("A0", "A3"):
+                    if have(cell(host, s, arm)):
+                        x = load(cell(host, s, arm))
+                        out.append({"host": host, "S": s, "arm": arm, "whole_s": round(x["whole"], 1), "outside_work_s": round(x["outside"], 1), "calls": x["calls"],
+                                    "cost_usd": x["cost"], "input_tokens": x["tokens"], "valid": x["valid"]})
+        print(json.dumps(out))
+        return 0
     both = not (args.e11 or args.e12)
     if args.e12 or both:
         e12()

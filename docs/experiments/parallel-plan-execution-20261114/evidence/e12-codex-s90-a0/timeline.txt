@@ -1,0 +1,107 @@
+trial   e12-codex-s90-a0
+host    codex codex-cli 0.169.0 gpt-6.1-sol medium
+plan    analysis5  arm A0  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   4.389  H  parent        text     -            I’ll work through the tasks one at a time, report each result, then verify the run and read T5’s answer.
++   6.058  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,
++   6.084  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++   6.085  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++   9.253  L  ledger        start    T1           
++   9.279  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++   9.280  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++  13.656  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from datetime import datetime from collections import defaultdict users=defaultdict(list) with open('evidence
++  13.656  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from datetime import datetime from collections import defaultdict users=defaultdict(list) with open('evidence/log
++  18.278  L  ledger        settle   T1           {"seconds":90.0}
++  18.324  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  68.203  H  parent        text     -            T1’s count is 5 distinct users. The required verification is still running.
++ 108.284  L  ledger        settled  T1           {"seconds":90.0}
++ 108.295  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 114.125  L  ledger        end      T1           {"sha":"be2b313b49fa18f5cf4db36968c686120dbc8e4192da3e4b3150ece47175ad37","result":{"answer":5,"method":"Grouped failed logins by user and checked con
++ 114.150  H  parent        call     shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 114.150  H  parent        result   shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 116.066  H  parent        text     -            RECORDED T1 answer=5 (finished; do not report it again)
++ 117.790  L  ledger        ready    -            {"result":{"ready":["T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":["T1"],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,"
++ 117.815  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 117.816  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 121.206  L  ledger        start    T2           
++ 121.232  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 121.233  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 124.604  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from collections import Counter counts=Counter() with open('evidence/log_2.txt') as f:  for line in f:   ts,*
++ 124.605  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from collections import Counter counts=Counter() with open('evidence/log_2.txt') as f:  for line in f:   ts,*part
++ 129.845  L  ledger        settle   T2           {"seconds":90.0}
++ 129.865  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 180.369  H  parent        text     -            T2’s largest per-user count is 20 successful downloads. Its required verification is still running.
++ 219.852  L  ledger        settled  T2           {"seconds":90.0}
++ 219.864  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 225.374  L  ledger        end      T2           {"sha":"757d42a21b59bf7b1e87c44b4d82a5fcbab6bfbf159d54328d9e2bc7d04b9278","result":{"answer":20,"method":"Counted successful downloads per user and to
++ 225.400  H  parent        call     shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 225.401  H  parent        result   shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 227.315  H  parent        text     -            RECORDED T2 answer=20 (finished; do not report it again)
++ 229.045  L  ledger        ready    -            {"result":{"ready":["T3","T4"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2"],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,"
++ 229.070  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 229.071  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 232.375  L  ledger        start    T3           
++ 232.402  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 232.402  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 236.298  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' ips={'ok':set(),'fail':set()} with open('evidence/log_3.txt') as f:  for line in f:   ts,*parts=line.split()
++ 236.299  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' ips={'ok':set(),'fail':set()} with open('evidence/log_3.txt') as f:  for line in f:   ts,*parts=line.split()   d=
++ 241.253  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 241.260  L  ledger        settle   T3           {"seconds":90.0}
++ 291.032  H  parent        text     -            T3’s count is 10 IP addresses appearing in both successful and failed events. Its required verification is still running.
++ 331.267  L  ledger        settled  T3           {"seconds":90.0}
++ 331.278  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 337.102  L  ledger        end      T3           {"sha":"ec636b0a2220c92a89f45898b69d94285818fb5d13fbe0955e515ecaf8a8e159","result":{"answer":10,"method":"Intersected the distinct IP sets for success
++ 337.126  H  parent        call     shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 337.127  H  parent        result   shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 338.898  H  parent        text     -            RECORDED T3 answer=10 (finished; do not report it again)
++ 340.648  L  ledger        ready    -            {"result":{"ready":["T4"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,"
++ 340.672  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 340.673  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 343.775  L  ledger        start    T4           
++ 343.801  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 343.802  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 349.390  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from datetime import datetime times=[] with open('evidence/log_4.txt') as f:  for line in f:   ts,*parts=line
++ 349.391  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from datetime import datetime times=[] with open('evidence/log_4.txt') as f:  for line in f:   ts,*parts=line.spl
++ 355.790  L  ledger        settle   T4           {"seconds":90.0}
++ 355.835  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 406.725  H  parent        text     -            T4’s largest gap between consecutive u03 events is 660 seconds. Its required verification is still running.
++ 445.794  L  ledger        settled  T4           {"seconds":90.0}
++ 445.803  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 451.353  L  ledger        end      T4           {"sha":"d5a89bf770c67499202355c606c8afccbb98186332338d2ebb1707ede6a680fb","result":{"answer":660,"method":"Filtered u03 events and took the largest co
++ 451.378  H  parent        call     shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 451.379  H  parent        result   shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 453.538  H  parent        text     -            RECORDED T4 answer=660 (finished; do not report it again)
++ 455.276  L  ledger        ready    -            {"result":{"ready":["T5"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++ 455.302  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 455.303  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 458.560  L  ledger        start    T5           
++ 458.586  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 458.587  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py begin --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 463.664  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 463.664  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 463.774  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 463.775  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 463.886  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 463.887  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 463.998  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 463.999  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 468.759  L  ledger        settle   T5           {"seconds":90.0}
++ 468.815  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 518.338  H  parent        text     -            The four recorded answers sum to 695. T5’s required verification is still running; afterward I’ll report it and verify the full run.
++ 558.765  L  ledger        settled  T5           {"seconds":90.0}
++ 558.774  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 564.236  L  ledger        end      T5           {"sha":"e689f50f703a2f63a8afb7c0a408f6daee349efd18b6ba5f199f60f65f027ef0","result":{"answer":695,"method":"Read the four recorded outcomes and summed 
++ 564.261  H  parent        call     shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 564.262  H  parent        result   shell        shell /bin/zsh -lc "python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 566.114  H  parent        text     -            RECORDED T5 answer=695 (finished; do not report it again)
++ 567.845  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4","T5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++ 567.871  H  parent        call     shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3
++ 567.871  H  parent        result   shell        shell /bin/zsh -lc 'python3 dagkit.py ready --run /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8
++ 572.459  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=c5a2c422958c"}
++ 572.484  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 572.485  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 578.082  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 578.083  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 580.556  H  parent        text     -            FINAL {"done":["T1","T2","T3","T4","T5"],"failed":[],"not_run":[],"answer":695}

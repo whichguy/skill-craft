@@ -1,0 +1,246 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 202.924,
+ "first_start_ts": 1794698619.264,
+ "last_end_ts": 1794698822.188,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 4,
+ "independent_pairs": 6,
+ "pairs_overlapped": 6,
+ "pairs": [
+  {
+   "pair": [
+    "T1",
+    "T2"
+   ],
+   "overlap_s": 96.64,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "T1",
+    "T3"
+   ],
+   "overlap_s": 98.136,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "T1",
+    "T4"
+   ],
+   "overlap_s": 98.524,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "T2",
+    "T3"
+   ],
+   "overlap_s": 96.64,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "T2",
+    "T4"
+   ],
+   "overlap_s": 96.6,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "T3",
+    "T4"
+   ],
+   "overlap_s": 97.966,
+   "frac_of_shorter": 0.998
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 90.0,
+ "settled_steps": 5,
+ "settled_all": true,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=71df4b55374a",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "T5": 6.127
+ },
+ "dispatch_latency_mean_s": 6.127,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "T1": "done",
+  "T2": "done",
+  "T3": "done",
+  "T4": "done",
+  "T5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": {
+  "correct": 5,
+  "total": 5,
+  "all_correct": true,
+  "tasks": {
+   "T1": {
+    "expected": 5,
+    "recorded": 5,
+    "correct": true
+   },
+   "T2": {
+    "expected": 20,
+    "recorded": 20,
+    "correct": true
+   },
+   "T3": {
+    "expected": 10,
+    "recorded": 10,
+    "correct": true
+   },
+   "T4": {
+    "expected": 660,
+    "recorded": 660,
+    "correct": true
+   },
+   "T5": {
+    "expected": 695,
+    "recorded": 695,
+    "correct": true
+   }
+  },
+  "expected_final": 695
+ },
+ "final_answer_ok": true,
+ "mechanism": {
+  "kind": "native-agents",
+  "spawns": 5,
+  "run_calls": 5,
+  "run_calls_by_actor": {
+   "agent:G5DL4f": 1,
+   "agent:YfjjqB": 1,
+   "agent:QWQfep": 1,
+   "agent:yPHTre": 1,
+   "agent:beUKzn": 1
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "claude stream (system task events)",
+  "agents": 5,
+  "peak": 4,
+  "kinds": [
+   "general-purpose"
+  ],
+  "depths": [
+   1
+  ],
+  "background": [
+   true
+  ],
+  "intervals_s": [
+   {
+    "actor": "agent:G5DL4f",
+    "start": -1.85,
+    "end": 100.89,
+    "tokens": 27892
+   },
+   {
+    "actor": "agent:QWQfep",
+    "start": -1.85,
+    "end": 98.65,
+    "tokens": 27945
+   },
+   {
+    "actor": "agent:YfjjqB",
+    "start": -1.84,
+    "end": 100.16,
+    "tokens": 27601
+   },
+   {
+    "actor": "agent:yPHTre",
+    "start": -1.84,
+    "end": 101.3,
+    "tokens": 28123
+   },
+   {
+    "actor": "agent:beUKzn",
+    "start": 103.45,
+    "end": 205.33,
+    "tokens": 28125
+   }
+  ]
+ },
+ "tokens": {
+  "source": "claude.result",
+  "input": 16,
+  "output": 2427,
+  "cache_read": 294631,
+  "cost_usd": 0.535781,
+  "peak_parent_input": 44380,
+  "children_included": false,
+  "parent_input_all": 315420,
+  "children_input_all": 530379,
+  "input_all": 845799,
+  "output_all": 8310,
+  "cache_create": 20773
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 223.5,
+  "last_activity_tail_s": 0.438,
+  "tail_from_last_end_s": 8.671,
+  "tail_from_final_report_s": 2.547,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 11.912,
+  "launch_to_last_end_s": 214.836,
+  "launch_to_verified_s": 220.069,
+  "launch_to_exit_s": 223.507
+ },
+ "valid": true,
+ "identity": {
+  "host": "claude",
+  "version": "2.1.325 (Claude Code)",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "plan": "analysis5",
+  "arm": "A3",
+  "variant": "N",
+  "loadavg": [
+   4.68,
+   4.74,
+   4.77
+  ],
+  "enabled_features": []
+ }
+}

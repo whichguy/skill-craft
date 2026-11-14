@@ -1,0 +1,205 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 242.061,
+ "first_start_ts": 1794698189.847,
+ "last_end_ts": 1794698431.908,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 1,
+ "independent_pairs": 6,
+ "pairs_overlapped": 0,
+ "pairs": [
+  {
+   "pair": [
+    "T1",
+    "T2"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T1",
+    "T3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T1",
+    "T4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T2",
+    "T3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T2",
+    "T4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T3",
+    "T4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 30.0,
+ "settled_steps": 5,
+ "settled_all": true,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=b8fe36335927",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "T5": 4.33
+ },
+ "dispatch_latency_mean_s": 4.33,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "T1": "done",
+  "T2": "done",
+  "T3": "done",
+  "T4": "done",
+  "T5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": {
+  "correct": 5,
+  "total": 5,
+  "all_correct": true,
+  "tasks": {
+   "T1": {
+    "expected": 5,
+    "recorded": 5,
+    "correct": true
+   },
+   "T2": {
+    "expected": 20,
+    "recorded": 20,
+    "correct": true
+   },
+   "T3": {
+    "expected": 10,
+    "recorded": 10,
+    "correct": true
+   },
+   "T4": {
+    "expected": 660,
+    "recorded": 660,
+    "correct": true
+   },
+   "T5": {
+    "expected": 695,
+    "recorded": 695,
+    "correct": true
+   }
+  },
+  "expected_final": 695
+ },
+ "final_answer_ok": true,
+ "mechanism": {
+  "kind": "parent-executed",
+  "spawns": 0,
+  "run_calls": 5,
+  "run_calls_by_actor": {
+   "parent": 5
+  },
+  "attributable_host": false,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "grok logs/unified.jsonl",
+  "agents": 0,
+  "peak": 0,
+  "kinds": [],
+  "depths": [],
+  "background": [],
+  "intervals_s": []
+ },
+ "tokens": {
+  "source": "grok.usage",
+  "input": 74665,
+  "output": 8400,
+  "cache_read": 1023360,
+  "cost_usd": 0.71141,
+  "peak_parent_input": null,
+  "children_included": null,
+  "parent_input_all": 1098025,
+  "children_input_all": null,
+  "input_all": 1098025,
+  "output_all": 8400,
+  "reasoning": null
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 258.6,
+  "last_activity_tail_s": 0.585,
+  "tail_from_last_end_s": 9.624,
+  "tail_from_final_report_s": 0.585,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 6.951,
+  "launch_to_last_end_s": 249.012,
+  "launch_to_verified_s": 254.897,
+  "launch_to_exit_s": 258.636
+ },
+ "valid": true,
+ "identity": {
+  "host": "grok",
+  "version": "grok 1.0.77 (50ca579fa996)",
+  "model": "grok-4.6",
+  "effort": "xhigh",
+  "plan": "analysis5",
+  "arm": "A0",
+  "variant": "N",
+  "loadavg": [
+   4.41,
+   4.34,
+   4.74
+  ],
+  "enabled_features": []
+ }
+}

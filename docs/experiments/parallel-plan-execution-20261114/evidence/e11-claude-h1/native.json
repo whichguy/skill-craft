@@ -1,0 +1,60 @@
+{
+ "source": "claude stream (system task events)",
+ "agents": [
+  {
+   "id": "ab9ac134db85fd41f",
+   "actor": "agent:HNdkj6",
+   "kind": "general-purpose",
+   "start": 1794698845.077,
+   "end": 1794698854.445,
+   "background": true,
+   "depth": 1,
+   "tokens": 23547,
+   "success": true
+  },
+  {
+   "id": "a98cdd8bf1b595375",
+   "actor": "agent:BZTLKY",
+   "kind": "general-purpose",
+   "start": 1794698845.081,
+   "end": 1794698855.513,
+   "background": true,
+   "depth": 1,
+   "tokens": 23483,
+   "success": true
+  },
+  {
+   "id": "a4f183178ef361c17",
+   "actor": "agent:exiaEZ",
+   "kind": "general-purpose",
+   "start": 1794698845.087,
+   "end": 1794698854.62,
+   "background": true,
+   "depth": 1,
+   "tokens": 23384,
+   "success": true
+  },
+  {
+   "id": "a2dd6415fc0f98532",
+   "actor": "agent:Xu3gun",
+   "kind": "general-purpose",
+   "start": 1794698845.091,
+   "end": 1794698858.096,
+   "background": true,
+   "depth": 1,
+   "tokens": 23816,
+   "success": true
+  },
+  {
+   "id": "a108e43bd87884e1c",
+   "actor": "agent:J1NetQ",
+   "kind": "general-purpose",
+   "start": 1794698859.029,
+   "end": 1794698869.718,
+   "background": true,
+   "depth": 1,
+   "tokens": 23566,
+   "success": true
+  }
+ ]
+}

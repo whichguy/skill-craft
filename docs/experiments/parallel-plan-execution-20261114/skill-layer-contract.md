@@ -64,13 +64,14 @@ Grok `spawn_subagent`) and treat a mismatch as `unknown`; a sub-agent cannot tel
 | | Claude Code | Codex | Grok Build |
 |---|---|---|---|
 | Start a worker | `Agent`, general-purpose; the four calls for a round in one assistant message, about 1.9 s apart | `spawn_agent` with `fork_turns` "none" and a short `task_name` | `spawn_subagent`, general-purpose (never `explore` or `plan`), background |
-| Collect | completion notifications re-enter the parent as new turns (several `result` events in `-p` mode); no polling | `wait_agent` with a timeout; the pilot's parent polled in 10 s slices | `get_command_or_subagent_output` with all task ids and a long `timeout_ms`, or `wait_commands_or_subagents` |
+| Collect | completion notifications re-enter the parent as new turns (several `result` events in `-p` mode); no polling | `wait_agent` with a timeout; the parent polled in 10 s slices, so its calls grow with the wait (5, 12, 17 polls at S = 0, 30, 90, E12); H asks for one long wait, which cut the parent's `wait_agent` calls from 12 to 3 at S = 30 (A9, F38) | `get_command_or_subagent_output` with all task ids and a long `timeout_ms`, or `wait_commands_or_subagents` |
 | Concurrency | four at once observed | four slots including the parent: three workers | four at once observed |
 | Host's own record (for the ledger cross-check) | stream `system` task events, `parent_tool_use_id` on every call | one rollout file per thread, naming parent and depth | `logs/unified.jsonl`, a session id on every tool call |
 | Token accounting | sum `usage` over every `result` event for the parent; `modelUsage` is the whole run, cumulative | the turn's usage is the parent's; each child's rollout adds its own | the end usage is the whole run; per-call `shell.turn.inference_done` has the session id |
 | Tool name pitfall | the init event lists the tool as `Task`, calls and the model say `Agent`: accept both | the model reports `collaboration.spawn_agent`; the call is `spawn_agent` | none seen |
 | Where the per-agent spawn cost sits (F32) | in the model writing each child prompt, about 1.9 s each, all four in one model call | one model call per spawn, 5.6 s to 6.8 s each | in the host starting each child in turn, 3.4 s to 5.6 s each, after one model call that issued all four |
-| Host-specific wording (H) | exploratory (A8) | exploratory (A8) | no effect (E11, F33): the anonymous packet already issues the spawns in one model call |
+| Host-specific wording (H) | no effect: the packet already issues the four `Agent` calls in one model call; whole run 39.6 s against 43.2 s (P33 held) | no effect on spawning: one spawn per model call under H too (P41 missed), whole run 107.5 s against 109.9 s (P42 missed); the long-wait sentence at S = 30 cut the parent's waits from 12 to 3 and its model calls from 25 to 15, total input tokens -11.5%, whole run within 5 s (P43, P44 held): **the one H that earned its place** | no effect (E11, F33): the anonymous packet already issues the spawns in one model call |
+| Cost that grows with the task (E12, F37) | none seen: calls and input tokens flat across S | the parent's polling: model calls 23, 29, 49 (A0) and input tokens 449k, 612k, 1.06M; A3 707k, 988k, 1.71M at S = 0, 30, 90 | none seen: calls flat across S |
 
 Anything not measured is not in the table.
 
@@ -80,12 +81,15 @@ Fan out only if all hold: the opt-in is set; the plan exposes width of at least 
 share paths, F10); the estimated seconds of each independent task are above the host's break-even; the host is qualified (section 9). The break-even comes from a cost curve, not a constant, and is a
 number per host and version:
 
-- The pilot (tasks of about 5 s, 13 s and 15 s) lost on the whole run on all three hosts because fan-out costs 21.4 s (Claude), 43.0 s (Grok) and 26.6 s (Codex) outside the work phase: per agent (the parent's spawn
-  turns), per round (the join, the tail), and the work it saves grows 3 per second of task time (Claude, Grok) or 2 (Codex). It breaks even at about 3 s to 5 s more per task, that is from roughly 8 s, 18 s and 19 s a
-  task (R4, F26, F27).
-- The measured curve at 30 s and 90 s per task, and the break-even by interpolation, are in **E12** (to be filled before this proposal is final).
-- A recorded ShipLoop step iteration has a median of 154 s (F11), above every break-even measured so far; but 90% of recorded plans have no independent pair (F8), so the gate that matters most in practice is
-  width, not task length.
+- Time (E12, twelve trials, F34 to F36): the fan-out's fixed costs stay fixed as tasks lengthen (A3 minus A0 outside the work phase, S = 0 / 30 / 90: Claude 21.4 / 19.4 / 15.1 s, Grok 43.0 / 37.9 / 34.5 s, Codex 26.6 / 22.5 / 30.5 s) and the saving
+  grows with the task: the whole-run ratio A3 / A0 is 1.22 / 0.55 / 0.44 (Claude), 1.18 / 0.63 / 0.52 (Grok) and 1.10 / 0.75 / 0.69 (Codex), a saving of 56%, 48% and 31% at 90 s more per task. The break-even per-task time is
+  overhead / (independent tasks minus rounds): 7.1 s (Claude), 14.3 s (Grok), 13.3 s (Codex, three slots). The pilot's tasks (5 s to 15 s) were at or just under it, which is why it lost.
+- So the time predicate is easy to state: an independent task estimated at 20 s or more clears every host's break-even with margin (the 30 s cells took 35 s to 45 s a task and the whole run fell 25% to 45%); an estimate under about 15 s does not.
+  One trial per cell, so these are shapes, not rates; an estimate is the caller's, and an unknown estimate means serial.
+- Tokens and cost (E12, F37; the owner's order is quality, then tokens, then time): on Claude the fan-out used 1.4 to 1.7 times A0's input tokens and 2.4 to 3.5 times its dollars at these task sizes (an extra $0.345 for 284 s saved at S = 90); on Grok 0.55 to 0.76 times the
+  tokens and 0.86 to 1.38 times the dollars; on Codex about 1.6 times the tokens, and on Codex the parent's polling makes the token cost grow with the length of the wait on both arms. The layer must report the expected time saved and the token multiple before it fans out, so the opt-in is informed.
+  The token curve with many more calls a task is a model (R4), not a measurement.
+- A recorded ShipLoop step iteration has a median of 154 s (F11), far above every break-even; but 90% of recorded plans have no independent pair (F8), so the gate that matters most in practice is width, not task length.
 
 ## 7. Merge and isolation (what is not measured)
 
@@ -99,7 +103,7 @@ one overlapping edit that conflicts) is the next measurement before a write fan-
 A binding is qualified for a host and version when the conformance fixture passes: the study's `analysis5`, arm A3, on that host's owner profile: five of five answers correct, `verify` OK, a faithful final report,
 exit 0, nothing left running, a peak of at least 3 in both the ledger and the host's own agent record, no refused attempt. The identity probe (E10) passes in the parent and in one sub-agent. Re-run on a version
 change; record the version (the repository's existing notes qualify Claude Code 2.1.278, Codex 0.155.1 and Grok 1.0.34; the study ran 2.1.325, 0.169.0 and 1.0.77). The apparatus is `launch.py`,
-`score.py` and `calibrate.py` (155 cells, no model call) in this folder.
+`score.py` and `calibrate.py` (159 cells, no model call) in this folder.
 
 ## 9. Options for where it lives (the owner's decision)
 

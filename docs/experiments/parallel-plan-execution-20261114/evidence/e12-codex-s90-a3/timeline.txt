@@ -1,0 +1,124 @@
+trial   e12-codex-s90-a3
+host    codex codex-cli 0.169.0 gpt-6.1-sol medium
+plan    analysis5  arm A3  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   8.173  H  parent        text     -            I’ll run the scheduling loop, launch fresh sub-agents for the claimed tasks, and collect their results. The available agent slots allow three sub-agen
++  11.165  H  parent        call     shell        shell /bin/zsh -lc "python3 '/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/pp
++  11.178  L  ledger        claim    T1           
++  11.179  L  ledger        claim    T2           
++  11.179  L  ledger        claim    T3           
++  11.179  L  ledger        claim    T4           
++  11.179  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,
++  11.183  H  parent        result   shell        shell /bin/zsh -lc "python3 '/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  17.169  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t1","fork_turns":"none","message":"gAAAAABq-OxYi5K9zS3_I-f2kdRChWLqCUo1crI61qtLXnhC1p7wtx4pCAIf717zunusGwQHtih_k4VMfGBP0I9JY
++  23.493  H  thread:b9554e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++  23.614  L  ledger        start    T1           
++  27.054  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t2","fork_turns":"none","message":"gAAAAABq-Oxii7VGYYZRZLCqtZK7e08BMQrmBAknkAIQSXiNB3mRLV-jV2HRbsTBEp1BqCiNxpolmdLod0yukZLA3
++  32.802  H  thread:b9554e call     shell        shell python3 - <<'PY' from collections import defaultdict from datetime import datetime p='/private/tmp/claude-501/-Users-dadleet--claude-spares-
++  32.802  H  thread:b9554e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++  32.886  H  thread:aa4e0e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++  32.973  L  ledger        settle   T1           {"seconds":90.0}
++  32.982  L  ledger        start    T2           
++  33.374  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t3","fork_turns":"none","message":"gAAAAABq-OxprPlFE2jmS3Nqt0SzuCqcQdOhZ-QwA_SPQTmRohPYhaYla7A1BQPmoqkLqM5zsezX8R5ldb_Wv1Amv
++  39.120  L  ledger        release  T4           
++  39.146  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  39.146  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++  39.746  H  thread:573dbb call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++  39.855  L  ledger        start    T3           
++  41.185  H  parent        wait     wait         wait {"status": "in_progress"}
++  41.472  H  thread:aa4e0e call     shell        shell python3 - <<'PY' from collections import Counter from pathlib import Path p=Path('/private/tmp/claude-501/-Users-dadleet--claude-spares-spar
++  41.472  H  thread:aa4e0e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++  41.687  L  ledger        settle   T2           {"seconds":90.0}
++  48.454  H  thread:573dbb call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1
++  48.454  H  thread:573dbb call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++  48.659  L  ledger        settle   T3           {"seconds":90.0}
++  51.189  H  parent        return   wait         wait {"status": "completed"}
++  53.561  H  parent        wait     wait         wait {"status": "in_progress"}
++  63.564  H  parent        return   wait         wait {"status": "completed"}
++  65.540  H  parent        wait     wait         wait {"status": "in_progress"}
++  75.543  H  parent        return   wait         wait {"status": "completed"}
++  77.693  H  parent        wait     wait         wait {"status": "in_progress"}
++  87.696  H  parent        return   wait         wait {"status": "completed"}
++  91.094  H  parent        text     -            T1, T2, and T3 are underway. T4 has been released and can be claimed again when a slot opens.
++  91.516  H  parent        wait     wait         wait {"status": "in_progress"}
++  92.022  H  parent        return   wait         wait {"status": "completed"}
++  98.181  H  parent        wait     wait         wait {"status": "in_progress"}
++  98.182  H  parent        return   wait         wait {"status": "completed"}
++ 102.342  H  parent        wait     wait         wait {"status": "in_progress"}
++ 112.345  H  parent        return   wait         wait {"status": "completed"}
++ 114.924  H  parent        text     -            The sub-agents are still working through the script’s required verification steps. I’ll claim more work as soon as one finishes.
++ 114.987  H  parent        wait     wait         wait {"status": "in_progress"}
++ 115.618  H  parent        return   wait         wait {"status": "completed"}
++ 122.172  H  parent        wait     wait         wait {"status": "in_progress"}
++ 122.981  L  ledger        settled  T1           {"seconds":90.0}
++ 128.113  H  thread:b9554e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 128.234  L  ledger        end      T1           {"sha":"8362723b853762fb50416b6b4a4bdb2a865bd0919d665bf63d22177332b75205","result":{"answer":5,"method":"Grouped failed logins by user and checked eve
++ 129.989  H  parent        return   wait         wait {"status": "completed"}
++ 131.693  L  ledger        settled  T2           {"seconds":90.0}
++ 134.929  L  ledger        claim    T4           
++ 134.930  L  ledger        ready    -            {"result":{"ready":["T4"],"deferred":[],"claimed":[],"running":["T2","T3"],"done":["T1"],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,"c
++ 134.955  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 134.956  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 136.837  H  thread:aa4e0e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 136.935  L  ledger        end      T2           {"sha":"b7259e0cb3387801ef01fdb562e7360add703c203fa87991abb1381e616ad86b","result":{"answer":20,"method":"Counted successful download events per user 
++ 138.667  L  ledger        settled  T3           {"seconds":90.0}
++ 141.476  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t4","fork_turns":"none","message":"gAAAAABq-OzV1gaYYAtYQ9TiZqAm42TtcbqKRw9U4GirrPhPQ4_Mr0GXbxWGOa6hxTjzzQQts4fVXefDpeDLCaY0H
++ 144.230  H  thread:573dbb call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 144.333  L  ledger        end      T3           {"sha":"0924ac0020fa7348711158e2c044e58ab3388067bcdafaaaa822f03175a8cdb1","result":{"answer":10,"method":"Counted intersection of distinct IP sets for
++ 146.793  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":["T4"],"running":[],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,"
++ 146.819  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 146.819  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 150.167  H  thread:7e8ffe call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 150.284  L  ledger        start    T4           
++ 153.514  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":["T4"],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,"
++ 153.539  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 153.540  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 158.985  H  parent        wait     wait         wait {"status": "in_progress"}
++ 159.493  H  thread:7e8ffe call     shell        shell python3 - <<'PY' from datetime import datetime from pathlib import Path p=Path('/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-
++ 159.493  H  thread:7e8ffe call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 159.713  L  ledger        settle   T4           {"seconds":90.0}
++ 208.990  H  parent        return   wait         wait {"status": "completed"}
++ 212.508  H  parent        text     -            T1, T2, and T3 are recorded successfully. T4 is running; T5 is still waiting on its prerequisites.
++ 212.564  H  parent        wait     wait         wait {"status": "in_progress"}
++ 214.468  H  parent        return   wait         wait {"status": "completed"}
++ 216.606  H  parent        wait     wait         wait {"status": "in_progress"}
++ 226.610  H  parent        return   wait         wait {"status": "completed"}
++ 229.454  H  parent        text     -            T4 has computed its result and is completing the required verification before recording it.
++ 229.567  H  parent        wait     wait         wait {"status": "in_progress"}
++ 249.719  L  ledger        settled  T4           {"seconds":90.0}
++ 255.823  H  thread:7e8ffe call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 255.920  L  ledger        end      T4           {"sha":"3112c6c2724e5effed7574b549421f4ee3a8307d2756ffc2b9ba2d9cc13b1d76","result":{"answer":660,"method":"Filtered u03 events in file order and calcu
++ 258.496  H  parent        return   wait         wait {"status": "completed"}
++ 264.481  L  ledger        claim    T5           
++ 264.482  L  ledger        ready    -            {"result":{"ready":["T5"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++ 264.507  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 264.507  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 270.243  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t5","fork_turns":"none","message":"gAAAAABq-O1VCUSslj9Egma9x2M_VsO6B0JIUHLPTwNGKYWTSiir1WGW9UNM6yPeE7I3GScH8O4tYoIOn39Wc5LA4
++ 272.445  H  parent        wait     wait         wait {"status": "in_progress"}
++ 276.460  H  thread:1a6e3c call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 276.590  L  ledger        start    T5           
++ 286.329  H  thread:1a6e3c call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 286.457  L  ledger        settle   T5           {"seconds":90.0}
++ 322.449  H  parent        return   wait         wait {"status": "completed"}
++ 324.412  H  parent        text     -            T4 is recorded successfully, and the final task, T5, has started.
++ 324.517  H  parent        wait     wait         wait {"status": "in_progress"}
++ 342.050  H  parent        return   wait         wait {"status": "completed"}
++ 343.878  H  parent        wait     wait         wait {"status": "in_progress"}
++ 353.880  H  parent        return   wait         wait {"status": "completed"}
++ 356.442  H  parent        text     -            T5 has calculated 695 and is completing its required verification. Once it records the result, I’ll run the final verification and read its outcome.
++ 356.504  H  parent        wait     wait         wait {"status": "in_progress"}
++ 376.462  L  ledger        settled  T5           {"seconds":90.0}
++ 382.495  H  thread:1a6e3c call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e12-co
++ 382.611  L  ledger        end      T5           {"sha":"a2b16c4ff2cea42ec3cd82909de27b29bae62e6145e6090bca3e51b7af8d18f3","result":{"answer":695,"method":"Summed the four recorded outcome answers: 5
++ 384.627  H  parent        return   wait         wait {"status": "completed"}
++ 389.442  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4","T5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++ 389.467  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 389.468  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 397.917  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=acc79a7af638"}
++ 397.942  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 397.943  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 398.057  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 398.058  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 401.256  H  parent        text     -            FINAL {"done":["T1","T2","T3","T4","T5"],"failed":[],"not_run":[],"answer":695}
