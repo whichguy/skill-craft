@@ -8,6 +8,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -164,6 +165,65 @@ class ShipLoopStoreTests(unittest.TestCase):
                     with self.assertRaises(store.StorageError):
                         store.transaction(root, writes, deletes)
                     self.assertFalse((root / "transaction.md").exists())
+
+
+class ObservationJSONDepthTests(unittest.TestCase):
+    def test_deep_jsonl_is_skipped_with_coverage_and_neighbor_rows_retained(self):
+        depth = sys.getrecursionlimit() + 50
+        deep = '{"nested":' + '[' * depth + '0' + ']' * depth + '}'
+        raw = ('{"before":true}\n' + deep + '\n{"after":true}\n').encode()
+        # Python decoders have different nesting tolerances. Compare only
+        # shallow facts, never recursively compare or format the nested value.
+        try:
+            json.loads(deep)
+        except RecursionError:
+            decoder_accepts = False
+        else:
+            decoder_accepts = True
+        default_rows = store.parse_jsonl_bytes(raw)
+        self.assertEqual(len(default_rows), 3 if decoder_accepts else 2)
+        self.assertTrue(isinstance(default_rows[0], dict) and default_rows[0].get("before") is True)
+        self.assertTrue(isinstance(default_rows[-1], dict) and default_rows[-1].get("after") is True)
+        if decoder_accepts:
+            self.assertTrue(isinstance(default_rows[1], dict) and "nested" in default_rows[1])
+            node = default_rows[1]["nested"]
+            for _ in range(depth):
+                self.assertTrue(isinstance(node, list))
+                self.assertEqual(len(node), 1)
+                node = node[0]
+            self.assertTrue(isinstance(node, int) and node == 0)
+        rows, coverage = store.parse_jsonl_bytes(raw, coverage=True)
+        self.assertEqual([number for number, row in rows], [1, 3])
+        self.assertEqual(coverage["interior_damage"], 1)
+
+    def test_optional_depth_guard_does_not_limit_default_read_semantics(self):
+        depth = store.OBSERVATION_JSON_DEPTH + 10
+        raw = ('{"nested":' + '[' * depth + '0' + ']' * depth + '}\n').encode()
+        self.assertEqual(len(store.parse_jsonl_bytes(raw)), 1)
+        rows, coverage = store.parse_jsonl_bytes(raw, coverage=True)
+        self.assertEqual(len(rows), 0)
+        self.assertEqual(coverage["damaged"], 1)
+
+    def test_jsonl_decoder_recursion_is_skipped_and_diagnosed_deterministically(self):
+        failing = '{"nested":[]}'
+        raw = ('{"before":true}\n' + failing + '\n{"after":true}\n').encode()
+        original_loads = json.loads
+        def decoder(value, *args, **kwargs):
+            if value == failing:
+                raise RecursionError("injected JSON decoder failure")
+            return original_loads(value, *args, **kwargs)
+        with mock.patch.object(store.json, "loads", side_effect=decoder):
+            self.assertEqual(store.parse_jsonl_bytes(raw), [{"before": True}, {"after": True}])
+            rows, coverage = store.parse_jsonl_bytes(raw, coverage=True)
+        self.assertEqual([number for number, row in rows], [1, 3])
+        self.assertEqual(coverage["interior_damage"], 1)
+        self.assertEqual(coverage["damaged"], 1)
+
+    def test_authoritative_decoder_recursion_is_an_explicit_storage_error(self):
+        with mock.patch.object(store.json, "loads", side_effect=RecursionError("injected JSON decoder failure")):
+            with self.assertRaises(store.StorageError) as caught:
+                store.loads('```shiploop-state\n{"nested":[]}\n```\n')
+        self.assertIsInstance(caught.exception.__cause__, RecursionError)
 
 
 if __name__ == "__main__":

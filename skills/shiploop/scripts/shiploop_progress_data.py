@@ -10,7 +10,6 @@ import json
 import os
 from pathlib import Path
 import re
-import stat
 from typing import Any, Mapping
 
 import shiploop_context_index as context_index
@@ -42,127 +41,7 @@ _ARCHITECTURE_PATHS = (
 )
 
 
-class _UnsafeSource(ValueError):
-    """An optional source is unsafe, unstable, or outside its read bound."""
-
-
-def _same_identity(left: os.stat_result, right: os.stat_result) -> bool:
-    return all(
-        getattr(left, name, None) == getattr(right, name, None)
-        for name in ("st_dev", "st_ino", "st_mode", "st_nlink", "st_size", "st_mtime_ns", "st_ctime_ns")
-    )
-
-
-def _directory_fd(path: Path) -> int:
-    """Open one trusted base directory without following its final component."""
-    target = Path(os.path.abspath(os.fspath(path)))
-    try:
-        before = os.lstat(target)
-    except OSError as exc:
-        raise _UnsafeSource("base directory is unavailable") from exc
-    if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
-        raise _UnsafeSource("base path is not a regular directory")
-    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        descriptor = os.open(os.fspath(target), flags)
-    except OSError as exc:
-        raise _UnsafeSource("base directory cannot be opened safely") from exc
-    after = os.fstat(descriptor)
-    if not stat.S_ISDIR(after.st_mode) or not _same_identity(before, after):
-        os.close(descriptor)
-        raise _UnsafeSource("base directory changed while opening")
-    return descriptor
-
-
-def _relative_parts(relative: str | Path) -> tuple[str, ...]:
-    value = os.fspath(relative)
-    if not isinstance(value, str) or not value or "\x00" in value or "\\" in value:
-        raise _UnsafeSource(f"unsafe relative path {value[:80]!r}")
-    path = Path(value)
-    parts = path.parts
-    if path.is_absolute() or not parts or any(part in ("", ".", "..") for part in parts):
-        raise _UnsafeSource(f"unsafe relative path {value[:80]!r}")
-    return parts
-
-
-def _parent_fd(base: Path, parts: tuple[str, ...]) -> int:
-    descriptor = _directory_fd(base)
-    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        for part in parts:
-            try:
-                before = os.stat(part, dir_fd=descriptor, follow_symlinks=False)
-                if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
-                    raise _UnsafeSource("parent component is not a regular directory")
-                child = os.open(part, flags, dir_fd=descriptor)
-            except FileNotFoundError:
-                raise
-            except _UnsafeSource:
-                raise
-            except OSError as exc:
-                raise _UnsafeSource("parent component cannot be opened safely") from exc
-            after = os.fstat(child)
-            if not stat.S_ISDIR(after.st_mode) or not _same_identity(before, after):
-                os.close(child)
-                raise _UnsafeSource("parent component changed while opening")
-            os.close(descriptor)
-            descriptor = child
-        return descriptor
-    except BaseException:
-        os.close(descriptor)
-        raise
-
-
-def _read_beneath(base: Path, relative: str | Path, max_bytes: int) -> tuple[bytes, int]:
-    """Read one stable, single-link regular file through no-follow dirfds."""
-    parts = _relative_parts(relative)
-    shown = os.fspath(relative)  # how the file is named in any error below
-    directory = _parent_fd(base, parts[:-1])
-    descriptor = -1
-    name = parts[-1]
-    try:
-        try:
-            before = os.stat(name, dir_fd=directory, follow_symlinks=False)
-        except FileNotFoundError:
-            raise
-        except OSError as exc:
-            raise _UnsafeSource("file metadata is unavailable") from exc
-        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-            raise _UnsafeSource("file is not a regular single-link file")
-        if before.st_size > max_bytes:
-            raise _UnsafeSource(f"{shown!r} is {before.st_size:,} bytes, over its read limit of {max_bytes:,}")
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
-        try:
-            descriptor = os.open(name, flags, dir_fd=directory)
-        except OSError as exc:
-            raise _UnsafeSource("file cannot be opened safely") from exc
-        opened = os.fstat(descriptor)
-        if not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1 or not _same_identity(before, opened):
-            raise _UnsafeSource(f"{shown!r} changed while opening")
-        chunks: list[bytes] = []
-        size = 0
-        while True:
-            chunk = os.read(descriptor, min(64 * 1024, max_bytes + 1 - size))
-            if not chunk:
-                break
-            chunks.append(chunk)
-            size += len(chunk)
-            if size > max_bytes:
-                raise _UnsafeSource(f"{shown!r} grew past its read limit of {max_bytes:,} bytes while reading")
-        after = os.fstat(descriptor)
-        try:
-            named_after = os.stat(name, dir_fd=directory, follow_symlinks=False)
-        except OSError as exc:
-            raise _UnsafeSource(f"{shown!r} changed while reading") from exc
-        if (not stat.S_ISREG(after.st_mode) or after.st_nlink != 1
-                or not _same_identity(opened, after) or not _same_identity(after, named_after)):
-            raise _UnsafeSource(f"{shown!r} changed while reading")
-        return b"".join(chunks), after.st_mtime_ns
-    finally:
-        if descriptor != -1:
-            os.close(descriptor)
-        os.close(directory)
-
+from shiploop_observation_io import _UnsafeSource, _read_beneath, _relative_parts, _same_identity, _directory_fd, _parent_fd
 
 def _mtime_text(stamp_ns: int | None) -> str | None:
     if stamp_ns is None:
@@ -218,14 +97,30 @@ def _read_document(
     *, base: Path, relative: str, doc_id: str, title: str, observed_at: str,
     warnings: list[str], mtimes: list[int], expected_record: Mapping[str, Any] | None = None,
     public_record: Mapping[str, Any] | None = None, acceptance: str | None = None,
-    max_bytes: int = _MAX_DOCUMENT_BYTES,
+    max_bytes: int = _MAX_DOCUMENT_BYTES, captures=None, previous=None,
 ) -> tuple[dict[str, Any], dict[str, str] | None]:
     """Read one run document safely beneath ``base``; returns its display record and a fingerprint entry, or a
     placeholder (missing or withheld) with a warning.
     """
     path = base / relative
     try:
-        raw, mtime_ns = _read_beneath(base, relative, max_bytes)
+        if captures is None:
+            raw, mtime_ns = _read_beneath(base, relative, max_bytes)
+        else:
+            from shiploop_observation_io import capture
+            key = "document:" + str(path)
+            value = capture(base, relative, max_bytes, observed_at, (previous or {}).get(key))
+            value["source"].update(id=key, path=str(path))
+            captures[key] = value
+            status = value["source"]["status"]
+            if status == "missing":
+                raise FileNotFoundError(relative)
+            if status not in ("ok", "stale"):
+                raise _UnsafeSource(value["source"]["message"])
+            raw, mtime_ns = value["raw"], value.get("mtime_ns")
+            observed_at = value["source"]["observed_at"]
+            if status == "stale":
+                warnings.append(f"Document stale: {doc_id}; retained its last successful read.")
     except FileNotFoundError:
         warnings.append(f"Document missing: {doc_id}.")
         return _doc_placeholder(doc_id=doc_id, title=title, path=path, observed_at=observed_at,
@@ -240,7 +135,8 @@ def _read_document(
         warnings.append(f"Document withheld: {doc_id} (read failed).")
         return _doc_placeholder(doc_id=doc_id, title=title, path=path, observed_at=observed_at,
                                 status="withheld", error=error, acceptance=acceptance), None
-    mtimes.append(mtime_ns)
+    if mtime_ns is not None:
+        mtimes.append(mtime_ns)
     digest = _sha256_hex(raw)
     try:
         content = raw.decode("utf-8")
@@ -258,9 +154,12 @@ def _read_document(
         return document, {"id": doc_id, "path": str(path), "sha256": digest}
     if expected_record is not None:
         try:
-            record = store.loads(content)
-        except store.StorageError:
+            record = store.observation_json(store.loads(content))
+        except (store.StorageError, ValueError, RecursionError):
             record = None
+            if captures is not None:
+                captures["document:" + str(path)]["source"].update(
+                    status="partial", message="Malformed optional structured document; accepted state remains authoritative.")
         if record != dict(expected_record):
             error = "Record does not match the accepted navigator state."
             warnings.append(f"Document withheld: {doc_id} (record does not match state).")
@@ -280,6 +179,8 @@ def _read_document(
         "content": content, "summary": summary, "sha256": digest,
         "observed_at": observed_at, "status": status,
     }
+    if captures is not None:
+        document["freshness"] = captures["document:" + str(path)]["source"]["status"]
     if acceptance:
         document["acceptance"] = acceptance
     return document, {"id": doc_id, "path": str(path), "sha256": digest}
@@ -334,20 +235,21 @@ def _within(path: Path, base: Path) -> bool:
 
 
 def _decode_timeline(root: Path, warnings: list[str], mtimes: list[int]) -> dict[str, Any]:
+    import shiploop_story as story_data
     try:
         raw, mtime_ns = _read_beneath(root, "timeline.json", 1024 * 1024)
-        value = json.loads(raw.decode("utf-8"))
-        if (not isinstance(value, dict) or not isinstance(value.get("accepted", {}), dict)
-                or not isinstance(value.get("started"), str)):
-            raise ValueError("invalid timeline shape: timeline.json needs an object whose `accepted` is an object "
-                             "and whose `started` is a string")
+        value = store.observation_json(json.loads(raw.decode("utf-8")))
+        value, malformed = story_data.normalise_timeline(value)
         mtimes.append(mtime_ns)
+        if malformed:
+            warnings.append("Timeline has malformed timestamps; unknown timestamps withheld.")
+            value["_display_malformed"] = True
         return value
     except FileNotFoundError:
         return {}
-    except (UnicodeError, ValueError, _UnsafeSource):
+    except (UnicodeError, ValueError, _UnsafeSource, RecursionError):
         warnings.append("Timeline is missing usable timestamps.")
-        return {}
+        return {"started": None, "accepted": {}, "_display_malformed": True}
 
 
 def _safe_summary(value: Any) -> str:
@@ -471,15 +373,19 @@ def _receipt_identity(root: Path, state: Mapping[str, Any], warnings: list[str])
         return {"status": "unverified"}
 
 
-def build_snapshot(root: Path) -> dict[str, Any]:
+class Snapshot(dict):
+    """Public JSON-compatible snapshot with observer-only capture handles."""
+
+
+def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, Any]:
     """Return a credential-screened snapshot without changing run or repository state."""
     run_root = Path(os.path.abspath(os.fspath(root)))
-    observed_at = _now()
+    observed_at = core["observed_at"] if core else _now()
     warnings: list[str] = []
     mtimes: list[int] = []
 
     try:
-        state_raw, state_mtime = _read_beneath(run_root, "state.md", _MAX_STATE_BYTES)
+        state_raw, state_mtime = (core["state_raw"], core["state_mtime"]) if core else _read_beneath(run_root, "state.md", _MAX_STATE_BYTES)
     except (_UnsafeSource, FileNotFoundError) as exc:
         raise ValueError("authoritative state.md is missing or unsafe") from exc
     except OSError:
@@ -487,7 +393,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     mtimes.append(state_mtime)
     try:
         state = store.loads(state_raw.decode("utf-8"))
-    except (UnicodeError, store.StorageError) as exc:
+    except (UnicodeError, store.StorageError, RecursionError) as exc:
         raise ValueError("authoritative state.md is malformed") from exc
     try:
         navigator.validate(state)
@@ -513,7 +419,12 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     else:
         owner = "ShipLoop"
 
-    timeline = _decode_timeline(run_root, warnings, mtimes)
+    if core:
+        import shiploop_story as story_data
+        _, timeline = story_data.core_values(core)
+    else:
+        timeline = _decode_timeline(run_root, warnings, mtimes)
+    document_captures = {}
     docs: list[dict[str, Any]] = []
     doc_identity: list[dict[str, str]] = []
 
@@ -592,7 +503,7 @@ def build_snapshot(root: Path) -> dict[str, Any]:
                                             observed_at=observed_at, warnings=warnings, mtimes=mtimes,
                                             expected_record=expected, public_record=public_record,
                                             acceptance=acceptance,
-                                            max_bytes=_MAX_DOCUMENT_BYTES)
+                                            max_bytes=_MAX_DOCUMENT_BYTES, captures=document_captures, previous=optional_cache)
         docs.append(document)
         doc_identity.append(identity or {"id": document["id"], "path": document["path"],
                                          "status": document["status"], "error": document.get("error")})
@@ -678,6 +589,17 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     }
     if terminal_report:
         snapshot["terminal_report"] = terminal_report
+    import shiploop_story as story_data
+    story, captures = story_data.build(run_root, state, timeline, previous=optional_cache, observed_at=observed_at, core=core, captured=document_captures)
+    snapshot["story"] = story
+    snapshot["activity_fingerprint"] = _sha256_hex(_canonical([_redact_tree(state), story["activity_fingerprint"]]))
+    snapshot["source_fingerprint"] = _sha256_hex(_canonical([snapshot["source_fingerprint"], story["content_fingerprint"]]))
+    from shiploop_observation_io import screen
+    snapshot = Snapshot(screen(snapshot))
+    # Internal capture handles are stripped by publish and never serialized.
+    snapshot.core = core or {"state_raw": state_raw, "state_mtime": state_mtime,
+                                 "timeline_raw": json.dumps(timeline).encode(), "observed_at": observed_at}
+    snapshot.captures = captures
     return snapshot
 
 

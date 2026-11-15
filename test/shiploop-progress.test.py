@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import errno
+import contextlib
 import fcntl
 import http.client
+import io
 import json
 import os
 from pathlib import Path
@@ -446,6 +448,259 @@ class ViewerTests(RunCase):
         later = navigator._progress_view_line(None, self.run, accepted)
         self.assertEqual(first.split(" To follow it in a browser", 1)[0], later)
         self.assertNotIn("--serve", later)
+
+
+class StartupReportingTests(unittest.TestCase):
+    """Caller reporting only: no process, server, observer wait, or workflow transition."""
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="progress-startup-reporting-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.repo = self.root / "repo"
+        self.repo.mkdir()
+        state = navigator.new_state(str(self.repo), "Synthetic startup", improve_skill="")
+        (self.root / "state.md").write_text(store.dumps(state))
+        for patcher in (mock.patch.object(progress.subprocess, "Popen", side_effect=AssertionError("no process")),
+                        mock.patch.object(progress.time, "sleep", side_effect=AssertionError("no wait"))):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def set_page(self, present):
+        page = self.root / progress.PAGE
+        if present:
+            page.write_text("old page; freshness unconfirmed")
+        elif page.exists():
+            page.unlink()
+
+    def test_explicit_start_reports_pending_alive_with_missing_or_old_page(self):
+        for present in (False, True):
+            with self.subTest(page_present=present):
+                self.set_page(present)
+                out, err = io.StringIO(), io.StringIO()
+                with mock.patch.object(progress, "start", return_value=False), \
+                        mock.patch.object(progress, "running", return_value=True) as running, \
+                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = progress.main(["--run-dir", str(self.root), "--start"])
+                self.assertEqual(code, 0)
+                running.assert_called_once_with(self.root)
+                self.assertIn("was running when checked", out.getvalue())
+                self.assertIn("pending confirmation", out.getvalue())
+                self.assertIn("Wait", out.getvalue())
+                self.assertIn("Target page (may not be ready): " + str(self.root / progress.PAGE), out.getvalue())
+                self.assertNotEqual(out.getvalue(), str(self.root / progress.PAGE) + "\n")
+                self.assertEqual(err.getvalue(), "")
+                self.assertEqual((self.root / progress.PAGE).exists(), present)
+
+    def test_explicit_start_failure_stays_unavailable_even_with_old_page(self):
+        for present in (False, True):
+            with self.subTest(page_present=present):
+                self.set_page(present)
+                out, err = io.StringIO(), io.StringIO()
+                with mock.patch.object(progress, "start", return_value=False), \
+                        mock.patch.object(progress, "running", return_value=False), \
+                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = progress.main(["--run-dir", str(self.root), "--start"])
+                self.assertEqual(code, 2)
+                self.assertIn("unavailable", err.getvalue())
+                self.assertNotIn("pending", err.getvalue())
+                self.assertEqual(out.getvalue(), "")
+
+    def test_ready_explicit_start_keeps_path_only_output(self):
+        self.set_page(True)
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(progress, "start", return_value=True), \
+                mock.patch.object(progress, "running") as running, \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = progress.main(["--run-dir", str(self.root), "--start"])
+        self.assertEqual(code, 0)
+        self.assertEqual(out.getvalue(), str(self.root / progress.PAGE) + "\n")
+        self.assertEqual(err.getvalue(), "")
+        running.assert_not_called()
+
+    def test_ensure_distinguishes_pending_from_unavailable_without_a_page(self):
+        for alive in (True, False):
+            with self.subTest(running_at_check=alive):
+                err = io.StringIO()
+                with mock.patch.dict(os.environ, {"SHIPLOOP_PROGRESS": "watch"}), \
+                        mock.patch.object(progress, "start", return_value=False), \
+                        mock.patch.object(progress, "running", return_value=alive), \
+                        contextlib.redirect_stderr(err):
+                    progress.ensure(self.root)
+                self.assertEqual("pending confirmation" in err.getvalue(), alive)
+                self.assertEqual("unavailable" in err.getvalue(), not alive)
+                self.assertFalse((self.root / progress.PAGE).exists())
+
+    def test_serve_continues_read_only_while_start_publication_is_pending(self):
+        for present in (False, True):
+            with self.subTest(page_present=present):
+                self.set_page(present)
+                err = io.StringIO()
+                with mock.patch.object(progress, "start", return_value=False) as start, \
+                        mock.patch.object(progress, "running", return_value=True), \
+                        mock.patch.object(viewer, "serve", return_value=7) as serve, \
+                        contextlib.redirect_stderr(err):
+                    code = progress.serve(self.root, port=0, interval=.1, idle_timeout=10)
+                self.assertEqual(code, 7)
+                start.assert_called_once_with(self.root, interval=.1, idle_timeout=10)
+                serve.assert_called_once_with(self.root, port=0)
+                self.assertIn("pending confirmation", err.getvalue())
+                self.assertIn("Serving read-only; pages may not be published yet", err.getvalue())
+                self.assertNotIn("unavailable", err.getvalue())
+                self.assertEqual((self.root / progress.PAGE).exists(), present)
+
+
+class ObservationGenerationTests(unittest.TestCase):
+    """One-shot fixture observations only; no detached observer or HTTP server."""
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="progress-generation-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.repo = self.root / "repo"
+        self.repo.mkdir()
+        (self.root / ".lock").touch()
+        self.state = navigator.new_state(str(self.repo), "Synthetic generation", improve_skill="")
+        (self.root / "state.md").write_text(store.dumps(self.state))
+
+    def published_models(self):
+        """Read the actual trace payload and progress browser inputs from disk."""
+        page = (self.root / "trace.html").read_text()
+        start = page.index("const TRACE = ") + len("const TRACE = ")
+        trace_model = json.loads(page[start:page.index(";\n", start)])
+        page = (self.root / progress.PAGE).read_text()
+        progress_inputs = dict(re.findall(r'data-([a-z-]+)="([^"]*)"', page))
+        self.assertEqual(trace_model["observed_at"], progress_inputs["observed-at"])
+        self.assertEqual(trace_model["observer"]["mode"], progress_inputs["mode"])
+        self.assertEqual(str(trace_model["observer"]["final"]).lower(), progress_inputs["final"])
+        return trace_model, progress_inputs
+
+    def test_snapshot_trace_explicitly_disables_reload(self):
+        self.assertEqual(progress.observe(self.root, watch=False), 0)
+        model, inputs = self.published_models()
+        self.assertEqual(model["observer"], {"mode": "snapshot", "final": False, "error": ""})
+
+    def test_watch_heartbeat_republishes_both_pages_without_resetting_idle(self):
+        import shiploop_story as story
+        import shiploop_trace as trace
+        clock = [100.0]
+        models, keys, activity = [], [], []
+        real_publish, real_sample = progress.publish, progress.sample
+        def sample(*args, **kwargs):
+            value = real_sample(*args, **kwargs)
+            activity.append((value["source_fingerprint"], value["activity_fingerprint"]))
+            return value
+        def publish(*args, **kwargs):
+            real_publish(*args, **kwargs)
+            model, inputs = self.published_models()
+            models.append(model)
+            keys.append(trace.source_key(self.root, model=model))
+        def sleep(interval):
+            clock[0] += interval
+        with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
+                mock.patch.object(progress.time, "sleep", side_effect=sleep), \
+                mock.patch.object(progress, "HEARTBEAT", 1), \
+                mock.patch.object(story, "utc", side_effect=lambda: f"2026-11-14T00:00:{int(clock[0] - 100):02d}Z"), \
+                mock.patch.object(progress, "sample", side_effect=sample), \
+                mock.patch.object(progress, "publish", side_effect=publish):
+            self.assertEqual(progress.observe(self.root, watch=True, interval=1, idle_timeout=2), 0)
+        self.assertEqual(len(activity), 3)  # Heartbeats must not extend the idle deadline.
+        self.assertEqual(len(set(activity)), 1)
+        self.assertEqual(len(models), 4)  # Three watch publications, then stopped.
+        self.assertEqual(len(set(keys[:3])), 1)
+        self.assertEqual(len({model["observed_at"] for model in models[:3]}), 3)
+        self.assertEqual([model["observer"]["mode"] for model in models],
+                         ["watch", "watch", "watch", "snapshot"])
+        self.assertIn("idle timeout", models[-1]["observer"]["error"])
+
+    def test_terminal_watch_publishes_nonfinal_then_reconciled_final(self):
+        self.state.update(status="halted", status_reason="Fixture terminal reconciliation")
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        clock = [100.0]
+        models = []
+        real_publish = progress.publish
+        def publish(*args, **kwargs):
+            real_publish(*args, **kwargs)
+            models.append(self.published_models()[0])
+        def sleep(interval):
+            clock[0] += interval
+        with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
+                mock.patch.object(progress.time, "sleep", side_effect=sleep), \
+                mock.patch.object(progress, "publish", side_effect=publish):
+            self.assertEqual(progress.observe(self.root, watch=True, interval=1), 0)
+        self.assertEqual([model["observer"]["final"] for model in models], [False, True])
+        self.assertTrue(all(model["observer"]["mode"] == "watch" for model in models))
+        self.assertEqual(json.loads((self.root / progress.STATUS).read_text())["status"], "final")
+
+    def test_trace_publication_recovers_on_unchanged_watch_content(self):
+        import shiploop_trace as trace
+        clock = [100.0]
+        statuses = []
+        real_write, real_publish = trace.write_html, progress.publish
+        attempts = [0]
+        def write(*args, **kwargs):
+            attempts[0] += 1
+            if attempts[0] == 1:
+                raise OSError("fixture transient trace publication error")
+            return real_write(*args, **kwargs)
+        def publish(*args, **kwargs):
+            real_publish(*args, **kwargs)
+            statuses.append(args[1]["trace_publication"]["status"])
+            if statuses[-1] == "ok" and kwargs["mode"] == "watch":
+                model, inputs = self.published_models()
+                self.assertEqual(model["observer"]["error"], "")
+                # Stop cooperatively after the successful retry.
+                (self.root / progress.DISABLED).write_text("fixture request")
+        def sleep(interval):
+            clock[0] += interval
+        with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
+                mock.patch.object(progress.time, "sleep", side_effect=sleep), \
+                mock.patch.object(trace, "write_html", side_effect=write), \
+                mock.patch.object(progress, "publish", side_effect=publish):
+            self.assertEqual(progress.observe(self.root, watch=True, interval=1), 0)
+        self.assertEqual(statuses, ["unavailable", "ok", "ok"])
+        model, inputs = self.published_models()
+        self.assertEqual(model["observer"]["mode"], "snapshot")
+        self.assertIn("stopped by request", model["observer"]["error"])
+        status = json.loads((self.root / progress.STATUS).read_text())
+        self.assertEqual(status["trace_publication"]["status"], "ok")
+
+    def test_busy_and_pending_transaction_do_not_parse_or_recover(self):
+        import shiploop_progress_data as data
+        with (self.root / ".lock").open() as handle, mock.patch.object(store, "recover", side_effect=AssertionError("no recovery")), mock.patch.object(data, "build_snapshot") as build:
+            fcntl.flock(handle, fcntl.LOCK_EX)
+            self.assertIsNone(progress.sample(self.root))
+            build.assert_not_called()
+            fcntl.flock(handle, fcntl.LOCK_UN)
+            journal = self.root / store.JOURNAL_NAME
+            journal.write_text("owned by workflow")
+            self.assertIsNone(progress.sample(self.root))
+            self.assertEqual(journal.read_text(), "owned by workflow")
+            build.assert_not_called()
+
+    def test_core_lock_released_before_projection_and_trace_uses_captured_generation(self):
+        import shiploop_progress_data as data
+        import shiploop_trace as trace
+        original = data.build_snapshot
+        def project(root, **kwargs):
+            with (root / ".lock").open() as handle:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return original(root, **kwargs)
+        with mock.patch.object(data, "build_snapshot", side_effect=project):
+            snapshot = progress.sample(self.root)
+        action = navigator.current_action(self.state)["id"]
+        updated = navigator.apply(self.state, action, {"outcome": "done", "summary": "Later generation"})
+        (self.root / "state.md").write_text(store.dumps(updated))
+        model = trace.build(self.root, core=snapshot.core, captures=snapshot.captures)
+        self.assertEqual(model["run"]["revision"], snapshot["run"]["revision"])
+        self.assertNotEqual(model["run"]["revision"], updated["revision"])
+        self.assertNotIn("state_raw", json.dumps(snapshot))
+
+    def test_trace_publication_failure_is_visible_in_page_and_status(self):
+        import shiploop_trace as trace
+        with mock.patch.object(trace, "write_html", side_effect=OSError("fixture publication failure")):
+            self.assertEqual(progress.observe(self.root, watch=False), 0)
+        status = json.loads((self.root / progress.STATUS).read_text())
+        self.assertEqual(status["trace_publication"]["status"], "unavailable")
+        self.assertIn("Trace publication failed", (self.root / progress.PAGE).read_text())
 
 
 if __name__ == "__main__":

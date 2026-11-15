@@ -312,6 +312,15 @@ class TraceReviewFindingTests(CliRun):
 
 
 class TraceReaderTests(CliRun):
+    def test_actionless_command_keeps_recorded_cursor_context(self) -> None:
+        action = self.action()
+        trace.record(self.run, "command", verb="status", exit=0, cursor=[action, action])
+        model = trace.build(self.run)
+        status = [row for row in model["events"] if row.get("verb") == "status"][-1]
+        self.assertFalse(status.get("action"))
+        self.assertEqual(status["for_action"], action)
+        self.assertEqual(status["binding"], "contextual")
+
     def test_the_digest_shows_now_the_plan_steps_and_recent_events(self) -> None:
         intake, discovery = self.drive()
         text = self.ok("trace", "--run-dir", str(self.run), "--last", "0").stdout
@@ -480,6 +489,7 @@ class TracePlanTests(unittest.TestCase):
         self.run.mkdir()
 
     def saved(self, state: dict) -> dict:
+        (self.run / ".lock").touch(exist_ok=True)  # coherent fixture for the read-only shared-lock reader
         navigator.save(self.run, state)
         return trace.build(self.run)
 
@@ -531,6 +541,285 @@ class TraceHookTests(keepalive_tests.KeepaliveTestCase):
         before = (self.run_dir / trace.TRACE_FILE).read_bytes()
         self.hook("stop", "claude", self.payload("claude", "stop", "never-bound"))
         self.assertEqual((self.run_dir / trace.TRACE_FILE).read_bytes(), before)
+
+
+class SafeTraceObservationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="safe-trace-observation-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.repo = self.root / "repo"
+        self.repo.mkdir()
+        (self.root / ".lock").touch()
+        self.state = navigator.new_state(str(self.repo), "Synthetic trace", improve_skill="")
+        (self.root / "state.md").write_text(store.dumps(self.state))
+
+    def test_actual_sparse_status_card_archive_keeps_unknown_identities_and_workspace(self):
+        status_card_tests = _load("sparse_status_card_fixture", "shiploop-e2e-status-card.test.py")
+        fixture = status_card_tests.Builders()
+        fixture.base = self.root
+        folder = fixture.traced_folder()
+        run = folder / ".shiploop-runs/work-1/run"
+        cwd = self.root / "unrelated-cwd"
+        (cwd / "docs/shiploop").mkdir(parents=True)
+        (cwd / "docs/shiploop/spec.md").write_text("### R-99. Unrelated cwd requirement\nUNRELATED_CWD")
+        for relative in ("packets/None.md", "results/None.md", "checks/None.md"):
+            path = run / relative
+            path.parent.mkdir(exist_ok=True)
+            path.write_text("UNRELATED_NULL_ARTIFACT")
+        original_read = trace.observation_io._read_beneath
+        for locked in (False, True):
+            with self.subTest(locked=locked):
+                if locked:
+                    (run / ".lock").touch()
+                before = {str(path.relative_to(run)): (path.stat().st_ino, path.stat().st_size,
+                          path.stat().st_mtime_ns, path.stat().st_ctime_ns,
+                          path.read_bytes() if path.is_file() else None) for path in run.rglob("*")}
+                old_cwd = Path.cwd()
+                try:
+                    os.chdir(cwd)
+                    with mock.patch.object(trace.observation_io, "_read_beneath", wraps=original_read) as reads:
+                        model = trace.build(run)
+                        rendered = trace.render_html(run, model)
+                finally:
+                    os.chdir(old_cwd)
+                after = {str(path.relative_to(run)): (path.stat().st_ino, path.stat().st_size,
+                         path.stat().st_mtime_ns, path.stat().st_ctime_ns,
+                         path.read_bytes() if path.is_file() else None) for path in run.rglob("*")}
+                self.assertEqual(before, after)
+                self.assertEqual((run / ".lock").exists(), locked)
+                self.assertIsNone(model["now"]["action"])
+                expanded = model["request"]["expanded"]
+                self.assertEqual(expanded["requirements"], [])
+                self.assertIsNone(expanded["spec_file"])
+                self.assertIsNone(expanded["architecture_file"])
+                accepted = [row for row in model["story"]["events"] if row["kind"] == "accepted"]
+                self.assertEqual(len(accepted), 3)
+                self.assertEqual(len({row["id"] for row in accepted}), 3)
+                self.assertTrue(all(row["action"] is None and row["binding"] == "unbound" for row in accepted))
+                visits = model["story"]["visits"]
+                self.assertEqual(len(visits), 3)
+                self.assertEqual(len({row["id"] for row in visits}), 3)
+                self.assertTrue(all(row["action"] is None and len(row["events"]) == 1 and not row["evidence"] for row in visits))
+                self.assertTrue(all(row["result"] is None for row in model["steps"]))
+                self.assertEqual(len(trace.page_texts(run, model)), 2)
+                self.assertNotIn("UNRELATED_", rendered)
+                for call in reads.call_args_list:
+                    self.assertNotIn("None.md", str(call.args[1]))
+                    self.assertNotIn(str(cwd), str(call.args[0]))
+
+    def test_sparse_archive_cannot_bind_producer_observations_without_run_identity(self):
+        status_card_tests = _load("sparse_producer_status_card_fixture", "shiploop-e2e-status-card.test.py")
+        fixture = status_card_tests.Builders()
+        fixture.base = self.root
+        run = fixture.traced_folder() / ".shiploop-runs/work-1/run"
+        row = {"schema": "shiploop-progress-observation/v1", "id": "sparse-producer",
+               "producer": "fixture-harness", "scope": "fixture execution", "kind": "fact",
+               "title": "Stopped", "summary": "Typed producer claim", "status": "stopped",
+               "observed_at": "2026-01-01T00:00:00Z", "logged_at": "2026-01-01T00:00:00Z",
+               "lifecycle": {key: {"status": "claimed"} for key in ("execution", "acceptance", "owner_hold")}}
+        # Both missing and explicitly null producer identities used to compare equal
+        # to this fixture's missing run identity.
+        for candidate in (row, dict(row, id="null-producer", run_id=None)):
+            store.append_jsonl(run / "progress-observations.jsonl", candidate)
+        story = trace.build(run)["story"]
+        self.assertEqual(story["observations"], [])
+        for key in ("execution", "acceptance", "owner_hold"):
+            self.assertEqual(story["lifecycle"][key]["status"], "unknown")
+        source = next(row for row in story["sources"] if row["id"] == "progress-observations.jsonl")
+        self.assertEqual(source["status"], "partial")
+        self.assertIn("observations ignored", source["message"])
+        self.assertEqual(sum("Ignored unbound or invalid producer observation" in warning
+                             for warning in story["warnings"]), 2)
+
+    def test_unknown_workspace_never_becomes_cwd_knowledge(self):
+        for repo in (None, "", "relative-repo", 42, {}, "bad\x00path"):
+            with self.subTest(repo=repo):
+                self.state["repo"] = repo
+                (self.root / "state.md").write_text(store.dumps(self.state))
+                with mock.patch.object(trace, "requirements", side_effect=AssertionError("unknown workspace read")):
+                    expanded = trace.build(self.root)["request"]["expanded"]
+                self.assertEqual(expanded["requirements"], [])
+                self.assertIsNone(expanded["spec_file"])
+                self.assertIsNone(expanded["architecture_file"])
+
+    def test_legacy_archive_without_lock_is_nonmutating_and_qualified(self):
+        self.state["execution_mode"] = "legacy"
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        (self.root / ".lock").unlink()
+        before = {str(path.relative_to(self.root)): (path.stat(), path.read_bytes() if path.is_file() else None)
+                  for path in self.root.rglob("*")}
+        model = trace.build(self.root)
+        after = {str(path.relative_to(self.root)): (path.stat(), path.read_bytes() if path.is_file() else None)
+                 for path in self.root.rglob("*")}
+        # Reads may update atime; entries, bytes, identity and modification clocks must not change.
+        stable = lambda snapshot: {name: (info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns,
+                                         info.st_ctime_ns, raw) for name, (info, raw) in snapshot.items()}
+        self.assertEqual(stable(before), stable(after))
+        self.assertEqual(model["run"]["id"], self.state["run_id"])
+        source = next(row for row in model["story"]["sources"] if row["id"] == "state.md")
+        self.assertEqual(source["consistency"], "unlocked-archive")
+        self.assertEqual(source["status"], "partial")
+        self.assertIn("without a shared lock", source["message"])
+        self.assertTrue(any("without a shared lock" in warning for warning in model["story"]["warnings"]))
+
+    def test_explicit_lock_allows_legacy_display_without_resume_validation(self):
+        self.state["execution_mode"] = "legacy"
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        model = trace.build(self.root)
+        source = next(row for row in model["story"]["sources"] if row["id"] == "state.md")
+        self.assertEqual(model["run"]["id"], self.state["run_id"])
+        self.assertEqual(source["consistency"], "shared-lock")
+        self.assertEqual(source["status"], "ok")
+
+    def test_pending_transaction_refused_with_or_without_lock(self):
+        journal = self.root / store.JOURNAL_NAME
+        journal.write_text("retained pending transaction")
+        for locked in (True, False):
+            with self.subTest(locked=locked):
+                if not locked:
+                    (self.root / ".lock").unlink()
+                with self.assertRaisesRegex(ValueError, "transaction pending"):
+                    trace.build(self.root)
+                self.assertEqual(journal.read_text(), "retained pending transaction")
+
+    def test_archive_capture_refuses_transaction_or_lock_appearing_during_read(self):
+        import shiploop_story as story
+        (self.root / ".lock").unlink()
+        original = story.capture_core
+        for name in (store.JOURNAL_NAME, ".lock"):
+            with self.subTest(name=name):
+                def capture_then_change(*args, **kwargs):
+                    core = original(*args, **kwargs)
+                    (self.root / name).write_text("appeared during capture")
+                    return core
+                with mock.patch.object(story, "capture_core", side_effect=capture_then_change):
+                    with self.assertRaisesRegex(ValueError, "during archive capture"):
+                        trace.build(self.root)
+                (self.root / name).unlink()
+
+    def test_unsafe_and_busy_locks_never_use_archive_fallback(self):
+        import fcntl
+        lock = self.root / ".lock"
+        with lock.open("rb") as held:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with self.assertRaisesRegex(ValueError, "busy"):
+                trace.build(self.root)
+        lock.unlink()
+        lock.symlink_to(self.root / "absent-lock-target")
+        with self.assertRaises(ValueError):
+            trace.build(self.root)
+        lock.unlink()
+        target = self.root / "other-lock"
+        target.touch()
+        os.link(target, lock)
+        with self.assertRaises(ValueError):
+            trace.build(self.root)
+
+    def test_malformed_state_remains_refused_in_archive_and_locked_reads(self):
+        for raw in ("not a state record", "```shiploop-state\n{broken}\n```",
+                    "```shiploop-state\n[]\n```"):
+            (self.root / "state.md").write_text(raw)
+            for locked in (True, False):
+                with self.subTest(raw=raw, locked=locked):
+                    lock = self.root / ".lock"
+                    if locked:
+                        lock.touch()
+                    elif lock.exists():
+                        lock.unlink()
+                    with self.assertRaises((store.StorageError, ValueError)):
+                        trace.build(self.root)
+
+    def test_packet_paths_cannot_escape_run_or_follow_parent_links(self):
+        (self.repo / "private.md").write_text("must remain private")
+        (self.root / "linked").symlink_to(self.repo, target_is_directory=True)
+        model = {"events": [{"kind": "packet", "file": "../repo/private.md"},
+                             {"kind": "packet", "file": "linked/private.md"},
+                             {"kind": "packet", "file": str(self.repo / "private.md")}], "steps": []}
+        self.assertEqual(trace.page_texts(self.root, model), {})
+
+    def test_trace_screens_prompt_arguments_paths_and_hidden_fields(self):
+        secret = "api_key=abcdefghijk1234567890"
+        self.state["prompt"] = secret
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        store.append_jsonl(self.root / "skill-calls.jsonl", {"skill": secret, "args": [secret]})
+        model = trace.build(self.root)
+        self.assertNotIn(secret, json.dumps(model))
+        self.assertNotIn(secret, trace.render_html(self.root, model))
+
+    def test_surrogate_source_text_remains_readable_and_the_page_encodes(self):
+        text = "Undecodable filename " + os.fsdecode(b"caf\xe9.txt")
+        store.append_jsonl(self.root / trace.TRACE_FILE, {"kind": "command", "verb": "check", "error": text})
+        model = trace.build(self.root)
+        self.assertIn(text, [row.get("error") for row in model["events"]])
+        trace.render_html(self.root, model).encode("utf-8")
+
+    def test_source_key_covers_timeline_spec_and_packet_content(self):
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.parent.mkdir(parents=True)
+        spec.write_text("### R-1. First requirement\nRead the first source.")
+        packets = self.root / "packets"
+        packets.mkdir()
+        packet = packets / "sent.md"
+        packet.write_text("First prompt")
+        store.append_jsonl(self.root / trace.TRACE_FILE, {"kind": "packet", "file": "packets/sent.md", "ts": 1.0})
+        first = trace.source_key(self.root)
+        spec.write_text("### R-1. Revised requirement\nRead the second source.")
+        second = trace.source_key(self.root)
+        self.assertNotEqual(first, second)
+        packet.write_text("Revised prompt")
+        third = trace.source_key(self.root)
+        self.assertNotEqual(second, third)
+        (self.root / "timeline.json").write_text(json.dumps({"started": "2026-01-01T00:00:00Z", "accepted": {}}))
+        self.assertNotEqual(third, trace.source_key(self.root))
+
+    def test_shared_observation_time_is_exposed_without_invalidating_heartbeat_key(self):
+        import shiploop_progress as progress
+        snapshot = progress.sample(self.root)
+        first = trace.build(self.root, core=snapshot.core, captures=snapshot.captures, now=1.0)
+        self.assertEqual(first["observed_at"], snapshot.core["observed_at"])
+        self.assertEqual(snapshot.core["consistency"], "shared-lock")
+        source = next(row for row in first["story"]["sources"] if row["id"] == "state.md")
+        self.assertEqual(source["consistency"], "shared-lock")
+        self.assertEqual(source["message"], "Shared-lock core generation.")
+        self.assertFalse(any("without a shared lock" in warning for warning in first["story"]["warnings"]))
+        later_core = dict(snapshot.core, observed_at="2026-01-02T03:04:05Z")
+        with mock.patch("shiploop_story.capture_core", side_effect=AssertionError("must reuse supplied core")):
+            later = trace.build(self.root, core=later_core, captures=snapshot.captures, now=2.0)
+        self.assertEqual(later["observed_at"], later_core["observed_at"])
+        self.assertNotEqual(first["observed_at"], later["observed_at"])
+        self.assertNotEqual(first["generated"], later["generated"])
+        self.assertEqual(trace.source_key(self.root, model=first), trace.source_key(self.root, model=later))
+
+    def test_accepted_anchor_survives_delayed_command_and_optional_damage(self):
+        action = navigator.current_action(self.state)["id"]
+        self.state = navigator.apply(self.state, action, {"outcome": "done", "summary": "Accepted scope"})
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        first = trace.build(self.root)
+        store.append_jsonl(self.root / trace.TRACE_FILE, {"kind": "command", "action": action,
+                            "accepted": [{"action": action}], "ts": "not a timestamp", "ms": 12, "exit": 0})
+        second = trace.build(self.root)
+        accepted = lambda model: [e["id"] for e in model["story"]["events"] if e["kind"] == "accepted"]
+        self.assertEqual(accepted(first), ["accepted:" + action])
+        self.assertEqual(accepted(first), accepted(second))
+
+    def test_legacy_accepted_events_only_fill_timestamped_uncovered_history(self):
+        actions = []
+        for _ in range(3):
+            action = navigator.current_action(self.state)["id"]
+            actions.append(action)
+            self.state = navigator.apply(self.state, action, {"outcome": "done", "summary": "Accepted scope"})
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        (self.root / "timeline.json").write_text(json.dumps({"accepted": {
+            actions[0]: "2026-01-01T00:00:01Z", actions[1]: "2026-01-01T00:00:02Z"}}))
+        store.append_jsonl(self.root / trace.TRACE_FILE, {"kind": "command", "verb": "complete",
+                          "accepted": [{"action": actions[0]}], "ts": 1767225601, "exit": 0})
+        model = trace.build(self.root)
+        self.assertEqual([row["action"] for row in model["events"] if row["kind"] == "accepted"], [actions[1]])
+        self.assertEqual(model["run"]["untraced_steps"], 1)
+        accepted = [row for row in model["story"]["events"] if row["kind"] == "accepted"]
+        self.assertEqual({row["id"] for row in accepted}, {"accepted:" + action for action in actions})
+        self.assertIsNone(next(row for row in accepted if row["action"] == actions[2])["at"])
 
 
 if __name__ == "__main__":

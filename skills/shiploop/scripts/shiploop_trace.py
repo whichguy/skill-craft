@@ -27,6 +27,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -35,6 +36,10 @@ import time
 from typing import Any, Mapping, Sequence
 
 import shiploop_store as store
+import shiploop_observation_io as observation_io
+from contextvars import ContextVar
+
+_READ_ROOTS = ContextVar("trace_read_roots", default=())
 
 TRACE_FILE = "trace.jsonl"
 SENT_DIR = "packets/sent"
@@ -108,6 +113,7 @@ def current_state(root: str | Path | None) -> dict[str, Any] | None:
     if root is None:
         return None
     try:
+        # Admission is a workflow check, not a bounded display capture.
         state = store.read_record(Path(root) / "state.md")
         if not isinstance(state, dict) or navigator.retired_run_reason(state) is not None:
             return None
@@ -230,17 +236,23 @@ def _cursor(state: Mapping[str, Any]) -> tuple[str | None, Mapping[str, Any] | N
         return state.get("stage"), state.get("action"), None
 
 
+def _recorded_repo(state: Mapping[str, Any]) -> Path | None:
+    """Only an explicitly recorded absolute workspace establishes a read root."""
+    value = state.get("repo")
+    return Path(value) if isinstance(value, str) and "\x00" not in value and Path(value).is_absolute() else None
+
+
 # ---------------------------------------------------------------------------------------------------------- reader
 
 
 def _parse(stamp: Any) -> float | None:
-    if isinstance(stamp, (int, float)):
-        return float(stamp)
-    if not isinstance(stamp, str):
-        return None
     try:
-        return datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
-    except ValueError:
+        value = float(stamp) if isinstance(stamp, (int, float)) else datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp() if isinstance(stamp, str) else None
+        if value is None or not math.isfinite(value):
+            return None
+        datetime.fromtimestamp(value)
+        return value
+    except (ValueError, OverflowError, OSError):
         return None
 
 
@@ -248,31 +260,81 @@ def _iso(ts: float | None) -> str | None:
     return None if ts is None else time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
 
 
-def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
+def _normal_event(row):
+    """Tolerate optional journal shape damage without suppressing fresh core state."""
+    row = dict(row)
+    ts = _parse(row.get("ts")) or _parse(row.get("at"))
+    row["ts"] = ts if ts is not None and math.isfinite(ts) else 0
+    for key in ("action", "sha", "note", "at", "file", "head_file"):
+        if key in row and not isinstance(row[key], str):
+            row[key] = None
+    for key in ("cursor", "rev", "stage"):
+        if row.get("kind") == "command":
+            value = row.get(key)
+            row[key] = value if isinstance(value, list) and len(value) == 2 and all(isinstance(x, (str, int, type(None))) for x in value) else [None, None]
+    for key in ("notes", "held", "shown", "delivered"):
+        value = row.get(key)
+        row[key] = [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
+    row["accepted"] = [item for item in row.get("accepted", []) if isinstance(item, dict) and isinstance(item.get("action"), str)] if isinstance(row.get("accepted", []), list) else []
+    return row
+
+
+def build(root: str | Path, *, now: float | None = None, core=None, captures=None) -> dict[str, Any]:
     """The reader's model of one run: run facts, the plan of every stage, the steps run, and every event in order."""
     import shiploop_navigator as navigator
     import shiploop_prompts as guidance
 
     run = Path(root)
-    state = store.read_record(run / "state.md")
+    import shiploop_story as story_data
+    if core is None:
+        # Existing locks retain the live reader's safety/refusal contract.
+        import shiploop_progress as progress
+        try:
+            os.lstat(run / ".lock")
+        except FileNotFoundError:
+            # Retained archives may predate the lock. Read stable safe files,
+            # without creating a lock or claiming a coherent live generation.
+            if os.path.lexists(run / store.JOURNAL_NAME):
+                raise ValueError("run busy or transaction pending")
+            core = story_data.capture_core(run, consistency="unlocked-archive")
+            if os.path.lexists(run / store.JOURNAL_NAME) or os.path.lexists(run / ".lock"):
+                raise ValueError("run lock appeared or transaction pending during archive capture")
+        else:
+            with progress._lock(run, ".lock", shared=True) as acquired:
+                if not acquired or os.path.lexists(run / store.JOURNAL_NAME):
+                    raise ValueError("run busy or transaction pending")
+                core = story_data.capture_core(run)
+    state, timeline = story_data.core_values(core)
+    if not isinstance(state, dict):
+        raise ValueError("trace state must be an object")
+    captures = dict(captures or {})
+    def stream(name):
+        if name not in captures:
+            captures[name] = observation_io.capture(run, name, TRACE_LIMIT, core["observed_at"])
+        return [row for _, row in observation_io.stream(captures[name])]
     clock = time.time() if now is None else now
-    timeline = navigator.load_timeline(run)
     accepted_at = {action: _parse(stamp) for action, stamp in (timeline.get("accepted") or {}).items()}
     trace_path = run / TRACE_FILE
-    traced = trace_path.is_file()
-    raw = store.read_jsonl(trace_path)
+    def sourced_stream(name):
+        stream(name)
+        value = captures[name]
+        physical = value["raw"].split(b"\n")
+        return [dict(row, id=f"{name}:{value['generation']}:{line}:" + hashlib.sha256(physical[line - 1]).hexdigest()[:16], source={"path": name, "line": line,
+                     "sha256": value["source"].get("sha256")}) for line, row in observation_io.stream(value) if row.get("run_id", state.get("run_id")) == state.get("run_id")]
+    raw = [_normal_event(row) for row in sourced_stream(TRACE_FILE)]
+    traced = captures[TRACE_FILE]["source"]["status"] not in ("missing", "unsafe", "unavailable")
     events: list[dict[str, Any]] = [dict(row) for row in raw if isinstance(row.get("kind"), str)]
     # Refusals and hook text name files by absolute path; RUN reads shorter and matches the rest of the reader.
     for event in events:
         for name in ("error", "text"):
             if isinstance(event.get(name), str):
                 event[name] = event[name].replace(str(run) + os.sep, "RUN/").replace(str(run), "RUN")
-    for row in store.read_jsonl(run / SKILL_CALLS):
+    for row in map(_normal_event, sourced_stream(SKILL_CALLS)):
         if "gate" in row:
-            events.append({"kind": "skill", "ts": row.get("ts"), "at": row.get("at"), "gate": row.get("gate"),
+            events.append({"id": row["id"], "source": row["source"], "kind": "skill", "ts": row.get("ts"), "at": row.get("at"), "gate": row.get("gate"),
                            "action": row.get("action"), "why": row.get("why")})
         else:
-            events.append({"kind": "skill", "ts": row.get("ts"), "at": row.get("at"), "skill": row.get("skill"),
+            events.append({"id": row["id"], "source": row["source"], "kind": "skill", "ts": row.get("ts"), "at": row.get("at"), "skill": row.get("skill"),
                            "args": row.get("args")})
     # A step no traced command accepted (accepted before the trace began, in a run from before the trace or one upgraded
     # mid-flight, or seeded by a harness calling the navigator directly) is the one event the timeline recorded for it,
@@ -285,7 +347,9 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
         ts = accepted_at.get(entry.get("action"))
         if ts is not None and entry.get("action") not in covered:
             outside_trace += 1
-            events.append({"kind": "accepted", "ts": ts, "at": _iso(ts), "action": entry.get("action"),
+            events.append({"id": "accepted:" + str(entry.get("action")), "binding": "explicit",
+                           "source": {"path": "state.md", "line": None, "sha256": hashlib.sha256(core["state_raw"]).hexdigest()},
+                           "kind": "accepted", "ts": ts, "at": _iso(ts), "action": entry.get("action"),
                            "stage": entry.get("stage"), "item": entry.get("workitem"),
                            "outcome": entry.get("outcome")})
     events.sort(key=lambda row: float(row.get("ts") or 0))
@@ -296,12 +360,16 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
     seen: set[tuple[Any, Any]] = set()
     for index, event in enumerate(events):
         event["i"] = index
+        event.setdefault("binding", "explicit" if event.get("action") else "contextual" if current else "unbound")
         if event["kind"] == "packet":
             current = event.get("action")
             event["repeat"] = (current, event.get("sha")) in seen
             seen.add((current, event.get("sha")))
         elif not event.get("action"):
-            event["for_action"] = current
+            cursor = event.get("cursor") if event["kind"] == "command" else None
+            event["for_action"] = (cursor[0] if isinstance(cursor, list) and isinstance(cursor[0], str)
+                                   else current)
+            event["binding"] = "contextual" if event["for_action"] else "unbound"
         cursor = event.get("cursor") if event["kind"] == "command" and event.get("exit") == 0 else None
         if isinstance(cursor, list) and len(cursor) == 2 and cursor[1]:
             current = cursor[1]
@@ -330,7 +398,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
     for event in events:
         if event["kind"] == "packet" and event.get("action") not in first_packet:
             first_packet[event.get("action")] = float(event.get("ts") or 0)
-    started = _parse(timeline.get("started")) or (float(events[0]["ts"]) if events else None)
+    started = _parse(timeline.get("started")) or (float(events[0].get("ts") or 0) if events else None)
     steps = []
     previous = started
     for number, entry in enumerate(history, 1):
@@ -343,7 +411,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "outcome": entry.get("outcome"), "at": _iso(at),
             "seconds": round(at - begin) if at is not None and begin is not None and at >= begin else None,
             "headline": _headline(result, entry.get("summary")), "improve": action in improve_results,
-            "result": f"results/{action}.md" if (run / "results" / f"{action}.md").is_file() else None,
+            "result": f"results/{action}.md" if action and (run / "results" / f"{action}.md").is_file() else None,
             **tally(action),
         })
         if at is not None:
@@ -368,19 +436,29 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
         }
 
     plan = _plan(state, accepted_at, improve_results, tally)
-    request = request_model(run, state, accepted_at, improve_results)
-    notes = notes_model(run, state, events, accepted_at)
+    repo = _recorded_repo(state)
+    token = _READ_ROOTS.set((run, repo) if repo is not None else (run,))
+    try:
+        request = request_model(run, state, accepted_at, improve_results)
+        notes = notes_model(run, state, events, accepted_at)
+    finally:
+        _READ_ROOTS.reset(token)
     counts = Counter(event["kind"] for event in events)
     commands = [event for event in events if event["kind"] == "command"]
     hooks = [event for event in events if event["kind"] == "hook"]
     last_ts = max([float(event.get("ts") or 0) for event in events]
                   + [stamp for stamp in accepted_at.values() if stamp is not None], default=0)
-    size = trace_path.stat().st_size if traced else 0
+    size = len(captures[TRACE_FILE]["raw"])
     # A finished run's elapsed time ends at its last event, not at the moment of reading.
     end = (last_ts or clock) if state.get("status") in ("done", "halted") else clock
-    return {
+    story, captures = story_data.build(run, state, timeline, captured=captures, core=core,
+                                       observed_at=core["observed_at"])
+    return observation_io.screen({
+        "story": story,
+        "sources": [value["source"] for value in captures.values()],
         "schema": SCHEMA,
         "generated": _iso(clock),
+        "observed_at": core["observed_at"],
         "run": {
             "dir": str(run), "id": state.get("run_id"), "goal": _goal(state, navigator),
             "prompt": state.get("prompt"), "repo": state.get("repo"), "status": state.get("status"),
@@ -409,7 +487,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "stops": sum(event.get("decision") == "allow" for event in hooks),
             "skills": sum(event["kind"] == "skill" and not event.get("gate") for event in events),
         },
-    }
+    })
 
 
 def refused(event: Mapping[str, Any]) -> bool:
@@ -439,13 +517,19 @@ def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[st
         for note_id in [*(event.get("held") or []), *(event.get("shown") or [])] if event["kind"] == "command" else []:
             held_in[note_id].append(event.get("action"))
     # What the current action's prints showed, from the record the hold reads (the trace may lack a line).
-    shown = owner_notes.read_shown(run)
+    try:
+        raw, _ = observation_io._read_beneath(run, "owner-notes/shown.json", ANSWER_LIMIT)
+        shown = json.loads(raw)
+        if not isinstance(shown, dict) or not isinstance(shown.get("action"), str):
+            shown = {}
+    except (OSError, ValueError):
+        shown = {}
     for key, into in (("packet", quoted_in), ("held", held_in)):
         for note_id in shown.get(key) or []:
             if shown["action"] not in into[note_id]:
                 into[note_id].append(shown["action"])
     rows = []
-    for note in owner_notes.notes(run):
+    for note in _safe_notes(run):
         note_id, action = note["id"], done.get(note["id"])
         summary = str((results.get(action) or {}).get("summary") or "") if action else ""
         rows.append({
@@ -457,6 +541,32 @@ def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[st
             "cited": bool(re.search(r"\b" + note_id + r"\b", summary)) if action else None,
         })
     return rows
+
+
+def _safe_notes(run):
+    found = []
+    try:
+        fd = observation_io._parent_fd(run, ("owner-notes",))
+        try:
+            names = sorted(os.listdir(fd))
+        finally:
+            os.close(fd)
+    except (OSError, ValueError):
+        return found
+    for name in names:
+        match = re.fullmatch(r"N([1-9][0-9]{0,5})\.md", name)
+        if not match:
+            continue
+        try:
+            raw, _ = observation_io._read_beneath(run, "owner-notes/" + name, ANSWER_LIMIT)
+            row = store.loads(raw.decode("utf-8"))
+            if row.get("id") != "N" + match.group(1) or not isinstance(row.get("written_at"), str):
+                continue
+            found.append({"id": row["id"], "written_at": row["written_at"], "text": str(row.get("text", "")),
+                          "file": "owner-notes/" + name})
+        except (OSError, ValueError, store.StorageError):
+            continue
+    return found
 
 
 def _headline(result: Mapping[str, Any], summary: Any) -> str:
@@ -526,13 +636,18 @@ def _screened(text: str) -> str:
 def _bounded_text(path: Path, limit: int) -> str | None:
     """A regular file's text up to ``limit`` bytes, screened line by line; None when it is missing or not regular."""
     try:
-        if path.is_symlink() or not path.is_file():
-            return None
-        with path.open("rb") as handle:
-            raw = handle.read(limit + 1)
-    except OSError:
+        for base in _READ_ROOTS.get():
+            try:
+                relative = path.relative_to(base)
+            except ValueError:
+                continue
+            raw, _ = observation_io._read_beneath(base, relative, limit)
+            break
+        else:
+            raw, _ = observation_io.read_absolute(path, limit)
+    except (OSError, ValueError):
         return None
-    return _screened(raw[:limit].decode("utf-8", errors="replace"))
+    return _screened(raw.decode("utf-8", errors="replace"))
 
 
 def requirements(path: Path) -> list[dict[str, Any]]:
@@ -611,7 +726,8 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
         text = _bounded_text(path, ANSWER_LIMIT)
         if text is not None:
             answers.append({"file": f"decisions/{path.name}", "action": path.stem, "text": text.strip()})
-    home = Path(str(state.get("repo") or "")) / knowledge.HOME
+    repo = _recorded_repo(state)
+    home = repo / knowledge.HOME if repo is not None else None
     sentences = request_file.sentences(prompt)
     return {
         "original": {"text": prompt, "chars": len(prompt), "file": request_file.REQUEST_FILE,
@@ -620,8 +736,9 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
         "expanded": {
             "through": next((each["stage"] for each in reversed(stages) if each["state"] == "accepted"), None),
             "stages": stages, "mapped": sum(1 for index in range(1, len(sentences) + 1) if readings.get(index)),
-            "requirements": requirements(home / "spec.md"), "spec_file": str(home / "spec.md"),
-            "architecture_file": str(home / "architecture.md"),
+            "requirements": requirements(home / "spec.md") if home is not None else [],
+            "spec_file": str(home / "spec.md") if home is not None else None,
+            "architecture_file": str(home / "architecture.md") if home is not None else None,
             "work_items": items if any(key[1] == "plan" for key in current) else [],
             "assumptions": assumptions, "answers": answers, "superseded": len(superseded),
         },
@@ -1025,15 +1142,16 @@ def page_texts(root: str | Path, model: Mapping[str, Any]) -> dict[str, str]:
     files += [event.get("head_file") for event in model["events"] if event["kind"] == "packet" and event.get("head_file")]
     # An action the trace never saw a packet for keeps its last copy in packets/<action>.md.
     sent = {event.get("action") for event in model["events"] if event["kind"] == "packet"}
-    files += [f"packets/{path.name}" for path in sorted((run / "packets").glob("*.md")) if path.stem not in sent]
+    files += [f"packets/{row['action']}.md" for row in model.get("steps", [])
+              if row.get("action") and row.get("action") not in sent]
     texts: dict[str, str] = {}
     total = 0
     for relative in dict.fromkeys(files):
         try:
-            too_large = (run / relative).stat().st_size > PAGE_PACKET_LIMIT
-        except OSError:
+            raw, _ = observation_io._read_beneath(run, relative, PAGE_PACKET_LIMIT)
+            text = _screened(raw.decode("utf-8", errors="replace"))
+        except (OSError, ValueError, TypeError):
             continue
-        text = None if too_large else _bounded_text(run / relative, PAGE_PACKET_LIMIT)
         if text is None:
             continue
         if total + len(text) > PAGE_TEXT_LIMIT:
@@ -1043,36 +1161,40 @@ def page_texts(root: str | Path, model: Mapping[str, Any]) -> dict[str, str]:
     return texts
 
 
-def render_html(root: str | Path, model: Mapping[str, Any]) -> str:
+def render_html(root: str | Path, model: Mapping[str, Any], *, texts=None) -> str:
     """The self-contained page: the template with the model and the packet texts inlined."""
     from shiploop_trace_page import DATA_MARK, PAGE  # only the page needs the template, not every command or hook
 
     data = dict(model)
-    data["texts"] = page_texts(root, model)
+    data["texts"] = page_texts(root, model) if texts is None else texts
     data["events"] = [{**event, **{name: _screened(event[name]) for name in ("text", "error")
                                    if isinstance(event.get(name), str)}} for event in model["events"]]
     # Every "<" escaped: "</script>" or "<!--<script>" in a prompt must not end or re-open the script element.
-    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+    payload = json.dumps(observation_io.screen(data), ensure_ascii=True, separators=(",", ":")).replace("<", "\\u003c")
     return PAGE.replace(DATA_MARK, payload, 1)
 
 
-def write_html(root: str | Path, path: str | Path | None = None, *, now: float | None = None) -> Path:
+def write_html(root: str | Path, path: str | Path | None = None, *, now: float | None = None, model=None, texts=None) -> Path:
     """Build the model and write the page (default RUN/trace.html); returns where it went."""
     target = Path(path) if path else Path(root) / PAGE
-    store.atomic_write_text(target, render_html(root, build(root, now=now)))
+    store.atomic_write_text(target, render_html(root, build(root, now=now) if model is None else model, texts=texts))
     return target
 
 
-def source_key(root: str | Path) -> tuple[Any, ...]:
-    """What the page is built from, cheaply: the trace's size, the state's and the Skill record's change times."""
-    key = []
-    for name in (TRACE_FILE, "state.md", SKILL_CALLS):
-        try:
-            info = (Path(root) / name).stat()
-            key.append((info.st_size, info.st_mtime_ns))
-        except OSError:
-            key.append(None)
-    return tuple(key)
+def source_key(root: str | Path, *, model=None, texts=None) -> tuple[Any, ...]:
+    """Fingerprint all displayed inputs, excluding heartbeat and wall-clock elapsed."""
+    import shiploop_story as story_data
+    model = build(root) if model is None else model
+    value = dict(model)
+    value.pop("generated", None)
+    value.pop("observed_at", None)
+    value["observer"] = {k: v for k, v in value.get("observer", {}).items() if k != "observed_at"}
+    value["run"] = {k: v for k, v in model["run"].items() if k != "elapsed"}
+    value["sources"] = [{k:v for k,v in row.items() if k != "observed_at" and not (row.get("path") == "progress-observations.jsonl" and k in ("sha256", "changed_at", "rows"))} for row in value.get("sources", [])]
+    if "story" in value:
+        value["story"] = value["story"]["content_fingerprint"]
+    value["texts"] = page_texts(root, model) if texts is None else texts
+    return (story_data.digest(observation_io.screen(value)),)
 
 
 # ---------------------------------------------------------------------------------------------------------- CLI

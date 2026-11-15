@@ -11,6 +11,7 @@ PAGE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ShipLoop Run Trace</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <style>
 :root {
   --bg: #f6f6f3; --panel: #ffffff; --ink: #1c1c1e; --muted: #6b6b70; --line: #e2e2de; --chip: #f0f0ec;
@@ -32,6 +33,8 @@ PAGE = r"""<!doctype html>
   --red: #ef6b5f; --red-soft: #3d1d1a; --violet: #a68af0; --violet-soft: #2b2340; --green: #5cc27b; --green-soft: #18301f;
 }
 * { box-sizing: border-box; }
+a { color: var(--accent); }
+a:focus-visible,button:focus-visible,summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--sans); }
 main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 64px; }
 h1 { font-size: 20px; margin: 0 0 6px; line-height: 1.3; }
@@ -50,8 +53,10 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: v
 .tile b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
 .tile span { color: var(--muted); font-size: 12px; }
 .tile.warn b { color: var(--red); }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-.now { border-left: 4px solid var(--amber); display: grid; gap: 4px; }
+.card { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.now > * { min-width: 0; overflow-wrap: anywhere; }
+.now > .tag { white-space: normal; }
+.now { min-width: 0; border-left: 4px solid var(--amber); display: grid; gap: 4px; }
 .now.stopped { border-left-color: var(--red); }
 .now.finished { border-left-color: var(--green); }
 .now .where { font-weight: 600; font-size: 15px; }
@@ -123,6 +128,18 @@ summary .c { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end
 .viewer header .top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
 .viewer pre { max-height: none; flex: 1; margin: 0; border-radius: 0; padding: 14px 16px; background: var(--panel); }
 .viewer .scroll { flex: 1; overflow: auto; }
+.coverage-clocks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 18px; margin: 10px 0; }
+.coverage-clocks > div { min-width: 0; }
+.coverage-clocks dt { font-size: 12px; color: var(--muted); }
+.coverage-clocks dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.coverage-details, .coverage-details .coverage-records { min-width: 0; overflow-wrap: anywhere; }
+.coverage-records .card > strong, .coverage-records .mono { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+.coverage-details > summary { display: block; font-weight: 600; }
+.coverage-details .coverage-records { display: grid; gap: 8px; padding: 10px; }
+.coverage-records .card { overflow-wrap: anywhere; min-width: 0; }
+.coverage-records .coverage-clocks { grid-template-columns: repeat(2, minmax(0, 1fr)); font-size: 12px; }
+.coverage-overview { margin: 8px 0; overflow-wrap: anywhere; }
+footer, footer .mono { min-width: 0; overflow-wrap: anywhere; }
 footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
 .request { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .request h3 { font-size: 13px; margin: 0 0 6px; }
@@ -135,8 +152,9 @@ footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
 details.more { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
 details.more > summary { display: block; padding: 9px 14px; font-weight: 600; }
 details.more > div { border-top: 1px solid var(--line); padding: 8px 14px; }
-.sentences { display: grid; gap: 0; }
-.sentence { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.sentences { display: grid; min-width: 0; gap: 0; }
+.sentence > * { min-width: 0; overflow-wrap: anywhere; }
+.sentence { display: grid; min-width: 0; overflow-wrap: anywhere; grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .sentence:last-child { border-bottom: 0; }
 .sentence .sn { color: var(--muted); font-family: var(--mono); font-size: 12px; }
 .sentence .reading { color: var(--ink); }
@@ -161,8 +179,9 @@ details.more > div { border-top: 1px solid var(--line); padding: 8px 14px; }
 .composer pre:empty::before { content: "the command appears here"; color: var(--muted); font-style: italic; }
 button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 720px) {
+  .coverage-clocks, .coverage-records .coverage-clocks { grid-template-columns: 1fr; }
   .request { grid-template-columns: 1fr; }
-  .sentence { grid-template-columns: 34px 1fr; }
+  .sentence { grid-template-columns: 34px minmax(0, 1fr); }
   .sentence .reading { grid-column: 2; }
   .plan-row { grid-template-columns: 1fr; gap: 4px; }
   .ev, .multiday .ev { grid-template-columns: auto 1fr; }
@@ -174,6 +193,7 @@ button:disabled { opacity: .5; cursor: default; }
 </style>
 </head>
 <body>
+<nav style="max-width:1180px;margin:16px auto;padding:0 16px" aria-label="Run pages"><a href="progress.html">← Progress story and evidence</a></nav>
 <main id="app"><p class="empty">This page has no run data; write it with <span class="mono">shiploop trace --run-dir RUN --html</span>.</p></main>
 <aside class="viewer" id="viewer" aria-label="Packet viewer">
   <header>
@@ -240,12 +260,24 @@ const TRACE = /*TRACE-DATA*/null;
     if (s < 3600) return Math.floor(s / 60) + "m" + String(s % 60).padStart(2, "0") + "s";
     return Math.floor(s / 3600) + "h" + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + "m";
   }
+  function commandDuration(ms) {
+    if (ms === null || ms === undefined || !Number.isFinite(Number(ms)) || Number(ms) < 0) return "unknown";
+    const seconds = Number(ms) / 1000;
+    if (seconds < 60) return (Math.round(seconds * 1000) / 1000 !== seconds ? "≈ " : "") +
+      (Math.round(seconds * 1000) / 1000) + " sec";
+    return (Math.round(seconds) !== seconds ? "≈ " : "") + span(seconds);
+  }
   const short = (a) => a && a.length > 13 ? a.slice(0, 12) + "…" : (a || "");
   const where = (o) => (o.item ? o.item + " " : "") + (o.stage || "");
 
   const run = TRACE.run, counts = TRACE.counts;
   const steps = new Map(TRACE.steps.map((s) => [s.action, s]));
   const nowAction = TRACE.now && TRACE.now.action;
+  const observer = TRACE.observer || {};
+  const observerFinal = Object.prototype.hasOwnProperty.call(observer, "final")
+    ? !!observer.final : ["done", "halted"].includes(run.status);
+  const watchable = (observer.mode === "watch" || (observer.mode === undefined &&
+    ["active", "blocked", "done", "halted"].includes(run.status))) && !observerFinal;
 
   // ---------------------------------------------------------------- viewer
   const viewer = document.getElementById("viewer");
@@ -267,6 +299,9 @@ const TRACE = /*TRACE-DATA*/null;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.getElementById("viewer-close").click(); });
 
   // ---------------------------------------------------------------- header, now, plan
+  function runSpanLabel(status) {
+    return ["done", "halted"].includes(status) ? "Recorded run span" : "Run age at capture";
+  }
   function header() {
     const pill = el("span", {class: "pill " + run.status}, el("span", {class: "dot"}), run.status);
     const tiles = [
@@ -278,10 +313,13 @@ const TRACE = /*TRACE-DATA*/null;
       el("div", {class: "meta"}, "ShipLoop run trace"),
       el("h1", {}, run.goal || "ShipLoop run"),
       el("div", {class: "meta"}, pill, el("span", {class: "mono"}, run.id || ""), el("span", {}, "revision " + run.revision),
-        run.started ? el("span", {title: run.started}, "started " + when(run.started)) : null, el("span", {}, "elapsed " + span(run.elapsed)),
+        run.started ? el("span", {title: run.started}, "started " + when(run.started)) : null, el("span", {
+          title: ["done", "halted"].includes(run.status)
+            ? "Recorded start to last recorded event when available; not measured execution duration."
+            : "Wall-clock run age at capture; not measured execution duration."}, runSpanLabel(run.status) + ": " + span(["done", "halted"].includes(run.status) && !run.last_event ? null : run.elapsed)),
         run.last_event ? el("span", {title: run.last_event}, "last event " + when(run.last_event)) : null,
         el("span", {title: TRACE.generated}, "page written " + when(TRACE.generated)), el("span", {}, "times in " + ZONE),
-        run.status === "active" ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); schedule(); }}), " live (reload every 10 s)") : null),
+        watchable ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); schedule(); }}), " watch display (reload every 10 s)") : null),
       run.traced ? null : el("p", {class: "note"}, "This run predates the trace: steps come from state.md and timeline.json, and each packet is its last copy, not every copy sent."),
       run.traced && run.untraced_steps ? el("p", {class: "note"}, "The trace began at " + when(run.traced_since) + ": the " + run.untraced_steps + " steps accepted before it come from state.md and timeline.json, each with its packet's last copy.") : null,
       // Not measured is not zero: a run before the trace recorded no packets, refusals, hook stops or commands.
@@ -293,7 +331,8 @@ const TRACE = /*TRACE-DATA*/null;
   function nowCard() {
     const now = TRACE.now;
     if (!now) return el("section", {}, el("h2", {}, "Now"),
-      el("div", {class: "card now finished"}, el("div", {class: "where"}, "The run is complete"),
+      el("div", {class: "card now finished"}, el("div", {class: "where"},
+        run.status === "done" ? "The run is complete" : "Engine: " + (run.status || "unknown")),
         el("div", {class: "meta"}, run.status_reason || "report.html holds the achievement report")));
     const stopped = run.status !== "active";
     const packetFile = now.packet;
@@ -474,7 +513,8 @@ const TRACE = /*TRACE-DATA*/null;
       if (rev[0] === null || rev[0] === undefined) { if (ev.stage && ev.stage[1]) body.push(" · at " + ev.stage[1]); }
       else if (rev[0] !== rev[1] && rev[1] !== undefined && rev[1] !== null) body.push(" · r" + rev[0] + "→r" + rev[1]);
       if (ev.stage && ev.stage[0] && ev.stage[0] !== ev.stage[1]) body.push(" · " + ev.stage[0] + " → " + ev.stage[1]);
-      body.push(el("span", {class: "tag"}, ev.ms + " ms"));
+      body.push(el("span", {class: "tag", title: "Recorded duration: " + (ev.ms ?? "unknown") + " ms",
+        "aria-label": commandDuration(ev.ms) + "; recorded duration: " + (ev.ms ?? "unknown") + " ms"}, commandDuration(ev.ms)));
       if (failed) body.push(el("pre", {}, ev.error || "(no message recorded)"));
     } else if (ev.kind === "packet") {
       body.push(where(ev) + (ev.reviewed ? " (reviewing " + ev.reviewed + ")" : "") + " · " + num(ev.chars) + " chars · ",
@@ -586,10 +626,49 @@ const TRACE = /*TRACE-DATA*/null;
 
   // ---------------------------------------------------------------- page, live reload
   function save() { store.set("ui", ui); }
+  function sourceCoverage() {
+    const story = TRACE.story || {};
+    const rows = Array.isArray(story.sources) ? story.sources.filter((row) => row && typeof row === "object") : [];
+    const warnings = Array.isArray(story.warnings) ? story.warnings : [];
+    const statuses = new Map();
+    for (const row of rows) {
+      const status = row.status || "unknown";
+      statuses.set(status, (statuses.get(status) || 0) + 1);
+    }
+    const overview = rows.length ? num(rows.length) + " source records · " +
+      [...statuses].map(([status, count]) => num(count) + " " + status).join(" · ") :
+      "Per-source coverage unavailable in this trace generation.";
+    const clocks = (entries) => el("dl", {class: "coverage-clocks"}, entries.map(([label, value]) =>
+      el("div", {}, el("dt", {}, label), el("dd", {}, value === null || value === undefined || value === "" ? "unknown" : value))));
+    const sources = rows.map((row) => el("article", {class: "card"},
+      el("strong", {}, (row.id || "Source") + " · " + (row.status || "unknown")),
+      el("div", {class: "mono"}, row.path || "Path not recorded"),
+      ["line", "selector", "sha256"].filter((key) => row[key] !== null && row[key] !== undefined).map((key) =>
+        el("div", {class: "mono"}, (key === "sha256" ? "Source-byte SHA-256" : key) + ": " + row[key])),
+      el("div", {}, row.message || "No coverage detail recorded"),
+      clocks([["Observed", row.observed_at], ["Changed", row.changed_at], ["Last event", row.last_event_at],
+        ["Rows", row.rows], ["Omitted", row.omitted]])));
+    const details = el("details", {class: "more coverage-details", id: "source-coverage", open: store.get("coverage-open", false) === true},
+      el("summary", {}, "Source coverage details (" + num(rows.length) + " records, " + num(warnings.length) + " warnings)"),
+      el("div", {class: "coverage-records"},
+        warnings.length ? el("ul", {}, warnings.map((warning) => el("li", {}, warning))) : null,
+        sources));
+    details.addEventListener("toggle", () => store.set("coverage-open", details.open));
+    return el("section", {}, el("h2", {}, "Coverage and clocks"),
+      clocks([["Observer last successful read", TRACE.observed_at],
+        ["Recorded run activity", story.last_event_at || run.last_event], ["Content generated", TRACE.generated]]),
+      el("p", {class: "coverage-overview"}, overview + (warnings.length ? " · " + num(warnings.length) + " coverage warnings (details below)" : "")),
+      el("p", {class: "note"}, "Watching this display does not establish execution or product acceptance."),
+      observer.error ? el("p", {}, "Observer error: " + observer.error) : null,
+      Object.entries(observer).filter(([key, value]) => key !== "error" && (key.includes("error") || key === "publication") && value)
+        .map(([key, value]) => el("p", {}, "Publication " + key + ": " + (typeof value === "object" ? JSON.stringify(value) : value))),
+      details);
+  }
+
   function render() {
     const app = document.getElementById("app");
     app.classList.toggle("multiday", MULTIDAY);
-    app.replaceChildren(...[header(), nowCard(), notesSection(), requestSection(), plan(), timeline(),
+    app.replaceChildren(...[header(), nowCard(), sourceCoverage(), notesSection(), requestSection(), plan(), timeline(),
       el("footer", {}, "Written by ", el("span", {class: "mono"}, "shiploop trace"), " from ", el("span", {class: "mono"}, run.dir),
         " · trace.jsonl " + num(run.trace_bytes) + " bytes" + (run.capped ? " (stopped growing at its cap)" : "") +
         " · state.md stays the authority; this page is a display.")].filter(Boolean));
@@ -597,10 +676,12 @@ const TRACE = /*TRACE-DATA*/null;
   let timer = null;
   function schedule() {
     clearTimeout(timer);
-    if (run.status !== "active" || !ui.live) return;
+    if (!watchable || !ui.live) return;
     timer = setTimeout(() => {
       const typing = document.activeElement && (document.activeElement.type === "search" || document.activeElement.tagName === "TEXTAREA");
-      const busy = viewer.classList.contains("open") || typing;
+      const selection = window.getSelection();
+      const selecting = selection && !selection.isCollapsed && String(selection).length > 0;
+      const busy = viewer.classList.contains("open") || typing || selecting;
       if (busy) return schedule();
       store.set("scroll", window.scrollY);
       location.reload();

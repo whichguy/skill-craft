@@ -751,21 +751,18 @@ def _referencing(path: str) -> set[str]:
     Only code paths qualify; a document's name (docs/notes.md) says nothing
     about coverage.  Names without a separator (run.py, the bare shiploop
     entrypoint) are too common to mean anything and select nothing here.
+    Retained fidelity fixtures use their registered path/prefix consumers:
+    a shared basename such as timeline.json does not establish a reader.
     """
 
-    if not path.startswith(_REFERENCE_PREFIXES):
+    if path.startswith("test/fixtures/fidelity/") or not path.startswith(_REFERENCE_PREFIXES):
         return set()
     name = PurePosixPath(path).name
     token = PurePosixPath(name).stem if name.endswith(".py") else name
     if _stem(path) in _GENERIC_STEMS or not re.search(r"[_.-]", token):
         return set()
     pattern = re.compile(rf"(?<![\w.-]){re.escape(token)}(?![\w-])")
-    consumers = {identifier for identifier, text in _suite_sources().items() if pattern.search(text)}
-    # The boundary suite writes its own engine timeline. Its basename collides with retained fixtures
-    # whose readers are already at the hub threshold.
-    if re.fullmatch(r"timeline[.]json", token):
-        consumers.discard("planning-boundary")
-    return consumers
+    return {identifier for identifier, text in _suite_sources().items() if pattern.search(text)}
 
 
 def targeted(changed: Iterable[str]) -> set[str]:

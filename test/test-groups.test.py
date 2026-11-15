@@ -283,9 +283,29 @@ class TestGroupTests(unittest.TestCase):
     def test_planning_boundary_timeline_does_not_turn_retained_fixtures_into_hubs(self) -> None:
         fixtures = TEST_DIR / "fixtures/fidelity"
         timeline = next(fixtures.glob("*/.shiploop-runs/*/run/timeline[.]json"))
-        selected = suite_catalog.targeted((timeline.relative_to(ROOT).as_posix(),))
-        self.assertNotIn("planning-boundary", selected)
-        self.assertTrue(selected.isdisjoint(suite_catalog._HUB_SUITE_IDS))
+        path = timeline.relative_to(ROOT).as_posix()
+        real = suite_catalog._suite_sources()
+        more = {f"fake-observer-{n}": 'name = "timeline.json"\n'
+                for n in range(2 * suite_catalog.HUB_REFERENCE_LIMIT)}
+        for sources in (real, {**real, **more}):
+            with self.subTest(synthetic_references=len(sources) - len(real)):
+                with mock.patch.object(suite_catalog, "_suite_sources", return_value=sources):
+                    for fixture in (path, "test/fixtures/fidelity/extract.py"):
+                        selected = suite_catalog.targeted((fixture,))
+                        self.assertEqual(selected, {"shiploop-e2e-fidelity"})
+                        self.assertNotIn("planning-boundary", selected)
+                        self.assertTrue(selected.isdisjoint(suite_catalog._HUB_SUITE_IDS))
+
+        # The exception is scoped to retained fidelity data. Ordinary sources
+        # and other fixtures still reach basename consumers, including planning.
+        sources = {"planning-boundary": 'name = "timeline.json"\n',
+                   "shiploop-e2e-fidelity": "import synthetic_fidelity_reader\n"}
+        with mock.patch.object(suite_catalog, "_suite_sources", return_value=sources):
+            for control in ("test/fixtures/synthetic/timeline.json",
+                            "skills/shiploop/scripts/timeline.json"):
+                self.assertIn("planning-boundary", suite_catalog.targeted((control,)))
+            self.assertIn("shiploop-e2e-fidelity", suite_catalog.targeted(
+                ("skills/shiploop/scripts/synthetic_fidelity_reader.py",)))
 
     def test_quick_reaches_the_consumers_of_shared_shiploop_sources(self) -> None:
         # Suites named after nothing in these paths still exercise them; a

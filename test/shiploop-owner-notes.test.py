@@ -86,6 +86,26 @@ class CliRun(unittest.TestCase):
 
 
 class DeliveryTests(CliRun):
+    def test_large_valid_state_keeps_note_and_host_event_admission(self) -> None:
+        state = self.state()
+        state["prompt"] = "Owner request " + "x" * (4 * 1024 * 1024)
+        navigator.validate(state)
+        store.atomic_write_text(self.run / "state.md", store.dumps(state))
+        before = (self.run / "state.md").read_bytes()
+        self.assertGreater(len(before), 4 * 1024 * 1024)
+        self.assertEqual(trace.current_state(self.run), state)
+        self.ok("note", "--text", "Large state still admits this note.")
+        self.assertTrue(trace.record_stop(str(self.run), "codex", "fixture",
+                                          {"decision": "allow", "why": "fixture stop"}))
+        self.assertTrue(trace.record_session_end(str(self.run), "codex", "fixture", released=True))
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+        self.assertEqual([row["hook"] for row in self.events() if row.get("kind") == "hook"],
+                         ["stop", "session-end"])
+        # The observation-only bound stays separate from workflow admission.
+        import shiploop_story as story
+        with self.assertRaises(ValueError):
+            story.capture_core(self.run)
+
     def test_a_note_is_quoted_by_the_next_packet_and_delivered_by_the_accepted_step(self) -> None:
         intake = self.action()
         wrote = self.ok("note", "--text", "Reuse the date helper; do not add a library.")
