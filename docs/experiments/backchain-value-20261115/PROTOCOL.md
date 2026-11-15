@@ -107,3 +107,33 @@ selectors fail the pretest-hook design (journal R10-5), and orders-cancel-rpc's 
 - Downstream value: whether a better plan changes what gets built.
 - Models or efforts other than the three above.
 - Backchain inside ShipLoop, where the host plans with ShipLoop's own guide either way.
+
+## Amendments from the harness pilot (2026-11-15, before the study's freeze; no study attempt had run)
+
+The 6-run pilot (`stale-build-receipt-identity`, both arms, three models; not analysed) found three harness defects.
+All three are fixed before the study is frozen, and a second pilot checks the fixes.
+
+- **A1, format knowledge.** The no-skill Sonnet plan failed only invariant 7, eight times (`from: null` inputs not
+  declared in `initial_state`). That rule sits in SKILL.md's "Structural invariants", which the first
+  `plan-format.md` (the "Plan document shape" section, copied) left out. The study measures the procedure, not
+  knowledge of the format.
+- **A2, permissions.** Grok's `auto` permission mode refused the subject's own `cp` and `rm` inside its workspace ("a
+  headless run cannot ask for approval"), so no `result.json` was written. Grok and Claude now run with
+  `bypassPermissions`, as Codex already runs with full access. Each workspace is a throwaway temporary directory, and
+  the prompt forbids network access, contact and other models.
+- **A3, isolation.** The no-skill Grok subject ran `backchain.py package` and `check` from a sibling attempt's
+  workspace in `$TMPDIR` (the Backchain Sonnet attempt's `resources/`). The copied shape section named `check`,
+  `freeze` and `record`, and the subject went looking for them. Fixes:
+  - (a) `plan-format.md` is a hand-written restatement of the two sections with no tool or procedure name, committed
+    in this directory and given to both arms.
+  - (b) Every workspace sits under a root its owner cannot list (mode 0300), so a subject cannot see other attempts.
+    The Backchain arm's `resources/` is deleted as soon as its attempt ends.
+  - (c) Both prompts add the same constraint: use only the files in this workspace, and do not read, search or run
+    files outside it.
+  - (d) A no-skill attempt whose stream shows Backchain files (`backchain.py`, `skills/backchain/`, the Until Loop
+    runtime) is *contaminated*: it is rerun once. If it is contaminated again, it is excluded from grading and its
+    case drops for that model, and the report names it.
+  - Structural validity is checked on a packaged copy, because `parallel_groups` is derived and `[]` fails invariant
+    6 until packaged (the 2026-11 cohort's amendment A1).
+
+Nothing else changes: question, arms, models, cases, criteria, grading, analysis and reading stand as above.

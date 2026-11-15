@@ -48,6 +48,10 @@ def _cohort():
 
 C = _cohort()
 
+# Amendment A2 (pilot): Grok's `auto` refused the subject's own `cp`/`rm` in its workspace ("a headless run cannot ask
+# for approval"), so Grok and Claude run with bypassPermissions, as Codex runs with danger-full-access; each workspace
+# is a throwaway temporary directory and the prompt forbids network, contact and other models.
+PERMISSION_MODE = 'bypassPermissions'
 MODELS = {  # owner, 2026-11-15: "Grok 4.6 on extra high, GPT Sol 6.1 on medium, and Sonnet 5.5 on high"
     'grok': ('grok', 'grok-4.6', 'xhigh'),
     'sol': ('codex', 'gpt-6.1-sol', 'medium'),
@@ -104,12 +108,14 @@ class Campaign:
         return [case for case in cases if case['id'] == PILOT_CASE] if self.pilot else cases
 
 
-def plan_format(skill_md: str) -> str:
-    """The released SKILL.md's "Plan document shape" section, which both arms get as plan-format.md."""
-    start = skill_md.index('## Plan document shape')
-    end = skill_md.index('\n## ', start + 1)
-    return ('# Plan format\n\nWrite the plan as one JSON object in this shape.\n\n'
-            + skill_md[start + len('## Plan document shape'):end].strip() + '\n')
+# Amendments A1 and A3a (pilot): both arms get plan-format.md, a hand-written restatement of the released SKILL.md's
+# "Plan document shape" and "Structural invariants" with no tool or procedure name. The first build copied the shape
+# section verbatim: it omitted the invariants (the no-skill Sonnet plan broke only invariant 7) and it named `check`,
+# `freeze` and `record`, which sent the no-skill Grok subject looking for those tools in a sibling workspace.
+PLAN_FORMAT = HERE / 'plan-format.md'
+TOOLKIT_TRACES = ('resources/skills/backchain', 'skills/backchain/', 'backchain.py', 'backchain_graph.py',
+                  'until_loop_ephemeral', 'check_preservation.py')
+WORKSPACE_ROOT_MODE = 0o300  # A3b: the owner may create and enter workspaces but cannot list the root's siblings
 
 
 def freeze(rev: str) -> dict:
@@ -123,8 +129,7 @@ def freeze(rev: str) -> dict:
                           capture_output=True).stdout
     with tarfile.open(fileobj=io.BytesIO(data)) as archive:
         archive.extractall(snapshot, filter='data')
-    skill_md = (snapshot / 'skills/backchain/SKILL.md').read_text()
-    C.save(snapshot / 'plan-format.md', plan_format(skill_md))
+    shutil.copyfile(PLAN_FORMAT, snapshot / 'plan-format.md')
     shutil.copyfile(COHORT_DIR / 'cases.json', RESULTS / 'cases.json')
     versions = {}
     for name, (host_name, _, _) in MODELS.items():
@@ -161,10 +166,23 @@ def verify_freeze() -> dict:
 
 # ---------------------------------------------------------------- workspaces and prompts
 
+_ROOT = []
+
+
+def workspace_root() -> Path:
+    """One root for this process's workspaces that nobody can list (A3b): a subject that walks up from its workspace
+    sees the root's name but not the other attempts beside it, the Backchain arm's resources among them."""
+    if not _ROOT:
+        root = Path(tempfile.mkdtemp(prefix='value-ws-'))
+        root.chmod(WORKSPACE_ROOT_MODE)
+        _ROOT.append(root)
+    return _ROOT[0]
+
+
 def setup(case: dict, arm: str) -> Path:
     """The cohort's workspace (cohort.py setup), with plan-format.md in both arms and resources/ only in backchain."""
     snapshot = RESULTS / 'snapshot'
-    ws = Path(tempfile.mkdtemp(prefix=C.WORKSPACE_PREFIX))  # one prefix for both arms: the redactor treats them alike
+    ws = Path(tempfile.mkdtemp(prefix=C.WORKSPACE_PREFIX, dir=workspace_root()))  # one prefix: the redactor treats both arms alike
     (ws / 'artifacts').mkdir()
     for name, content in case['files'].items():
         C.save(ws / 'fixture' / name, content)
@@ -207,8 +225,13 @@ def none_prompt(case: dict) -> str:
         ''])
 
 
+WORKSPACE_ONLY = 'Constraints: planning only; use only the files in this workspace, and do not read, search or run files outside it;'
+
+
 def prompt_for(case: dict, arm: str) -> str:
-    return C.prompt_for(case) if arm == 'backchain' else none_prompt(case)
+    text = C.prompt_for(case) if arm == 'backchain' else none_prompt(case)
+    assert text.count('Constraints: planning only;') == 1
+    return text.replace('Constraints: planning only;', WORKSPACE_ONLY)
 
 
 # ---------------------------------------------------------------- hosts
@@ -226,7 +249,7 @@ def call(model: str, ws: Path, prompt: str, out: Path) -> dict:
     home = Path(tempfile.mkdtemp(prefix='value-home-'))
     env = subject_env(host, home)
     argv = host.argv(prompt=prompt, prompt_file=out / 'prompt.md', cwd=ws, model=model_id, effort=effort,
-                     permission_mode='auto', max_turns=None)
+                     permission_mode=PERMISSION_MODE, max_turns=None)
     C.save(out / 'argv.json', argv)
     meta = H.run_agent(argv, ws, env, out / 'events.jsonl', out / 'stderr.log', SUBJECT_DEADLINE, host.translator())
     return dict(meta, host=host_name, model=model_id, effort=effort)
@@ -277,8 +300,12 @@ def check(plan: Path) -> dict:
         info['json'] = True
     except ValueError:
         return info
-    done = subprocess.run([sys.executable, '-I', '-B', str(RESULTS / 'snapshot/skills/backchain/scripts/backchain.py'),
-                           'check', str(plan)], capture_output=True, text=True, timeout=120)
+    cli = str(RESULTS / 'snapshot/skills/backchain/scripts/backchain.py')
+    packaged = Path(tempfile.mkdtemp(prefix='value-check-')) / 'packaged.json'  # A3d: derived parallel_groups recomputed
+    subprocess.run([sys.executable, '-I', '-B', cli, 'package', str(plan), '--out', str(packaged)],
+                   capture_output=True, text=True, timeout=120)
+    done = subprocess.run([sys.executable, '-I', '-B', cli, 'check', str(packaged if packaged.is_file() else plan)],
+                          capture_output=True, text=True, timeout=120)
     try:
         receipt = json.loads(done.stdout)
     except ValueError:
@@ -324,18 +351,20 @@ def trial(campaign: Campaign, case: dict, arm: str, model: str) -> dict:
     try:
         meta = call(model, ws, prompt_for(case, arm), out)
         host = MODELS[model][0]
-        uses_toolkit = 'backchain.py' in (out / 'events.jsonl').read_text(errors='replace') if (out / 'events.jsonl').is_file() else False
+        stream = (out / 'events.jsonl').read_text(errors='replace') if (out / 'events.jsonl').is_file() else ''
+        uses_toolkit = any(trace in stream for trace in TOOLKIT_TRACES)
         summary.update(meta=meta, plan=check(ws / 'artifacts/plan.json'),
                        result=final_record(arm, ws / 'artifacts/result.json'),
                        keys=C.mechanical_keys(case, ws / 'artifacts/plan.json', RESULTS / 'cases.json'),
                        cost=dict(usage_of(out / 'events.jsonl', host), wall_seconds=meta.get('elapsed_seconds')),
-                       ran_toolkit=uses_toolkit)
+                       ran_toolkit=uses_toolkit, contaminated=arm == 'none' and uses_toolkit)
         summary['infrastructure_failure'] = meta.get('status') != 'exited' and not summary['plan']['present']
     except Exception:  # noqa: BLE001 - recorded, never fatal to the lane
         C.save(out / 'runner-error.txt', traceback.format_exc())
         summary['infrastructure_failure'] = True
     if (ws / 'artifacts').is_dir():
         shutil.copytree(ws / 'artifacts', out / 'artifacts', symlinks=True, dirs_exist_ok=True)
+    shutil.rmtree(ws / 'resources', ignore_errors=True)  # A3b: no Backchain files outlive their attempt
     C.save(out / 'summary.json', summary)
     print('DONE', out.name, 'plan', (summary.get('plan') or {}).get('present'), 'tokens',
           (summary.get('cost') or {}).get('processed_tokens'), 'seconds', (summary.get('cost') or {}).get('wall_seconds'),
@@ -362,10 +391,11 @@ def run(campaign: Campaign) -> None:
         done = []
         for case, arm in schedule(cases, model):
             summary = trial(campaign, case, arm, model)
-            if summary.get('infrastructure_failure'):  # PROTOCOL.md: retried once before grading
-                retry = campaign.runs / (label(case['id'], arm, model))
-                shutil.move(str(retry), str(retry) + '.failed-1')
-                summary = trial(campaign, case, arm, model)
+            for flag, suffix in (('infrastructure_failure', '.failed-1'), ('contaminated', '.contaminated-1')):
+                if summary.get(flag):  # PROTOCOL.md: retried once before grading
+                    retry = campaign.runs / (label(case['id'], arm, model))
+                    shutil.move(str(retry), str(retry) + suffix)
+                    summary = trial(campaign, case, arm, model)
             done.append(summary)
         return done
 
@@ -452,7 +482,8 @@ def grade(campaign: Campaign) -> None:
     verify_freeze()
     cases = {case['id']: case for case in campaign.cases()}
     summaries = [C.load(path) for path in sorted(campaign.runs.glob('*/summary.json'))]
-    jobs = [(cases[s['case']], s, n) for s in summaries if not s.get('infrastructure_failure') for n in PASSES]
+    jobs = [(cases[s['case']], s, n) for s in summaries
+            if not s.get('infrastructure_failure') and not s.get('contaminated') for n in PASSES]
     with concurrent.futures.ThreadPoolExecutor(max_workers=GRADER_WORKERS) as pool:
         for record in pool.map(lambda job: grade_one(campaign, *job), jobs):
             print('GRADED', record['label'], 'p%d' % record['pass'], 'ok' if record['rows'] else 'MALFORMED', flush=True)
@@ -495,8 +526,10 @@ def reading(low, high) -> str:
 
 def analyze(campaign: Campaign) -> dict:
     summaries = [C.load(path) for path in sorted(campaign.runs.glob('*/summary.json'))]
-    rows = [attempt_score(campaign, s) for s in summaries]
-    report = {'schema': 'backchain-value-analysis/v1', 'delta': DELTA, 'models': {}, 'attempts': rows}
+    excluded = [s['label'] for s in summaries if s.get('contaminated') or s.get('infrastructure_failure')]
+    rows = [attempt_score(campaign, s) for s in summaries if s['label'] not in excluded]
+    report = {'schema': 'backchain-value-analysis/v1', 'delta': DELTA, 'models': {}, 'attempts': rows,
+              'excluded': excluded}
     for model in MODELS:
         mine = [r for r in rows if r['model'] == model]
         by_case = {}
@@ -594,6 +627,11 @@ def self_check() -> None:
     assert 'parallel_groups' not in flat, 'derived field leaked'
     for word in ('convergence', 'receipt', 'until_loop', 'backchain.py'):
         assert word not in json.dumps({k: v for k, v in packet.items() if k in ('final_plan', 'final_record')}), word
+    fmt = PLAN_FORMAT.read_text()
+    for word in ('backchain', 'freeze', 'record`', '`check`', '`package`', 'elaborator', 'generator', '.py'):
+        assert word not in fmt.lower(), ('plan-format.md names', word)
+    assert all(prompt_for(case, arm).count(WORKSPACE_ONLY) == 1 for case in cases for arm in ARMS)
+    assert not os.access(workspace_root(), os.R_OK), 'the workspace root is listable'
     print('self-check: ok')
 
 
