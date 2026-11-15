@@ -2,9 +2,11 @@
 """waits.py (journal E15, README Amendment A13): how much of a recorded ShipLoop step is waiting that one context could overlap?
 
 Offline and read-only. For each timed step window of the census (evidence/census.json rows with `durations_s`, windows recomputed
-with census.windows from the run's trace.jsonl) it reads the case folder's flow.json and timeline.jsonl, pairs every `call` event
-with the next unmatched `result` event in time order (first in, first out), and adds each call's duration, clipped to the window,
-to its class. The classes and the predictions are the ones A13 fixed before any result was computed.
+with census.windows from the run's trace.jsonl) it reads the case folder's raw events.jsonl with the receive times of timeline.jsonl
+(A13 revision: flow.json has no result events for Codex and Grok) and adds each tool call's duration, clipped to the window, to its
+class: Claude from an assistant `tool_use` line to its user `tool_result` line (by id), Codex and Grok from the `tool_call` line to the
+last `tool_call_update` line with status completed or failed (by `toolCallId`). The classes and the predictions are the ones A13 fixed
+before any result was computed.
 
   python3 -I waits.py             prints the summary and the predictions; writes evidence/waits.txt and evidence/waits.json
 
@@ -42,23 +44,42 @@ def case_root(run: pathlib.Path):
     return None
 
 
-def intervals(flow: dict, origin: float) -> list:
-    """[(start_epoch, end_epoch, tool, text)] with calls and results paired first in, first out."""
-    events = []
-    for action in flow.get("actions", []):
-        for phase in action.get("phases", []):
-            for event in phase.get("events") or []:
-                if event.get("kind") in ("call", "result") and isinstance(event.get("t"), (int, float)):
-                    events.append(event)
-    events.sort(key=lambda event: event["t"])
-    pending, out = collections.deque(), []
-    for event in events:
-        if event["kind"] == "call":
-            pending.append(event)
-        elif pending:
-            call = pending.popleft()
-            out.append((origin + call["t"], origin + event["t"], call.get("tool") or "", (call.get("body") or {}).get("text") or ""))
-    return out
+def command_text(raw) -> str:
+    raw = raw if isinstance(raw, dict) else {}
+    value = raw.get("command") or raw.get("cmd") or ""
+    return " ".join(map(str, value)) if isinstance(value, list) else str(value)
+
+
+def intervals(case: pathlib.Path) -> tuple:
+    """([(start_epoch, end_epoch, tool, command)], calls that never completed) from the raw events and their receive times."""
+    timeline = {}
+    for line in open(case / "timeline.jsonl"):
+        if line.strip():
+            row = json.loads(line)
+            timeline[row["line"]] = row["t"]
+    starts, ends = {}, {}
+    for index, line in enumerate(open(case / "events.jsonl", errors="replace")):
+        if not line.strip() or index not in timeline:
+            continue
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        stamp, kind = timeline[index], event.get("type")
+        if kind == "tool_call":
+            starts[event.get("toolCallId")] = (stamp, event.get("toolName") or event.get("title") or "", command_text(event.get("rawInput")))
+        elif kind == "tool_call_update" and event.get("status") in ("completed", "failed"):
+            ends[event.get("toolCallId")] = stamp
+        elif kind == "assistant":
+            for block in (event.get("message") or {}).get("content") or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    starts[block.get("id")] = (stamp, block.get("name") or "", command_text(block.get("input")))
+        elif kind == "user":
+            for block in (event.get("message") or {}).get("content") or []:
+                if isinstance(block, dict) and block.get("type") == "tool_result":
+                    ends[block.get("tool_use_id")] = stamp
+    done = [(starts[i][0], ends[i], starts[i][1], starts[i][2]) for i in starts if i in ends and ends[i] >= starts[i][0]]
+    return done, len(starts) - len(done)
 
 
 def classify(tool: str, text: str) -> str:
@@ -87,7 +108,7 @@ def verify_record_seconds(run: pathlib.Path, start: float, end: float) -> float:
 def main() -> int:
     rows = [r for r in json.load(open(HERE / "evidence" / "census.json"))["plans"] if r.get("durations_s")]
     out_rows, skipped = [], collections.Counter()
-    drift = []
+    paired_calls = unpaired_calls = 0
     for row in rows:
         run = pathlib.Path(row["run"])
         trace = census.load_trace(run)
@@ -101,18 +122,12 @@ def main() -> int:
             continue
         try:
             flow = json.load(open(case / "flow.json"))
-            timeline = [json.loads(line) for line in open(case / "timeline.jsonl") if line.strip()]
+            calls, unpaired = intervals(case)
         except (OSError, ValueError):
-            skipped["flow or timeline unreadable"] += 1
+            skipped["flow, events or timeline unreadable"] += 1
             continue
-        origin = timeline[0]["t"]
-        for action in flow.get("actions", [])[:3]:      # self-check of the time origin on events that carry a line number
-            for phase in action.get("phases", []):
-                for event in (phase.get("events") or [])[:20]:
-                    line = event.get("line")
-                    if isinstance(line, int) and line < len(timeline) and isinstance(event.get("t"), (int, float)):
-                        drift.append(abs(origin + event["t"] - timeline[line]["t"]))
-        calls = intervals(flow, origin)
+        paired_calls += len(calls)
+        unpaired_calls += unpaired
         for index, (start, end) in enumerate(wins):
             seconds = collections.defaultdict(float)
             verify_calls = []
@@ -137,7 +152,7 @@ def main() -> int:
     lines = []
     emit = lambda text="": (print(text), lines.append(text))
     emit(f"timed census rows {len(rows)}; step windows measured {len(out_rows)} in {len({r['action'] for r in out_rows})} plans; skipped plans {dict(skipped)}")
-    emit(f"time origin check on events with a line number: n {len(drift)}, median |epoch0 + t - timeline[line]| {statistics.median(drift):.3f} s, max {max(drift):.2f} s" if drift else "time origin check: no event carried a line number")
+    emit(f"tool calls paired with their completion: {paired_calls:,}; started but never completed in the log: {unpaired_calls:,}")
     emit(f"hosts {dict(collections.Counter(r['host'] for r in out_rows))}; windows {W:,.0f} s in total, median {statistics.median(r['window_s'] for r in out_rows):.0f} s")
     emit()
     emit("pooled share of the window time, by class (and the model's own time)")
