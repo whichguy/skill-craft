@@ -1,0 +1,27 @@
+{
+ "host": "claude",
+ "source_trial": "e17-claude-qp",
+ "step": "T1",
+ "failed_attempt": 2,
+ "next_attempt": 3,
+ "branch": "w-T1-2",
+ "main_commit": "01545c501adf3d30cd7464bff5ef78cbf02075f7",
+ "failed_commit": "bcb16dc05254f8e8ed8820804e18ed2eeabcaa71",
+ "root_commit": "2389f2105eb4760d5c762099ca670755bc3b2e96",
+ "cause": "conflict",
+ "paths": [
+  "src/store.js",
+  "src/tickets/query.js"
+ ],
+ "main_holds": [
+  "T2",
+  "T3"
+ ],
+ "retry_event_seq": 43,
+ "prefix_events": 43,
+ "plan_sha": "eaa7f6bf55cc80c0661bca85d5737d7dc59f7271e74e84e425ba19b2f941323b",
+ "bundle_sha256": "3def93424d0dc38c4ab5f8e4232de2f9541b89210473ee3be2377f2a4e99ffce",
+ "prefix_sha256": "749251db8fdc8e14dd665f12241f84dc27d349319dea2d3239e058b52043d303",
+ "e17_next_attempt_seconds": 30.1,
+ "known_answer_branch": "w-T1-3"
+}

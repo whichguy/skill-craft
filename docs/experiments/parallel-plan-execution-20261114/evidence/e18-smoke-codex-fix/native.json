@@ -1,0 +1,166 @@
+{
+ "source": "codex rollout files",
+ "agents": [
+  {
+   "id": "01a1e190-aa46-7c80-ba08-e61b209655be",
+   "actor": "thread:9655be",
+   "child": true,
+   "depth": 1,
+   "nickname": "Euclid",
+   "version": "v2",
+   "start": 1794785716.907,
+   "end": 1794785777.732,
+   "tokens": {
+    "input_tokens": 334095,
+    "cached_input_tokens": 303360,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1925,
+    "reasoning_output_tokens": 66,
+    "total_tokens": 336020
+   },
+   "calls": [
+    {
+     "t": 1794785721.587,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/dagkit.py begin --run /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/run --step T3"
+    },
+    {
+     "t": 1794785725.197,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rg -n '^(<<<<<<<|=======|>>>>>>>)' .; cat package.json; cat README.md"
+    },
+    {
+     "t": 1794785728.961,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat src/store.js src/tickets/query.js src/format.js bin/tickets.js CHANGELOG.md docs/decisions/README.md; cat src/due.js src/persistence.js src/config.js"
+    },
+    {
+     "t": 1794785733.524,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat CONTRIBUTING.md; rg --files -g AGENTS.md -g '*due*' -g '*import*' -g '*assign*'; cat test/due-times.test.js"
+    },
+    {
+     "t": 1794785745.985,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\nimport re\nfor name in ['CHANGELOG.md','docs/decisions/README.md']:\n p=Path(name); s=p.read_text();s=re.sub(r'<<<<<<< HEAD\\n(.*?)=======\\n(.*?)>>>>>>> [^\\n]+\\n',lambda m:m[1]+m[2],s,flags=re.S);p.write_text(s)\np=Path('src/store.js');s=p.read_text();s=re.sub(r'<<<<<<< HEAD\\n(.*?)=======\\n(.*?)>>>>>>> [^\\n]+\\n',lambda m:m[1].replace('{ ...ticket }','{ assignee: null, ...ticket }').replace(\"status: 'open', created:\",\"status: 'open', assignee: null, created:\"),s,flags=re.S);s=s.replace('const staged = new TicketStore({ clock: this.clock, state: this.snapshot() });','const staged = new TicketStore({ clock: this.clock, state: this.snapshot(), dueTimes: this.dueTimes, dueHours: this.dueHours });');p.write_text(s)\np=Path('src/tickets/query.js');s=p.read_text();s=re.sub(r'<<<<<<< HEAD\\n(.*?)=======\\n(.*?)>>>>>>> [^\\n]+\\n',lambda m:m[1]+'  }\\n'+m[2],s,flags=re.S);p.write_text(s)\np=Path('src/format.js');s=p.read_text();s=re.sub(r'<<<<<<< HEAD\\n(.*?)=======\\n(.*?)>>>>>>> [^\\n]+\\n',lambda m:m[1].replace(\"'requester', 'created'\",\"'requester', 'assignee', 'created'\"),s,flags=re.S);p.write_text(s)\np=Path('bin/tickets.js');s=p.read_text();s=re.sub(r'<<<<<<< HEAD\\n(.*?)=======\\n(.*?)>>>>>>> [^\\n]+\\n',lambda m:m[1].replace('[--overdue]', '[--assignee AGENT] [--overdue]'),s,flags=re.S);p.write_text(s)\nPY\nnpm test"
+    },
+    {
+     "t": 1794785750.696,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat test/due.test.js; rg -n 'createTicket|create\\(' src/app.js test/store.test.js; cat test/fixtures/v1.4.0/persistence.js"
+    },
+    {
+     "t": 1794785765.813,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('test/due.test.js');s=p.read_text().replace('.create(','.createTicket(');s=s.replace(\"assert.equal(original.trimEnd().split('\\\\t').length, 4);\", \"assert.equal(original.replace(/\\\\n$/, '').split('\\\\t').length, 5);\");s=s.replace(\"assert.equal(enabled.trimEnd().split('\\\\t').length, 5);\", \"assert.equal(enabled.replace(/\\\\n$/, '').split('\\\\t').length, 6);\");s=s.replace(\"assert.equal(enabled.trimEnd().split('\\\\t').slice(0, 4).join('\\\\t'), original.trimEnd());\", \"assert.equal(enabled.replace(/\\\\n$/, '').split('\\\\t').slice(0, 5).join('\\\\t'), original.replace(/\\\\n$/, ''));\");s += '''\n\ntest('imported tickets use configured due hours and retain them through assignment and priority changes', () => {\n  const clock = manualClock();\n  const store = new TicketStore({ clock, dueTimes: true, dueHours: { high: 3 } });\n  store.importTickets([ticketBody({ priority: 'high' })], 'agent');\n  const ticket = store.get('T-0001');\n  assert.equal(Date.parse(ticket.due) - Date.parse(ticket.created), 3 * HOUR);\n  store.assign(ticket.id, 'dana', 'agent');\n  store.update(ticket.id, { priority: 'urgent' }, 'agent');\n  assert.equal(store.get(ticket.id).due, ticket.due);\n});\n\ntest('overdue and assignee HTTP filters combine', async () => {\n  const clock = manualClock();\n  await withService({ clock, dueTimes: true }, async (api) => {\n    for (let i = 0; i < 2; i++) await api.post('/tickets', ticketBody({ priority: 'urgent' }));\n    const { parseListQuery } = require('../src/tickets/query');\n    assert.deepEqual(parseListQuery(new URLSearchParams('overdue=true&assignee=dana'), { dueTimes: true }).filters,\n      { overdue: true, assignee: 'dana' });\n    clock.advance(5 * HOUR);\n    assert.equal((await api.get('/tickets?overdue=true&assignee=dana')).body.items.length, 0);\n    assert.equal((await api.get('/tickets?overdue=true&assignee=')).body.items.length, 2);\n  });\n});\n''';p.write_text(s)\nPY\nnpm test"
+    },
+    {
+     "t": 1794785769.866,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rg -n '^(<<<<<<<|=======|>>>>>>>)' ."
+    },
+    {
+     "t": 1794785774.72,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/dagkit.py complete --run /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/run --step T3 --result '{\"answer\": 139, \"method\": \"Resolved merge conflicts preserving assignment and imports, carried due settings through imports, adapted due tests and verified npm test passes.\"}'"
+    }
+   ]
+  }
+ ],
+ "threads": 2,
+ "parent": {
+  "id": "01a1e190-7db9-77e2-9a77-b63ad6605925",
+  "actor": "parent",
+  "child": false,
+  "depth": null,
+  "nickname": null,
+  "version": null,
+  "start": 1794785706.122,
+  "end": 1794785792.485,
+  "tokens": {
+   "input_tokens": 194664,
+   "cached_input_tokens": 187136,
+   "cache_write_input_tokens": 0,
+   "output_tokens": 712,
+   "reasoning_output_tokens": 33,
+   "total_tokens": 195376
+  },
+  "calls": [
+   {
+    "t": 1794785712.13,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/dagkit.py ready --run /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794785716.803,
+    "kind": "agent_tool",
+    "name": "spawn_agent",
+    "text": "{\"task_name\":\"request_t3\",\"fork_turns\":\"none\",\"message\":\"gAAAAABq-kG0UK2SQ5_LZwq2shgJpynUG9ngqPNtIH2ZSld4ZzhMt-9B50ObJPqAbQWHQJxHuc8JLWLMpYnWZZJtGNJaf7HxxoiACnw"
+   },
+   {
+    "t": 1794785718.606,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794785731.033,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794785742.614,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794785754.71,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794785767.266,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794785779.84,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794785783.112,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/dagkit.py ready --run /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794785790.446,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/dagkit.py verify --run /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/run"
+   },
+   {
+    "t": 1794785790.446,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/dagkit.py outcome --run /Users/dadleet/e18-pilot-20261115/e18-smoke-codex-fix/work/run --step T3"
+   }
+  ]
+ }
+}

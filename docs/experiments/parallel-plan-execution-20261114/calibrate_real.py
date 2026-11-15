@@ -17,7 +17,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -49,15 +48,20 @@ def cell(name: str, want, got) -> None:
 
 
 class Trial:
-    def __init__(self, tmp: Path, *, land: bool = False, policy: str = "fix", attempts: int = 4, land_patch: str | None = None):
+    def __init__(self, tmp: Path, *, land: bool = False, policy: str = "fix", attempts: int = 4, land_patch: str | None = None,
+                 retest: str = "npm test --silent", retest_timeout: int | None = None, rerun_hang: bool = False):
         self.repo = tmp / "repo"
         self.base = ticketfix.make_repo(self.repo)
         self.run = tmp / "work" / "run"
         (tmp / "work").mkdir()
         plan = tmp / "plan.json"
         plan.write_text(json.dumps(ticketfix.plan()))
-        args = ["init", "--plan", str(plan), "--run", str(self.run), "--repo", str(self.repo), "--workspace", "isolated", "--retest", "npm test --silent",
+        args = ["init", "--plan", str(plan), "--run", str(self.run), "--repo", str(self.repo), "--workspace", "isolated", "--retest", retest,
                 "--on-failure", policy, "--max-attempts", str(attempts)]
+        if retest_timeout is not None:
+            args += ["--retest-timeout", str(retest_timeout)]
+        if rerun_hang:
+            args += ["--retest-reruns-hang"]
         if land:
             patch = tmp / "landing.patch"
             patch.write_text(land_patch if land_patch is not None else ticketfix.landing_patch())
@@ -318,9 +322,65 @@ def scenario_merge_fault() -> None:
         cell("S12 verify names the apparatus fault", True, "apparatus fault" in t.kit("verify", "--run", str(t.run)).stdout)
 
 
+HANG_STUB = """import os, subprocess, sys, time
+counter, hangs = sys.argv[1], int(sys.argv[2])
+n = (int(open(counter).read()) if os.path.exists(counter) else 0) + 1
+open(counter, "w").write(str(n))
+if n <= hangs:   # a test that never ends, and the server it left listening (a grandchild)
+    subprocess.Popen([sys.executable, "-c", "import time; time.sleep(61)  # ppe-retest-stub " + counter])
+    time.sleep(61)
+print("# pass 7")
+"""
+
+
+def stub_children(counter: Path) -> list:
+    return subprocess.run(["pgrep", "-f", f"ppe-retest-stub {counter}"], capture_output=True, text=True).stdout.split()
+
+
+def scenario_retest_hang() -> None:
+    print("\n-- S13: a re-test that does not end is killed with everything it started and run again (README A15)")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        stub, counter = tmp / "stub.py", tmp / "count"
+        stub.write_text(HANG_STUB)
+        t = Trial(tmp, retest=f"{sys.executable} {stub} {counter} 1", retest_timeout=2, rerun_hang=True)
+        ws = t.begin("T1")[0]
+        (ws / "src" / "zzT1.js").write_text("module.exports = 1;\n")
+        t.complete("T1")
+        state = t.ready()
+        found = t.events("retest")[-1]["detail"]
+        cell("S13 the merge goes through after one hang", (["T1"], True, 2, 1), (state.get("merged_now"), found["ok"], found["tries"], len(found["reruns"])))
+        cell("S13 the hang is kept as an earlier output, with the exit code 124", (124, True), (found["reruns"][0]["rc"], "did not finish" in found["reruns"][0]["tail"]))
+        cell("S13 nothing the hung run started is left running", [], stub_children(counter))
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        stub, counter = tmp / "stub.py", tmp / "count"
+        stub.write_text(HANG_STUB)
+        t = Trial(tmp, retest=f"{sys.executable} {stub} {counter} 9", retest_timeout=1, rerun_hang=True)
+        ws = t.begin("T1")[0]
+        (ws / "src" / "zzT1.js").write_text("module.exports = 1;\n")
+        t.complete("T1")
+        t.ready()
+        found = t.events("retest")[-1]["detail"]
+        cell("S13 tests that never end are red after three tries, not run for ever", (False, 124, 3, 1), (found["ok"], found["rc"], found["tries"], len(t.events("redtest", "T1"))))
+        cell("S13 and nothing is left running", [], stub_children(counter))
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        stub, counter = tmp / "stub.py", tmp / "count"
+        stub.write_text(HANG_STUB)
+        t = Trial(tmp, retest=f"{sys.executable} {stub} {counter} 1", retest_timeout=1)   # the option is off: E17's behaviour, a hang is red at once
+        ws = t.begin("T1")[0]
+        (ws / "src" / "zzT1.js").write_text("module.exports = 1;\n")
+        t.complete("T1")
+        t.ready()
+        found = t.events("retest")[-1]["detail"]
+        cell("S13 without the option a re-test that does not end is red at its first try (E17's kit), and still leaves nothing running", (False, 124, 1, []), (found["ok"], found["rc"], found["tries"], stub_children(counter)))
+
+
 SCENARIOS = {"clean": scenario_clean, "conflict_fix": scenario_conflict_fix, "conflict_redo": scenario_conflict_redo, "landing_red": scenario_landing_red,
              "landing_conflict": scenario_landing_conflict, "mergefail": scenario_mergefail,
-             "noop_fix": scenario_noop_fix, "landing_fault": scenario_landing_fault, "workspace_fault": scenario_workspace_fault, "merge_fault": scenario_merge_fault}
+             "noop_fix": scenario_noop_fix, "landing_fault": scenario_landing_fault, "workspace_fault": scenario_workspace_fault, "merge_fault": scenario_merge_fault,
+             "retest_hang": scenario_retest_hang}
 
 # (name, scenarios that must notice, the kit's text, the broken text): each guard A14 added, broken in a copy
 MUTATIONS = (
@@ -337,6 +397,8 @@ MUTATIONS = (
     ("a merge error is counted as a conflict", ("merge_fault",), ("        if not paths:   # a merge that failed without a conflict", "        if abort_rc != 0:"),
      ("        if False:   # a merge that failed without a conflict", "        if False:")),
     ("a step's attempts are never used up", ("mergefail",), "    if attempt < meta.get(\"max_attempts\", MAX_ATTEMPTS):\n", "    if True:\n"),
+    ("a re-test that does not end is not run again", ("retest_hang",), "(meta.get(\"retest_reruns_hang\") and rc == 124)", "False"),
+    ("a re-test that does not end leaves what it started running", ("retest_hang",), "            os.killpg(proc.pid, signal.SIGKILL)\n", "            proc.kill()\n"),
 )
 
 
@@ -352,7 +414,7 @@ def mutations() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             copy = Path(tmp) / "dagkit.py"
             broken = text
-            for o, n in zip(olds, news):
+            for o, n in zip(olds, news, strict=True):
                 broken = broken.replace(o, n, 1)
             copy.write_text(broken)
             done = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--only", ",".join(scenarios)], capture_output=True, text=True,

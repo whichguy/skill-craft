@@ -35,6 +35,7 @@ sys.path.insert(0, str(REPO / "test" / "shiploop_e2e"))
 sys.path.insert(0, str(HERE))
 import evidence  # noqa: E402
 import hosts  # noqa: E402  (the E2E harness's host adapters, used read-only)
+import replay  # noqa: E402  (the frozen failed integrations of README Amendment A15)
 import score  # noqa: E402
 import ticketfix  # noqa: E402  (the real-repository fixture of README Amendment A14)
 import writefix  # noqa: E402
@@ -65,14 +66,24 @@ def packet_text(arm: str, plan: dict, kit: Path, run_dir: Path, plan_path: Path,
     return text
 
 
-def end_group(pid: int) -> None:
-    """Stop the process group this launcher started (start_new_session made its group id the pid), and only that."""
+def end_group(proc) -> bool:
+    """Stop the process group this launcher started (start_new_session made its group id the pid), and only that; True when its leader is gone. On macOS a group of
+    processes that have all exited but are not reaped yet is a PermissionError (README A15: a timed-out calibration cell crashed the launcher here), so that case is
+    gone only when the leader has been reaped; a leader still alive is signalled itself, and a leader that cannot be stopped is reported, never waited for for ever."""
     for sig, wait in ((signal.SIGTERM, 5), (signal.SIGKILL, 0)):
         try:
-            os.killpg(pid, sig)
+            os.killpg(proc.pid, sig)
         except ProcessLookupError:
-            return
+            return True
+        except PermissionError:
+            if proc.poll() is not None:
+                return True
+            try:
+                proc.send_signal(sig)
+            except ProcessLookupError:
+                return True
         time.sleep(wait)
+    return proc.poll() is not None
 
 
 def run_host(argv: list, cwd: Path, env: dict, events: Path, stderr: Path, timeout: int) -> dict:
@@ -81,6 +92,13 @@ def run_host(argv: list, cwd: Path, env: dict, events: Path, stderr: Path, timeo
         proc = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=err, env=env,
                                 start_new_session=True)
         stream = {"reader_error": None}
+        series = [[round(time.time(), 1), round(os.getloadavg()[0], 2)]]   # the machine's one-minute load every 20 s while the host runs (the launch sample alone says nothing of the attempt)
+        done = threading.Event()
+
+        def sample():
+            while not done.wait(20):
+                series.append([round(time.time(), 1), round(os.getloadavg()[0], 2)])
+        threading.Thread(target=sample, daemon=True).start()
 
         def pump():
             try:
@@ -101,15 +119,19 @@ def run_host(argv: list, cwd: Path, env: dict, events: Path, stderr: Path, timeo
             proc.wait(timeout=timeout)
             status = "exited" if proc.returncode == 0 else "failed"
         except subprocess.TimeoutExpired:
-            end_group(proc.pid)
-            proc.wait()
-            status = "timeout"
+            gone = end_group(proc)
+            try:
+                proc.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                gone = False
+            status = "timeout" if gone else "timeout-unkilled"
+        done.set()
         exited = time.time()   # the process's own exit, before the reader is joined
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode, "started": round(began, 3), "ended": round(exited, 3),
             "elapsed_s": round(exited - began, 1), "elapsed_monotonic_s": round(time.monotonic() - mono, 3),
-            "reader_joined": not reader.is_alive(), "reader_error": stream["reader_error"]}
+            "reader_joined": not reader.is_alive(), "reader_error": stream["reader_error"], "load_series": series}
 
 
 def lingering(kit: Path) -> list:
@@ -167,6 +189,8 @@ def main(argv=None) -> int:
     parser.add_argument("--land", action="store_true", help="tickets plan, isolated: a teammate's change (real-repo/landing.patch) lands on main just before the first merge (A14)")
     parser.add_argument("--on-failure", choices=("redo", "fix"), default="redo", help="tickets plan, isolated: the recovery rule for a conflict or a red re-test (A14)")
     parser.add_argument("--max-attempts", type=int, default=4, help="tickets plan, isolated: attempts a task gets before its merge fails")
+    parser.add_argument("--seed-state", help="tickets plan, isolated (A15, E18): start from a frozen failed integration (a folder of real-repo/replay-states) instead of the base")
+    parser.add_argument("--seed-rule", choices=("redo", "fix"), help="with --seed-state: the recovery rule the failed step is offered again under")
     parser.add_argument("--workspace", choices=("shared", "isolated"), default="shared",
                         help="write plans: every task edits the one checkout (shared) or each attempt gets its own git worktree that the script merges (isolated)")
     parser.add_argument("--seed", type=int, default=20261114, help="task plans: the seed of the generated log files")
@@ -176,6 +200,10 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if args.enable_feature and args.host != "codex":
         parser.error("--enable-feature applies to the codex host only")
+    if bool(args.seed_state) != bool(args.seed_rule):
+        parser.error("--seed-state and --seed-rule go together")
+    if args.seed_state and (args.workspace != "isolated" or args.land or args.plan != "tickets3"):
+        parser.error("--seed-state is for the tickets3 plan with --workspace isolated and no --land (the state's ledger holds the landing)")
 
     trial = Path(args.out).resolve()
     work, run_dir = trial / "work", trial / "work" / "run"
@@ -213,9 +241,13 @@ def main(argv=None) -> int:
     shutil.copy(HERE / "dagkit.py", kit)
     shutil.copy(plan_src, work / "plan.json")
     init = [sys.executable, str(kit), "init", "--plan", str(work / "plan.json"), "--run", str(run_dir), "--settle", str(args.settle)]
+    seeded = None
     if write:   # the base commit every worker starts from; the hidden oracle sits beside work/, read only by the scorer
         (trial / "oracle").mkdir()
-        if real:
+        if real and args.seed_state:   # A15: the repository, the run and the oracle's inputs come from a frozen failed integration, under one recovery rule
+            seeded = replay.seed(Path(args.seed_state), trial, args.seed_rule, kit, work / "plan.json")
+            init = None
+        elif real:
             ticketfix.make_repo(work / "repo")
             if args.workspace == "isolated":
                 init += ["--retest", "npm test --silent", "--on-failure", args.on_failure, "--max-attempts", str(args.max_attempts)]
@@ -226,8 +258,10 @@ def main(argv=None) -> int:
         else:
             writefix.make_repo(work / "repo")
             (trial / "oracle" / "hidden_tests.py").write_text(writefix.ORACLE)
-        init += ["--repo", str(work / "repo"), "--workspace", args.workspace]
-    subprocess.run(init, check=True, stdout=subprocess.DEVNULL, env=clean_env)
+        if init is not None:
+            init += ["--repo", str(work / "repo"), "--workspace", args.workspace]
+    if init is not None:
+        subprocess.run(init, check=True, stdout=subprocess.DEVNULL, env=clean_env)
     (trial / "packet.md").write_text(packet)
     if is_task_plan(plan) and not write:   # the agents' evidence sits in work/; the oracle sits beside it, read only by the scorer
         files, expected = evidence.generate(args.seed, args.lines)
@@ -243,7 +277,10 @@ def main(argv=None) -> int:
            "permission_mode": "auto", "allow": list(allow), "plan": args.plan, "arm": args.arm, "variant": args.variant,
            "capacity": capacity, "enabled_features": args.enable_feature, "timeout_s": args.timeout,
            "task_plan": is_task_plan(plan), "settle_s": args.settle, "workspace": args.workspace if write else None,
-           "land": bool(real and args.land), "on_failure": args.on_failure if real else None, "max_attempts": args.max_attempts if real else None,
+           "land": bool(real and args.land), "on_failure": (args.seed_rule if seeded else args.on_failure) if real else None, "max_attempts": args.max_attempts if real else None,
+           "replay": None if seeded is None else {"state": seeded["host"], "rule": args.seed_rule, "source_trial": seeded["source_trial"], "step": seeded["step"],
+                                                 "failed_attempt": seeded["failed_attempt"], "main_commit": seeded["main_commit"], "failed_commit": seeded["failed_commit"],
+                                                 "bundle_sha256": seeded["bundle_sha256"], "prefix_sha256": seeded["prefix_sha256"]},
            "provenance": ticketfix.provenance() if real else None,   # hashes of what the oracle is made of, frozen at launch (A14)
            "oracle_deferred": bool(real and os.environ.get("PPE_DEFER_ORACLE") == "1"),
            "seed": args.seed if is_task_plan(plan) and not write else None,
