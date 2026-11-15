@@ -1,0 +1,6 @@
+runs with plans: 750; work items per run: {1: 723, 2: 19, 3: 6, 4: 2}
+runs with two or more work items: 27 (3.6%)
+item pairs in those runs: 49; overlapping declared paths 5; disjoint 19; a side with no recorded paths 25
+disjoint pairs with both items timed: 9; the shorter item's seconds summed (the most that overlapping the pair could save): 1,332 s
+timed seconds in all runs 104,645; in runs with two or more items 6,857 (6.6%)
+runs with two or more items by request family: [('d0c0cbe71344', 6), ('e4b86327ccb1', 4), ('cad74b753941', 2), ('a267e44a597a', 2), ('5a79311c3466', 2), ('d2d7e2dabeeb', 2)] (of 15 families)
