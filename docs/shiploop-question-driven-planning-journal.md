@@ -627,6 +627,42 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   export.py, evidence/scores.json, scores.md and runs/pp-{1,2,3,4}/. Also test/shiploop_e2e/baselines.jsonl (three rows,
   the valid runs). Registration: 57dfccdb250e4342565587f13f802a57eb62eaa5.
 
+### E25 — 2026-11-15: where did E24's missing decision record get lost, and does one house-style category carry it? (stage pilot, then three real discovery stages; Grok 4.6 xhigh)
+
+- **Question.** E24's D5: in 3 of 3 valid runs no repository decision record was written (CONTRIBUTING.md's Decisions section and
+  decision 0001 require one for a change to the data file or the API), and each run recorded the decision only as an AD. The owner
+  counted it as a measured gap on 2026-11-15. Where is the rule lost, and what is the smallest change that carries it?
+- **Diagnosis.** In all three E24 runs the house-style record in environment.md captured CONTRIBUTING.md's Conventions and not its
+  Decisions rule, and the `architecture.md` Conventions sections omit it. house-style.md's category list had no record-keeping
+  category, and its own premise (adherence to up-front rules fades over a long session, so rules must travel with the work item)
+  means an uncaptured rule cannot travel. At the persistence step's document stage each run then answered "an AD already covers
+  it" (pp-1 "AD-4 already states version 1 extra field", pp-2 "AD-1 unchanged. No new AD.", pp-4 "AD-4 already records extra due on
+  version 1"), which ends `document` duty 3.
+- **First instrument, dropped.** A stage-level pilot of a document-stage reminder (branch feat/doc-records-e562cd, registered in
+  f8cf9a2ec7f2a6519b12e32cf13835d5912a62fb, re-registered in 3be0f2620831a964b87dae186f2d5ab2415bfa30; Astra at max effort reviewed
+  the plan): the document stage alone on the persistence step, AD-4 seeded, ShipLoop 1.35.0, Grok 4.6 xhigh. In a fresh stage the
+  base wrote the repository's record in 7 of 10 valid samples (6 as graded: one correct record failed my word test) with no
+  reminder, 3 wrote none, 0 were invalid, and each took 6 to 9 minutes and about $1. The registered predictions Q1 to Q3 missed (the
+  base was neither at most 3 nor at least 8 of 10). So the stage acts on the rule when it explores, and the E24 miss is upstream.
+  The 70-file scenario is not merged: it cost hours and could not reproduce the real flow. The owner's feedback the same day was that
+  the process was excessive; the cheaper instrument was to read the three knowledge homes and run the real case to the stage and stop.
+- **Change.** One bullet in house-style.md step 4: the records a repository requires with a change (a decision record, a changelog
+  entry, a version bump), where each lives, its template and index, and which changes trigger it. changes/shiploop/house-style-record-rules.md,
+  patch. No duty, gate, field or concern row.
+- **Capture check on the real flow.** 3 runs of ticket-due-times on the candidate build (`run.py --source checkout`, Grok 4.6 xhigh),
+  each ended by its stop file when discovery was accepted (24 to 25 turns each; cost unreported for a stopped run). 3 of 3
+  house-style records name the rule, its location, and (hs-1, hs-3) its trigger: hs-1 "API changes and data-file format changes get a
+  decision record (docs/decisions/template.md) and a CHANGELOG.md / package.json version bump on release", hs-2 "Decisions go in
+  docs/decisions/NNNN-....md from template.md, indexed in docs/decisions/README.md", hs-3 "Decision records (binding requirement for
+  API, data file, or notification changes): copy docs/decisions/template.md, next number, index in docs/decisions/README.md". E24's
+  base captured it in 0 of 3 on ShipLoop 1.34.3; the discovery duties and house-style.md are byte-identical between that build
+  (48bc8d63cc64f090f26ba46ee7c273611d14f1de) and this one, so the comparison holds (3 of 3 against 0 of 3, one-sided Fisher p 0.05).
+- **Status.** Capture: firm for these runs (3 runs, one host and model, one repository shape). Not measured: whether the rule then
+  reaches the step that owes the record, and whether a full run writes it. The release carries a `No-E2E-Round` exemption that says
+  so; the next full run of `ticket-due-times` (or any case on a repository with a decision convention) answers it.
+- **Evidence.** docs/experiments/house-style-records-20261115/ (README.md, evidence/base-samples.json, evidence/capture-hs-{1,2,3}/).
+  The change commit carries the same numbers.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -679,3 +715,5 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F44 | release-plan owned neither row in any run (switchover: step-plan 2, operations 1), so it was handed no row. Its rollback undoes the returned commit in every run, and the way back on the data file is in the operator documents. pp-1's release plan names neither 1.4.0 nor the data file (P9 missed as written), yet its product passes the rollback check | firm (3 runs) | E24 |
 | F45 | The step-order word test (M2) cannot see a migration that a step plan words as "assigns missing due" or cites only by criterion ID (2 of 3 step plans). By the concern mapping, the overdue-listing steps follow the migration steps in step order in every run | firm (measure reading) | E24 |
 | F46 | Grok 1.0.77's headless permission check refused shell scripts the model wrote 28 times in 4 runs, and each refusal ended its host session as cancelled. run.py's resumes carried three runs to done but could not carry pp-3 past release-plan: 1 of 4 runs lost, $74.62. Cause diagnosed 2026-11-15: Auto-review's write check before its classifier, measured over 267 Grok runs (docs/experiments/grok-headless-refusals-20261115/README.md; harness journal entry of that date); the harness's hook and resume note were built the same day | firm (4 runs) | E24 |
+| F47 | E24's missing decision record was lost upstream of the document stage: all three house-style records captured CONTRIBUTING's Conventions and not its Decisions rule, and house-style.md had no category for record-keeping rules. With one added bullet, 3 of 3 real discovery stages capture it (0 of 3 before; discovery duties and the reference were otherwise identical). Not measured: the rule reaching the step that owes the record, and a full run writing it | firm for capture (3 runs); propagation unmeasured | E25 |
+| F48 | A fresh document stage with the AD seeded wrote the repository's decision record in 7 of 10 samples (6 as graded) with no reminder, against 0 of 3 in E24's long sessions: the stage acts on the rule when it explores, so a document-stage reminder is the wrong first lever. A stage-level instrument could not reproduce the real flow and cost hours; reading the knowledge homes and running the real case to the stage and stopping would have been enough | interim (10 samples, one host and model, one repository) | E25 |

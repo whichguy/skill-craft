@@ -1,0 +1,173 @@
+{
+ "what": "E25 stage-level pilot, base arm: document/repo-record-persistence on the E2E default subject, ShipLoop 1.35.0 at 05b362cab3959f19f2a88cb65d770f68b547e345, evaluator R1 50338207b5598ed31dfcdcb4081c81a8ce6cc6e10279d8c3bee6961133863f80, Grok CLI 1.0.77 (50ca579fa996), model grok-4.6 xhigh",
+ "ids": {
+  "P1": "the repository's decision record written correctly",
+  "P2": "indexed in docs/decisions/README.md",
+  "P3": "the AD links to the record (not asked of the base)",
+  "C1": "accepted records unchanged",
+  "C2": "AD-4 keeps its ID",
+  "C3": "product tests still pass"
+ },
+ "valid_samples": 10,
+ "p1_as_graded": 6,
+ "wrote_a_record_by_reading": 7,
+ "note": "base-b sample 7 wrote a correct record that names due and version 1 but not the literal words 'data file', so the P1 word test graded it a miss (an oracle false negative); reading it as a record, 7 of 10 wrote one",
+ "samples": [
+  {
+   "root": "document",
+   "sample": 1,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3",
+    "P1",
+    "P2"
+   ],
+   "p1_p2_failures": {},
+   "wall_seconds": 473.0,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 2,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3",
+    "P1",
+    "P2"
+   ],
+   "p1_p2_failures": {},
+   "wall_seconds": 538.5,
+   "sessions": 4
+  },
+  {
+   "root": "document",
+   "sample": 1,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3"
+   ],
+   "p1_p2_failures": {
+    "P1": "exit 1: expected exactly one new decision record in docs/decisions/, found 0: [] (exit 0 was asked for)",
+    "P2": "exit 1: no new record at number 9 for the index to list (exit 0 was asked for)"
+   },
+   "wall_seconds": 365.7,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 2,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3"
+   ],
+   "p1_p2_failures": {
+    "P1": "exit 1: expected exactly one new decision record in docs/decisions/, found 0: [] (exit 0 was asked for)",
+    "P2": "exit 1: no new record at number 9 for the index to list (exit 0 was asked for)"
+   },
+   "wall_seconds": 386.5,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 3,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3",
+    "P1",
+    "P2"
+   ],
+   "p1_p2_failures": {},
+   "wall_seconds": 477.4,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 4,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3",
+    "P1",
+    "P2"
+   ],
+   "p1_p2_failures": {},
+   "wall_seconds": 355.4,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 5,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3"
+   ],
+   "p1_p2_failures": {
+    "P1": "exit 1: expected exactly one new decision record in docs/decisions/, found 0: [] (exit 0 was asked for)",
+    "P2": "exit 1: no new record at number 9 for the index to list (exit 0 was asked for)"
+   },
+   "wall_seconds": 425.1,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 6,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3",
+    "P1",
+    "P2"
+   ],
+   "p1_p2_failures": {},
+   "wall_seconds": 425.6,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 7,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3",
+    "P2",
+    "P3"
+   ],
+   "p1_p2_failures": {
+    "P1": "exit 1: 0009-version-1-due-field.md does not name the data file (exit 0 was asked for)"
+   },
+   "wall_seconds": 549.5,
+   "sessions": 1
+  },
+  {
+   "root": "document",
+   "sample": 8,
+   "outcome": "done",
+   "held_or_caught": [
+    "C1",
+    "C2",
+    "C3",
+    "P1",
+    "P2",
+    "P3"
+   ],
+   "p1_p2_failures": {},
+   "wall_seconds": 431.2,
+   "sessions": 1
+  }
+ ]
+}
