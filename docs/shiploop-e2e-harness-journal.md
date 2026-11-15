@@ -93,7 +93,11 @@ While building it, more probes corrected the rule: `rm`, `mv`, `touch` and `ln` 
 `tar -C`, `rsync` and a variable in a `cp` source are not (the first version had listed `tar -C`). The rule agrees with
 all 60 exact-command probes and still flags 28 of 28 recorded 1.0.77 refusals and 0 of 2,155 allowed calls. Live, with
 the real install on Grok 1.0.77, the matcher fires, the three shapes are denied in the turn (3 of 3), and the `"$VAR"`
-task recovers in the same turn (2 of 2). Hermetic tests in test/shiploop-e2e-hosts.test.py (GrokPreemptTest and two
+task recovers in the same turn (2 of 2). Replaying the 28 commands Grok refused in pp-1 to pp-4 through the installed hook
+denied all 28 in the turn, with no Grok refusal ($1.41). A whole `ticket-due-times` delivery was started as a further check
+and stopped after 5 minutes, because the owner judged a 6-hour run excessive when the replay and the record check answer
+the question; the next Grok E2E round measures the session and time effect from its own `preempt` record. Hermetic tests
+in test/shiploop-e2e-hosts.test.py (GrokPreemptTest and two
 GrokResumeTest cases with a new `refused` fake-Grok mode); SPEC "A Grok refusal the harness can foresee is made in the
 turn" and "A resume says when Grok's check ended the session".
 
@@ -105,7 +109,8 @@ repository.
 **Open edges.**
 - ~~No change is built.~~ Superseded the same day: the owner chose the hook and the resume note, and both are built.
   They change what the harness measures in Grok runs that meet a refusal (fewer sessions, `preempted_tool_calls`), so a
-  Grok run before 2026-11-15 and one after differ there; no E2E round has measured the effect on a whole delivery yet.
+  Grok run before 2026-11-15 and one after differ there; no E2E round has measured the effect on a whole delivery yet
+  (a verification delivery was stopped at 5 minutes by the owner's call; see above).
 - slice.py (the planning-slice experiments) installs neither the keepalive nor this hook, so a slice still loses its
   session to a refusal; adding the hook there would change those experiments' comparability and was left out.
 - The floor is build-specific: 1.0.46 had none, 1.0.70 refused more (12 of its 15 refusals outside the three shapes hold

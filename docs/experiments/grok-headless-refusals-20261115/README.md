@@ -22,7 +22,7 @@ commands, how often it happens across the recorded Grok runs, and what would fix
   headless run cannot ask for approval`, marks the call `User cancelled the execution`, and ends the turn as `cancelled`
   (`permission_cancelled`). Grok skips the `Stop` hook for a cancelled turn, so ShipLoop's keepalive hook never sees it, and
   `run.py`'s resume loop starts the session again.
-- **Trigger** (probed on 1.0.77, 81 Grok sessions in all). The floor fires on three shapes, deterministically, in 0 to
+- **Trigger** (probed on 1.0.77, 109 Grok sessions in all). The floor fires on three shapes, deterministically, in 0 to
   13 ms, without the classifier:
   1. a write target that holds a shell expansion, where the target is every operand of `mkdir`, `touch` or `rm`, the
      destination of `cp`, `mv` or `ln`, or a file of `tee`: `mkdir -p "$COPY"`, `rm -rf "$X"`, `cp a "$X/"`,
@@ -90,7 +90,8 @@ commands, how often it happens across the recorded Grok runs, and what would fix
    ded345978767587e07c6fffe60aa3f7e785c668b), `trace-1077` (a log-level attempt), then, while building the fix,
    `writers-1077` and `writers2-1077` (each writing program with a variable or a post-`cd` target) and `live-hook-1077`
    and `live-task-hook-1077` (the harness's own installed hook). Model `grok-4.6` at `low`: the permission decision is not
-   the model's. The 81 sessions cost $2.00, and every one was answered by Grok 1.0.77 (each profile's log names its build).
+   the model's. Then `replay-hook-1077` (the 28 real refused commands with the hook; see Decision and fix). The 109
+   sessions cost $3.41, and every one was answered by Grok 1.0.77 (each profile's log names its build).
 5. **Check the rule against the record.** The rule is code in one place, `test/shiploop_e2e/grok_preempt.floor_shapes`,
    which the harness's hook applies and `analyze.py` imports. It agrees with all 60 exact-command probes, and on the
    recorded runs it flags every 1.0.77 refusal (28 of 28) and no allowed 1.0.77 call (0 of 2,155). The first version's own
@@ -189,6 +190,16 @@ mode, subject model or baseline row changed.
 - **Live check** (Grok 1.0.77, the real install): the matcher fires; the three refused shapes were denied and each turn
   completed (3 of 3, batch `live-hook-1077`); the task that invites a `"$VAR"` write recovered in the same turn 2 of 2
   times, each with one logged denial and the copied file in place (`live-task-hook-1077`).
+- **Replay of the real refusals** (batch `replay-hook-1077`, $1.41): the 28 commands Grok refused in pp-1 to pp-4, each in a
+  fresh session laid out like its run, with the harness's hook installed. The hook denied 28 of 28 in the turn (one logged
+  denial each), Grok refused none, and every turn completed. With the record check above (0 false flags in the 2,155
+  allowed calls of the same runs), this covers both ways the hook can fail on the commands long deliveries actually write.
+- **No whole-delivery round.** A `ticket-due-times` verification run (`~/e2e-runs-refusal-probe/20261115/tdt-hook-1`) was
+  started and stopped after 5 minutes at discovery: the owner judged a 6-hour run excessive for this check, and the replay
+  above answers the correctness question for about a dollar. Its record shows the hook in a real run (installed,
+  `build_matches` true, no denial yet); it can be continued with `--resume-run`. The effect on sessions and time over a
+  whole delivery is left to the next Grok E2E round, which records it at no extra cost (`preempt` in result.json,
+  `preempted_tool_calls` in the baseline row).
 - **Pin.** `grok_preempt.CALIBRATED_BUILD` is 1.0.77. A hermetic test checks the rule against every exact-command probe
   in [evidence/probes.jsonl](evidence/probes.jsonl) and that each was answered by that build. When Grok updates, rerun
   `probe.py`'s cases on the new build, export them, and move the constant only when the test passes again.
