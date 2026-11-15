@@ -64,17 +64,18 @@ were unknown.
 **Cause.** `run.py` launches Grok with `--permission-mode auto` (Auto-review) and no user. Before its classifier, Auto-review
 checks which files a shell command writes; when it cannot resolve a written path it raises a floor only a person can clear.
 Headless, Grok refuses the call, ends the turn as `cancelled` (`permission_cancelled`, 176 of 176 paired refusals), and skips
-the `Stop` hook, so ShipLoop's keepalive cannot hold the session. Probed on 1.0.77 (63 one-command sessions through
-`hosts.GrokHost`), the floor fires on three shapes in 0 to 13 ms, with no classifier call: a file-writing program whose
+the `Stop` hook, so ShipLoop's keepalive cannot hold the session. Probed on 1.0.77 (63 sessions through `hosts.GrokHost`: 59
+exact commands and 4 small tasks), the floor fires on three shapes in 0 to 13 ms, with no classifier call: a file-writing program whose
 target holds a shell expansion (`mkdir -p "$COPY"`, `cp a "$X/"`, `tee "$X/…"`); a relative write after a `cd` to a folder
-other than the session's (`cd WT && mkdir -p fixtures`); and two adjacent backticks inside double quotes (Python one-liners
-reading ShipLoop's ```` ```shiploop-state ```` blocks). Allow rules, even `--allow 'Bash(*)'`, do not lift it. E2E meets it
+other than the session's (`cd WT && mkdir -p fixtures`); and an empty backtick substitution (two adjacent backticks)
+inside double quotes or an unquoted here-document (Python one-liners reading ShipLoop's ```` ```shiploop-state ````
+blocks). Allow rules, even `--allow 'Bash(*)'`, do not lift it. E2E meets it
 because ShipLoop's run folder and worktree sit beside the session's folder (`<run>/work`), not in it.
 
 **Rate.** 193 refused shell calls in the 267 recorded Grok runs (2026-10-05 to 11-14), all under `auto`; none in 1,292 shell
 calls under `bypassPermissions` (4 runs). 1.28 per 100 shell calls on 1.0.77; refusals in 21 of 27 deliveries. Each costs a
 session (median 10.9 s to the next tool call, plus a 122,000 to 187,000-token context re-read per resume), and 88 of 176 were
-followed by another within 10 shell calls, because the resume prompt does not say why the session ended. One run in all
+followed by another within 10 shell calls, under a resume prompt that did not say why the session ended. One run in all
 was lost outright: pp-3, whose seven later sessions each ended on another `"$VAR"`-target script until the stall stop ended it.
 
 **Options and recommendation.** Detailed in docs/experiments/grok-headless-refusals-20261115/README.md, "Options". Allow
@@ -82,28 +83,52 @@ rules do nothing. `bypassPermissions` removes every refusal but also the classif
 Salesforce changes, discarded uncommitted work, non-scratch deletes), and breaks comparability with every earlier Grok run.
 A ShipLoop packet rule is a product change on every host. Recommended for the owner's go: a Grok `PreToolUse` hook in the
 harness's profile that denies the three shapes with the rewrite, so the model reads the refusal in the same turn (prototype:
-2 of 2 in-turn recoveries on a task, 0 of 2 without it; the shapes flag 28 of 28 recorded 1.0.77 refusals and 0 of 2,155
-allowed calls), plus a resume prompt that names a refusal for whatever the hook misses.
+2 of 2 in-turn recoveries on a task, 0 of 2 without it; the shapes flag 28 of 28 recorded 1.0.77 refusals and none of
+the 2,155 other 1.0.77 calls, 2,154 allowed and 1 blocked by the classifier), plus a resume prompt that names a refusal
+for whatever the hook misses.
 
 **Fix (owner's choice, the same day: "Hook + resume note").** `test/shiploop_e2e/grok_preempt.py` holds the rule, the
 hook and its installer; `GrokHost.preempt_install` puts it in each Grok run's throwaway profile before the session, as a
 PreToolUse hook on `run_terminal_command`, and run.py records `preempt` in result.json and `preempted_tool_calls` in the
 baseline row. When a Grok session still ends on a refusal, the resume prompt names the refused command and the rewrite.
 While building it, more probes corrected the rule: `rm`, `mv`, `touch` and `ln` targets are floored like `mkdir`'s, while
-`tar -C`, `rsync` and a variable in a `cp` source are not (the first version had listed `tar -C`). The rule agrees with
-all 60 exact-command probes and still flags 28 of 28 recorded 1.0.77 refusals and 0 of 2,155 allowed calls. Live, with
+`tar -C`, `rsync` and a variable in a `cp` source are not (the first version had listed `tar -C`). The rule then agreed
+with all 60 exact-command probes (81 after the review below) and still flagged 28 of 28 recorded 1.0.77 refusals and none
+of the 2,155 other calls. Live, with
 the real install on Grok 1.0.77, the matcher fires, the three shapes are denied in the turn (3 of 3), and the `"$VAR"`
 task recovers in the same turn (2 of 2). Replaying the 28 commands Grok refused in pp-1 to pp-4 through the installed hook
 denied all 28 in the turn, with no Grok refusal ($1.41). A whole `ticket-due-times` delivery was started as a further check
 and stopped after 5 minutes, because the owner judged a 6-hour run excessive when the replay and the record check answer
-the question; the next Grok E2E round measures the session and time effect from its own `preempt` record. Hermetic tests
+the question; the next Grok E2E round records its sessions, time, denials and remaining refusals (`preempt`), and a
+saving needs a comparison with runs like it. Hermetic tests
 in test/shiploop-e2e-hosts.test.py (GrokPreemptTest and two
 GrokResumeTest cases with a new `refused` fake-Grok mode); SPEC "A Grok refusal the harness can foresee is made in the
 turn" and "A resume says when Grok's check ended the session".
 
-**Evidence.** docs/experiments/grok-headless-refusals-20261115/ (analyze.py, summarize.py, probe.py, export_probes.py;
-evidence/summary.md, summary.json, refusals.jsonl, probes.jsonl; the prototype preempt_hook.py is in
-ded345978767587e07c6fffe60aa3f7e785c668b). Probe sessions under `~/e2e-runs-refusal-probe/20261115/`, outside the
+**Review and rework (the same day).** Before concluding, Astra (`gpt-6-astra`, max effort) reviewed the hook, the note,
+the tests and the write-ups: 14 findings, verdict "ship after the listed fixes". Each parser finding was probed on Grok
+before the rule changed (batch `edges-1077`, 21 commands, no hook). The old rule disagreed with Grok on 15 of them. It
+missed 7 that Grok refuses (a quoted program name, a write after a here-document with a hyphenated delimiter, a
+here-string after a `"$X"` target, `>|` after a `cd`, `if cd …; then mkdir …`, and the `env` and `timeout` wrappers) and
+denied 8 that Grok allows (`$` in single quotes, after a backslash or in a comment, adjacent non-empty backtick
+substitutions, a `<<\EOF` body, a here-string operand, an attached `"$X…"` redirect, and an escaped `\>` after a `cd`).
+On the other 6 it already agreed with Grok, and the review's proposed change would have broken that: Grok never forgets
+a `cd` (a relative write after `popd`, a subshell's `cd`, `cd .` or a return to the session's folder is still refused),
+counts `touch -r`'s value as a target, and allows `cp -t"$X"`. The rule became one lexer that abstains on a command it cannot read; the hook stands down outside
+`auto` (batch `payload-1077`: the event's `permissionMode` is `auto` or `bypassPermissions`), run.py installs it only for
+an `auto` launch, and its command ends in `|| true`, because a script that cannot start exits 2, which Grok reads as a
+deny of every shell call. The note now reads only the last launch's events, only on Grok, only Grok's exact refusal text,
+and not when that call later completed. Results: 81 of 81 exact probes agree; 28 of 28 recorded 1.0.77 refusals flagged
+and none of the 2,155 other calls; 1.0.70's 2 false flags fall to 0; live, 3 of 3 shapes denied in the turn and 2 of 2
+task recoveries (batches `live2-hook-1077`, `live2-task-hook-1077`). Corrected in this entry the same day, each for
+overstating the evidence: "0 of 2,155 allowed calls" (one of them was a classifier block), "two adjacent backticks inside
+double quotes" (an empty substitution, also in an unquoted here-document), "63 one-command sessions" (59 commands and 4
+tasks), "because the resume prompt does not say why" (a co-occurrence, not a measured cause), "1.0.46 had none" (none was
+observed) and "measures the session and time effect" (it records them; a saving needs a comparison).
+
+**Evidence.** docs/experiments/grok-headless-refusals-20261115/ (analyze.py, summarize.py, probe.py, export_probes.py,
+record_payload.py; evidence/summary.md, summary.json, refusals.jsonl, probes.jsonl, payloads.jsonl; the prototype
+preempt_hook.py is in ded345978767587e07c6fffe60aa3f7e785c668b). Probe sessions under `~/e2e-runs-refusal-probe/20261115/`, outside the
 repository.
 
 **Open edges.**
@@ -113,6 +138,6 @@ repository.
   (a verification delivery was stopped at 5 minutes by the owner's call; see above).
 - slice.py (the planning-slice experiments) installs neither the keepalive nor this hook, so a slice still loses its
   session to a refusal; adding the hook there would change those experiments' comparability and was left out.
-- The floor is build-specific: 1.0.46 had none, 1.0.70 refused more (12 of its 15 refusals outside the three shapes hold
+- The floor is build-specific: no floor refusal was observed on 1.0.46, and 1.0.70 refused more (12 of its 15 refusals outside the three shapes hold
   ```` ``` ```` in single quotes or a quoted here-document). Any hook needs a per-build pin.
 - The Claude host also runs `--permission-mode auto`; its refusals are not measured (a Grok-only signal, 1a35bc50).

@@ -195,7 +195,8 @@ def main() -> int:
         lines.append(f"- {build}: " + "; ".join(f"{k} {v}" for k, v in sorted(cell.items())))
     if "restart_gap_s" in summary:
         g = summary["restart_gap_s"]
-        lines += ["", f"Refusal to the next session's first tool call: median {g['median']} s, 90th percentile {g['p90']} s, "
+        lines += ["", f"Refusal to the run's next permission decision more than 0.5 s later (the resumed session's first decided call): "
+                      f"median {g['median']} s, 90th percentile {g['p90']} s, "
                       f"max {g['max']} s (n = {g['n']})."]
     (evidence / "summary.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))

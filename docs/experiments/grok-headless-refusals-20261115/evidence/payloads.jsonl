@@ -1,0 +1,2 @@
+{"batch": "payload-1077", "session": "echo-auto", "hookEventName": "pre_tool_use", "toolName": "run_terminal_command", "permissionMode": "auto"}
+{"batch": "payload-1077", "session": "echo-bypassPermissions", "hookEventName": "pre_tool_use", "toolName": "run_terminal_command", "permissionMode": "bypassPermissions"}

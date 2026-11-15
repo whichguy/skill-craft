@@ -710,10 +710,9 @@
    "flagged / not a floor refusal": 9
   },
   "1.0.70": {
-   "not flagged / not a floor refusal": 7647,
+   "not flagged / not a floor refusal": 7649,
    "flagged / floor refusal": 110,
-   "not flagged / floor refusal": 15,
-   "flagged / not a floor refusal": 2
+   "not flagged / floor refusal": 15
   },
   "1.0.77": {
    "not flagged / not a floor refusal": 2155,

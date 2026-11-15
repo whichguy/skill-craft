@@ -19,15 +19,34 @@ def load_tests(loader, standard_tests, pattern):
 
 import grok_preempt  # noqa: E402  (test/shiploop_e2e is on the path through the support module)
 
-def refused_session(command: str) -> str:
+REFUSAL = "User cancelled the execution for tool `run_terminal_command`"
+
+
+def update(call: str, status: str, text: str) -> dict:
+    return {"type": "tool_call_update", "toolCallId": call, "status": status,
+            "content": [{"type": "content", "content": {"type": "text", "text": text}}]}
+
+
+def refused_session(command: str, *, stop: str = "cancelled", between: tuple = ()) -> str:
     """One Grok session that ends on a refused shell call, as headless Grok writes it (docs/experiments/grok-headless-
-    refusals-20261115): the call, its failed update, then the session's end event."""
+    refusals-20261115): the call, its failed update, any events in between, then the session's end event."""
     return "\n".join(json.dumps(event) for event in (
         {"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command", "rawInput": {"command": command}},
-        {"type": "tool_call_update", "toolCallId": "c1", "status": "failed", "content": [
-            {"type": "content", "content": {"type": "text",
-                                            "text": "User cancelled the execution for tool `run_terminal_command`"}}]},
-        {"type": "end", "stopReason": "cancelled", "sessionId": "s1"})) + "\n"
+        update("c1", "failed", REFUSAL), *between,
+        {"type": "end", "stopReason": stop, "sessionId": "s1"})) + "\n"
+
+
+def run_folder(tmp: str, sessions: list[tuple[str, str]]) -> Path:
+    """A run folder holding ``sessions`` (host, stream text) in order, with the session log the harness writes."""
+    out = Path(tmp)
+    lines = 0
+    with (out / "events.jsonl").open("w") as events, (out / "sessions.jsonl").open("w") as log:
+        for number, (host, text) in enumerate(sessions, 1):
+            log.write(json.dumps({"row": "start", "n": number, "host": host, "events_line": lines}) + "\n")
+            events.write(text)
+            lines += len(text.splitlines())
+            log.write(json.dumps({"row": "end", "n": number, "events_line": lines}) + "\n")
+    return out
 
 
 REFUSED_SESSION = refused_session("cd /r/worktree && mkdir -p fixtures")
@@ -40,20 +59,24 @@ class GrokPreemptTest(unittest.TestCase):
 
     def payload(self, command, tool="run_terminal_command", **extra) -> dict:
         return {"hookEventName": "pre_tool_use", "toolName": tool, "toolInput": {"command": command},
-                "cwd": "/runs/r/work", "workspaceRoot": "/runs/r/work", "toolInputTruncated": False, **extra}
+                "cwd": "/runs/r/work", "workspaceRoot": "/runs/r/work", "permissionMode": "auto",
+                "toolInputTruncated": False, **extra}
 
-    def hook(self, payload, state: Path) -> subprocess.CompletedProcess:
+    def hook(self, payload, state: Path | None) -> subprocess.CompletedProcess:
+        env = {key: value for key, value in os.environ.items() if key != "XDG_STATE_HOME"}
+        if state is not None:
+            env["XDG_STATE_HOME"] = str(state)
         return subprocess.run([sys.executable, str(PREEMPT)], input=payload if isinstance(payload, str) else json.dumps(payload),
-                              capture_output=True, text=True, env={**os.environ, "XDG_STATE_HOME": str(state)}, timeout=30)
+                              capture_output=True, text=True, env=env, timeout=30)
 
     def test_the_rule_agrees_with_every_probe_of_its_calibrated_build(self):
-        # Each exact-command probe session (probe.py) asked Grok to run one command; a refusal is one decided without the
-        # classifier (its reviews take seconds). The pin: recalibrating on another build means new probes and a new constant.
+        # Each exact-command probe session (probe.py, no hook, no allow rule) asked Grok to run one command; a refusal is
+        # one decided without the classifier (its reviews take seconds). Recalibrating on another build adds that build's
+        # probes beside these and moves the constant: the earlier build's rows stay as its record.
         sessions = [json.loads(line) for line in PROBES.read_text().splitlines()]
         exact = [s for s in sessions if s["prompt_kind"] == "exact" and not s["allow"] and not s["preempt_hook"]
-                 and not s["batch"].startswith("trace")]
-        self.assertGreaterEqual(len(exact), 60)
-        self.assertEqual({s["build"] for s in exact}, {grok_preempt.CALIBRATED_BUILD})
+                 and not s["batch"].startswith("trace") and s["build"] == grok_preempt.CALIBRATED_BUILD]
+        self.assertGreaterEqual(len(exact), 81)
         for session in exact:
             command = (session["ran"] or [session["asked"]])[0].replace("{ROOT}", "/probe/root")
             refused = session["decision"] == "cancelled" and session["wait_ms"] <= 50
@@ -61,19 +84,31 @@ class GrokPreemptTest(unittest.TestCase):
                              f"{session['batch']}/{session['case']}: {command[:120]!r}")
 
     def test_each_shape_is_named_and_the_commands_grok_allows_are_not(self):
+        # Each line is a probe's answer from Grok 1.0.77 (batches pairs, pairs2, writers, writers2 and edges).
         floor = grok_preempt.floor_shapes
-        self.assertEqual(floor('COPY="/r/x"\nmkdir -p "$COPY"'), ["var-write"])
-        self.assertEqual(floor('X=/r\ncp a.md "$X/"'), ["var-write"])
-        self.assertEqual(floor('X=/r\necho hi | tee -a "$X/t.txt"'), ["var-write"])
-        self.assertEqual(floor('mkdir -p "$(dirname /r/deep/x)"'), ["var-write"])
-        self.assertEqual(floor("cd /r/worktree && git show HEAD:README.md > fixtures.txt"), ["cd-relative-write"])
-        self.assertEqual(floor("(cd /r/worktree && mkdir -p x)"), ["cd-relative-write"])
-        self.assertEqual(floor('python3 -c "import re; re.search(r\'```x\\n(.*)\\n```\', t)"'), ["backtick-in-dq"])
-        self.assertEqual(floor('cat <<<"x"\nX=/r\nmkdir -p "$X"'), ["var-write"], "a here-string is no here-document")
+        refused = {
+            'COPY="/r/x"\nmkdir -p "$COPY"': ["var-write"], 'X=/r\ncp a.md "$X/"': ["var-write"],
+            'X=/r\necho hi | tee -a "$X/t.txt"': ["var-write"], 'mkdir -p "$(dirname /r/deep/x)"': ["var-write"],
+            'X=/r\nrm -rf "$X"': ["var-write"], 'X="/a" mkdir -p "$X"': ["var-write"], '"mkdir" -p "$X"': ["var-write"],
+            'env mkdir -p "$X"': ["var-write"], 'timeout 5 mkdir -p "$X"': ["var-write"],
+            'touch -r "$X" /r/t.txt': ["var-write"], 'cp /r/a.md "$X" <<< text': ["var-write"],
+            'cat <<END-X\nbody\nEND-X\nmkdir -p "$X"': ["var-write"], 'cat <<<"x"\nX=/r\nmkdir -p "$X"': ["var-write"],
+            "cd /r/worktree && git show HEAD:README.md > fixtures.txt": ["cd-relative-write"],
+            "(cd /r/worktree && mkdir -p x)": ["cd-relative-write"], "cd /r/wt; echo hi >|relative.txt": ["cd-relative-write"],
+            "cd /r/wt && cd /runs/r/work && mkdir -p rel": ["cd-relative-write"], "cd . && mkdir -p rel": ["cd-relative-write"],
+            "(cd /r/wt; pwd); mkdir -p rel": ["cd-relative-write"], "if cd /r/wt; then mkdir -p rel; fi": ["cd-relative-write"],
+            "pushd /r/wt; popd; mkdir -p rel": ["cd-relative-write"],
+            'python3 -c "import re; re.search(r\'```x\\n(.*)\\n```\', t)"': ["backtick-in-dq"],
+        }
+        for command, shapes in refused.items():
+            self.assertEqual(floor(command, "/runs/r/work"), shapes, command)
         for allowed in ('X=/r\ncp "$X/a.md" /r/b.md', 'X=/r\nrsync -a /s/ "$X/"', 'X=/r\ntar -x -C "$X" -f /a.tgz',
-                        'X=/r\nnode --version > "$X/out.txt" 2>&1', "cd /r/worktree && git status --short",
-                        "cd /runs/r/work && mkdir -p fixtures", 'echo "a `date` b"', "mkdir -p /r/literal",
-                        "python3 -c 'import re; re.search(r\"```x\", t)'", "cat > \"$X/a.txt\" <<'EOF'\n``` text\nEOF"):
+                        'X=/r\nnode --version > "$X/out.txt" 2>&1', 'mkdir -p /r/out2>"$X.log"', 'cp -t"$X" /r/a.md',
+                        "cd /r/worktree && git status --short", "cd /runs/r/work && mkdir -p fixtures",
+                        'echo "a `date` b"', 'echo "`date``date`"', "mkdir -p /r/literal", "mkdir -p '/r/$X'",
+                        'mkdir -p "/r/\\$X"', "mkdir /r/out # $X", 'mkdir -p /r/hs <<< "$X"', "cd /r/wt; printf %s \\>relative",
+                        "python3 -c 'import re; re.search(r\"```x\", t)'", "cat > \"$X/a.txt\" <<'EOF'\n``` text\nEOF",
+                        'cat <<\\EOF\nmkdir -p "$X"\nEOF', "echo 'unterminated"):
             self.assertEqual(floor(allowed, "/runs/r/work"), [], allowed)
 
     def test_the_hook_denies_a_floored_shell_call_with_the_rewrite_and_logs_it(self):
@@ -88,19 +123,29 @@ class GrokPreemptTest(unittest.TestCase):
             row = json.loads(log.read_text())
             self.assertEqual((row["session"], row["shapes"], row["command"]), ("s1", ["var-write"], 'X=/r\nmkdir -p "$X"'))
 
+    def test_outside_a_throwaway_profile_the_hook_still_denies_and_logs_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            done = subprocess.run([sys.executable, str(PREEMPT)], input=json.dumps(self.payload('mkdir -p "$X"')),
+                                  capture_output=True, text=True, timeout=30,
+                                  env={**{k: v for k, v in os.environ.items() if k != "XDG_STATE_HOME"}, "HOME": tmp})
+            self.assertEqual(json.loads(done.stdout)["decision"], "deny")
+            self.assertEqual(list(Path(tmp).iterdir()), [], "no state folder is made outside the harness's profile")
+            self.assertIsNone(grok_preempt.log_path({"XDG_STATE_HOME": "relative/state"}))
+
     def test_a_deny_never_reads_as_grok_s_own_refusal(self):
         # metrics.cancelled_update counts Grok's refusals: the update a hook deny makes must not be one of them.
         reason = grok_preempt.reason(["var-write", "cd-relative-write", "backtick-in-dq"])
-        update = {"type": "tool_call_update", "status": "failed",
-                  "content": [{"type": "content", "content": {"type": "text", "text": "Hook denied: " + reason}}]}
-        self.assertFalse(metrics.cancelled_update(update))
+        self.assertFalse(metrics.cancelled_update(update("c", "failed", "Hook denied: " + reason)))
         self.assertNotIn("cancel", reason.lower())
 
     def test_the_hook_has_no_opinion_on_anything_else(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)
-            for payload in (self.payload("git status --short"), self.payload('X=/r\nmkdir -p "$X"', tool="write"),
-                            self.payload('X=/r\nmkdir -p "$X"', toolInputTruncated=True),
+            floored = 'X=/r\nmkdir -p "$X"'
+            for payload in (self.payload("git status --short"), self.payload(floored, tool="write"),
+                            self.payload(floored, toolInputTruncated=True),
+                            *(self.payload(floored, permissionMode=mode) for mode in ("bypassPermissions", "default", "plan")),
+                            {k: v for k, v in self.payload(floored).items() if k != "permissionMode"},
                             {"toolName": "run_terminal_command", "toolInput": {}}, "not json", "[]"):
                 done = self.hook(payload, state)
                 self.assertEqual((done.returncode, done.stdout), (0, ""), payload)
@@ -117,57 +162,89 @@ class GrokPreemptTest(unittest.TestCase):
             self.assertFalse((grok_dir / "hooks").exists(), "reading the record writes nothing")
             first = hosts.GrokHost().preempt_install(env)
             script = grok_dir / "hooks" / f"{grok_preempt.NAME}.py"
-            self.assertEqual((first["script"], first["kept"]), (str(script), False))
+            self.assertEqual((first["script"], first["kept"], first["calibrated_on"]),
+                             (str(script), False, grok_preempt.CALIBRATED_BUILD))
             self.assertEqual(script.read_bytes(), PREEMPT.read_bytes())
             config = json.loads((grok_dir / "hooks" / f"{grok_preempt.NAME}.json").read_text())
             (group,) = config["hooks"]["PreToolUse"]
             self.assertEqual(group["matcher"], "run_terminal_command")
-            self.assertEqual(group["hooks"], [{"type": "command", "command": shlex.join(["python3", str(script)]),
+            self.assertEqual(group["hooks"], [{"type": "command", "command": shlex.join(["python3", str(script)]) + " || true",
                                                "timeout": grok_preempt.HOOK_TIMEOUT_SECONDS}])
             again = hosts.GrokHost().preempt_install(env)
             self.assertEqual((again["kept"], again["sha256"]), (True, first["sha256"]))
-            self.assertEqual(hosts.GrokHost().preempt_record(env)["sha256"], first["sha256"])
+            # A kept copy is described by its own constant, not by the harness's current one.
+            script.write_text(script.read_text().replace(f'CALIBRATED_BUILD = "{grok_preempt.CALIBRATED_BUILD}"',
+                                                         'CALIBRATED_BUILD = "0.0.1"'))
+            self.assertEqual(hosts.GrokHost().preempt_record(env)["calibrated_on"], "0.0.1")
 
-    def test_a_launch_says_whether_its_grok_build_is_the_calibrated_one(self):
-        self.assertTrue(run.calibrated_build_matches(f"grok {grok_preempt.CALIBRATED_BUILD} (50ca579fa996) [stable]"))
-        self.assertFalse(run.calibrated_build_matches("grok 1.0.80 (aaaaaaaaaaaa)"))
-        self.assertFalse(run.calibrated_build_matches(f"grok {grok_preempt.CALIBRATED_BUILD}1 (bbbbbbbbbbbb)"))
-        self.assertIsNone(run.calibrated_build_matches(None))
+    def test_a_hook_whose_script_cannot_start_gives_no_opinion(self):
+        # Grok runs a hook without args as sh -c; Python exits 2 for a missing script, and Grok reads exit 2 as a deny.
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / f"{grok_preempt.NAME}.py"
+            command = shlex.join(["python3", str(missing)]) + " || true"
+            done = subprocess.run(["sh", "-c", command], input="{}", capture_output=True, text=True, timeout=30)
+            self.assertEqual((done.returncode, done.stdout), (0, ""))
 
-    def test_denials_are_counted_by_shape_from_the_run_s_profile(self):
+    def test_a_launch_says_whether_its_grok_build_is_the_installed_hook_s(self):
+        build = grok_preempt.CALIBRATED_BUILD
+        self.assertTrue(run.calibrated_build_matches(f"grok {build} (50ca579fa996) [stable]", build))
+        self.assertFalse(run.calibrated_build_matches("grok 1.0.80 (aaaaaaaaaaaa)", build))
+        self.assertFalse(run.calibrated_build_matches(f"grok {build}1 (bbbbbbbbbbbb)", build))
+        self.assertIsNone(run.calibrated_build_matches(None, build))
+        self.assertIsNone(run.calibrated_build_matches(f"grok {build}", None))
+
+    def test_denials_are_counted_by_shape_and_a_bad_row_never_breaks_the_record(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
-            self.assertEqual(grok_preempt.denials(home), {"count": 0, "shapes": {}, "commands": []}, "no log, no denial")
+            empty = {"count": 0, "shapes": {}, "commands": [], "unreadable": 0}
+            self.assertEqual(grok_preempt.denials(home), empty, "no log, no denial")
             log = home / ".local" / "state" / "shiploop-e2e" / f"{grok_preempt.NAME}.jsonl"
             log.parent.mkdir(parents=True)
-            log.write_text('{"shapes": ["var-write"], "command": "a"}\nnot json\n'
+            log.write_text('{"shapes": ["var-write"], "command": "a"}\nnot json\n{"shapes": 5}\n[]\n'
                            '{"shapes": ["var-write", "cd-relative-write"], "command": "b"}\n')
             self.assertEqual(grok_preempt.denials(home), {"count": 2, "shapes": {"var-write": 2, "cd-relative-write": 1},
-                                                          "commands": ["a", "b"]})
+                                                          "commands": ["a", "b"], "unreadable": 3})
 
-    def test_the_refusal_read_is_the_last_session_s_and_a_hook_deny_is_none(self):
+    def test_the_refusal_read_is_the_session_s_own_exact_refusal(self):
         normal = json.dumps({"type": "end", "stopReason": "end_turn", "sessionId": "s2"}) + "\n"
-        denied = "\n".join(json.dumps(event) for event in (
-            {"type": "tool_call", "toolCallId": "c2", "toolName": "run_terminal_command", "rawInput": {"command": "x"}},
-            {"type": "tool_call_update", "toolCallId": "c2", "status": "failed", "content": [
-                {"type": "content", "content": {"type": "text", "text": "Hook denied: " + grok_preempt.reason(["var-write"])}}]},
-            {"type": "end", "stopReason": "end_turn", "sessionId": "s3"})) + "\n"
         with tempfile.TemporaryDirectory() as tmp:
             events = Path(tmp) / "events.jsonl"
             self.assertIsNone(run.refusal_at_end(events), "no stream yet")
-            events.write_text(REFUSED_SESSION)
-            self.assertEqual(run.refusal_at_end(events), "cd /r/worktree && mkdir -p fixtures")
-            events.write_text(REFUSED_SESSION + normal)
-            self.assertIsNone(run.refusal_at_end(events), "the session after the refused one ended on its own")
-            events.write_text(REFUSED_SESSION + denied)
-            self.assertIsNone(run.refusal_at_end(events), "a hook's deny is reported to the model and ends nothing")
+            for text, expected, why in (
+                    (REFUSED_SESSION, "cd /r/worktree && mkdir -p fixtures", "a refused session"),
+                    (REFUSED_SESSION + normal, None, "the stream's last end was a normal one"),
+                    (refused_session("x", stop="end_turn"), None, "a session that ended on its own was not ended by it"),
+                    (refused_session("x", between=(update("c1", "completed", "ok"),)), None, "the call ran after all"),
+                    (refused_session("x", between=(update("c9", "completed", "a sibling ran"),)), "x",
+                     "another call's update between the refusal and the end"),
+                    (refused_session("x").replace(REFUSAL, "AssertionError: expected " + REFUSAL), None,
+                     "a failed test whose output quotes the words is no refusal"),
+                    (refused_session("x").replace('"Hook denied', '"x').replace(REFUSAL, "Hook denied: " + grok_preempt.reason(
+                        ["var-write"])), None, "a hook's deny is reported to the model and ends nothing"),
+                    ("\n".join(REFUSED_SESSION.splitlines()[:2]) + "\n", "cd /r/worktree && mkdir -p fixtures",
+                     "a killed session with no end event")):
+                events.write_text(text)
+                self.assertEqual(run.refusal_at_end(events), expected, why)
+            events.write_text(REFUSED_SESSION + json.dumps({"type": "tool_call", "toolCallId": "c5",
+                                                            "toolName": "run_terminal_command", "rawInput": {"command": "y"}}) + "\n")
+            self.assertIsNone(run.refusal_at_end(events, since_line=3), "a later launch that wrote no end reads its own events")
+
+    def test_the_note_reads_the_last_launch_and_only_a_grok_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = run_folder(tmp, [("grok", REFUSED_SESSION), ("grok", "")])
+            self.assertIsNone(run.refusal_note(hosts.GrokHost(), out), "the last launch wrote nothing: no refusal of its own")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = run_folder(tmp, [("codex", REFUSED_SESSION)])
+            self.assertIsNone(run.refusal_note(hosts.GrokHost(), out), "a Codex launch's stream is not Grok's refusal")
+            self.assertIsNone(run.refusal_note(hosts.CodexHost(), out))
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "events.jsonl").write_text(REFUSED_SESSION)
+            self.assertIsNone(run.refusal_note(hosts.GrokHost(), Path(tmp)), "no session log, no note")
 
     def test_the_note_follows_the_resume_prompt_and_quotes_a_one_line_head(self):
         long = "X=/r\n" + "mkdir -p \"$X\" " * 40
         with tempfile.TemporaryDirectory() as tmp:
-            events = Path(tmp) / "events.jsonl"
-            events.write_text(refused_session(long))
-            note = run.refusal_note(hosts.GrokHost(), events)
+            note = run.refusal_note(hosts.GrokHost(), run_folder(tmp, [("grok", REFUSED_SESSION), ("grok", refused_session(long))]))
         head = note.split('It began: "', 1)[1].split('". Do not run it again', 1)[0]
         self.assertEqual(head, " ".join(long.split())[:run.REFUSAL_HEAD_CHARS])
         cli = Path("/p/cli")
@@ -256,7 +333,7 @@ class GrokResumeTest(HarnessCase):
         self.assertEqual(hooks, (self.tmp / "out-grok-done" / "home" / ".grok" / "hooks").resolve())
         self.assertEqual((preempt["installed"], preempt["kept"], preempt["calibrated_on"]),
                          (True, False, grok_preempt.CALIBRATED_BUILD))
-        self.assertEqual(preempt["denials"], {"count": 0, "shapes": {}, "commands": []})
+        self.assertEqual(preempt["denials"], {"count": 0, "shapes": {}, "commands": [], "unreadable": 0})
         self.assertIsNone(preempt["build_matches"], "the fake host answers no --version, so its build is unknown")
         row = json.loads(self.baselines.read_text().splitlines()[-1])
         self.assertEqual(row["preempted_tool_calls"], 0)
@@ -266,11 +343,16 @@ class GrokResumeTest(HarnessCase):
         self.assertIsNone(hosts.CodexHost().preempt_install({}))
         self.assertIsNone(run.baseline_row({"case": "hello", "metrics": {}}, None, None)["preempted_tool_calls"])
         with tempfile.TemporaryDirectory() as tmp:
-            events = Path(tmp) / "events.jsonl"
-            events.write_text(REFUSED_SESSION)
-            self.assertIsNone(run.refusal_note(hosts.CodexHost(), events),
+            out = run_folder(tmp, [("grok", REFUSED_SESSION)])
+            self.assertIsNone(run.refusal_note(hosts.CodexHost(), out),
                               "Codex streams can say 'cancelled' in a failing test summary: only Grok's refusals end sessions")
-            self.assertIsNotNone(run.refusal_note(hosts.GrokHost(), events))
+            self.assertIsNotNone(run.refusal_note(hosts.GrokHost(), out))
+
+    def test_a_run_outside_auto_mode_gets_no_hook(self):
+        code, result = self.invoke("grok", "done", "--permission-mode", "bypassPermissions")
+        self.assertEqual(code, 0, result)
+        self.assertIsNone(result["preempt"])
+        self.assertFalse((self.tmp / "out-grok-done" / "home" / ".grok" / "hooks" / f"{grok_preempt.NAME}.json").exists())
 
     def test_resume_stops_at_the_cap_when_the_run_never_finishes(self):
         code, result = self.invoke("grok", "stuck", "--max-resumes", "2")

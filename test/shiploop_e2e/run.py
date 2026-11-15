@@ -1110,56 +1110,84 @@ REFUSAL_HEAD_CHARS = 200
 GROK_REFUSAL_TEXT = "User cancelled the execution for tool `run_terminal_command`"
 
 
-def refusal_at_end(events_path: Path) -> str | None:
-    """The command whose refusal by Grok's headless permission check ended the stream's last session, or None when that
-    session ended any other way. Grok marks the refused shell call failed with GROK_REFUSAL_TEXT and the turn ends with
-    it, so the session's end event comes next (docs/experiments/grok-headless-refusals-20261115). A hook's deny or a
-    classifier's block is reported to the model and ends nothing. The stream is read line by line, and only the lines
-    whose opening names a tool-call or end event are parsed: a long run's stream passes 100 MB, mostly tool output."""
+def _content_texts(event: dict) -> list:
+    """The text items of a tool_call_update's content, as Grok writes them."""
+    texts = []
+    for item in event.get("content") or []:
+        inner = item.get("content") if isinstance(item, dict) else None
+        if isinstance(inner, dict) and inner.get("type") == "text":
+            texts.append(inner.get("text"))
+    return texts
+
+
+def refusal_at_end(events_path: Path, since_line: int = 0) -> str | None:
+    """The command whose refusal by Grok's headless permission check ended the session whose events start at line
+    ``since_line`` of the stream (sessions.jsonl's start row), or None when that session ended any other way.
+
+    Grok marks the refused shell call failed with exactly GROK_REFUSAL_TEXT and the turn ends with it, so the session's
+    end event says cancelled (docs/experiments/grok-headless-refusals-20261115); other calls' updates may come between.
+    A refused call that a later update completes, a session that ended otherwise (end_turn), a hook's deny and a
+    classifier's block are no refusal that ended the session. A session with no end event (killed) that was refused is
+    read as ended by the refusal. Lines that cannot be one of these events are not parsed: a long run's stream passes
+    100 MB, mostly tool output."""
     calls: dict = {}
-    pending = last = None
+    refused_id = refused = None
+    ended_cancelled = None
     if not events_path.is_file():
         return None
     with events_path.open(errors="replace") as stream:
-        for line in stream:
-            # An event's type is its first key and an update's status its third, so both sit in the line's opening
-            # characters: a completed update (most of the stream's bytes) is never parsed.
-            head = line[:200]
-            if not ('"tool_call"' in head or ('"tool_call_update"' in head and '"failed"' in head)
-                    or '"end"' in head[:40] or '"result"' in head[:40]):
+        for number, line in enumerate(stream):
+            if number < since_line:
+                continue
+            if ('run_terminal_command' not in line and 'stopReason' not in line and 'stop_reason' not in line
+                    and '"completed"' not in line):
                 continue
             try:
                 event = json.loads(line)
             except ValueError:
                 continue
-            kind = event.get("type")
+            if not isinstance(event, dict):
+                continue
+            kind, call = event.get("type"), event.get("toolCallId")
             if kind == "tool_call" and event.get("toolName") == "run_terminal_command":
-                calls[event.get("toolCallId")] = str((event.get("rawInput") or {}).get("command") or "")
-            elif (kind == "tool_call_update" and event.get("status") == "failed" and event.get("toolCallId") in calls
-                  and GROK_REFUSAL_TEXT in json.dumps(event.get("content") or "")):
-                pending = calls[event["toolCallId"]]
+                calls[call] = str((event.get("rawInput") or {}).get("command") or "")
+            elif kind == "tool_call_update" and call in calls:
+                if event.get("status") == "failed" and _content_texts(event) == [GROK_REFUSAL_TEXT]:
+                    refused_id, refused = call, calls[call]
+                elif event.get("status") == "completed" and call == refused_id:
+                    refused_id = refused = None  # the call ran after all
             elif kind in ("end", "result"):
-                last, pending = pending, None
-    return pending if pending is not None else last
+                ended_cancelled = (event.get("stopReason") or event.get("stop_reason")) == "cancelled"
+    return refused if refused is not None and ended_cancelled is not False else None
 
 
-def refusal_note(host, events_path: Path) -> str | None:
-    """REFUSAL_NOTE for a host whose permission refusal ends the session, when the last session ended on one; else None."""
+def refusal_note(host, out: Path) -> str | None:
+    """REFUSAL_NOTE for a resume, when the run's last host launch (sessions.jsonl) was a host whose permission refusal
+    ends the session and that session ended on one; else None. A run with no session log gets none."""
     if not getattr(host, "refusal_ends_session", False):
         return None
-    command = refusal_at_end(events_path)
+    starts = [row for row in (sessionlog.read(out) or []) if row.get("row") == "start"]
+    if not starts:
+        return None
+    try:
+        launched = hosts.host(starts[-1].get("host"))
+    except (KeyError, SystemExit, ValueError):
+        return None
+    if not getattr(launched, "refusal_ends_session", False):
+        return None  # a Codex session translated into Grok's shape can print the same words in a test's output
+    command = refusal_at_end(out / "events.jsonl", int(starts[-1].get("events_line") or 0))
     if command is None:
         return None
     # The rewrite is appended after formatting: its ${...} is shell text, not a format field.
     return REFUSAL_NOTE.format(head=" ".join(command.split())[:REFUSAL_HEAD_CHARS]) + grok_preempt.REWRITE
 
 
-def calibrated_build_matches(build: str | None) -> bool | None:
-    """Whether a Grok build string (``grok 1.0.77 (50ca579fa996)``) is the one grok_preempt's rule was probed on; None when
-    the build is unknown."""
-    if not build:
+def calibrated_build_matches(build: str | None, calibrated: str | None) -> bool | None:
+    """Whether a Grok build string (``grok 1.0.77 (50ca579fa996)``) is the build an installed hook's rule was probed on
+    (its own record's ``calibrated_on``); None when either is unknown."""
+    if not build or not calibrated:
         return None
-    return grok_preempt.CALIBRATED_BUILD in build.split()
+    return calibrated in build.split()
 
 
 def joined_note(*notes: str | None) -> str | None:
@@ -4389,7 +4417,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         require_installed(plugin, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = host.keepalive_install(env, plugin_dir)
-    preempt = host.preempt_record(env) if regrade else host.preempt_install(env)
+    # The hook foresees Auto-review's floor, so only an auto launch gets one; any other launch (and a regrade) reports
+    # the hook its profile already holds, which stays inert outside auto (grok_preempt.decide).
+    preempt = (host.preempt_install(env) if args.permission_mode == grok_preempt.ACTIVE_MODE and not regrade
+               else host.preempt_record(env))
     improve_skill = earlier.get("improve_skill") if resumed else None
     if planning_review == "none" and not resumed:
         # The run option rides in the prompt the model is given (and prompt.txt keeps), as it did in a custom --prompt.
@@ -4423,7 +4454,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # A resumed run keeps the ShipLoop CLI of the host that started it, so its version does not change.
     opening = (resume_prompt(resumed["run_dir"], the_cli,
                              joined_note(resume_platform_note(platform_spec, note_platform, regrade),
-                                         None if regrade else refusal_note(host, out / "events.jsonl"))) if resumed
+                                         None if regrade else refusal_note(host, out))) if resumed
                else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt, seeded["delegation"],
                                                         seeded["stage"])) if seeded
                else host.invoke(args.skill, prompt))
@@ -4458,9 +4489,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         host_build, host_build_why = launch_build, launch_why
     if preempt is not None and not regrade:
         # The hook's rule is the one probed on one Grok build: on another, Grok may refuse shapes it does not catch.
-        preempt["build_matches"] = calibrated_build_matches(launch_build)
+        preempt["build_matches"] = calibrated_build_matches(launch_build, preempt.get("calibrated_on"))
         if preempt["build_matches"] is False and not args.quiet:
-            print(f"notice: the Grok refusal hook is calibrated on Grok {grok_preempt.CALIBRATED_BUILD}, and this host is "
+            print(f"notice: the Grok refusal hook is calibrated on Grok {preempt.get('calibrated_on')}, and this host is "
                   f"{launch_build}; rerun docs/experiments/grok-headless-refusals-20261115/probe.py before trusting it",
                   flush=True)
     plugin_why = versions.get("plugin_sha256_unmeasured") or (
@@ -4624,7 +4655,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not args.quiet:
             print(f"resume {len(sessions)}/{args.max_resumes if args.max_resumes is not None else 'no limit'}: session {session_id} ended with ShipLoop "
                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
-        argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli, refusal_note(host, out / "events.jsonl")),
+        argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli, refusal_note(host, out)),
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode,
                          max_turns=args.max_turns, resume=session_id, allow=host_allow)
