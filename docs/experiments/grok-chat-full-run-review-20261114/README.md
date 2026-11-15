@@ -438,6 +438,13 @@ Decisions 1 and 5 shipped as **shiploop 1.36.0 / skill-craft 2.40.0**:
   The journal commit's run 43735018197 passed too (`quick`, `release-boundary`, `plan`, `browser-fixtures`,
   `hermetic`).
 
+## Phase 2 design (2026-11-15)
+
+Decision 4 (the hold, the API headroom record and the readiness record) is designed in [phase2-design.md](phase2-design.md).
+Nothing is built. The design names every harness path the hold must reach, the records that keep held, kept and cleaned
+apart, an exit status for checks that could not examine, a record-only headroom hook, and the two places the readiness record
+could go. Five decisions in it are the owner's.
+
 ## Unknowns
 
 - The page after 15:38 PST. Dollars: the host reports none. The model time between calls is inferred, not measured.
