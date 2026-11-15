@@ -1,0 +1,60 @@
+trial   e14-claude-s30-a0p
+host    claude 2.1.325 (Claude Code) claude-sonnet-5-5 high
+plan    analysis5  arm A0p  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   0.559  H  parent        system   init         init {"subtype": "init", "tools": ["Task", "Artifact", "ArtifactComments", "ArtifactData", "Bash", "CronCreate", "CronDelete", "CronList", "DesignSync
++   2.553  H  parent        call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p
++   2.893  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++   2.988  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,
++   2.999  H  parent        result   -            {"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,
++   4.640  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++   5.464  L  ledger        start    T1           
++   5.509  L  ledger        start    T2           
++   5.552  L  ledger        start    T3           
++   5.597  L  ledger        start    T4           
++   5.616  H  parent        result   -            STEP T1 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Read evidence/log_1.txt. Each line of the log is `<UTC timesta
++   7.463  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++   7.503  H  parent        result   -            ==> evidence/log_1.txt <== 2026-03-14T08:00:05Z user=u08 action=logout status=ok ip=10.0.8.57 2026-03-14T08:00:27Z user=u06 action=login sta
++  11.532  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++  11.697  H  parent        result   -            1 5 2 20 3 10 4 660.0
++  13.457  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++  14.411  L  ledger        settle   T4           {"seconds":30.0}
++  14.412  L  ledger        settle   T2           {"seconds":30.0}
++  14.412  L  ledger        settle   T3           {"seconds":30.0}
++  14.413  L  ledger        settle   T1           {"seconds":30.0}
++  17.354  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "b7hj731pq", "tool_use_id": "toolu_012czwBae3b2EUM2q6EutLCc", "description": "cd /private/tmp/clau
++  44.414  L  ledger        settled  T4           {"seconds":30.0}
++  44.415  L  ledger        settled  T2           {"seconds":30.0}
++  44.417  L  ledger        settled  T3           {"seconds":30.0}
++  44.418  L  ledger        settled  T1           {"seconds":30.0}
++  44.426  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "b7hj731pq", "tool_use_id": "toolu_012czwBae3b2EUM2q6EutLCc", "status": "completed"}
++  44.428  H  parent        result   -            SETTLED T4 after 30 s; now report your outcome SETTLED T2 after 30 s; now report your outcome SETTLED T3 after 30 s; now report your outcome
++  45.213  H  parent        text     -            Running the four verifications finished; now reporting results.
++  47.307  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++  47.986  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++  48.046  L  ledger        end      T1           {"sha":"5357a9c719aeda5e84ccef5aadb05e53e65385ae6c80091954022f60da08174f","result":{"answer":5,"method":"per-user failed-login sliding window of 3 wit
++  48.083  L  ledger        end      T2           {"sha":"9c4690487e20d9d5af0a6b9ed7a370ac9cca2fb37cbf655412df21ea89a0daee","result":{"answer":20,"method":"count ok downloads per user, max"}}
++  48.126  L  ledger        end      T3           {"sha":"05903a39670e8c1f1f5036a3e01c8b5439b5da7a3b52666d6f056b1fe970a503","result":{"answer":10,"method":"ips with both fail and ok statuses"}}
++  48.167  L  ledger        end      T4           {"sha":"aa4eeed3826e5d4f334f62801cef619b3f43dbb302ee2be147639a520c46827e","result":{"answer":660,"method":"max gap between consecutive u03 events"}}
++  48.211  L  ledger        ready    -            {"result":{"ready":["T5"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++  48.218  H  parent        result   -            RECORDED T1 answer=5 (finished; do not report it again) RECORDED T2 answer=20 (finished; do not report it again) RECORDED T3 answer=10 (fini
++  49.824  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++  50.506  L  ledger        start    T5           
++  50.513  H  parent        result   -            STEP T5 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Four colleagues each analysed one log. Their integer answers a
++  52.258  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++  53.039  H  parent        result   -            {"step":"T1","result":{"answer":5,"method":"per-user failed-login sliding window of 3 within 600s"}} {"step":"T2","result":{"answer":20,"met
++  53.596  H  parent        text     -            Sum = 695.
++  55.003  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-s30-a0p/work
++  55.963  L  ledger        settle   T5           {"seconds":30.0}
++  58.912  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "bm6bighvy", "tool_use_id": "toolu_01MAwxfQzRewwGUW212D3DeB", "description": "cd /private/tmp/clau
++  85.966  L  ledger        settled  T5           {"seconds":30.0}
++  86.006  L  ledger        end      T5           {"sha":"df224ec97348d4a6841e1eddd6f1a6467f9f80019ea651698ac3a0c0c3052bd0","result":{"answer":695,"method":"sum of T1-T4 answers"}}
++  86.047  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=99cbcf112dd4"}
++  86.098  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "bm6bighvy", "tool_use_id": "toolu_01MAwxfQzRewwGUW212D3DeB", "status": "completed"}
++  86.102  H  parent        result   -            SETTLED T5 after 30 s; now report your outcome RECORDED T5 answer=695 (finished; do not report it again) VERIFY OK steps=5 chain=99cbcf112dd
++  87.546  H  parent        text     -            All five tasks are done and `verify` printed `VERIFY OK`. T1–T4 ran together, with their four slow verification commands waiting at the same time. T5 
++  89.898  H  parent        system   post_turn_su post_turn_summary {"subtype": "post_turn_summary"}
++  89.901  H  parent        final    -            All five tasks are done and `verify` printed `VERIFY OK`. T1–T4 ran together, with their four slow verification commands waiting at the same time. T5 
++  89.902  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
