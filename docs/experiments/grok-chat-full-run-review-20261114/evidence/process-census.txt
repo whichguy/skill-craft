@@ -1,0 +1,4 @@
+events.jsonl files over 100 KB:     2489
+strict pattern, retained runs:        0 of     2489
+loose pattern, retained runs:      396 of     2489
+positive control, this trial: 4 matching lines

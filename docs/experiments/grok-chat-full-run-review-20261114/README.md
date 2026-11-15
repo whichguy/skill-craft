@@ -38,15 +38,15 @@ Does this run show anything to repair, fix or improve in ShipLoop, as opposed to
 | Outcome | BLOCKED at system-test-author after 412.8 min (6.9 h); 51 accepted actions. Headline: "Application checks passed; current operator live-acceptance receipt remains missing"; the operator's evidence collection hit `TotalRequests Limit exceeded` from 14:48 PST | Run12 of the same case, 2026-11-12: done in 108.3 min, but a warm start, so not comparable | `evidence/visits-table.txt`; [Run12 review](../../../test/shiploop_e2e/evidence/codex-gpt-6.1-sol-2.36.1-grok-chat-salesforce-full-20261112.review.json) |
 | ShipLoop `check` time | 99.6 min (24% of the run); 15 of 50 checks took 100 s or more | median 0.1 min per run, p95 1.1, max 8.0 over 331 runs; 2 of 2,057 checks took 100 s or more | `evidence/check-baseline.txt`, `evidence/trial-trace.txt` |
 | Implement exits sent back | 3 of 8 (37.5%) | 28 of 335 (8.4%) over 260 runs | `evidence/sendback-base.txt` |
-| Test exits sent back | 2 of 5 (40.0%) | 17 of 327 (5.2%) | same |
+| Test exits sent back | 2 of 5 (40.0%) | 12 of 327 (3.7%), corrected: see Corrections | same |
 | Visits that ended in a send-back | five, 156.6 min (38% of the run) | | `evidence/visits-table.txt` |
 | Repeated passing checks (a passing `check` followed by another `check`, the owner's `dupcheck.py`) | 7 pairs, 372 s (1.5% of the run) | 84 s across the retained corpus | `evidence/dupcheck.txt` |
 | Refusals | 19 (16 `check`, 3 `complete`), none advanced the run | | `evidence/trial-trace.txt` |
-| Observed tool time | 187.1 min (45%); the other 225.7 min (55%) is model time between calls, which includes the host's stream retries (`Inferred:`) | | `evidence/tool-ledger.txt` |
+| Observed tool time | 187.1 min (45%); the other 225.7 min (55%) is model time between calls (`Inferred:`: generation and reasoning; the host's 21 stream failures were each retried at once, see Corrections) | | `evidence/tool-ledger.txt` |
 | Builder polling a directory for another party's file | about 46 calls over about 56 min (13%), a heuristic | | `evidence/tool-ledger.txt` |
 | Model calls, context | 838 calls; peak 452,921 of 475,000; 3 compactions, each re-grounded within three calls (two through `shiploop next`, one from the packet) | | `review-export/facts.md` |
 | Tokens | 175.9 M input (99.2% cached), 553,834 output (272,130 reasoning) | | the `end` event in `events.jsonl` |
-| Packets | 65 prints, 4 of them reprints (203 KB, 11% of printed text) | | `evidence/trial-trace.txt` |
+| Packets | 65 prints: 61 first prints and 4 second prints, 3 of them the post-compaction re-grounding prints (different content) and 1 an identical reprint (203 KB, 11% of printed text) | | `evidence/trial-trace.txt` |
 
 Terms. A *check* is the ShipLoop command that runs a stage's recorded commands without finishing the stage. A
 *send-back* is a stage reporting that its plan cannot be satisfied and returning to planning. A *fold* is ShipLoop
@@ -138,8 +138,8 @@ the next batch of runs; a second hit changes the decision.
   lies under the case folder ([listeners.py](../../../test/shiploop_e2e/listeners.py), `reap`); the operator's viewer,
   started at 16:17:08Z with the run directory in its command line, was ended by SIGTERM and restored afterwards. Start an
   observer's listener from outside the folder, or let the operator name listeners to keep.
-- Also seen: the exporter's two readers of the verify records disagree (33 against 35 commands, listed under
-  `unmeasured` in `review-export.json`), so command counts in `facts.md` are a floor. Not investigated.
+- The exporter's two readers of the verify records disagree (33 against 35 commands, listed under `unmeasured` in
+  `review-export.json`). Resolved on 2026-11-14: a parser bug in the text reader, see Corrections.
 - **The builder polled for the operator's evidence** (46 calls, about 56 min) and the operator's trace window became
   ready 1.3 s after a journey ended, so six calls could not qualify. A readiness marker and one wait would replace the
   polling; this costs model calls, not wall time, because the review takes as long as it takes.
@@ -151,7 +151,7 @@ the next batch of runs; a second hit changes the decision.
 No refusal became an advance; 19 refusals each named a real gap. Send-back recovered all five stops. Each compaction
 re-grounded within three calls (two through `shiploop next`, one from the packet); the 855 s figure in `facts.md` runs
 to the next accepted action, so it includes continued work. Per-item-plan `validate-existing` cost 26.3 s in all
-(0.12% of the run), so the owner's suspected repeated-validation cost is not supported. ShipLoop ended BLOCKED
+(0.11% of the final 24,766 s of engine dwell; 0.12% was the interim snapshot's share), so the owner's suspected repeated-validation cost is not supported. ShipLoop ended BLOCKED
 honestly, with evidence preserved, instead of passing on missing proof.
 
 ## Decisions
@@ -161,7 +161,68 @@ honestly, with evidence preserved, instead of passing on missing proof.
 | 1 | Add the generic TAP count reader, with the real `security-tests8.tap` and malformed controls, and a replay over the retained check records that shows no earlier count changes | recommended; awaits the owner's tick |
 | 2 | Record the four rare defects as known limits; ride the timeout-tail fix along with the next change in that file | recommended |
 | 3 | The durable-wait capability | owner's decision; not recommended now |
-| 4 | Hold cleanup after a non-pass outcome; record API headroom; add a readiness marker | harness options, owner's tick |
+| 4 | Hold cleanup after a non-pass outcome (reusing `keep_decision`'s machinery); record API headroom; add the plan's separate pre-journey readiness record | harness options, owner's tick |
+| 5 | Repair the verify-record text reader (P9a): a `]` inside captured output ends the `runs` array early | recommended (harness, effort S); reproduced |
+| 6 | The Codex plan's P4 (feasible implementation proofs) | declined as proposed: the class was studied on 2026-11-01 and left; only the unrun whole-delivery A/B of A2b remains registered |
+
+## Corrections after the Codex Astra plan (2026-11-14, 17:20 PST)
+
+These supersede statements above and in the first commit's message. Nothing above was deleted.
+
+- **Test send-back rate.** The table said 17 of 327 earlier test exits (5.2%) were sent back. Five of the 17 were
+  `test -> implement` moves, the next step of a multi-step item (headlines such as "Revalidated controller tests"), not
+  send-backs. The count is 12 of 327 (3.7%); the implement figure (28 of 335, 8.4%) is unchanged. This trial's 40.0% is
+  therefore 10.9 times the corpus rate, not 7.7. Fixed in `analysis/sendback_base.py`; `evidence/sendback-base.txt`
+  regenerated. The first commit's message carries the old figure.
+- **33 against 35 verify rows** (it said "not investigated"). `_RUN_ROWS` in
+  [metrics.py](../../../test/shiploop_e2e/metrics.py) counts `[` and `]` without knowing about JSON strings, so a `]`
+  inside a command's captured output ends the `runs` array early. On the six verify records it reads 33 rows against the
+  JSON reader's 35, short in exactly two (9 against 10 and 5 against 6). All six records carry reuse provenance, so the 35
+  are recorded results, not executions. Found by the Codex plan (P9a, its card E22); reproduced by
+  `analysis/verify_readers.py` (`evidence/verify-readers.txt`). The reader's own comment expects an unreadable record to
+  over-count; this one under-counts.
+- **Validation share.** 0.12% was against the interim snapshot (22,157 s); against the final 24,766 s it is 0.106%.
+- **Stream retries.** The host's `stderr.txt` shows each stream disconnect retried at once ("1/5 in" about 200 ms), and
+  several fall about 16 minutes past the hour (a connection lifetime, Inferred). They are not a large part of the 225.7 min.
+- **Packet reprints.** Of the 4 second prints, 3 are the post-compaction re-grounding prints, with different content (the
+  resumed-loop text), and 1 is identical: the harness's "reprints: 1".
+- **Option g14-sb-classify is done:** 21 of the 28 implement send-backs are one class the owner studied on 2026-11-01.
+  See P4 below.
+
+## The Codex Astra improvement plan, considered (2026-11-14, 17:17 PST)
+
+Source: "ShipLoop Improvement Plan from the Salesforce Grokbot Run" (ChatGPT page
+`page_b4451bdbea8481919454c550052299f9`; local copy `operator/improvement-plan/improvement-plan.md`, which differs from the
+download by 4 bytes) and the newer journal that links it (its entries 22 to 27 postdate the snapshot read above). Ten work
+packages, 25 evidence cards, a validation program, and a statement that it is a plan, not an authorization. Its independent
+review ran `gpt-6-astra` at **high** (`advisor-disposition.md`); the owner's rule of 2026-10-25 is max for plan and design
+feedback.
+
+Checked against the run and the code, and right: the harness files it cites are unchanged since the pin (only a new probe
+file was added); `keep_decision` in [run.py](../../../test/shiploop_e2e/run.py) keeps an unfinished run only when the case
+declares keep checks that passed, so it cannot hold under this quota block; the verify-reader parser bug (above); the three
+plan refusals (trace lines 42, 87 and 103) and the stopped-loop causes; the two process listings (below).
+
+| Package | Plan | Disposition here | Evidence |
+| --- | --- | --- | --- |
+| P1 hold and truthful terminal status | adopt the owner requirement, first | adopt for this run's hold; the lifecycle default is the owner's call, as the plan says. Reuse `keep_decision`'s machinery and consult the hold in every cleanup path (finally, regrade, recovery); report unsupported-phase checks as unexamined (`mismatch.md` lists them as failed) | `g14-hold-cleanup` |
+| P2a readiness record | pilot | adopt the plan's design: a separate pre-journey readiness record. My "marker next to each request" would be circular, because the acceptance request needs the finished passing UI receipt | `g14-ready-marker` |
+| P2b capacity wait | pilot, policy first | the owner's decision, not now; the plan agrees. Its neutral timeout wording also needs the route open (`remedy_open` reads counted records only) | `g14-timeout-tail` |
+| P3 carry findings across reviews | pilot, observer first | hold. Over the 24 reviews: 21 actionable findings had a next review; 13 carried, 5 dropped after the code changed, 3 dropped after a new or edited test or script file resolved them. One finding went silent for 11 reviews on identical code and returned at review 14. That is one thread in 24 reviews, and the final exact-source review passed all five dimensions | `evidence/review-continuity.txt` |
+| P4 feasible implementation proofs | pilot handoffs | decline as proposed. 21 of the 28 retained implement send-backs (19 runs, 6.3% of implement exits) are the class where the Proof is the test runner and the tests are not written yet. The owner studied it on 2026-11-01: a loop costs 2.0 min, every one recovered, no gate was precise enough, "leave it"; the proof-bullet rewording (A2b) was registered, run and reverted. The plan cites none of it. This trial's first stop is the same class | `evidence/sendback-reasons.txt`, `27c453fac4b518fdd99b09a773631f717a4d517c`, `68985caf4ee4eab732e0df725e88aca40817f2d4` |
+| P5 countable native results | adopt | adopt, first among the ShipLoop changes. Nine of the 12 retained test send-backs are also "the recorded command cannot be read or classified" (four are an `rg` search recorded as a test), so the registration-time idea has more support than my TAP-only reading; start with the TAP reader, which has the pre-registered trigger | `g14-tap-reader` |
+| P6 setup order | pilot | hold: 1 hit in 286 runs | `evidence/fold-census.txt` |
+| P7 test and review calibration | pilot | hold: no measured outcome. An Apex `==` case note in the platform card is cheap and in the right place, but unmeasured | |
+| P8a loop wording | adopt | hold: wording only, same outcome (owner, 2026-11-14); fold into the next change in that file | `g14-loop-wording` |
+| P8b interruption fixtures | later | drop until a corrupted state is observed; the plan itself says it is not observed (owner, 2026-09-27) | |
+| P9a verify parser | adopt | adopt (harness, effort S): reproduced | `evidence/verify-readers.txt` |
+| P9b measurement and output | pilot | hold. Two `ps -axo` listings were 578,541 and 207,871 bytes, 14.0% of all tool-output bytes, and no ShipLoop packet or case prompt asked for them. Each ran 2 to 4 minutes after a compaction, so they look like re-orientation, not a cause (Inferred). None of the 2,489 retained runs ran a whole-machine listing, and among the 1,259 whose events I can read the largest ps, lsof or pgrep output was 86.5 KB | `evidence/big-outputs.txt`, `evidence/process-census.txt`, `evidence/process-output-sizes.txt` |
+| P10 proof reuse | defer | agree | |
+
+Where the plan is better than my review: the P2a design, the P1 hold design, and the root cause of the 33-against-35
+disagreement. Where I would differ in shape: it puts evaluator work first, while the owner ranks generic ShipLoop first
+(2026-09-26 and 2026-10-19); and its validation program (six paired trials in three families, Sol at medium, Astra at high)
+is heavier than the measured gain of what is left after the holds.
 
 ## Prior decisions read and preserved
 
@@ -187,6 +248,13 @@ Each full message was read before this review was written down.
   minutes are not a baseline for a cold build, and a failed trial is preserved beside any recovery.
 - `71fa298e44db73f6afa46217377ba0ea850de916` (the Grok chat scenario packet, landed while this was written): a separate,
   unregistered product-outcome prompt; it overlaps none of the findings here.
+- Read for the plan's P4: `27c453fac4b518fdd99b09a773631f717a4d517c` (the implement send-back class: a test-runner Proof
+  on an empty base predicts it 5 of 5 against 0 of 15; a loop costs 2.0 min; the shipped gate refuses 0 of 28 plans; no
+  candidate rule is clean; recommendation "leave it"), `c767968528e3db301da38bd4e821f923ac440563` (A2b, the reworded proof
+  bullet) and `68985caf4ee4eab732e0df725e88aca40817f2d4` (its revert: the registered replay found the fault in 1 of 12 plans,
+  too rare to judge; the follow-up named is a whole-delivery A/B, 6 a side, not run), `12151c49783a262595c83ff0ec92e0222379dfd3`
+  (each step proven by its own command), and `docs/experiments/step-plan-round2-20261101/README.md`. Preserved: this review
+  proposes no step-plan wording change for that class.
 
 ## Unknowns
 
@@ -195,6 +263,14 @@ Each full message was read before this review was written down.
 - Run12 is a warm start, so 108 against 413 minutes says nothing about 2.36.1 against 2.37.4.
 - Whether a fold that dropped a row elsewhere was harmless is not visible to the census, only that the non-adjacent
   `check` shape never occurred.
+- The class of an implement send-back is read from the model's own summary, by a recogniser that matches my reading of all
+  28; the 2.0 min cost per loop is the R3 study's (one case, six loops), and this trial's own first stop cost 16.2 min,
+  most of it the app build the stage did anyway. After 2026-11-05 only 18 implement exits are retained, so whether the
+  class has changed since cannot be judged.
+- The process-listing census reads the 1,259 runs whose host events carry tool outputs; the other 1,230 are counted as
+  unread, not zero. The strict pattern, a command that starts `ps -axo`, `ps aux`, `ps -ef` or `ps -e`, is zero in all
+  2,489 files, and an earlier run of the census with a failing `xargs` gave truncated counts that are not used.
+- Why the builder ran the two listings is not recorded.
 
 ## Reproduce
 
@@ -210,4 +286,11 @@ python3 -I analysis/fold_census.py /tmp/trace-files.txt
 python3 -I analysis/apex_census.py /tmp/trace-files.txt
 python3 -I analysis/check_baseline.py /tmp/trace-files.txt
 python3 -I analysis/sendback_base.py /tmp/trace-files.txt
+python3 -I analysis/sendback_reasons.py /tmp/trace-files.txt
+python3 -I analysis/sendback_class_by_date.py /tmp/trace-files.txt
+python3 -I analysis/verify_readers.py $RUN/.shiploop-runs/work-20261114-161603-238276/run
+python3 -I analysis/big_outputs.py $RUN
+python3 -I analysis/review_continuity.py $RUN/platform/grok-chat-quality
+python3 -I analysis/process_output_sizes.py
+bash analysis/process_census.sh $RUN
 ```

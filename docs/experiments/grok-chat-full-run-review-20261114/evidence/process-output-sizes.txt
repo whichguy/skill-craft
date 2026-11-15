@@ -1,0 +1,12 @@
+event files over 100 KB: 2489; read (tool_call shape): 1259; not read (other shape): 1230
+read runs with a ps, lsof or pgrep command: 160
+  largest such output at least  10,000 bytes: 15 runs
+  largest such output at least  50,000 bytes: 5 runs
+  largest such output at least 100,000 bytes: 0 runs
+  largest such output at least 200,000 bytes: 0 runs
+largest five:
+     86,550 B  ~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-seat-reservations-1/events.jsonl
+     84,373 B  ~/e2e-runs/2026-11-01/follow-on-live-436258/seat-reservations-1/events.jsonl
+     83,863 B  ~/e2e-runs/2026-11-01/closed-loop-cycle-04/loop/explore-1/run/events.jsonl
+     75,970 B  1/closed-loop-restore-01/cycle/epoch/runs/candidate-hello-hook-continuation-2/events.jsonl
+     51,858 B  ~/e2e-runs-sp/20261101/sp1-xhigh/ticket-import-s1/events.jsonl

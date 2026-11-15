@@ -1,0 +1,123 @@
+send-backs at implement or test since 2026-10-29: 40  (implement 28, test 12)
+ 1  implement -> step-plan  [e2e-runs-sp/20261101/sp1-xhigh]
+    H: Repair implementation proof ordering before accepting the reporter
+    S: S1 proof depends on test_report.py, which does not exist and implement explicitly forbids writing; unittest exits 0 with zero tests. This contradicts the step-plan rule that proof cannot require an unwritten later-stage test. Replan a real proof runnable during implement or make the test supplier precede it; retain draft report.
+ 2  implement -> step-plan  [e2e-runs-sp/20261101/sp1-xhigh]
+    H: Correct the remaining test-stage dependency in the criteria
+    S: C1-C3 still say confirm by unittest TC_1-TC_3, which are unwritten and forbidden in implement; revised proof instead executes real standalone checks. The criteria must accurately describe the implement confirmation while retaining the later unittest coverage. Draft report.py is retained.
+ 3  implement -> step-plan  [e2e-runs/2026-11-03/narrative-relay-hello]
+    H: Correct proof dependency before implementation can complete
+    S: The implementation proof invokes test_hello before the test stage writes it; implement forbids writing tests. The command failed with ModuleNotFoundError. hello.py was added and prints the greeting. Revise step proof to check the actual script independently and retain unittest for the later test stage.
+ 4  implement -> step-plan  [e2e-runs/2026-11-03/narrative-battleship]
+    H: Correct the vertical-ship proof
+    S: S1 proof is invalid for any vertical ship: it switches axes per cell rather than selecting orientation once, so valid randomized placements fail. Proof exited 1; the game implementation is retained. Revise the proof and rerun after replanning.
+ 5  implement -> step-plan  [e2e-runs/2026-11-04/m2-checkers]
+    H: Repair impossible test dependency
+    S: The implementation packet forbids writing tests, but S1 proof requires the absent test files and TC-1/TC-2 before the later test stage. No code can satisfy the proof under that constraint. Replan implementation criteria and proof to use executable non-test probes that exist within the step; keep full node:test coverage for the t
+ 6  implement -> step-plan  [e2e-runs/2026-11-04/m2-checkers]
+    H: Correct test-stage confirmation dependency
+    S: C1 and C2 still require passing future TC-1 and TC-2 despite implement forbidding tests. Direct probes passed after implementing the candidate, but cannot satisfy those literal confirmations. Amend criteria to direct runtime confirmations while keeping TC-1 and TC-2 as later test-stage coverage; preserve current product changes.
+ 7  test -> step-plan  [e2e-runs-sp/20261114/closeout-whole]
+    H: Align restart tests with implementation step boundaries
+    S: TC-6 assigned to S1 requires expenses and settlements that S2/S3 have not implemented; TC-1 requires balances from S2. Revise local plan/test partition: S1 TC-1 validates group/status only, TC-5 routing, TC-6 groups-only restart. Keep full R-1 expense restart/sequence proof in S2 TC-7, and all zero/mixed balances in S2 TC-2; set
+ 8  test -> step-plan  [e2e-runs/20261030/p0-terra-ask-agent-55bfcd]
+    H: Send back the docstring search classification for correction.
+    S: The accepted step plan records the command rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js && rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js as suite focused. It exits 0 and verifies C3 and C6, but ShipLoop che
+ 9  implement -> step-plan  [e2e-runs/2026-11-05/chess-improvement]
+    H: Correct test sequencing in the chess implementation plan
+    S: C1 requires the durable in-org test class before implement completes, yet the implement packet prohibits writing that class until the later test stage. The same sequencing problem affects C2 and C3. The engine is already deployed and its anonymous proof passed; preserve it. Amend the step plan so implementation criteria are prov
+10  implement -> step-plan  [e2e-runs/2026-11-05/chess-improvement]
+    H: Deployment passed but browser proof is unavailable
+    S: C4 deployment and XML checks passed. C5 and the navigation proof require osascript, which this run guard denies entirely; no desktop browser automation is available. The user requested deployed Apex tests and functional board, not an automated Chrome test. Replan to retain this access limitation as an unverified browser check wh
+11  test -> step-plan  [e2e-runs/2026-11-05/chess-improvement]
+    H: Correct the documentation test command in the step plan
+    S: TC_DOC_ENGINE uses a focused rg command that emits no test ID or readable test count, so the fixed test-stage requirements cannot be met. The same flaw affects TC_DOC_CONTROLLER. Replan these checks using a real named test runner. The Apex test command cannot yet run because the test class has not been authored and deployed; R-1
+12  implement -> step-plan  [e2e-runs/2026-11-05/chess-improvement]
+    H: Correct the navigation test command
+    S: S4 tab and app were successfully deployed, but planned TC_NAV uses a deploy wrapper with no supported test-run summary. Replan it as a named, read-only org metadata check with a supported runner, keeping deployment proof and all required metadata unchanged. This avoids treating deployment as a repeatable test.
+13  implement -> step-plan  [e2e-runs/2026-11-02/intent-final-qualification-42fb570ce27f]
+    H: Correct proof dependency before implementation
+    S: S1 proof runs test_report, but that module is absent and test authoring is later; implementation forbids writing tests. Proof exited 1 with ModuleNotFoundError. Replan a proof runnable during implement without later artifacts. No product edit made.
+14  implement -> step-plan  [e2e-runs/2026-11-02/intent-final-qualification-42fb570ce27f]
+    H: Repair proof dependency before implementation
+    S: S1 proof runs unittest but no tests exist and both test-spec and implement forbid writing them; the test stage comes later. Baseline showed zero tests. Replace proof with a self-contained behavior probe available during implementation, preserving the later unittest suite.
+15  implement -> step-plan  [e2e-runs/2026-11-02/intent-requalification-p9fo4_gq]
+    H: Replan verification timing for the implementation step
+    S: C1 requires python3 -m unittest to pass the authored cases during implementation, but implement explicitly prohibits writing tests, and no tests exist. Proof and lint both pass. Split the criterion so implementation can be confirmed by existing proof and the test stage owns the full suite; preserve implementation and deferred se
+16  implement -> step-plan  [e2e-runs-sp/20261101/round2-release]
+    H: Repair the proof command quoting
+    S: The S1 proof exits before HTTP with ReferenceError server is not defined because shell quoting stripped the literal file name and encoding. The command is unachievable without changing its text; return to step-plan to quote the JavaScript correctly. Service implementation remains uncommitted for reuse.
+17  implement -> step-plan  [e2e-runs/2026-10-29/shiploop-basic-repairs-44mijad9]
+    H: Correct the implementation proof dependency
+    S: C1 and the step proof require test_hello.GreetingTest.test_TC_1, but test-spec only describes tests and the test stage writes them later; implement forbids writing tests. Implemented hello.py, ran proof (exit 1: missing test module), and lint (exit 0). Replan an independent exact-output proof for implementation, retaining unitte
+18  implement -> step-plan  [e2e-runs/2026-11-01/follow-on-live-436258]
+    H:
+    S: S1 proof python3 -m unittest -v runs zero tests: test-spec writes no test code and this implement packet forbids writing tests; the test-author stage comes after implementation. The plan requires proof now using tests not yet written. Preserve report.py and revise S1 proof to an executable independent check available during impl
+19  test -> step-plan  [e2e-runs/2026-11-01/closed-loop-restore-02]
+    H: Correct the focused test command
+    S: TC-1 focused command cannot report its ID on baseline failure and does not execute the requested unittest; red-check refused it. R-1 and R-2 need a focused unittest command. The existing implementation and checkpoint are already complete and must not be repeated.
+20  implement -> step-plan  [e2e-runs/2026-11-01/calibration-01]
+    H: Correct proof ordering before accepting the implementation
+    S: The S1 proof relies on tests that ShipLoop explicitly schedules after implement. The command exits 0 while running zero tests, so it does not confirm C1. Plan an independent implement-stage proof or change ordering; server.py is already present and must be preserved.
+21  implement -> step-plan  [e2e-runs/2026-11-01/calibration-01]
+    H: Repair proof dependency on tests not yet written
+    S: C1 and C2 proof runs zero tests: test-spec writes no code, implement prohibits tests, and test stage comes later. The planned prewritten suite therefore does not exist and cannot prove behavior; revise proof to a currently executable independent behavioral check or revise ordering. Draft server.py remains in worktree and is unve
+22  test -> step-plan  [e2e-runs/2026-11-01/calibration-01]
+    H:
+    S: The focused command python3 -m unittest prints dots, so TC_1 and TC_2 are not visible for the required test gate. Change it to python3 -m unittest -v; the required default command remains supported. Preserve implemented files and verify R-1–R-5 with the corrected command.
+23  test -> step-plan  [e2e-runs/2026-11-01/closed-loop-cycle-04]
+    H: Correct the documentation check classification
+    S: The step plan records rg as a focused test command; the test gate requires it to be a check command because it does not report test counts. Reclassify it and retain C4 coverage. The four HTTP tests pass locally.
+24  implement -> step-plan  [e2e-runs/2026-11-01/closed-loop-cycle-02]
+    H: Repair the implementation proof prerequisite
+    S: S1 proof invokes unittest before the test stage creates tests. It exited 0 with zero tests, so it cannot prove C1-C3, and implement forbids writing those tests. Replace it with a genuinely executable proof available at implement, retaining planned regression tests for the later stage. report.py is present in the worktree; lint p
+25  test -> step-plan  [e2e-runs-sp/20261101/round2-release]
+    H: Correct the recorded text-search command
+    S: The focused command `rg -n "report" report.py` is a documentation search, not a test reporter; base check reports ID report as unread and cannot satisfy this stage. Move the searched C3 command to an appropriate check, or give it an executable reporting test, then retain the four subprocess tests.
+26  test -> step-plan  [e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp]
+    H: Correct the test plan for the real runner output
+    S: The focused IDs TC-1 and TC-2 do not appear in the user-mandated human Apex output or provided unittest output. Salesforce platform guidance says ShipLoop requires TAP for Apex recognition. Replan around actual test names and TAP as an additional test while retaining and executing the user-required human command and battleship-u
+27  implement -> step-plan  [e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp]
+    H: Correct the test-before-implementation proof dependency.
+    S: S1 proof requires a new Apex test class, but implement expressly forbids test creation and the starting project is empty. Change the implementation proof to a feasible compile/deploy check and retain all required Apex tests in the test-author stage; no product files changed.
+28  test -> step-plan  [e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp]
+    H: Align case IDs with valid Apex and supplied browser test names.
+    S: Apex method names cannot contain hyphens; Salesforce test output cannot contain the planned ID TC-1 as a test name. Ten required Apex tests were deployed and passed. Replan IDs to fullGame and test_deployed_open_fire_reset, preserving tests and deployed classes. The browser remains to build and verify.
+29  implement -> step-plan  [e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d]
+    H: Replan the non-repeatable permission assignment proof
+    S: S3 proof assigns the permission set on every execution. The first deploy and assignment succeeded, but repeating the proof fails with Duplicate PermissionSetAssignment, so it cannot pass ShipLoop’s mandatory repeat. Replan to keep the existing authorized assignment and verify it read-only; do not revoke it. The full deployment a
+30  implement -> step-plan  [e2e-runs/2026-10-30/shiploop-ticket-recursive-0vy09rcr]
+    H: Repair missing implementation proof prerequisite
+    S: All four step proofs reference test/assignment.test.js, which does not exist and implement explicitly forbids writing tests; the test stage comes later. Proof command failed as recorded. Replan proofs using available executable checks or arrange a valid prior facility. No product files changed.
+31  implement -> step-plan  [e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1]
+    H: Correct a cyclic implementation proof
+    S: S1 proof requires SLGymControllerTest before implementation can complete, but implementation explicitly forbids writing tests and the baseline contains none. Replan the implementation proof to use the supplied browser checker after deployment, and retain the required eight Apex methods for the subsequent test stage and final ver
+32  test -> step-plan  [e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1]
+    H: Add an executable schema contract check
+    S: S1 adds object and field configuration but has no focused test case; deployment success alone cannot verify exact sharing, field definitions, restricted picklists and requiredness. Add a local executable metadata contract test to S1 and retain deployed schema proof, then assign a focused test ID. The controller and UI are not pr
+33  implement -> step-plan  [e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg]
+    H: Correct the test-only implementation plan
+    S: C1 requires unittest during implement, but implement contract forbids test writes. Replan C1 as read-only exact-byte proof of the existing checkpoint; author the corresponding test at the test stage. No checkpoint or previous product write was repeated.
+34  implement -> step-plan  [e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1]
+    H: Repair proof before implementation can be accepted
+    S: The step proof python3 -m unittest -v runs zero tests because implement prohibits writing tests before the later test stage. It cannot establish C1 or C2; plan needs a runnable independent proof or test-first sequencing. Candidate report.py remains in the worktree.
+35  implement -> step-plan  [e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1]
+    H: Browser controller-response failure requires a diagnostic plan
+    S: S2 gym-ui proof repeatedly reports controller-response-invalid after a successful self-save; sequential refresh and UI readiness fixes did not resolve it. The bounded receipt gives no finer failing action. Replan a safe diagnostic route before further changes; UI acceptance R-6 remains unverified.
+36  test -> step-plan  [e2e-runs/2026-11-01/closed-loop-planted-01]
+    H: Correct malformed test command in the step plan
+    S: The focused TC_4 search command is syntactically invalid in /bin/sh because of unmatched double quotes. Replace it with a properly quoted search and preserve the existing implementation and tests. Three unittest cases already pass; full gate remains unverified.
+37  implement -> step-plan  [e2e-runs/2026-11-01/incremental-implementation-6vr1vrbo]
+    H: Correct the filter oracle before proceeding
+    S: S1 proof and R-1 example expect name=AL to match Ada Lovelace, but that string is absent; actual literal matches only Alan Turing. This conflicts with the original user requirement. Change the example to name=LA for IDs 1 and 3 throughout spec, test spec and proofs, then replan. S1 implementation correctly uses case-insensitive
+38  implement -> step-plan  [e2e-runs/2026-11-01/living-spec-status-_1jkfwx5]
+    H: Resolve test ordering in step criterion
+    S: C1 requires TC_1 through TC_4 to pass at implement, but this packet forbids writing tests until the subsequent test stage. Standalone HTTP proof passes and lint exits 0, but the stated confirmation cannot yet be met. Revise the criterion to use the independent proof at implement, while retaining TC_1–TC_4 as test-stage exit chec
+39  implement -> step-plan  [e2e-runs/2026-11-01/living-spec-status-_1jkfwx5]
+    H: Correct implementation proof dependency
+    S: The S1 proof invokes unittest before the test stage creates test_report.py, so it runs zero cases and cannot prove C1-C3. Replace it with an independent executable CLI proof available during implementation, retaining later full tests. No code was changed.
+40  test -> step-plan  [e2e-runs-sp/20261101/round2-verify]
+    H: Correct the test dependency before continuing
+    S: TC_1 requires a running HTTP server, but S1 only creates a group function and S3, a later step, supplies HTTP. The test stage must pass after S1 and forbids starting S3. Revise plan/test spec so S1 has an executable unit-level case and retain HTTP group coverage after S3; the focused and regression commands cannot validate the H
+
+without a readable result file: 0

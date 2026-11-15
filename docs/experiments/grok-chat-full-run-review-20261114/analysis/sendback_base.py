@@ -15,7 +15,7 @@ for f in files:
         a, b = st
         if a not in ("implement", "test"): continue
         runs_seen.add(f)
-        kind = "send-back/replan" if b in ("step-plan", "test-spec", "plan") or (a == "test" and b == "implement") else "advance"
+        kind = "send-back/replan" if b in ("step-plan", "test-spec", "plan") else "advance"
         EXIT[(a, kind)] += 1
         if kind != "advance": runs_with[a].add(f)
 for a in ("implement", "test"):

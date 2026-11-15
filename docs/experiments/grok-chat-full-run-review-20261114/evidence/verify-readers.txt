@@ -1,0 +1,7 @@
+nav-0e5669349e494175a35e3a064be9b2a4-verify1   json rows 10  text reader  9  <-- the text reader stops early
+nav-71e33b4c305a4074ba039b1bbca01547-verify1   json rows  6  text reader  5  <-- the text reader stops early
+nav-83b3edfbaec240358da41f719a220e6f-verify1   json rows  7  text reader  7
+nav-ae85c8314cf84382ab07cee59f3bedc6-verify1   json rows  3  text reader  3
+nav-c66f13de01e6418a82e078041dff2a03-verify1   json rows  6  text reader  6
+nav-e7019dbe2d7e4563b8d8ae8de33da2a8-verify1   json rows  3  text reader  3
+TOTAL json 35  text reader 33

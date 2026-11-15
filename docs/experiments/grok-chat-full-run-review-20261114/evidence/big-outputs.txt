@@ -1,0 +1,12 @@
+tool calls 766; total tool-output bytes 5,618,349
+  578,541 B  +  360 min  /bin/zsh -lc 'ps -axo pid,etime,command'
+  207,871 B  +   73 min  /bin/zsh -lc 'ps -axo pid,ppid,etime,comm'
+   75,648 B  +   24 min  /bin/zsh -lc 'sf project deploy start --source-dir force-app --target-org de --wait 10 --json'
+   75,348 B  +    5 min  /bin/zsh -lc 'cat /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/home/.codex/plugins/cache/whichguy/skill-craft/
+   61,320 B  +  209 min  /bin/zsh -lc "python3 '/Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/home/.codex/plugins/cache/whichguy/skill-c
+   60,907 B  +  370 min  /bin/zsh -lc 'zsh /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/run/
+   60,721 B  +    1 min  /bin/zsh -lc 'cat ../.shiploop-runs/work-20261114-161603-238276/run/request.md'
+   58,911 B  +  366 min  /bin/zsh -lc 'zsh /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/run/
+   58,841 B  +  237 min  /bin/zsh -lc "python3 - <<'PY' from pathlib import Path import json r=Path('/Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T1
+   56,249 B  +  360 min  /bin/zsh -lc 'python3 /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/home/.codex/plugins/cache/whichguy/skill-cr
+top 2 together: 786,412 (14.0% of tool-output bytes)

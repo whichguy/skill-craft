@@ -1,0 +1,13 @@
+day         implement exits   proof-needs-later-test   other implement send-backs
+2026-10-30          85                     3                      1
+2026-10-31          32                     3                      1
+2026-11-01         110                     6                      2
+2026-11-02          38                     2                      0
+2026-11-03          12                     3                      0
+2026-11-04          21                     3                      1
+2026-11-05          19                     1                      2
+2026-11-13           3                     0                      0
+2026-11-14          15                     0                      0
+total             335                    21                      7
+runs with at least one such send-back: 19
+CHECK: a reading of the 28 retained implement send-backs found 21 of this class and 7 of other kinds; this recogniser finds 21 and 7.

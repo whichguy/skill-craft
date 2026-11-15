@@ -5,16 +5,16 @@
       "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114": {
         "summary": [
           "Read the owner's ChatGPT journal page (the operator's saved snapshot of 15:38 PST) and the run's own records: ShipLoop 1.34.3 on Codex (Sol, medium) ran the full Salesforce Grok chat case for 412.8 min and ended BLOCKED at system-test-author. The engine's headline is 'Application checks passed; current operator live-acceptance receipt remains missing', and the operator could not finish collecting that evidence once the org's API allowance ran out (errors from 14:48 PST).",
-          "ShipLoop behaved as designed: 19 refusals and none advanced the run, five send-backs all recovered, each of three compactions re-grounded within three calls (two through shiploop next, one from the packet), and per-item-plan validation cost 26.3 s (0.12%).",
+          "ShipLoop behaved as designed: 19 refusals and none advanced the run, five send-backs all recovered, each of three compactions re-grounded within three calls (two through shiploop next, one from the packet), and per-item-plan validation cost 26.3 s (0.11% of the final engine dwell).",
           "One generic gap has the evidence the owner's own rule asked for: the test counter cannot read plain TAP output, which the Salesforce card recommends. It cost about 32 min here and was the open D-25 trigger of c700eb29aae866050bb6d83ab858de33f921e460.",
           "Four shortcomings (a silent merge of a repeated command row, a timed-out check with no route out, a mutation refusal that does not name the commands left out, a loop wording mismatch) were hit by no earlier run in 285 to 376, and the mutation one is a designed route: record them.",
           "The run's size comes from the case: ShipLoop check took 99.6 min against an earlier maximum of 8.0 min, and the live provider, the independent evidence and the shared API quota belong to the apparatus, not to ShipLoop.",
-          "Next: tick the TAP reader; decide whether a durable wait is wanted; have the harness hold cleanup after a non-pass outcome."
+          "Next: tick the TAP reader and the verify-parser repair. The Codex Astra plan was considered: P5 and P9a adopted, most of the rest held, and P4 declined because the owner studied that class on 2026-11-01 and left it. Decide whether a durable wait is wanted."
         ],
         "basis": {
           "P1": "The script issued all 65 packets and chose every stage; the harness counts one model glue command in 838 calls (review-export/facts.md)."
         },
-        "reviewedAt": "2026-11-15T00:13:40Z"
+        "reviewedAt": "2026-11-15T02:02:04Z"
       }
     },
     "observations": {
@@ -47,7 +47,7 @@
         },
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-fold": {
         "title": "A repeated command row was merged silently, changing the order of the system tests",
@@ -61,7 +61,7 @@
         "advice": "Record it as a known limit: one hit in 286 runs, and the owner's rule is to fix only what a normal run hits. Re-run the census after the next batch; a second hit makes the refusal option worth building.",
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-timeout-tail": {
         "title": "A timed-out check gets no route out: it is told to fix the code, and ShipLoop's own record does not open the remedy",
@@ -74,7 +74,7 @@
         "advice": "Record it: no earlier run timed out and the builder was not misled. If the file is open for another change, fix the words and the route together, since 6a59012cde0f7e752ee1163ee7290486c0bc4d1a shows words alone can name a dead end. No outcome change is measured, so it does not earn a release of its own.",
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-mutation": {
         "title": "Mixed-item survivors need dispositions by design; the refusal does not say which commands were left out, and test classes count as product",
@@ -88,7 +88,7 @@
         "advice": "Record it: the route is designed, it worked, and naming the commands left out would change no outcome. Telling a test class apart needs stack naming the catalog deliberately lacks (S-8, S-13).",
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-loop-wording": {
         "title": "A second start is said to reset the loop; the runtime refuses and changes nothing",
@@ -100,18 +100,18 @@
         "advice": "No change: the model's action is identical either way, and the owner's rule is that naming alone is not a reason to change anything.",
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-send-backs": {
-        "title": "Five visits ended in a send-back, 38% of the run and about four times the usual rate",
+        "title": "Five visits ended in a send-back, 38% of the run; the main implement class was studied and left on 2026-11-01",
         "criterion": "P4",
         "kind": "decision",
         "phase": 3,
         "effect": "bent",
-        "expected": "Implement and test exits are rarely sent back: 8.4% (28 of 335) and 5.2% (17 of 327) over 260 earlier runs.",
-        "observed": "3 of 8 implement exits and 2 of 5 test exits were sent back (37.5% and 40.0%); the five visits hold 156.6 of 412.8 min. Implement: the plan's proof called a quality check that needs tests the stage may not write (16.2 min); the proof's live provider journey came back incomplete after a prompt and budget repair (47.8 min) and then timed out (5.7 min). Test: required concurrency coverage had no execution route in the plan (52.6 min); results the counter could not read (34.3 min, see g14-tap-count). The visits include the real build, so the time is not all waste, and the send-back route worked each time.",
-        "evidence": "run/.shiploop-runs/work-20261114-161603-238276/run/loops/nav-e60d626572914b81806a97821c933cf4-terminal.json (and the four other stopped loops); docs/experiments/grok-chat-full-run-review-20261114/evidence/visits-table.txt; docs/experiments/grok-chat-full-run-review-20261114/evidence/sendback-base.txt",
-        "advice": "Classify the retained send-backs by reason before proposing a plan-time check. Inferred: a proof that needs a later stage or an outside system is one recurring class, but only this run shows it.",
+        "expected": "Implement and test exits are rarely sent back: 8.4% (28 of 335) and 3.7% (12 of 327) over 260 earlier runs (corrected: five test-to-implement moves are the next step, not send-backs).",
+        "observed": "3 of 8 implement exits and 2 of 5 test exits were sent back (37.5% and 40.0%, 4.5 and 10.9 times the corpus rates); the five visits hold 156.6 of 412.8 min. Implement: the plan's proof called a quality check that needs tests the stage may not write (16.2 min); the proof's live provider journey came back incomplete after a prompt and budget repair (47.8 min) and then timed out (5.7 min). Test: required concurrency coverage had no execution route in the plan (52.6 min); results the counter could not read (34.3 min, see g14-tap-count). The visits include the real build, so the time is not all waste, and the send-back route worked each time. In the retained corpus 21 of the 28 implement send-backs (19 runs, 6.3% of implement exits) are the class of this trial's first stop: the Proof is the test runner and the tests are not written yet. The owner studied it on 2026-11-01 (27c453fac4b518fdd99b09a773631f717a4d517c: a loop costs 2.0 min, every one recovered, no gate precise enough, recommendation leave it), reworded the proof bullet (A2b, c767968528e3db301da38bd4e821f923ac440563) and reverted it (68985caf4ee4eab732e0df725e88aca40817f2d4). Of the 12 retained test send-backs, 9 are a recorded command the counter cannot read or classify, four of them an rg search recorded as a test.",
+        "evidence": "run/.shiploop-runs/work-20261114-161603-238276/run/loops/nav-e60d626572914b81806a97821c933cf4-terminal.json (and the four other stopped loops); docs/experiments/grok-chat-full-run-review-20261114/evidence/visits-table.txt; docs/experiments/grok-chat-full-run-review-20261114/evidence/sendback-base.txt; docs/experiments/grok-chat-full-run-review-20261114/evidence/sendback-reasons.txt; docs/experiments/grok-chat-full-run-review-20261114/evidence/sendback-class-by-date.txt; docs/experiments/step-plan-round2-20261101/README.md",
+        "advice": "Leave the implement class, as the owner decided on 2026-11-01: this trial's first stop cost a replan of about 3.6 min beside an app build the stage did anyway. If the owner wants it gone, the registered next step is the unrun whole-delivery A/B of A2b (shared-expenses, 6 a side), not new examples. The test-stage commands the counter cannot read are P5's ground.",
         "figure": {
           "kind": "bars",
           "items": [
@@ -129,7 +129,7 @@
             },
             {
               "label": "Earlier test",
-              "value": 5.2,
+              "value": 3.7,
               "unit": "%",
               "tone": "expected"
             },
@@ -143,7 +143,7 @@
         },
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-check-regime": {
         "title": "ShipLoop check took 24% of the run, 12 times the earlier maximum",
@@ -184,7 +184,7 @@
         },
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-cleanup-quota": {
         "title": "Cleanup needs the API it ran out of and ran before the owner's review point; quota use is unaccounted",
@@ -198,7 +198,7 @@
         "advice": "Hold cleanup after any non-pass outcome until the owner confirms, and record DailyApiRequests remaining at the start, at checkpoints and at the end. This is evaluator work; report any benefit apart from a ShipLoop gain.",
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-viewer-reaped": {
         "title": "The harness's teardown stopped the owner's live viewer",
@@ -212,7 +212,45 @@
         "advice": "Either start an observer's listener from outside the folder it watches, or let the operator name listeners to keep. Inferred: a normal run has no observer, so this only matters for the independent layout.",
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
+      },
+      "g14-verify-parser": {
+        "title": "The harness's text reader undercounts verify rows when captured output holds a bracket",
+        "criterion": "P5",
+        "kind": "defect",
+        "phase": 5,
+        "effect": "bent",
+        "expected": "The two harness readers of ShipLoop's verify records agree, so a command count in facts.md means what it says.",
+        "observed": "metrics._RUN_ROWS finds the runs array by counting [ and ] without knowing about JSON strings, so a ] inside a command's captured output ends the array early. On the six verify records it reads 33 rows and the JSON reader 35, short in exactly two records (9 against 10 and 5 against 6). All six records carry reuse provenance, so the 35 are recorded results, not executions. The reader's own comment expects an unreadable record to over-count; this one under-counts. Found by the Codex plan (P9a); reproduced here.",
+        "evidence": "test/shiploop_e2e/metrics.py (_RUN_ROWS, verifications); test/shiploop_e2e/fidelity.py (_verify_record); docs/experiments/grok-chat-full-run-review-20261114/analysis/verify_readers.py; docs/experiments/grok-chat-full-run-review-20261114/evidence/verify-readers.txt; run/.shiploop-runs/work-20261114-161603-238276/run/tests/nav-0e5669349e494175a35e3a064be9b2a4-verify1.md and nav-71e33b4c305a4074ba039b1bbca01547-verify1.md",
+        "advice": "Fix the reader (a string-aware scan, or the JSON reader with the old one as the fallback for records it cannot parse) and keep the raw metrics. It is deterministic, offline and small.",
+        "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
+        "status": "open",
+        "createdAt": "2026-11-15T02:02:04Z"
+      },
+      "g14-review-continuity": {
+        "title": "An independent review lost one known finding for 11 reviews; the repeat rate over 24 reviews is one thread",
+        "criterion": "P5",
+        "kind": "decision",
+        "expected": "A finding an independent review flagged stays visible in later reviews while the flagged code is unchanged.",
+        "observed": "Over the run's 24 independent reviews, 21 actionable findings had a next review: 13 were carried, 5 dropped after the flagged code changed, and 3 dropped after a new or edited test or script file plausibly resolved them. One finding (SLGrokChatAgent.cls:98 and SLGrokChatController.cls:17, flagged at review 2) went silent for reviews 3 to 13 on byte-identical code, among them six PASS reviews, and returned at review 14. The final exact-source review (24) passed all five dimensions.",
+        "evidence": "docs/experiments/grok-chat-full-run-review-20261114/analysis/review_continuity.py; docs/experiments/grok-chat-full-run-review-20261114/evidence/review-continuity.txt; run/platform/grok-chat-quality/*/review.json",
+        "advice": "One thread in 24 reviews does not justify a findings ledger yet, and it belongs to this case's operator, not to ShipLoop. Re-run the measure on the next independent-review chain; the plan's own design (blind review first, reconciliation second) doubles the reviewer cost.",
+        "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
+        "status": "open",
+        "createdAt": "2026-11-15T02:02:04Z"
+      },
+      "g14-process-dumps": {
+        "title": "Two whole-machine process listings filled 14% of the run's tool output",
+        "criterion": "P4",
+        "kind": "noise",
+        "expected": "A model checks what it left running with an owned-PID query, not a whole-machine listing.",
+        "observed": "The two largest tool outputs of the run were `ps -axo pid,etime,command` (578,541 B at +360 min) and `ps -axo pid,ppid,etime,comm` (207,871 B at +73 min): 14.0% of 5.6 MB of tool output, about 197,000 tokens at four bytes a token. No ShipLoop packet or case prompt asked for them. Each ran 2 to 4 minutes after a compaction (+69.4 and +358.2 min), so they look like re-orientation, not a cause of compaction (Inferred); the builder filtered the first in its next call and not the second. None of 2,489 retained runs ran a whole-machine listing, and among the 1,259 whose events carry outputs the largest ps, lsof or pgrep output was 86.5 KB.",
+        "evidence": "docs/experiments/grok-chat-full-run-review-20261114/analysis/big_outputs.py; docs/experiments/grok-chat-full-run-review-20261114/evidence/big-outputs.txt; docs/experiments/grok-chat-full-run-review-20261114/analysis/process_census.sh; docs/experiments/grok-chat-full-run-review-20261114/evidence/process-census.txt; docs/experiments/grok-chat-full-run-review-20261114/evidence/process-output-sizes.txt",
+        "advice": "Record it: no other run did it, so a packet rule has no measured effect to buy. Re-run the census after the next batch.",
+        "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
+        "status": "open",
+        "createdAt": "2026-11-15T02:02:04Z"
       },
       "g14-polling": {
         "title": "The builder polled 46 times for about 56 minutes for the operator's evidence",
@@ -226,7 +264,7 @@
         "advice": "Publish a readiness marker and wait once. Inferred: this saves model calls and removes the missed-window failure; it does not shorten the run.",
         "run": "codex-gpt-6.1-sol-2.37.4-grok-chat-salesforce-full-20261114",
         "status": "open",
-        "createdAt": "2026-11-15T00:13:40Z"
+        "createdAt": "2026-11-15T02:02:04Z"
       }
     },
     "actions": {
@@ -361,24 +399,25 @@
         "criterion": "P4",
         "kind": "gather-evidence",
         "effort": "S",
+        "status": "built",
+        "ref": "docs/experiments/grok-chat-full-run-review-20261114/evidence/sendback-reasons.txt",
+        "findings": [
+          "g14-send-backs"
+        ],
+        "why": "Done in the working tree: 21 of the 28 implement send-backs are one class and 9 of the 12 test send-backs are one class. The corpus holds 28 implement and 12 test send-backs.",
+        "goal": "Do: read the model's own summary of each retained implement and test send-back and group them by reason. Files and symbols: docs/experiments/grok-chat-full-run-review-20261114/analysis/sendback_reasons.py and sendback_class_by_date.py. Test: the recogniser must reproduce a reading of all 28 implement send-backs. Done when: evidence/sendback-reasons.txt and evidence/sendback-class-by-date.txt are committed and the README says which class repeats."
+      },
+      "g14-sb-accept": {
+        "title": "Accept: the send-back route handled each stop, and leave the studied class",
+        "criterion": "P4",
+        "kind": "accept",
+        "effort": "S",
         "recommended": true,
         "findings": [
           "g14-send-backs"
         ],
-        "why": "The corpus holds 28 implement and 17 test send-backs, and only this run's five are explained.",
-        "goal": "Do: read the stop receipt or note of each of the 45 retained send-backs and group them by reason (proof needs a later stage, proof needs an outside system, missing coverage route, results unreadable, other). Files and symbols: docs/experiments/grok-chat-full-run-review-20261114/analysis/sendback_base.py and each run's loops/*-terminal.json. Test: none; read-only. Done when: a table of reasons with counts is in the README and says whether one class repeats.",
-        "status": "open"
-      },
-      "g14-sb-accept": {
-        "title": "Accept: the send-back route handled each stop",
-        "criterion": "P4",
-        "kind": "accept",
-        "effort": "S",
-        "findings": [
-          "g14-send-backs"
-        ],
-        "why": "All five stops recovered and no refusal advanced the run.",
-        "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that the send-back rate was 37.5% and 40.0% against 8.4% and 5.2%, the five reasons, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the five receipts.",
+        "why": "All five stops recovered and no refusal advanced the run; the class behind 21 of 28 implement send-backs was studied and left by the owner on 2026-11-01.",
+        "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that the send-back rate was 37.5% and 40.0% against 8.4% and 3.7%, the five reasons, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the five receipts.",
         "status": "open"
       },
       "g14-regime-accept": {
@@ -430,7 +469,7 @@
           "g14-cleanup-quota"
         ],
         "why": "For: the owner's correction of 2026-11-14 shows the default ran before the review point. Against: a held run leaves resources until someone confirms. Verdict: worth it; a pass still cleans up.",
-        "goal": "Do: after the builder exits with any outcome other than a verified pass, write a 'cleanup held' record and run no cleanup command until the owner confirms. Files and symbols: the post-exit cleanup in test/shiploop_e2e/run.py and the platform cleanup section of test/shiploop_e2e/README.md. Test: a harness test where a blocked run leaves the held record and runs no cleanup, and a passing run still cleans up. Done when: that test passes.",
+        "goal": "Do: persist an owner review hold at launch and have every cleanup path consult it (the normal path, main's finally, regrade and recovery), reusing the ownership and quiescence machinery that --keep-platform already has, so that after any outcome other than a verified pass a 'cleanup held' record is written and no cleanup, producer or mutating check runs until the owner confirms; report process exit, engine outcome, candidate location, acceptance evidence, source return and cleanup as separate fields, and report checks the post-stop inspector may not run as unexamined, not failed. Files and symbols: keep_decision, keep_refusal and PlatformGuard in test/shiploop_e2e/run.py, the product-at-stop inspection, and the platform cleanup section of test/shiploop_e2e/README.md. Test: extend test/shiploop-e2e-platform.test.py and test/shiploop-e2e-recovery.test.py with done, blocked, crash, regrade and operator restart under an active hold, using sentinel cleanup and producer commands that fail if invoked; a passing run still cleans up. Done when: those tests pass and a held blocked run leaves its source, configuration and evidence fingerprints unchanged.",
         "status": "open"
       },
       "g14-api-headroom": {
@@ -470,8 +509,83 @@
         "goal": "Do: start an observer's viewer with a working directory and command line outside the case's output folder, and change no harness code. Files and symbols: the operator's viewer launch in test/shiploop_e2e/README.md. Test: none; this records a known limit. Done when: the README says to launch the viewer from outside the folder.",
         "status": "open"
       },
+      "g14-parser-fix": {
+        "title": "Make the verify-row text reader string-aware",
+        "criterion": "P5",
+        "kind": "fix-harness",
+        "effort": "S",
+        "recommended": true,
+        "findings": [
+          "g14-verify-parser"
+        ],
+        "why": "For: the fix is deterministic and offline, and the two readers disagreed on this run's own record. Against: none seen. Verdict: worth it.",
+        "goal": "Do: make _RUN_ROWS skip bracket characters inside JSON strings (or read the record as JSON and keep the text scan only as the fallback for a record that does not parse), resolve reuse provenance before counting executions so a check and its verify copy are one execution, and keep the old raw metrics. Files and symbols: _RUN_ROWS and verifications in test/shiploop_e2e/metrics.py; _verify_record and validation in test/shiploop_e2e/fidelity.py. Test: extend test/shiploop-e2e-fidelity.test.py with the two real verify records of this run (brackets and quotes inside output), a malformed legacy record, a record with zero executions and a reused record; the six records must reconcile to 35 rows with null counts preserved. Done when: that test passes and the two readers agree on the saved runs and on this run.",
+        "status": "open"
+      },
+      "g14-parser-accept": {
+        "title": "Accept the disagreement as a recorded limit",
+        "criterion": "P5",
+        "kind": "accept",
+        "effort": "S",
+        "findings": [
+          "g14-verify-parser"
+        ],
+        "why": "The exporter already lists the disagreement under unmeasured and no verdict depends on it.",
+        "goal": "Do: leave the reader as it is and keep the unmeasured note. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the two undercounted records.",
+        "status": "open"
+      },
+      "g14-cont-accept": {
+        "title": "Accept: no findings ledger yet",
+        "criterion": "P5",
+        "kind": "accept",
+        "effort": "S",
+        "recommended": true,
+        "findings": [
+          "g14-review-continuity"
+        ],
+        "why": "One thread in 24 reviews, and the final review passed.",
+        "goal": "Do: record the continuity measure and the one thread and change no harness or ShipLoop code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names review_continuity.py and the numbers.",
+        "status": "open"
+      },
+      "g14-cont-measure": {
+        "title": "Re-run the continuity measure on the next independent-review chain",
+        "criterion": "P5",
+        "kind": "gather-evidence",
+        "effort": "S",
+        "findings": [
+          "g14-review-continuity"
+        ],
+        "why": "Twenty-four reviews of one product cannot give a rate that transfers.",
+        "goal": "Do: run the measure over the next case that has independent source reviews. Files and symbols: docs/experiments/grok-chat-full-run-review-20261114/analysis/review_continuity.py. Test: none; read-only. Done when: the new counts sit beside these in the README.",
+        "status": "open"
+      },
+      "g14-dump-accept": {
+        "title": "Accept the listings as a one-run event",
+        "criterion": "P4",
+        "kind": "accept",
+        "effort": "S",
+        "recommended": true,
+        "findings": [
+          "g14-process-dumps"
+        ],
+        "why": "No other retained run did it.",
+        "goal": "Do: record the two listings and the census in test/shiploop_e2e/LEARNINGS.md and change no packet text. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names process_census.sh and big_outputs.py.",
+        "status": "open"
+      },
+      "g14-dump-census": {
+        "title": "Extend the census to the runs whose events were not read",
+        "criterion": "P4",
+        "kind": "gather-evidence",
+        "effort": "S",
+        "findings": [
+          "g14-process-dumps"
+        ],
+        "why": "1,230 of the 2,489 retained event files use another shape and were counted as unread.",
+        "goal": "Do: read the other event shape and measure the largest process-command output in it. Files and symbols: docs/experiments/grok-chat-full-run-review-20261114/analysis/process_output_sizes.py. Test: none; read-only. Done when: the unread count is zero or its reason is stated.",
+        "status": "open"
+      },
       "g14-ready-marker": {
-        "title": "Publish a readiness marker and wait once",
+        "title": "Publish a separate pre-journey readiness record and wait once",
         "criterion": "P4",
         "kind": "fix-harness",
         "effort": "S",
@@ -480,7 +594,7 @@
           "g14-polling"
         ],
         "why": "For: removes 46 model calls and the missed-window failure. Against: none seen. Verdict: worth it.",
-        "goal": "Do: have the operator write a readiness marker next to each request and have the check helper wait once for the marker and the review inside one command. Files and symbols: test/shiploop_e2e/checks/grok_chat_full_quality.py. Test: a helper test with delayed readiness, an expired window and a changed candidate. Done when: that test passes and a rehearsal shows no polling calls by the builder.",
+        "goal": "Do: have the operator write a readiness record, separate from the acceptance request and bound to the intended candidate, deployment, actor and owned trace window, admit the producing journey only after it, keep the existing post-execution acceptance request and its exact six-call binding (the request needs the finished passing UI receipt, so a readiness marker next to it would be circular), and have the check helper wait once inside one command. Files and symbols: test/shiploop_e2e/checks/grok_chat_full_quality.py and the observer protocol. Test: a helper test with a fake clock covering delayed readiness, an expired window, a changed candidate and a newer failed UI selection, with zero producer calls before readiness and no stale receipt accepted. Done when: that test passes and a rehearsal shows no polling calls by the builder.",
         "status": "open"
       },
       "g14-poll-accept": {
