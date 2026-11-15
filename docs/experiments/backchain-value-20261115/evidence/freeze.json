@@ -1,0 +1,56 @@
+{
+ "arms": [
+  "backchain",
+  "none"
+ ],
+ "cli_versions": {
+  "grok": [
+   "grok 1.0.77 (50ca579fa996)",
+   null
+  ],
+  "sol": [
+   "codex-cli 0.169.0",
+   null
+  ],
+  "sonnet": [
+   null,
+   "Claude: read from the init event after the run"
+  ]
+ },
+ "delta": 5.0,
+ "frozen_at": "2026-11-15T13:09:52-0800",
+ "models": {
+  "grok": [
+   "grok",
+   "grok-4.6",
+   "xhigh"
+  ],
+  "sol": [
+   "codex",
+   "gpt-6.1-sol",
+   "medium"
+  ],
+  "sonnet": [
+   "claude",
+   "claude-sonnet-5-5",
+   "high"
+  ]
+ },
+ "passes": [
+  1,
+  2
+ ],
+ "schema": "backchain-value-freeze/v1",
+ "sha256": {
+  "PROTOCOL.md": "1c191d6d05825f0d85de24a665f36febf4a1d14db867c04d5b9943195f2cedb3",
+  "cases.json": "ebbb6f84ef607a0b42aaa6b6bb34f83a789282502f757258e49fbefa87846355",
+  "cohort.py": "2d71eaa9df276743a5b42dcea4b738ea6504d60298dc27e7bec869f992e7de5d",
+  "grader-rubric.md": "4f5a59ae9ea246635ca5f3d6d7b37b7b1322c1d6f897f8bceeeeb361dd47c464",
+  "hosts.py": "0bfd0944b04051cd96250b375ee8ead5b04e71a1cf9ebd5c7165db3dbb629e91",
+  "plan-format.md": "895a6b3c4fcc7ea08ddc485bef061f851109021ca8a547269793bcafc9a0a0ff",
+  "skills/backchain": "1675e6a4cb8e857df5c15d951ec0708e51fa8dd12797d5f6a9f3f61ea82767b5",
+  "skills/improve/runtime/until-loop": "23a67a25f93936c9af4e54d82e16e0d6fa549043be109f52ebc640263a7923f8",
+  "value.py": "8fa5b5704167dac7950e85a9ae9c0df2451a887fd2e7b165f650b8309c30e8ac"
+ },
+ "skill_craft_commit": "b0285785374570c88f534480cf361778030018ac"
+}

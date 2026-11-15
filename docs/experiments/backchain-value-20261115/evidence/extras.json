@@ -1,0 +1,127 @@
+{
+ "cost_medians": {
+  "grok/backchain": {
+   "cached_input": 2372480.0,
+   "output": 33106.5,
+   "processed": 2555857.0,
+   "seconds": 459.5,
+   "uncached_input": 130537.5
+  },
+  "grok/none": {
+   "cached_input": 111360.0,
+   "output": 16387.5,
+   "processed": 171178.5,
+   "seconds": 198.05,
+   "uncached_input": 30921.5
+  },
+  "sol/backchain": {
+   "cached_input": 952704.0,
+   "output": 6555.5,
+   "processed": 1034517.0,
+   "seconds": 204.6,
+   "uncached_input": 76519.0
+  },
+  "sol/none": {
+   "cached_input": 80704.0,
+   "output": 2893.5,
+   "processed": 95640.0,
+   "seconds": 83.19999999999999,
+   "uncached_input": 10892.0
+  },
+  "sonnet/backchain": {
+   "cached_input": 946382.5,
+   "output": 12675.5,
+   "processed": 1029779.0,
+   "seconds": 105.0,
+   "uncached_input": 74528.5
+  },
+  "sonnet/none": {
+   "cached_input": 79973.5,
+   "output": 4253.5,
+   "processed": 99844.0,
+   "seconds": 32.3,
+   "uncached_input": 16076.0
+  }
+ },
+ "final_status": {
+  "grok/backchain": {
+   "complete": 9,
+   "incomplete": 1
+  },
+  "grok/none": {
+   "complete": 9,
+   "incomplete": 1
+  },
+  "sol/backchain": {
+   "complete": 7,
+   "incomplete": 3
+  },
+  "sol/none": {
+   "complete": 9,
+   "incomplete": 1
+  },
+  "sonnet/backchain": {
+   "complete": 9,
+   "incomplete": 1
+  },
+  "sonnet/none": {
+   "complete": 7,
+   "incomplete": 3
+  }
+ },
+ "graders": {
+  "opus|medium|fallback=False": 120
+ },
+ "per_case": {
+  "billing-late-fee": {
+   "grok": 3.3,
+   "sol": 0.0,
+   "sonnet": 0.0
+  },
+  "bounded-source-edge-repair": {
+   "grok": 3.6,
+   "sol": 0.0,
+   "sonnet": 0.0
+  },
+  "independent-inspection-scopes": {
+   "grok": 0.0,
+   "sol": 0.0,
+   "sonnet": -3.8
+  },
+  "known-external-approval-blocker": {
+   "grok": 3.8,
+   "sol": 0.0,
+   "sonnet": 0.0
+  },
+  "legacy-draft-discovers-mapping": {
+   "grok": -1.8,
+   "sol": 16.1,
+   "sonnet": -1.8
+  },
+  "library-reminders": {
+   "grok": 0.0,
+   "sol": 0.0,
+   "sonnet": 3.6
+  },
+  "missing-normative-redaction-source": {
+   "grok": 1.9,
+   "sol": -0.0,
+   "sonnet": -1.9
+  },
+  "orders-cancel-rpc": {
+   "grok": -1.7,
+   "sol": -10.0,
+   "sonnet": 0.0
+  },
+  "revenue-export-lineage": {
+   "grok": 0.0,
+   "sol": -7.1,
+   "sonnet": 0.0
+  },
+  "stale-build-receipt-identity": {
+   "grok": -1.9,
+   "sol": 5.8,
+   "sonnet": 1.9
+  }
+ }
+}

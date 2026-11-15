@@ -1,0 +1,1550 @@
+{
+  "schema": "backchain-value-analysis/v1",
+  "delta": 5.0,
+  "models": {
+    "grok": {
+      "setting": [
+        "grok",
+        "grok-4.6",
+        "xhigh"
+      ],
+      "pairs": 10,
+      "per_case": {
+        "billing-late-fee": 3.3333333333333286,
+        "bounded-source-edge-repair": 3.571428571428555,
+        "independent-inspection-scopes": 0.0,
+        "known-external-approval-blocker": 3.846153846153854,
+        "legacy-draft-discovers-mapping": -1.7857142857142776,
+        "library-reminders": 0.0,
+        "missing-normative-redaction-source": 1.9230769230769198,
+        "orders-cancel-rpc": -1.6666666666666714,
+        "revenue-export-lineage": 0.0,
+        "stale-build-receipt-identity": -1.9230769230769198
+      },
+      "quality": {
+        "mean": 0.7298534798534788,
+        "low": -0.5750915750915737,
+        "high": 2.0476190476190426
+      },
+      "reading": "no meaningful edge",
+      "tokens": {
+        "mean": 2333035.8,
+        "lower_in": 0,
+        "of": 10
+      },
+      "seconds": {
+        "mean": 251.76,
+        "lower_in": 0,
+        "of": 10
+      },
+      "arms": {
+        "backchain": {
+          "attempts": 10,
+          "mean_score": 92.22527472527472,
+          "critical_missed_attempts": 1,
+          "structure_ok": 10,
+          "complete_plans": 8,
+          "status_complete": 9,
+          "keys_passed": 32,
+          "keys_total": 34,
+          "median_tokens": 2555857.0,
+          "median_seconds": 459.5,
+          "ran_toolkit": 10
+        },
+        "none": {
+          "attempts": 10,
+          "mean_score": 91.49542124542124,
+          "critical_missed_attempts": 1,
+          "structure_ok": 10,
+          "complete_plans": 8,
+          "status_complete": 9,
+          "keys_passed": 29,
+          "keys_total": 34,
+          "median_tokens": 171178.5,
+          "median_seconds": 198.05,
+          "ran_toolkit": 0
+        }
+      },
+      "grader_pass_difference_mean": 1.471611721611722
+    },
+    "sol": {
+      "setting": [
+        "codex",
+        "gpt-6.1-sol",
+        "medium"
+      ],
+      "pairs": 10,
+      "per_case": {
+        "billing-late-fee": 0.0,
+        "bounded-source-edge-repair": 0.0,
+        "independent-inspection-scopes": 0.0,
+        "known-external-approval-blocker": 0.0,
+        "legacy-draft-discovers-mapping": 16.07142857142857,
+        "library-reminders": 0.0,
+        "missing-normative-redaction-source": -1.4210854715202004e-14,
+        "orders-cancel-rpc": -10.0,
+        "revenue-export-lineage": -7.142857142857153,
+        "stale-build-receipt-identity": 5.769230769230774
+      },
+      "quality": {
+        "mean": 0.46978021978021756,
+        "low": -3.428571428571432,
+        "high": 4.821428571428569
+      },
+      "reading": "no meaningful edge",
+      "tokens": {
+        "mean": 965947.3,
+        "lower_in": 0,
+        "of": 10
+      },
+      "seconds": {
+        "mean": 128.44,
+        "lower_in": 0,
+        "of": 10
+      },
+      "arms": {
+        "backchain": {
+          "attempts": 10,
+          "mean_score": 96.08791208791209,
+          "critical_missed_attempts": 0,
+          "structure_ok": 10,
+          "complete_plans": 8,
+          "status_complete": 7,
+          "keys_passed": 28,
+          "keys_total": 34,
+          "median_tokens": 1034517.0,
+          "median_seconds": 204.6,
+          "ran_toolkit": 10
+        },
+        "none": {
+          "attempts": 10,
+          "mean_score": 95.61813186813187,
+          "critical_missed_attempts": 0,
+          "structure_ok": 10,
+          "complete_plans": 8,
+          "status_complete": 9,
+          "keys_passed": 31,
+          "keys_total": 34,
+          "median_tokens": 95640.0,
+          "median_seconds": 83.19999999999999,
+          "ran_toolkit": 0
+        }
+      },
+      "grader_pass_difference_mean": 1.4459706959706964
+    },
+    "sonnet": {
+      "setting": [
+        "claude",
+        "claude-sonnet-5-5",
+        "high"
+      ],
+      "pairs": 10,
+      "per_case": {
+        "billing-late-fee": 0.0,
+        "bounded-source-edge-repair": 0.0,
+        "independent-inspection-scopes": -3.8461538461538396,
+        "known-external-approval-blocker": 1.4210854715202004e-14,
+        "legacy-draft-discovers-mapping": -1.7857142857142776,
+        "library-reminders": 3.5714285714285694,
+        "missing-normative-redaction-source": -1.9230769230769198,
+        "orders-cancel-rpc": 0.0,
+        "revenue-export-lineage": 0.0,
+        "stale-build-receipt-identity": 1.9230769230769198
+      },
+      "quality": {
+        "mean": -0.20604395604395337,
+        "low": -1.3461538461538425,
+        "high": 1.0714285714285723
+      },
+      "reading": "no meaningful edge",
+      "tokens": {
+        "mean": 985952.5,
+        "lower_in": 0,
+        "of": 10
+      },
+      "seconds": {
+        "mean": 86.9,
+        "lower_in": 0,
+        "of": 10
+      },
+      "arms": {
+        "backchain": {
+          "attempts": 10,
+          "mean_score": 93.82875457875458,
+          "critical_missed_attempts": 1,
+          "structure_ok": 10,
+          "complete_plans": 3,
+          "status_complete": 9,
+          "keys_passed": 27,
+          "keys_total": 34,
+          "median_tokens": 1029779.0,
+          "median_seconds": 105.0,
+          "ran_toolkit": 10
+        },
+        "none": {
+          "attempts": 10,
+          "mean_score": 94.03479853479854,
+          "critical_missed_attempts": 1,
+          "structure_ok": 9,
+          "complete_plans": 5,
+          "status_complete": 7,
+          "keys_passed": 27,
+          "keys_total": 34,
+          "median_tokens": 99844.0,
+          "median_seconds": 32.3,
+          "ran_toolkit": 0
+        }
+      },
+      "grader_pass_difference_mean": 1.6144688644688643
+    }
+  },
+  "attempts": [
+    {
+      "label": "billing-late-fee--backchain--grok",
+      "case": "billing-late-fee",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 7,
+        "total": 7,
+        "failed": []
+      },
+      "ran_toolkit": true,
+      "tokens": 1903545,
+      "output_tokens": 38382,
+      "seconds": 529.8
+    },
+    {
+      "label": "billing-late-fee--backchain--sol",
+      "case": "billing-late-fee",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 3,
+        "total": 7,
+        "failed": [
+          "fixture-supplier-planned",
+          "fixture-built-from-csv",
+          "test-run-reaches-module",
+          "test-run-reaches-fixture"
+        ]
+      },
+      "ran_toolkit": true,
+      "tokens": 1739455,
+      "output_tokens": 9828,
+      "seconds": 239.5
+    },
+    {
+      "label": "billing-late-fee--backchain--sonnet",
+      "case": "billing-late-fee",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 95.0,
+      "pass_scores": [
+        96.66666666666667,
+        93.33333333333333
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": {
+        "passed": 3,
+        "total": 7,
+        "failed": [
+          "fixture-built-from-csv",
+          "test-run-reaches-module",
+          "test-run-reaches-fixture",
+          "plan-complete"
+        ]
+      },
+      "ran_toolkit": true,
+      "tokens": 1386493,
+      "output_tokens": 27270,
+      "seconds": 213.7
+    },
+    {
+      "label": "billing-late-fee--none--grok",
+      "case": "billing-late-fee",
+      "arm": "none",
+      "model": "grok",
+      "score": 96.66666666666667,
+      "pass_scores": [
+        96.66666666666667,
+        96.66666666666667
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 4,
+        "total": 7,
+        "failed": [
+          "fixture-supplier-planned",
+          "fixture-built-from-csv",
+          "test-run-reaches-fixture"
+        ]
+      },
+      "ran_toolkit": false,
+      "tokens": 192926,
+      "output_tokens": 20211,
+      "seconds": 257.2
+    },
+    {
+      "label": "billing-late-fee--none--sol",
+      "case": "billing-late-fee",
+      "arm": "none",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 4,
+        "total": 7,
+        "failed": [
+          "fixture-supplier-planned",
+          "fixture-built-from-csv",
+          "test-run-reaches-fixture"
+        ]
+      },
+      "ran_toolkit": false,
+      "tokens": 131648,
+      "output_tokens": 2712,
+      "seconds": 82.6
+    },
+    {
+      "label": "billing-late-fee--none--sonnet",
+      "case": "billing-late-fee",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 95.0,
+      "pass_scores": [
+        90.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 3,
+        "total": 7,
+        "failed": [
+          "fixture-supplier-planned",
+          "fixture-built-from-csv",
+          "test-run-reaches-module",
+          "test-run-reaches-fixture"
+        ]
+      },
+      "ran_toolkit": false,
+      "tokens": 121663,
+      "output_tokens": 7139,
+      "seconds": 48.9
+    },
+    {
+      "label": "bounded-source-edge-repair--backchain--grok",
+      "case": "bounded-source-edge-repair",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 94.64285714285714,
+      "pass_scores": [
+        96.42857142857143,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 2632496,
+      "output_tokens": 25620,
+      "seconds": 317.0
+    },
+    {
+      "label": "bounded-source-edge-repair--backchain--sol",
+      "case": "bounded-source-edge-repair",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 711919,
+      "output_tokens": 3922,
+      "seconds": 126.8
+    },
+    {
+      "label": "bounded-source-edge-repair--backchain--sonnet",
+      "case": "bounded-source-edge-repair",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 1133930,
+      "output_tokens": 9488,
+      "seconds": 84.1
+    },
+    {
+      "label": "bounded-source-edge-repair--none--grok",
+      "case": "bounded-source-edge-repair",
+      "arm": "none",
+      "model": "grok",
+      "score": 91.07142857142858,
+      "pass_scores": [
+        92.85714285714286,
+        89.28571428571429
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 158626,
+      "output_tokens": 6022,
+      "seconds": 71.4
+    },
+    {
+      "label": "bounded-source-edge-repair--none--sol",
+      "case": "bounded-source-edge-repair",
+      "arm": "none",
+      "model": "sol",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 73215,
+      "output_tokens": 829,
+      "seconds": 30.5
+    },
+    {
+      "label": "bounded-source-edge-repair--none--sonnet",
+      "case": "bounded-source-edge-repair",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 90488,
+      "output_tokens": 1257,
+      "seconds": 13.0
+    },
+    {
+      "label": "independent-inspection-scopes--backchain--grok",
+      "case": "independent-inspection-scopes",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 88.46153846153847,
+      "pass_scores": [
+        88.46153846153847,
+        88.46153846153847
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 2427544,
+      "output_tokens": 28930,
+      "seconds": 376.4
+    },
+    {
+      "label": "independent-inspection-scopes--backchain--sol",
+      "case": "independent-inspection-scopes",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 774882,
+      "output_tokens": 5258,
+      "seconds": 159.5
+    },
+    {
+      "label": "independent-inspection-scopes--backchain--sonnet",
+      "case": "independent-inspection-scopes",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 96.15384615384616,
+      "pass_scores": [
+        96.15384615384616,
+        96.15384615384616
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 997976,
+      "output_tokens": 12350,
+      "seconds": 107.3
+    },
+    {
+      "label": "independent-inspection-scopes--none--grok",
+      "case": "independent-inspection-scopes",
+      "arm": "none",
+      "model": "grok",
+      "score": 88.46153846153847,
+      "pass_scores": [
+        88.46153846153847,
+        88.46153846153847
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 98872,
+      "output_tokens": 14192,
+      "seconds": 173.1
+    },
+    {
+      "label": "independent-inspection-scopes--none--sol",
+      "case": "independent-inspection-scopes",
+      "arm": "none",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 68109,
+      "output_tokens": 1898,
+      "seconds": 49.2
+    },
+    {
+      "label": "independent-inspection-scopes--none--sonnet",
+      "case": "independent-inspection-scopes",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": false,
+      "completion": "invalid",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 110989,
+      "output_tokens": 3874,
+      "seconds": 28.5
+    },
+    {
+      "label": "known-external-approval-blocker--backchain--grok",
+      "case": "known-external-approval-blocker",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 98.07692307692308,
+      "pass_scores": [
+        96.15384615384616,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 2479218,
+      "output_tokens": 31639,
+      "seconds": 439.3
+    },
+    {
+      "label": "known-external-approval-blocker--backchain--sol",
+      "case": "known-external-approval-blocker",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 954895,
+      "output_tokens": 7428,
+      "seconds": 241.0
+    },
+    {
+      "label": "known-external-approval-blocker--backchain--sonnet",
+      "case": "known-external-approval-blocker",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 92.30769230769232,
+      "pass_scores": [
+        88.46153846153847,
+        96.15384615384616
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 1048368,
+      "output_tokens": 13001,
+      "seconds": 118.1
+    },
+    {
+      "label": "known-external-approval-blocker--none--grok",
+      "case": "known-external-approval-blocker",
+      "arm": "none",
+      "model": "grok",
+      "score": 94.23076923076923,
+      "pass_scores": [
+        96.15384615384616,
+        92.3076923076923
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 151716,
+      "output_tokens": 22116,
+      "seconds": 251.2
+    },
+    {
+      "label": "known-external-approval-blocker--none--sol",
+      "case": "known-external-approval-blocker",
+      "arm": "none",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 73968,
+      "output_tokens": 3883,
+      "seconds": 88.8
+    },
+    {
+      "label": "known-external-approval-blocker--none--sonnet",
+      "case": "known-external-approval-blocker",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 92.3076923076923,
+      "pass_scores": [
+        92.3076923076923,
+        92.3076923076923
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 94803,
+      "output_tokens": 6139,
+      "seconds": 45.5
+    },
+    {
+      "label": "legacy-draft-discovers-mapping--backchain--grok",
+      "case": "legacy-draft-discovers-mapping",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 98.21428571428572,
+      "pass_scores": [
+        100.0,
+        96.42857142857143
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 1687366,
+      "output_tokens": 27670,
+      "seconds": 352.3
+    },
+    {
+      "label": "legacy-draft-discovers-mapping--backchain--sol",
+      "case": "legacy-draft-discovers-mapping",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 767549,
+      "output_tokens": 5059,
+      "seconds": 169.7
+    },
+    {
+      "label": "legacy-draft-discovers-mapping--backchain--sonnet",
+      "case": "legacy-draft-discovers-mapping",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 98.21428571428572,
+      "pass_scores": [
+        96.42857142857143,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 852240,
+      "output_tokens": 10113,
+      "seconds": 90.9
+    },
+    {
+      "label": "legacy-draft-discovers-mapping--none--grok",
+      "case": "legacy-draft-discovers-mapping",
+      "arm": "none",
+      "model": "grok",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 149526,
+      "output_tokens": 11226,
+      "seconds": 128.3
+    },
+    {
+      "label": "legacy-draft-discovers-mapping--none--sol",
+      "case": "legacy-draft-discovers-mapping",
+      "arm": "none",
+      "model": "sol",
+      "score": 83.92857142857143,
+      "pass_scores": [
+        78.57142857142857,
+        89.28571428571429
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 112019,
+      "output_tokens": 3369,
+      "seconds": 96.2
+    },
+    {
+      "label": "legacy-draft-discovers-mapping--none--sonnet",
+      "case": "legacy-draft-discovers-mapping",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 114164,
+      "output_tokens": 3695,
+      "seconds": 30.8
+    },
+    {
+      "label": "library-reminders--backchain--grok",
+      "case": "library-reminders",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 10,
+        "total": 10,
+        "failed": []
+      },
+      "ran_toolkit": true,
+      "tokens": 1936476,
+      "output_tokens": 39764,
+      "seconds": 536.0
+    },
+    {
+      "label": "library-reminders--backchain--sol",
+      "case": "library-reminders",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 10,
+        "total": 10,
+        "failed": []
+      },
+      "ran_toolkit": true,
+      "tokens": 1342812,
+      "output_tokens": 8244,
+      "seconds": 258.3
+    },
+    {
+      "label": "library-reminders--backchain--sonnet",
+      "case": "library-reminders",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": {
+        "passed": 9,
+        "total": 10,
+        "failed": [
+          "plan-complete"
+        ]
+      },
+      "ran_toolkit": true,
+      "tokens": 1011190,
+      "output_tokens": 10870,
+      "seconds": 94.9
+    },
+    {
+      "label": "library-reminders--none--grok",
+      "case": "library-reminders",
+      "arm": "none",
+      "model": "grok",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 10,
+        "total": 10,
+        "failed": []
+      },
+      "ran_toolkit": false,
+      "tokens": 219750,
+      "output_tokens": 23624,
+      "seconds": 303.7
+    },
+    {
+      "label": "library-reminders--none--sol",
+      "case": "library-reminders",
+      "arm": "none",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 10,
+        "total": 10,
+        "failed": []
+      },
+      "ran_toolkit": false,
+      "tokens": 121187,
+      "output_tokens": 3075,
+      "seconds": 83.8
+    },
+    {
+      "label": "library-reminders--none--sonnet",
+      "case": "library-reminders",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 96.42857142857143,
+      "pass_scores": [
+        96.42857142857143,
+        96.42857142857143
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": {
+        "passed": 9,
+        "total": 10,
+        "failed": [
+          "plan-complete"
+        ]
+      },
+      "ran_toolkit": false,
+      "tokens": 100815,
+      "output_tokens": 4633,
+      "seconds": 33.8
+    },
+    {
+      "label": "missing-normative-redaction-source--backchain--grok",
+      "case": "missing-normative-redaction-source",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 82.6923076923077,
+      "pass_scores": [
+        80.76923076923077,
+        84.61538461538461
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 3387522,
+      "output_tokens": 34574,
+      "seconds": 493.6
+    },
+    {
+      "label": "missing-normative-redaction-source--backchain--sol",
+      "case": "missing-normative-redaction-source",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 92.3076923076923,
+      "pass_scores": [
+        92.3076923076923,
+        92.3076923076923
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 1165506,
+      "output_tokens": 4867,
+      "seconds": 143.5
+    },
+    {
+      "label": "missing-normative-redaction-source--backchain--sonnet",
+      "case": "missing-normative-redaction-source",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 96.15384615384616,
+      "pass_scores": [
+        96.15384615384616,
+        96.15384615384616
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 990078,
+      "output_tokens": 17284,
+      "seconds": 147.8
+    },
+    {
+      "label": "missing-normative-redaction-source--none--grok",
+      "case": "missing-normative-redaction-source",
+      "arm": "none",
+      "model": "grok",
+      "score": 80.76923076923077,
+      "pass_scores": [
+        80.76923076923077,
+        80.76923076923077
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 192484,
+      "output_tokens": 10265,
+      "seconds": 131.2
+    },
+    {
+      "label": "missing-normative-redaction-source--none--sol",
+      "case": "missing-normative-redaction-source",
+      "arm": "none",
+      "model": "sol",
+      "score": 92.30769230769232,
+      "pass_scores": [
+        96.15384615384616,
+        88.46153846153847
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 87921,
+      "output_tokens": 1601,
+      "seconds": 46.0
+    },
+    {
+      "label": "missing-normative-redaction-source--none--sonnet",
+      "case": "missing-normative-redaction-source",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 98.07692307692308,
+      "pass_scores": [
+        96.15384615384616,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 91402,
+      "output_tokens": 3404,
+      "seconds": 27.8
+    },
+    {
+      "label": "orders-cancel-rpc--backchain--grok",
+      "case": "orders-cancel-rpc",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 75.0,
+      "pass_scores": [
+        76.66666666666667,
+        73.33333333333333
+      ],
+      "critical_missed_every_pass": [
+        "store-split-from-docs"
+      ],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 8,
+        "total": 10,
+        "failed": [
+          "store-supplier-split-out",
+          "server-not-behind-docs"
+        ]
+      },
+      "ran_toolkit": true,
+      "tokens": 3531402,
+      "output_tokens": 49060,
+      "seconds": 751.4
+    },
+    {
+      "label": "orders-cancel-rpc--backchain--sol",
+      "case": "orders-cancel-rpc",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 90.0,
+      "pass_scores": [
+        93.33333333333333,
+        86.66666666666667
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "incomplete",
+      "keys": {
+        "passed": 8,
+        "total": 10,
+        "failed": [
+          "store-supplier-split-out",
+          "server-not-behind-docs"
+        ]
+      },
+      "ran_toolkit": true,
+      "tokens": 1022730,
+      "output_tokens": 9350,
+      "seconds": 270.8
+    },
+    {
+      "label": "orders-cancel-rpc--backchain--sonnet",
+      "case": "orders-cancel-rpc",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 76.66666666666667,
+      "pass_scores": [
+        76.66666666666667,
+        76.66666666666667
+      ],
+      "critical_missed_every_pass": [
+        "store-split-from-docs"
+      ],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 8,
+        "total": 10,
+        "failed": [
+          "store-supplier-split-out",
+          "server-not-behind-docs"
+        ]
+      },
+      "ran_toolkit": true,
+      "tokens": 1331791,
+      "output_tokens": 15325,
+      "seconds": 128.9
+    },
+    {
+      "label": "orders-cancel-rpc--none--grok",
+      "case": "orders-cancel-rpc",
+      "arm": "none",
+      "model": "grok",
+      "score": 76.66666666666667,
+      "pass_scores": [
+        76.66666666666667,
+        76.66666666666667
+      ],
+      "critical_missed_every_pass": [
+        "store-split-from-docs"
+      ],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 8,
+        "total": 10,
+        "failed": [
+          "store-supplier-split-out",
+          "server-not-behind-docs"
+        ]
+      },
+      "ran_toolkit": false,
+      "tokens": 754617,
+      "output_tokens": 36758,
+      "seconds": 479.0
+    },
+    {
+      "label": "orders-cancel-rpc--none--sol",
+      "case": "orders-cancel-rpc",
+      "arm": "none",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 10,
+        "total": 10,
+        "failed": []
+      },
+      "ran_toolkit": false,
+      "tokens": 157150,
+      "output_tokens": 4689,
+      "seconds": 114.5
+    },
+    {
+      "label": "orders-cancel-rpc--none--sonnet",
+      "case": "orders-cancel-rpc",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 76.66666666666667,
+      "pass_scores": [
+        76.66666666666667,
+        76.66666666666667
+      ],
+      "critical_missed_every_pass": [
+        "store-split-from-docs"
+      ],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 8,
+        "total": 10,
+        "failed": [
+          "store-supplier-split-out",
+          "server-not-behind-docs"
+        ]
+      },
+      "ran_toolkit": false,
+      "tokens": 107428,
+      "output_tokens": 4809,
+      "seconds": 34.7
+    },
+    {
+      "label": "revenue-export-lineage--backchain--grok",
+      "case": "revenue-export-lineage",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 7,
+        "total": 7,
+        "failed": []
+      },
+      "ran_toolkit": true,
+      "tokens": 2816042,
+      "output_tokens": 30061,
+      "seconds": 353.3
+    },
+    {
+      "label": "revenue-export-lineage--backchain--sol",
+      "case": "revenue-export-lineage",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 85.71428571428571,
+      "pass_scores": [
+        85.71428571428571,
+        85.71428571428571
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "incomplete",
+      "keys": {
+        "passed": 7,
+        "total": 7,
+        "failed": []
+      },
+      "ran_toolkit": true,
+      "tokens": 1046304,
+      "output_tokens": 5683,
+      "seconds": 159.0
+    },
+    {
+      "label": "revenue-export-lineage--backchain--sonnet",
+      "case": "revenue-export-lineage",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 7,
+        "total": 7,
+        "failed": []
+      },
+      "ran_toolkit": true,
+      "tokens": 1318248,
+      "output_tokens": 11506,
+      "seconds": 96.6
+    },
+    {
+      "label": "revenue-export-lineage--none--grok",
+      "case": "revenue-export-lineage",
+      "arm": "none",
+      "model": "grok",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 7,
+        "total": 7,
+        "failed": []
+      },
+      "ran_toolkit": false,
+      "tokens": 183731,
+      "output_tokens": 9325,
+      "seconds": 93.1
+    },
+    {
+      "label": "revenue-export-lineage--none--sol",
+      "case": "revenue-export-lineage",
+      "arm": "none",
+      "model": "sol",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 7,
+        "total": 7,
+        "failed": []
+      },
+      "ran_toolkit": false,
+      "tokens": 95980,
+      "output_tokens": 1276,
+      "seconds": 37.5
+    },
+    {
+      "label": "revenue-export-lineage--none--sonnet",
+      "case": "revenue-export-lineage",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 92.85714285714286,
+      "pass_scores": [
+        92.85714285714286,
+        92.85714285714286
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": {
+        "passed": 7,
+        "total": 7,
+        "failed": []
+      },
+      "ran_toolkit": false,
+      "tokens": 98873,
+      "output_tokens": 1262,
+      "seconds": 10.7
+    },
+    {
+      "label": "stale-build-receipt-identity--backchain--grok",
+      "case": "stale-build-receipt-identity",
+      "arm": "backchain",
+      "model": "grok",
+      "score": 92.3076923076923,
+      "pass_scores": [
+        92.3076923076923,
+        92.3076923076923
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 2776125,
+      "output_tokens": 36615,
+      "seconds": 479.7
+    },
+    {
+      "label": "stale-build-receipt-identity--backchain--sol",
+      "case": "stale-build-receipt-identity",
+      "arm": "backchain",
+      "model": "sol",
+      "score": 100.0,
+      "pass_scores": [
+        100.0,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 1149918,
+      "output_tokens": 7759,
+      "seconds": 244.2
+    },
+    {
+      "label": "stale-build-receipt-identity--backchain--sonnet",
+      "case": "stale-build-receipt-identity",
+      "arm": "backchain",
+      "model": "sonnet",
+      "score": 98.07692307692308,
+      "pass_scores": [
+        96.15384615384616,
+        100.0
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": true,
+      "tokens": 816274,
+      "output_tokens": 13005,
+      "seconds": 102.7
+    },
+    {
+      "label": "stale-build-receipt-identity--none--grok",
+      "case": "stale-build-receipt-identity",
+      "arm": "none",
+      "model": "grok",
+      "score": 94.23076923076923,
+      "pass_scores": [
+        96.15384615384616,
+        92.3076923076923
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 145130,
+      "output_tokens": 18583,
+      "seconds": 223.0
+    },
+    {
+      "label": "stale-build-receipt-identity--none--sol",
+      "case": "stale-build-receipt-identity",
+      "arm": "none",
+      "model": "sol",
+      "score": 94.23076923076923,
+      "pass_scores": [
+        92.3076923076923,
+        96.15384615384616
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "complete",
+      "status": "complete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 95300,
+      "output_tokens": 4085,
+      "seconds": 98.8
+    },
+    {
+      "label": "stale-build-receipt-identity--none--sonnet",
+      "case": "stale-build-receipt-identity",
+      "arm": "none",
+      "model": "sonnet",
+      "score": 96.15384615384616,
+      "pass_scores": [
+        96.15384615384616,
+        96.15384615384616
+      ],
+      "critical_missed_every_pass": [],
+      "structure_ok": true,
+      "completion": "incomplete",
+      "status": "incomplete",
+      "keys": null,
+      "ran_toolkit": false,
+      "tokens": 96438,
+      "output_tokens": 6620,
+      "seconds": 42.3
+    }
+  ],
+  "excluded": []
+}
