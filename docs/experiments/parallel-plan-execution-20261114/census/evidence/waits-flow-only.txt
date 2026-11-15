@@ -1,0 +1,29 @@
+timed census rows 323; step windows measured 475 in 322 plans; skipped plans {'no flow.json and timeline.jsonl beside the run': 1}
+time origin check on events with a line number: n 296, median |epoch0 + t - timeline[line]| 0.021 s, max 0.05 s
+hosts {'codex': 433, 'claude': 19, 'grok': 23}; windows 104,471 s in total, median 153 s
+
+pooled share of the window time, by class (and the model's own time)
+  verify         326 s    0.3%
+  script        1059 s    1.0%
+  inspect        300 s    0.3%
+  file           376 s    0.4%
+  other            2 s    0.0%
+  model       102407 s   98.0%   (window minus all tool-call time)
+  cross-check, script-run verify records inside the windows: 1412 s = 1.35%
+
+per window verify share: median 0.0%, p90 0.0%, max 11.8%
+per window verify seconds: median 0.0, p90 0.0, p99 11.1, max 173.4; windows with at least 30 s: 2 of 475, with at least 60 s: 1
+overlap upper bound (verify-class seconds minus the longest, per window): 267 s = 0.26% of the pooled window time; windows with two or more verify calls: 13
+family-weighted verify share (each of 56 families once): mean 0.2%, median 0.0%
+  host claude  windows   19, verify   6.2%, model  60.8%
+  host codex   windows  433, verify   0.0%, model 100.0%
+  host grok    windows   23, verify   0.0%, model 100.0%
+windows naming sf, sfdx or apex: 0
+
+predictions as registered (A13)
+  P64 pooled verify share under 10%: True  (0.31%)
+  P65 median window verify share under 5%: True  (0.00%)
+  P66 at least 90% of windows under 30 s of verify time: True  (99.6%)
+  P67 model time over 60% of the pooled window time: True  (98.0%)
+  P68 too few windows naming sf, sfdx or apex (0 of the 10 needed)
+  P69 overlap upper bound under 3%: True  (0.26%)

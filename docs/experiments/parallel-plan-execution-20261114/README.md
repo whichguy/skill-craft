@@ -498,6 +498,12 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
   - *Limits.* The E2E products are small, so their suites are quick; real projects' suites differ, which is why the predicate reads the project's own seconds. FIFO pairing mis-times parallel tool calls (the sum is
     kept, the split may not be). The model's own time includes generation, hooks and host overhead. Delegated runs show sub-agent waits as `other`. One request family can dominate (the census's family-weighted figures are
     reported beside the pooled ones).
+- **A13 revision (2026-11-15, after one computation that read flow.json only, and before the revised one): the measure reads the raw events.** `flow.json` holds `call` and `result` events only for Claude; the Codex and Grok flows
+  hold `call` events and no results. That first computation (kept as `census/evidence/waits-flow-only.txt` and `.json`) therefore measured tool-call time in 19 of 475 windows (Claude) and none in the 456 others, so its pooled
+  0.3% verify time and 98.0% model time are artifacts and are not scored. I saw those numbers before revising, so the scoring below is not blind to them; the Claude-only part (verify 6.2%, model 60.8% over 19 windows) is the one thing
+  they showed. The revised measure reads `events.jsonl` with `timeline.jsonl` receive times for all three hosts: Claude from an assistant `tool_use` line to its user `tool_result` line (by id); Codex and Grok from the `tool_call`
+  line to the last `tool_call_update` line with status completed or failed (by `toolCallId`). Timeline rows exist for every `tool_call` and `tool_call_update` line (checked on one Codex and one Grok run, 131 of 131 and 636 of 636 calls,
+  1,605 of 1,605 updates) but not for streaming text and thought lines, which is why the model's own time stays the remainder. Everything else is unchanged: the windows, the class patterns, P64 to P69 with their thresholds, R15 and the limits.
 
 ## Files
 
