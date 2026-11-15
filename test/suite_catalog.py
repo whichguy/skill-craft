@@ -277,6 +277,7 @@ _CORE_SUITES = (
     _suite("backchain-graph", "core", "test/backchain-graph.test.py", "python3", "-B", "test/backchain-graph.test.py"),
     _suite("backchain-toolkit", "core", "test/backchain-toolkit.test.py", "python3", "-B", "test/backchain-toolkit.test.py"),
     _suite("test-groups", "core", "test/test-groups.test.py", "python3", "test/test-groups.test.py"),
+    _suite("ci-summary", "core", "test/ci-summary.test.py", "python3", "test/ci-summary.test.py"),
     _suite("ci-policy", "core", "test/ci-policy.test.py", "python3", "test/ci-policy.test.py"),
     _suite("integration-boundaries", "core", "test/integration-boundaries.test.py", "python3", "test/integration-boundaries.test.py"),
     _suite("release-push", "core", "test/release-push.test.py", "python3", "test/release-push.test.py"),
@@ -388,6 +389,10 @@ SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, *_PLANNING_APPARA
 GROUPS = (
     "all",
     "quick",
+    "quick-1",
+    "quick-2",
+    "smoke",
+    "affected",
     "prompt",
     "core",
     "shiploop",
@@ -405,7 +410,7 @@ GROUPS = (
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
-def _lpt_shards(suites: tuple[Suite, ...]) -> tuple[tuple[Suite, ...], ...]:
+def _lpt_shards(suites: tuple[Suite, ...], count: int = SHIPLOOP_SHARD_COUNT) -> tuple[tuple[Suite, ...], ...]:
     """Use a deterministic longest-processing-time partition, then re-order.
 
     LPT decides ownership using descending committed timing estimates.  Each
@@ -415,11 +420,11 @@ def _lpt_shards(suites: tuple[Suite, ...]) -> tuple[tuple[Suite, ...], ...]:
 
     indexed = list(enumerate(suites))
     indexed.sort(key=lambda item: (-_DURATION_SECONDS.get(item[1].path, _FALLBACK_DURATION_SECONDS), item[0]))
-    loads = [0.0] * SHIPLOOP_SHARD_COUNT
-    members: list[set[str]] = [set() for _ in range(SHIPLOOP_SHARD_COUNT)]
+    loads = [0.0] * count
+    members: list[set[str]] = [set() for _ in range(count)]
     for original_index, suite in indexed:
         del original_index
-        shard = min(range(SHIPLOOP_SHARD_COUNT), key=lambda index: (loads[index], index))
+        shard = min(range(count), key=lambda index: (loads[index], index))
         members[shard].add(suite.id)
         loads[shard] += _DURATION_SECONDS.get(suite.path, _FALLBACK_DURATION_SECONDS)
     return tuple(tuple(suite for suite in suites if suite.id in member) for member in members)
@@ -501,6 +506,8 @@ _QUICK_CORE_IDS = frozenset({"test-groups", "ci-policy", "skill-frontmatter", "s
 
 # Repository files whose suites a name match would not find.
 _PATH_SUITE_IDS = {
+    "test/ci_summary.py": ("ci-summary",),
+    "test/ci_node_stable.cjs": ("ci-policy",),
     "test/suite_durations.json": ("test-groups", "ci-policy"),
     "install.sh": ("install-targets", "install-arbitrary-skill", "install-status-uninstall"),
     "scripts/build-packages.py": ("marketplace-package",),
@@ -817,12 +824,47 @@ def targeted(changed: Iterable[str]) -> set[str]:
     return ids
 
 
-def quick(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
-    """The quick tier: the fixed baseline plus light suites matching the changed paths."""
-
+def smoke() -> tuple[Suite, ...]:
+    """Fixed baseline, independent of the change set."""
     ids = set(_QUICK_CORE_IDS) | {suite.id for suite in SHIPLOOP_SUITES if "quick" in suite.groups}
-    ids |= targeted(changed)
     return tuple(suite for suite in SUITES if suite.id in ids and _light(suite))
+
+
+def quick(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
+    """Baseline plus eligible targets; an exact catalog runner edit always runs itself."""
+    paths = set(changed)
+    ids = {suite.id for suite in smoke()} | targeted(paths)
+    return tuple(suite for suite in SUITES if suite.id in ids
+                 and (_light(suite) or suite.path in paths))
+
+
+QUICK_SHARD_THRESHOLD_SECONDS = 600.0
+
+
+def quick_fifo_seconds(suites: Iterable[Suite]) -> float:
+    """Estimate catalog-order FIFO wall time with CI's four suite workers.
+
+    Committed costs are scheduling observations, not eligibility or time limits.
+    Missing observations retain the existing conservative 60-second fallback.
+    """
+    workers = [0.0] * 4
+    for suite in suites:
+        worker = min(range(4), key=lambda index: (workers[index], index))
+        workers[worker] += _DURATION_SECONDS.get(suite.path, _FALLBACK_DURATION_SECONDS)
+    return max(workers)
+
+
+def planned_quick_groups(changed: Iterable[str] = ()) -> tuple[str, ...]:
+    """Split only when the unchanged quick selection estimates above ten minutes."""
+    if quick_fifo_seconds(quick(changed)) > QUICK_SHARD_THRESHOLD_SECONDS:
+        return ("quick-1", "quick-2")
+    return ("quick",)
+
+
+def affected(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
+    """Quick's changed-file portion, disjoint from the fixed smoke baseline."""
+    baseline = {suite.id for suite in smoke()}
+    return tuple(suite for suite in quick(changed) if suite.id not in baseline)
 
 
 def prompt(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
@@ -835,7 +877,7 @@ def prompt(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
     packet edit, about 25 s; quick stays the gate before a push.
 
     Assumptions: it is never a gate (it leaves out the hub consumers that quick
-    adds), and like quick it runs only light suites, so a changed heavy suite
+    adds), it runs only light suites, so a changed heavy suite
     waits for the full tier.
     """
 
@@ -849,10 +891,11 @@ def prompt(changed: Iterable[str] = ()) -> tuple[Suite, ...]:
 def select(groups: Iterable[str], changed: Iterable[str] = ()) -> tuple[Suite, ...]:
     """Return the deduplicated union in catalog order for named local groups.
 
-    ``changed`` (repository-relative paths) only affects the quick and prompt groups.
+    ``changed`` (repository-relative paths) affects quick, its shards, affected and prompt.
     """
 
     requested = tuple(groups)
+    changed = tuple(changed)
     unknown = set(requested) - set(GROUPS)
     if unknown:
         raise ValueError("unknown test group: " + ", ".join(sorted(unknown)))
@@ -862,6 +905,12 @@ def select(groups: Iterable[str], changed: Iterable[str] = ()) -> tuple[Suite, .
     for group in requested:
         if group == "quick":
             selected.update(suite.id for suite in quick(changed))
+        elif group in {"quick-1", "quick-2"}:
+            selected.update(suite.id for suite in _lpt_shards(quick(changed), count=2)[int(group[-1]) - 1])
+        elif group == "smoke":
+            selected.update(suite.id for suite in smoke())
+        elif group == "affected":
+            selected.update(suite.id for suite in affected(changed))
         elif group == "prompt":
             selected.update(suite.id for suite in prompt(changed))
         elif group.startswith("shiploop-") and group[-1:] in {"1", "2", "3"}:

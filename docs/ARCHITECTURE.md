@@ -136,7 +136,9 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   (`core`, `shiploop`, `shiploop-1|2|3`, `ask-agent`, `shiploop-composition`,
   `e2e-apparatus`) select from the one canonical inventory in
   `test/suite_catalog.py`. `--group quick [--changed-from REF]` runs a light
-  fixed baseline plus the light suites matching the files changed since REF; it
+  fixed baseline plus eligible suites matching the files changed since REF; exact
+  cataloged runner edits include full-only suites. `smoke` is the fixed baseline
+  and `affected` is quick minus smoke, a disjoint union equal to quick. Quick
   is partial evidence, never a full-regression claim. `--group prompt` runs the
   four packet-size suites and the packet obligation ledger plus the changed
   suites, the loop for a ShipLoop prompt edit. `--jobs N` (default: CPU count, capped at 8) runs suites side by
@@ -148,17 +150,40 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   release commit is checked out in a temporary worktree and its
   `sync-plugin-views.sh --check` must pass there. Between releases
   `plugins/` lags source, so package tests read a `scripts/build-packages.py`
-  build instead.
+  build instead. The job independently verifies the exact candidate and ancestor
+  push base, fails on absent/invalid/missing/unrelated history, and uses the PR
+  merge candidate's validated first parent. Manual/scheduled checks are explicitly
+  not applicable.
 - CI: `.github/workflows/ci.yml` (**implemented**); `test/ci_policy.py` selects
-  the tier. Pull requests, ordinary `main` pushes and unclassified events run
-  quick against their changed files; a push containing a release commit and a weekly
+  the tier. Known ordinary PR/main ranges run quick against changed files; unknown
+  or non-ancestor ranges and exact selection/runner/catalog infrastructure paths
+  run full. A push containing a release commit (including non-tip releases) and a weekly
   scheduled run (Mondays 14:23 UTC, a drift canary for the floating runtimes and runner
   image) run full. Manual dispatch requires an explicit `tier=quick` or `tier=full`.
+  Manual quick is promoted to full for an unknown parent/range or CI infrastructure edits.
+  Quick stays one job unless the committed-cost four-worker FIFO estimate exceeds
+  600 seconds, then `quick-1` and `quick-2` use a deterministic LPT partition of the
+  identical quick selection (60-second fallback costs). Catalog order, exhaustive
+  disjoint membership and changed-range inputs are preserved. This scheduling
+  threshold is not a timeout or coverage cap; projected gains await measurement.
   Full runs `core`, three deterministic ShipLoop shards, `python-floor` (the ShipLoop
   suites on Python 3.9, on `ubuntu-24.04` because `ubuntu-latest` has no 3.9 build)
-  and `e2e-apparatus`, one job per group. The
+  and `e2e-apparatus`, one job per group; all 76 floor suites retain membership.
+  Checks and browser fixtures run independently after planning; release-boundary
+  is independent of planning. Four fixed browser matrix jobs run delayed-setup, setup-save-boundary,
+  turn-and-action-correlation and app-owned-controls concurrently, each retaining
+  its fixture log and runtime versions. GitHub runner isolation owns cleanup. Post-work source guards and always-retained
+  artifacts follow each workload. The
   fail-closed `hermetic` status is the aggregate gate; its summary states the
-  tier and tested SHA. After its suites, including failed suites, each job's
+  tier and tested SHA. All three Node setups float to the latest stable (`*`,
+  `check-latest: true`) and immediately reject prereleases with a shared guard.
+  Checks independently validate receipts against the planned base and changed paths;
+  full runs discard the base and report affected change scope as UNAVAILABLE.
+  Checks always summarize source-bound receipts: selected/completed and scope
+  counts (including selected full-only targets, policy deferrals and other-shard
+  assignments), failures/incomplete work, slowest suites, runtimes and wall duration.
+  Missing, malformed or stale evidence cannot look passed. These scopes establish
+  hermetic qualification, not live acceptance. After its suites, including failed suites, each job's
   guard rejects a moved HEAD, staged or unstaged tracked changes, and untracked
   or ignored files other than `__pycache__` bytecode.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;

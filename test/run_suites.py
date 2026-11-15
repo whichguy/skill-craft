@@ -102,7 +102,7 @@ def _parser() -> UsageParser:
     parser.add_argument("--group", action="append", metavar="GROUP",
                         help="repeatable group; unions are deduplicated in catalog order")
     parser.add_argument("--changed-from", metavar="REF",
-                        help="with --group quick: also run the suites matching files changed since REF; "
+                        help="with --group quick, quick-1, quick-2 or affected: also run the suites matching files changed since REF; "
                              "with --group prompt: also run the suites whose own files changed; "
                              "uncommitted and untracked files count")
     parser.add_argument("--jobs", type=_jobs, default=DEFAULT_JOBS, metavar="N",
@@ -125,8 +125,8 @@ def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, t
     unknown = set(groups) - set(suite_catalog.GROUPS)
     if unknown:
         parser.error("unknown group: " + ", ".join(sorted(unknown)))
-    if args.changed_from is not None and not {"quick", "prompt"} & set(groups):
-        parser.error("--changed-from applies only to --group quick or prompt")
+    if args.changed_from is not None and not {"quick", "quick-1", "quick-2", "prompt", "affected"} & set(groups):
+        parser.error("--changed-from applies only to --group quick, quick-1, quick-2, prompt or affected")
     return args, groups
 
 
@@ -561,12 +561,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         _parser().error(str(exc))
         raise AssertionError("unreachable")
 
+    from ci_summary import selection_counts
+
     receipt: dict[str, object] = {
         "schema": "skill-craft-hermetic-receipt/1",
         "entrypoint": "run-all",
         "groups": list(groups),
         "changed_from": args.changed_from,
         "changed": list(changed),
+        "selection": selection_counts(groups, changed),
         "source": source_identity(ROOT),
         "runtimes": runtime_versions(ROOT),
         "selected": [_command_record(suite) for suite in selected],

@@ -53,7 +53,10 @@ truthfully reports incomplete planning with a usable recovery action.
 | Selection | Command | Scope |
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
-| Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, the mock replay, 12 ShipLoop boundary suites) plus the light suites matching files changed since REF, uncommitted and untracked included |
+| Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, the mock replay, 10 ShipLoop boundary suites) plus light suites matching files changed since REF and directly changed heavy suites, uncommitted and untracked included |
+| Quick shard | `bash test/run-all.sh --group quick-1 --changed-from REF` (or `quick-2`) | Deterministic balanced half of the same quick selection; together exhaustive and disjoint, in catalog order |
+| Smoke | `bash test/run-all.sh --group smoke` | The fixed quick baseline, independent of changed paths |
+| Affected | `bash test/run-all.sh --group affected --changed-from REF` | Quick minus smoke; disjoint from smoke and their union equals quick |
 | Prompt | `bash test/run-all.sh --group prompt [--changed-from REF]` | The four packet-rendering suites (`packet-completeness`, `step-packets`, `packet-recut`, `head-order`) and the packet obligation ledger (`packet-obligations`, whose anchors are literal prompt phrases), about 25 s, plus the light suites whose own files changed since REF: the loop while editing a ShipLoop prompt or packet source; quick is still the gate before a push |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
@@ -84,20 +87,43 @@ suites; its packet sources (`shiploop_prompts.py`, `shiploop_navigator.py`,
 packet-size suites and the packet obligation ledger beside their hub consumers;
 and the `scripts/shiploop` entrypoint and `shiploop_protocol.py` select
 the fixed hub consumers). Quick eligibility is explicit in `_FULL_ONLY_IDS`:
-the seven existing full-only suites remain excluded. Refreshed durations do not
+the seven existing full-only suites remain excluded from indirect targeting;
+an exact edit of a cataloged suite runner selects that suite, including the full
+apparatus runner. Prompt selections keep their existing light-only policy. Refreshed durations do not
 remove coverage. Previously eligible suites now measured above two minutes are
 listed in `_QUICK_OVER_BUDGET_IDS`; new over-budget costs require an explicit
 coverage decision. A pull request diffs from its merge base and a push
-from the previous `main` head. Only a push that contains a release commit (its
+from the previous `main` head. An unknown or non-ancestor range selects full;
+manual quick without a parent also selects full. Exact CI infrastructure paths
+listed in `ci_policy.INFRASTRUCTURE_PATHS` select full, without broad runtime or
+protocol matching. A push that contains a release commit (its
 `Skill-Craft-Release:` trailer), even under later ordinary commits, runs the
-full tier. Manual dispatch offers `quick` (the last commit's
-changes) or `full`. The `hermetic` aggregate requires both the planner and all
+full tier, as does the weekly schedule. Manual dispatch offers `quick` (the last commit's
+changes, promoted to full for unknown ranges or CI infrastructure edits) or `full`. The `hermetic` aggregate requires both the planner and all
 selected jobs to succeed; its summary states the tier and tested SHA.
+Quick runs stay one job unless the catalog-order FIFO estimate for four workers
+exceeds 600 seconds. That scheduling threshold is neither a timeout nor a test cap.
+Above it, `quick-1` and `quick-2` partition exactly the same selection using
+committed duration estimates (60 seconds for missing costs), with no duplicates
+at the same runtime. Both receive the planned change base and run concurrently;
+the full groups and all 76 Python-floor suites retain their membership. This is
+a scheduling pilot; projected times do not establish a measured CI speedup.
+
+Checks and browser fixtures start independently after planning; release-boundary
+runs independently of planning. Four browser matrix jobs run the fixed delayed-setup, setup-save-boundary,
+turn-and-action-correlation and app-owned-controls fixtures concurrently, each
+retaining its fixture log alongside Node, Playwright, installation and Chrome
+version logs. GitHub runner isolation owns each job’s process lifecycle. Source
+guards run after the work they verify, and artifacts are retained even on failure.
+The final gate requires the complete selected matrix, browser and boundary jobs.
+
 Server-side merge protection is a separate repository setting; this workflow
 does not enable it.
 
 CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
-fresh versions through setup actions. Receipts record the versions actually used.
+fresh versions through setup actions. Node uses `node-version: '*'` with
+`check-latest: true`; a source-owned guard after every setup rejects prereleases.
+Receipts record the versions actually used. Summary counts distinguish selected affected targets, policy-deferred targets and suites assigned to the other quick shard. The summary CLI independently verifies the planned base and change paths before catalog selection. Full runs discard the change base, so their affected change scope is UNAVAILABLE.
 Chain and integration suites use the repository's own Plan Dispatcher package
 (`skills/plan-dispatcher`), so a dispatcher change is exercised by them at once. Older
 package versions are not kept: refusal cases mutate copies of current fixtures.
@@ -146,16 +172,27 @@ The Ask-Agent workspace, delivery and managed-harness checks run in core.
 An optional `--output` directory must be new and outside the checkout. It retains
 source identity, runtime versions, selected/completed suites, outcomes, durations
 and per-suite logs. The runner continues remaining selected suites after a
-failure and returns failure overall. CI uploads these artifacts even on failure
+failure and returns failure overall. CI always renders receipt summaries with
+selected/completed counts, selected smoke and affected scopes, other selected
+work, deferred targets, failures, unfinished work, slowest suites, runtimes,
+source SHA and wall duration. Missing, malformed, stale or incomplete receipts
+cannot report success. These are hermetic scopes, not live acceptance; smoke
+and affected remain local groups rather than separate CI jobs.
+CI uploads these artifacts even on failure
 and rejects source drift or new checkout artifacts except Python bytecode under
-`__pycache__`. A separate `release-boundary` job runs
+`__pycache__`. A separate `release-boundary` job requires an exact candidate
+and verified ancestor push base, refusing absent, zero, invalid, missing or
+unrelated history without a tip-only fallback. PR checks use the validated merge
+candidate's first parent; manual and scheduled checks are explicitly not
+applicable. It runs
 `scripts/check-release-boundary.py --base` over the pushed range. Running the
 local suite alone does not perform these additional CI checkout and boundary
 checks.
 
 Full regression runs the source E2E apparatus with `check_suite.py --suite all`
 once. Its named diagnostic groups intentionally overlap; do not concatenate them
-to claim full coverage. Quick runs only its `mock` group, as partial evidence;
+to claim full coverage. Quick always runs its `mock` group and also runs `all` when that cataloged
+runner is directly edited, as partial evidence;
 full also runs that group separately, which costs about two seconds. The copied-package mock in core remains separate because
 it checks relocation and package binding. The apparatus uses synthetic evidence
 and portable recorded source fixtures, with no model calls. The recorded GAS
@@ -484,10 +521,10 @@ not part of any test tier: no suite installs into or asserts on Hermes, even
 though `install.sh` still supports it.
 
 CI selects its tier with `test/ci_policy.py`, as described at the top of this
-guide: pull requests and ordinary `main` pushes run `quick`; a release commit
-runs full. It ignores tag and feature-branch pushes. A manual dispatch accepts
-`tier=quick` (the default) or `tier=full`. Full runs
-`core`, the three deterministic ShipLoop shards and `e2e-apparatus`, one job per
+guide: known ordinary PR/main ranges run `quick`; release-containing pushes,
+unknown ranges, exact CI infrastructure changes and weekly schedules run full. It ignores tag and feature-branch pushes. A manual dispatch accepts
+`tier=quick` (the default, promoted to full for unknown ranges or CI infrastructure edits) or `tier=full`. Full runs
+`core`, the three deterministic ShipLoop shards, `python-floor` and `e2e-apparatus`, one job per
 group. Select qualification by changed behavior and dependencies:
 runtime, state, graph, callback and recovery changes need their affected suites.
 Use full dispatch only when a concrete cross-subsystem risk cannot be covered by
