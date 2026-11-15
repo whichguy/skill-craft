@@ -39,5 +39,10 @@ exists, the claim stays `unknown` and the report says sensitivity is unknown: do
 **The recorded allowed claims travel.** The certificate and `report.md` repeat them, so a result is never reported with a stronger
 claim than readiness allowed.
 
+**A proven claim needs evidence.** A probe that reports a state above the bottom of its ladder without `evidence` is refused. The
+recorded readiness keeps each claim's state and evidence, the boundary hash and the scoring identity it was proven under. When the
+evaluator's scoring identity changes, the recorded claims no longer count (rerun `readiness`); a later readiness that fails the
+start rule makes the certificate incomplete (check C7) and blocks the next start.
+
 **A probe must be script-run, repeatable and honest about its limits.** Its `evidence` says what it did. A probe that checks one
 property on one case certifies that property on that case, nothing wider.

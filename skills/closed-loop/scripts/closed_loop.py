@@ -66,6 +66,7 @@ from pathlib import Path
 import posixpath
 import secrets
 import shlex
+import signal
 import subprocess
 import sys
 import time
@@ -110,6 +111,7 @@ OUTCOMES = ("PROMOTE", "DROP", "UNDECIDED")
 HUNT_DISPOSITIONS = ("rejected", "deferred-to-owner", "added-as-task")
 PROGRESS_STOP = 3
 DEFAULT_TIMEOUT = 3600
+LOCK_WAIT_SECONDS = 30
 EXIT_OK, EXIT_NOT_READY, EXIT_ERROR, EXIT_IDENTITY = 0, 1, 2, 3
 FAILED_CALLS = {"seconds": 0.0}  # wall time of adapter calls that failed during this command; session() charges it to the quota
 
@@ -272,6 +274,21 @@ def run_argv(manifest: dict, manifest_dir: Path, argv: list, label: str, workspa
         raise
 
 
+def kill_group(process) -> None:
+    """Kill a timed-out adapter call with everything it started, then collect what is left without waiting on a pipe a
+    daemonised grandchild might still hold."""
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        process.kill()
+    try:
+        process.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        for stream in (process.stdout, process.stderr):
+            stream.close()
+        process.poll()
+
+
 def run_argv_once(manifest: dict, manifest_dir: Path, argv: list, label: str, workspace, campaign) -> dict:
     execution = manifest["execution"]
     env = {"PATH": os.environ.get("PATH", os.defpath)}
@@ -285,17 +302,24 @@ def run_argv_once(manifest: dict, manifest_dir: Path, argv: list, label: str, wo
     cwd = (Path(manifest_dir) / execution.get("cwd", ".")).resolve()
     timeout = execution.get("timeout_seconds", DEFAULT_TIMEOUT)
     try:
-        done = subprocess.run(argv, cwd=str(cwd), env=env, capture_output=True, text=True, timeout=timeout, check=False)
+        # Its own session, so a timeout can kill the whole process group and not only the program the argument list names: a
+        # grandchild holding the output pipe would otherwise keep the call, and the campaign lock, waiting long after the timeout.
+        process = subprocess.Popen(argv, cwd=str(cwd), env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True, start_new_session=True)
     except OSError as error:
         raise LoopError(f"adapter {label} could not start ({argv[0]}): {error.strerror}") from None
-    except subprocess.TimeoutExpired:
-        raise LoopError(f"adapter {label} did not finish within {timeout} s (execution.timeout_seconds)") from None
-    if done.returncode != 0:
-        raise LoopError(f"adapter {label} exited {done.returncode}: {(done.stderr or done.stdout).strip()[-400:]}")
     try:
-        out = json.loads(done.stdout)
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        kill_group(process)
+        raise LoopError(f"adapter {label} did not finish within {timeout} s (execution.timeout_seconds); its process group was "
+                        "killed") from None
+    if process.returncode != 0:
+        raise LoopError(f"adapter {label} exited {process.returncode}: {(stderr or stdout).strip()[-400:]}")
+    try:
+        out = json.loads(stdout)
     except ValueError:
-        raise LoopError(f"adapter {label} printed no JSON object: {done.stdout.strip()[:200]!r}") from None
+        raise LoopError(f"adapter {label} printed no JSON object: {stdout.strip()[:200]!r}") from None
     if not isinstance(out, dict):
         raise LoopError(f"adapter {label} must print a JSON object")
     return out
@@ -312,7 +336,7 @@ def call_adapter(manifest: dict, manifest_dir: Path, verb: str, args=(), workspa
 
 STATE_KEYS = {"id": str, "subject": str, "workspace": str, "manifest": dict, "budget": dict, "consumed": dict, "scopes": list,
               "scope": str, "iterations": list, "steps": dict, "tasks": list, "unknowns": list, "approved_cases": list,
-              "events": list, "start_failures": dict}
+              "events": list, "start_failures": dict, "poll_failures": dict, "launch_intents": dict, "cleaned_launches": dict}
 ITERATION_TEXT = ("key", "scope", "mode", "scoring", "build_before", "build_after")
 ITERATION_DICTS = ("cases", "review", "judge", "cleanup", "tier", "consumed")
 
@@ -342,6 +366,14 @@ def validate_state(state) -> None:
         need(all(isinstance(item.get(key), dict) for key in ITERATION_DICTS), "an iteration lacks a results object")
         need(isinstance(item.get("quiet"), bool) and isinstance(item.get("invalid"), list)
              and isinstance(item.get("discoveries"), list) and isinstance(item.get("index"), int), "an iteration is malformed")
+        if item.get("failed") is True:
+            need(item["quiet"] is False and item["invalid"], f"iteration {item['index']} failed, so it must be invalid and never quiet")
+        else:
+            facts = iteration_facts(item)
+            problems = validate_facts(facts, item.get("requested") or [])
+            need(not problems, f"iteration {item['index']} holds malformed evidence: " + "; ".join(problems[:2]))
+            need(item["quiet"] == (not quiet_reasons(facts, item["invalid"])),
+                 f"iteration {item['index']}'s quiet flag does not follow from its evidence")
     for step in state["steps"].values():
         need(isinstance(step, dict) and is_text(step.get("status")) and isinstance(step.get("cases"), list),
              "a step record is malformed")
@@ -349,6 +381,11 @@ def validate_state(state) -> None:
         need(isinstance(task, dict) and is_text(task.get("id")) and is_text(task.get("kind")) and is_text(task.get("status")),
              "a task is malformed")
     need(all(isinstance(item, dict) for item in state["unknowns"]), "an unknown is malformed")
+    need(all(isinstance(value, dict) and is_text(value.get("base")) for value in state["launch_intents"].values()),
+         "a launch intent is malformed")
+    need(all(isinstance(value, list) for value in state["start_failures"].values())
+         and all(isinstance(value, list) for value in state["poll_failures"].values()), "a failure list is malformed")
+    need(all(is_text(value) for value in state["cleaned_launches"].values()), "a cleaned launch lacks its receipt")
 
 
 @contextlib.contextmanager
@@ -358,7 +395,17 @@ def locked(campaign_dir: Path, create: bool = False):
     elif not campaign_dir.is_dir():
         raise LoopError(f"no campaign folder {campaign_dir}: run init (a campaign folder is never created by another verb)")
     with open(campaign_dir / "campaign.lock", "a") as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX)
+        waited = 0.0
+        while True:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if waited >= LOCK_WAIT_SECONDS:
+                    raise LoopError(f"another closed_loop command has held the campaign lock for {LOCK_WAIT_SECONDS:g} s: wait for "
+                                    "it, or look for a hung adapter call (execution.timeout_seconds bounds one)") from None
+                time.sleep(0.05)
+                waited += 0.05
         try:
             yield
         finally:
@@ -443,9 +490,13 @@ class Facts:
     def records(self) -> list:
         if self._records is None:
             out = self.camp.call("records").get("records")
-            if not isinstance(out, list) or not all(isinstance(rec, dict) and is_text(rec.get("id")) and is_text(rec.get("status"))
-                                                    and isinstance(rec.get("material"), bool) for rec in out):
-                raise LoopError('adapter records must print {"records": [{"id", "status", "material": bool, ...}]}')
+            if not isinstance(out, list) or not all(
+                    isinstance(rec, dict) and is_text(rec.get("id")) and is_text(rec.get("status"))
+                    and isinstance(rec.get("material"), bool) and rec.get("target") in (None, "subject", "adapter")
+                    and (rec.get("cases") is None or (isinstance(rec["cases"], list) and all(is_text(c) for c in rec["cases"])))
+                    for rec in out):
+                raise LoopError('adapter records must print {"records": [{"id", "status", "material": bool, "target"?: subject|adapter, '
+                                '"cases"?: [case ids], ...}]}')
             self._records = out
         return self._records
 
@@ -522,9 +573,13 @@ def parse_budget(text) -> dict:
     return budget
 
 
+def over_budget(budget: dict, used: dict) -> list:
+    return sorted(key for key, limit in budget.items() if used.get(key, 0) >= limit)
+
+
 def quota_status(state: dict) -> dict:
     budget, used = state.get("budget") or {}, state.get("consumed") or {}
-    over = sorted(key for key, limit in budget.items() if used.get(key, 0) >= limit)
+    over = over_budget(budget, used)
     return {"budget": budget, "consumed": used, "exhausted": bool(over), "over": over}
 
 
@@ -572,6 +627,13 @@ def validate_facts(facts, requested: list) -> list:
         errors.append("candidate must be null or {id, hash, outcome: " + "|".join(OUTCOMES) + "}")
     if not (isinstance(facts.get("invalid"), list) and all(isinstance(item, str) for item in facts["invalid"])):
         errors.append("invalid must be a list of text")
+    if is_text(facts.get("build_before")) and is_text(facts.get("build_after")):
+        changed = facts["build_after"] != facts["build_before"]
+        promoted = isinstance(candidate, dict) and candidate.get("outcome") == "PROMOTE"
+        if promoted and not changed:
+            errors.append("a promoted candidate must change the build, and this one left it unchanged")
+        if changed and not promoted:
+            errors.append("the build changed without a promoted candidate: only a promotion may move it")
     cleanup = facts.get("cleanup")
     if not (isinstance(cleanup, dict) and isinstance(cleanup.get("verified"), bool)
             and (not cleanup["verified"] or is_text(cleanup.get("receipt")))):
@@ -589,11 +651,8 @@ def validate_facts(facts, requested: list) -> list:
     return errors
 
 
-def derive_iteration(state: dict, key: str, step: dict, facts: dict) -> dict:
-    """The orchestrator's own record of one finished step: what the adapter reported, and whether it was quiet."""
-    invalid = list(facts["invalid"])
-    if step.get("base") and facts["build_before"] != step["base"]:
-        invalid.append(f"the iteration ran on build {facts['build_before']} but the base was {step['base']}")
+def quiet_reasons(facts: dict, invalid: list) -> list:
+    """Why a finished step is not a quiet iteration; empty when it is. Used when a step finishes and again when state is loaded."""
     reasons = []
     review, judge, cases = facts["review"], facts["judge"], facts["cases"]
     if not (review["valid"] and review["complete"]):
@@ -608,6 +667,22 @@ def derive_iteration(state: dict, key: str, step: dict, facts: dict) -> dict:
         reasons.append("a candidate outcome is present")
     if not all(item["ran"] and item["floors_met"] for item in cases.values()):
         reasons.append("a scope case did not run or missed its floors")
+    return reasons
+
+
+def iteration_facts(item: dict) -> dict:
+    """The part of a recorded iteration that the adapter reported, in the shape validate_facts reads."""
+    return {key: item.get(key) for key in ("build_before", "build_after", "scoring", "cases", "review", "judge", "discoveries",
+                                           "candidate", "invalid", "cleanup", "tier", "acceptance", "consumed")}
+
+
+def derive_iteration(state: dict, key: str, step: dict, facts: dict) -> dict:
+    """The orchestrator's own record of one finished step: what the adapter reported, and whether it was quiet."""
+    invalid = list(facts["invalid"])
+    if step.get("base") and facts["build_before"] != step["base"]:
+        invalid.append(f"the iteration ran on build {facts['build_before']} but the base was {step['base']}")
+    reasons = quiet_reasons(facts, invalid)
+    review, judge, cases = facts["review"], facts["judge"], facts["cases"]
     return {
         "index": len(state["iterations"]) + 1, "key": key, "scope": step["scope"], "mode": step["mode"], "ended": now(),
         "requested": list(step["cases"]), "build_before": facts["build_before"], "build_after": facts["build_after"],
@@ -773,10 +848,17 @@ def check_c4(camp: Campaign, facts: Facts) -> dict:
 
 
 def check_c5(camp: Campaign, facts: Facts) -> dict:
-    iterations = camp.state["iterations"]
-    if not iterations:
-        return verdict("C5", ["no iteration has run, so there is no cleanup or quick-tier receipt"])
+    state = camp.state
     reasons = []
+    for key, step in state["steps"].items():
+        if step["status"] == "running":
+            reasons.append(f"step {key} is still running: its outcome and its cleanup are not known")
+    for key in state["launch_intents"]:
+        if key not in state["cleaned_launches"]:
+            reasons.append(f"the adapter may have launched step {key} without the campaign recording it: run cleanup")
+    iterations = state["iterations"]
+    if not iterations:
+        return verdict("C5", reasons + ["no iteration has run, so there is no cleanup or quick-tier receipt"])
     for item in iterations:
         if not (item["cleanup"].get("verified") and is_text(item["cleanup"].get("receipt"))):
             reasons.append(f"iteration {item['index']} has no positive cleanup evidence: absence of leftovers is not evidence "
@@ -804,6 +886,9 @@ def check_c6(camp: Campaign, facts: Facts) -> dict:
 def check_c7(camp: Campaign, facts: Facts) -> dict:
     k = camp.state["quiet_window"]
     reasons = []
+    readiness = camp.state.get("readiness")
+    if not (readiness and readiness.get("boundary_sha256") == camp.boundary and readiness.get("start_ok")):
+        reasons.append("the latest readiness does not show the start rule for this boundary: run readiness --campaign --require-start")
     win = window(camp.state)
     if not win:
         reasons.append("no iteration has run at this scope on the current build")
@@ -828,12 +913,17 @@ def certificate(camp: Campaign, facts: Facts) -> dict:
     iterations = camp.state["iterations"]
     last = iterations[-1] if iterations else {}
     readiness = camp.state.get("readiness")
+    allowed = (readiness or {}).get("allowed_claims", [])
+    note = None if readiness else "readiness is not recorded: no quality claim is allowed"
+    if readiness and readiness.get("scoring") != facts.identity["scoring"]:
+        allowed = []
+        note = (f"readiness was proven under scoring identity {readiness.get('scoring')!r} and the evaluator is now "
+                f"{facts.identity['scoring']!r}: rerun readiness; no quality claim is allowed until then")
     return {
         "status": "converged" if not reasons else "incomplete", "reasons": reasons, "checks": checks,
         "binds": {"scope": camp.state["scope"], "build": last.get("build_after"), "scoring": last.get("scoring"),
                   "campaign_identity": camp.identity, "candidates": checks["C6"]["detail"].get("promoted", [])},
-        "claims": {"recorded": bool(readiness), "allowed": (readiness or {}).get("allowed_claims", []),
-                   "note": None if readiness else "readiness is not recorded: no quality claim is allowed"},
+        "claims": {"recorded": bool(readiness), "allowed": allowed, "note": note},
         "quota": quota_status(camp.state)}
 
 
@@ -918,8 +1008,17 @@ def start_action(camp: Campaign, facts=None) -> dict:
         return {"action": "blocked", "reason": problem}
     # The step starts from the subject as it is now: a change made outside the campaign (the owner edited it while reviewing the
     # boundary) is recorded when the step starts, instead of making the adapter's first report look like a base mismatch.
+    intent = state["launch_intents"].get(key)  # written before the adapter was called: a replay starts from the same base
     return {"action": "start", "key": key, "scope": scope["id"], "cases": scope["cases"],
-            "mode": "sweep" if scope["sweep_pending"] else "iterate", "base": (facts or Facts(camp)).identity["build"]}
+            "mode": "sweep" if scope["sweep_pending"] else "iterate",
+            "base": intent["base"] if intent else (facts or Facts(camp)).identity["build"]}
+
+
+def campaign_blockers(state: dict) -> list:
+    """Work the campaign still owes, which a converged stop may not ignore: a step in flight and any open task."""
+    out = [f"step {key} is still running" for key, step in state["steps"].items() if step["status"] == "running"]
+    out += [f"task {task['id']} ({task['kind']}) is open" for task in state["tasks"] if task["status"] == "open"]
+    return out
 
 
 def hunt_findings(state: dict) -> list:
@@ -970,12 +1069,19 @@ def plan_next(camp: Campaign) -> dict:
     if stop:
         if stop.get("status") == "converged":
             current = certificate(camp, Facts(camp))
-            if current["status"] != "converged":
+            owed = campaign_blockers(state)
+            if current["status"] != "converged" or owed:
                 return {"action": "stop", "status": "incomplete", "binds": current["binds"],
-                        "reason": "the earlier converged stop is stale: " + "; ".join(current["reasons"][:3])}
+                        "reason": "the earlier converged stop is stale: " + "; ".join((current["reasons"][:3] + owed)[:4])}
         return {"action": "stop", **stop}
     for key, step in state["steps"].items():
         if step["status"] == "running":
+            errors, limit = state["poll_failures"].get(key, []), (1 if quota_status(state)["exhausted"] else 3)
+            if len(errors) >= limit and len(set(errors[-limit:])) == 1:
+                return {"action": "stop", "status": "incomplete",
+                        "reason": f"the adapter failed to poll step {key} {limit} time(s) with the same error"
+                                  f"{' after the budget was used' if limit == 1 else ''}: {errors[-1]}; the step is still "
+                                  "running, so cancel it and run cleanup"}
             return {"action": "poll", "key": key, "handle": step["handle"]}
     for task in state["tasks"]:
         if task["status"] == "open":
@@ -1097,9 +1203,15 @@ def apply_action(camp: Campaign, act: dict) -> dict:
         problem = authority_problem(camp, act["cases"])
         if problem:
             return {"action": "blocked", "reason": problem}
-        if act["base"] != state["tip"]:
-            camp.event("subject-changed-outside", expected=state["tip"], found=act["base"])
-            state["tip"] = act["base"]
+        if act["key"] not in state["launch_intents"]:
+            if act["base"] != state["tip"]:
+                camp.event("subject-changed-outside", expected=state["tip"], found=act["base"])
+                state["tip"] = act["base"]
+            # Write-ahead: if this process dies after the adapter launches the run, the replay recomputes the same key and starts
+            # from this base (the run may already have changed the subject), and the run is accounted for until cleanup covers it.
+            state["launch_intents"][act["key"]] = {"base": act["base"], "scope": act["scope"], "cases": list(act["cases"]),
+                                                   "mode": act["mode"], "at": now()}
+            camp.save()
         out_dir = camp.work_dir / "runs" / act["key"]
         out_dir.mkdir(parents=True, exist_ok=True)
         try:
@@ -1111,17 +1223,26 @@ def apply_action(camp: Campaign, act: dict) -> dict:
             # The adapter may have launched the run before it failed to answer, so a retry keeps this key (it is recomputed from
             # the unchanged iteration count) and the adapter recognises it. The failure is counted so the retries end.
             state["start_failures"].setdefault(act["key"], []).append(str(error))
+            state["cleaned_launches"].pop(act["key"], None)  # a new failure may have launched the run again: an old cleanup is void
             camp.event("start-failed", key=act["key"], error=str(error)[:200])
             camp.save()
             raise
         state["steps"][act["key"]] = {"handle": reply["handle"], "status": "running", "started": now(), "scope": act["scope"],
                                       "mode": act["mode"], "base": act["base"], "index": len(state["iterations"]) + 1,
                                       "cases": list(act["cases"])}
+        state["launch_intents"].pop(act["key"], None)
         if reply["status"] == "done":
             return {"action": "start", "key": act["key"], "iteration": finish_step(camp, act["key"], reply.get("iteration"))["index"]}
         return {"action": "start", "key": act["key"], "handle": reply["handle"], "status": "running"}
     if kind == "poll":
-        reply = camp.call("step", ["poll", "--handle", act["handle"]])
+        try:
+            reply = camp.call("step", ["poll", "--handle", act["handle"]])
+        except LoopError as error:
+            state["poll_failures"].setdefault(act["key"], []).append(str(error))
+            camp.event("poll-failed", key=act["key"], error=str(error)[:200])
+            camp.save()
+            raise
+        state["poll_failures"].pop(act["key"], None)  # a poll that answers ends the run of failures
         status = reply.get("status")
         if status == "running":
             return {"action": "poll", "key": act["key"], "status": "running"}
@@ -1147,21 +1268,21 @@ def write_report(camp: Campaign) -> dict:
         cert = dict(nothing, status="unavailable", reasons=[f"the adapter could not be queried for this report: {error}"])
     c1 = (cert["checks"].get("C1") or {}).get("detail", {})
     stop = state.get("stop") or {}
+    owed = campaign_blockers(state)
     campaign_status = "in progress"
     if stop:
         campaign_status = stop.get("status", "incomplete")
-        if campaign_status == "converged" and cert["status"] != "converged":
-            campaign_status = "incomplete"  # the stop is stale: the evidence changed after it
-    readiness = state.get("readiness") or {}
+        if campaign_status == "converged" and (cert["status"] != "converged" or owed):
+            campaign_status = "incomplete"  # the stop is stale: the evidence changed, or work was added, after it
     out = {
         "schema": "closed-loop-report/1", "at": now(), "subject": state["subject"], "scope": state["scope"],
         "scope_cases": camp.scope()["cases"], "scope_certificate": cert["status"], "campaign_status": campaign_status,
-        "stop": stop or None, "binds": cert["binds"], "reasons": cert["reasons"],
+        "stop": stop or None, "binds": cert["binds"], "reasons": cert["reasons"] + owed,
         "unresolved": c1.get("blocking", []), "adapter_backlog": c1.get("adapter_backlog", []),
         "outside_scope": c1.get("outside_scope", []), "not_covered": camp.scope()["not_covered"],
         "unknowns": [item for item in state["unknowns"] if not item.get("resolved")], "quota": quota_status(state),
-        "iterations": len(state["iterations"]), "allowed_claims": readiness.get("allowed_claims", []),
-        "claims_note": None if readiness else "readiness is not recorded: no quality claim is allowed",
+        "iterations": len(state["iterations"]), "allowed_claims": cert["claims"]["allowed"],
+        "claims_note": cert["claims"]["note"],
         "scopes": [{"id": s["id"], "cases": s["cases"], "reason": s["reason"]} for s in state["scopes"]],
     }
     headline = (f"**Campaign status: {campaign_status}.** Scope {state['scope']} ({', '.join(out['scope_cases'])}) certificate: "
@@ -1244,27 +1365,38 @@ def build_contract(camp: Campaign) -> dict:
 
 # ----------------------------------------------------------------------------------------------------------------- readiness
 
-def claim_states(manifest: dict, manifest_dir: Path, workspace, campaign_dir, ratified: bool) -> tuple:
+def claim_states(manifest: dict, manifest_dir: Path, workspace, campaign_dir, ratified: bool, guard=None) -> tuple:
+    """Run the probes this boundary allows. `guard(spent)` is called before each probe and raises when the budget is used; a failure
+    carries what the finished probes cost as `error.consumed`, so the caller can still charge it."""
     out, consumed = {}, {}
-    for claim, meta in manifest.get("claims", {}).items():
-        ladder = CLAIM_LADDERS[claim.split(":")[0]]
-        entry = {"state": ladder[0], "effect": meta["effect"], "evidence": None}
-        if meta["effect"] == "effectful" and not ratified:
-            entry["evidence"] = "not run: the execution boundary is not ratified (an effectful probe runs commands)"
-        else:
-            reply = call_adapter(manifest, manifest_dir, "probe", [claim], workspace=workspace, campaign=campaign_dir)
-            if reply.get("state") not in ladder:
-                raise LoopError(f"probe {claim} returned state {reply.get('state')!r}; allowed: {', '.join(ladder)}")
-            entry["state"], entry["evidence"] = reply["state"], reply.get("evidence")
-            for name, amount in (reply.get("consumed") or {}).items():
-                if is_amount(amount):
-                    consumed[name] = consumed.get(name, 0) + amount
-        out[claim] = entry
+    try:
+        for claim, meta in manifest.get("claims", {}).items():
+            ladder = CLAIM_LADDERS[claim.split(":")[0]]
+            entry = {"state": ladder[0], "effect": meta["effect"], "evidence": None}
+            if meta["effect"] == "effectful" and not ratified:
+                entry["evidence"] = "not run: the execution boundary is not ratified (an effectful probe runs commands)"
+            else:
+                if guard:
+                    guard(consumed)
+                reply = call_adapter(manifest, manifest_dir, "probe", [claim], workspace=workspace, campaign=campaign_dir)
+                if reply.get("state") not in ladder:
+                    raise LoopError(f"probe {claim} returned state {reply.get('state')!r}; allowed: {', '.join(ladder)}")
+                if reply["state"] != ladder[0] and not is_text(reply.get("evidence")):
+                    raise LoopError(f"probe {claim} reported {reply['state']!r} without evidence: a claim is proven only by what "
+                                    "the probe shows")
+                entry["state"], entry["evidence"] = reply["state"], reply.get("evidence")
+                for name, amount in (reply.get("consumed") or {}).items():
+                    if is_amount(amount):
+                        consumed[name] = consumed.get(name, 0) + amount
+            out[claim] = entry
+    except LoopError as error:
+        error.consumed = dict(consumed)
+        raise
     return out, consumed
 
 
-def readiness_report(manifest: dict, manifest_dir: Path, workspace, campaign_dir, ratified: bool) -> tuple:
-    claims, consumed = claim_states(manifest, manifest_dir, workspace, campaign_dir, ratified)
+def readiness_report(manifest: dict, manifest_dir: Path, workspace, campaign_dir, ratified: bool, guard=None) -> tuple:
+    claims, consumed = claim_states(manifest, manifest_dir, workspace, campaign_dir, ratified, guard)
 
     def reached(kind: str, state: str) -> bool:
         return any(claim.split(":")[0] == kind and entry["state"] == state for claim, entry in claims.items())
@@ -1320,13 +1452,22 @@ def session(args):
         camp.save()
 
 
+SLOT_VALUE_TYPES = {"mission": list, "cases": list, "steps": dict, "evaluation": dict, "improvement": dict, "authority": dict,
+                    "records": dict}
+
+
+def path_escapes(item: str) -> bool:
+    """A proposal's paths are relative to the subject's root; an absolute path or one that climbs out is not comparable."""
+    return item.startswith("/") or ".." in posixpath.normpath(item or ".").split("/")
+
+
 def path_overlap(first: str, second: str) -> bool:
     """True when one path is the other or inside it; the root (".") contains everything."""
     first, second = posixpath.normpath(first or "."), posixpath.normpath(second or ".")
     return "." in (first, second) or first == second or first.startswith(second + "/") or second.startswith(first + "/")
 
 
-def validate_proposal(proposal) -> list:
+def validate_proposal(proposal, manifest=None) -> list:
     """Why a definer proposal cannot be used, or an empty list: the wrapper's shape, evidence for every found slot, and no
     grader, check or withheld path in the improver's candidate set."""
     if not isinstance(proposal, dict) or proposal.get("contract") != DEFINER_SCHEMA:
@@ -1338,14 +1479,22 @@ def validate_proposal(proposal) -> list:
     for name, slot in slots.items():
         if not isinstance(slot, dict) or slot.get("status") not in SLOT_STATUSES:
             errors.append(f"slot {name} needs a status of {', '.join(SLOT_STATUSES)}")
-        elif slot["status"] == "found" and not (isinstance(slot.get("evidence"), list) and slot["evidence"]):
+            continue
+        evidence = slot.get("evidence")
+        if evidence is not None and not (isinstance(evidence, list) and all(is_text(item) for item in evidence)):
+            errors.append(f"slot {name} evidence must be a list of non-blank text")
+        elif slot["status"] == "found" and not evidence:
             errors.append(f"slot {name} is found without evidence: cite a file and symbol, or call it proposed or unknown")
+        if slot["status"] != "unknown" and not (isinstance(slot.get("value"), SLOT_VALUE_TYPES[name]) and slot["value"]):
+            errors.append(f"slot {name} is {slot['status']} but its value is not a non-empty {SLOT_VALUE_TYPES[name].__name__}")
     improvement = slots["improvement"].get("value") if isinstance(slots.get("improvement"), dict) else None
     if isinstance(improvement, dict):
         candidates = improvement.get("candidate_paths") or []
         protected = (improvement.get("evaluator_paths") or []) + (improvement.get("withheld_paths") or [])
         if not all(isinstance(item, str) for item in candidates + protected):
             errors.append("improvement paths must be text")
+        elif any(path_escapes(item) for item in candidates + protected):
+            errors.append("improvement paths must be relative to the subject's root and stay inside it (no leading '/', no '..')")
         else:
             for item in candidates:
                 clash = [other for other in protected if path_overlap(item, other)]
@@ -1355,7 +1504,47 @@ def validate_proposal(proposal) -> list:
     for key in ("risks", "needs_owner", "unknowns"):
         if not isinstance(proposal.get(key), list):
             errors.append(f"{key} must be a list (an empty list is valid)")
+    if manifest and not errors:
+        evaluation, authority = slots["evaluation"].get("value"), slots["authority"].get("value")
+        if isinstance(evaluation, dict) and evaluation.get("evaluation_class") not in (None, manifest.get("evaluation_class", "scripted")):
+            errors.append("the proposal's evaluation_class is not the manifest's: the owner would ratify one and read the other")
+        if isinstance(authority, dict) and set(authority.get("owner_only_requires") or []) != set(
+                manifest.get("authority", {}).get("owner_only_requires", [])):
+            errors.append("the proposal's owner_only_requires is not the manifest's: the gate the owner reads must be the one enforced")
+        if manifest["execution"]["capability"] == "hosted" and not proposal.get("needs_owner"):
+            errors.append("a hosted capability needs at least one needs_owner entry saying what the owner must approve")
     return errors
+
+
+STATE_FILES = (".gitignore", "campaign.json", "campaign.lock", "journal.md", "report.md", "report.json")
+
+
+def fingerprint_problem(campaign_dir: Path):
+    """Why the Until Loop's Git-tree fingerprint would not see this folder's state, or None. The fingerprint is `git add -A` into
+    a private index, so a Git ignore rule hides a file from it and a Git error makes it unavailable, and the runtime then treats
+    a changed folder as unchanged."""
+    env = dict(os.environ, GIT_OPTIONAL_LOCKS="0")
+
+    def git(*args):
+        try:
+            return subprocess.run(["git", "-C", str(campaign_dir), *args], capture_output=True, text=True, check=False,
+                                  stdin=subprocess.DEVNULL, env=env)
+        except OSError as error:
+            return error
+
+    ignored = git("check-ignore", "--no-index", "--", *STATE_FILES)
+    if isinstance(ignored, OSError) or ignored.returncode not in (0, 1):
+        why = ignored if isinstance(ignored, OSError) else (ignored.stderr or ignored.stdout).strip()[-200:]
+        return f"git cannot read the campaign folder, so the Until Loop could not fingerprint it ({why})"
+    if ignored.stdout.strip():
+        return ("Git ignores " + ", ".join(ignored.stdout.split()) + " (a .gitignore, .git/info/exclude or core.excludesFile "
+                "rule): the Until Loop's content fingerprint would not see a change to it, so a stale satisfied report could "
+                "complete; remove the rule or restore the folder's .gitignore")
+    added = git("add", "-A", "-n", "--", ".")
+    if isinstance(added, OSError) or added.returncode != 0:
+        why = added if isinstance(added, OSError) else (added.stderr or added.stdout).strip()[-200:]
+        return f"git cannot fingerprint the campaign folder ({why})"
+    return None
 
 
 def cmd_adapter_check(args) -> tuple:
@@ -1368,7 +1557,7 @@ def cmd_adapter_check(args) -> tuple:
             proposal = json.loads(Path(args.proposal).read_text())
         except (OSError, ValueError) as error:
             raise LoopError(f"cannot read the proposal {args.proposal}: {error}") from None
-        errors = validate_proposal(proposal)
+        errors = validate_proposal(proposal, manifest)
         if errors:
             raise LoopError("invalid definer proposal: " + "; ".join(errors))
         out["proposal"] = {"ok": True, "unknown_slots": sorted(name for name, slot in proposal["slots"].items()
@@ -1408,7 +1597,8 @@ def cmd_init(args) -> tuple:
             "manifest": {"path": str(path), "sha256": sha256_file(path), "boundary_sha256": boundary_hash(manifest, path.parent)},
             "ratification": None, "readiness": None, "budget": budget, "consumed": {}, "quiet_window": window_size,
             "scopes": [], "scope": "S0", "tip": None, "iterations": [], "steps": {}, "tasks": [], "unknowns": [],
-            "approved_cases": approved, "events": [], "stop": None, "regression_ack": None, "start_failures": {}}
+            "approved_cases": approved, "events": [], "stop": None, "regression_ack": None, "start_failures": {},
+            "poll_failures": {}, "launch_intents": {}, "cleaned_launches": {}}
         camp = Campaign(campaign_dir, state=state, manifest=manifest, manifest_path=path)
         catalog = load_catalog(camp)
         missing = [item for item in cases if item not in catalog]
@@ -1424,6 +1614,10 @@ def cmd_init(args) -> tuple:
         if git.returncode != 0:
             raise LoopError("git is required: the campaign folder is the Until Loop workspace and its freshness is a Git tree "
                             f"({git.stderr.strip()[-200:]})")
+        # Nothing in this folder may be ignored: the Until Loop fingerprints it with `git add -A`. A rule here outranks
+        # .git/info/exclude and the user's global excludes, which would otherwise hide the state from the fingerprint.
+        (campaign_dir / ".gitignore").write_text("# closed-loop: nothing in this folder is ignored; the Until Loop fingerprints "
+                                                 "it with `git add -A`\n!*\n")
         camp.event("init", scope="S0", cases=cases)
         camp.save()
     return EXIT_OK, {"ok": True, "campaign": str(campaign_dir), "id": state["id"], "scope": state["scopes"][0],
@@ -1448,11 +1642,30 @@ def cmd_readiness(args) -> tuple:
             raise LoopError("--manifest is not this campaign's adapter manifest")
         ratification = camp.state.get("ratification")
         ratified = bool(ratification and ratification["boundary_sha256"] == camp.boundary)
-        report, consumed = readiness_report(camp.manifest, path.parent, args.workspace or camp.state["workspace"], camp.dir, ratified)
+        scoring = Facts(camp).identity["scoring"]  # the evaluator these claims are proven under
+
+        def guard(spent):
+            used = dict(camp.state["consumed"])
+            for name, amount in spent.items():
+                used[name] = used.get(name, 0) + amount
+            over = over_budget(camp.state["budget"], used)
+            if over:
+                raise LoopError("budget used: " + ", ".join(over) + "; readiness stops before the next probe (only the owner "
+                                "raises the budget: reopen --budget)")
+
+        try:
+            report, consumed = readiness_report(camp.manifest, path.parent, args.workspace or camp.state["workspace"], camp.dir,
+                                                ratified, guard)
+        except LoopError as error:
+            add_consumed(camp.state, getattr(error, "consumed", {}))
+            camp.save()  # the probes that ran cost what they cost, though the readiness did not finish
+            raise
         add_consumed(camp.state, consumed)
-        camp.state["readiness"] = {"at": now(), "boundary_sha256": report["boundary_sha256"], "start_ok": report["start_ok"],
-                                   "blocked": report["blocked"], "allowed_claims": report["allowed_claims"],
-                                   "claims": {claim: entry["state"] for claim, entry in report["claims"].items()}}
+        camp.state["readiness"] = {"at": now(), "boundary_sha256": report["boundary_sha256"], "scoring": scoring,
+                                   "start_ok": report["start_ok"], "blocked": report["blocked"],
+                                   "allowed_claims": report["allowed_claims"],
+                                   "claims": {claim: {"state": entry["state"], "evidence": entry["evidence"]}
+                                              for claim, entry in report["claims"].items()}}
     return (EXIT_OK if (report["start_ok"] or not args.require_start) else EXIT_NOT_READY), report
 
 
@@ -1589,15 +1802,24 @@ def cmd_cleanup(args) -> tuple:
         argv = camp.manifest["execution"].get("cleanup")
         if not argv:
             raise LoopError("the manifest declares no execution.cleanup")
+        ratification = camp.state.get("ratification")
+        if not (ratification and ratification["boundary_sha256"] == camp.boundary):
+            raise LoopError("cleanup is an adapter command and the owner has not ratified the boundary that names it: ratify first "
+                            "(nothing runs before that)")
         pending = [item for item in camp.state["iterations"]
                    if not (item["cleanup"].get("verified") and is_text(item["cleanup"].get("receipt")))]
-        keys = [item["key"] for item in pending]
+        uncertain = [key for key in camp.state["launch_intents"] if key not in camp.state["cleaned_launches"]]
+        keys = [item["key"] for item in pending] + uncertain
+        if not keys:
+            return EXIT_OK, {"ok": True, "covered": [], "receipt": None, "note": "no run lacks cleanup evidence, so nothing was run"}
         reply = run_argv(camp.manifest, camp.manifest_path.parent, list(argv) + ["--keys", ",".join(keys)], "cleanup",
                          workspace=camp.state["workspace"], campaign=camp.dir)
         if not (reply.get("verified") is True and is_text(reply.get("receipt"))):
             raise LoopError("the adapter's cleanup did not report verified with a receipt: " + json.dumps(reply)[:200])
         for item in pending:
             item["cleanup"] = {"verified": True, "receipt": reply["receipt"], "by": "cleanup"}
+        for key in uncertain:
+            camp.state["cleaned_launches"][key] = reply["receipt"]
         camp.event("cleanup", keys=keys, receipt=reply["receipt"])
     return EXIT_OK, {"ok": True, "covered": keys, "receipt": reply["receipt"]}
 
@@ -1616,6 +1838,9 @@ def cmd_check(args) -> tuple:
     if args.expect_identity and camp.identity != args.expect_identity:
         return EXIT_IDENTITY, {"clause": args.clause, "pass": False, "script_sha256": sha, "reasons": [
             "this contract is for another campaign identity"]}
+    problem = fingerprint_problem(camp.dir)
+    if problem:
+        raise LoopError(problem)
     result = CHECKS[args.clause](camp, Facts(camp))
     result.update(script_sha256=sha, campaign_identity=camp.identity, clause=args.clause)
     return (EXIT_OK if result["pass"] else EXIT_NOT_READY), result
@@ -1636,7 +1861,11 @@ def cmd_coverage(args) -> tuple:
 
 
 def cmd_contract(args) -> tuple:
-    contract = build_contract(Campaign(args.campaign))
+    camp = Campaign(args.campaign)
+    problem = fingerprint_problem(camp.dir)
+    if problem:
+        raise LoopError(problem)
+    contract = build_contract(camp)
     if args.out:
         Path(args.out).write_text(json.dumps(contract, indent=2, sort_keys=True) + "\n")
     return EXIT_OK, contract

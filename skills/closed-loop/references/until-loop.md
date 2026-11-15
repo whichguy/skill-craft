@@ -26,9 +26,16 @@ evidence and an effectful probe is not a read.
   failing check never lets the runtime complete. Because the workspace is the campaign folder, a change made after the verify run by
   any campaign verb that writes state (`step`, `task`, `unknown`, `approve`, `reopen`, `cleanup`, `cancel`, `report`) is refused
   too: run the verify script again after the last change. Run `report` after the contract completes, not before.
-- **What the fingerprint does not see.** A change to the *subject* by another actor between the verify run and the report is outside
-  the folder the runtime watches. The checks catch it (C2 and C3 fail as stale) the next time they run, so run the verify script
-  immediately before you report and make no other call in between.
+- **What the fingerprint does not see.** The runtime watches the campaign folder and nothing else. A change between the verify
+  run and the report to the *subject*, to the *adapter and its pinned files* (the checks refuse a changed boundary the next time they
+  run), or to this *script* (its hash is in every check) is outside it, and so is a second writer to the campaign that lands between
+  the last check and the runtime's fingerprint. The checks catch the first three the next time they run; nothing catches the last.
+  So run the verify script immediately before you report, make no other call in between, and let one session act on a campaign.
+- **The fingerprint must be able to see the folder.** It is `git add -A` into a private index, so a Git ignore rule hides a file from
+  it, and a Git error makes it unavailable, after which the runtime treats a changed folder as unchanged. `init` therefore writes a
+  `.gitignore` of `!*` (a rule in the folder outranks `.git/info/exclude` and the user's global excludes), and every check and
+  `contract` first runs `git check-ignore` on the state files and `git add -A -n`: an ignore rule or a Git failure makes the check
+  exit 2 and the contract refuse, so the runtime records a failed check instead of a pass on a blind fingerprint.
 - **A failed frozen check sets the native streak to zero.** That is why the contract sets `required_trivial_reviews` to 0 and the
   quiet window (K) lives in the script: with a native gate of 2 plus a script window of 2, a failure on pass 1 would reset the native
   count and convergence would take three passes instead of two. The runtime's first-pass shortcut exists only for a gate of 2 or more,

@@ -61,7 +61,12 @@ orchestrator reports (and charges for).
 | `step start --key K --scope S --cases A,B --mode iterate\|sweep --base TIP --out DIR` | `{"handle", "status", "iteration"?}`; **idempotent on K**: a second start with the same key returns the same handle and launches nothing |
 | `step poll --handle H` | `{"status": "running"\|"done"\|"failed"\|"cancelled", "iteration"?, "error"?}`; a failed poll may carry `iteration.consumed` so the failed step is charged |
 | `step cancel --handle H` | `{"status": "cancelled"}` |
+
 | `execution.cleanup … --keys K1,K2` | `{"verified": true, "receipt": text}` for the runs named by those step keys |
+
+**A `step start` launches the run detached and returns.** Start it in its own session with its output redirected to files under
+`--out`: a call returns only when the program and everything holding its output pipe has exited, and a call that outlives
+`timeout_seconds` is killed together with its whole process group. Every adapter call runs with its standard input closed.
 
 Record `status` values the orchestrator understands: `verified`; `dropped`, `refuted`, `rejected` (resolved only with non-empty
 `evidence`; so is `verified`); `open`, `admitted`, `promoted`, `undecided` (actionable); anything else, such as `deferred`, `owner`,
@@ -80,7 +85,7 @@ changed the workspace would invalidate its own recorded run.
 
 ## Campaign state (`closed-loop-campaign/1`)
 
-`campaign.json` in the campaign folder, written atomically under `campaign.lock`, validated whenever it is read. Never recreated
+`campaign.json` in the campaign folder, written atomically under `campaign.lock`, validated whenever it is read. A verb that changes state waits up to 30 s for the lock and then refuses with a message (look for a hung adapter call, which `execution.timeout_seconds` bounds); the read-only verbs (`status`, `next`, `certificate`, `coverage`, `contract`, `check`) never take it. Never recreated
 silently: a missing, corrupt or malformed file is an error and is left untouched. **The campaign folder is a small Git repo that
 `init` creates and that holds only campaign state**, so the Until Loop can fingerprint every change to the evidence the checks read.
 Bulky files live in the sibling folder `<campaign>.work` (`runs/<step key>/` for what the adapter wrote, and the Until Loop's own
@@ -88,11 +93,14 @@ state, contract and receipt files), never inside the campaign folder or the subj
 workspace must be separate, neither inside the other.
 
 `id` (random, so two campaigns never share a step key), `subject`, `workspace`, `manifest {path, sha256, boundary_sha256}`,
-`ratification {boundary_sha256, at, note}` or null, `readiness {at, boundary_sha256, start_ok, blocked, allowed_claims, claims}` or
-null, `budget` and `consumed` (aggregate across scopes; a budget is mandatory), `quiet_window`, `scopes [{id, cases, values,
+`ratification {boundary_sha256, at, note}` or null, `readiness {at, boundary_sha256, scoring, start_ok, blocked, allowed_claims,
+claims {claim: {state, evidence}}}` or null (a claim above the bottom of its ladder must carry evidence), `budget` and `consumed` (aggregate across scopes; a budget is mandatory), `quiet_window`, `scopes [{id, cases, values,
 not_covered, reason, sweep_pending}]`, `scope` (the current id), `tip` (the accepted build), `iterations` (the orchestrator's record
 of each finished step: the adapter's facts plus `quiet` and `quiet_reasons`; a failed or cancelled step is an invalid iteration
-too), `steps {key: {handle, status, ...}}`, `start_failures {key: [errors]}`, `tasks`, `unknowns`, `approved_cases`, `events` (an
+too), `steps {key: {handle, status, ...}}`, `launch_intents {key: {base, scope, cases, mode}}` (written, and saved, before the adapter
+is called, and cleared when the step is recorded: a replay after a crash starts from the same base, and a launch whose outcome is
+unknown stays here until `cleanup` covers it), `cleaned_launches {key: receipt}`, `start_failures` and `poll_failures {key:
+[errors]}`, `tasks`, `unknowns`, `approved_cases`, `events` (an
 audit trail) and `stop`. In the folder: `journal.md` (append-only, one line per iteration, idempotent on the step key),
 `report.md` and `report.json`.
 
@@ -102,5 +110,8 @@ changed script, another scope or another campaign fails its own checks with exit
 
 **Budget.** `--budget seconds=3600,turns=400` is required at `init` and is checked before each step, so a step in flight can
 overshoot it by up to that step's consumption. Everything a campaign spends is charged: each finished or failed step's `consumed`,
-each probe's `consumed`, each task's `--consumed`, and the wall time of adapter calls that failed or timed out (to `seconds`).
+each probe's `consumed` (charged as each probe finishes, so a failing probe still pays for the ones before it), each task's
+`--consumed`, and the wall time of adapter calls that failed or timed out (to `seconds`). `readiness` refuses to run a probe once the
+budget is used. A step that is running when the budget runs out is still polled to collect its result, but a poll that fails then
+ends the campaign at once (three identical poll failures end it before that); the step is left for `cancel` and `cleanup`.
 Exhaustion ends the scope `incomplete`; only the owner raises it, with `reopen --budget`.

@@ -27,6 +27,9 @@ calls:
   fail_poll          {"error": text, "consumed": {...}}: every poll answers failed, with what the failed step cost
   hang               {verb: seconds}: that verb sleeps before answering (to test the execution timeout)
   crash              {verb: true}: that verb exits non-zero without answering
+  crash_step         ["poll", ...]: those `step` subcommands exit non-zero without answering
+  crash_probe        [claim, ...]: those probes exit non-zero without answering
+  probe_no_evidence  true: every probe answers its state without evidence
   probe_consumed     what every probe reports consuming
   cleanup_unverified true: the owned cleanup answers verified false
 
@@ -48,6 +51,7 @@ CONFIG = WORKSPACE / "fake-config.json"
 STEPS = WORKSPACE / "fake-steps"
 STARTS = WORKSPACE / "fake-starts.log"
 HISTORY = WORKSPACE / "fake-history.json"
+CLEANUPS = WORKSPACE / "fake-cleanups.log"
 
 CATALOG = [
     {"id": "A1", "dimensions": {"style": "alpha"}, "cost": 1, "requires": [], "hosted": False},
@@ -195,6 +199,8 @@ def records() -> dict:
 def probe(claim: str) -> dict:
     kind, _, name = claim.partition(":")
     cfg = config()
+    if claim in cfg.get("crash_probe", []):
+        raise SystemExit(f"the fake adapter crashed probing {claim}")
     extra = {"consumed": cfg["probe_consumed"]} if cfg.get("probe_consumed") else {}
     if kind == "cases.runs":
         return {"state": "runs", "evidence": f"{name or 'a case'} ran at {state()['version']} and cleaned up", **extra}
@@ -219,6 +225,8 @@ def cleanup(argv: list) -> dict:
     if config().get("cleanup_unverified"):
         return {"verified": False}
     keys = flags(argv).get("keys", "")
+    with open(CLEANUPS, "a") as log:
+        log.write(keys + "\n")
     return {"verified": True, "receipt": "cleanup-" + hashlib.sha256(keys.encode()).hexdigest()[:8]}
 
 
@@ -236,8 +244,13 @@ def main(argv: list) -> int:
     elif verb == "records":
         emit(records())
     elif verb == "probe":
-        emit(probe(argv[2]))
+        answer = probe(argv[2])
+        if config().get("probe_no_evidence"):
+            answer["evidence"] = None
+        emit(answer)
     elif verb == "step":
+        if argv[2] in config().get("crash_step", []):
+            raise SystemExit(f"the fake adapter crashed in step {argv[2]}")
         {"start": start, "poll": poll, "cancel": cancel}[argv[2]](argv[3:])
     elif verb == "cleanup":
         emit(cleanup(argv[2:]))

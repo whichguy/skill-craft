@@ -31,6 +31,31 @@ always returned well-formed reports. Status: **firm** (reproduced; evidence file
 | 9 | P2. The readiness contract reruns effectful probes inside exit checks | review text | removed: readiness is a gate that records its result; there is one contract kind | `ContractTests.test_there_is_no_readiness_contract_...` |
 | 10 | P2. The card's shell binding fails under zsh and with spaces; the definer's wrapper is not what `adapter-check` reads | review text | `loop()` and `until_loop()` functions with quoted paths; the definer writes a bare `adapter.proposed.json` and `adapter-check --proposal` validates the wrapper (slots, evidence, no grader among the candidate paths) | `CardTests.test_the_card_binds_its_scripts_as_functions_...` (bash and zsh, a space in the path), `ProposalTests` |
 
+## Round 2: Astra's second max review of the hardened build (2026-11-15)
+
+**Subject.** `498a98b172c25b9e6733ec8a332c2500691fc2e8` (the hardening) merged with published main as
+`163f21f2e9724ff61611f71a3311bc360ed25a41` (no source change). Same conditions as round 1: Codex `gpt-6-astra` at max, read-only, one
+attempt, no fallback, 11 minutes (`round2-run.json`); `git status` was identical before and after. Files: `round2-brief.txt`,
+`round2-answer.txt`, `round2-evidence.json` (the reviewer's reproductions).
+
+**Result.** *Not ready to ship.* Of the ten round-1 findings the reviewer judged four FIXED and six PARTLY fixed, and reported eight
+new or remaining issues (six P1, two P2) and two instruction bugs. It also found the ordinary runtime path improved: read-only
+queries and receipt recovery changed no campaign content, `campaign.lock` caused no fingerprint churn, `.git` writes stayed excluded,
+and gate zero disables the first-pass shortcut. Status: **firm** (reproduced by the reviewer), except where a row says judgement.
+
+| # | Round-2 finding | Disposition | Tests |
+| --- | --- | --- | --- |
+| 1 | P1. The real runtime still accepts stale satisfaction: (a) `.git/info/exclude` hides `campaign.json`; (b) a Git error records `tree: null` and the runtime then skips freshness; (c) an in-scope unknown added after the checks but before the fingerprint; (d) a changed pinned adapter outside both workspaces | (a) fixed: `init` writes a folder `.gitignore` of `!*` (it outranks `.git/info/exclude` and the user's global excludes) and every check and `contract` run `git check-ignore` and `git add -A -n`, exiting 2 on an ignore rule or a Git failure. (b) fixed on this side: the checks cannot pass on a folder Git cannot read; the vendored runtime's null-tree behaviour is `improve`'s validated copy and was not changed. (c) and (d) not fixable by the script: disclosed in the card and `references/until-loop.md` (one session at a time; verify and report back to back) | `FingerprintTests` |
+| 2 | P1. A material record with `"cases": "A1"` leaves its scope; a persisted review `valid: "false"` still converges | fixed: record `cases` and `target` are validated when fetched; saved iterations are validated with the same rules as fresh evidence and their `quiet` flag is recomputed on every load | `EvidenceTests.test_a_record_with_a_malformed_cases_...`, `test_a_persisted_review_flag_...`, `test_a_persisted_quiet_flag_...` |
+| 3 | P1. A running step does not block completion; a converged campaign stop survives a new open task | fixed: C5 fails while a step is running or a launch's outcome is unknown; a converged stop is stale while a step runs or a task is open | `EvidenceTests.test_a_running_step_...`, `test_work_added_after_a_converged_stop_...`, `test_a_start_that_failed_may_have_launched_...` |
+| 4 | P1. Readiness claims outlive their evidence: a state without evidence is accepted; quality claims survive a changed evaluator; a later failing readiness leaves the certificate converged | fixed: a proven claim needs evidence; claims are recorded with their evidence and the scoring identity and are withdrawn when it changes; the latest readiness must show the start rule (check C7) and gates the next start | `ReadinessTests` (three new) |
+| 5 | P1. The quota is bypassable: completion at exhaustion; polling continues under a spent budget; repeated readiness; a failing probe forgets earlier probes' cost | partly fixed, partly judgement: the budget is checked before every probe and the cost of finished probes is kept when one fails; a failing poll is bounded (three, or one once the budget is used). *Judgement, not changed:* a contract can complete on the step that used the last of the budget, because the budget is checked between steps (the repository's own rule calls budgets post-hoc); the report states scope converged and campaign incomplete, and the card says so | `QuotaTests` (four new), `test_an_exhausted_budget_...` now asserts both statuses |
+| 6 | P1. `cleanup` runs the adapter's cleanup with no ratification | fixed: cleanup needs the ratified boundary and is not run for an empty set | `GateTests.test_cleanup_is_an_adapter_command_...` |
+| 7 | P2. Crash replay recomputes the launch base from the live build and marks the original receipt invalid (a regression of mine: the live-base change of the hardening commit) | fixed: a launch intent (base, scope, cases) is saved before the adapter is called and a replay reuses it; an unknown outcome is accounted for until cleanup covers it | `ResumeTests` (three new, one kills the orchestrator mid-call) |
+| 8 | P2. Proposal validation overpromises: root and absolute paths, `[null]` evidence, empty `found` slots, no link to the manifest | fixed: paths must be relative and stay inside the root, evidence is non-blank text, found and proposed slots need a typed non-empty value, and the proposal is reconciled with the manifest (evaluation class, the owner-gate list, a `needs_owner` entry for a hosted capability). Not handled: aliases through symlinks | `ProposalTests` (three new) |
+| - | Instruction bugs: the action table says to repeat every `start` and `poll`; readiness pending ratification is routed to the definer | fixed in the card (a finished step means verify first; "not run" before ratification is expected) | `CardTests` |
+| - | Tests conceal two failures (the quota test checked after an extra stop step; crash recovery never polled the recovered handle); the initialisation existence check was not in the mutation list | fixed: both tests rewritten, a deterministic lock-holding form of the concurrent-init test, and the mutation added | see above |
+
 ## Judgement items and what stayed as it was
 
 - *Boolean fields cannot prove an adapter ran anything.* True, and unfixable by a script. It is now stated in the card, the
@@ -56,8 +81,17 @@ safeguards added after run 1 (the report surviving a broken adapter, a step star
 subject being recorded): all four caught. So 31 distinct safeguards are each held by at least one test that fails without it. That
 is evidence the tests are not vacuous; it is not evidence the safeguards are complete.
 
+**Rounds 3 and 4** (`mutations-round3-batch1.txt` to `-batch3.txt`): 29 further safeguards, the fixes from my own read-through and
+from round 2. Batch 1 (24 runs): 22 genuine kills, one vacuous "kill" (my mutation of the C7 readiness check had a syntax error) and
+one survivor (the first of two overlapping Git guards: a missing `.git` trips both, so the test passed with either removed). Batch 2
+re-ran those two with a corrected mutation and a stub-`git` test of the first guard, and added one safeguard (a new start failure
+voids an earlier cleanup): 3 of 3. Batch 3 re-ran the four round-3 safeguards (record `cases` validated, a promotion must change the
+build, a build change needs a promotion, a timeout kills the process group) for a clean log: 4 of 4. Every safeguard is held by at
+least one test that fails without it. Still not evidence that the safeguards are complete.
+
 ## Files
 
 `astra-brief.txt`, `astra-answer.txt`, `astra-run.json` (model, effort, no fallback), `test-run-at-ff9cb35d.json`,
 `probes-certificate.json`, `probes-additional.json`, `probe-runtime-stale-satisfaction.json`, `mutations-run1.json`,
-`mutations-run2.json`.
+`mutations-run2.json`; round 2: `round2-brief.txt`, `round2-answer.txt`, `round2-run.json`, `round2-evidence.json`; rounds 3 and 4:
+`mutations-round3-batch1.txt`, `-batch2.txt`, `-batch3.txt`.

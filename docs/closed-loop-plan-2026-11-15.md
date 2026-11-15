@@ -1,6 +1,6 @@
 # Closed-loop: a generic improvement loop with ShipLoop as its first adapter (plan, 2026-11-15)
 
-**Status: plan; Phase 1 is being built.** The owner said (2026-11-15) "I want to make progress and not worry about the past", which
+**Status: plan; Phase 1 is built and hardened (see *Phase 1 as built* below).** The owner said (2026-11-15) "I want to make progress and not worry about the past", which
 this plan takes as the go for Phase 1, with the working choices in section 11. It supersedes sections 2 and 3 of
 [docs/shiploop-e2e-iterate-skill-plan-2026-11-15.md](shiploop-e2e-iterate-skill-plan-2026-11-15.md): the ShipLoop-only
 `shiploop-e2e-iterate` skill becomes this generic skill plus a ShipLoop adapter. That plan's facts and effectiveness list stand and
@@ -11,6 +11,26 @@ skill, with a way to discover or have a reviewer define what is subject-specific
 iteration, and escalation to broader cases. This plan builds the generic layer thin, with ShipLoop as the first adapter and a second
 subject as the generality test. An Astra max review (read-only, about 10 minutes) of the first draft found real errors; every
 correction I could check against the code, the runtime or the docs held, and section 12 lists them.
+
+## Phase 1 as built (added 2026-11-15, after Astra's max review of the build)
+
+Phase 1 is built and hardened. The sections below are the plan as it was reviewed; where the build differs, the difference is here.
+Evidence and decisions: `docs/closed-loop-journal.md` and `docs/experiments/closed-loop-review-20261115/` (Astra's findings, the
+reproductions, and the mutation check of the new tests).
+
+| The plan said | The build does | Why |
+| --- | --- | --- |
+| the contract's workspace is the subject's linked worktree (section 5: "tested in P1 with the real runtime") | the workspace is the **campaign folder**, a small Git repo that `init` creates and that holds only campaign state; the runtime's state, the contract and the receipts live in the sibling `<campaign>.work` | the checks read evidence in the campaign folder, so a change to it after a green verify (an unknown added) did not change the fingerprint and the real runtime still completed (the reviewer reproduced it); receipts inside the folder would rewrite the fingerprinted tree |
+| two sequential root contracts: readiness, then scope | one contract kind, the scope contract; readiness is a gate that records its result | exit checks only read recorded evidence, and the readiness contract reran effectful probes |
+| the start rule is checked by `readiness --require-start` | `step` also refuses to start until the owner has ratified the boundary hash, readiness has recorded a pass for that hash and every selected case is released | `init` then `step` ran a hosted case with none of these |
+| convergence is checked from the facts an adapter reports | the facts are validated first (types, the exact case set, identities, amounts, build consistency); a report that fails is a failed step, never a quiet iteration | malformed and partial reports converged |
+| coverage by dimension value | plus declared `combinations`, and hunt results that need a disposition for every blind spot | an AX, BY, AY catalog left AY unselected; a hunt's findings were ignored |
+| a quota | a mandatory budget; failed steps, probes, tasks and hung calls are charged; every adapter call has a timeout; stops for three failed starts, three iterations without progress and a metric regression | the quota was bookkeeping |
+| frozen checks | every check also carries the scope and the campaign identity | a contract frozen for S0 certified whichever scope was current |
+
+Known limits kept: the script checks what an adapter reports and cannot prove it truthful (the ratified boundary, `execution.pin` and
+the readiness probes are the trust); the budget is checked between steps; a change to the subject between the verify run and the
+report is outside the fingerprint, and the checks catch it as stale the next time they run.
 
 **Words used here.**
 *Subject*: the thing being improved (first ShipLoop). *Case*: one scenario the subject is run on. *Adapter*: the small set of files
@@ -197,7 +217,7 @@ rule that a revised scope is a new contract. Checked in `scripts/until_loop_ephe
   state, and the default state parent is a temporary directory. `improve` also uses isolated mode with its own per-run state; ordinary
   host-session mode needs a stable session identity and plugin hooks, and nested contracts need it, so none are planned.
 - **Two sequential root contracts**: readiness (it may start as a plain gate) and scope. Committing edits does not hide changes from
-  the Git-tree fingerprint; the linked-worktree behaviour is tested in P1 with the real runtime.
+  the Git-tree fingerprint; the linked-worktree behaviour was to be tested in P1 with the real runtime (the build binds the campaign folder instead: see *Phase 1 as built*).
 - **What it adds** once its native streak is unused: a refusal to accept "satisfied" without fresh recorded checks, an immutable
   contract (a widened scope is a new contract and nothing carries over silently), and a handoff that survives compaction. That is the
   convergence discipline the SPEC asks of a model operator and nothing enforces today. It stays optional: the procedure works by hand.

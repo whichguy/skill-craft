@@ -14,6 +14,7 @@ and refuses to complete on a failing or stale check.
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import hashlib
 import importlib.util
 import io
@@ -24,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -152,7 +154,7 @@ class Lab:
 CATALOG_AB = [{"id": case, "dimensions": {"a": first, "b": second}, "cost": 1, "requires": [], "hosted": False}
               for case, first, second in (("AX", "A", "X"), ("BY", "B", "Y"), ("AY", "A", "Y"))]
 STDLIB_IMPORTS = {"__future__", "argparse", "contextlib", "datetime", "fcntl", "hashlib", "json", "math", "os", "pathlib", "posixpath",
-                  "secrets", "shlex", "subprocess", "sys", "time"}  # a new import of the orchestrator is a deliberate edit of this set
+                  "secrets", "shlex", "signal", "subprocess", "sys", "time"}  # a new import of the orchestrator is a deliberate edit of this set
 
 
 def good_facts(cases, build_before="b0", build_after="b0") -> dict:
@@ -270,12 +272,72 @@ class ManifestTests(unittest.TestCase):
             cl.call_adapter(manifest, ROOT, "identity")
 
 
+class AdapterProcessTests(unittest.TestCase):
+    """What the orchestrator does to the programs it calls: close their input, bound them, and kill what a timeout leaves behind."""
+
+    @staticmethod
+    def manifest(code: str, *args, timeout=2) -> dict:
+        manifest = Lab.manifest()
+        manifest["execution"]["timeout_seconds"] = timeout
+        manifest["commands"]["identity"] = [sys.executable, "-c", code, *args]
+        return manifest
+
+    @staticmethod
+    def alive(pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
+    def reap_later(self, pid: int) -> None:
+        def kill():
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(pid, 9)
+        self.addCleanup(kill)
+
+    def test_a_timeout_kills_the_whole_process_group_and_returns_on_time(self):
+        folder = Path(tempfile.mkdtemp(prefix="closed-loop-pid-"))
+        self.addCleanup(shutil.rmtree, folder, True)
+        code = ("import pathlib, subprocess, sys, time\n"
+                "child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"  # holds the output pipe
+                "pathlib.Path(sys.argv[1]).write_text(str(child.pid))\n"
+                "time.sleep(60)\n")
+        started = time.monotonic()
+        with self.assertRaisesRegex(cl.LoopError, "did not finish within 2 s.*process group was killed"):
+            cl.call_adapter(self.manifest(code, str(folder / "pid")), ROOT, "identity")
+        self.assertLess(time.monotonic() - started, 20)  # subprocess.run would have waited for the grandchild's 60 s
+        grandchild = int((folder / "pid").read_text())
+        self.reap_later(grandchild)
+        deadline = time.monotonic() + 5
+        while self.alive(grandchild) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertFalse(self.alive(grandchild))
+
+    def test_a_launcher_that_detaches_its_run_returns_at_once_and_the_run_survives(self):
+        code = ("import json, subprocess, sys\n"
+                "run = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'], stdin=subprocess.DEVNULL,\n"
+                "                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)\n"
+                "print(json.dumps({'pid': run.pid}))\n")
+        out = cl.call_adapter(self.manifest(code, timeout=15), ROOT, "identity")
+        self.reap_later(out["pid"])
+        self.assertTrue(self.alive(out["pid"]))
+
+    def test_an_adapter_reads_an_empty_standard_input(self):
+        out = cl.call_adapter(self.manifest("import json, sys; print(json.dumps({'stdin': sys.stdin.read()}))"), ROOT, "identity")
+        self.assertEqual(out, {"stdin": ""})
+
+
 class ProposalTests(unittest.TestCase):
     """A definer's proposal is validated by a script: its shape, its evidence, and that no grader is in the improver's candidate set."""
 
     @staticmethod
     def proposal(**changes) -> dict:
-        slots = {name: {"status": "proposed", "evidence": ["README.md:1"], "value": None} for name in cl.SLOT_NAMES}
+        slots = {name: {"status": "proposed", "evidence": ["README.md:1"], "value": value} for name, value in (
+            ("mission", ["a clause a reviewer can cite"]), ("cases", [{"id": "A1"}]), ("steps", {"start": ["true"]}),
+            ("evaluation", {"evaluation_class": "scripted"}), ("improvement", None),
+            ("authority", {"routine": [], "owner_only": ["hosted"], "owner_only_requires": ["hosted"]}),
+            ("records", {"ledger": "records.jsonl"}))}
         slots["improvement"]["value"] = {"candidate_paths": ["skills/x/"], "withheld_paths": ["held/"],
                                          "evaluator_paths": ["graders/", "adapter.json"], "verify": ["true"]}
         base = {"contract": "closed-loop-definer/1", "slots": slots, "risks": [], "needs_owner": [], "unknowns": []}
@@ -285,7 +347,7 @@ class ProposalTests(unittest.TestCase):
     def test_a_well_formed_proposal_passes_adapter_check_and_lists_its_unknown_slots(self):
         lab = Lab(self)
         proposal = self.proposal()
-        proposal["slots"]["records"] = {"status": "unknown", "evidence": [], "value": None}
+        proposal["slots"]["records"] = {"status": "unknown", "evidence": [], "value": None}  # unknown needs no value
         path = lab.tmp / "definer-proposal.json"
         path.write_text(json.dumps(proposal))
         out = lab.ok("adapter-check", "--manifest", lab.manifest_path, "--proposal", path)
@@ -300,6 +362,39 @@ class ProposalTests(unittest.TestCase):
         proposal = self.proposal()
         proposal["slots"]["improvement"]["value"]["candidate_paths"] = ["skills/x/", "graders-notes/", "docs"]
         self.assertEqual(cl.validate_proposal(proposal), [])  # a shared name prefix is not overlap
+
+    def test_paths_must_be_relative_to_the_subject_root_and_stay_inside_it(self):
+        for candidate in ("/", "/abs/graders", "../outside", "a/../../b"):
+            proposal = self.proposal()
+            proposal["slots"]["improvement"]["value"]["candidate_paths"] = [candidate]
+            self.assertTrue(any("relative to the subject's root" in error for error in cl.validate_proposal(proposal)), candidate)
+        proposal = self.proposal()
+        proposal["slots"]["improvement"]["value"]["evaluator_paths"] = ["/etc/graders"]
+        self.assertTrue(any("relative to the subject's root" in error for error in cl.validate_proposal(proposal)))
+
+    def test_found_and_proposed_slots_need_nonblank_evidence_and_a_typed_value(self):
+        for slot, change, expected in (("cases", {"evidence": [None]}, "evidence must be a list of non-blank text"),
+                                       ("cases", {"evidence": [" "]}, "evidence must be a list of non-blank text"),
+                                       ("cases", {"status": "found", "evidence": []}, "found without evidence"),
+                                       ("steps", {"value": {}}, "non-empty dict"), ("steps", {"value": None}, "non-empty dict"),
+                                       ("cases", {"value": "A1"}, "non-empty list"), ("mission", {"value": []}, "non-empty list")):
+            proposal = self.proposal()
+            proposal["slots"][slot].update(change)
+            self.assertTrue(any(expected in error for error in cl.validate_proposal(proposal)), (slot, change))
+
+    def test_a_proposal_is_reconciled_with_the_manifest_the_owner_ratifies(self):
+        manifest = Lab.manifest()
+        self.assertEqual(cl.validate_proposal(self.proposal(), manifest), [])
+        wrong_class = self.proposal()
+        wrong_class["slots"]["evaluation"]["value"]["evaluation_class"] = "judge-only"
+        self.assertTrue(any("evaluation_class is not the manifest's" in e for e in cl.validate_proposal(wrong_class, manifest)))
+        wrong_gate = self.proposal()
+        wrong_gate["slots"]["authority"]["value"]["owner_only_requires"] = []
+        self.assertTrue(any("owner_only_requires is not the manifest's" in e for e in cl.validate_proposal(wrong_gate, manifest)))
+        hosted = Lab.manifest()
+        hosted["execution"]["capability"] = "hosted"
+        self.assertTrue(any("needs_owner" in e for e in cl.validate_proposal(self.proposal(), hosted)))
+        self.assertEqual(cl.validate_proposal(self.proposal(needs_owner=["deploys to the owner's org"]), hosted), [])
 
     def test_a_malformed_proposal_is_refused_with_its_reasons(self):
         self.assertTrue(cl.validate_proposal("text"))
@@ -384,6 +479,54 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual(report["claims"]["grading.sensitive:d1"]["state"], "unknown")
         self.assertIn("no improver.bounded claim has reached 'bounded'", report["blocked"])
 
+    def test_a_proven_claim_without_evidence_is_refused(self):
+        lab = Lab(self)
+        lab.init(ready=False)
+        lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
+        lab.config(probe_no_evidence=True)
+        code, _, err = lab.cli("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("without evidence", err)
+        self.assertIsNone(lab.state()["readiness"])  # nothing was recorded on a probe that showed nothing
+
+    def test_quality_claims_are_withdrawn_when_the_evaluator_changes_until_readiness_is_rerun(self):
+        lab = Lab(self, claims=FULL_CLAIMS)
+        lab.config(sensitive={"d1": True})
+        lab.init("A1")
+        for _ in range(3):
+            lab.step()
+        self.assertIn("quality claims about d1", " ".join(lab.certificate()["claims"]["allowed"]))
+        recorded = lab.state()["readiness"]
+        self.assertEqual(recorded["scoring"], "score-1")
+        self.assertEqual(recorded["claims"]["grading.sensitive:d1"]["state"], "sensitive")
+        self.assertIn("seeded defect", recorded["claims"]["grading.sensitive:d1"]["evidence"])  # the evidence is kept
+        lab.config(scoring="score-2", sensitive={})  # the evaluator changed, and sensitivity is no longer shown
+        lab.step()
+        lab.step()  # two fresh quiet iterations under the new evaluator
+        cert = lab.certificate()
+        self.assertEqual(cert["status"], "converged", cert["reasons"])
+        self.assertEqual(cert["claims"]["allowed"], [])
+        self.assertIn("proven under scoring identity 'score-1'", cert["claims"]["note"])
+        self.assertEqual(lab.ok("report", "--campaign", lab.campaign)["allowed_claims"], [])
+        lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
+        again = lab.certificate()["claims"]
+        self.assertEqual(lab.state()["readiness"]["scoring"], "score-2")
+        self.assertIn("no quality claim is allowed yet", " ".join(again["allowed"]))
+
+    def test_a_later_failing_readiness_keeps_a_converged_scope_incomplete_and_blocks_the_next_start(self):
+        lab = Lab(self)
+        lab.init("A1")
+        for _ in range(3):
+            lab.step()
+        self.assertEqual(lab.certificate()["status"], "converged")
+        lab.config(bounded=False)  # the improvement stage is no longer shown to be bounded
+        lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
+        cert = lab.certificate()
+        self.assertEqual(cert["status"], "incomplete")
+        self.assertTrue(any("latest readiness does not show the start rule" in reason for reason in cert["reasons"]))
+        code, out, _ = lab.cli("step", "--campaign", lab.campaign)
+        self.assertEqual((code, out["action"]), (cl.EXIT_NOT_READY, "blocked"))
+
     def test_a_probe_state_outside_the_claims_ladder_is_refused(self):
         manifest = Lab.manifest()
         with mock.patch.object(cl, "call_adapter", return_value={"state": "magnificent"}), \
@@ -448,6 +591,18 @@ class GateTests(unittest.TestCase):
         lab.init("C1", "--approve-case", "C1", "--yes-owner-approved")
         self.assertEqual(lab.step()["action"], "start")  # the owner released the hosted case, so it runs
         self.assertEqual(len(lab.starts()), 1)
+
+    def test_cleanup_is_an_adapter_command_so_it_waits_for_the_owner_and_never_runs_for_an_empty_set(self):
+        lab = Lab(self)
+        lab.init(ready=False)
+        code, _, err = lab.cli("cleanup", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("has not ratified", err)
+        self.assertFalse((lab.ws / "fake-cleanups.log").exists())  # the adapter's cleanup command was never run
+        lab.ready()
+        out = lab.ok("cleanup", "--campaign", lab.campaign)
+        self.assertEqual((out["covered"], out["receipt"]), ([], None))
+        self.assertFalse((lab.ws / "fake-cleanups.log").exists())  # ratified, but no run lacks evidence: still not run
 
     def test_a_changed_boundary_after_ratification_runs_nothing(self):
         lab = Lab(self)
@@ -546,6 +701,33 @@ class StateTests(unittest.TestCase):
         self.assertIn("already exists", loser[1])
         self.assertEqual(lab.state()["scope"], "S0")
 
+    def test_a_command_waits_a_bounded_time_for_the_campaign_lock_and_then_says_so(self):
+        lab = Lab(self)
+        lab.init()
+        with open(lab.campaign / "campaign.lock", "a") as held:
+            fcntl.flock(held, fcntl.LOCK_EX)  # another command, or a hung one, holds the campaign
+            with mock.patch.object(cl, "LOCK_WAIT_SECONDS", 0.3):
+                code, _, err = lab.cli("step", "--campaign", lab.campaign)
+            fcntl.flock(held, fcntl.LOCK_UN)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("held the campaign lock for 0.3 s", err)
+        self.assertEqual(lab.starts(), [])
+        self.assertEqual(lab.step()["action"], "start")  # and it is usable the moment the lock is free
+
+    def test_the_initialisation_existence_check_runs_inside_the_lock(self):
+        lab = Lab(self)
+        lab.campaign.mkdir()
+        args = [sys.executable, str(SCRIPT), "init", "--manifest", str(lab.manifest_path), "--campaign", str(lab.campaign),
+                "--workspace", str(lab.ws), "--cases", "A1", "--budget", DEFAULT_BUDGET]
+        with open(lab.campaign / "campaign.lock", "a") as held:
+            fcntl.flock(held, fcntl.LOCK_EX)  # both initialisations get past any check made before the lock, and wait here
+            procs = [subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
+            time.sleep(1.5)
+            fcntl.flock(held, fcntl.LOCK_UN)
+        results = [(proc.communicate(), proc.returncode) for proc in procs]
+        self.assertEqual(sorted(code for _, code in results), [cl.EXIT_OK, cl.EXIT_ERROR])
+        self.assertIn("already exists", next(streams for streams, code in results if code == cl.EXIT_ERROR)[1])
+
     def test_saves_are_atomic_and_leave_no_temporary_file(self):
         lab = Lab(self)
         lab.init()
@@ -559,7 +741,7 @@ class StateTests(unittest.TestCase):
         lab.step()
         self.assertTrue((lab.work / "runs").is_dir())
         self.assertEqual(sorted(path.name for path in lab.campaign.iterdir()),
-                         [".git", "campaign.json", "campaign.lock", "journal.md"])
+                         [".git", ".gitignore", "campaign.json", "campaign.lock", "journal.md"])
 
     def test_queries_never_write_inside_the_workspace_or_the_campaign_folder(self):
         lab = Lab(self)
@@ -572,6 +754,60 @@ class StateTests(unittest.TestCase):
             lab.check(clause)
         lab.cli("contract", "--campaign", lab.campaign)
         self.assertEqual((tree_digest(lab.ws), tree_digest(lab.campaign), tree_digest(lab.work)), before)  # contents, not names
+
+
+class FingerprintTests(unittest.TestCase):
+    """The Until Loop fingerprints the campaign folder with `git add -A`: nothing in it may be ignored, and Git must work."""
+
+    def test_the_folders_own_ignore_file_outranks_exclude_rules_and_the_users_global_ignore(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        self.assertEqual((lab.campaign / ".gitignore").read_text().splitlines()[-1], "!*")
+        (lab.campaign / ".git" / "info" / "exclude").write_text("campaign.json\n*.md\n")
+        global_ignore = lab.tmp / "global-ignore"
+        global_ignore.write_text("*.json\n*.lock\n")
+        gitconfig = lab.tmp / "gitconfig"
+        gitconfig.write_text(f"[core]\n\texcludesFile = {global_ignore}\n")
+        with mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(gitconfig)}):
+            self.assertIsNone(cl.fingerprint_problem(lab.campaign))
+            self.assertEqual(lab.check("C1")[0], cl.EXIT_OK)
+
+    def test_an_ignore_rule_that_would_hide_the_state_fails_the_checks_and_the_contract(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        (lab.campaign / ".gitignore").unlink()  # the folder's own rule is gone
+        (lab.campaign / ".git" / "info" / "exclude").write_text("campaign.json\n")
+        self.assertIn("Git ignores campaign.json", cl.fingerprint_problem(lab.campaign))
+        code, _, err = lab.check("C1")
+        self.assertEqual(code, cl.EXIT_ERROR)  # exit 2, never a pass: the runtime records it as a failed check
+        self.assertIn("Git ignores campaign.json", err)
+        code, _, err = lab.cli("contract", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("Git ignores", err)
+
+    def test_a_failing_ignore_check_is_a_problem_even_when_the_fingerprint_command_still_works(self):
+        lab = Lab(self)
+        lab.init("A1")
+        stub = lab.tmp / "stub-bin"
+        stub.mkdir()
+        (stub / "git").write_text(f'#!/bin/sh\nfor arg in "$@"; do\n  if [ "$arg" = check-ignore ]; then echo "fatal: boom" >&2; exit 128; fi\n'
+                                  f'done\nexec "{shutil.which("git")}" "$@"\n')
+        (stub / "git").chmod(0o755)
+        with mock.patch.dict(os.environ, {"PATH": f"{stub}{os.pathsep}{os.environ['PATH']}"}):
+            problem = cl.fingerprint_problem(lab.campaign)
+        self.assertIn("git cannot read the campaign folder", problem)  # not the `add -n` guard: it succeeded
+        self.assertIn("boom", problem)
+
+    def test_a_folder_git_cannot_read_fails_the_checks(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        shutil.move(str(lab.campaign / ".git"), str(lab.tmp / "moved-git"))
+        code, _, err = lab.check("C1")
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("git cannot", err)
 
 
 class EvidenceTests(unittest.TestCase):
@@ -600,7 +836,9 @@ class EvidenceTests(unittest.TestCase):
             "a text consumption": lambda f: f.update(consumed={"seconds": "5"}),
             "a NaN consumption": lambda f: f.update(consumed={"seconds": float("nan")}),
             "an empty build": lambda f: f.update(build_after=""),
-            "a missing scoring identity": lambda f: f.update(scoring=None)}
+            "a missing scoring identity": lambda f: f.update(scoring=None),
+            "a promotion that left the build unchanged": lambda f: f.update(candidate={"id": "c", "hash": "h", "outcome": "PROMOTE"}),
+            "a build that changed without a promotion": lambda f: f.update(build_after="b1")}
         for name, mutate in mutations.items():
             facts = good_facts(["A1"])
             mutate(facts)
@@ -626,6 +864,15 @@ class EvidenceTests(unittest.TestCase):
                 self.assertEqual(state["steps"][record["key"]]["status"], "failed")
                 self.assertEqual(lab.certificate()["status"], "incomplete")
                 self.assertEqual(lab.check("C7")[0], cl.EXIT_NOT_READY)
+
+    def test_a_record_with_a_malformed_cases_or_target_field_fails_closed_instead_of_leaving_the_scope(self):
+        lab = Lab(self)
+        lab.init("A1")
+        for extra in ({"cases": "A1"}, {"cases": [1]}, {"target": "Subject"}, {"material": "yes"}):
+            lab.config(extra_records=[{"id": "R-z", "material": True, "target": "subject", "status": "open", **extra}])
+            code, _, err = lab.cli("certificate", "--campaign", lab.campaign)
+            self.assertEqual(code, cl.EXIT_ERROR, extra)
+            self.assertIn("adapter records must print", err)
 
     def test_an_iteration_that_ran_on_another_build_than_its_base_is_invalid(self):
         lab = Lab(self)
@@ -701,6 +948,84 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(lab.ok("cleanup", "--campaign", lab.campaign)["covered"], [key])
         _, _, err = lab.cli("cancel", "--campaign", lab.campaign, "--key", key)
         self.assertIn("no running step", err)
+
+    def test_a_start_that_failed_may_have_launched_a_run_so_the_scope_is_unclean_until_cleanup_covers_it(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(crash={"step": True})
+        code, _, _ = lab.cli("step", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        key = next(iter(lab.state()["launch_intents"]))
+        reasons = lab.check("C5")[1]["reasons"]
+        self.assertTrue(any(f"may have launched step {key}" in reason for reason in reasons), reasons)
+        covered = lab.ok("cleanup", "--campaign", lab.campaign)["covered"]
+        self.assertEqual(covered, [key])
+        self.assertEqual((lab.ws / "fake-cleanups.log").read_text().split(), [key])
+        self.assertFalse(any("may have launched" in reason for reason in lab.check("C5")[1]["reasons"]))
+        self.assertEqual(lab.ok("cleanup", "--campaign", lab.campaign)["covered"], [])  # and it is not run twice for the same key
+
+    def test_a_new_start_failure_voids_an_earlier_cleanup_of_the_same_launch(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(crash={"step": True})
+        lab.cli("step", "--campaign", lab.campaign)
+        key = next(iter(lab.state()["launch_intents"]))
+        self.assertEqual(lab.ok("cleanup", "--campaign", lab.campaign)["covered"], [key])
+        self.assertFalse(any("may have launched" in reason for reason in lab.check("C5")[1]["reasons"]))
+        lab.cli("step", "--campaign", lab.campaign)  # the retry fails too, and may have launched the run again
+        self.assertTrue(any(f"may have launched step {key}" in reason for reason in lab.check("C5")[1]["reasons"]))
+        self.assertEqual(lab.ok("cleanup", "--campaign", lab.campaign)["covered"], [key])
+        self.assertEqual((lab.ws / "fake-cleanups.log").read_text().split(), [key, key])
+
+    def test_a_running_step_keeps_a_converged_scope_incomplete(self):
+        lab = Lab(self)
+        lab.init("A1")
+        for _ in range(3):
+            lab.step()
+        lab.ok("unknown", "--campaign", lab.campaign, "add", "--text", "is the oracle sensitive?", "--inside-claim")
+        lab.config(poll_delay=2)
+        started = lab.step()  # the certificate is incomplete, so the loop starts another iteration
+        self.assertEqual((started["action"], started["status"]), ("start", "running"))
+        lab.ok("unknown", "--campaign", lab.campaign, "resolve", "--index", "0")
+        cert = lab.certificate()  # the unknown is answered, but a run is in flight and its outcome and cleanup are not known
+        self.assertEqual(cert["status"], "incomplete")
+        self.assertTrue(any("is still running" in reason for reason in cert["reasons"]), cert["reasons"])
+
+    def test_work_added_after_a_converged_stop_makes_that_stop_stale(self):
+        lab, task = self.hunt_lab()
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--result", json.dumps(
+            {"blind_spots": [{"what": "timing", "disposition": "rejected", "reason": "the scope does not claim timing"}]}))
+        self.assertEqual(lab.step()["status"], "converged")
+        added = lab.ok("task", "--campaign", lab.campaign, "add", "--kind", "review", "--text", "the owner wants a second look",
+                       "--needs-owner")["task"]
+        stale = lab.ok("next", "--campaign", lab.campaign)
+        self.assertEqual((stale["action"], stale["status"]), ("stop", "incomplete"))
+        self.assertIn(f"task {added['id']} (review) is open", stale["reason"])
+        report = lab.ok("report", "--campaign", lab.campaign)
+        self.assertEqual((report["stop"]["status"], report["campaign_status"]), ("converged", "incomplete"))
+
+    def test_a_persisted_review_flag_that_is_not_a_boolean_makes_the_state_malformed(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        state = lab.state()
+        state["iterations"][0]["review"]["valid"] = "false"  # truthy text, which the checks would have read as valid
+        lab.write_state(state)
+        code, _, err = lab.cli("certificate", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("holds malformed evidence", err)
+
+    def test_a_persisted_quiet_flag_must_follow_from_the_evidence(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        state = lab.state()
+        self.assertFalse(state["iterations"][0]["quiet"])  # the first iteration found and fixed d1
+        state["iterations"][0]["quiet"] = True
+        lab.write_state(state)
+        code, _, err = lab.cli("certificate", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("quiet flag does not follow from its evidence", err)
 
     def hunt_lab(self):
         """A one-case catalog with no defects: two quiet iterations converge it and the next step asks for a blind-spot hunt."""
@@ -915,7 +1240,7 @@ class CertificateTests(unittest.TestCase):
         self.converge_scope_zero(lab)
         for field, value, expect in (("cleanup", {"verified": False}, "no positive cleanup evidence"),
                                      ("tier", {"green": True, "build": "b0"}, "quick-tier receipt is for build"),
-                                     ("tier", {"green": False}, "no green quick-tier receipt")):
+                                     ("tier", {"green": False, "build": "b1"}, "no green quick-tier receipt")):
             state = lab.state()
             original = state["iterations"][-1][field]
             state["iterations"][-1][field] = value
@@ -1125,6 +1450,58 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(len(lab.starts()), 1)  # the adapter recognised the key and launched nothing
         self.assertEqual(lab.state()["steps"][key]["status"], "running")
 
+    def test_a_crash_after_the_adapter_launched_the_run_replays_from_the_recorded_base_and_the_run_finishes_valid(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(poll_delay=2)
+        key = lab.step()["key"]
+        state = lab.state()
+        self.assertNotIn(key, state["launch_intents"])  # the intent is cleared once the step is recorded
+        # As if the process died after the adapter launched the run (it already promoted d1, so the live build is b1) and before
+        # it saved the step: the intent, written ahead of the call, is what survives.
+        del state["steps"][key]
+        state["launch_intents"][key] = {"base": "b0", "scope": "S0", "cases": ["A1"], "mode": "iterate", "at": "2026-11-15T00:00:00Z"}
+        lab.write_state(state)
+        replay = lab.ok("next", "--campaign", lab.campaign)
+        self.assertEqual((replay["action"], replay["key"], replay["base"]), ("start", key, "b0"))  # not the live b1
+        lab.step()
+        for _ in range(4):
+            if lab.step().get("status") == "done":
+                break
+        record = lab.state()["iterations"][0]
+        self.assertEqual((record["build_before"], record["build_after"], record["invalid"]), ("b0", "b1", []))
+        self.assertEqual(len(lab.starts()), 1)  # the adapter recognised the key and launched nothing twice
+
+    def test_a_kill_while_the_adapter_runs_leaves_the_launch_intent_behind(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(hang={"step": 3})  # the adapter call is in flight for a few seconds
+        process = subprocess.Popen([sys.executable, str(SCRIPT), "step", "--campaign", str(lab.campaign)],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.addCleanup(process.kill)
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline and not lab.state()["launch_intents"]:
+            time.sleep(0.05)
+        process.kill()  # SIGKILL runs no handler: only what was saved before the adapter call survives
+        process.communicate()
+        intents = lab.state()["launch_intents"]
+        self.assertEqual(len(intents), 1)
+        key, intent = next(iter(intents.items()))
+        self.assertEqual(intent["base"], "b0")
+        self.assertEqual(lab.ok("next", "--campaign", lab.campaign)["key"], key)  # the replay recomputes the same key
+
+    def test_a_failed_start_keeps_its_base_for_the_retry_even_if_the_subject_moves_meanwhile(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(crash={"step": True})
+        self.assertEqual(lab.cli("step", "--campaign", lab.campaign)[0], cl.EXIT_ERROR)
+        key, intent = next(iter(lab.state()["launch_intents"].items()))
+        self.assertEqual(intent["base"], "b0")
+        (lab.ws / "subject-state.json").write_text(json.dumps({"version": 3, "fixed": ["d1"], "known": ["d1"]}))
+        lab.config(crash={})
+        retry = lab.ok("next", "--campaign", lab.campaign)
+        self.assertEqual((retry["key"], retry["base"]), (key, "b0"))
+
     def test_a_crash_before_the_journal_is_saved_cannot_duplicate_its_line(self):
         lab = Lab(self)
         lab.init("A1")
@@ -1195,7 +1572,10 @@ class QuotaTests(unittest.TestCase):
         actions = lab.run()
         self.assertEqual([item["action"] for item in actions], ["start", "start", "start", "stop"])
         self.assertEqual((actions[-1]["status"], actions[-1]["reason"]), ("incomplete", "budget used: seconds"))
-        self.assertEqual(json.loads((lab.campaign / "report.json").read_text())["campaign_status"], "incomplete")
+        report = json.loads((lab.campaign / "report.json").read_text())
+        # The budget is checked between steps, so the iteration that used the last of it can also be the one that converged the
+        # scope: the scope certificate is then converged and the campaign is still incomplete, and the report says both.
+        self.assertEqual((report["scope_certificate"], report["campaign_status"]), ("converged", "incomplete"))
         self.assertIn("budget exhausted: seconds", (lab.campaign / "report.md").read_text())
 
     def test_widening_does_not_renew_the_quota(self):
@@ -1237,6 +1617,62 @@ class QuotaTests(unittest.TestCase):
         self.assertIn("non-negative", err)
         lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--consumed", '{"seconds": 40}')
         self.assertEqual(lab.state()["consumed"], {"seconds": 61})
+
+    def test_readiness_stops_before_the_probe_that_would_exceed_the_budget_and_keeps_what_it_spent(self):
+        lab = Lab(self)
+        lab.init("A1", "--budget", "seconds=10", ready=False)
+        lab.config(probe_consumed={"seconds": 7})
+        lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
+        code, _, err = lab.cli("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("budget used: seconds", err)
+        self.assertEqual(lab.state()["consumed"]["seconds"], 14)  # two probes finished; the guard stopped the third
+        code, _, err = lab.cli("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
+        self.assertIn("budget used: seconds", err)  # the budget is spent: nothing is probed again
+        self.assertEqual(lab.state()["consumed"]["seconds"], 14)
+
+    def test_a_failing_probe_still_charges_the_probes_that_finished_before_it(self):
+        lab = Lab(self)
+        lab.init("A1", ready=False)
+        lab.config(probe_consumed={"seconds": 7}, crash_probe=["grading.scores"])
+        lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
+        code, _, err = lab.cli("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("exited 1", err)
+        self.assertTrue(7 <= lab.state()["consumed"]["seconds"] < 8, lab.state()["consumed"])  # one probe plus the failed call
+
+    def test_a_poll_that_keeps_failing_stops_the_campaign_and_the_step_is_left_for_cancel_and_cleanup(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(poll_delay=9)
+        key = lab.step()["key"]
+        lab.config(crash_step=["poll"])
+        for _ in range(3):
+            code, _, err = lab.cli("step", "--campaign", lab.campaign)
+            self.assertEqual(code, cl.EXIT_ERROR)
+            self.assertIn("exited 1", err)
+        stop = lab.ok("step", "--campaign", lab.campaign)
+        self.assertEqual((stop["action"], stop["status"]), ("stop", "incomplete"))
+        self.assertIn(f"failed to poll step {key} 3 time(s)", stop["reason"])
+        self.assertEqual(lab.state()["steps"][key]["status"], "running")  # still in flight: C5 refuses until it is cancelled
+        self.assertTrue(any("is still running" in reason for reason in lab.check("C5")[1]["reasons"]))
+        lab.config(crash_step=[])
+        lab.ok("cancel", "--campaign", lab.campaign, "--key", key)
+        self.assertEqual(lab.ok("cleanup", "--campaign", lab.campaign)["covered"], [key])
+
+    def test_once_the_budget_is_used_a_single_failed_poll_ends_the_campaign(self):
+        lab = Lab(self)
+        lab.init("A1", "--budget", "seconds=50")
+        lab.config(poll_delay=9)
+        lab.step()  # a step is running
+        task = lab.ok("task", "--campaign", lab.campaign, "add", "--kind", "note", "--text", "work that cost money")["task"]
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--consumed", '{"seconds": 60}')
+        lab.config(crash_step=["poll"])
+        code, _, _ = lab.cli("step", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        stop = lab.ok("step", "--campaign", lab.campaign)
+        self.assertEqual(stop["status"], "incomplete")
+        self.assertIn("after the budget was used", stop["reason"])
 
     def test_a_stop_is_recorded_and_reported_even_when_the_adapter_can_no_longer_be_queried(self):
         lab = Lab(self)
@@ -1356,16 +1792,32 @@ class UntilLoopTests(unittest.TestCase):
     def setUp(self):
         self.lab = Lab(self)
         self.lab.init("A1")
-        self.contract = self.lab.tmp / "contract.json"
+        self.start_contract("")
+
+    def start_contract(self, scope: str) -> None:
+        """Emit the campaign's current contract and start it in isolated mode, with its state and receipt beside the campaign."""
+        self.contract = self.lab.tmp / f"contract{scope}.json"
         self.lab.ok("contract", "--campaign", self.lab.campaign, "--out", self.contract)
-        self.durable = self.lab.tmp / "until"
+        self.durable = self.lab.tmp / f"until{scope}"
         self.durable.mkdir()
-        self.receipt = self.lab.tmp / "receipt.json"
+        self.receipt = self.lab.tmp / f"receipt{scope}.json"
         started = subprocess.run([sys.executable, str(RUNTIME), "start", "--isolated", "--directory", str(self.durable),
                                   "--receipt", str(self.receipt)], input=self.contract.read_text(), capture_output=True,
                                  text=True, check=False)
         self.assertEqual(started.returncode, 0, started.stderr)
         self.packet = json.loads(started.stdout)
+
+    def complete_contract(self, limit: int) -> list:
+        """Iterate as the card says (step, verify, report) until the contract completes; return each report's status."""
+        statuses = []
+        for _ in range(limit):
+            converged = self.one_iteration()
+            quiet = self.lab.state()["iterations"][-1]["quiet"]
+            _, reply = self.done("satisfied" if converged else "unsatisfied", quiet)
+            statuses.append(reply["status"])
+            if reply["status"] == "complete":
+                break
+        return statuses
 
     def verify(self) -> subprocess.CompletedProcess:
         return subprocess.run(self.packet["verify_script"], shell=True, executable="/bin/sh", capture_output=True, text=True,
@@ -1398,6 +1850,18 @@ class UntilLoopTests(unittest.TestCase):
             seen.append((number, converged, reply["status"]))
         self.assertEqual(seen, [(1, False, "active"), (2, False, "active"), (3, True, "complete")])  # three passes, not four
         self.assertEqual(json.loads(self.receipt.read_text())["status"], "complete")
+
+    def test_a_widened_scope_is_completed_by_its_own_contract_and_the_campaign_then_stops_for_the_owner(self):
+        self.assertEqual(self.complete_contract(5), ["active", "active", "complete"])  # S0: three passes
+        widened = self.lab.step()
+        self.assertEqual((widened["action"], widened["scope"]), ("widen", "S1"))
+        self.start_contract("-S1")  # new files and a new receipt, as the card says
+        self.assertIn("Scope S1", json.loads(self.contract.read_text())["exit_condition"])
+        self.assertEqual(self.complete_contract(8), ["active", "active", "active", "complete"])  # a sweep, a fix, two quiet passes
+        self.assertEqual(json.loads(self.receipt.read_text())["status"], "complete")
+        stop = self.lab.step()
+        self.assertEqual((stop["action"], stop["status"], stop["rung"]), ("stop", "incomplete", "E5"))
+        self.assertEqual(stop["scope_certificate"], "converged")  # the scope converged; the campaign waits for the owner
 
     def test_a_satisfied_report_over_a_failing_check_does_not_complete(self):
         self.one_iteration()
@@ -1474,7 +1938,9 @@ class CardTests(unittest.TestCase):
         self.assertTrue(front.startswith("---\nname: closed-loop\n"))
         self.assertIn("version: 0.1.0", front)
         self.assertIn("kind: script-backed", front)
-        self.assertIn("version: 0.1.0", (ROOT / "changes" / "closed-loop" / "initial.md").read_text())
+        note = ROOT / "changes" / "closed-loop" / "initial.md"
+        if note.is_file():  # release.py consumes the first change note, so it exists only before the release
+            self.assertIn("version: 0.1.0", note.read_text())
         for other in ("improve", "improve-loop"):  # the description must separate this skill from its neighbours
             self.assertIn(other, front)
 
@@ -1550,6 +2016,20 @@ class CardTests(unittest.TestCase):
         self.assertIn("adapter.proposed.json", definer)
         self.assertIn("definer-proposal.json", definer)
         self.assertIn("adapter-check --manifest adapter.proposed.json --proposal definer-proposal.json", definer)
+
+    def test_the_docs_state_the_gates_and_limits_the_script_now_enforces(self):
+        def flat(path) -> str:  # the docs wrap lines; a phrase may not
+            return " ".join((SKILL / path).read_text().split())
+        card, schema, convergence = flat("SKILL.md"), flat("references/adapter-schema.md"), flat("references/convergence.md")
+        until_loop, readiness = flat("references/until-loop.md"), flat("references/readiness.md")
+        for phrase in ("**verify now**", "is in flight", "yourself before `init`", "used the last of it", "`cleanup` is an adapter command",
+                       "One session acts on a campaign at a time"):
+            self.assertIn(phrase, card, phrase)
+        for text, phrase in ((until_loop, "`!*`"), (until_loop, "git add -A -n"), (until_loop, "between the last check and the runtime's"),
+                             (convergence, "no step is still running"), (convergence, "latest readiness still shows"),
+                             (convergence, "scoring identity"), (schema, "launch_intents"), (schema, "readiness` refuses to run a probe"),
+                             (readiness, "A proven claim needs evidence")):
+            self.assertIn(phrase, text, phrase)
 
     def test_the_references_state_the_limits_the_script_enforces(self):
         schema = (SKILL / "references" / "adapter-schema.md").read_text()

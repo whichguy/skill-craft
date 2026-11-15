@@ -69,10 +69,50 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 - **Mutation check (firm).** 31 distinct safeguards broken one at a time; each is caught by at least one test, after one test was
   added for the single survivor of run 1 (the report's own stale-stop rewrite). Results: `mutations-run1.json`,
   `mutations-run2.json` in the review folder. This shows the tests are not vacuous, not that the safeguards are complete.
-- **Open (unknown).** A second Astra max review of the hardened code, the quick tier, and CI on main come next and are recorded below
-  when they exist. Nothing has driven the card with a model operator on a real subject; the ShipLoop adapter (Phase 2) is the first
+- **Open (unknown), as of the hardening commit; R3 below answers the first part.** A second Astra max review of the hardened code, the
+  quick tier, and CI on main. Nothing has driven the card with a model operator on a real subject; the ShipLoop adapter (Phase 2) is the first
   real subject and waits on owner decisions (the harness's continuation seam is a new scoring identity, which AGENTS.md reserves
   for the owner).
+
+### R3. Astra's second max review, and the round it forced (2026-11-15)
+
+- **Question.** Did the hardening fix the ten findings, and did the fixes open new paths to false completion?
+- **Conditions.** Codex `gpt-6-astra` at max, read-only, one attempt, 11 minutes, on `163f21f2e9724ff61611f71a3311bc360ed25a41`
+  (the hardening merged with published main). Brief, answer, run record and the reviewer's reproduction bundle:
+  `docs/experiments/closed-loop-review-20261115/round2-*`. The quick tier ran beside it on the same commit: 23 suites, PASS, 260.7 s.
+- **Result.** *Not ready to ship.* Four of the ten round-1 findings FIXED, six PARTLY; eight new or remaining issues (six P1, two P2),
+  two instruction bugs, one missing mutation. Status: **firm**. Finding-by-finding dispositions and tests: the review folder's README,
+  "Round 2". The pattern across rounds: the first review found what the code did wrong; the second found what the *fixes* did not
+  cover (a running step, an unknown launch, readiness that outlives its evaluator, a Git ignore rule that blinds the fingerprint) and
+  one regression of mine (the live-base change broke crash replay).
+- **Provenance of two fixes.** The process-group kill at a timeout was found by me after reading a progress line of the reviewer
+  ("checking timeout cleanup"), not from its answer: `subprocess.run`'s timeout kills only the direct child, so a grandchild holding the
+  output pipe kept the call, and the campaign lock, alive past it (test and mutation in `AdapterProcessTests`). The record-shape,
+  build-consistency, lock-wait and cleanup-invalidation fixes came from my own read-through of the code.
+- **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.**
+  1. *`init` writes a `.gitignore` of `!*` into the campaign folder, and every check and `contract` run `git check-ignore` and `git
+     add -A -n` first.* Rejected: patching the vendored Until Loop to fail closed on a null tree or an ignored file, because
+     `improve` ships it validated and the vendor test pins it; the orchestrator can instead refuse to pass a check on a folder the
+     fingerprint cannot see.
+  2. *A launch intent is saved before the adapter is called.* It carries the base, so a replay does not recompute it from a build the
+     run already changed, and it is also the record that a launch of unknown outcome exists, which check C5 refuses until cleanup.
+  3. *Completion on the step that used the last of the budget is kept, and documented.* The budget is checked between steps, so the
+     iteration that spends the last of it can also converge the scope; the contract may then complete and the campaign reads
+     incomplete (budget used). The reviewer counted this as a quota failure; I did not change it because the repository's own rule
+     calls budgets post-hoc and the scope certificate is a true statement about the evidence. The report states both statuses.
+  4. *A concurrent writer between the last check and the runtime's fingerprint, and a changed adapter between the verify run and the
+     report, are disclosed, not fixed.* No orchestrator-side change can close them: the checks are separate processes and the
+     runtime fingerprints after they exit. The card says one session per campaign and verify-then-report back to back.
+  5. *Quality claims are bound to the scoring identity they were proven under,* and a later failing readiness withholds the
+     certificate (check C7) and the next start; a changed evaluator does not by itself block a start.
+- **Owner direction, mid-round (2026-11-15).** "maybe we should switch from astra max to sol max for advisors going forward." Recorded
+  in memory; the review above was already running and finished on Astra. Later reviews use Sol 6.1 at max. Whether Sol at max finds
+  what Astra at max found is not yet measured.
+- **Measurements.** Suite 110 to 140 tests (about 100 s); every new safeguard mutation-checked: see the README, "Mutation check", for
+  the counts and the three that needed a better test (a vacuous kill from a bad mutation, a guard that overlapped another, and the
+  existence check inside the lock). Lint and the 3.9 grammar check as before.
+- **Open (unknown).** A third review, on Sol at max, of the round-3 fixes; nothing has driven the card with a model operator on a real
+  subject; the vendored runtime still records a null tree on a Git error and then skips freshness (disclosed; guarded on this side).
 
 ## Findings
 
@@ -84,3 +124,7 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F4 | Marginal coverage misses interactions: a catalog of AX, BY, AY leaves AY unselected unless the pair is a declared combination | firm | `EvidenceTests.test_declared_combinations_...`, `..._without_declared_combinations_...` |
 | F5 | The script cannot prove an adapter reported truthfully; the ratified boundary, the pinned files and the readiness probes are the trust | firm (a limit, stated in the card) | `references/convergence.md`, `references/adapter-schema.md` |
 | F6 | The budget is checked between steps, so one step can overshoot it; hung and failed calls are charged | firm | `QuotaTests` |
+| F7 | The Until Loop's fingerprint is `git add -A` into a private index: an ignore rule hides a file from it and a Git error makes it unavailable, after which the runtime skips freshness. A folder `.gitignore` of `!*` outranks every other ignore source, and the checks refuse to pass when Git cannot see the folder | firm | `FingerprintTests`; `round2-evidence.json` |
+| F8 | A launch the campaign does not know the outcome of (a crash or a timeout after the adapter may have started it) must be written down before the call and counted as unclean until cleanup covers it; a replay must reuse the recorded base | firm | `ResumeTests`, `EvidenceTests`; the live-base regression I introduced and the reviewer found |
+| F9 | A claim readiness proves is about an evaluator: it must carry its evidence and the scoring identity, and lapse when the identity changes | firm | `ReadinessTests` |
+| F10 | `subprocess.run`'s timeout kills only the direct child: run the adapter in its own session and kill the process group, or a grandchild holding the pipe keeps the call alive | firm | `AdapterProcessTests` |

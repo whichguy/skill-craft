@@ -11,7 +11,8 @@ certificate (`analyze` in `closed_loop.py`); the operator does not guess.
 | **active** | otherwise | `step` starts the next step |
 
 `step` also stops `incomplete` before it analyses anything when: the budget is used; the same step error occurred three times; the
-adapter failed to start the same step three times (its key is kept across retries, so a retry can never launch a second run); three
+adapter failed to start the same step three times (its key and base are kept across retries, so a retry can never launch a second
+run or start from another build), or failed to poll a running step three times (once, if the budget is used); three
 iterations at a scope passed with no quiet pass, no promoted candidate and no finished task; or a case that met its floors before a
 promoted candidate misses them on the build it produced (a **metric regression**: halt, never auto-revert). The owner clears these
 with `reopen --yes-owner-approved [--budget ...]` after deciding what to do. `step` prints `blocked` (exit 1) rather than starting

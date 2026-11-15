@@ -1,0 +1,4 @@
+{'mutation': 'git failure not detected', 'classes': ['FingerprintTests'], 'result': 'killed', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'C7 readiness check off', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'new start failure keeps an old cleanup', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+SURVIVORS: []

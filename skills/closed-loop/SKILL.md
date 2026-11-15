@@ -53,11 +53,15 @@ contract was frozen for.
 
 ## Procedure
 
-1. **Find the adapter.** An explicit manifest path, or `<subject>/closed-loop.adapter.json`. `loop adapter-check --manifest "$M"`. No
-   manifest, or readiness shows an unproven start claim: go to *Define the adapter* before spending any run.
+1. **Find the adapter and read it.** An explicit manifest path, or `<subject>/closed-loop.adapter.json`. `loop adapter-check
+   --manifest "$M"` runs nothing, so read the manifest's `commands`, `execution` and `pin` yourself before `init`: `init` and the
+   read-only probes run the adapter's read-only commands (`cases`, `identity`, read-only claims) before the owner has ratified
+   anything. No manifest: go to *Define the adapter* before spending any run.
 2. **Read readiness**, which runs read-only claims only until the owner ratifies the boundary:
    `loop readiness --manifest "$M" --workspace "$WS"`. The start rule needs a case that `runs`, a measure that `scores` and an
-   improvement stage that is `bounded` ([references/readiness.md](references/readiness.md)).
+   improvement stage that is `bounded` ([references/readiness.md](references/readiness.md)). Effectful claims that show `declared`
+   with the evidence "not run" are expected before step 4; go to *Define the adapter* only for a claim that ran and failed, or for a
+   kind the manifest does not declare.
 3. **Start the campaign.** Ask the owner for the budget (seconds, turns or spend: the quota is aggregate, never renews, and `init`
    refuses a campaign without one), then
    `loop init --manifest "$M" --campaign "$C" --workspace "$WS" --cases CHEAPEST_CASE --budget seconds=3600,turns=400`. `C` is a new
@@ -95,7 +99,8 @@ gap has a useful next investigation inside the recorded authority.
 
 | action | meaning | you |
 | --- | --- | --- |
-| `start`, `poll` | a step started or is still running; its finished iteration is persisted | repeat `step` |
+| `start` or `poll` with `"status": "running"` | the step is in flight | repeat `step` |
+| `start` or `poll` that prints an `iteration` (status `done` or `failed`) | the step finished and its iteration is recorded | **verify now**: run the packet's `verify_script`, read `certificate`, report with `done_argv`; only then run `step` again, because the next `step` may widen and the old contract must be reported first |
 | `task` | the orchestrator needs an investigation it cannot run (diagnose a stall, hunt blind spots) | do it, then `task done --id T --result JSON [--consumed JSON]`. A task that `needs_owner` is **asked about first**: tell the owner what it would do, act only after they say yes, then pass `--approve`. A `hunt` result must give every blind spot a disposition ([references/escalation.md](references/escalation.md)) |
 | `widen` | the scope converged and an allowed catalog case covers a value the scope lacks (the cheapest such case was added) | open the new scope's contract; its first iteration is a baseline sweep with no improver |
 | `blocked` (exit 1) | the owner has not ratified the boundary, readiness has not shown the start rule, or a selected case is owner-gated | do what the reason says; never route around it |
@@ -103,6 +108,8 @@ gap has a useful next investigation inside the recorded authority.
 
 Also: `cancel --key K` abandons a running step (it becomes an invalid iteration), and `cleanup` runs the adapter's owned cleanup for
 every run that lacks positive cleanup evidence, which check C5 needs after a failed or cancelled run. Neither makes a certificate.
+`cleanup` is an adapter command, so it needs the ratified boundary; it also covers a start that failed after possibly launching a run.
+A step still running, or a launch whose outcome is unknown, keeps C5 failing until it is cancelled and cleaned up.
 
 ## Define the adapter
 
@@ -126,6 +133,8 @@ iteration with [prompts/adapter-gap.md](prompts/adapter-gap.md).
 - The adapter's graders, checks and manifest are never in the candidate set. Changing the evaluator happens between scopes and starts
   a new identity; results are compared only under the same one.
 - No hosted, credential, spend or deletion command runs until the owner has ratified a boundary that names it.
+- One session acts on a campaign at a time. A writer that changes the campaign between the last check and the runtime's
+  fingerprint is not detected, and two operators can also double-spend the budget.
 - Do not evade a limit and do not repeat a rejected attempt blindly. Another session's runs, branches and releases are not yours to stop.
 
 ## Honest limits (v0)
@@ -135,8 +144,11 @@ subject. This skill binds `improve`'s Until Loop runtime by a package-relative p
 is an operational default, not calibrated evidence. Guard sets for qualified comparisons and statistical policy live in the adapter,
 not here. Whether a subject's evaluator is sensitive is something only its probes can show. The script checks the evidence an
 adapter reports and cannot show that the adapter reported truthfully: the ratified boundary and the pinned adapter files are the
-trust. The budget is checked between steps, so one step can overshoot it. The Until Loop's freshness check watches the campaign
-folder, not the subject: verify and report back to back.
+trust. The budget is checked between steps, so one step can overshoot it, and a contract can complete on the step that used the last
+of it (the report then reads scope converged, campaign incomplete: budget used). The Until Loop's freshness check watches the
+campaign folder only: not the subject, the adapter and its pinned files, or this script. The checks catch a change to those as stale
+or refused the next time they run, so verify and report back to back with no other call between. A Git ignore rule that would hide
+campaign state from the fingerprint, or a Git error, makes the checks exit 2 instead of passing.
 
 ## References
 
