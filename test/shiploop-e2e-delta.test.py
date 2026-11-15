@@ -580,7 +580,7 @@ class RegressionTest(unittest.TestCase):
         (self.root / "state.md").write_text("```shiploop-state\n" + json.dumps(self.state) + "\n```\n")
 
     def record(self, name="v1", **fields):
-        record = {"schema": "shiploop-test-loop/v1", "action": "a1", "work_item": "W1", "stage": "test",
+        record = {"schema": "shiploop-test-loop/v2", "action": "a1", "work_item": "W1", "stage": "test",
                   "attempt": 1, "trees": ["before", "after"], "runs": [
                       {"command": "node --test", "suite": "regression", "status": "passed", "counts": {"ran": 7, "passed": 7},
                        "stdout": "PRIVATE OUTPUT", "stderr": "PRIVATE ERROR"}], **fields}

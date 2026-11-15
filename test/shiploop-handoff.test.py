@@ -1477,7 +1477,7 @@ class PrimaryGateTests(RepoCase):
 
     @staticmethod
     def record(*, passed: bool = True, status: str = "passed", ids: tuple = ("TC-1", "TC-2")) -> dict:
-        return {"schema": "shiploop-test-loop/v1", "action": "t1", "stage": "test", "work_item": "W1",
+        return {"schema": "shiploop-test-loop/v2", "action": "t1", "stage": "test", "work_item": "W1",
                 "passed": passed, "disposition": "passed" if passed else "failed",
                 "runs": [{"command": "npm test", "suite": "focused", "ids": list(ids), "status": status,
                           "ids_missing": []}]}

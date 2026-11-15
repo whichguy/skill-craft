@@ -94,10 +94,7 @@ UNAVAILABLE = ("timeout", "error")
 COMMAND_TIMEOUT_SECONDS = 600.0
 # Display: the end of one command's output a test record keeps; the cut says the command (in the same row) shows the rest.
 TAIL_CHARS = 6000
-SCHEMA = "shiploop-test-loop/v1"
-# Bump when judge/count semantics change, so old passes rerun rather than rejudge
-# stored output tails. Historical records remain readable for counts and floors.
-JUDGEMENT_VERSION = 1
+SCHEMA = "shiploop-test-loop/v2"
 BASE_SCHEMA = "shiploop-test-base/v1"
 # Result fields of the test stage, validated by ``check_result_fields``.
 RED_NA = "red_na"
@@ -1407,7 +1404,7 @@ def _reused(root: Path, action: str, stage: str, work_item: str, commands: Seque
     except (OSError, store.StorageError):
         return None
     if not (isinstance(record, Mapping) and record.get("passed") is True
-            and record.get("judgement_version") == JUDGEMENT_VERSION and record.get("stage") == stage
+            and record.get("schema") == SCHEMA and record.get("stage") == stage
             and record.get("work_item") == work_item and record.get("commands") == list(commands)
             and record.get("trees")):
         return None
@@ -1484,7 +1481,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     reused = _reused(root, action, stage, work_item, commands, repo, held) if count and observed is None else None
     if reused is not None:
         record = {
-            "schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION,
+            "schema": SCHEMA,
             "action": action, "stage": stage, "work_item": work_item,
             "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "cwd": str(cwd), "passed": True, "disposition": "passed", "runs": reused[0],
@@ -1524,7 +1521,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         runs += default_suite_drift(state, commands, run_one)
     disposition = _disposition(runs, PASSING)
     record = {
-        "schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION,
+        "schema": SCHEMA,
         "action": action, "stage": stage, "work_item": work_item,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "cwd": str(cwd), "passed": disposition == "passed", "disposition": disposition,
@@ -1666,7 +1663,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     tree = _tree(root, repo)
     number = _count(root, action, step_proof_path) + 1
     matched = next(((relative, record) for relative, record in reversed(_proof_records(root, action))
-                    if record.get("passed") is True and record.get("judgement_version") == JUDGEMENT_VERSION
+                    if record.get("passed") is True and record.get("schema") == SCHEMA
                     and record.get("step") == step_id
                     and record.get("command") == row["command"] and tree and tree in (record.get("trees") or ())),
                    None) if count else None
@@ -1676,7 +1673,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                 + str(matched[1].get("created_at")) + " (" + matched[0] + "): the candidate is unchanged")
         if phase != "complete":
             return {}, "", [line]
-        record = {"schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION, "kind": "step-proof",
+        record = {"schema": SCHEMA, "kind": "step-proof",
                   "action": action, "stage": STEP_PROOF_STAGES[0],
                   "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
                   "created_at": created, "cwd": str(repo), "passed": True, "disposition": "passed",
@@ -1691,7 +1688,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     if "status" not in run:
         run.update(judge(row, run["exit"], output))
     disposition = _disposition([run], PASSING)
-    record = {"schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION, "kind": "step-proof",
+    record = {"schema": SCHEMA, "kind": "step-proof",
               "action": action, "stage": STEP_PROOF_STAGES[0],
               "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
               "created_at": created, "cwd": str(repo), "passed": disposition == "passed", "disposition": disposition,

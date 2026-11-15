@@ -851,12 +851,30 @@ class ValidationTest(unittest.TestCase):
         self.assertEqual(validation["tests_ran_unmeasured"], 0)
         self.assertNotIn("validation.counts", replay("r1-battleship-sonnet")["block"]["unmeasured"])
 
+    def test_current_v2_emitted_evidence_is_readable(self):
+        import shiploop_test_loop as test_loop
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            run_dir.mkdir()
+            writes, refusal = test_loop.verify(
+                run_dir, {"repo": tmp}, "", "nav-current", "document",
+                commands=[{"command": "printf '1 passed in 0.01s\\n'", "suite": "focused"}])
+            self.assertEqual(refusal, "")
+            for relative, text in writes.items():
+                store.atomic_write_text(run_dir / relative, text)
+            record = store.read_record(run_dir / test_loop.verify_path("nav-current", 1))
+            self.assertEqual(record["schema"], "shiploop-test-loop/v2")
+            validation = self.fidelity.validation(run_dir)
+            self.assertEqual((validation["records"], validation["unread"], validation["runs"]), (1, 0, 1))
+            self.assertEqual(validation["schemas"], ["shiploop-test-loop/v2"])
+            self.assertEqual(validation["by_suite"]["focused"]["counted"], 1)
+
     def test_a_counted_row_that_ran_zero_tests_is_listed_not_passed(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         run_dir = Path(tmp.name) / "run"
         (run_dir / "tests").mkdir(parents=True)
-        record = {"action": "nav-1", "stage": "test-green", "schema": "shiploop-test-loop/v1", "passed": True,
+        record = {"action": "nav-1", "stage": "test-green", "schema": "shiploop-test-loop/v2", "passed": True,
                   "runs": [{"command": "node --test", "suite": "focused", "counts": {"ran": 0, "failed": 0}, "status": "passed"},
                            {"command": "node --test x", "suite": "focused", "counts": {"ran": 3, "failed": 0}, "status": "passed"}]}
         (run_dir / "tests" / "nav-1-verify1.md").write_text("```shiploop-state\n" + json.dumps(record) + "\n```\n")
@@ -870,7 +888,7 @@ class ValidationTest(unittest.TestCase):
         run_dir = Path(tmp.name) / "run"
         (run_dir / "tests").mkdir(parents=True)
         (run_dir / "tests" / "nav-1-verify1.md").write_text("```shiploop-state\n" + json.dumps(
-            {"schema": "shiploop-test-loop/v2", "runs": [{"command": "x", "suite": "focused", "counts": None}]}) + "\n```\n")
+            {"schema": "shiploop-test-loop/unknown", "runs": [{"command": "x", "suite": "focused", "counts": None}]}) + "\n```\n")
         (run_dir / "tests" / "nav-2-verify1.md").write_text("no fence here\n")
         validation = self.fidelity.validation(run_dir)
         self.assertEqual((validation["records"], validation["unread"], validation["runs"]), (2, 2, 0))
@@ -878,7 +896,7 @@ class ValidationTest(unittest.TestCase):
         self.assertIn("not read", block["unmeasured"]["validation.unread"])
 
     def release_record(self, run_dir: Path, number: int, created_at: str | None, passed, where="returned-result", observed=True):
-        record = {"schema": "shiploop-test-loop/v1", "action": "nav-rel", "stage": "release-verify", "passed": passed,
+        record = {"schema": "shiploop-test-loop/v2", "action": "nav-rel", "stage": "release-verify", "passed": passed,
                   "runs": [{"command": "node --test", "suite": "check", "counts": None, "status": "passed" if passed else "failed"}]}
         if created_at:
             record["created_at"] = created_at

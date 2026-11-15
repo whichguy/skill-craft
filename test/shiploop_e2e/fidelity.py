@@ -33,7 +33,8 @@ SCHEMA = "shiploop-e2e-fidelity/v1"
 # Files the engine keeps beside a run (shiploop_workspace.MANIFEST, RETURN_PLAN, RETURN_RECEIPT): script-owned, and named in a
 # command that has changed directory first, so they are matched by their name.
 WORKSPACE_FILES = ("return-plan.md", "return-receipt.md", "workspace.md")
-VERIFY_SCHEMA = "shiploop-test-loop/v1"
+# Reporting reads archived v1 receipts and current v2 receipts; this does not authorize runtime reuse.
+VERIFY_SCHEMAS = ("shiploop-test-loop/v1", "shiploop-test-loop/v2")
 # The suites whose rows are tests: a row with no count does not show that a test ran. A check row is judged by its exit code.
 TEST_SUITES = ("focused", "regression")
 RECORD_KINDS = ("verify", "step-proof", "lint", "loop", "expectation", "backchain", "improve")
@@ -56,7 +57,7 @@ TRACE_REFUSAL_LIMITS = ("read from ShipLoop's run trace: every command that name
 EDIT_LIMITS = ("a list to confirm: no hit is not proof (an edit by interpreter code such as a python3 heredoc, a shell apply_patch or git "
                "apply, a kill by numeric pid or by port, and a relative path after cd other than the three workspace files, matched by "
                "name, are not seen) and a hit can be quoted text read as a command (a quoted > word reads as a redirect)")
-UNREAD_REASON = ("a verify record that is not shiploop-test-loop/v1 or cannot be read as JSON is not read, so its rows are in no "
+UNREAD_REASON = ("a verify record that is neither shiploop-test-loop/v1 nor v2 or cannot be read as JSON is not read, so its rows are in no "
                  "count below")
 COUNTS_REASON = ("a focused or regression row whose counts are null does not show that a test ran (S-9: a check that ran nothing "
                  "is not a pass), so those rows are unmeasured, not passed")
@@ -502,7 +503,7 @@ def _verify_record(path: Path) -> dict | None:
         record = json.loads(found.group("json")) if found else None
     except ValueError:
         return None
-    return record if isinstance(record, dict) and record.get("schema") == VERIFY_SCHEMA and isinstance(record.get("runs"), list) else None
+    return record if isinstance(record, dict) and record.get("schema") in VERIFY_SCHEMAS and isinstance(record.get("runs"), list) else None
 
 
 def validation(run_dir: Path | None) -> dict:
@@ -511,7 +512,7 @@ def validation(run_dir: Path | None) -> dict:
     ``tests_ran_unmeasured`` is the focused and regression rows whose counts are null; ``zero_ran`` (per suite) the rows that counted
     a test and ran none, null for a suite with no counted row. ``accepted_ran`` is null when no row carries the key. ``release_verify``
     is the latest record (by created_at, then by record number) that observed a ``where``, with the record's own ``passed``: the
-    engine writes ``observed`` before it decides ``passed``. ``unread`` is the records that are not shiploop-test-loop/v1 or not JSON:
+    engine writes ``observed`` before it decides ``passed``. ``unread`` is the records that are neither shiploop-test-loop/v1 nor v2 or not JSON:
     their rows are in no count. ``gates_not_exercised`` is the base-run and mutation-check records that say skipped
     (``gates_not_exercised`` below). The regex reader metrics.verifications stays what baselines use; build compares the two and a test
     pins that both agree on the saved runs."""

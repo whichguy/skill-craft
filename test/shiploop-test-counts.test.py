@@ -242,6 +242,16 @@ class JudgeTests(unittest.TestCase):
                 self.assertEqual(self.status(row, 0, "1 error in 0.01s\n"), "no-tests")
                 if suite != "check":
                     self.assertEqual(self.status(dict(row, min_tests=2), 0, output), "too-few-tests")
+        row = {"command": "wrapped-test", "suite": "focused"}
+        mixed = test_loop._judge_base(row, 0, output, [], [], [])
+        clean = test_loop._judge_base(row, 0, output.replace(", 1 error", ""), [], [], [])
+        self.assertEqual((mixed["status"], mixed["counts"]["ran"], mixed["counts"]["failed"]), ("red", 1, 1))
+        self.assertEqual((clean["status"], clean["counts"]["ran"], clean["counts"]["failed"]),
+                         ("passes-on-base", 1, 0))
+        for row, earlier in ((dict(row, suite="regression"), False), (row, True)):
+            verdict = test_loop._judge_base(row, 0, output, [], [], [], earlier_step=earlier)
+            self.assertEqual((verdict["status"], verdict["counts"]["ran"], verdict["counts"]["failed"]),
+                             ("counted", 1, 1))
         row = {"command": "wrapped-test", "suite": "focused", "ids": ["missing"]}
         self.assertEqual(self.status(row, 0, output), "ids-missing")
 

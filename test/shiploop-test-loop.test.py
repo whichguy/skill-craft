@@ -2769,21 +2769,21 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
     PYTEST_ERROR = b"test_values.py::test_value[TC-1] PASSED\n1 passed, 1 error in 0.01s\n"
 
     @staticmethod
-    def old_judgement(record: dict, marker) -> None:
+    def old_schema(record: dict, marker) -> None:
         if marker is None:
-            record.pop("judgement_version", None)
+            record.pop("schema", None)
         else:
-            record["judgement_version"] = marker
+            record["schema"] = marker
 
-    def test_stale_candidate_judgement_reruns_on_the_same_tree(self):
-        for marker in (None, 0):
+    def test_stale_candidate_schema_reruns_on_the_same_tree(self):
+        for marker in (None, "shiploop-test-loop/v1"):
             with self.subTest(marker=marker):
                 self.restart()
                 (self.repo / "a.py").write_text("x = 1\n")
                 action, done, _ = self.document_checked()
                 path = self.run_dir / test_loop.check_path(action)
                 record = store.read_record(path)
-                self.old_judgement(record, marker)
+                self.old_schema(record, marker)
                 path.write_text(store.dumps(record, "Legacy candidate check"))
                 original = path.read_bytes()
                 # Remove only the whole-answer shortcut, to isolate lower-level reuse.
@@ -2799,10 +2799,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                 self.assertEqual(path.read_bytes(), original)
                 fresh = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
                 self.assertFalse(fresh["passed"])
-                self.assertEqual(fresh["judgement_version"], test_loop.JUDGEMENT_VERSION)
+                self.assertEqual(fresh["schema"], "shiploop-test-loop/v2")
                 self.assertNotIn("reused", fresh)
 
-    def test_current_candidate_judgement_reuses_without_whole_answer(self):
+    def test_current_candidate_schema_reuses_without_whole_answer(self):
         action, done, _ = self.document_checked()
         (self.run_dir / shiploop_check.answer_path(action)).unlink()
         with mock.patch.object(test_loop.lint, "run_argv") as runner:
@@ -2810,10 +2810,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         runner.assert_not_called()
         record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
         self.assertEqual(record["reused"]["path"], test_loop.check_path(action))
-        self.assertEqual(record["judgement_version"], test_loop.JUDGEMENT_VERSION)
+        self.assertEqual(record["schema"], "shiploop-test-loop/v2")
 
-    def test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts(self):
-        for marker in (None, 0):
+    def test_stale_whole_answer_schema_reruns_stale_subordinate_receipts(self):
+        for marker in (None, "shiploop-test-loop/v1"):
             with self.subTest(marker=marker):
                 self.restart()
                 (self.repo / "a.py").write_text("x = 1\n")
@@ -2834,14 +2834,28 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                 answer_path = self.run_dir / shiploop_check.answer_path(action)
                 answer = store.read_record(answer_path)
                 self.assertEqual(answer["answer"], "yes")
-                self.old_judgement(answer["key"], marker)
+                self.assertEqual(answer["key"].get("test_schema"), "shiploop-test-loop/v2")
+                if marker is None:
+                    answer["key"].pop("test_schema")
+                else:
+                    answer["key"]["test_schema"] = marker
                 answer_path.write_text(store.dumps(answer, "Legacy whole answer"))
                 path = self.run_dir / test_loop.check_path(action)
                 record = store.read_record(path)
-                self.old_judgement(record, marker)
+                self.old_schema(record, marker)
                 path.write_text(store.dumps(record, "Legacy candidate check"))
                 before = (self.run_dir / "state.md").read_bytes()
-                with mock.patch.object(test_loop.lint, "run_argv", return_value=(
+                answer_key = shiploop_check.answer_key
+
+                def checked_key(*args, **kwargs):
+                    current = answer_key(*args, **kwargs)
+                    self.assertEqual({k: v for k, v in current.items() if k != "test_schema"},
+                                     {k: v for k, v in answer["key"].items() if k != "test_schema"})
+                    self.assertEqual(current["test_schema"], "shiploop-test-loop/v2")
+                    return current
+
+                with mock.patch.object(shiploop_check, "answer_key", side_effect=checked_key), \
+                     mock.patch.object(test_loop.lint, "run_argv", return_value=(
                         "ok", 0, self.PYTEST_ERROR, b"")) as runner:
                     with self.assertRaises(nav.NavigatorError) as caught:
                         self.dispatch(done)
@@ -3066,9 +3080,9 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         runner.assert_called_once()
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
-    def test_stale_proof_judgement_reruns_check_and_numbered_receipts(self):
+    def test_stale_proof_schema_reruns_check_and_numbered_receipts(self):
         for numbered in (False, True):
-            for marker in (None, 0):
+            for marker in (None, "shiploop-test-loop/v1"):
                 with self.subTest(numbered=numbered, marker=marker):
                     self.restart()
                     self.start()
@@ -3079,7 +3093,7 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                     (self.run_dir / shiploop_check.answer_path(action)).unlink()
                     check_path = self.run_dir / test_loop.step_proof_check_path(action)
                     record = store.read_record(check_path)
-                    self.old_judgement(record, marker)
+                    self.old_schema(record, marker)
                     path = self.run_dir / (test_loop.step_proof_path(action, 1) if numbered
                                            else test_loop.step_proof_check_path(action))
                     if numbered:
@@ -3099,10 +3113,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                     fresh = store.read_record(self.run_dir / test_loop.step_proof_path(
                         action, 2 if numbered else 1))
                     self.assertFalse(fresh["passed"])
-                    self.assertEqual(fresh["judgement_version"], test_loop.JUDGEMENT_VERSION)
+                    self.assertEqual(fresh["schema"], "shiploop-test-loop/v2")
                     self.assertNotIn("reused", fresh)
 
-    def test_current_proof_judgement_reuses_check_then_numbered_receipt(self):
+    def test_current_proof_schema_reuses_check_then_numbered_receipt(self):
         self.start()
         self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
         action = self.action()
@@ -3117,7 +3131,7 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                 with self.assertRaises(nav.NavigatorError):
                     self.complete(DONE, loop=False)
                 record = store.read_record(self.run_dir / test_loop.step_proof_path(action, number))
-                self.assertEqual(record["judgement_version"], test_loop.JUDGEMENT_VERSION)
+                self.assertEqual(record["schema"], "shiploop-test-loop/v2")
                 self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_path(action)
                                  if number == 1 else test_loop.step_proof_path(action, 1))
         runner.assert_not_called()
@@ -3769,14 +3783,6 @@ class CountFloorTests(unittest.TestCase):
     def record(self, action: str, number: int = 1) -> dict:
         return store.read_record(self.root / test_loop.verify_path(action, number))
 
-    def test_historical_v1_without_judgement_still_sets_the_floor(self):
-        self.assertEqual(self.run_stage("A1", "test", 5), "")
-        path = self.root / test_loop.verify_path("A1", 1)
-        record = store.read_record(path)
-        record.pop("judgement_version", None)
-        self.assertEqual(record["schema"], "shiploop-test-loop/v1")
-        path.write_text(store.dumps(record, "Historical v1"))
-        self.assertIn("at least 5", self.run_stage("A2", "document", 4))
 
     def test_the_highest_accepted_count_is_the_floor_and_both_numbers_are_in_the_refusal(self):
         self.assertEqual(self.run_stage("A1", "test", 5), "")

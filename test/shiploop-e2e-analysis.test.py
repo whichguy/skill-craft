@@ -2337,7 +2337,7 @@ class MetricsTest(unittest.TestCase):
             tests = Path(tmp) / "run" / "tests"
             tests.mkdir(parents=True)
             (tests / "nav-1-verify1.md").write_text(json.dumps({
-                "schema": "shiploop-test-loop/v1", "passed": True,
+                "schema": "shiploop-test-loop/v2", "passed": True,
                 "commands": [{"command": "a", "suite": "focused"}, {"command": "b", "suite": "regression"}],
                 "runs": [{"command": "a", "suite": "focused", "exit": 0}, {"command": "b", "suite": "regression", "exit": 0}],
             }))
