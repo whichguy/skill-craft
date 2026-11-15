@@ -18,6 +18,7 @@ excerpt is `docs/experiments/git-maintenance-lock-20261114/ci-attempt2-failure-e
 | `tap/sitecustomize.py`, `run_tap.sh`, `tap-summary.txt` | A tap that counts how many times each suite starts a candidate through serve.py and how those runs ended. |
 | `lsof_shim.py` | The one lsof call serve.py makes, for the Linux container that has no lsof. Used only there. |
 | `wiring_probe.py`, `wiring-results.txt` | The follow-up (below): a suite's calibration classes run with the first grade of every delivery handed a held port, with the regrade as shipped and with `--regrades 0`. |
+| `due_times_held_port.py`, `due-times-held-port.jsonl` | The evening follow-up (below): the `ticket-due-times` probe's own `main()` run from the case's reference and base deliveries with the first port of every `Server` held, for the probe before and after its retry (48 runs). |
 
 ## What was run, and where
 
@@ -197,11 +198,12 @@ checkout's. 48 runs, one probe mode each in a process of its own, `due-times-hel
   characters of stdout plus stderr.
 - The 12 failures of the old probe were all the foreign-listener face (`port N is answered by pid H, not by the candidate`): the held socket is a listener, so the ownership check refuses it at
   the first lsof look, before the candidate's bind fails. The early-exit face (the service exits with `EADDRINUSE` naming its port) is pinned by `CandidateProblemTest` (which refusals are a
-  taken port) and by the second test of `DueTimesProbeServerTest`, which runs a real node service that exits that way.
+  taken port) and by `DueTimesProbeServerTest.test_a_service_that_exits_eaddrinuse_naming_its_port_is_started_again_on_another_port`, which runs a real node service that exits that way.
 
 Not measured: the probe's own natural collision rate (no churn neighbours here); its start is the same `free_port()`, Popen and `candidate_problem` sequence as serve.py's, whose rates are
 above (0.0026% per run on CI, 0.12% on this Mac), so a full pass of 15 starts would hit about 0.04% on CI's rate and about 1.8% on this Mac's, if the per-start rates hold for it. The 12
-failures also say nothing about a retry that is itself taken (the square of the rate), and Linux was not run.
+failures also say nothing about a retry that is itself taken (the square of the rate), and the driver was not run on Linux (the new tests were: `DueTimesProbeServerTest`, `ServeRetryTest` and
+`CandidateProblemTest`, 22 OK in the container of "What was run, and where", journal Round 6).
 
 ## Reproduce
 
