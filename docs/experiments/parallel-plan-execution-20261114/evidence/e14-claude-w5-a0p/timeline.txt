@@ -1,0 +1,74 @@
+trial   e14-claude-w5-a0p
+host    claude 2.1.325 (Claude Code) claude-sonnet-5-5 high
+plan    write5  arm A0p  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   0.314  H  parent        system   init         init {"subtype": "init", "tools": ["Task", "Artifact", "ArtifactComments", "ArtifactData", "Bash", "CronCreate", "CronDelete", "CronList", "DesignSync
++   2.188  H  parent        call     Bash         Bash python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/
++   2.341  L  ledger        ready    -            {"result":{"ready":["W1","W2","W3","W4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,
++   2.351  H  parent        result   -            {"ready":["W1","W2","W3","W4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,
++   2.588  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++   4.350  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work;
++   4.532  L  ledger        start    W1           
++   4.533  L  ledger        workspace W1           {"seconds":0.0}
++   4.580  L  ledger        start    W2           
++   4.581  L  ledger        workspace W2           {"seconds":0.0}
++   4.634  L  ledger        start    W3           
++   4.634  L  ledger        workspace W3           {"seconds":0.0}
++   4.676  L  ledger        start    W4           
++   4.676  L  ledger        workspace W4           {"seconds":0.0}
++   4.684  H  parent        result   -            STEP W1 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Work only inside the workspace /private/tmp/claude-501/-Users-
++   5.708  H  parent        system   thinking_tok thinking_tokens {"subtype": "thinking_tokens"}
++   5.848  H  parent        system   thinking_tok thinking_tokens {"subtype": "thinking_tokens"}
++   6.875  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work/
++   7.305  H  parent        result   -            Exit code 1 .: check.py pkg tests  pkg: __init__.py  tests: __init__.py cat: pkg/m1.py: No such file or directory
++  19.091  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work/
++  19.198  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++  19.382  H  parent        result   -            TESTS 6 PASSED 6 TESTS 7 PASSED 7 TESTS 8 PASSED 8 TESTS 8 PASSED 8
++  21.320  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work;
++  22.085  L  ledger        settle   W3           {"seconds":30.0}
++  22.086  L  ledger        settle   W1           {"seconds":30.0}
++  22.087  L  ledger        settle   W4           {"seconds":30.0}
++  22.090  L  ledger        settle   W2           {"seconds":30.0}
++  25.036  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "bxt7d8nv8", "tool_use_id": "toolu_01HAdGTS8t7786zbW8iYfrCY", "description": "cd /private/tmp/clau
++  52.090  L  ledger        settled  W4           {"seconds":30.0}
++  52.091  L  ledger        settled  W3           {"seconds":30.0}
++  52.092  L  ledger        settled  W1           {"seconds":30.0}
++  52.094  L  ledger        settled  W2           {"seconds":30.0}
++  52.101  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "bxt7d8nv8", "tool_use_id": "toolu_01HAdGTS8t7786zbW8iYfrCY", "status": "completed"}
++  52.103  H  parent        result   -            SETTLED W4 after 30 s; now report your outcome SETTLED W3 after 30 s; now report your outcome SETTLED W1 after 30 s; now report your outcome
++  53.175  H  parent        text     -            Verifications finished; now reporting the results of W1–W4.
++  55.201  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work
++  55.412  L  ledger        commit   W1           {"seconds":0.0}
++  55.413  L  ledger        end      W1           {"sha":"ae1c78ea9757c9904bcd4a9d7805639108c1103989d3de047523880d20d02d67","result":{"answer":6,"method":"wrote rle and 6 unittests"}}
++  55.454  L  ledger        commit   W2           {"seconds":0.0}
++  55.454  L  ledger        end      W2           {"sha":"50e86867e28c565d571381231b4d2069952103b4112de51d93c75ed872bf748e","result":{"answer":7,"method":"wrote roman_to_int and 7 unittests"}}
++  55.496  L  ledger        commit   W3           {"seconds":0.0}
++  55.496  L  ledger        end      W3           {"sha":"1a51a75e9d398975afeefd9dd66ffc8d68ab90d9ca8404f4c674fa48afb3ec74","result":{"answer":8,"method":"wrote merge_intervals and 8 unittests"}}
++  55.538  L  ledger        commit   W4           {"seconds":0.0}
++  55.539  L  ledger        end      W4           {"sha":"6f03e6cf5a15bc49772e13493ea648b00caf7ce529e6efa9f6760a53b146c383","result":{"answer":8,"method":"wrote balanced and 8 unittests"}}
++  55.578  L  ledger        ready    -            {"result":{"ready":["W5"],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3","W4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++  55.585  H  parent        result   -            RECORDED W1 answer=6 (finished; do not report it again) RECORDED W2 answer=7 (finished; do not report it again) RECORDED W3 answer=8 (finish
++  56.955  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work;
++  57.643  L  ledger        start    W5           
++  57.643  L  ledger        workspace W5           {"seconds":0.0}
++  57.652  H  parent        result   -            STEP W5 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Work only inside the workspace /private/tmp/claude-501/-Users-
++  59.156  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work/
++  59.404  H  parent        result   -            """Small string and interval utilities."""
++  61.643  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work/
++  62.073  L  ledger        settle   W5           {"seconds":30.0}
++  64.980  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "bfqxuc82r", "tool_use_id": "toolu_018Eqs86qiU5eCp3rBC48zFU", "description": "cd /private/tmp/clau
++  92.079  L  ledger        settled  W5           {"seconds":30.0}
++  92.085  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "bfqxuc82r", "tool_use_id": "toolu_018Eqs86qiU5eCp3rBC48zFU", "status": "completed"}
++  92.086  H  parent        result   -            TESTS 29 PASSED 29 SETTLED W5 after 30 s; now report your outcome
++  94.128  H  parent        call     Bash         Bash cd /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-claude-w5-a0p/work
++  94.412  L  ledger        commit   W5           {"seconds":0.0}
++  94.413  L  ledger        end      W5           {"sha":"8e97a3ebba0e5784a4c1af3416be48d30cbe22ceeec05b3f367ebeee966e6e62","result":{"answer":29,"method":"added four import lines to pkg/__init__.py; 
++  94.450  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3","W4","W5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++  94.486  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=483abadc2184"}
++  94.527  H  parent        result   -            RECORDED W5 answer=29 (finished; do not report it again) {"ready":[],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3","W4","W5
++  95.839  H  parent        text     -            All five tasks are done and `dagkit.py verify` printed `VERIFY OK`. W1–W4 ran their slow verifications at the same time in one background `wait`, and 
++  98.476  H  parent        system   post_turn_su post_turn_summary {"subtype": "post_turn_summary"}
++  98.478  H  parent        final    -            All five tasks are done and `dagkit.py verify` printed `VERIFY OK`. W1–W4 ran their slow verifications at the same time in one background `wait`, and 
++  98.479  H  parent        system   task_summary task_summary {"subtype": "task_summary"}

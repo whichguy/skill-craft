@@ -38,7 +38,7 @@ import hosts  # noqa: E402  (the E2E harness's host adapters, used read-only)
 import score  # noqa: E402
 import writefix  # noqa: E402
 
-ARMS = ("A0", "A1", "A2", "A3", "A3s")   # a task plan (real agent work) takes A0, A3 and A3s
+ARMS = ("A0", "A0p", "A1", "A2", "A3", "A3s")   # a task plan (real agent work) takes A0, A0p, A3 and A3s
 PACKET_FILE = {"A3s": "A3"}   # A3s is A3 at capacity one: the matched serial control (README, Amendment A3)
 
 
@@ -179,8 +179,8 @@ def main(argv=None) -> int:
     host = hosts.host(args.host, args.binary)
     model = args.model or host.model
     effort = args.effort if args.effort is not None else host.effort
-    if is_task_plan(plan) and args.arm not in ("A0", "A3", "A3s"):
-        parser.error("a task plan runs under A0, A3 or A3s")
+    if is_task_plan(plan) and args.arm not in ("A0", "A0p", "A3", "A3s"):
+        parser.error("a task plan runs under A0, A0p, A3 or A3s")
     write = plan.get("fixture") == "write"
     capacity = 1 if args.arm == "A3s" else (args.capacity or len(plan["steps"]))
     packet = packet_text(args.arm, plan, kit, run_dir, work / "plan.json", args.variant, args.host, capacity)

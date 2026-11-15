@@ -1,0 +1,103 @@
+{
+ "source": "codex rollout files",
+ "agents": [],
+ "threads": 1,
+ "parent": {
+  "id": "01a1dfcf-a595-7102-9559-36a2d7eb364a",
+  "actor": "parent",
+  "child": false,
+  "depth": null,
+  "nickname": null,
+  "version": null,
+  "start": 1794756290.718,
+  "end": 1794756410.957,
+  "tokens": {
+   "input_tokens": 332347,
+   "cached_input_tokens": 317824,
+   "cache_write_input_tokens": 0,
+   "output_tokens": 2558,
+   "reasoning_output_tokens": 34,
+   "total_tokens": 334905
+  },
+  "calls": [
+   {
+    "t": 1794756294.586,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py ready --run run"
+   },
+   {
+    "t": 1794756298.474,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py begin --run run --step T1"
+   },
+   {
+    "t": 1794756298.474,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py begin --run run --step T2"
+   },
+   {
+    "t": 1794756298.474,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py begin --run run --step T3"
+   },
+   {
+    "t": 1794756298.474,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py begin --run run --step T4"
+   },
+   {
+    "t": 1794756307.368,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 - <<'PY'\nfrom datetime import datetime\nfrom collections import defaultdict, Counter\nfrom pathlib import Path\n\ndef rows(n):\n    for line in Path(f'evidence/log_{n}.txt').read_text().splitlines():\n        ts,*fields=line.split()\n        yield datetime.fromisoformat(ts.replace('Z','+00:00')),dict(x.split('=',1) for x in fields)\nfailed=defaultdict(list)\nfor t,r in rows(1):\n    if r['action']=='login' and r['status']=='fail': failed[r['user']].append(t)\nprint('T1',sum(any((ts[i+2]-ts[i]).total_seconds()<=600 for i in range(len(ts)-2)) for ts in failed.values()))\ncounts=Counter(r['user'] for t,r in rows(2) if r['action']=='download' and r['status']=='ok')\nprint('T2',max(counts.values(),default=0))\nips=defaultdict(set)\nfor t,r in rows(3): ips[r['status']].add(r['ip'])\nprint('T3',len(ips['fail'] & ips['ok']))\nts=[t for t,r in rows(4) if r['user']=='u03']\nprint('T4',max(int((b-a).total_seconds()) for a,b in zip(ts,ts[1:])))\nPY"
+   },
+   {
+    "t": 1794756315.893,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/dagkit.py settle --run run --step T1 &\npython3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/dagkit.py settle --run run --step T2 &\npython3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/dagkit.py settle --run run --step T3 &\npython3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/dagkit.py settle --run run --step T4 &\nwait"
+   },
+   {
+    "t": 1794756357.576,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py ready --run run"
+   },
+   {
+    "t": 1794756360.112,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py begin --run run --step T5"
+   },
+   {
+    "t": 1794756368.14,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/dagkit.py settle --run run --step T5 &\nwait"
+   },
+   {
+    "t": 1794756408.617,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 dagkit.py ready --run run"
+   },
+   {
+    "t": 1794756408.617,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/dagkit.py verify --run /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/run"
+   },
+   {
+    "t": 1794756408.617,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/dagkit.py outcome --run /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-codex-s30-a0p/work/run --step T5"
+   }
+  ]
+ }
+}

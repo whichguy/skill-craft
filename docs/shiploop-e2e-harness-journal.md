@@ -52,3 +52,46 @@ fixed.
   several runs; surfacing it in Run Review is a skill change and needs a release.
 - Two live runs, or a finished run beside a live one, stay `ambiguous` even when one is newer; the 2026-10-16 audit control
   requires it.
+
+## Grok's headless refusals end sessions: a pre-classifier write check in Auto-review, measured over 267 Grok runs; a fix awaits the owner (2026-11-15) — status: firm for the cause (Grok 1.0.77) and the rate; interim for the options
+
+**What was seen.** The planning-points probe (E24, 909adf228e00254d293ddfcd76b8011ef296fd6c) had 28 refused shell commands in
+four Grok 1.0.77 deliveries, each ending a host session as `cancelled`, and pp-3 was lost at release-plan. The same category
+had been counted since 33bd1a186a293c128e6a351da3586cdb66cac424 (run 6's cancelled calls) and in the Battleship analysis
+(118d6f7d2c1394a11f1d06aaea006193e3a5369d, which proposed a packet rule, F10, that was never built), but its rule and rate
+were unknown.
+
+**Cause.** `run.py` launches Grok with `--permission-mode auto` (Auto-review) and no user. Before its classifier, Auto-review
+checks which files a shell command writes; when it cannot resolve a written path it raises a floor only a person can clear.
+Headless, Grok refuses the call, ends the turn as `cancelled` (`permission_cancelled`, 176 of 176 paired refusals), and skips
+the `Stop` hook, so ShipLoop's keepalive cannot hold the session. Probed on 1.0.77 (63 one-command sessions through
+`hosts.GrokHost`), the floor fires on three shapes in 0 to 13 ms, with no classifier call: a file-writing program whose
+target holds a shell expansion (`mkdir -p "$COPY"`, `cp a "$X/"`, `tee "$X/…"`); a relative write after a `cd` to a folder
+other than the session's (`cd WT && mkdir -p fixtures`); and two adjacent backticks inside double quotes (Python one-liners
+reading ShipLoop's ```` ```shiploop-state ```` blocks). Allow rules, even `--allow 'Bash(*)'`, do not lift it. E2E meets it
+because ShipLoop's run folder and worktree sit beside the session's folder (`<run>/work`), not in it.
+
+**Rate.** 193 refused shell calls in the 267 recorded Grok runs (2026-10-05 to 11-14), all under `auto`; none in 1,292 shell
+calls under `bypassPermissions` (4 runs). 1.28 per 100 shell calls on 1.0.77; refusals in 21 of 27 deliveries. Each costs a
+session (median 10.9 s to the next tool call, plus a 122,000 to 187,000-token context re-read per resume), and 88 of 176 were
+followed by another within 10 shell calls, because the resume prompt does not say why the session ended. One run in all
+was lost outright: pp-3, whose seven later sessions each ended on another `"$VAR"`-target script until the stall stop ended it.
+
+**Options and recommendation.** Detailed in docs/experiments/grok-headless-refusals-20261115/README.md, "Options". Allow
+rules do nothing. `bypassPermissions` removes every refusal but also the classifier's 53 model-visible blocks (remote
+Salesforce changes, discarded uncommitted work, non-scratch deletes), and breaks comparability with every earlier Grok run.
+A ShipLoop packet rule is a product change on every host. Recommended for the owner's go: a Grok `PreToolUse` hook in the
+harness's profile that denies the three shapes with the rewrite, so the model reads the refusal in the same turn (prototype:
+2 of 2 in-turn recoveries on a task, 0 of 2 without it; the shapes flag 28 of 28 recorded 1.0.77 refusals and 0 of 2,155
+allowed calls), plus a resume prompt that names a refusal for whatever the hook misses.
+
+**Evidence.** docs/experiments/grok-headless-refusals-20261115/ (analyze.py, summarize.py, probe.py, export_probes.py,
+preempt_hook.py; evidence/summary.md, summary.json, refusals.jsonl, probes.jsonl). Probe sessions under
+`~/e2e-runs-refusal-probe/20261115/`, outside the repository.
+
+**Open edges.**
+- No change is built. Anything that changes the Grok host's permission handling or the resume prompt changes what the
+  harness measures in Grok runs that meet a refusal, so it waits for the owner.
+- The floor is build-specific: 1.0.46 had none, 1.0.70 refused more (12 of its 15 refusals outside the three shapes hold
+  ```` ``` ```` in single quotes or a quoted here-document). Any hook needs a per-build pin.
+- The Claude host also runs `--permission-mode auto`; its refusals are not measured (a Grok-only signal, 1a35bc50).

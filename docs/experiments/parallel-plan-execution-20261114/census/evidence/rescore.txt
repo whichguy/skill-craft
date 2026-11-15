@@ -1,0 +1,14 @@
+timed plans 323, multi-step 75, T_s 104644 s; CPM gated gross saving 10345 s = 9.9% of all timed, 17.7% of multi-step time
+level-barrier gross saving 9824 s = 9.4%; fan-out rounds available: 23 in 21 plans; width histogram [2, 3, 4]
+round saving distribution (s): p10=90, p25=104, p50=136, p75=206, p90=1046, max 2855
+shortest task in a round (s): median 108
+
+R (s per round)  rounds taken  plans gaining  net saving (s)  % of all timed  % of multi-step  note
+       0             23            21             9824          9.4%          16.8%    ideal, no overhead
+      25             23            21             9249          8.8%          15.9%    toy host overhead alone (Claude 21 s, Codex 27 s)
+      45             23            21             8789          8.4%          15.1%    toy host overhead, Grok-like (43 s)
+      75             23            21             8099          7.7%          13.9%    + one real cold worker context (F13: about 75 s)
+     100             18            17             7581          7.2%          13.0%    toy overhead + real cold start (Opus's estimate)
+     150             11            10             6906          6.6%          11.8%    + merge and a re-verification on the combined tree
+     200              7             6             6489          6.2%          11.1%    heavier real repository
+     300              4             3             5975          5.7%          10.2%    pessimistic

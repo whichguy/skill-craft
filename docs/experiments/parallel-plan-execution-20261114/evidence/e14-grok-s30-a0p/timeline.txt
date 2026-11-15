@@ -1,0 +1,317 @@
+trial   e14-grok-s30-a0p
+host    grok grok 1.0.77 (50ca579fa996) grok-4.6 xhigh
+plan    analysis5  arm A0p  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   3.461  H  parent        text     -            I'll
++   3.461  H  parent        text     -            start
++   3.461  H  parent        text     -            by
++   3.461  H  parent        text     -            checking
++   3.461  H  parent        text     -            which
++   3.461  H  parent        text     -            DAG
++   3.461  H  parent        text     -            tasks
++   3.461  H  parent        text     -            are
++   3.461  H  parent        text     -            ready
++   3.461  H  parent        text     -            ,
++   3.461  H  parent        text     -            then
++   3.461  H  parent        text     -            work
++   3.474  H  parent        text     -            through
++   3.516  H  parent        text     -            them
++   3.556  H  parent        text     -            in
++   3.599  H  parent        text     -            order
++   3.639  H  parent        text     -            .
++   4.517  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++   4.740  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3","T4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["T5"],"complete":false,
++   4.745  H  parent        result   -            
++   6.502  H  parent        text     -            T
++   6.502  H  parent        text     -            1
++   6.503  H  parent        text     -            –
++   6.503  H  parent        text     -            T
++   6.503  H  parent        text     -            4
++   6.503  H  parent        text     -            are
++   6.503  H  parent        text     -            ready
++   6.503  H  parent        text     -            .
++   6.503  H  parent        text     -            I'll
++   6.503  H  parent        text     -            begin
++   6.503  H  parent        text     -            each
++   6.503  H  parent        text     -            task
++   6.503  H  parent        text     -            in
++   6.503  H  parent        text     -            order
++   6.535  H  parent        text     -            and
++   6.574  H  parent        text     -            collect
++   6.612  H  parent        text     -            the
++   6.650  H  parent        text     -            analysis
++   6.682  H  parent        text     -            instructions
++   6.719  H  parent        text     -            .
++   7.510  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++   7.610  L  ledger        start    T1           
++   7.615  H  parent        result   -            
++  10.308  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++  10.411  L  ledger        start    T2           
++  10.416  H  parent        result   -            
++  12.491  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++  12.602  L  ledger        start    T3           
++  12.607  H  parent        result   -            
++  14.749  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++  14.844  L  ledger        start    T4           
++  14.848  H  parent        result   -            
++  16.325  H  parent        text     -            I
++  16.325  H  parent        text     -            have
++  16.325  H  parent        text     -            the
++  16.325  H  parent        text     -            four
++  16.325  H  parent        text     -            task
++  16.325  H  parent        text     -            specs
++  16.325  H  parent        text     -            .
++  16.325  H  parent        text     -            Next
++  16.325  H  parent        text     -            I’ll
++  16.325  H  parent        text     -            read
++  16.325  H  parent        text     -            the
++  16.325  H  parent        text     -            evidence
++  16.325  H  parent        text     -            logs
++  16.325  H  parent        text     -            and
++  16.325  H  parent        text     -            compute
++  16.325  H  parent        text     -            each
++  16.325  H  parent        text     -            answer
++  16.325  H  parent        text     -            .
++  17.988  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-grok-
++  17.988  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-grok-
++  17.991  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-grok-
++  17.991  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-grok-
++  17.994  H  parent        result   -            
++  17.999  H  parent        result   -            
++  18.003  H  parent        result   -            
++  18.003  H  parent        result   -            
++  23.758  H  parent        text     -            I'll
++  23.758  H  parent        text     -            compute
++  23.758  H  parent        text     -            the
++  23.758  H  parent        text     -            four
++  23.758  H  parent        text     -            answers
++  23.758  H  parent        text     -            from
++  23.758  H  parent        text     -            the
++  23.758  H  parent        text     -            logs
++  23.758  H  parent        text     -            with
++  23.758  H  parent        text     -            a
++  23.766  H  parent        text     -            Python
++  23.788  H  parent        text     -            script
++  23.805  H  parent        text     -            so
++  23.853  H  parent        text     -            the
++  23.894  H  parent        text     -            counts
++  23.939  H  parent        text     -            are
++  23.987  H  parent        text     -            exact
++  24.028  H  parent        text     -            .
++  35.573  H  parent        call     run_terminal run_terminal_command python3 << 'PY' from datetime import datetime from collections import defaultdict  def parse(path):     events = []     with open
++  35.702  H  parent        result   -            
++  41.010  H  parent        text     -            Answers
++  41.019  H  parent        text     -            are
++  41.033  H  parent        text     -            T
++  41.033  H  parent        text     -            1
++  41.041  H  parent        text     -            =
++  41.048  H  parent        text     -            5
++  41.056  H  parent        text     -            ,
++  41.064  H  parent        text     -            T
++  41.073  H  parent        text     -            2
++  41.084  H  parent        text     -            =
++  41.090  H  parent        text     -            20
++  41.099  H  parent        text     -            ,
++  41.109  H  parent        text     -            T
++  41.116  H  parent        text     -            3
++  41.128  H  parent        text     -            =
++  41.134  H  parent        text     -            10
++  41.140  H  parent        text     -            ,
++  41.149  H  parent        text     -            T
++  41.158  H  parent        text     -            4
++  41.167  H  parent        text     -            =
++  41.175  H  parent        text     -            660
++  41.182  H  parent        text     -            .
++  41.191  H  parent        text     -            Next
++  41.200  H  parent        text     -            I’ll
++  41.212  H  parent        text     -            run
++  41.217  H  parent        text     -            all
++  41.228  H  parent        text     -            four
++  41.236  H  parent        text     -            settle
++  41.241  H  parent        text     -            commands
++  41.249  H  parent        text     -            in
++  41.252  H  parent        text     -            one
++  41.306  H  parent        text     -            background
++  41.360  H  parent        text     -            ed
++  41.419  H  parent        text     -            shell
++  41.468  H  parent        text     -            .
++  45.010  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++  49.402  L  ledger        settle   T2           {"seconds":30.0}
++  49.402  L  ledger        settle   T1           {"seconds":30.0}
++  49.403  L  ledger        settle   T4           {"seconds":30.0}
++  49.403  L  ledger        settle   T3           {"seconds":30.0}
++  79.406  L  ledger        settled  T1           {"seconds":30.0}
++  79.406  L  ledger        settled  T2           {"seconds":30.0}
++  79.407  L  ledger        settled  T4           {"seconds":30.0}
++  79.407  L  ledger        settled  T3           {"seconds":30.0}
++  79.413  H  parent        result   -            
++ 109.668  H  parent        text     -            Sett
++ 109.669  H  parent        text     -            les
++ 109.772  H  parent        text     -            finished
++ 109.772  H  parent        text     -            .
++ 109.772  H  parent        text     -            I’ll
++ 109.772  H  parent        text     -            report
++ 109.772  H  parent        text     -            T
++ 109.772  H  parent        text     -            1
++ 109.772  H  parent        text     -            –
++ 109.772  H  parent        text     -            T
++ 109.772  H  parent        text     -            4
++ 109.772  H  parent        text     -            next
++ 109.772  H  parent        text     -            .
++ 111.045  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 111.186  L  ledger        end      T1           {"sha":"bd7bab427ae12f0f5f6d9f5e68d95488510cf1383558c5f52fec1c0e8e08c862","result":{"answer":5,"method":"count users with 3 consecutive failed logins 
++ 111.190  H  parent        result   -            
++ 115.134  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 115.231  L  ledger        end      T2           {"sha":"d1700f29ad88b0e2a2f6942690bf25e9fcdfd4a9671d66befadb8398a49bf1d1","result":{"answer":20,"method":"max per-user successful download count"}}
++ 115.235  H  parent        result   -            
++ 119.103  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 119.201  H  parent        result   -            
++ 121.334  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 121.435  L  ledger        end      T3           {"sha":"699ffe273b3a7aab8485e09cb7a50bbe97f96abd23410a5bdb3f41577f2a481c","result":{"answer":10,"method":"count IPs appearing in both fail and ok even
++ 121.439  H  parent        result   -            
++ 125.058  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 125.153  L  ledger        end      T4           {"sha":"2dc38723e7412c60c47e516d3b0b2fb9d737063a9de0b20d6cc10e35e2c65ae0","result":{"answer":660,"method":"max consecutive timestamp gap in seconds fo
++ 125.157  H  parent        result   -            
++ 128.064  H  parent        text     -            T
++ 128.064  H  parent        text     -            1
++ 128.065  H  parent        text     -            –
++ 128.066  H  parent        text     -            T
++ 128.066  H  parent        text     -            4
++ 128.066  H  parent        text     -            are
++ 128.068  H  parent        text     -            recorded
++ 128.069  H  parent        text     -            .
++ 128.069  H  parent        text     -            Checking
++ 128.176  H  parent        text     -            what’s
++ 128.176  H  parent        text     -            ready
++ 128.176  H  parent        text     -            next
++ 128.176  H  parent        text     -            .
++ 129.214  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 129.320  L  ledger        ready    -            {"result":{"ready":["T5"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++ 129.326  H  parent        result   -            
++ 134.694  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 134.789  L  ledger        start    T5           
++ 134.793  H  parent        result   -            
++ 136.765  H  parent        text     -            I’ll
++ 136.765  H  parent        text     -            read
++ 136.765  H  parent        text     -            T
++ 136.765  H  parent        text     -            1
++ 136.765  H  parent        text     -            –
++ 136.765  H  parent        text     -            T
++ 136.765  H  parent        text     -            4
++ 136.765  H  parent        text     -            outcomes
++ 136.765  H  parent        text     -            ,
++ 136.765  H  parent        text     -            then
++ 136.771  H  parent        text     -            settle
++ 136.812  H  parent        text     -            T
++ 136.854  H  parent        text     -            5
++ 136.896  H  parent        text     -            .
++ 140.676  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 141.075  H  parent        result   -            
++ 143.361  H  parent        text     -            T
++ 143.361  H  parent        text     -            5
++ 143.361  H  parent        text     -            sum
++ 143.361  H  parent        text     -            is
++ 143.361  H  parent        text     -            
++ 143.361  H  parent        text     -            695
++ 143.361  H  parent        text     -            .
++ 143.361  H  parent        text     -            Running
++ 143.379  H  parent        text     -            settle
++ 143.431  H  parent        text     -            next
++ 143.483  H  parent        text     -            .
++ 144.609  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 149.536  L  ledger        settle   T5           {"seconds":30.0}
++ 179.541  L  ledger        settled  T5           {"seconds":30.0}
++ 179.546  H  parent        result   -            
++ 183.117  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 183.237  L  ledger        end      T5           {"sha":"3acd6cd3ce8559b2caf8a25696c481360836395e1e557e3977ea75191e84623b","result":{"answer":695,"method":"sum of T1 T2 T3 T4 recorded answers"}}
++ 183.242  H  parent        result   -            
++ 186.686  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 186.833  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3","T4","T5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++ 186.853  H  parent        result   -            
++ 188.276  H  parent        text     -            DAG
++ 188.277  H  parent        text     -            is
++ 188.277  H  parent        text     -            complete
++ 188.476  H  parent        text     -            .
++ 188.502  H  parent        text     -            Running
++ 188.525  H  parent        text     -            verify
++ 188.551  H  parent        text     -            and
++ 188.577  H  parent        text     -            reading
++ 188.604  H  parent        text     -            the
++ 188.624  H  parent        text     -            T
++ 188.647  H  parent        text     -            5
++ 188.673  H  parent        text     -            outcome
++ 188.698  H  parent        text     -            .
++ 190.200  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet-src-skill-craft/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e14-gro
++ 190.314  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=40f6718608a4"}
++ 190.418  H  parent        result   -            
++ 194.109  H  parent        text     -            T
++ 194.109  H  parent        text     -            1
++ 194.109  H  parent        text     -            –
++ 194.110  H  parent        text     -            T
++ 194.125  H  parent        text     -            5
++ 194.141  H  parent        text     -            finished
++ 194.152  H  parent        text     -            and
++ 194.164  H  parent        text     -            verified
++ 194.177  H  parent        text     -            .
++ 194.192  H  parent        text     -            T
++ 194.206  H  parent        text     -            1
++ 194.218  H  parent        text     -            =
++ 194.233  H  parent        text     -            5
++ 194.247  H  parent        text     -            ,
++ 194.258  H  parent        text     -            T
++ 194.273  H  parent        text     -            2
++ 194.285  H  parent        text     -            =
++ 194.299  H  parent        text     -            20
++ 194.312  H  parent        text     -            ,
++ 194.326  H  parent        text     -            T
++ 194.341  H  parent        text     -            3
++ 194.348  H  parent        text     -            =
++ 194.353  H  parent        text     -            10
++ 194.358  H  parent        text     -            ,
++ 194.360  H  parent        text     -            T
++ 194.360  H  parent        text     -            4
++ 194.360  H  parent        text     -            =
++ 194.360  H  parent        text     -            660
++ 194.360  H  parent        text     -            ,
++ 194.360  H  parent        text     -            T
++ 194.360  H  parent        text     -            5
++ 194.360  H  parent        text     -            =
++ 194.360  H  parent        text     -            695
++ 194.360  H  parent        text     -            .
++ 194.360  H  parent        text     -            FINAL
++ 194.360  H  parent        text     -            {"
++ 194.364  H  parent        text     -            done
++ 194.364  H  parent        text     -            ":
++ 194.364  H  parent        text     -            ["
++ 194.364  H  parent        text     -            T
++ 194.364  H  parent        text     -            1
++ 194.364  H  parent        text     -            ","
++ 194.364  H  parent        text     -            T
++ 194.364  H  parent        text     -            2
++ 194.364  H  parent        text     -            ","
++ 194.364  H  parent        text     -            T
++ 194.364  H  parent        text     -            3
++ 194.364  H  parent        text     -            ","
++ 194.364  H  parent        text     -            T
++ 194.364  H  parent        text     -            4
++ 194.364  H  parent        text     -            ","
++ 194.364  H  parent        text     -            T
++ 194.364  H  parent        text     -            5
++ 194.364  H  parent        text     -            "],
++ 194.365  H  parent        text     -            "
++ 194.365  H  parent        text     -            failed
++ 194.365  H  parent        text     -            ":
++ 194.365  H  parent        text     -            [],
++ 194.365  H  parent        text     -            "
++ 194.365  H  parent        text     -            not
++ 194.365  H  parent        text     -            _
++ 194.365  H  parent        text     -            run
++ 194.365  H  parent        text     -            ":
++ 194.365  H  parent        text     -            [],
++ 194.365  H  parent        text     -            "
++ 194.365  H  parent        text     -            answer
++ 194.365  H  parent        text     -            ":
++ 194.365  H  parent        text     -            695
++ 194.365  H  parent        text     -            }

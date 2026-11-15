@@ -567,6 +567,13 @@ that inventory exists to catch the code under test writing under the product, `.
     and keeps its own flag; a standalone `python3 test/<file>` on a machine without the setting is unprotected. The per-fixture
     flags stay (removing them would change no outcome). Nothing here has yet been seen to prevent a CI failure; F21's reasoning
     applies, and the next full tiers are the evidence.
+  - CI on the push, 2026-11-15 (`65a85d43`): the quick run (43725596376, quick job 132846804879) passed. The runner's git is
+    2.56.1 (the checkout step's log), the new step ran, and `test-groups` (65 tests) and `ci-policy` (14 tests) passed there, so
+    both halves of the route test held on the runner's own git: a fixture commit starts the detached launch without the step and
+    does not with it. The full-tier dispatch on main (run 43725606385, 14.5 minutes) passed all ten jobs, so no suite broke under
+    the setting. That is one pass, and `full / shiploop-2`, which failed twice on the release run, passed with both the fixture
+    flags (`111e2a27`) and the step in place, so it cannot say which of them would have prevented a failure. F22 stays interim
+    until the next release's full tier and the Monday run.
 - F23 (interim): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
   candidate exited before it listened on the port the harness had chosen. `checks/serve.py` picks the port with `free_port()`
   (bind to port 0, read the number, close) and starts the candidate with `PORT=<it>`, so another process can take that port in
