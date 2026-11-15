@@ -102,7 +102,9 @@ reruns and runs that reached no verdict.
 
 A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
 runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `node --test` with the spec or tap
-reporter, not dot or junit) and
+reporter, not dot or junit), or, when no summary matches, a plain TAP stream: one `1..N` plan, before the test points
+or after them, and exactly N top-level points numbered 1..N in order, where a point marked `# SKIP` or `# TODO` did
+not run (a stream with numberless or out-of-order points, an indented point or plan, or a `Bail out!` is not read). It
 refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 (`too-few-tests`), or one whose output does not show each listed ID on a line
 that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). An ID counts only as its own

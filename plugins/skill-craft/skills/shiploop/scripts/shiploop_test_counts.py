@@ -12,7 +12,7 @@ prove.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 _INT = r"(\d+)"
 # How much of an output line a refusal quotes when it shows where an ID sits inside a longer token.  Display only: it
@@ -158,35 +158,128 @@ def _dotnet(text: str) -> Optional[Dict[str, int]]:
     return None
 
 
-# The reader table: every runner whose summary ``count`` reads, in the order it tries them (pytest last, because its
-# reader also judges by the exit code when no other runner matched).  RUNNERS is generated from it, and the packet text
-# that names the runners ShipLoop reads prints RUNNERS, so the list cannot drift from the code.
+# A TAP test point (``ok 3 - title``, ``not ok 4 title``) and what follows its ``ok``; the plan line ``1..N``, which may
+# carry a ``# reason``; a test point or plan indented at all (TAP 14 nests a subtest four spaces in and leaves any other
+# indent outside the stream, so either way the stream is not one flat stream); a YAML diagnostic block, from an
+# indented ``---`` to its ``...``; and TAP's ``Bail out!``, which ends the run early.
+_TAP_POINT = re.compile(r"^(not )?ok\b(.*)$")
+_TAP_POINT_LINE = re.compile(r"^\s*(?:not )?ok\b(.*)$")
+_TAP_PLAN = re.compile(r"^1\.\.(\d+)(?:\s+#.*)?\s*$")
+_TAP_NUMBER = re.compile(r" (\d+)\b")
+_TAP_INDENTED = re.compile(r"^\s+(?:(?:not )?ok\b|1\.\.\d+)")
+_TAP_YAML_START = re.compile(r"^\s+---\s*$")
+_TAP_YAML_END = re.compile(r"^\s+\.\.\.\s*$")
+_TAP_BAIL = re.compile(r"^bail out!", re.IGNORECASE)
+_TAP_DIRECTIVE = re.compile(r"#\s*(?:SKIP|TODO)\S*(?:\s|$)", re.IGNORECASE)
+
+
+def _tap_directive(rest: str) -> bool:
+    """Whether a TAP test point carries a SKIP or TODO directive, read as TAP 14 defines it.
+
+    ``rest`` is the point's text after ``ok`` / ``not ok``.  The directive starts at the first unescaped ``#`` that
+    follows whitespace, and is ``SKIP`` or ``TODO`` with any suffix (``# skipped``, ``# todo later``) in any case.
+    ``\\#`` is a ``#`` of the description and ``\\\\`` a backslash, so neither starts a directive.
+    """
+    index = 0
+    while index < len(rest):
+        char = rest[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == "#" and index and rest[index - 1].isspace():
+            return _TAP_DIRECTIVE.match(rest, index) is not None
+        index += 1
+    return False
+
+
+def _tap(text: str) -> Optional[Dict[str, int]]:
+    """A plain TAP stream: ``1..9`` and nine ``ok N name`` lines (a runner's ``tap`` result format, mocha's tap
+    reporter).
+
+    ShipLoop reads one flat stream: exactly one plan, before every test point or after them all, and points numbered
+    1..N in order, so the plan the producer declared is checked against the points it printed.  A point whose
+    directive is SKIP or TODO (``_tap_directive``) did not run and its ``not ok`` is no failure.  Comments, blank lines,
+    ``TAP version`` and YAML diagnostic blocks are skipped.  Any other shape is not read (``None``, the caller decides
+    what an uncounted run may prove): points with no number or out of order, an indented point or plan, nested or not
+    (counting only the top level would undercount a stream whose tests are its leaves), a second plan or one in the
+    middle, a point count the plan does not declare, and a ``Bail out!``.  ``1..0`` reads as zero tests.
+    """
+    plans: List[Tuple[int, int]] = []
+    points: List[Tuple[int, "re.Match[str]"]] = []
+    in_yaml = False
+    for index, line in enumerate(text.splitlines()):
+        if in_yaml:
+            in_yaml = not _TAP_YAML_END.match(line)
+            continue
+        if _TAP_YAML_START.match(line):
+            in_yaml = True
+            continue
+        if _TAP_BAIL.match(line) or _TAP_INDENTED.match(line):
+            return None
+        plan = _TAP_PLAN.match(line)
+        if plan:
+            plans.append((index, int(plan.group(1))))
+            continue
+        point = _TAP_POINT.match(line)
+        if point:
+            points.append((index, point))
+    if len(plans) != 1 or len(points) != plans[0][1]:
+        return None
+    where = plans[0][0]
+    if points and points[0][0] < where < points[-1][0]:
+        return None
+    ran = failed = 0
+    for expected, (_index, point) in enumerate(points, 1):
+        number = _TAP_NUMBER.match(point.group(2))
+        if number is None or int(number.group(1)) != expected:
+            return None
+        if _tap_directive(point.group(2)):
+            continue
+        ran += 1
+        failed += point.group(1) is not None
+    return {"ran": ran, "failed": failed}
+
+
+# The reader table: every runner whose summary ``count`` reads, in the order it tries them.  Then pytest, whose reader
+# also guesses from exit status 5 ("no tests collected"), and plain TAP: a declared plan checked against its points is
+# evidence, so TAP is read before that guess, but only when no runner's own summary matched (``node --test`` prints
+# TAP lines beside its ``# tests``, ``# pass``, ``# fail`` and ``# cancelled`` totals, which its own reader counts;
+# mocha's tap reporter prints no ``# cancelled`` line, so its stream is read here).  RUNNERS is generated from these, and the text that names the runners
+# ShipLoop reads prints RUNNERS, so the list cannot drift from the code.
 READERS = (
     ("jest", _jest), ("vitest", _vitest), ("unittest", _unittest), ("mocha", _mocha),
     ("cargo", _cargo), ("go", _go), ("dotnet", _dotnet), ("node", _node),
 )
-RUNNERS = ", ".join([name for name, _reader in READERS] + ["pytest"])
+RUNNERS = ", ".join([name for name, _reader in READERS] + ["pytest", "tap"])
 
 
 def count(output: str, exit_code: Optional[int]) -> Optional[Dict[str, object]]:
-    """Return ``{"ran", "failed", "runners"}`` summed over every recognised runner, or ``None``."""
+    """Return ``{"ran", "failed", "runners"}`` summed over every recognised runner, or ``None``.
+
+    Every runner whose own summary matched is summed (pytest's summary line or its ``no tests ran`` included).  When none
+    matched, a TAP stream is read, and only then pytest's exit-status-5 guess.
+    """
     output = _plain(output)
-    found: List[str] = []
-    ran = failed = 0
+    found: List[Tuple[str, Dict[str, int]]] = []
     for name, reader in READERS:
         result = reader(output)
         if result is not None:
-            found.append(name)
-            ran += result["ran"]
-            failed += result["failed"]
-    result = _pytest(output, exit_code if not found else None)
+            found.append((name, result))
+    result = _pytest(output, None)
     if result is not None:
-        found.append("pytest")
-        ran += result["ran"]
-        failed += result["failed"]
+        found.append(("pytest", result))
+    if not found:
+        result = _tap(output)
+        if result is not None:
+            found.append(("tap", result))
+    if not found:
+        result = _pytest(output, exit_code)
+        if result is not None:
+            found.append(("pytest", result))
     if not found:
         return None
-    return {"ran": ran, "failed": failed, "runners": found}
+    return {"ran": sum(result["ran"] for _name, result in found), "failed": sum(result["failed"] for _name, result in found),
+            "runners": [name for name, _result in found]}
 
 
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
@@ -198,12 +291,21 @@ def _plain(text: str) -> str:
 
 
 # A skipped test is marked by each runner's own syntax, never by a word in a test title: a leading skip glyph (jest
-# and vitest, node spec), mocha's pending ``- title``, a trailing ``# SKIP``/``# TODO`` (TAP, node), pytest's
-# ``SKIPPED``, unittest's ``... skipped`` and go's ``--- SKIP:``.  ``# Subtest:`` is TAP's announcement of a test,
+# and vitest, node spec), mocha's pending ``- title``, a trailing ``# SKIP``/``# TODO`` (node's spec reporter), pytest's
+# ``SKIPPED``, unittest's ``... skipped`` and go's ``--- SKIP:``.  A TAP test point is read by its own directive
+# instead (``_skip_line``, the TAP 14 rule ``_tap`` counts by).  ``# Subtest:`` is TAP's announcement of a test,
 # printed before its result line, so it shows nothing about the outcome.
 _SKIP_LINE = re.compile(
     r"^\s*[○✎﹣↓] |^\s*- |#\s*(?:SKIP|TODO)\b|\bSKIPPED\b|\.\.\. skipped\b|--- SKIP: |\[skipped\]", re.IGNORECASE)
 _ANNOUNCEMENT = re.compile(r"^\s*# Subtest:")
+
+
+def _skip_line(line: str) -> bool:
+    """Whether an output line marks the test it names as not run.  A TAP test point (``ok 3 - title``, indented or not)
+    is read by its own directive, the one rule ``_tap`` counts by, so a count and the IDs it shows agree; every other line
+    by the runner marks of ``_SKIP_LINE``."""
+    point = _TAP_POINT_LINE.match(line)
+    return _tap_directive(point.group(1)) if point else _SKIP_LINE.search(line) is not None
 
 
 def _id_pattern(test_id: str) -> "re.Pattern[str]":
@@ -238,7 +340,7 @@ def named(output: str, ids: Sequence[str]) -> Dict[str, Any]:
     inside: Dict[str, str] = {}
     for test_id in ids:
         pattern = _id_pattern(test_id)
-        if any(pattern.search(line) and not _SKIP_LINE.search(line) for line in lines):
+        if any(pattern.search(line) and not _skip_line(line) for line in lines):
             shown.append(test_id)
             continue
         missing.append(test_id)
@@ -247,7 +349,7 @@ def named(output: str, ids: Sequence[str]) -> Dict[str, Any]:
         pattern = _inside_pattern(test_id)
         first = next((line.strip() for line in lines
                       if any(match.group(1) not in listed for match in pattern.finditer(line))
-                      and not _SKIP_LINE.search(line)), None)
+                      and not _skip_line(line)), None)
         if first is not None:
             inside[test_id] = first[:INSIDE_CHARS]
     return {"shown": shown, "missing": missing, "inside": inside}
@@ -277,7 +379,7 @@ def outcomes(output: str, ids: Sequence[str]) -> Dict[str, str]:
     result: Dict[str, str] = {}
     for test_id in ids:
         pattern = _id_pattern(test_id)
-        hits = [index for index, line in enumerate(lines) if pattern.search(line) and not _SKIP_LINE.search(line)]
+        hits = [index for index, line in enumerate(lines) if pattern.search(line) and not _skip_line(line)]
         if not hits:
             result[test_id] = "missing"
         elif any(_FAIL_LINE.search(lines[index]) or (index and _FAIL_HEADER.match(lines[index - 1]))
