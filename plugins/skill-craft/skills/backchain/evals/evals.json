@@ -204,7 +204,7 @@
         "The start contract carries `required_trivial_reviews: 0` and the exit condition of one complete review/fix/check cycle because the caller stated `Backchain passes: one`; the standalone default gate is not copied.",
         "The cycle that repaired the candidate reports `exit_assessment: satisfied` when its exit holds; the host runs no second review to confirm the repair and adds no pass ceiling or counter. A cycle with an open gap is still reported unsatisfied and the loop continues.",
         "The terminal evidence set is the exact opaque terminal complete receipt, the one review record with its observed identity and the backchain-check receipt on the final candidate; a copied verdict or a numeric count cannot replace them.",
-        "Without the marker line the default applies: two consecutive distinct complete trivial/no-change reviews, and both original qualifying review records stay recoverable."
+        "Without the marker line the default applies: the loop completes at its first distinct complete trivial/no-change review (a repairing cycle is followed by one fresh review), and the review records stay recoverable."
       ]
     },
     {

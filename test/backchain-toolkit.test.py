@@ -23,7 +23,9 @@ CORPUS = ROOT / "test/fixtures/backchain-check"
 GOLDENS = ROOT / "test/fixtures/backchain-export"
 DISPATCH = ROOT / "skills/plan-dispatcher/scripts/dispatch.js"
 sys.path.insert(0, str(CLI.parent))
+sys.path.insert(0, str(ROOT / "test"))
 import backchain_graph as graph  # noqa: E402
+import package_build  # noqa: E402
 
 
 def run(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProcess:
@@ -174,6 +176,30 @@ class ExportTests(unittest.TestCase):
         # The JS exporter, run on each packaged input on 2026-11-01, gave the same verdict for all 88 and the same
         # graph for the 33 it exported (journal, Round 1).
         self.assertEqual((exported, refused), (33, 55))
+
+    def test_the_exporter_plan_dispatcher_names_runs_from_the_built_package(self):
+        """Round 10 (Astra 7, verifier R7): Plan Dispatcher named `node scripts/export-execution-graph.js`, a file only
+        the private research checkout has, and forbade resolving an exporter relative to its package. Route test:
+        take the command its protocol names, resolve it from the built plan-dispatcher skill, export, validate."""
+        import re
+        skills = package_build.plugins() / "skill-craft" / "skills"
+        dispatcher = skills / "plan-dispatcher"
+        protocol = (dispatcher / "references/protocol.md").read_text(encoding="utf-8")
+        named = re.search(r"`python3 -I -B (\S+) export PLAN\.json`", protocol)
+        self.assertIsNotNone(named, "protocol.md names no runnable Backchain export command")
+        self.assertIn(f"`python3 -I -B {named.group(1)} export --run DIR`", protocol)  # the guarded form, same path
+        self.assertIn(named.group(1), (dispatcher / "SKILL.md").read_text(encoding="utf-8"))
+        exporter = (dispatcher / named.group(1)).resolve()
+        self.assertTrue(exporter.is_file(), exporter)
+        out = self.base / "named.graph.json"
+        done = subprocess.run([sys.executable, "-I", "-B", str(exporter), "export", str(GOLDENS / "confirmed.plan.json"),
+                               "--out", str(out)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        request = self.base / "named.validate.json"
+        request.write_text(json.dumps({"graph": json.loads(out.read_text(encoding="utf-8"))}), encoding="utf-8")
+        accepted = subprocess.run(["node", str(dispatcher / "scripts/dispatch.js"), "validate-graph", str(request)],
+                                  capture_output=True, text=True, timeout=60)
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
     def test_an_incomplete_plan_is_refused_with_its_open_needs(self):
         done = run("export", str(CORPUS / "luna/plan-final.json"))
@@ -705,6 +731,140 @@ class RunTests(unittest.TestCase):
         self.assertEqual(result["review"]["candidate"]["output_sha256"], file_digest(run_dir / "plan.json"))
         self.assertEqual(result["review"]["coverage"]["structural_plan_status"], "valid")
         self.assertEqual(result["review"]["coverage"]["source_review_status"], "complete")
+
+    def test_a_caller_run_converges_only_on_a_complete_source_review(self):
+        """Round 10 (Astra 1, verifier R1): a final review whose source review is incomplete converged, with the export
+        hint, whenever it listed no planning gap; an absent, null, string or object gap list read as "none" or crashed.
+        Now the gap lists must be lists of strings, and an incomplete source review is an incomplete result whose next
+        action is followed by finishing again with the complete review. An honest external blocker still converges."""
+        bounds = {"provisional_step_ids": ["S2"], "provisional_edge_keys": ["S2<-S1"]}
+        run_dir, frozen = self.caller_run(without_one_edge, "source-status", bounds)
+        self.assertEqual(frozen.returncode, 0, frozen.stdout + frozen.stderr)
+        # a cycle's own next action must not hide the source-review reason (review round 1)
+        cycle = dict(assessment("none"), next_action="Hand the plan to the caller.")
+        self.assertEqual(self.cycle(run_dir, self.start(run_dir), cycle)["status"], "complete")
+        path = self.base / "final-review.json"
+
+        def finish(review):
+            path.write_text(json.dumps(review))
+            return run("finish", "--run", str(run_dir), "--review", str(path))
+
+        base = self.final_review(run_dir)
+        for label, review in (("planning_gaps absent", {k: v for k, v in base.items() if k != "planning_gaps"}),
+                              ("planning_gaps null", dict(base, planning_gaps=None)),
+                              ("planning_gaps a string", dict(base, planning_gaps="docs/redaction.md is stale")),
+                              ("planning_gaps an object", dict(base, planning_gaps={"gap": "stale"})),
+                              ("execution_blockers absent",
+                               {k: v for k, v in base.items() if k != "execution_blockers"})):
+            with self.subTest(label):
+                done = finish(review)
+                self.assertEqual(done.returncode, 3, done.stdout + done.stderr)
+                self.assertIn("is a list of strings", done.stderr)
+                self.assertNotIn("Traceback", done.stderr)
+        stale = {"id": "F-1", "kind": "stale_source", "material": True, "summary": "SRC-1 is stale"}
+        incomplete = finish(dict(base, findings=[stale], coverage={"source_review_status": "incomplete"}))
+        self.assertEqual(incomplete.returncode, 1, incomplete.stdout + incomplete.stderr)
+        self.assertNotIn(" export ", incomplete.stdout)
+        result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["status"], "incomplete")
+        self.assertIn("source_review_status is incomplete", result["review"]["convergence"]["next_action"])
+        # The printed recovery: the source assessment is in fact complete, so finish again with that review.
+        recovered = finish(base)
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertEqual(json.loads((run_dir / "result.json").read_text(encoding="utf-8"))["status"], "converged")
+        # A known external approval, modelled honestly: complete source review, a blocker, converged planning.
+        blocked = finish(dict(base, execution_blockers=["Steward approval is pending; S2 waits for it."]))
+        self.assertEqual(blocked.returncode, 0, blocked.stdout + blocked.stderr)
+
+    def legacy_inherited(self, edit, name: str, inherited=None):
+        """A legacy run over an inherited plan (no caller bounds), its candidate edited by ``edit``; freeze's result."""
+        source = inherited if inherited is not None else self.plan
+        path = self.base / f"{name}-inherited.json"
+        path.write_text(json.dumps(source))
+        run_dir = self.prepare("--draft", str(path), name=name)
+        (run_dir / "plan.json").write_text(json.dumps(edit(json.loads(json.dumps(source)))))
+        return run("freeze", "--run", str(run_dir))
+
+    def test_legacy_inheritance_keeps_goal_origin_and_closes_no_open_need_with_a_new_fact(self):
+        """Round 10 (Astra 2, verifier R2): the legacy boundary let a changed goal, a changed origin, or an invented
+        initial fact through; the fact closed an inherited goal need, so an incomplete plan exported as complete. Only
+        a fact that closes a need the inherited plan left open is refused: 6 of 15 control runs in the 2026-11 cohort
+        added inspected facts, and every grader accepted them."""
+        open_goal = json.loads(json.dumps(self.plan))
+        open_goal["goal_needs"] = open_goal["goal_needs"] + ["Release approved."]
+
+        def invented_fact(plan):
+            plan["initial_state"].append("Release approved.")
+            return plan
+
+        def changed_goal(plan):
+            plan["goal"] = "The CSV importer is deleted."
+            return plan
+
+        def changed_origin(plan):
+            plan["steps"][1]["origin"] = "discovered"
+            return plan
+
+        def inspected_fact(plan):
+            plan["initial_state"].append("The importer reads UTF-8 CSV files.")
+            return plan
+
+        for label, edit, expected in (("invented fact", invented_fact, "closes the inherited need 'Release approved.'"),
+                                      ("changed goal", changed_goal, "goal changed"),
+                                      ("changed origin", changed_origin, "step S2 origin changed")):
+            with self.subTest(label):
+                refused = self.legacy_inherited(edit, label.replace(" ", "-"), open_goal)
+                self.assertEqual(refused.returncode, 1, refused.stdout + refused.stderr)
+                self.assertIn(expected, refused.stdout)
+        for label, edit in (("unchanged", lambda plan: plan), ("an inspected fact", inspected_fact)):
+            with self.subTest(label):
+                kept = self.legacy_inherited(edit, label.replace(" ", "-"), open_goal)
+                self.assertEqual(kept.returncode, 0, kept.stdout + kept.stderr)
+        # The silent inv-7 repair: a fact that makes an inherited initial-state input validate.
+        null_edge = json.loads(json.dumps(self.plan))
+        null_edge["steps"][1]["inputs"].append({"need": "The importer's fixtures are checked in.", "from": None})
+
+        def declared(plan):
+            plan["initial_state"].append("The importer's fixtures are checked in.")
+            return plan
+
+        refused = self.legacy_inherited(declared, "inv-7-repair", null_edge)
+        self.assertEqual(refused.returncode, 1, refused.stdout + refused.stderr)
+        self.assertIn("closes the inherited need", refused.stdout)
+
+    def test_export_run_exports_only_the_plan_a_run_converged_on(self):
+        """Round 10 (Astra 7, verifier R7): `export PLAN` exported a plan edited after finish and an incomplete run's
+        plan. `export --run DIR` exports only the plan finish accepted, with that plan's digest; restoring the
+        accepted plan, as its refusal says, exports again."""
+        run_dir = self.frozen()
+        self.cycle(run_dir, self.start(run_dir), assessment("none"))
+        self.assertEqual(run("export", "--run", str(run_dir)).returncode, 3)  # no result yet
+        finished = run("finish", "--run", str(run_dir))
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertIn("export --run", finished.stdout)
+        exported = run("export", "--run", str(run_dir))
+        self.assertEqual(exported.returncode, 0, exported.stderr)
+        accepted = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))["convergence"]["candidate"]
+        self.assertEqual(json.loads(exported.stdout)["source"]["plan_sha256"], accepted["output_sha256"])
+        plan_path = run_dir / "plan.json"
+        good = plan_path.read_bytes()
+        plan_path.write_text(json.dumps(without_one_edge(json.loads(good))))
+        edited = run("export", "--run", str(run_dir))
+        self.assertEqual(edited.returncode, 1, edited.stdout + edited.stderr)
+        self.assertIn("is not the plan finish accepted", edited.stderr)
+        self.assertEqual(run("export", str(plan_path)).returncode, 0)  # the primitive still exports any complete plan
+        plan_path.write_bytes(good)
+        self.assertEqual(run("export", "--run", str(run_dir)).returncode, 0)
+        self.assertEqual(run("export", str(plan_path), "--run", str(run_dir)).returncode, 3)
+        # A run that finished incomplete exports nothing.
+        stopped_dir = self.frozen(name="stopped")
+        gap = "The normative redaction policy docs/redaction.md is not in the repository."
+        self.cycle(stopped_dir, self.start(stopped_dir), assessment("material", gaps=[gap]),
+                   exit_assessment="unsatisfied", continuation="blocked")
+        self.assertEqual(run("finish", "--run", str(stopped_dir)).returncode, 1)
+        refused = run("export", "--run", str(stopped_dir))
+        self.assertEqual(refused.returncode, 1, refused.stdout + refused.stderr)
+        self.assertIn("did not converge", refused.stderr)
 
     def test_the_contract_grants_only_the_callers_authority(self):
         """F8: the contract forbids what 0.6.6 forbade, not network access or contact a request may authorize."""

@@ -1030,20 +1030,39 @@ def _integer_split(raw: list[float], total: int | None) -> list[int]:
     return parts
 
 
+BACKCHAIN_RUN_SCHEMA = "backchain-run/v1"
+
+
+def _backchain_run(loop: Path) -> list[dict] | None:
+    """The cycles of a Backchain 0.7.0 planning run directory (run.json of schema backchain-run/v1 beside
+    loop/receipt.json; the packet names it run/backchain/<action>/run), from its evidence.json; None for any other
+    directory. Paths inside evidence.json are the host's absolute ones, so cycle files are read relative to the run."""
+    meta = _optional_json(loop / "run.json")
+    if not (isinstance(meta, dict) and meta.get("schema") == BACKCHAIN_RUN_SCHEMA and (loop / "loop" / "receipt.json").is_file()):
+        return None
+    evidence = _optional_json(loop / "evidence.json")
+    cycles = evidence.get("cycles") if isinstance(evidence, dict) else None
+    return [c for c in cycles if isinstance(c, dict) and isinstance(c.get("cycle"), int)] if isinstance(cycles, list) else []
+
+
 def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order: int,
              option: str = NOT_RECORDED, stage_of: dict[str, str] | None = None, phase_of: dict | None = None) -> dict:
     """One backchain/<runKey>-<loop> document. Best effort: an unreadable layout gives segments [].
 
-    Three layouts: the two older ones under scratch/ (per-pass review records, see _passes) and 1.21.0's
-    run/backchain/<action>/, where the runtime's receipt names the pass count and the host kept no per-pass record.
+    Four layouts: the two older ones under scratch/ (per-pass review records, see _passes), 1.21.0's
+    run/backchain/<action>/, where the runtime's receipt names the pass count and the host kept no per-pass record, and
+    Backchain 0.7.0's planning run at run/backchain/<action>/run, whose evidence.json records every cycle.
     `option` is the run's backchain_passes as state.md recorded it; `stage_of` maps an action id to its stage."""
     stage_of = stage_of or {}
-    name = stage_of.get(loop.name) or _loop_name(loop.name)
-    by_action = NAV_ID.fullmatch(loop.name) is not None  # 1.21.0: the directory is named by the action whose stage ran the loop
-    receipt_path = loop / "until-loop-receipt.json"
+    cycles = _backchain_run(loop)
+    home = loop.parent if cycles is not None else loop  # the run/backchain/<action>/ directory
+    name = stage_of.get(home.name) or _loop_name(home.name)
+    by_action = NAV_ID.fullmatch(home.name) is not None  # 1.21.0: the directory is named by the action whose stage ran the loop
+    receipt_path = loop / "loop" / "receipt.json" if cycles is not None else loop / "until-loop-receipt.json"
     receipt = _optional_json(receipt_path) or {}
-    start_record = _start_record(run_dir, loop)
-    layout, passes = _passes(loop)
+    start_record = (loop / "loop" / "contract.json" if (loop / "loop" / "contract.json").is_file() else None) \
+        if cycles is not None else _start_record(run_dir, loop)
+    layout, passes = ("backchain-run", []) if cycles is not None else _passes(loop)
     progress = receipt.get("progress") if isinstance(receipt.get("progress"), dict) else {}
     count = progress.get("action_number")
     count = count if isinstance(count, int) and not isinstance(count, bool) and count >= 1 else None
@@ -1051,11 +1070,12 @@ def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order
         layout = "receipt"
     loop_start = _mtime(start_record) if start_record else (_mtime(passes[0][1]) if passes else None)
     text = json.dumps(receipt) + (start_record.read_text(encoding="utf-8", errors="replace") if start_record else "")
-    owner = (next((a for a in actions if a["id"] == loop.name), None) if by_action
+    owner = (next((a for a in actions if a["id"] == home.name), None) if by_action
              else _owner(name, loop_start, text, actions))
     required = progress.get("required_trivial_reviews")
     required = required if isinstance(required, int) and not isinstance(required, bool) and required >= 0 else None
-    passes_text = str(len(passes) if passes else count) if passes or count else "unknown"
+    passes_text = (str(len(cycles)) if cycles else str(len(passes) if passes else count) if passes or count
+                   else "unknown")
     facts = [{"k": "Passes", "v": passes_text},
              {"k": "Final status", "v": str(receipt.get("status") or "unknown")}]
     if "trivial_streak" in progress:
@@ -1064,7 +1084,7 @@ def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order
                       else f"{progress.get('trivial_streak')} of {progress.get('required_trivial_reviews', '?')} required"})
     facts.append({"k": "Backchain passes option", "v": option})
     facts.append({"k": "Receipt", "v": receipt_path.relative_to(run_dir).as_posix()})
-    stage = owner["stage"] if owner else stage_of.get(loop.name)
+    stage = owner["stage"] if owner else stage_of.get(home.name)
     doc = {"run": run_key, "loop": name, "phase": (phase_of or STAGE_PHASE).get(stage or name, 2), "order": order,
            "title": f"{name[:1].upper()}{name[1:]} loop", "stageMin": None, "segments": [], "facts": facts,
            "backchainPasses": option}
@@ -1073,7 +1093,7 @@ def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order
 
     def close(final: str | None) -> dict:
         """Record whether the last check receipt is for the loop's final candidate, then hand back the document."""
-        folder = loop if by_action else (run_dir / "backchain" / owner["id"] if owner else None)
+        folder = home if by_action else (run_dir / "backchain" / owner["id"] if owner else None)
         doc["candidateMatch"], said = _candidate_match(final, _last_check(folder))
         facts.insert(next(i for i, f in enumerate(facts) if f["k"] == "Receipt"), {"k": "Candidate match", "v": said})
         return doc
@@ -1084,6 +1104,25 @@ def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order
         return close(None)
     final = None
     rows, previous_end, previous_after = [], loop_start, None
+    if layout == "backchain-run":
+        # Backchain 0.7.0: one row per recorded cycle, timed from the frozen contract to each cycle's report, with the
+        # classification Backchain's record gave it and whether the cycle changed the candidate.
+        if loop_start is None:
+            facts.append({"k": "Timing", "v": "not recorded: no loop/contract.json in the Backchain run"})
+        for index, cycle in enumerate(cycles, 1):
+            report_path = loop / "cycles" / f"{cycle['cycle']:02d}" / "report.json"
+            end = _mtime(report_path) if report_path.is_file() else previous_end
+            changed = cycle.get("changed")
+            rows.append({"label": f"Pass {index}", "kind": "unclear", "pass": index,
+                         "change": "changed" if changed is True else "none" if changed is False else "unknown",
+                         "note": (f"The loop recorded it as {cycle['classification']}."
+                                  if isinstance(cycle.get("classification"), str) else ""),
+                         "raw": _minutes(previous_end, end) if previous_end and end else 0.0})
+            previous_end = end or previous_end
+            plan = cycle.get("plan") if isinstance(cycle.get("plan"), dict) else {}
+            final = plan.get("sha256") if isinstance(plan.get("sha256"), str) and HEX64.fullmatch(plan["sha256"]) else final
+        if loop_start is None:
+            rows = []
     if layout == "receipt":
         before, final = _record_digests(run_dir, loop)
         end = _mtime(receipt_path)
@@ -1151,9 +1190,13 @@ def find_loops(scratch: Path) -> list[Path]:
 
 
 def find_backchain_loops(run_dir: Path) -> list[Path]:
-    """The run/backchain/<action>/ directories (1.21.0) that hold an until-loop-receipt.json. A directory with only
-    backchain-check receipts is no loop, and a loop still running has no receipt yet."""
-    return [p.parent for p in sorted((run_dir / "backchain").glob("*/until-loop-receipt.json")) if p.is_file()]
+    """The run/backchain/<action>/ directories (1.21.0) that hold an until-loop-receipt.json, and the Backchain 0.7.0
+    planning runs at run/backchain/<action>/run (loop/receipt.json). A directory with only backchain-check receipts is
+    no loop, and a loop still running has no receipt yet."""
+    older = [p.parent for p in sorted((run_dir / "backchain").glob("*/until-loop-receipt.json")) if p.is_file()]
+    runs = [p.parent.parent for p in sorted((run_dir / "backchain").glob("*/run/loop/receipt.json"))
+            if p.is_file() and _backchain_run(p.parent.parent) is not None]
+    return [*older, *runs]
 
 
 def find_graph_check_dirs(run_dir: Path) -> list[Path]:
@@ -1161,7 +1204,7 @@ def find_graph_check_dirs(run_dir: Path) -> list[Path]:
     until-loop-receipt.json: a stage that checked its graph and ran no Until Loop (a one-pass option). They were read as no
     loop at all, so a run whose plan was checked read "none"."""
     return [p for p in sorted((run_dir / "backchain").glob("*")) if p.is_dir() and not (p / "until-loop-receipt.json").is_file()
-            and any(p.glob("check-*.json"))]
+            and _backchain_run(p / "run") is None and any(p.glob("check-*.json"))]
 
 
 def graph_check_doc(run_key: str, run_dir: Path, folder: Path, order: int, option: str = NOT_RECORDED,
@@ -3231,12 +3274,16 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         try:
             doc = loop_doc(key, run_dir, loop, actions, 0, option, stage_of, phase_of)
         except Exception as exc:  # noqa: BLE001 - the ledger is best effort and never fails the export
-            doc = {"run": key, "loop": stage_of.get(loop.name) or _loop_name(loop.name), "phase": 2, "order": 0,
-                   "title": f"{stage_of.get(loop.name) or _loop_name(loop.name)} loop", "stageMin": None,
+            home = loop.parent.name if (loop / "run.json").is_file() else loop.name
+            doc = {"run": key, "loop": stage_of.get(home) or _loop_name(home), "phase": 2, "order": 0,
+                   "title": f"{stage_of.get(home) or _loop_name(home)} loop", "stageMin": None,
                    "segments": [], "backchainPasses": option,
                    "facts": [{"k": "Ledger", "v": f"not built: {type(exc).__name__}: {exc}"}]}
-        start = _start_record(run_dir, loop) or loop / "until-loop-receipt.json"
-        loops.append(((start.stat().st_mtime if start.is_file() else 0.0), loop.name, doc))
+        backchain_run = _backchain_run(loop) is not None
+        start = ((loop / "loop" / "contract.json") if backchain_run
+                 else _start_record(run_dir, loop) or loop / "until-loop-receipt.json")
+        loops.append(((start.stat().st_mtime if start.is_file() else 0.0),
+                      loop.parent.name if backchain_run else loop.name, doc))
     for folder in find_graph_check_dirs(run_dir):  # R22b: a stage that only checked its graph is not "no loop"
         first = min(p.stat().st_mtime for p in folder.glob("check-*.json"))
         loops.append((first, folder.name, graph_check_doc(key, run_dir, folder, 0, option, stage_of, phase_of)))

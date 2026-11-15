@@ -9061,3 +9061,44 @@ entry, and main still ships ShipLoop 1.34.3. So this round vouches for that sour
   the request does not state the switch-on and rollback itself. Also open is the repository's decision-record rule, which no
   run planned or followed. (3) Evaluation criteria: a step-order measure must read each step's criteria by ID, because these
   step plans name their criteria by ID only.
+
+## 2026-11-15 — Backchain 0.7.0 child route, `csv-report` with a forced plan child on Codex Terra xhigh: qualified, the host ran prepare and freeze itself, 5 of 5 checks pass
+
+This is release A's one live round (plan W6 in `docs/backchain-efficiency-journal-2026-11.md` Round 10). It covers the
+ShipLoop changes in 3f9554a2b6820b65a3511f7c5ad3137dfa75c594 and d69438aae189e00c9cd4ab269e1bee7f0caeb11c: the Backchain
+child starts with Backchain 0.7.0's own `prepare` and `freeze`, the packet names its run directory, and the Run Review
+exporter reads the 0.7.0 layout. It also exercised the toolkit checks in 76cc10ba3f19e512ac4fed0e041aa4082f9a0006. The
+round ran `run.py --source checkout` from the release A branch at f896ec7a788913429a843e61b42ecfcf866d23d3 (main merged
+in, clean tree). That build was skill-craft 2.40.2 and ShipLoop 1.36.2, `plugin_sha256` abca2d47c2cd. The subject was
+Codex gpt-6.1-terra at xhigh (codex-cli 0.169.0). The prompt was the `csv-report` case's, plus "At the plan stage,
+request one Backchain plan/draft child for the plan's dependency graph." with the default `one` option. Main's only
+commit since is b0285785374570c88f534480cf361778030018ac, which is docs-only, so the gated skill paths equal the tested
+ones.
+
+- **Inclusion rule, met.** The rule was registered in the plan before the run. `RUN/backchain/<action>/run` holds a
+  0.7.0 run: `run.json` has schema `backchain-run/v1`, route source-aware and passes `one`, and `loop/contract.json` has
+  `required_trivial_reviews: 0`. The host's own tool calls ran these commands, in order:
+  - `backchain.py prepare` with `--run`, `--request`, `--caller`, `--binding` and `--passes one`;
+  - `freeze`, `lenses`, `record`, `check` and `finish`.
+  No tool call wrote `loop/contract.json` or `loop/receipt.json`. One inline script named the receipt, only as a path in
+  the plan packet's evidence list. The run's own export, made with release A's `export.py`, shows a "Plan loop" for
+  the child: 1 pass, final status complete, option `one`, candidate match yes, plan 4 min accept to accept. The run has
+  no duplicate graph-check-only document.
+- **Readout.**
+  - The child converged in one cycle. The review was classed trivial with `change_class` none. Its one finding is
+    advisory: S1's confirmation names categories, not exact fixtures. It recorded no planning gap or execution
+    blocker. `result.json` is `converged`, with 2 steps, 0 unresolved and a complete structure.
+  - The plan stage took 222 s, 20 tool calls and a context peak of 172,727 tokens (36% of the window). Codex reports no
+    per-stage tokens here (the attribution is timestamp-only).
+  - The whole run took 1,479 s and 158 turns, with 54,600 output tokens and 28,997,111 processed.
+- **Delivery.** The run ended done, and all 5 case checks pass: unit, totals, invalid, missing and empty. The 3 script
+  verifications pass. There were 4 ShipLoop command failures, each a gate doing its job: an assumption due at W1, an
+  Improve pass that changed a result without recording its check, an unrecorded surviving mutant, and one `workspace`
+  exit. None came from the Backchain route.
+- **Harness notes.**
+  - (1) The Run Review page draws the child's pass as `unclear`. That is the schema's default for a pass nobody has
+    judged (SCHEMA.md), not a reading defect.
+  - (2) The metrics line counts 6 uses of the retired term "terminal packet". They come from the shared Until Loop
+    runtime's text, which has 24 uses on main; release A added none.
+  - (3) Not covered here, by design: ShipLoop's `converge` option (owner decision D-D; it now stops at the first
+    trivial review, proved by hermetic tests only), a spec-stage child, and the other hosts.

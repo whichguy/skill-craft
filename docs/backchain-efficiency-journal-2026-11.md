@@ -17,6 +17,8 @@ Evidence: [`docs/experiments/backchain-efficiency-20261101/`](experiments/backch
 - **D1 (2026-11-01), review gate:** the default stops at the first trivial review; a material or
   unresolved review is always followed by a fresh one. `Backchain passes: one` keeps its one cycle.
   ShipLoop's `converge` runs keep two reviews through an explicit `Backchain passes: converge` marker.
+  *Superseded for ShipLoop's `converge` on 2026-11-01 by D-D (Round 10): that marker never reached a printed
+  packet, so converge ran the default gate; the owner chose to keep that meaning.*
 - **D2 (2026-11-01), measurement:** before any prompt change is adopted, a cohort reruns the six
   2026-10-16 cases and about four new held-out cases, designed blind by a separate agent, 3 repetitions
   per arm, with that study's subject and grader (gpt-6-astra medium through Codex, blind grading).
@@ -131,7 +133,7 @@ together):
 
 | ID | Finding | Status | Evidence |
 |----|---------|--------|----------|
-| R2-1 | A fresh request's full reads fall from 231,784 to 140,574 bytes (−39.4 %): `SKILL.md` 28,636 → 13,503, `convergence.md` 19,006 → 16,529, the Until Loop runtime document (27,913) and the lens cards (36,412) and interactions (9,608) no longer read whole; the review prompt and lens index grow by 333 bytes. The generator and elaborator (70,305) are now the largest block. | firm (bytes) | sizes from `git cat-file -s` at e81fdb55 and the work tree |
+| R2-1 | A fresh request's full reads fall from 231,784 to 140,574 bytes (−39.4 %): `SKILL.md` 28,636 → 13,503, `convergence.md` 19,006 → 16,529, the Until Loop runtime document (27,913) and the lens cards (36,412) and interactions (9,608) no longer read whole; the review prompt and lens index grow by 333 bytes. The generator and elaborator (70,305) are now the largest block. *Superseded 2026-11-01 (Round 10, R10-9): these are the bytes the card asks for, not what hosts read; all 30 candidate cohort runs still read the runtime document and the interactions whole.* | firm (bytes asked); superseded as a read measure | sizes from `git cat-file -s` at e81fdb55 and the work tree |
 | R2-2 | ShipLoop's default packets are byte-identical: 200 of 207 renders unchanged, the 7 changed all in `converge` mode. | firm | render comparison over `prompts.prompt` and `_backchain_guidance` for every stage, delegation and mode |
 
 Held-out cases for Phase 5, frozen before the candidate: designed blind by a separate agent (it reported only paths,
@@ -153,7 +155,7 @@ compact one keeps the same four placeholders the checkout's harness renders.
 
 | ID | Finding | Status | Evidence |
 |----|---------|--------|----------|
-| R3-1 | A fresh request's full reads are 79,187 bytes, or 96,441 when its dependency review calls for the elaborator, against 231,784 at 0.6.6 (−65.8 % / −58.4 %). | firm (bytes) | `git cat-file -s` at e81fdb55; work-tree sizes |
+| R3-1 | A fresh request's full reads are 79,187 bytes, or 96,441 when its dependency review calls for the elaborator, against 231,784 at 0.6.6 (−65.8 % / −58.4 %). *Superseded 2026-11-01 as a read measure (Round 10, R10-9): hosts also read the 27,913-byte runtime document and the 9,608-byte interactions whole in 30 of 30 candidate runs.* | firm (bytes asked); superseded as a read measure | `git cat-file -s` at e81fdb55; work-tree sizes |
 | R3-2 | The prompts carry the measured design: direct synthesis, then the dependency review, then the elaborator only on a change (`prepare` prints that order; the generator is in no native route). | firm (test) | `RunTests.test_each_route_reads_its_prompts_once_in_order` |
 
 Risk carried into the cohort: the 2026-10-16 adversarial review's false-edge hazard of direct synthesis is now
@@ -336,7 +338,7 @@ amendment A1 (`a1_sensitivity.py`) and the post-hoc regrade R1 (`regrade_r1.py`,
 | R9-4 | Qualification as registered: candidate 19, control 7 (+0.40 [+0.13, +0.70]). Packaging-normalized (A1): 19 and 19. 13 of the control's 23 outcome failures are only the `parallel_groups: []` its card asks for; none of the candidate's 8 are. | firm | `a1.json` `packaging` |
 | R9-5 | The candidate's two largest quality losses are a derived-field artifact, found after seeing the grades (post-hoc). Graders mention `parallel_groups` in 76 candidate rows and 0 control rows. All 49 partial or missed ones are in the two edit-bounded repair cases, read as a change outside the caller's bounds. The candidate's toolkit recomputes the field; 0.6.6 keeps `[]`. With the field removed (R1), bounded-source-edge-repair goes from −26.6 to 0.0 (96.4 in all 9 passes of both arms) and revenue-export-lineage from −9.1 to −2.4; the control's scores do not move. | firm (diagnosis by R1) | `analysis.json` `per_case`; `r1-analysis.json` `per_case` |
 | R9-6 | R1, the post-hoc sensitivity: still inconclusive. Quality +2.18, 95% [−1.93, +7.49], p = 0.92, against its own grader noise ±0.62; qualification candidate 22, control 7; F7's pooled block does not fire (candidate 9 of 9). | firm (post-hoc) | `r1-analysis.json` |
-| R9-7 | One genuine candidate loss: orders-cancel-rpc, −8.5 registered and −7.8 in R1. Both arms stop on the seeded defects that preservation forbids repairing, but graders judged the candidate's stop worse (terminal-disposition missed in 8 of 9 candidate verdicts). | firm (n = 3 per arm) | `grades/p*/orders-cancel-rpc-*` |
+| R9-7 | One genuine candidate loss: orders-cancel-rpc, −8.5 registered and −7.8 in R1. Both arms stop on the seeded defects that preservation forbids repairing, but graders judged the candidate's stop worse (terminal-disposition missed in 8 of 9 candidate verdicts). *Annotated 2026-11-01 (Round 10, R10-3): the stop is the one the contract requires (convergence.md forbids the split the oracle rewards, and S3's frozen partial confirmation is a second contract gap), so the case's oracle is wrong; graders also split by arm on equivalent stops (control met 8 of 9, candidate missed 8 of 9). This is an oracle and grader-validity problem, not a planner loss.* | firm (n = 3 per arm) | `grades/p*/orders-cancel-rpc-*` |
 | R9-8 | The candidate's biggest gains: independent-inspection-scopes +16.7 (largely one control attempt scoring 47.4) and billing-late-fee +17.8. | firm | `analysis.json` `per_case` |
 | R9-9 | F6: the control ran 7 confirming reviews and none was non-trivial. With the 2026-10-16 prior that is 0 of 18 confirming reviews changing anything, which supports D1. | firm (n = 18) | `analysis.json` `confirming_review_yield` |
 | R9-10 | The design could hardly reach "near-identical". Its band is the grader noise (±0.62 to ±1.05 points), while 10 cases with a few large per-case swings give an interval about 9 to 15 points wide. So "inconclusive" here mostly reflects how little power the design has for small differences, not evidence of a difference. | exploratory | `analysis.json`; `r1-analysis.json` |
@@ -347,3 +349,114 @@ Decision D4 (owner, 2026-11-01): ship the candidate. Asked with the registered r
 no harm detected once the artifact is removed) and the cost result (halved) side by side. Follow-ups:
 - orders-cancel-rpc's stop, which graders judged worse in the candidate (R9-7);
 - the cases' bounded-repair criteria, which should tell graders that `parallel_groups` is derived (R9-5).
+
+## Round 10 — Astra's review, verified; the follow-up plan and its owner decisions (2026-11-01)
+
+Question (owner): ask Astra at max effort how Backchain works and what to improve; adopt what holds, plan and
+implement. Conditions: gpt-6-astra, max effort, read-only, no fallback (`ask.sh astra`). Then 8 independent read-only
+verifiers (workflow wf_350d73a0-70d), each told to refute one claim group, probing a `git archive` of
+f5fb7d6446bb461e1a771a7bc64effaabd6822d1 (2.32.1) and the 2026-11 cohort's runs. Then 3 critics of the draft plan
+(wf_5dde4b74-958): feasibility against the code, completeness and order, rules and history. Evidence:
+[`experiments/backchain-efficiency-20261101/astra-review/`](experiments/backchain-efficiency-20261101/astra-review/)
+(`astra.json`, `verification.json`, `plan-critique.json`, `probes/`).
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R10-1 | A caller-backed `finish` converges, and prints the export hint, on a final review whose `source_review_status` is `incomplete`, even with a material stale-source finding: the predicate ignores the status. A `planning_gaps` given as a string or object crashes with a traceback and exit 1. 0 of 9 caller-backed cohort runs hit it (each incomplete review also listed a gap). | firm (reproduced end to end) | `verification.json` R1; `probes/r1-*` |
+| R10-2 | At the legacy inherited boundary, a changed goal, a changed step origin, or an invented `initial_state` fact ("Release approved.") passes preservation; the fact flips completion to complete and allows export. Strict initial_state equality would have refused 6 of 15 control runs whose inspection-derived additions all graders accepted, so only additions that close an inherited goal need or null-edge need are the defect (the "silent inv-7 repair"). Edge keys split on `<-`, and a supplier ID `null` collides, but no case or caller uses such IDs. | firm | `verification.json` R2; `probes/r2-*` |
+| R10-3 | orders-cancel-rpc's oracle rewards a store-supplier split that `references/convergence.md` forbids (inherited seed work may not move to a discovered step; lines from 2eaeb47a and e498d0b6, 2026-10-17). All 6 attempts reported the split as a planning gap, 4 of them citing the rule. The case has a second contract conflict: S3's partial confirmation is material yet frozen. The repair passes every mechanical check, so only the prose rule stands in the way. | firm | `verification.json` R3; `probes/r3-*` |
+| R10-4 | Astra's "stop only on a structured blocker" would not have changed one of the 9 stops examined. revenue-export-lineage stopped on a *provisional* step's (S3) confirmation that the request froze; under the contract a partial confirmation on a step the cycle may change is material, and `edit_bounds` cannot freeze a single field. The free-text gaps already named obligation, repair and missing authority. library-reminders' stop is justified (an unqualified exactly-once goal over a read-then-mark interface); its case is under-specified. | firm | `verification.json` R4; `probes/r4-*` |
+| R10-5 | 17 to 18 of 42 billing-late-fee key verdicts are false failures: the selectors expect a fixture filename and treat a step that configures `npm test` as one that runs it, while all six attempts chose a pretest-hook design the grader accepted. No qualification or block decision changes. | firm | `verification.json` R5 |
+| R10-6 | `export PLAN` exports a plan edited after `finish`, and an incomplete run's plan. Plan Dispatcher's card and protocol name `scripts/export-execution-graph.js`, which no package ships, and protocol.md forbids resolving the sibling path. | firm (probes) | `verification.json` R7; `probes/r7-*` |
+| R10-7 | A `submit --run` helper that runs `verify_script` itself breaks Until Loop's sole-caller rule (ADAPTER.md) and hooks-see-every-command. In the 30 candidate runs, record → verify → done took 3 shell calls in 30 of 31 cycles and every submission was accepted; 10 of 31 used a hand-written Python wrapper. | firm | `verification.json` R7-R8; `probes/r7-r8-*` |
+| R10-8 | The fresh-route question phase caught gaps before freeze in 4 of 15 runs (an external approval in 3 of 3 known-external runs, an authored test suite once); its catches overlapped the loop's in 3 of 15. Moving a catch into cycle 1 forces a second review under D1 (one such run cost 988k tokens against 584-736k). | firm (n = 15) | `verification.json` R9-R10 |
+| R10-9 | Every candidate cohort run read the Until Loop `references/runtime-ephemeral.md` (27,913 bytes) and Backchain's `technical-interactions.md` (9,608) whole: 30 of 30 each. The first is triggered by the vendored ADAPTER.md's "Read the callback adapter", the second by "read the relevant sections" with no section fetch. Lens cards, fetched by `lenses`, were read whole in 0 of 30. `prepare` also misnumbers its cross-references on the caller-without-draft route, and SKILL.md tells "generator drafts" to keep `unresolved: []` while the direct planner permits honest unresolved needs (15 of 15 direct drafts left it empty). | firm | `verification.json` R9-R10 |
+| R10-10 | Rubric-eval's near-identical band is grader noise ÷ √passes, so a noisier judge widens what counts as equal: a 2-point loss is called near-identical 83% of the time at judge SD 10 and never at SD 2 (simulation, n = 10 clusters). Requiring the bootstrap and Wilcoxon to agree behaves like Wilcoxon with a sign check (false positives 4.7% vs 5.0%). 95.2% of the cohort's per-cell saving is cached input (−599,740 of −630,081); critical misses are computed but never reported. | firm | `verification.json` EVAL |
+| R10-11 | In the 2026-11 paired differences the SD splits into 5.5 between cases and 9.8 between repeats (R1 grading; 11.1 and 10.7 registered). A new case buys more precision than a repeat: 20 cases × 1 run gives ±5.2 against ±5.6 for 10 × 3, with 20 fewer runs. | firm (t-based; this cohort's variance) | variance split of `r1-analysis.json` / `analysis.json` attempts |
+| R10-12 | ShipLoop's `converge` mode never delivered its marker: the plan item says `required_trivial_reviews: 2` with no `Backchain passes: converge` line, and the spec item prints an empty marker, so since 0.7.0 the host runs `prepare` without `--passes` and freeze writes gate 1. The two converge texts that carry the marker reach no packet (BACKCHAIN_FOLDED_STAGES); the tests pin them. | firm (rendered packets) | `plan-critique.json` feasibility |
+
+Dispositions, each with its reason:
+- Astra 1 (R10-1): adopt. finish requires a complete source review for caller convergence; gap lists must be lists of strings.
+- Astra 2 (R10-2): adopt, narrowed to goal, origin and need-closing initial facts; edge keys get a documented trust boundary only (the owner's KISS rule: no exposure).
+- Astra 3 (R10-3): keep the rule and fix the oracle (owner D-B).
+- Astra 4 (R10-4): rejected as specified; replaced by an input-only edit-bounds permission (owner item 4).
+- Astra 5 (R10-5): adopt for the next cohort; the registered 2026-11 analysis is not regraded.
+- Astra 6 (audit packet, invalidation threats): not adopted; no failure of that kind in 60 runs.
+- Astra 7 (R10-6): adopt `export --run` and the pointer fix; scheduler integration tests deferred (no measured failure).
+- Astra 8 (R10-7): rejected; residue only, `record` prints the done line, measured in cohort B.
+- Astra 9 (R10-8): deferred; re-check against cohort B.
+- Astra 10 (R10-9): adopt, without editing the shared Until Loop card, which is also ShipLoop's and Improve's.
+- Evaluation (R10-10): adopt (owner D-A).
+- Owner item 9, the release preflight's merge counting: already shipped in 39b417c26d24f2344a7b6c84617f8b94a9a554b8.
+
+Owner decisions (2026-11-01):
+- **D-A:** rubric-eval's near-identical becomes non-inferiority against an owner-set, pre-registered margin δ; noise/√passes above δ blocks. This amends the owner's 2026-09-27 rule (de621ab0cf8e8f7cd9d04a5f694036926cf89cd2, 7ff46b2cb85d480149318eb03c2eb61eeedac0ce); the order quality > tokens > time stays.
+- **D-B:** keep the seed-narrowing rule; orders-cancel-rpc's oracle accepts "incomplete, with the split and confirmation gaps named".
+- **D-C:** δ = 5 points.
+- **Cohort size:** 20 cases × 1 run (R10-11), not 10 × 3.
+- **D-D:** ShipLoop's `converge` completes at the first trivial review (Backchain's default gate), superseding D1's two reviews for converge. It is how converge has behaved since 0.7.0 (R10-12); 0 of 18 confirming reviews changed anything (R9-9).
+- **Live ShipLoop runs:** one per release (the E2E gate), with a forced Backchain child.
+- **D2's scope:** reference docs may state what a new script check refuses; text meant to change model behaviour waits for the cohort.
+- **Cohort B's harness:** run.py on Codex Terra xhigh, graded by Opus. D3 is not extended; comparability with the 2026-11 numbers is given up.
+
+Plan: release A ships the defect fixes (ShipLoop's Backchain-child packets and converge text, the Run Review exporter,
+Plan Dispatcher's exporter pointer, finish/preservation/export checks) with one live ShipLoop round. Release B ships the
+read and card cleanup and the input-only bounds once cohort B (40 runs plus a 4-run pilot and 2 targeted checks)
+adopts them under the new rule. Rubric-eval's rule and the cohort tooling land when ready.
+
+## Round 11 — release A re-scoped after two weeks, and its one live round (2026-11-15)
+
+Question (owner, 2026-11-15): "we might need to rebase and reconsider where we left off on this." The branch was rebased
+onto the 2026-11-15 origin/main. The owner chose to ship W3 (toolkit checks), W2 (Plan Dispatcher's
+exporter pointer) and a rebuilt W1 (ShipLoop's Backchain child on 0.7.0's own route) as release A, with its one live
+round. Cohort B and the rubric-eval rule (W7) are shelved; W4, W5 and W8 wait with them. Release A's commits:
+76cc10ba3f19e512ac4fed0e041aa4082f9a0006 (W3), 0ec551ccb52f9c3bb1e1624735327d9944ad441d (W2),
+3f9554a2b6820b65a3511f7c5ad3137dfa75c594 (W1) and d69438aae189e00c9cd4ab269e1bee7f0caeb11c (review round 1's two
+material findings: the one-pass item did not say `--passes one`, and the start named only part of `prepare`). Main was
+then merged in, at f896ec7a788913429a843e61b42ecfcf866d23d3.
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R11-1 | Given the rebuilt packet, a Codex Terra xhigh host ran Backchain's route itself. It ran `prepare` (`--run` the printed run directory, `--request`, `--caller`, `--binding`, `--passes one`), then `freeze`, `lenses`, `record`, `check` and `finish`, and hand-wrote no contract or receipt. `freeze` wrote gate 0. The child converged at its first review (trivial, one advisory finding) with a complete 2-step plan. R10-12's converge defect is fixed by text and hermetic tests only (D-D); no live run measures converge. | firm (n = 1, one host) | `test/shiploop_e2e/LEARNINGS.md` entry of 2026-11-15; the run's `events.jsonl` tool calls and `RUN/backchain/<action>/run/` |
+| R11-2 | Release A's exporter reads a real 0.7.0 run: one "Plan loop" document (1 pass, complete, option `one`, candidate match yes, 4 min accept to accept) and no duplicate graph-check document. | firm (n = 1) | the run's `review-export/docs/backchain/` |
+| R11-3 | The delivery passed all 5 held-out checks of `csv-report` in 1,479 s. The plan stage took 222 s with 20 tool calls; Codex reports no per-stage tokens. One run gives no comparison with earlier plan stages. | firm (n = 1); exploratory as a cost figure | `metrics.json`; `baselines.jsonl` row of 2026-11-15 |
+
+Release order from here: the LEARNINGS commit (the last commit touching `skills/shiploop/` or `changes/shiploop/`), the
+landing gate, then the push, `scripts/release.py`, CI and the host refresh. The gate passed: main's only commit since the
+tested merge is b0285785374570c88f534480cf361778030018ac, which is docs-only.
+
+Release A was published at fe0e6ca39435d502bd0b8afd3ce300ff731e5683 (skill-craft 2.41.0, Backchain 0.8.0, ShipLoop
+1.36.3). CI on that commit passed 13 of 13 jobs, and Claude, Codex and Grok read back 2.41.0. Cursor's registration was
+re-added at that commit; its in-app Uninstall, reload and Add steps remain the owner's.
+
+## Round 12 — Backchain against no Backchain on current models: no meaningful edge on all three (2026-11-15)
+
+Question (owner, 2026-11-15): "whether Backchain is as effective with the most recent models or it's not nearly as
+valuable", on "Grok 4.6 on extra high, GPT Sol 6.1 on medium, and Sonnet 5.5 on high". The registration came before
+any study attempt: b9393e61693d7ec42a631881ad08b10254a4ef09 (protocol), e60d3b1d1f9b3fc9c19cfe457a424d54466372e6
+(amendments A1-A3 from the harness pilot) and 44e76211107c3dd8a1fa1fc9e7516dce3d38e045 (A4).
+- Conditions: the 2026-11 cohort's 10 cases, 1 run per case, arm and model (60 attempts). Backchain 0.7.0 came from
+  b0285785374570c88f534480cf361778030018ac; the no-skill arm got the same request, inputs, caller packet and
+  [plan-format.md](experiments/backchain-value-20261115/plan-format.md).
+- Grading: blind Opus at medium effort, 2 passes per attempt.
+- Reading per model, with the owner's margin δ = 5.
+- Evidence: [RESULTS.md](experiments/backchain-value-20261115/RESULTS.md) and its `evidence/`.
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R12-1 | Backchain minus no skill: Grok 4.6 xhigh +0.7 [−0.6, +2.0], Sol 6.1 medium +0.5 [−3.4, +4.8], Sonnet 5.5 high −0.2 [−1.3, +1.1]. All three intervals lie below +5, so each reads "no meaningful edge". Sol's high end, +4.8, is the closest to δ. | firm (as registered; 10 cases per model) | `evidence/analysis.json` |
+| R12-2 | Backchain used more processed tokens in 30 of 30 pairs. Medians: Grok 2.56M vs 171k (15×), Sol 1.03M vs 96k (11×), Sonnet 1.03M vs 100k (10×). It also took 2.3-3.3× the median wall time. Most of the extra is cached input (12-21×); fresh input is 4-7× and output 2-3×. | firm | `evidence/extras.json`, `evidence/attempts.json` |
+| R12-3 | Both arms score near the ceiling (means 92-96), and 14 of the 30 pairs tie exactly. The cases were built to tell Backchain versions apart and leave current unaided models little to fix, so a large edge could not show here. | firm (descriptive) | `evidence/analysis.json` |
+| R12-4 | The no-skill arm could see the word: workspace directories were named `backchain-cohort-…` and caller packets keep `"interface": "backchain-caller/v1"`. Grok's no-skill subject reasoned about backchaining in 4 of 10 attempts, while Sol's and Sonnet's never did. No no-skill subject read a Backchain file or ran the toolkit (0 of 30 contaminated under A3). | firm (the prime's effect on scores is unmeasured) | RESULTS.md "Readings outside the registered rule" |
+| R12-5 | On orders-cancel-rpc, Sol's Backchain stop named both gaps, which D-B counts as correct, yet the grader marked `terminal-disposition` and `dependency-logic` partial in both passes (90 vs 100). Every critical miss in the study is `store-split-from-docs` on this case, and on Grok and Sonnet both arms missed it. | firm | `evidence/grades.json` |
+
+Supersedes nothing. It extends the July evidence: on July's models the unaided model already handled several cases
+well (phase0b, 2026-07-25), and on November's models it plans as well as Backchain on all 10 of these cases.
+
+Decision (routine, recorded): no change to Backchain follows from this study alone, because it measures plan quality on
+one case set and not downstream value. The results answer the owner's question as asked: on these models and cases,
+Backchain is much less valuable than its cost. Four questions stay open:
+- whether harder cases show an edge;
+- whether a Backchain plan changes what gets built;
+- whether a cheaper Backchain path (one pass, or a lighter review) keeps quality at a fraction of the cost;
+- a rerun of R12-4 without the naming prime.

@@ -237,7 +237,7 @@ request criteria and meaningful checks remains necessary.
 Backchain passes option is `none` prints no such block): ShipLoop
 resolves these paths from its own installed plugin. It lists Backchain `SKILL.md`,
 the `backchain-caller/v1` resource in `references/caller-contract.md`,
-`references/convergence.md`, `prompts/convergence-review.prompt.md`, and the
+`references/convergence.md`, `prompts/convergence-review.prompt.md`, `scripts/backchain.py`, and the
 Until Loop `ADAPTER.md`, `references/runtime-ephemeral.md`, and
 `scripts/until_loop_ephemeral.py`. A planning host may call the route only when
 every listed resource is resolved. A `MISSING: ...` entry blocks it for that
@@ -281,10 +281,12 @@ whole `repair`/`revise` operation. Each whole operation lets Backchain invoke th
 selected actual Until Loop for its dependency-specific review/fix/check cycle. Until
 Loop alone owns callback progress, its review gate (the packet's printed gate for the
 run's Backchain passes option: in `one` the `required_trivial_reviews` and the exit condition
-to copy, in `converge` the two-review gate and its `Backchain passes: converge` line; a
+Backchain's `freeze` writes, in `converge` Backchain's default gate with no marker line; a
 `repair`/`revise` packet in `one` and `none` points to Backchain's convergence reference for
 the gate), recovery, and
-terminal state. Backchain returns only after the child reports `complete`
+terminal state. The host starts each child with Backchain's own commands, `prepare --run`
+the printed Backchain planning run directory and then `freeze`, which writes the child's
+start contract; no packet asks the host to write that contract. Backchain returns only after the child reports `complete`
 and the exact terminal evidence is saved; a blocked, stopped, unresolved, or
 incompatible child leaves the parent action incomplete and must not be submitted as
 completed. Only that exact `complete` receipt plus final candidate identity and domain

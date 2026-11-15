@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.36.2
+# ShipLoop navigator 1.36.3
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
@@ -1332,7 +1332,7 @@ uses the same outcome/source/test mapping in the relevant planning and review
 packets. It is ShipLoop's planning checklist, not a second standalone planning
 run; a Backchain call uses only the `source-aware-native` route.
 The plan packet's Backchain loop takes one review/fix/check pass by default
-(`--backchain-passes one`; `converge` takes two consecutive trivial reviews, `none` takes no whole loop), and
+(`--backchain-passes one`; `converge` completes at the first trivial review, Backchain's default gate; `none` takes no whole loop), and
 `--planning-review stage|none` turns the per-stage planning reviews on or off; both are fixed for the run
 ([Backchain route](references/backchain-route.md#backchain-passes-option) and [run options](references/run-options.md#planning-review-option)).
 Keep product-document links portable across worktree return; verify destination
