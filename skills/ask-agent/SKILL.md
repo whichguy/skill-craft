@@ -138,7 +138,10 @@ silently fall back to another route.
 ## Native execution
 
 Use the live native schema, not the model name or a presumed capital-`Task` API.
-Read the matching route in [Host capabilities](references/host-capabilities.md).
+Before the first native launch of a session, run `scripts/ask_agent_host.py` from
+this selected skill package: it names the host from the environment and prints that
+host's measured binding. Read the matching route in
+[Host capabilities](references/host-capabilities.md), the binding's `section`.
 Determine separately whether the host provides fresh context, native background
 execution, native startup directory binding, per-operation directory control,
 completion delivery, and cancellation. A supported launch does not establish
@@ -317,7 +320,7 @@ integration and eligible cleanup remain the parent's responsibility.
    A batch notice may name multiple tasks. Select native background mode where
    exposed; confirm launch before reporting RUNNING. Retain the native handle,
    receipt, delivery mode and route. Start independent workers within host
-   capacity before collection. After launch confirmation, take useful parent
+   capacity (the host binding's `capacity`, where it names one) before collection. After launch confirmation, take useful parent
    action in a separate step; do not duplicate the delegated work or invent
    busywork. Handle new user input while other tasks remain pending.
 

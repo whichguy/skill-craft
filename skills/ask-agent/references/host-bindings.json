@@ -1,0 +1,49 @@
+{
+  "schema": "ask-agent/host-bindings/v1",
+  "measured": {
+    "date": "2026-11-14",
+    "how": "the parallel-plan-execution study (docs/shiploop-parallel-execution-journal.md, entries E10 to E13) on the E2E harness's isolated profiles",
+    "authority": "The live native tool schema wins over this file: where they differ, use the schema and say so."
+  },
+  "detect": {
+    "order": ["codex", "grok", "claude"],
+    "why": "innermost host first: a nested host inherits its launcher's variables",
+    "markers": {
+      "codex": ["CODEX_SANDBOX", "CODEX_THREAD_ID"],
+      "grok": ["GROK_AGENT", "GROK_SESSION_ID", "GROK_SANDBOX"],
+      "claude": ["CLAUDECODE"]
+    },
+    "exact_names_only": "Never match a prefix: Codex plugin variables (CODEX_COMPANION_*) are set in Claude Code and Grok sessions."
+  },
+  "hosts": {
+    "claude": {
+      "name": "Claude Code",
+      "section": "references/host-capabilities.md#claude-code",
+      "tested": ["2.1.325"],
+      "tools": {"spawn": ["Agent", "Task"], "stop": ["TaskStop"]},
+      "spawn_arguments": {"run_in_background": true},
+      "collect": "completion notifications re-enter the parent as new turns; do not poll",
+      "capacity": null
+    },
+    "codex": {
+      "name": "Codex",
+      "section": "references/host-capabilities.md#codex",
+      "tested": ["0.169.0"],
+      "tools": {"spawn": ["spawn_agent"], "wait": ["wait_agent"]},
+      "spawn_arguments": {"fork_turns": "none"},
+      "collect": "wait_agent with one observation timeout, not short polls",
+      "observation_timeout_ms": 120000,
+      "capacity": {"workers": 3, "slots": 4, "parent_holds": 1}
+    },
+    "grok": {
+      "name": "Grok Build",
+      "section": "references/host-capabilities.md#grok-build--coding-cli",
+      "tested": ["1.0.77"],
+      "tools": {"spawn": ["spawn_subagent"], "wait": ["get_command_or_subagent_output"], "stop": ["kill_command_or_subagent"]},
+      "spawn_arguments": {"background": true},
+      "collect": "get_command_or_subagent_output with every task id and a positive timeout_ms",
+      "observation_timeout_ms": 120000,
+      "capacity": null
+    }
+  }
+}

@@ -4,6 +4,20 @@ Read the current host's section before preparing or launching. The live tool
 schema is authoritative: model names and `Task` capitalization do not identify
 capabilities. These are native-tool recipes, not a runtime launcher API.
 
+## Which host section applies
+
+Run `scripts/ask_agent_host.py` from this selected skill package once before the
+first native launch of a session. It names the host from exact environment
+variable names, innermost host first (a nested host inherits its launcher's
+variables; never match a prefix such as `CODEX_`, because Codex plugin variables
+are set in Claude Code and Grok sessions), and prints that host's measured binding
+from [host-bindings.json](host-bindings.json): tool names, spawn arguments, the
+concurrency the host allows and the observation timeout for waiting. Read the
+`section` it names. `unknown` means no measured binding exists (Cursor and
+OpenCode are described below without one): use the live schema and the sections
+below as before. The binding is data; the live schema wins where they differ, and
+the difference is disclosed. The script launches nothing.
+
 ## Consumer-owned workspace: Codex pilot
 
 For an explicitly selected `workspace_route: consumer-owned`, read
@@ -87,6 +101,13 @@ substitute an inherited fork for a fresh task. If spawn has no cwd field, give
 an explicit `workdir` on every shell call and absolute paths for file operations.
 Run the context check from that workdir. Continue parent work before native
 wait/completion collection; keep required collection inside the live invocation.
+
+Codex allows four concurrent agents including the parent, as the `spawn_agent`
+description says: launch at most three workers at once and the rest as slots free.
+Wait with `wait_agent` and the
+observation timeout from [Native lifecycle](native-lifecycle.md) (`timeout_ms:
+120000`), not short polls: every poll is a model call (measured on 0.169.0 with 30 s
+tasks: 12 polls against 3 for the same work, finishing within 5 s of each other).
 
 The tested CLI 0.155.1 route passed with explicit operations and native join.
 App worktree creation does not change the calling agent's cwd. A separate

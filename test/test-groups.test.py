@@ -133,9 +133,10 @@ class TestGroupTests(unittest.TestCase):
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
         # The test-harness skill adds one core suite (2026-11-08): its bundled behaviour suite, the packaging contract and a narrow lint.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
+        # The Ask Agent host command adds one core suite (2026-11-14): detection from exact variable names, and the binding data against the card and the prose.
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 62)
         # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
-        self.assertEqual(len(suite_catalog.SUITES), 204)
+        self.assertEqual(len(suite_catalog.SUITES), 205)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -180,7 +181,7 @@ class TestGroupTests(unittest.TestCase):
         names = {suite.id for suite in suite_catalog.select(("ask-agent",))}
         self.assertTrue({
             "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
-            "ask-agent-parallel", "ask-agent-task",
+            "ask-agent-parallel", "ask-agent-task", "ask-agent-host",
             "shiploop-consumer-delivery",
             "shiploop-consumer-delivery-cli",
         } <= names)

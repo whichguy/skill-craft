@@ -286,6 +286,7 @@ _CORE_SUITES = (
     _suite("ask-agent-parallel", "core", "test/ask-agent-parallel.test.py", "python3", "test/ask-agent-parallel.test.py", groups=("ask-agent",)),
     _suite("ask-agent-current-workspace", "core", "test/ask-agent-current-workspace.test.py", "python3", "test/ask-agent-current-workspace.test.py", groups=("ask-agent",)),
     _suite("ask-agent-task", "core", "test/ask-agent-task.test.py", "python3", "test/ask-agent-task.test.py", groups=("ask-agent",)),
+    _suite("ask-agent-host", "core", "test/ask-agent-host.test.py", "python3", "test/ask-agent-host.test.py", groups=("ask-agent",)),
     _suite("in-parallel-queue-audit", "core", "test/experiments/in_parallel_queue/test_experiment.py", "python3", "-B", "test/experiments/in_parallel_queue/test_experiment.py", groups=("agent-harness", "in-parallel")),
     _suite("in-parallel-queue", "core", "test/in-parallel-queue.test.py", "python3", "-B", "test/in-parallel-queue.test.py", groups=("agent-harness", "in-parallel")),
     _suite("in-parallel-composition", "core", "test/in-parallel-composition.test.py", "python3", "-B", "test/in-parallel-composition.test.py", groups=("agent-harness", "in-parallel")),
