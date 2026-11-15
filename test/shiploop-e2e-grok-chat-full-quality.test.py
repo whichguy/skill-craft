@@ -77,8 +77,12 @@ class QualityGateTest(unittest.TestCase):
         self.platform = self.base / "platform"
         self.platform.mkdir()
         subprocess.run(["git", "-C", str(self.product), "init", "-q"], check=True)
+        # maintenance.auto=false on both fixture commits in this file: git's detached auto-maintenance after a commit holds
+        # objects/maintenance.lock for a moment, and public()'s before/after inventory saw the lock vanish (release CI
+        # 43669277848, job full / shiploop-2). Same command-local fix as the earlier fixtures that hit it.
         subprocess.run(["git", "-C", str(self.product), "-c", "user.name=Fixture",
-                        "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-qm", "fixture"], check=True)
+                        "-c", "user.email=fixture@example.invalid", "-c", "maintenance.auto=false",
+                        "commit", "--allow-empty", "-qm", "fixture"], check=True)
         (self.product / "force-app").mkdir()
         (self.product / "sfdx-project.json").write_text('{"packageDirectories":[{"path":"force-app"}]}\n')
         (self.product / "force-app/Example.cls").write_text("public class Example {}\n")
@@ -210,7 +214,7 @@ class QualityGateTest(unittest.TestCase):
         deploy = self.deploy("12345678")
         self.write_ui(deploy, 1)
         subprocess.run(["git", "-C", str(self.product), "-c", "user.name=Fixture",
-                        "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty",
+                        "-c", "user.email=fixture@example.invalid", "-c", "maintenance.auto=false", "commit", "--allow-empty",
                         "-qm", "empty knowledge commit"], check=True)
         b = self.public("--prepare-only")
         self.assertEqual(request.read_bytes(), historical)

@@ -1,0 +1,25 @@
+# Job 132675527691, `full / shiploop-2`, run 43669277848, commit 9710190f5caaafba9cd114b8f060cb5a02c691cc (log lines 954 to 978 of 1412, ANSI codes stripped)
+2026-11-15T02:54:30.3471893Z 
+2026-11-15T02:54:30.3472380Z ======================================================================
+2026-11-15T02:54:30.3473693Z FAIL: test_public_prepare_empty_commit_then_scoped_reassessment_preserves_failure (__main__.QualityGateTest.test_public_prepare_empty_commit_then_scoped_reassessment_preserves_failure)
+2026-11-15T02:54:30.3474944Z ----------------------------------------------------------------------
+2026-11-15T02:54:30.3475797Z Traceback (most recent call last):
+2026-11-15T02:54:30.3477278Z   File "/home/runner/work/skill-craft/skill-craft/test/shiploop-e2e-grok-chat-full-quality.test.py", line 215, in test_public_prepare_empty_commit_then_scoped_reassessment_preserves_failure
+2026-11-15T02:54:30.3478659Z     b = self.public("--prepare-only")
+2026-11-15T02:54:30.3479640Z   File "/home/runner/work/skill-craft/skill-craft/test/shiploop-e2e-grok-chat-full-quality.test.py", line 188, in public
+2026-11-15T02:54:30.3480778Z     self.assertEqual([key for key in before if before[key] != after.get(key)], [])
+2026-11-15T02:54:30.3481657Z     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-15T02:54:30.3482498Z AssertionError: Lists differ: ['work/.git/objects/maintenance.lock'] != []
+2026-11-15T02:54:30.3483008Z 
+2026-11-15T02:54:30.3483386Z First list contains 1 additional elements.
+2026-11-15T02:54:30.3483951Z First extra element 0:
+2026-11-15T02:54:30.3484578Z 'work/.git/objects/maintenance.lock'
+2026-11-15T02:54:30.3484922Z 
+2026-11-15T02:54:30.3485264Z - ['work/.git/objects/maintenance.lock']
+2026-11-15T02:54:30.3485751Z + []
+2026-11-15T02:54:30.3486117Z 
+2026-11-15T02:54:30.3486746Z ----------------------------------------------------------------------
+2026-11-15T02:54:30.3487554Z Ran 42 tests in 6.422s
+2026-11-15T02:54:30.3487966Z 
+2026-11-15T02:54:30.3488296Z FAILED (failures=1)
+2026-11-15T02:54:30.3488860Z FAIL shiploop-e2e-grok-chat-full-quality

@@ -480,3 +480,50 @@ and the private `XDG_STATE_HOME`. The tar sites are left alone: the fixtures alr
   `native-marketplace-adapters` and both passed on the Linux runner. That is the nearest repeat so far, but the log
   prints each suite's output at the end, so it does not show whether they started beside the Python suites. F20
   stays interim until a quick run that selects both suites, as the 1.21.0 release's hook changes will, is also green.
+
+## Round 5 (2026-11-14): the fourth fixture to race git's auto-maintenance lock
+
+**Question.** Why did `full / shiploop-2` fail on the release commit `9710190f` (run 43669277848, job 132675527691) when the
+same shard had passed on the six release commits before it?
+
+**What CI showed.** One failure in `shiploop-e2e-grok-chat-full-quality` (42 tests in 6.422 s, so the runner was not slow):
+`QualityGateTest.test_public_prepare_empty_commit_then_scoped_reassessment_preserves_failure`, at the before/after inventory
+assertion in `QualityGateTest.public`: `Lists differ: ['work/.git/objects/maintenance.lock'] != []`. The lock was in the
+"before" inventory and absent or rewritten in the "after" one. Every other job of the run passed except `python-floor`, which
+was still running when this was read. Excerpt: `docs/experiments/git-maintenance-lock-20261114/ci-failure-excerpt.txt`.
+
+**Cause.** The test makes a fixture commit (`--allow-empty`, "empty knowledge commit") and calls `public("--prepare-only")` on
+the next line. git runs `git maintenance run --auto --quiet --detach` after a commit, and the detached process holds
+`objects/maintenance.lock` for a moment; when that moment straddles the inventory's first walk, the lock is in "before" and gone
+from "after". It is the same class as `595973e7` (the first, `CheckScratchFileTest`, now in `shiploop-e2e-resources`),
+`9679c936` (the security fixture) and `85a7cda7` (the V7 Git fixtures). Load is not required: this run was quick.
+
+**Why no local run showed it.** On git 2.54.0 (Apple Git-157) the lock was never seen after a commit returned (0 of 300 commits,
+with or without the flag), and the failing test passed 6 of 6 alone (0.56 to 0.76 s). The launch itself is measurable: Trace2
+recorded `git maintenance run --auto --quiet --detach` for 40 of 40 fixture-shaped commits without the flag and 0 of 40 with it.
+`85a7cda7` saw the same on the same git. The runner's git version was not read in this run; `595973e7` named 2.55 for its race.
+
+**Change.** `-c maintenance.auto=false` on both fixture commits of that suite (`QualityGateTest.setUp` and the test's own
+commit), command-local, nothing persisted, the inventory untouched. Skipping the lock in `public()`'s inventory was not chosen:
+that inventory exists to catch the code under test writing under the product, `.git` included (the choice `85a7cda7` made too).
+
+**Evidence** (`docs/experiments/git-maintenance-lock-20261114/`, `results.txt`).
+- Mechanism: the Trace2 counts above. The suite after the change: 42 tests OK in 9.2 s. ruff E9,F,B: six B023 findings at
+  unrelated loop closures, the same six before and after.
+- Base rate: the test was added by `17f5e10f` (2026-11-12), and `full / shiploop-2` passed on the six release commits
+  `7ceaecf4` to `48bc8d63` (runs 43366639890, 43376061606, 43447175323, 43464757577, 43604725247, 43608872092) and failed on
+  this seventh.
+
+**Findings**
+- F21 (interim): git's detached auto-maintenance after a fixture commit is the cause, and the flag removes the launch (40 of 40
+  to 0 of 40). The fix has not been seen to prevent a CI failure. The race is intermittent (1 of 7 release runs of this shard),
+  the push's own run is the quick tier (it does not select this suite), and one green full tier would be weak evidence for a
+  shard that passes six times in seven without the fix. It stays interim until the next full tiers (the next release, and the
+  weekly Monday run) are green.
+- F22 (exploratory): four fixtures in 19 days have hit this class (`595973e7` on 2026-10-26, `9679c936` and `85a7cda7` on
+  2026-11-08, this one). 110 of the 114 test files containing the literal `"commit"` never mention `maintenance.auto` or
+  `gc.auto` (a grep count, not an audit of which really run a git commit). Only fixtures that inventory or copy the tree right
+  after a commit have failed, so the rest are left alone. A runner-level setting (`GIT_CONFIG_COUNT=1`,
+  `GIT_CONFIG_KEY_0=maintenance.auto`, `GIT_CONFIG_VALUE_0=false` in `run_suites.run_process` and the CI jobs) would end the
+  class in one place, but it changes the environment of every suite and does not protect a standalone `python3 test/<file>`.
+  That sets direction, so it is the owner's call and is not made here.
