@@ -107,7 +107,7 @@ def ledger_measures(plan: dict, events: list, run: dagkit.Run | None = None) -> 
     out["terminal_duplicates"] = sum(1 for i in ids if state[i]["terminals"] > 1)
     out["steps_without_end"] = sum(1 for i in ids if state[i]["state"] == "running")
     out["claims_without_start"] = sum(1 for i in ids if state[i]["claimed"] and not state[i]["starts"])
-    settled = {e["step"] for e in events if e["kind"] == "settled"}
+    settled = {i for i in ids if dagkit._settled_this_attempt(events, i)}   # the current attempt of each step settled (a retry settles again)
     settle_s = next((e["detail"].get("settle") for e in events if e["kind"] == "init"), 0) or 0
     out["settle_s"], out["settled_steps"] = settle_s, len(settled)
     out["settled_all"] = all(i in settled for i in ids if state[i]["end"] is not None) if settle_s else None   # a step that ended without its settle

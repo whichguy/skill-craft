@@ -673,6 +673,47 @@ def write_cells() -> tuple[int, int, list]:
         cell("kit: write conflict", "a task whose attempts are used up fails with the conflict as the reason, and its dependent is blocked", lambda: (
             [e["detail"]["reason"] for e in events(run, "mergefail")], ready(run)["blocked"], dagkit.verdict(dagkit.Run(run))[0]),
             (["merge conflict after 1 attempts in pkg/__init__.py"], ["W5"], "PARTIAL"))
+    # a retried task must settle again: the settle stands for the verification a new attempt has to run (found in E13's first Claude overlap trial,
+    # where the retry's settle was refused as "already settled" and the retry skipped its verification)
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp) / "work"
+        work.mkdir()
+        repo = work / "repo"
+        writefix.make_repo(repo)
+        run = work / "run"
+        (work / "plan.json").write_text((HERE / "plans" / "overlap5.json").read_text())
+        senv = dict(os.environ, PPE_TIME_SCALE="0.01")
+
+        def skit(*args):
+            done = subprocess.run([sys.executable, str(HERE / "dagkit.py"), *args], capture_output=True, text=True, env=senv)
+            return done.returncode, done.stdout.strip()
+        skit("init", "--plan", str(work / "plan.json"), "--run", str(run), "--settle", "40", "--repo", str(repo), "--workspace", "isolated")
+        skit("ready", "--run", str(run), "--claim")
+        wss = {}
+        for step in ("W3", "W4"):
+            out = skit("begin", "--run", str(run), "--step", step)[1]
+            wss[step] = Path(re.search(r"Workspace \(work only inside it\): (\S+)", out).group(1))
+            write_solution(wss[step], step, register=True)
+            skit("settle", "--run", str(run), "--step", step)
+            skit("complete", "--run", str(run), "--step", step, "--result", json.dumps({"answer": writefix.TEST_COUNTS[step]}))
+        again = json.loads(skit("ready", "--run", str(run), "--claim")[1])
+        loser = again["conflicted_now"][0] if again["conflicted_now"] else None
+        out = skit("begin", "--run", str(run), "--step", loser)[1] if loser else ""
+        wss[loser] = Path(re.search(r"Workspace \(work only inside it\): (\S+)", out).group(1)) if loser else None
+        if loser:
+            write_solution(wss[loser], loser, register=True)
+        early = skit("complete", "--run", str(run), "--step", loser, "--result", json.dumps({"answer": writefix.TEST_COUNTS[loser]})) if loser else (None, "")
+        cell("kit: write conflict", "a retried task is refused its completion until it has settled again (category not-settled)", lambda: (
+            loser, early[0], "not-settled" in [e["detail"].get("category") for e in events(run, "refused")]), ("W4", 3, True))
+        resettled = skit("settle", "--run", str(run), "--step", loser) if loser else (None, "")
+        late = skit("complete", "--run", str(run), "--step", loser, "--result", json.dumps({"answer": writefix.TEST_COUNTS[loser]})) if loser else (None, "")
+        cell("kit: write conflict", "after settling again the retry completes and the settles of both attempts are on the ledger", lambda: (
+            resettled[0], late[0], len([e for e in events(run, "settled") if e["step"] == loser])), (0, 0, 2))
+        all_events = dagkit.Run(run).events()
+        last_settled = max(e["seq"] for e in all_events if e["kind"] == "settled" and e["step"] == loser)
+        cell("scorer: write", "settled_all reads the last attempt of each step: true when every attempt settled, false when the retry did not", lambda: (
+            score.ledger_measures(dagkit.Run(run).plan(), all_events)["settled_all"],
+            score.ledger_measures(dagkit.Run(run).plan(), [e for e in all_events if e["seq"] != last_settled])["settled_all"]), (True, False))
     with tempfile.TemporaryDirectory() as tmp:
         run, repo = setup(tmp, "write5", "shared")
         ready(run, "--claim")

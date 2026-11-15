@@ -440,7 +440,7 @@ def cmd_complete(args) -> int:
             return _refuse(run, step_id, "not-started", ["it was never begun"], "complete")
         if item["terminals"]:
             return _refuse(run, step_id, "duplicate", ["it already has its outcome"], "complete")
-        if meta.get("settle") and not any(e["kind"] == "settled" and e["step"] == step_id for e in run.events()):
+        if meta.get("settle") and not _settled_this_attempt(run.events(), step_id):
             return _refuse(run, step_id, "not-settled", [f"run the settle command first and let it finish: python3 {Path(__file__).resolve()} settle --run {run.dir} --step {step_id}"], "complete")
         if not isinstance(result, dict) or not isinstance(result.get("answer"), int) or isinstance(result.get("answer"), bool):
             return _refuse(run, step_id, "bad-result", ["the result must be a JSON object with an integer answer"], "complete")
@@ -460,6 +460,12 @@ def cmd_complete(args) -> int:
     return 0
 
 
+def _settled_this_attempt(events: list, step_id: str) -> bool:
+    """Whether the step's current attempt has settled: a settled event after its latest start (a retry settles again)."""
+    last_start = max((e["seq"] for e in events if e["kind"] == "start" and e["step"] == step_id), default=0)
+    return any(e["kind"] == "settled" and e["step"] == step_id and e["seq"] > last_start for e in events)
+
+
 def cmd_settle(args) -> int:
     run, step_id = Run(args.run), args.step
     with run.locked():
@@ -468,10 +474,9 @@ def cmd_settle(args) -> int:
         if step_id not in steps:
             return _refuse(run, step_id, "unknown", ["not a step of this plan"], "settle")
         item = derive(plan, run.events())[step_id]
-        done = [e for e in run.events() if e["kind"] == "settled" and e["step"] == step_id]
         if not item["starts"] or item["terminals"]:
             return _refuse(run, step_id, "not-started", ["settle runs between begin and complete"], "settle")
-        if done:
+        if _settled_this_attempt(run.events(), step_id):
             return _refuse(run, step_id, "duplicate", ["it already settled"], "settle")
         seconds = float(meta.get("settle", 0))
         run.append("settle", step_id, seconds=seconds, scale=SCALE)

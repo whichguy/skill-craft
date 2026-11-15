@@ -23,13 +23,6 @@ def load(name: str) -> dict:
     return json.loads((HERE / "evidence" / name / "score.json").read_text())
 
 
-def join_wait(m: dict) -> float | None:
-    """Seconds from the last independent task's end to the dependent task's start (the join, from the ledger)."""
-    plan = json.loads((HERE / "plans" / "analysis5.json").read_text())
-    last = plan["steps"][-1]["id"]
-    return None  # filled by ledger below
-
-
 def ledger(name: str) -> list:
     return [json.loads(line) for line in (HERE / "evidence" / name / "ledger.jsonl").read_text().splitlines()]
 

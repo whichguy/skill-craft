@@ -84,7 +84,7 @@ def load(trial: Path) -> dict:
 
 
 def card(d: dict, span: float, uid: str) -> str:
-    plan, events, view, inv, m = d["plan"], d["events"], d["view"], d["inv"], d["m"]
+    plan, events, view, m = d["plan"], d["events"], d["view"], d["m"]
     t0 = d["t0"]
     state = dagkit.derive(plan, events)
     actors = sorted({i["actor"] for i in view if i["actor"] != "parent" and i["t"]} | {a["actor"] for a in d["native"] if a.get("start")})
@@ -170,7 +170,7 @@ def card(d: dict, span: float, uid: str) -> str:
     for e in events:
         extra = {k: v for k, v in e["detail"].items() if k in ("reason", "category", "seconds", "line")}
         rows.append((e["ts"], 0, f'L|{e["kind"]}', "L", "ledger", e["kind"], e["step"] or "-", json.dumps(extra) if extra else ""))
-    for n, i in enumerate(view):
+    for i in view:
         if i["t"] and i["kind"] != "usage":
             rows.append((i["t"], 1, f'H|{i["kind"]}', "H", i["actor"], i["kind"], i["name"] or "-", (i["text"] or "").replace("\n", " ")[:160]))
     rows.sort(key=lambda r: (r[0], r[1]))
@@ -188,7 +188,6 @@ def card(d: dict, span: float, uid: str) -> str:
 
 def page(trials: list, title: str) -> str:
     data = [load(Path(t)) for t in trials]
-    span = max(max(d["t1"] - d["t0"], 1.0) for d in data)   # the legend and the intro use the longest; each host's group uses its own
     kinds = {i["kind"] for d in data for i in d["view"]} | {e["kind"] for d in data for e in d["events"]}
     states = {s for d in data for s in d["m"]["states"].values()}
     items = [('<svg width="26" height="12"><rect x="0" y="1" width="26" height="10" rx="3" style="fill:var(--bar)"/></svg>a step ran (kit ledger)', True),
