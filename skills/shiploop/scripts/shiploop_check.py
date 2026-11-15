@@ -58,6 +58,7 @@ def answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str 
     return {
         "revision": state.get("revision"),
         "version": reference.package_version(),
+        "judgement_version": test_loop.JUDGEMENT_VERSION,
         "contract": contract,
         "draft": draft_sha,
         "tree": test_loop.working_tree(root, Path(str(state["repo"]))) or None,

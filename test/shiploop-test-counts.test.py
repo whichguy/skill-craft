@@ -111,6 +111,15 @@ class CountTests(unittest.TestCase):
         self.assertIsNotNone(result, output)
         self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
 
+    def test_pytest_summary_errors_fail_without_certifying_tests_ran(self):
+        for summary, ran, failed in (("1 passed, 1 error", 1, 1),
+                                     ("1 failed, 2 passed, 2 errors", 3, 3),
+                                     ("1 error", 0, 1), ("2 errors", 0, 2),
+                                     ("1 passed, 2 skipped, 3 deselected, 1 warning", 1, 0)):
+            for code in (0, 1):
+                with self.subTest(summary=summary, code=code):
+                    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+
     def test_zero_executed_runs_are_recognised(self):
         for output, code in ((JEST_SKIPPED, 0), ("No tests found, exiting with code 0\n", 0),
                              ("No test files found, exiting with code 1\n", 1), (PYTEST_DESELECTED, 5),
@@ -220,6 +229,21 @@ class JudgeTests(unittest.TestCase):
 
     def status(self, row: dict, code: int, output: str) -> str:
         return test_loop.judge(row, code, output)["status"]
+
+    def test_pytest_error_judgement_preserves_gate_precedence(self):
+        output = "test_values.py::test_FAILED_title PASSED\n1 passed, 1 error in 0.01s\n"
+        for suite in ("focused", "regression", "check"):
+            with self.subTest(suite=suite):
+                row = {"command": "wrapped-test", "suite": suite}
+                if suite == "focused":
+                    row["ids"] = ["test_FAILED_title"]
+                self.assertEqual(self.status(row, 0, output), "failed")
+                self.assertEqual(self.status(row, 0, output.replace(", 1 error", "")), "passed")
+                self.assertEqual(self.status(row, 0, "1 error in 0.01s\n"), "no-tests")
+                if suite != "check":
+                    self.assertEqual(self.status(dict(row, min_tests=2), 0, output), "too-few-tests")
+        row = {"command": "wrapped-test", "suite": "focused", "ids": ["missing"]}
+        self.assertEqual(self.status(row, 0, output), "ids-missing")
 
     def test_the_battleship_filter_that_matched_nothing_is_refused(self):
         self.assertEqual(self.status(self.FOCUSED, 0, JEST_SKIPPED), "no-tests")

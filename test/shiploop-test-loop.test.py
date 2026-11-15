@@ -2766,6 +2766,89 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         self.assertEqual([run["command"] for run in record["runs"]], [run["command"] for run in checked["runs"]])
         self.assertNotEqual(nav.current_stage(self.settle()), "document")
 
+    PYTEST_ERROR = b"test_values.py::test_value[TC-1] PASSED\n1 passed, 1 error in 0.01s\n"
+
+    @staticmethod
+    def old_judgement(record: dict, marker) -> None:
+        if marker is None:
+            record.pop("judgement_version", None)
+        else:
+            record["judgement_version"] = marker
+
+    def test_stale_candidate_judgement_reruns_on_the_same_tree(self):
+        for marker in (None, 0):
+            with self.subTest(marker=marker):
+                self.restart()
+                (self.repo / "a.py").write_text("x = 1\n")
+                action, done, _ = self.document_checked()
+                path = self.run_dir / test_loop.check_path(action)
+                record = store.read_record(path)
+                self.old_judgement(record, marker)
+                path.write_text(store.dumps(record, "Legacy candidate check"))
+                original = path.read_bytes()
+                # Remove only the whole-answer shortcut, to isolate lower-level reuse.
+                (self.run_dir / shiploop_check.answer_path(action)).unlink()
+                before = (self.run_dir / "state.md").read_bytes()
+                with mock.patch.object(test_loop.lint, "run_argv", return_value=(
+                        "ok", 0, self.PYTEST_ERROR, b"")) as runner:
+                    with self.assertRaises(nav.NavigatorError) as caught:
+                        self.dispatch(done)
+                self.assertIn("reported 1 run, 1 failed", str(caught.exception))
+                self.assertEqual(runner.call_count, 2)
+                self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+                self.assertEqual(path.read_bytes(), original)
+                fresh = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+                self.assertFalse(fresh["passed"])
+                self.assertEqual(fresh["judgement_version"], test_loop.JUDGEMENT_VERSION)
+                self.assertNotIn("reused", fresh)
+
+    def test_current_candidate_judgement_reuses_without_whole_answer(self):
+        action, done, _ = self.document_checked()
+        (self.run_dir / shiploop_check.answer_path(action)).unlink()
+        with mock.patch.object(test_loop.lint, "run_argv") as runner:
+            self.dispatch(done)
+        runner.assert_not_called()
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        self.assertEqual(record["reused"]["path"], test_loop.check_path(action))
+        self.assertEqual(record["judgement_version"], test_loop.JUDGEMENT_VERSION)
+
+    def test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts(self):
+        for marker in (None, 0):
+            with self.subTest(marker=marker):
+                self.restart()
+                (self.repo / "a.py").write_text("x = 1\n")
+                self.start()
+                self.drive_to("document")
+                action = self.action()
+                (self.repo / "a.py").write_text("x = 3\n")
+                self.run_loop([TRIVIAL])
+                done = inner.fill(self.state(), "document", dict(
+                    DONE, evidence_refs=[str(self.terminal())]), self.run_dir)
+                # Generate a genuine pre-fix yes with the same failing output, tree,
+                # draft, state and package version; restore real judging at completion.
+                with mock.patch.object(test_loop.counts, "count", return_value={
+                        "ran": 1, "failed": 0, "runners": ["pytest"]}), \
+                     mock.patch.object(test_loop.lint, "run_argv", return_value=(
+                         "ok", 0, self.PYTEST_ERROR, b"")):
+                    self.dispatch(done, check=True)
+                answer_path = self.run_dir / shiploop_check.answer_path(action)
+                answer = store.read_record(answer_path)
+                self.assertEqual(answer["answer"], "yes")
+                self.old_judgement(answer["key"], marker)
+                answer_path.write_text(store.dumps(answer, "Legacy whole answer"))
+                path = self.run_dir / test_loop.check_path(action)
+                record = store.read_record(path)
+                self.old_judgement(record, marker)
+                path.write_text(store.dumps(record, "Legacy candidate check"))
+                before = (self.run_dir / "state.md").read_bytes()
+                with mock.patch.object(test_loop.lint, "run_argv", return_value=(
+                        "ok", 0, self.PYTEST_ERROR, b"")) as runner:
+                    with self.assertRaises(nav.NavigatorError) as caught:
+                        self.dispatch(done)
+                self.assertIn("reported 1 run, 1 failed", str(caught.exception))
+                self.assertEqual(runner.call_count, 2)
+                self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
     def test_a_one_byte_edit_after_the_check_runs_the_commands_again(self):
         """The rerun stage's side of the key: a one-byte edit since the check's yes runs every command again (the test
         stage's side, with the draft, counted runs and revision: test_each_change_to_what_the_gates_read_...)."""
@@ -2969,6 +3052,75 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         self.assertIn(test_loop._tree(self.run_dir, self.repo), second["trees"])   # bound to the accepted candidate
         self.assertIsNone(self.state()["active_improve"])         # the step's review follows its document stage
         self.assertEqual(nav.current_stage(self.state()), "test")
+
+    def test_mixed_pytest_error_refuses_actual_step_proof(self):
+        self.start()
+        self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
+        before = (self.run_dir / "state.md").read_bytes()
+        with mock.patch.object(test_loop.lint, "run_argv", return_value=(
+                "ok", 0, self.PYTEST_ERROR, b"")) as runner:
+            with self.assertRaises(nav.NavigatorError) as caught:
+                self.complete(DONE)
+        self.assertIn("step S1's Proof did not pass", str(caught.exception))
+        self.assertIn("reported 1 run, 1 failed", str(caught.exception))
+        runner.assert_called_once()
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_stale_proof_judgement_reruns_check_and_numbered_receipts(self):
+        for numbered in (False, True):
+            for marker in (None, 0):
+                with self.subTest(numbered=numbered, marker=marker):
+                    self.restart()
+                    self.start()
+                    self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
+                    action = self.action()
+                    (self.repo / "proof.txt").write_text("proved\n")
+                    self.complete(DONE, check=True)
+                    (self.run_dir / shiploop_check.answer_path(action)).unlink()
+                    check_path = self.run_dir / test_loop.step_proof_check_path(action)
+                    record = store.read_record(check_path)
+                    self.old_judgement(record, marker)
+                    path = self.run_dir / (test_loop.step_proof_path(action, 1) if numbered
+                                           else test_loop.step_proof_check_path(action))
+                    if numbered:
+                        check_path.unlink()
+                        record.pop("counted", None)
+                    path.write_text(store.dumps(record, "Legacy Proof"))
+                    original = path.read_bytes()
+                    before = (self.run_dir / "state.md").read_bytes()
+                    with mock.patch.object(test_loop.lint, "run_argv", return_value=(
+                            "ok", 0, self.PYTEST_ERROR, b"")) as runner:
+                        with self.assertRaises(nav.NavigatorError) as caught:
+                            self.complete(DONE, loop=False)
+                    self.assertIn("step S1's Proof did not pass", str(caught.exception))
+                    runner.assert_called_once()
+                    self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+                    self.assertEqual(path.read_bytes(), original)
+                    fresh = store.read_record(self.run_dir / test_loop.step_proof_path(
+                        action, 2 if numbered else 1))
+                    self.assertFalse(fresh["passed"])
+                    self.assertEqual(fresh["judgement_version"], test_loop.JUDGEMENT_VERSION)
+                    self.assertNotIn("reused", fresh)
+
+    def test_current_proof_judgement_reuses_check_then_numbered_receipt(self):
+        self.start()
+        self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
+        action = self.action()
+        (self.repo / "proof.txt").write_text("proved\n")
+        self.complete(DONE, check=True)
+        (self.run_dir / shiploop_check.answer_path(action)).unlink()
+        # A later gate refuses after Proof, leaving the same action available to
+        # demonstrate reuse of the numbered receipt on a second completion.
+        with mock.patch.object(test_loop.lint, "run_argv") as runner, \
+             mock.patch.object(nav, "_step_spec_refusal", return_value="Later gate refused."):
+            for number in (1, 2):
+                with self.assertRaises(nav.NavigatorError):
+                    self.complete(DONE, loop=False)
+                record = store.read_record(self.run_dir / test_loop.step_proof_path(action, number))
+                self.assertEqual(record["judgement_version"], test_loop.JUDGEMENT_VERSION)
+                self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_path(action)
+                                 if number == 1 else test_loop.step_proof_path(action, 1))
+        runner.assert_not_called()
 
     def test_a_proof_that_runs_no_test_is_refused(self):
         """T27 (skipped assertions): a Proof that exits 0 having run no test proves nothing and is refused."""
@@ -3616,6 +3768,15 @@ class CountFloorTests(unittest.TestCase):
 
     def record(self, action: str, number: int = 1) -> dict:
         return store.read_record(self.root / test_loop.verify_path(action, number))
+
+    def test_historical_v1_without_judgement_still_sets_the_floor(self):
+        self.assertEqual(self.run_stage("A1", "test", 5), "")
+        path = self.root / test_loop.verify_path("A1", 1)
+        record = store.read_record(path)
+        record.pop("judgement_version", None)
+        self.assertEqual(record["schema"], "shiploop-test-loop/v1")
+        path.write_text(store.dumps(record, "Historical v1"))
+        self.assertIn("at least 5", self.run_stage("A2", "document", 4))
 
     def test_the_highest_accepted_count_is_the_floor_and_both_numbers_are_in_the_refusal(self):
         self.assertEqual(self.run_stage("A1", "test", 5), "")
