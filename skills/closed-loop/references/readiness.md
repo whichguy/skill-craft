@@ -1,0 +1,35 @@
+# Readiness: claims a script has proven
+
+Nothing a model declares or proposes counts. A claim is ready only when a probe has run and printed a state from its ladder.
+`$LOOP readiness --manifest M [--campaign C] [--workspace WS] [--require-start]` runs the probes it is allowed to and reports the
+state of every claim, whether the start rule holds, which claims it allows, and what blocks it.
+
+| Claim id | Ladder (lowest to highest) | What reaching the top proves |
+| --- | --- | --- |
+| `cases.runs[:CASE]` | declared, **runs** | the case runs at the current build, writes evidence, and its cleanup receipt is verified |
+| `grading.scores` | declared, **scores** | `evaluate` returns floors and measures for a real run |
+| `grading.sensitive:PROPERTY` | unknown, **sensitive** | the measure separates a known-bad from a known-good for that property |
+| `grading.calibrated:PROFILE` | unmeasured, **calibrated** | an A/A noise report exists for that profile (host, model, effort) |
+| `improver.bounded` | declared, **bounded** | build and verify pass on the tip and a planted out-of-bounds edit is caught |
+| `improver.invocable` | declared, **invocable** | the improver lands a trivial in-bounds change on a throwaway branch: plumbing only, never improvement quality |
+
+**Start rule.** At least one `cases.runs` at `runs`, one `grading.scores` at `scores` and one `improver.bounded` at `bounded`.
+`--require-start` exits 1 when it does not hold. A manifest that declares none of a kind cannot start.
+
+**Allowed claims** follow from proven claims, not from the start rule:
+- efficiency under an owner-stated tolerance, labelled "stated, not measured", once the start rule holds;
+- quality claims about property P only with `grading.sensitive:P` at `sensitive`; with none, the report says so and allows no quality claim;
+- measured efficiency on a profile only with `grading.calibrated:PROFILE` at `calibrated`;
+- model-judged quality only for `evaluation_class: judge-only`, labelled with the recorded judge reliability. Whether such a verdict
+  may *promote* a change is the owner's per-subject policy, not this skill's.
+
+**Effect and ratification.** A claim's `effect` is `read-only` or `effectful`. An effectful probe runs commands, so it is not run
+until the owner has ratified the boundary (`ratify --yes-owner-approved`, bound to `boundary_sha256`); until then its state stays at
+the bottom of the ladder with the evidence "not run". An insensitive evaluator that returns valid scores is `scores`, never `declared`.
+
+**Proving sensitivity.** Use, in this order of preference: a seeded defect the evaluator must catch; a known-bad build or tree
+against a known-good one; an independently specified mutation of the subject; a metamorphic relation for a named property. If none
+exists, the claim stays `unknown` and the report says sensitivity is unknown: do not guess.
+
+**A probe must be script-run, repeatable and honest about its limits.** Its `evidence` says what it did. A probe that checks one
+property on one case certifies that property on that case, nothing wider.
