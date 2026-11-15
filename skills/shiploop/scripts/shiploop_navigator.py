@@ -10288,6 +10288,15 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         submitted = _submitted_result(root, args, state=state, core=core)
         if action_id in state["accepted"]:
             submitted = _replay_with_receipt(root, state, action_id, submitted)
+        if command == "check":
+            if action_id in state["accepted"]:
+                print("ShipLoop check: action " + str(action_id) + " is already accepted; no gates ran and "
+                      "acceptance is unchanged.")
+                return 0
+            _need(state["status"] == "active",
+                  "ShipLoop check: run is " + str(state["status"]) + "; no gates ran. Recover through "
+                  + _callback(core, root, "next") + "; paused or blocked runs use "
+                  + _callback(core, root, "resume") + " before checking the pending action.")
         cursor_stage, _, cursor_item = _active_cursor(state)
         preparatory: list[str] = []
         # `shiploop check` (phases B and C plan, 2026-10-28): the same gates on a draft, recorded as one answer, with
@@ -10312,6 +10321,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
             draft = _result_input_path(root, action_id)
+            reusable = test_loop.reuse_eligible(
+                state, cursor_stage, cursor_item, test_loop.stage_commands(state, cursor_stage, cursor_item)[0])
             if checking:
                 # The check: the same gates, recorded as one answer complete can take (phases B and C plan).
                 started = datetime.now(timezone.utc).timestamp()
@@ -10332,7 +10343,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     records=shiploop_check.written_since(root, action_id, started))
             else:
                 taken = shiploop_check.matching_yes(
-                    root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft))
+                    root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft)) if reusable else None
                 if taken is not None:
                     # Nothing the gates read changed since the check said yes: take its answer, run nothing again.
                     test_loop.take_check(root, action_id, taken["records"], shiploop_check.answer_path(action_id))
@@ -10349,9 +10360,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                   "result now. Nothing was accepted, counted or committed"
                   + ("; the Until Loop receipt is checked by the callback, once the loop says complete or stopped"
                      if cursor_stage in loops.STAGES else "")
-                  + ". The callback takes this answer (" + str(root / shiploop_check.answer_path(action_id))
-                  + ") instead of running the gates again while the result and the files stay as they are now; any "
-                  "change makes it run them again.")
+                  + (". The callback takes this answer (" + str(root / shiploop_check.answer_path(action_id))
+                     + ") instead of running the gates again while the result and the files stay as they are now; any "
+                     "change makes it run them again." if reusable else
+                     ". Completion will run the gates again: these checks require fresh execution."))
             if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.

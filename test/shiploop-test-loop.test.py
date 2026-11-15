@@ -2060,6 +2060,23 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(second["reused"]["path"], test_loop.mutation_path(action, 1))
         self.assertEqual(second["mutants"], first["mutants"])
 
+    def test_external_undisposed_survivor_guidance_requires_fresh_checks(self):
+        self.calc_item(self.PARTIAL_TEST)
+        state = self.state()
+        _plan, plan = test_loop._step_plan(state, self.item())
+        plan["test_commands"][0]["host_dependent"] = True
+        nav.save(self.run_dir, state)
+        with self.assertRaises(test_loop.TestLoopError) as caught:
+            mutation.mutation_check(self.run_dir, state, self.item(), self.action())
+        message = str(caught.exception)
+        self.assertIn("survived the focused tests, with no disposition", message)
+        self.assertIn("eligible checkout-only runs are reused", message)
+        self.assertIn("external checks rerun under the shared reuse eligibility rule", message)
+        self.assertNotIn("this run is reused", message)
+        record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
+        self.assertGreater(record["killed"], 0)
+        self.assertTrue(record["undisposed"])
+
     def test_a_malformed_disposition_is_refused_with_its_shape(self):
         for bad, message in (("all of them", "is a list of"),
                              ([{"mutant": "calc.py:6:13", "disposition": "fine", "evidence": "x"}], "is one of equivalent"),
@@ -2725,6 +2742,282 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         self.assertTrue(answer.is_file())
         self.assertFalse(counted.exists())
         self.assertEqual(len(list(recovery.glob("*/metadata.json"))), 3)
+
+    def test_check_replay_of_accepted_action_acknowledges_without_gates(self):
+        self.start()
+        self.drive_to("system-test")
+        action = self.action()
+        self.complete(DONE)
+        self.assertIn(action, self.state()["accepted"])
+        self.assert_check_without_gates(action, accepted=True)
+
+    def test_check_of_paused_unaccepted_action_refuses_with_resume_without_gates(self):
+        self.start()
+        self.drive_to("system-test")
+        action = self.action()
+        self.complete(DONE, check=True)  # create the real draft while active
+        with contextlib.redirect_stdout(io.StringIO()):
+            nav.dispatch(CORE, self.run_dir, self.state(), types.SimpleNamespace(command="pause", reason="fixture pause"))
+        self.assertEqual(self.state()["status"], "paused")
+        self.assert_check_without_gates(action, accepted=False)
+
+    def assert_check_without_gates(self, action: str, *, accepted: bool) -> None:
+        state = self.state()
+        before = (self.run_dir / "state.md").read_bytes()
+        saved = store.dumps(state)
+        records = {str(p.relative_to(self.run_dir)): p.read_bytes()
+                   for folder in ("tests", "checks") for p in (self.run_dir / folder).glob("*.md")}
+        output = io.StringIO()
+        args = types.SimpleNamespace(command="check", action=action,
+                                     result=str(self.run_dir / "inbox" / (action + ".md")))
+        with mock.patch.object(test_loop.lint, "run_argv") as runner, \
+                mock.patch.object(nav, "_evaluate") as evaluate, contextlib.redirect_stdout(output):
+            if accepted:
+                self.assertEqual(nav.dispatch(CORE, self.run_dir, state, args), 0)
+                self.assertIn("already accepted", output.getvalue())
+            else:
+                with self.assertRaisesRegex(nav.NavigatorError, r"paused.*resume"):
+                    nav.dispatch(CORE, self.run_dir, state, args)
+            runner.assert_not_called()
+            evaluate.assert_not_called()
+        self.assertNotIn("every script gate accepts", output.getvalue())
+        self.assertEqual(store.dumps(state), saved)
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        self.assertEqual({str(p.relative_to(self.run_dir)): p.read_bytes()
+                          for folder in ("tests", "checks") for p in (self.run_dir / folder).glob("*.md")}, records)
+
+    # R21: real sibling state changes without changing the action, draft or checkout.
+    def external_state_command(self, *, authority: bool = False) -> tuple:
+        external = self.repo.parent / "external-state.txt"
+        external.write_text("allowed\n")
+        quoted = shlex.quote(str(external))
+        command = (f'if test "$(cat {quoted})" = allowed; then echo allowed; '
+                   'else echo "permission denied"; exit 1; fi' if authority else
+                   f'test "$(cat {quoted})" = allowed')
+        self.assertNotIn(self.repo, external.parents)
+        return external, command
+
+    def declare_external(self, state: dict) -> None:
+        strategy = next(row["action"] for row in reversed(state["history"])
+                        if row["stage"] == "test-strategy")
+        state["accepted"][strategy]["targets"] = [
+            {"target": "fixture service", "keeps_state": "no", "base_state_route": "n/a"}]
+
+    def assert_external_completion_refused(self, external: Path, action: str, done: dict,
+                                           relative: str, *, prior: Path | None = None) -> None:
+        before = (self.run_dir / "state.md").read_bytes()
+        draft = self.run_dir / "inbox" / (action + ".md")
+        draft_bytes = draft.read_bytes()
+        tree = self.tree_bytes()
+        commands = test_loop.stage_commands(self.state(), nav.current_stage(self.state()), self.item())[0]
+        prior_bytes = prior.read_bytes() if prior else None
+        external.write_text("permission denied\n")
+        with mock.patch.object(test_loop.lint, "run_argv", wraps=test_loop.lint.run_argv) as runner:
+            with self.assertRaises(nav.NavigatorError):
+                self.complete(done, loop=False)
+        self.assertGreater(runner.call_count, 0)
+        self.assertEqual(self.action(), action)
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        self.assertEqual(draft.read_bytes(), draft_bytes)
+        self.assertEqual(self.tree_bytes(), tree)
+        self.assertEqual(test_loop.stage_commands(self.state(), nav.current_stage(self.state()), self.item())[0], commands)
+        if prior:
+            self.assertEqual(prior.read_bytes(), prior_bytes)
+        fresh = store.read_record(self.run_dir / relative)
+        self.assertFalse(fresh["passed"])
+        self.assertNotIn("reused", fresh)
+        self.assertEqual(fresh["schema"], test_loop.SCHEMA)
+
+    def test_external_system_check_reruns_whole_and_lower_receipts(self):
+        for whole in (True, False):
+            with self.subTest(whole=whole):
+                self.restart()
+                self.drive_to("system-test")
+                external, command = self.external_state_command()
+                state = self.state()
+                self.declare_external(state)
+                producer = next(row["action"] for row in reversed(state["history"])
+                                if row["stage"] == "system-test-author")
+                state["accepted"][producer]["system_commands"] = [
+                    {"command": command, "suite": "check", "target": "fixture service"}]
+                nav.save(self.run_dir, state)
+                action = self.action()
+                output = self.complete(DONE, check=True)
+                if not whole:
+                    (self.run_dir / shiploop_check.answer_path(action)).unlink()
+                self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+                self.assertIn("Completion will run the gates again", output)
+
+    def test_external_authority_denial_reruns_stateless_named_target(self):
+        self.start()
+        self.drive_to("system-test")
+        external, command = self.external_state_command(authority=True)
+        state = self.state()
+        self.declare_external(state)
+        producer = next(row["action"] for row in reversed(state["history"])
+                        if row["stage"] == "system-test-author")
+        state["accepted"][producer]["system_commands"] = [
+            {"command": command, "suite": "check", "target": "fixture service"}]
+        nav.save(self.run_dir, state)
+        action = self.action()
+        self.complete(DONE, check=True)
+        self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        self.assertIn("permission denied", record["runs"][0]["stdout"])
+        self.assertTrue(external.exists(), "the target remains live; its answer now denies access")
+        failed = self.run_dir / test_loop.verify_path(action, 1)
+        failed_bytes = failed.read_bytes()
+        draft = self.run_dir / "inbox" / (action + ".md")
+        draft_bytes, tree = draft.read_bytes(), self.tree_bytes()
+        commands = test_loop.stage_commands(self.state(), "system-test", self.item())[0]
+        external.write_text("allowed\n")
+        self.assertEqual(self.action(), action)
+        self.assertEqual(draft.read_bytes(), draft_bytes)
+        self.assertEqual(test_loop.stage_commands(self.state(), "system-test", self.item())[0], commands)
+        with mock.patch.object(test_loop.lint, "run_argv", wraps=test_loop.lint.run_argv) as runner:
+            self.complete(DONE, loop=False)
+        self.assertGreater(runner.call_count, 0)
+        self.assertIn(action, self.state()["accepted"])
+        fresh = store.read_record(self.run_dir / test_loop.verify_path(action, 2))
+        self.assertTrue(fresh["passed"])
+        self.assertNotIn("reused", fresh)
+        self.assertIn("allowed", fresh["runs"][0]["stdout"])
+        self.assertEqual(fresh["runs"][0]["command"], command)
+        self.assertEqual(failed.read_bytes(), failed_bytes)
+        self.assertEqual(draft.read_bytes(), draft_bytes)
+        self.assertEqual(self.tree_bytes(), tree)
+
+    def test_release_check_reruns_whole_answer_on_unchanged_checkout(self):
+        self.start()
+        self.drive_to("release-verify")
+        external, command = self.external_state_command(authority=True)
+        state = self.state()
+        producer = next(row["action"] for row in reversed(state["history"])
+                        if row["stage"] == "release-plan")
+        state["accepted"][producer]["consumer_checks"] = [{"command": command, "suite": "check"}]
+        nav.save(self.run_dir, state)
+        action = self.action()
+        self.complete(DONE, check=True)
+        self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+
+    def test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts(self):
+        for numbered in (False, True):
+            with self.subTest(numbered=numbered):
+                self.restart()
+                external, command = self.external_state_command()
+                self.drive_to("implement", step_plan=self.proof_plan(command))
+                state = self.state()
+                self.declare_external(state)
+                nav.save(self.run_dir, state)
+                action = self.action()
+                # Fill and cite the same completed loop in both drafts.
+                done = inner.loop(self.run_dir, self.state(), inner.fill(self.state(), "implement", DONE, self.run_dir))
+                self.complete(done, loop=False, check=True)
+                (self.run_dir / shiploop_check.answer_path(action)).unlink()
+                prior = self.run_dir / test_loop.step_proof_check_path(action)
+                if numbered:
+                    with mock.patch.object(nav, "_step_spec_refusal", return_value="Later gate refused."):
+                        with self.assertRaises(nav.NavigatorError):
+                            self.complete(done, loop=False)
+                    prior = self.run_dir / test_loop.step_proof_path(action, 1)
+                self.assert_external_completion_refused(external, action, done,
+                    test_loop.step_proof_path(action, 2 if numbered else 1), prior=prior)
+
+    def test_external_mutation_rows_rerun_before_remote_filtering(self):
+        for indication in ("host", "target", "mixed"):
+            with self.subTest(indication=indication):
+                self.restart()
+                for name in ("calc.py", "test_calc.py"):
+                    (self.repo / name).unlink(missing_ok=True)
+                self.calc_item(self.REAL_TEST)
+                external, _command = self.external_state_command()
+                # Real tests read a sibling outside both the checkout and mutation copies.
+                path = self.repo / "test_calc.py"
+                path.write_text(self.REAL_TEST.replace('        self.assertEqual(calc.add',
+                    f'        self.assertEqual(__import__("pathlib").Path({str(external)!r}).read_text().strip(), "allowed")\n'
+                    '        self.assertEqual(calc.add'))
+                state = self.state()
+                action, item = self.action(), self.item()
+                _plan, plan = test_loop._step_plan(state, item)
+                if indication == "host":
+                    plan["test_commands"][0]["host_dependent"] = True
+                elif indication == "mixed":
+                    plan["test_commands"].append({"command": "sf apex run test --class-names Fixture",
+                                                  "suite": "focused"})
+                commands = [row["command"] for row in mutation._focused(state, item)]
+                mutation.mutation_check(self.run_dir, state, item, action, count=False)
+                checked = self.run_dir / test_loop.mutation_check_path(action)
+                original = checked.read_bytes()
+                self.assertTrue(store.read_record(checked)["mutants"])
+                if indication == "target":
+                    plan["test_commands"][0]["target"] = "unknown target"
+                # Only this subcase changes metadata; command strings and the checkout stay the same in all three.
+                before = self.tree_bytes()
+                saved_state = (self.run_dir / "state.md").read_bytes()
+                external.write_text("denied\n")
+                with mock.patch.object(test_loop.lint, "run_argv", wraps=test_loop.lint.run_argv) as runner:
+                    mutation.mutation_check(self.run_dir, state, item, action)
+                self.assertGreater(runner.call_count, 0)
+                fresh = store.read_record(self.run_dir / test_loop.mutation_path(action, 1))
+                self.assertNotIn("reused", fresh)
+                self.assertEqual(fresh["unmutated"]["status"], "killed")
+                self.assertIn("unmutated copy did not pass", fresh["skipped"])
+                self.assertEqual(checked.read_bytes(), original)
+                self.assertEqual(self.tree_bytes(), before)
+                self.assertEqual((self.run_dir / "state.md").read_bytes(), saved_state)
+                self.assertEqual(self.action(), action)
+                self.assertEqual([row["command"] for row in mutation._focused(state, item)], commands)
+
+    def test_reuse_eligibility_rule_table(self):
+        self.start()
+        self.drive_to("system-test")
+        external, command = self.external_state_command()
+        state = self.state()
+        local = {"command": command, "suite": "check"}
+        for label, rows in (("host", [dict(local, host_dependent=True)]),
+                            ("unknown target", [dict(local, target="unknown")]),
+                            ("named stateless", [dict(local, target="fixture service")]),
+                            ("known remote", [{"command": "sf apex run test", "suite": "check"}]),
+                            ("mixed", [local, dict(local, target="unknown")])):
+            with self.subTest(label=label):
+                self.declare_external(state)
+                self.assertFalse(test_loop.reuse_eligible(state, "system-test", self.item(), rows))
+        self.assertTrue(test_loop.reuse_eligible(state, "system-test", self.item(), [local]))
+        self.assertFalse(test_loop.reuse_eligible(state, "release-verify", self.item(), [local]))
+        plan = self.proof_plan("true")
+        state["history"].append({"stage": "step-plan", "workitem": "W1", "action": "unsafe-plan"})
+        state["accepted"]["unsafe-plan"] = dict(DONE, **plan)
+        strategy = next(row["action"] for row in state["history"] if row["stage"] == "test-strategy")
+        state["accepted"][strategy]["targets"] = []
+        for metadata in ({"host_dependent": True}, {"target": "unknown"}, {"command": "sf apex run test"}):
+            plan["test_commands"][0] = dict(COMMANDS[0], **metadata)
+            self.assertFalse(test_loop.reuse_eligible(state, "implement", "W1", [{"command": "true"}]))
+        self.assertFalse(test_loop.reuse_eligible(state, "implement", "", [{"command": "sf apex run test"}]))
+
+    def test_actual_external_command_override_reruns(self):
+        self.start()
+        self.drive_to("system-test")
+        external, command = self.external_state_command()
+        state, action = self.state(), self.action()
+        local = {"command": command, "suite": "check"}
+        # The declarations remain local; only the explicit command override carries host metadata.
+        rows = [dict(local, host_dependent=True)]
+        writes, refusal = test_loop.verify(self.run_dir, state, "", action, "system-test", commands=rows, count=False)
+        self.assertFalse(refusal)
+        test_loop._write(self.run_dir, writes)
+        checked = (self.run_dir / test_loop.check_path(action)).read_bytes()
+        before = self.tree_bytes()
+        external.write_text("denied\n")
+        with mock.patch.object(test_loop.lint, "run_argv", wraps=test_loop.lint.run_argv) as runner:
+            writes, refusal = test_loop.verify(self.run_dir, state, "", action, "system-test", commands=rows)
+        self.assertTrue(refusal)
+        runner.assert_called_once()
+        test_loop._write(self.run_dir, writes)
+        self.assertNotIn("reused", store.read_record(self.run_dir / test_loop.verify_path(action, 1)))
+        self.assertEqual((self.run_dir / test_loop.check_path(action)).read_bytes(), checked)
+        self.assertEqual(self.tree_bytes(), before)
+        self.assertEqual(self.action(), action)
+        self.assertEqual(rows, [dict(local, host_dependent=True)])
 
     def test_a_command_recorded_twice_is_one_row_and_runs_once_per_run(self):
         """D-1: the chess step plan copied the Focused and Full-suite fences, so rows 7-9 were rows 1-3 again and every
@@ -3485,6 +3778,31 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
             row["disposition"] = "exclude" if row["path"] in exclude or row["disposition"] == "exclude" else "keep"
         store.write_record(self.root / "return-plan.md", plan, "ShipLoop workspace return plan")
         return workspace.execute_return(self.root)
+
+    item = TestLoopTests.item
+    tree_bytes = TestLoopTests.tree_bytes
+    external_state_command = TestLoopTests.external_state_command
+    assert_external_completion_refused = TestLoopTests.assert_external_completion_refused
+
+    def test_release_check_reruns_whole_answer_on_returned_result(self):
+        self.drive_to("release")
+        self.return_result()
+        self.drive_to("release-verify")
+        external, command = self.external_state_command(authority=True)
+        state = self.state()
+        producer = next(row["action"] for row in reversed(state["history"])
+                        if row["stage"] == "release-plan")
+        state["accepted"][producer]["consumer_checks"] = [{"command": command, "suite": "check"}]
+        nav.save(self.run_dir, state)
+        action = self.action()
+        self.complete(DONE, check=True)
+        self.assertEqual(store.read_record(self.run_dir / test_loop.check_path(action))["observed"]["where"],
+                         "returned-result")
+        source_before = {str(path.relative_to(self.source)): path.read_bytes() for path in self.source.rglob("*")
+                         if path.is_file() and ".git" not in path.relative_to(self.source).parts}
+        self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+        self.assertEqual({str(path.relative_to(self.source)): path.read_bytes() for path in self.source.rglob("*")
+                          if path.is_file() and ".git" not in path.relative_to(self.source).parts}, source_before)
 
     def test_a_check_that_passes_only_in_the_work_area_is_refused_and_add_work_is_the_accepted_exit(self):
         self.drive_to("release")

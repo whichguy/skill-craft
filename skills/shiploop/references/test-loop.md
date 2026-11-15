@@ -58,8 +58,8 @@ runs the base check without completing. A draft result's `red_na` and `retired_t
 never counts toward the refused runs: exit 0 when no new test ID passes on the
 base, 1 when one does or a test did not run, 3 when the check cannot run.
 
-`document` reruns what its edits affect on `done`; the outer `system-test`
-and `release-verify` rerun their own recorded commands.
+`document` reruns affected commands; outer stages run recorded commands.
+Unchanged checkout checks may reuse receipts; external and `release-verify` checks rerun.
 No count of refused runs
 stops `done` (the packet shows the tally; at `test`, base, candidate and
 mutation runs share one). When the plan or a recorded command is what is wrong,

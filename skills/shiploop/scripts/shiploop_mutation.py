@@ -430,7 +430,10 @@ def _reusable(root: Path, state: Mapping[str, Any], work_item: str, action_id: s
               base_commit: Optional[str]) -> Optional[Dict[str, Any]]:
     """The latest mutation record of this action made on the same candidate tree with the same focused commands, so a
     resubmission that changes only ``mutant_dispositions`` does not run the mutants again (Codex, panel P5)."""
-    commands, _skipped = split_remote(_focused(state, work_item), test_loop.stateful_targets(state))
+    focused = _focused(state, work_item)
+    if not test_loop.reuse_eligible(state, test_loop.STAGES[0], work_item, focused):
+        return None
+    commands, _skipped = split_remote(focused, test_loop.stateful_targets(state))
     base = lint.read_base(root, work_item)
     if base is None or not commands:
         return None
@@ -528,7 +531,8 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
                      + ". equivalent: no input the contract allows tells them apart; out-of-scope: not product "
                      "behaviour, such as a tool's generated file; not-exercisable: no test this runner can run reaches "
                      "it. Do not weaken an oracle or change required behaviour to lower the count. Then submit done "
-                     "again: while the candidate and the focused commands stay as they are, this run is reused. Full "
+                     "again: eligible checkout-only runs are reused while the candidate and focused commands stay "
+                     "unchanged; external checks rerun under the shared reuse eligibility rule. Full "
                      "output: " + str(root / relative) + ".")
         raise test_loop.TestLoopError("\n".join(lines))
     if not refuse:
