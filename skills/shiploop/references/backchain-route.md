@@ -20,7 +20,7 @@ the `converge` plan packet prints no marker line, and the child's exit condition
 Backchain's default one in its convergence reference. In `none` the plan packet prints the
 read-only audit route the other Backchain stages print (the one resource it needs and the
 loop-resource status line), says no whole `plan`/`draft` is requested in this run, and
-omits the seven-file Backchain and Until Loop resource block; a material finding at any stage
+omits the eight-file Backchain and Until Loop resource block; a material finding at any stage
 still allows one `repair`/`revise`, which runs one pass.
 Like `lint`, a saved run without the key is refused (start a fresh run), never
 migrated, and an `init` or `workspace start` retry cannot change it. Unlike

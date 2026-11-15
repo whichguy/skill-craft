@@ -237,7 +237,7 @@ request criteria and meaningful checks remains necessary.
 Backchain passes option is `none` prints no such block): ShipLoop
 resolves these paths from its own installed plugin. It lists Backchain `SKILL.md`,
 the `backchain-caller/v1` resource in `references/caller-contract.md`,
-`references/convergence.md`, `prompts/convergence-review.prompt.md`, and the
+`references/convergence.md`, `prompts/convergence-review.prompt.md`, `scripts/backchain.py`, and the
 Until Loop `ADAPTER.md`, `references/runtime-ephemeral.md`, and
 `scripts/until_loop_ephemeral.py`. A planning host may call the route only when
 every listed resource is resolved. A `MISSING: ...` entry blocks it for that

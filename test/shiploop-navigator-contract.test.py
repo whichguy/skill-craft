@@ -3947,9 +3947,16 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                 for mode in prompts.BACKCHAIN_PASSES_MODES:
                     with self.subTest(stage=stage, delegation=delegation, mode=mode):
                         text = " ".join(prompts.prompt(stage, delegation=delegation, backchain_passes=mode).split())
-                        for required in ("`prepare", "`freeze`", "printed Backchain planning run directory",
+                        # the whole start route of Backchain SKILL.md step 1 (review round 1: `prepare --run` alone exits
+                        # 3 without `--request`, and without `--caller`/`--draft` a bounded repair re-plans unbounded)
+                        for required in ("Backchain SKILL.md step 1's `prepare`", "`--request`", "`--caller`",
+                                         "`--binding`", "`freeze`", "printed Backchain planning run directory",
                                          "writes its start contract (never you)"):
                             self.assertIn(required, text)
+                        # the gate comes from `prepare --passes`, never from the marker line (backchain.py prepare)
+                        self.assertIn("no `--passes`" if mode == "converge" else "`--passes one`", text)
+                        if stage == "spec" or mode == "none":  # a repair/revise child revises the inherited candidate
+                            self.assertIn("`--draft` the candidate", text)
                         for stale in ("Write the child's start contract", "required_trivial_reviews: 2",
                                       "two consecutive", "Backchain passes: converge"):
                             self.assertNotIn(stale, text)

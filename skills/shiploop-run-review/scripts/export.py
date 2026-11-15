@@ -1062,7 +1062,7 @@ def loop_doc(run_key: str, run_dir: Path, loop: Path, actions: list[dict], order
     receipt = _optional_json(receipt_path) or {}
     start_record = (loop / "loop" / "contract.json" if (loop / "loop" / "contract.json").is_file() else None) \
         if cycles is not None else _start_record(run_dir, loop)
-    layout, passes = ("backchain-run", []) if cycles else _passes(loop)
+    layout, passes = ("backchain-run", []) if cycles is not None else _passes(loop)
     progress = receipt.get("progress") if isinstance(receipt.get("progress"), dict) else {}
     count = progress.get("action_number")
     count = count if isinstance(count, int) and not isinstance(count, bool) and count >= 1 else None

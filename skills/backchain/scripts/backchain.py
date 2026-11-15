@@ -1040,12 +1040,12 @@ def command_finish(args: argparse.Namespace) -> int:
     source_incomplete = review is not None and review["coverage"]["source_review_status"] != "complete"
     converged = status == "complete" and not problems and not gaps and receipt["ok"] and not source_incomplete
     # The run's own records come first: a model's next action never hides a receipt or binding that does not hold.
-    next_action = "" if converged else ("; ".join(problems) or evidence.get("next_action") or (
-        f"the loop ended {status}" + (f" with planning gaps: {gaps}" if gaps else "")
-        if status != "complete" or gaps or not source_incomplete else
+    only_source = status == "complete" and not problems and not gaps and receipt["ok"] and source_incomplete
+    next_action = "" if converged else (
         "the final review's coverage.source_review_status is incomplete, so planning has not converged; if the "
         "source assessment is in fact complete, run finish again with that review, otherwise name what is missing "
-        "in its planning_gaps"))
+        "in its planning_gaps" if only_source else "; ".join(problems) or evidence.get("next_action") or (
+            f"the loop ended {status}" + (f" with planning gaps: {gaps}" if gaps else "")))
     convergence = {
         "binding_id": meta["binding_id"],
         "owner": "selected Until Loop binding",
@@ -1135,7 +1135,8 @@ def accepted_plan(run: Run) -> Path:
         raise Unavailable(f"no result at {run.result}; run finish first")
     result = read_json(run.result)
     record = result.get("review") or result.get("convergence") if isinstance(result, dict) else None
-    accepted = record.get("candidate", {}).get("output_sha256") if isinstance(record, dict) else None
+    candidate = record.get("candidate") if isinstance(record, dict) else None
+    accepted = candidate.get("output_sha256") if isinstance(candidate, dict) else None
     if not isinstance(accepted, str):
         raise Unavailable(f"{run.result} is not a finish result")
     if result.get("status") != "converged":
@@ -1152,7 +1153,7 @@ def accepted_plan(run: Run) -> Path:
 
 def command_export(args: argparse.Namespace) -> int:
     if (args.plan is None) == (args.run is None):
-        raise Unavailable("export takes a PLAN or --run DIR, not both")
+        raise Unavailable("export takes exactly one of PLAN or --run DIR")
     try:
         path = accepted_plan(Run(args.run)) if args.run is not None else args.plan
     except Fails as exc:

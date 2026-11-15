@@ -1045,6 +1045,18 @@ class BackchainLoopRecordsTest(unittest.TestCase):
         self.assertEqual(self.facts_of(two)["Passes"], "2")
         self.assertEqual([(s.get("pass"), s.get("change")) for s in two["segments"] if "pass" in s],
                          [(1, "changed"), (2, "none")])
+        # review round 1: an unreadable evidence.json keeps the 0.7.0 layout (the receipt still gives the passes) ...
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        (make_0_7_run(out) / "evidence.json").write_text("{not json")
+        bare = self.export(out)[0][self.PLAN]
+        self.assertEqual((self.facts_of(bare)["Passes"], bare["segments"]), ("1", []))
+        self.assertNotIn("Layout", self.facts_of(bare))
+        # ... and a frozen run whose loop never started has no receipt, so its stage ran only graph checks
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        (make_0_7_run(out) / "loop" / "receipt.json").unlink()
+        frozen = self.export(out)[0]
+        self.assertEqual(list(frozen), [self.PLAN])
+        self.assertIs(frozen[self.PLAN]["graphCheckOnly"], True)
 
     def test_the_run_option_is_recorded_as_written_and_not_recorded_when_the_key_is_absent(self):
         for written, shown in (("one", "one"), ("converge", "converge"), ("none", "none"), ("maybe", "maybe"),

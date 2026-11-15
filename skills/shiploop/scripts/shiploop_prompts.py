@@ -2125,17 +2125,19 @@ caller section (the packet's "Loop resources" line reports them)."""
 # trivial review completes, owner decision 2026-11-01).
 _BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle: put the line
 `Backchain passes: one` beside the binding marker in the child request, as Backchain's
-convergence reference defines it."""
+convergence reference defines it, and pass `--passes one` to `prepare`."""
 # Mode converge (owner decision D-D, 2026-11-01): Backchain's default gate, so the child request carries no marker line.
 _BACKCHAIN_AUDIT_CONVERGE = """ A repair/revise child runs Backchain's default gate and completes at
-its first trivial review: put no `Backchain passes:` line in the child request."""
+its first trivial review: put no `Backchain passes:` line in the child request and pass no
+`--passes` to `prepare`."""
 _BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
 at `plan`."""
 # Mode none, at every stage: the run requests no whole loop, so the audit text says that in its place.  `one` is
 # the only marker value Backchain's convergence reference defines, so the text does not print `none` as one.
 _BACKCHAIN_AUDIT_WHOLE_NONE = """ No whole `plan`/`draft` is requested in this run."""
-_BACKCHAIN_AUDIT_TAIL = """ Start the child with `prepare --run` the printed Backchain planning
-run directory, then `freeze`, which writes its start contract. A MISSING loop resource blocks
+_BACKCHAIN_AUDIT_TAIL = """ Start the child with Backchain SKILL.md step 1's `prepare` (`--run` the
+printed Backchain planning run directory, `--request`, `--caller` the repair/revise packet,
+`--draft` the candidate, `--binding`), then `freeze`, which writes its start contract. A MISSING loop resource blocks
 repair/revise; no other install substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
@@ -2157,8 +2159,9 @@ _BACKCHAIN_PLAN_GATE_CONVERGE = """\
 Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
 transition; Backchain and ShipLoop do not copy that runtime or create another controller.
 Put no `Backchain passes:` line in the child request: the child runs Backchain's default
-gate and completes at its first trivial review. Start it with `prepare --run` the printed
-Backchain planning run directory (no `--passes`), then `freeze`, which writes its start
+gate and completes at its first trivial review. Start it with Backchain SKILL.md step 1's
+`prepare` (`--run` the printed Backchain planning run directory, `--request`, `--caller` the
+plan/draft packet, `--binding`; no `--passes`), then `freeze`, which writes its start
 contract (never you).
 """
 # In `one` mode the packet prints the gate and the exit condition Backchain's `freeze` writes for the marker line
@@ -2172,9 +2175,10 @@ _BACKCHAIN_PLAN_GATE_ONE = """\
 Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
 transition; Backchain and ShipLoop do not copy that runtime or create another controller.
 Backchain passes: one. Put the line `Backchain passes: one` beside the binding marker in the
-child request; start the child with `prepare --passes one --run` the printed Backchain
-planning run directory, then `freeze`, which writes its start contract (never you) with
-`required_trivial_reviews: 0` and this exit condition: One complete dependency
+child request; start the child with Backchain SKILL.md step 1's `prepare` (`--run` the
+printed Backchain planning run directory, `--request`, `--caller` the plan/draft packet,
+`--binding`, `--passes one`), then `freeze`, which writes its start contract (never you)
+with `required_trivial_reviews: 0` and this exit condition: One complete dependency
 review/fix/check cycle has run; every finding of that cycle is repaired within the edit
 bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's
 Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is
@@ -2214,8 +2218,8 @@ def _backchain_guidance(stage: str, *, improve_owner: bool = False,
     the other Backchain stages print the read-only audit route and the rule that a material finding may
     request one repair/revise.
 
-    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  ``converge`` prints the two-review
-    gate; the default ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at the
+    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  ``converge`` prints Backchain's default
+    gate, with no marker line; the default ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at the
     audit stages.  ``none`` offers no whole loop, so plan prints the audit route the four audit stages print
     (see offers_whole_backchain_loop), and every audit stage says no whole `plan`/`draft` is requested.
     """
@@ -2261,8 +2265,9 @@ Request a Backchain `review` / `audit` only for a material prerequisite ambiguit
     edit bounds:
     - it needs every loop resource on the Loop resources line; a MISSING one blocks it, and no other install
       substitutes;
-{marker}    - start the child with `prepare --run` the printed Backchain planning run directory, then `freeze`, which writes
-      its start contract (never you);
+{marker}    - start the child with Backchain SKILL.md step 1's `prepare` (`--run` the printed Backchain planning run
+      directory, `--request`, `--caller` the repair/revise packet, `--draft` the candidate, `--binding`{passes}),
+      then `freeze`, which writes its start contract (never you);
     - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
       done.
     Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
@@ -2292,9 +2297,10 @@ _BACKCHAIN_PLAN_CHOICE_ITEM = (" Nothing refuses a plan without it and ShipLoop 
                                "so say in `summary` which route you took and why.")
 _BACKCHAIN_GATE_ONE_ITEM = """Until Loop owns the callback handle, progress, the review gate,
       recovery and the terminal transition; copy none of it. Put the line `Backchain passes: one` beside the binding
-      marker in the child request; start the child with `prepare --passes one --run` the printed Backchain planning
-      run directory, then `freeze`, which writes its start contract (never you) with `required_trivial_reviews: 0`
-      and this exit condition: One complete dependency review/fix/check cycle has run; every finding of that cycle is
+      marker in the child request; start the child with Backchain SKILL.md step 1's `prepare` (`--run` the printed
+      Backchain planning run directory, `--request`, `--caller` the plan/draft packet, `--binding`, `--passes one`),
+      then `freeze`, which writes its start contract (never you) with `required_trivial_reviews: 0` and this exit
+      condition: One complete dependency review/fix/check cycle has run; every finding of that cycle is
       repaired within the edit bounds; every `Confirm by` clause on a step this cycle may change meets the planning
       guide's Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is cited;
       final candidate-specific domain evidence is saved. A pass that completes that cycle reports `exit_assessment:
@@ -2303,9 +2309,9 @@ _BACKCHAIN_GATE_ONE_ITEM = """Until Loop owns the callback handle, progress, the
 # marker line, so a host ran `prepare` without `--passes` and freeze wrote Backchain's default gate anyway.
 _BACKCHAIN_GATE_CONVERGE_ITEM = """Until Loop owns the callback handle, progress, the review gate,
       recovery and the terminal transition; copy none of it. Put no `Backchain passes:` line in the child request:
-      the child runs Backchain's default gate and completes at its first trivial review. Start it with `prepare
-      --run` the printed Backchain planning run directory (no `--passes`), then `freeze`, which writes its start
-      contract (never you);"""
+      the child runs Backchain's default gate and completes at its first trivial review. Start it with Backchain
+      SKILL.md step 1's `prepare` (`--run` the printed Backchain planning run directory, `--request`, `--caller` the
+      plan/draft packet, `--binding`; no `--passes`), then `freeze`, which writes its start contract (never you);"""
 
 
 def _backchain_item(stage: str, backchain_passes: str) -> str:
@@ -2318,8 +2324,9 @@ def _backchain_item(stage: str, backchain_passes: str) -> str:
     whole = ""
     if stage == "plan":
         whole = " No whole `plan`/`draft` is requested in this run."
-    return _BACKCHAIN_ITEM_AUDIT.format(marker=_BACKCHAIN_ITEM_MARKER if _one_pass(backchain_passes)
-                                        else _BACKCHAIN_ITEM_DEFAULT_GATE, whole=whole)
+    one = _one_pass(backchain_passes)
+    return _BACKCHAIN_ITEM_AUDIT.format(marker=_BACKCHAIN_ITEM_MARKER if one else _BACKCHAIN_ITEM_DEFAULT_GATE,
+                                        passes=", `--passes one`" if one else "; no `--passes`", whole=whole)
 
 
 BACKCHAIN_GUIDANCE = _backchain_guidance("plan")

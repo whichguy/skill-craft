@@ -267,7 +267,7 @@ sum to it. A hand-set verdict is interim; the default for an unjudged pass is `u
 | --- | --- | --- |
 | `backchainPasses` | string | optional: the run's `backchain_passes` option as `state.md` recorded it, text as written (`one`, `converge` or `none`; any other value is shown verbatim). `not recorded` when the key is absent: never a default. Record only: nothing is enforced |
 | `candidateMatch` | `true` \| `false` \| `"unknown"` | optional: whether the **last** backchain-check receipt of the loop has `candidate_sha256` equal to the loop's final candidate digest. `"unknown"` when either digest is missing (the `Candidate match` fact says which). Last is newest by file time (then name): right on the original run directory, and a copy needs `cp -p`. Record only |
-| `graphCheckOnly` | `true` | optional, from R22b: present only on the document of a stage that ran `shiploop backchain-check` and no Until Loop (a folder `run/backchain/<action>/` with `check-*.json` receipts, no `until-loop-receipt.json` and no Backchain 0.7.0 run in `run/`). It has no segments and no `stageMin`; its `Graph check` fact reads "graph check only: N checks, last ok (complete)" from the newest receipt's `ok` and `completion`, and `candidateMatch` is worked out as for a loop (a folder with no loop record has no final candidate digest, so `"unknown"` with the reason). Before R22b such a stage read as no loop at all |
+| `graphCheckOnly` | `true` | optional, from R22b: present only on the document of a stage that ran `shiploop backchain-check` and no Until Loop (a folder `run/backchain/<action>/` with `check-*.json` receipts, no `until-loop-receipt.json` and no started Backchain 0.7.0 run in `run/`, one with `loop/receipt.json`). It has no segments and no `stageMin`; its `Graph check` fact reads "graph check only: N checks, last ok (complete)" from the newest receipt's `ok` and `completion`, and `candidateMatch` is worked out as for a loop (a folder with no loop record has no final candidate digest, so `"unknown"` with the reason). Before R22b such a stage read as no loop at all |
 | `trivialRequired` | number | optional: the receipt's `progress.required_trivial_reviews`; `0` on a one-pass loop, where the `Trivial streak` fact reads "no trivial-streak requirement on this loop" and the page draws no streak target. Absent when the receipt carries none (an older page document reads as a requirement of 2) |
 
 **Where a loop's numbers come from.** Four layouts are read, because a run keeps the loop records of the release that
@@ -291,7 +291,8 @@ ran it and the five committed evidence files were exported from the first two:
   `loop/contract.json` (the start) or the previous cycle's report to `cycles/NN/report.json`, with `change` from the
   cycle's `changed` (`changed`, `none` or `unknown`) and its note from the cycle's `classification`. The final candidate
   digest is the last cycle's `plan.sha256`. The action directory holding such a run is a loop, not a graph-check-only
-  stage. With no `loop/contract.json` the loop has no segments and a `Timing` fact says why.
+  stage. With no `loop/contract.json` the loop has no segments and a `Timing` fact says why; with no readable
+  `evidence.json` it has no pass segments, and its `Passes` fact comes from the receipt.
 - `run/backchain/<action>/check-<sha12>.json` (with `candidate-<sha12>.json`, a snapshot of the bytes checked) are the
   `shiploop backchain-check` receipts of any layout: `candidate_sha256` is the digest `candidateMatch` reads.
 

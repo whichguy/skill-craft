@@ -187,6 +187,7 @@ class ExportTests(unittest.TestCase):
         protocol = (dispatcher / "references/protocol.md").read_text(encoding="utf-8")
         named = re.search(r"`python3 -I -B (\S+) export PLAN\.json`", protocol)
         self.assertIsNotNone(named, "protocol.md names no runnable Backchain export command")
+        self.assertIn(f"`python3 -I -B {named.group(1)} export --run DIR`", protocol)  # the guarded form, same path
         self.assertIn(named.group(1), (dispatcher / "SKILL.md").read_text(encoding="utf-8"))
         exporter = (dispatcher / named.group(1)).resolve()
         self.assertTrue(exporter.is_file(), exporter)
@@ -739,7 +740,9 @@ class RunTests(unittest.TestCase):
         bounds = {"provisional_step_ids": ["S2"], "provisional_edge_keys": ["S2<-S1"]}
         run_dir, frozen = self.caller_run(without_one_edge, "source-status", bounds)
         self.assertEqual(frozen.returncode, 0, frozen.stdout + frozen.stderr)
-        self.assertEqual(self.cycle(run_dir, self.start(run_dir), assessment("none"))["status"], "complete")
+        # a cycle's own next action must not hide the source-review reason (review round 1)
+        cycle = dict(assessment("none"), next_action="Hand the plan to the caller.")
+        self.assertEqual(self.cycle(run_dir, self.start(run_dir), cycle)["status"], "complete")
         path = self.base / "final-review.json"
 
         def finish(review):
