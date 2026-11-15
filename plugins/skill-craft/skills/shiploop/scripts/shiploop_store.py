@@ -123,7 +123,7 @@ def loads(text: str) -> Any:
         )
     except StorageError:
         raise
-    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+    except (json.JSONDecodeError, TypeError, ValueError, RecursionError) as exc:
         raise StorageError(f"invalid shiploop-state JSON: {exc}") from exc
 
 
@@ -241,15 +241,62 @@ def read_jsonl(path: RecordPath) -> List[Dict[str, Any]]:
         raw = Path(path).read_bytes()
     except OSError:
         return []
+    return parse_jsonl_bytes(raw)
+
+
+# Guard: optional display data only; never applied to authoritative loads or default JSONL reads.
+OBSERVATION_JSON_DEPTH = 64
+
+
+def observation_json(value):
+    """Reject excessively nested optional display objects before recursive projections."""
+    pending = [(value, 0)]
+    while pending:
+        current, depth = pending.pop()
+        if depth > OBSERVATION_JSON_DEPTH:
+            raise ValueError("optional JSON exceeds safe display nesting depth")
+        if isinstance(current, dict):
+            pending.extend((child, depth + 1) for child in current.values())
+        elif isinstance(current, list):
+            pending.extend((child, depth + 1) for child in current)
+    return value
+
+
+def parse_jsonl_bytes(raw: bytes, *, coverage: bool = False):
+    """Shared literal-newline parser; optional physical line and damage coverage.
+
+    The default result preserves read_jsonl's tolerance, including a valid final
+    object without a newline. Coverage rows are (physical line, object) pairs.
+    """
     rows = []
-    for line in raw.decode("utf-8", errors="replace").split("\n"):
+    damaged = []
+    try:
+        decoded = raw.decode("utf-8")
+        invalid_utf8 = False
+    except UnicodeError:
+        decoded = raw.decode("utf-8", errors="replace")
+        invalid_utf8 = True
+    lines = decoded.split("\n")
+    for number, line in enumerate(lines, 1):
+        if not line.strip():
+            continue
         try:
             value = json.loads(line)
-        except ValueError:
+            if coverage:
+                observation_json(value)
+        except (ValueError, RecursionError):
+            damaged.append(number)
             continue
         if isinstance(value, dict):
-            rows.append(value)
-    return rows
+            rows.append((number, value) if coverage else value)
+        else:
+            damaged.append(number)
+    if not coverage:
+        return rows
+    partial = bool(raw and not raw.endswith(b"\n") and len(lines) in damaged)
+    return rows, {"damaged": len(damaged), "partial_tail": partial,
+                  "unterminated_tail": bool(raw and not raw.endswith(b"\n")), "invalid_utf8": invalid_utf8,
+                  "interior_damage": sum(n != len(lines) or not partial for n in damaged)}
 
 
 def _resolve_root(root: RecordPath) -> Path:

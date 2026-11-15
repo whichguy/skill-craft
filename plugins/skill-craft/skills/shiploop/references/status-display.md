@@ -48,9 +48,13 @@ which the host gives the user in the same message. If observation is unavailable
 disabled and no page exists, it reports that status instead of offering a working
 link.
 
-The page shows the preparation/work/release outline, accepted items, the current
-stage and blocker, recent recorded activity, and expandable spec, architecture,
-plan and test-strategy previews. Before plan acceptance it says the work plan is
+The page connects the current stage and blocker to a linear journal of stage
+visits, recorded attempts, prompts as issued, gate evidence and Until receipts.
+Repeated visits stay separate. Expand a visit to inspect its recorded evidence,
+or follow the relative **Run trace** link for the detailed inspector. The
+preparation/work/release outline, accepted items and expandable spec,
+architecture, plan and test-strategy previews remain available.
+Before plan acceptance it says the work plan is
 pending. Current repository documents are **saved drafts** with a path, content
 hash and observation time. Accepted planning-result records appear separately;
 an updated document or worker report does not itself accept work. The observer
@@ -68,14 +72,33 @@ dependency list accompanies each diagram. Older step plans without explicit
 `deps` can show their accepted tasks but label their dependencies unknown.
 The preparation/work/release outline is separate from these generated steps.
 
-Previews are embedded in the file so a saved copy remains useful offline. Source
-links can become unavailable when a worktree is moved or removed. Selected
-Markdown/text files are bounded, credential-screened and escaped; symlink,
+Previews are embedded in the file so a saved copy remains useful offline. Evidence
+links open those previews in the page; selectable source paths, line or selector
+references and source-byte hashes support inspection on disk. A source-byte hash
+identifies the original bytes, not the credential-screened preview. Packet
+previews compare those bytes with the issued digest when it was recorded;
+a mismatch or absent digest keeps issued-content provenance unverified.
+Selected text and structured evidence files are bounded, credential-screened and escaped; symlink,
 hardlink, special-file and out-of-root references are refused. Missing or withheld
 files have explicit placeholders. The existing privacy screen recognizes only
 specific credential patterns, not every possible secret.
 
-The page distinguishes last recorded activity from last successful observation.
+The page distinguishes last recorded activity, last successful observation and
+content generation. Each optional source reports its coverage: missing, unsafe,
+partial or retained stale content cannot masquerade as a complete fresh read.
+An unfinished JSONL tail remains pending; an interior damaged record is a gap.
+Repeated copies of a prompt are separate emissions, while copied check results
+retain their reuse provenance and do not count as new test executions.
+
+Engine status, recorded execution status, product acceptance, source return and
+owner hold are separate facts. Only the engine state comes from ShipLoop state;
+external lifecycle assertions require a run-bound producer observation and show
+the scope beside their producer. Unknown
+stays unknown. An Until file named `terminal` can still contain an active receipt.
+Visit duration is recorded or inferred dwell, not a measure of model compute;
+overlapping command times and reused checks must not be added into an execution
+total.
+
 Its stale indicator means observation may have stopped; a fresh observation is
 not proof the agent is running. **Pause updates** affects only the browser, never
 ShipLoop. Browser storage restrictions may prevent restoring reading position;
@@ -97,23 +120,73 @@ python3 "$CLI" view --run-dir "$RUN_DIR" --serve    # the same pages in a browse
 `--start`, `--watch` or `--serve` reenables observation after `--stop`. A one-shot
 snapshot refuses to compete with an existing observer. `--interval` selects the
 sampling interval (default two seconds); `--idle-timeout` defaults to 1800 seconds
-without changed inputs. An idle observer exits and a later packet can restart
+without recorded activity. Heartbeat-only publications do not reset that clock.
+An idle observer exits and a later packet can restart
 it. Set `SHIPLOOP_PROGRESS=off` in a command's environment to suppress automatic
 startup, for example in a hermetic harness. It does not stop an existing observer
 or disable explicit `view` commands.
 
 Only the observer writes `progress.html`. It holds a separate singleton lock and
-briefly takes the existing run lock for reading. It skips pending transactions
+briefly takes the existing run lock to capture state and timeline once for both
+pages, then releases it before reading optional streams and rendering. It skips pending transactions
 without recovering them, never writes authoritative state, and never accepts
 results or launches workflow/model execution. Its heartbeat/process JSON is
 display metadata, not another workflow record. A failed read or render retains
-the last good page; a viewer failure cannot fail a ShipLoop transition.
+the last good page; trace publication has its own visible status. A viewer
+failure cannot fail a ShipLoop transition.
+
+Startup waits briefly for the first publication. A large retained run can take
+longer: a running observer is then reported as starting with publication pending,
+and an existing page may still show its previous capture. That acknowledgement
+does not claim a fresh page or active workflow execution.
 
 On a terminal state the observer re-samples to reconcile selected documents and
-workspace-return information, then freezes the page and exits. Unverified
+workspace-return information, then marks both pages final and exits. A watched
+page keeps refreshing through that reconciliation; a one-shot or stopped
+observer publishes a static snapshot. Unverified
 delivery remains visibly unverified; a halted run remains unfinished. The
 existing `report.html` stays the terminal report. An archived HTML snapshot has
-no ongoing observation unless an observer still owns its original path.
+no ongoing observation unless an observer still owns its original path. BLOCKED
+remains resumable; it is not treated as DONE merely to stop an elapsed-time display.
+
+```mermaid
+flowchart TD
+  A[State and timeline under the run lock] --> C[Shared core capture]
+  B[Trace, prompts and receipts] --> D[Safe optional captures]
+  O[Run-bound producer observations] --> D
+  C --> E[Screened story and source coverage]
+  D --> E
+  E --> P[Progress and trace pages]
+  P --> S[Existing read-only local viewer]
+```
+
+Both pages share one core generation. Optional evidence retains its own capture
+time and coverage; the diagram does not imply an atomic snapshot of every file.
+
+### Producer observations
+
+An optional `<run>/progress-observations.jsonl` supplies already recorded facts
+and authored interpretation. The observer reads this one explicit path; it does
+not scan parent directories, run evidence suppliers or write observations.
+Every complete line is a JSON object with schema
+`shiploop-progress-observation/v1` and these fields:
+
+| Field | Meaning |
+|---|---|
+| `id`, `run_id`, `producer` | Stable observation identity, exact ShipLoop run binding and responsible producer |
+| `kind`, `scope` | `fact`, `derived` or `interpretation`, and the claim's scope |
+| `title`, `summary`, `status` | Producer's recorded account; never a new acceptance verdict computed by the viewer |
+| `observed_at`, `logged_at` | When the producer observed it and when the annotation became available |
+| `event_at` | Optional original event time; omit when unknown instead of inventing one for a backfill |
+| `evidence` | Optional run-relative path locators with a line or selector; unsafe paths are withheld |
+| `lifecycle` | Optional scoped assertions for `execution`, `acceptance`, `source_return` or `owner_hold`, with status, summary and time |
+
+The reader diagnoses invalid or foreign-run rows and leaves them out. Retained
+records without a recorded run ID cannot establish a producer binding. A later
+annotation about an earlier event remains later knowledge. Missing observations
+do not imply absence of a hold, successful delivery or an active worker. A
+producer assertion is displayed with its provenance; it does not change engine
+state or make evidence satisfy a gate.
 
 ### Browser viewer
 
@@ -139,8 +212,9 @@ not its own address, so a page on another site cannot read the run through a nam
 at 127.0.0.1. It listens on the loopback address only and sets `no-store` and a content
 security policy that allows only the page's own inline script and style. While it runs, any
 process on this machine can read the pages. It adds no push: the page still reloads on its
-timer. Over HTTP a browser will not open the page's `file:` links to source documents; the
-previews stay embedded, and the saved-report link points at the viewer's own `/report.html`.
+timer. Primary evidence navigation opens embedded previews, including over HTTP;
+disk paths remain selectable for manual inspection. Progress and trace use
+relative page links, and the saved-report link points at the viewer's own `/report.html`.
 
 ## Run trace
 
@@ -180,8 +254,16 @@ python3 "$CLI" trace --run-dir "$RUN_DIR" --json       # the whole model
 python3 "$CLI" trace --run-dir "$RUN_DIR" --html       # writes <run>/trace.html
 ```
 
+Standalone trace inspection can read retained records even when their execution
+mode can no longer resume. When the original run lock is absent, it reads stable
+files without creating a lock and marks the capture as lacking a shared lock;
+it cannot claim an atomic run generation. An existing lock still governs the
+read, and a pending transaction prevents inspection. This fallback does not
+change the live progress observer's locking or current-state requirements.
+
 The digest prints its own legend. An event belongs to its own `--action`, else to
-the action of the last packet before it. A failed `shiploop check` is a check, not
+the action of the last packet before it. That fallback is contextual attribution,
+not proof of a causal link. A failed `shiploop check` is a check, not
 a refusal, and so are neither a callback held once for owner notes nor a command
 interrupted or crashed before it answered. A run saved before the trace reads from `state.md` and `timeline.json`,
 and what it never recorded shows as "not recorded", not zero.
@@ -227,8 +309,10 @@ beside the expansion), the plan grid (its legend names only what the run shows
 and never animates), each step's events with filters and search, and each
 packet's text as sent, screened for credentials. Times show in the viewer's time
 zone, with UTC in the tooltip. The progress observer rewrites the page as the run
-changes, and an active run's page reloads every ten seconds unless a packet is
-open, a search is being typed or live updates are off.
+changes. Active and blocked pages can reload every ten seconds unless a packet
+is open, a search is being typed or live updates are off. Reloading a blocked
+page only checks for newly published evidence; it does not imply the builder is
+running or resume the run. Done and halted pages remain final.
 
 ## Where it appears
 

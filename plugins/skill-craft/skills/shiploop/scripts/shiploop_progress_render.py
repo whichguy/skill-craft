@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections import deque
+from datetime import datetime, timezone
 from html import escape
 import json
 import math
+import re
 from textwrap import wrap
 from typing import Any, Mapping
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -51,6 +53,73 @@ def _value(value: Any, default: str = "") -> str:
     if isinstance(value, (list, tuple)):
         return "; ".join(_value(item) for item in value)
     return str(value)
+
+
+def _excerpt(value: Any, limit: int, *, first_sentence: bool = False) -> str:
+    """Bound display copy only; the caller retains the unmodified source in a preview."""
+    text = " ".join(_value(value).split())
+    if first_sentence:
+        text = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)[0]
+    if len(text) <= limit:
+        return text
+    head = text[:limit - 1]
+    if " " in head:
+        head = head.rsplit(" ", 1)[0]
+    return head.rstrip() + "…"
+
+
+def _blocker_reason(snapshot: Mapping[str, Any]) -> str:
+    run = snapshot.get("run")
+    run = run if isinstance(run, Mapping) else {}
+    facts = snapshot.get("facts")
+    facts = facts if isinstance(facts, Mapping) else {}
+    stop = facts.get("stop")
+    stop = stop if isinstance(stop, Mapping) else {}
+    return _value(run.get("reason")) or _value(stop.get("text"))
+
+
+def _supporting_copy(value: Any, reason: str, *, limit: int | None = None) -> str:
+    """Point repeated blocker prose at its full, source-labeled home, retaining wrapper scope."""
+    text = _value(value)
+    normalized = " ".join(text.split())
+    blocker = " ".join(reason.split())
+    if blocker and blocker in normalized:
+        before, _, after = normalized.partition(blocker)
+        if limit is not None:
+            # Reserve space for the source link and split the remaining excerpt budget.
+            budget = max(1, (limit - len("Recorded blocker →") - 2) // 2)
+            before, after = _excerpt(before, budget), _excerpt(after, budget)
+            before = before + " " if before else ""
+            after = " " + after if after else ""
+        return (_escape_html(before) + '<a href="#recorded-blocker">Recorded blocker →</a>'
+                + _escape_html(after))
+    return _escape_html(_excerpt(text, limit) if limit is not None else text)
+
+
+def _duration(value: Any, unit: str = "s") -> str:
+    """Readable elapsed time, with the exact recorded number retained in the label/tooltip."""
+    if value is None:
+        return '<span class="duration">unknown</span>'
+    try:
+        seconds = float(value) / (1000 if unit == "ms" else 1)
+    except (TypeError, ValueError, OverflowError):
+        seconds = -1
+    exact = "Recorded duration: " + _value(value) + " " + unit
+    if isinstance(value, bool) or not math.isfinite(seconds) or seconds < 0:
+        label = "unknown (invalid recorded duration)"
+    else:
+        rounded = round(seconds, 3)
+        hours, rest = divmod(rounded, 3600)
+        minutes, remainder = divmod(rest, 60)
+        parts = ([str(int(hours)) + " hr"] if hours else [])
+        if minutes:
+            parts.append(str(int(minutes)) + " min")
+        if remainder or not parts:
+            parts.append(f"{remainder:.3f}".rstrip("0").rstrip(".") + " sec")
+        label = ("≈ " if rounded != seconds else "") + " ".join(parts)
+    return ('<span class="duration" title="' + _escape_html(exact)
+            + '" aria-label="' + _escape_html(label + "; " + exact) + '">'
+            + _escape_html(label) + '</span>')
 
 
 def _number(value: Any, default: float = 0.0) -> float:
@@ -159,7 +228,7 @@ def _narrative(snapshot: Mapping[str, Any], facts: Mapping[str, Any]) -> str:
         '<div class="section-heading"><div><p class="eyebrow">RUN NARRATIVE</p>'
         '<h2 id="narrative-heading">' + _escape_html(title) + '</h2></div></div>',
         '<div class="focus-row"><span class="focus-label">' + _escape_html(label) + '</span>'
-        '<p>' + (_escape_html(text) if text else '<span class="muted">No additional detail recorded.</span>') + '</p></div>',
+        '<p>' + (_supporting_copy(text, _blocker_reason(snapshot)) if text else '<span class="muted">No additional detail recorded.</span>') + '</p></div>',
     ]
     achieved = facts.get("achieved", [])
     if isinstance(achieved, (list, tuple)) and achieved:
@@ -553,6 +622,192 @@ def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
     return "".join(parts)
 
 
+def _rows(value: Any) -> list[Mapping[str, Any]]:
+    return [row for row in value if isinstance(row, Mapping)] if isinstance(value, (list, tuple)) else []
+
+
+def _anchor(kind: str, value: Any) -> str:
+    # Hex is reversible, collision-free for string IDs, and safe in fragments and selectors.
+    return kind + "-" + _value(value).encode("utf-8", errors="surrogatepass").hex()
+
+
+def _locator(row: Mapping[str, Any]) -> str:
+    parts = []
+    if row.get("path"):
+        parts.append('<p class="file-path"><span>Source path</span> <code tabindex="0">'
+                     + _escape_html(row["path"]) + '</code></p>')
+    for key, label in (("line", "Line"), ("selector", "Selector"), ("sha256", "Source-byte SHA-256")):
+        if row.get(key) is not None:
+            parts.append('<p class="file-path"><span>' + label + '</span> <code>'
+                         + _escape_html(row[key]) + '</code></p>')
+    return "".join(parts)
+
+
+def _evidence_links(ids: Any, evidence: Mapping[str, Any]) -> str:
+    if not isinstance(ids, (list, tuple)):
+        return ""
+    parts = []
+    for key in ids:
+        key = _value(key)
+        row = evidence.get(key)
+        if row is None:
+            parts.append('<span class="muted">Evidence unavailable: ' + _escape_html(key) + '</span>')
+        else:
+            parts.append('<a href="#' + _anchor("evidence", key) + '">Inspect '
+                         + _escape_html(row.get("title"), key) + '</a>')
+    return '<div class="evidence-links">' + " · ".join(parts) + '</div>' if parts else ""
+
+
+def _story(snapshot: Mapping[str, Any]) -> str:
+    story = snapshot.get("story")
+    story = story if isinstance(story, Mapping) else {}
+    summary = story.get("summary")
+    summary = summary if isinstance(summary, Mapping) else {}
+    evidence_rows = _rows(story.get("evidence"))
+    evidence = {_value(row.get("id")): row for row in evidence_rows}
+    events = _rows(story.get("events"))
+    by_id = {_value(row.get("id")): row for row in events}
+    used = set()
+    reason = _blocker_reason(snapshot)
+    parts = ['<section class="panel story" aria-labelledby="story-heading">'
+             '<div class="section-heading"><div><p class="eyebrow">RECORDED STORY</p>'
+             '<h2 id="story-heading">What is happening</h2></div>'
+             '<a class="button" href="trace.html">Open detailed trace →</a></div>'
+             '<dl class="story-summary">']
+    for key, label in (("now", "Now"), ("changed", "Changed"), ("waiting", "Waiting"), ("next", "Next")):
+        parts.append('<div><dt>' + label + '</dt><dd>'
+                     + _supporting_copy(summary.get(key) or "Not recorded.", reason) + '</dd></div>')
+    parts.append('</dl><h3>Independent lifecycle</h3><dl class="lifecycle">')
+    lifecycle = story.get("lifecycle")
+    lifecycle = lifecycle if isinstance(lifecycle, Mapping) else {}
+    run = snapshot.get("run")
+    run = run if isinstance(run, Mapping) else {}
+    for key, label in (("engine", "Engine"), ("execution", "Execution"), ("acceptance", "Product acceptance"),
+                       ("source_return", "Source return"), ("owner_hold", "Owner hold")):
+        row = lifecycle.get(key)
+        if not isinstance(row, Mapping):
+            row = {"status": run.get("status", "unknown"), "summary": "Recorded engine state."} if key == "engine" else {}
+        parts.append('<div><dt>' + label + '</dt><dd><strong>'
+                     + _escape_html(row.get("status") or "unknown") + '</strong> · '
+                     + _supporting_copy(row.get("summary") or "No bound producer observation recorded.", reason)
+                     + '<small>Producer: ' + _escape_html(row.get("producer") or "not recorded")
+                     + ' · Scope: ' + _escape_html(row.get("scope") or "unknown (not recorded)")
+                     + ' · At: ' + _escape_html(row.get("at") or "unknown") + '</small>'
+                     + _evidence_links(row.get("evidence"), evidence) + '</dd></div>')
+    parts.append('</dl><div class="section-heading"><h3>Visits, in recorded order</h3>'
+                 '<label class="story-search">Search story <input id="story-search" type="search" '
+                 'placeholder="Stage, event, evidence…"></label></div>'
+                 '<p class="small-note">Repeated stages remain separate visits. Visit dwell is not compute time. '
+                 'Coverage and omitted rows are listed below.</p><ol class="visit-list">')
+
+    def event_html(row: Mapping[str, Any]) -> str:
+        source = row.get("source")
+        source = source if isinstance(source, Mapping) else {}
+        binding = _value(row.get("binding"), "unbound")
+        return ('<li class="story-event" id="' + _anchor("event", row.get("id")) + '">'
+                '<strong>' + _escape_html(row.get("kind"), "Event") + ' · '
+                + _escape_html(row.get("status"), "unknown") + '</strong><p>'
+                + _supporting_copy(row.get("summary") or "No summary recorded.", reason) + '</p>'
+                '<small>At: ' + _escape_html(row.get("at") or "unknown")
+                + ' · Binding: ' + _escape_html(binding)
+                + (' (inferred association)' if binding == "contextual" else '')
+                + ' · Command duration: ' + _duration(row.get("duration_ms"), "ms") + '</small>'
+                + _locator(source) + _evidence_links(row.get("evidence"), evidence) + '</li>')
+
+    visits = _rows(story.get("visits"))
+    for index, row in enumerate(visits):
+        key = _value(row.get("id"), "visit-" + str(index))
+        parts.append('<li class="story-searchable"><details class="visit" id="' + _anchor("visit", key)
+                     + '" data-state-key="' + _escape_html(key) + '"><summary><span>'
+                     + _escape_html(row.get("stage"), "Unknown stage") + ' · '
+                     + _escape_html(row.get("item"), "No item recorded") + '</span><strong>'
+                     + _escape_html(row.get("status"), "unknown") + '</strong><small>'
+                     + _supporting_copy(row.get("summary") or "No summary recorded.", reason, limit=190) + '</small><small>Elapsed: '
+                     + _duration(row.get("duration_seconds")) + ' · Basis: '
+                     + _escape_html(row.get("duration_basis"), "unknown") + '</small></summary><div class="visit-body">'
+                     '<small>Action: ' + _escape_html(row.get("action"), "unknown")
+                     + ' · Started: ' + _escape_html(row.get("started_at"), "unknown")
+                     + ' · Ended: ' + _escape_html(row.get("ended_at"), "not recorded")
+                     + '</small><p class="small-note">Full recorded visit summary</p>'
+                     '<pre class="preview" tabindex="0" aria-label="Full recorded visit summary" id="'
+                     + _anchor("visit-summary", key) + '">'
+                     + _supporting_copy(row.get("summary") or "No summary recorded.", reason) + '</pre><ol>')
+        ids = row.get("events")
+        for event_id in ids if isinstance(ids, (list, tuple)) else []:
+            event_id = _value(event_id)
+            if event_id in by_id:
+                # A source event has one stable anchor even if referenced by multiple visits.
+                if event_id in used:
+                    parts.append('<li><a href="#' + _anchor("event", event_id) + '">Inspect referenced event</a></li>')
+                else:
+                    parts.append(event_html(by_id[event_id]))
+                    used.add(event_id)
+            else:
+                parts.append('<li class="muted">Event unavailable: ' + _escape_html(event_id) + '</li>')
+        parts.append('</ol>' + _evidence_links(row.get("evidence"), evidence) + '</div></details></li>')
+    if not visits:
+        parts.append('<li class="empty-state">No visit history recorded in this snapshot.</li>')
+    parts.append('</ol>')
+    remaining = [row for row in events if _value(row.get("id")) not in used]
+    if remaining:
+        parts.append('<details data-state-key="unbound-events"><summary>Other recorded events '
+                     '(not assigned to a displayed visit)</summary><ol>'
+                     + "".join(event_html(row) for row in remaining) + '</ol></details>')
+    observations = _rows(story.get("observations"))
+    if observations:
+        parts.append('<h3>Producer observations</h3>')
+    for row in observations:
+        parts.append('<article class="observation story-searchable"><h4>'
+                     + _escape_html(row.get("title"), "Observation") + '</h4><p>'
+                     + _escape_html(row.get("summary"), "No summary recorded.") + '</p><small>'
+                     + _escape_html(row.get("kind"), "unknown") + ' · '
+                     + _escape_html(row.get("producer"), "Unknown producer") + ' · Scope: '
+                     + _escape_html(row.get("scope"), "unknown") + ' · Status: '
+                     + _escape_html(row.get("status"), "unknown")
+                     + ' · Event time: ' + _escape_html(row.get("event_at"), "unknown")
+                     + ' · Observed: ' + _escape_html(row.get("observed_at"), "unknown")
+                     + ' · Logged (knowledge available): ' + _escape_html(row.get("logged_at"), "unknown")
+                     + '</small>' + _evidence_links(row.get("evidence"), evidence) + '</article>')
+    parts.append('<h3>Evidence previews</h3>')
+    if not evidence_rows:
+        parts.append('<p class="empty-state">No story evidence embedded; key files and trace remain available.</p>')
+    for row in evidence_rows:
+        anchor = _anchor("evidence", row.get("id"))
+        parts.append('<details class="document story-searchable" id="' + anchor + '" data-state-key="' + anchor
+                     + '"><summary>' + _escape_html(row.get("title"), "Evidence") + ' · '
+                     + _escape_html(row.get("status"), "unknown") + '</summary><div class="document-body"><p>'
+                     + _escape_html(row.get("summary"), "No summary recorded.") + '</p>' + _locator(row)
+                     + ('<pre class="preview" tabindex="0">' + _escape_html(row["content"]) + '</pre>'
+                        if row.get("content") else '<p class="empty-state">Preview missing or withheld; inspect source locator.</p>')
+                     + '</div></details>')
+    parts.append('<h3>Source coverage and freshness</h3><div class="coverage">')
+    sources = _rows(story.get("sources"))
+    if not sources:
+        parts.append('<p class="empty-state">Per-source coverage unavailable in this snapshot.</p>')
+    for row in sources:
+        parts.append('<article><strong>' + _escape_html(row.get("id"), "Source") + ' · '
+                     + _escape_html(row.get("status"), "unknown") + '</strong>' + _locator(row)
+                     + '<p>' + _escape_html(row.get("message"), "No additional coverage detail recorded.") + '</p>'
+                     '<small>Observed: ' + _escape_html(row.get("observed_at"), "unknown")
+                     + ' · Changed: ' + _escape_html(row.get("changed_at"), "unknown")
+                     + ' · Last event: ' + _escape_html(row.get("last_event_at"), "unknown")
+                     + ' · Rows: ' + _escape_html(row.get("rows"), "unknown")
+                     + ' · Omitted: ' + _escape_html(row.get("omitted"), "unknown") + '</small></article>')
+    parts.append('</div>')
+    publication = snapshot.get("trace_publication")
+    if isinstance(publication, Mapping):
+        parts.append('<p class="document-summary"><strong>Trace publication: '
+                     + _escape_html(publication.get("status"), "unknown") + '</strong> · '
+                     + _escape_html(publication.get("message"), "") + ' · Observed: '
+                     + _escape_html(publication.get("observed_at"), "unknown") + '</p>')
+    warnings = story.get("warnings")
+    warnings = warnings if isinstance(warnings, (list, tuple)) else ([warnings] if warnings else [])
+    for warning in warnings:
+        parts.append('<p class="document-error">' + _escape_html(warning) + '</p>')
+    parts.append('</section>')
+    return "".join(parts)
+
+
 def _documents(snapshot: Mapping[str, Any]) -> str:
     """Render the Key files panel as HTML from the ``documents`` list or tuple in ``snapshot``. A missing, empty or
     mistyped entry gives an empty-state message. Each mapping row becomes a collapsible entry of title, status
@@ -578,19 +833,18 @@ def _documents(snapshot: Mapping[str, Any]) -> str:
             label = _DOC_STATUS_LABELS.get(status, status or "Unknown")
             state_key = "doc-" + _value(row.get("id"), str(index))
             parts.append(
-                '<details class="document" data-state-key="' + _escape_html(state_key) + '">'
+                '<details class="document" data-state-key="' + _escape_html(state_key) + '" id="' + _anchor("document", state_key) + '">'
                 '<summary><span class="document-title">' + _escape_html(title) + '</span>'
                 '<span class="pill pill-' + ("accepted" if status == "accepted-result" else "other")
                 + '">' + _escape_html(label) + '</span></summary><div class="document-body">'
             )
             if row.get("summary"):
                 parts.append('<p class="document-summary">' + _escape_html(row.get("summary")) + '</p>')
-            path = _value(row.get("path"))
-            if path:
-                parts.append('<p class="file-path"><span>Path</span> ' + _escape_html(path) + '</p>')
+            parts.append('<p><a href="#' + _anchor("document", state_key) + '">Inspect embedded preview</a></p>')
+            parts.append(_locator(row))
             href = _local_file_uri(row.get("uri"))
             if href:
-                parts.append('<p><a class="file-link" href="' + _escape_html(href) + '">Open local source</a></p>')
+                parts.append('<p><a class="file-link offline-source" href="' + _escape_html(href) + '">Open local source</a> <span class="small-note">(offline file view only)</span></p>')
             acceptance = _value(row.get("acceptance"))
             if acceptance:
                 parts.append('<p class="document-summary"><strong>Acceptance</strong> '
@@ -598,9 +852,6 @@ def _documents(snapshot: Mapping[str, Any]) -> str:
             error = _value(row.get("error"))
             if error:
                 parts.append('<p class="document-error">' + _escape_html(error) + '</p>')
-            sha256 = _value(row.get("sha256"))
-            if sha256:
-                parts.append('<p class="file-path"><span>SHA-256</span> <code>' + _escape_html(sha256) + '</code></p>')
             content = _value(row.get("content"))
             if content:
                 parts.append('<pre class="preview" tabindex="0">' + _escape_html(content) + '</pre>')
@@ -672,18 +923,20 @@ _STYLE = r"""
 :root{color-scheme:light;--ink:#15231f;--muted:#66766f;--line:#dce5df;--paper:#f3f6f2;--panel:#fff;--green:#206b50;--soft:#e9f3ed;--amber:#946418;--rose:#a23b43;--blue:#315e78}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 main{max-width:1120px;margin:auto;padding:38px 28px 64px}.masthead{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:20px}.brand{font-size:.78rem;letter-spacing:.16em;font-weight:750;color:var(--green)}.schema{font-size:.78rem;color:var(--muted)}
-.hero{padding:30px 34px;background:#143d32;color:#f7fbf8;border-radius:20px;box-shadow:0 18px 42px #193c2b1b}.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.eyebrow{margin:0 0 5px;font-size:.68rem;letter-spacing:.14em;font-weight:750;color:var(--muted)}.hero .eyebrow{color:#b7d4c3}.hero h1{margin:4px 0 7px;font-size:clamp(1.7rem,4vw,2.65rem);line-height:1.14;letter-spacing:-.035em}.prompt{max-width:760px;color:#d9e7de;margin:0}.status-badge{flex:none;border:1px solid #9dc5ab;border-radius:99px;padding:7px 12px;color:#ecf8ef;font-size:.83rem;font-weight:700}.status-badge.status-blocked,.status-badge.status-halted{border-color:#e6a9a9;background:#71363a}.status-badge.status-paused,.status-badge.status-awaiting{border-color:#e2c68d;background:#66552f}.hero-meta{display:flex;flex-wrap:wrap;gap:9px 24px;margin-top:22px;padding-top:17px;border-top:1px solid #ffffff32;color:#d0e1d6;font-size:.82rem}.hero-meta b{color:#fff;font-weight:650}
+.hero{padding:30px 34px;background:#143d32;color:#f7fbf8;border-radius:20px;box-shadow:0 18px 42px #193c2b1b}.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.eyebrow{margin:0 0 5px;font-size:.68rem;letter-spacing:.14em;font-weight:750;color:var(--muted)}.hero .eyebrow{color:#b7d4c3}.hero h1{overflow-wrap:anywhere;margin:4px 0 7px;font-size:clamp(1.7rem,4vw,2.65rem);line-height:1.14;letter-spacing:-.035em}.request-preview{margin-top:14px;border-top:1px solid #ffffff32;padding-top:12px}.request-preview>summary{cursor:pointer;font-size:.86rem;overflow-wrap:anywhere}.request-preview .small-note{color:#d0e1d6}.request-preview .preview{max-height:340px}.request-preview:target{outline:3px solid #82b7da;outline-offset:4px}.focus-row a{color:var(--green)}.prompt{max-width:760px;color:#d9e7de;margin:0}.status-badge{flex:none;border:1px solid #9dc5ab;border-radius:99px;padding:7px 12px;color:#ecf8ef;font-size:.83rem;font-weight:700}.status-badge.status-blocked,.status-badge.status-halted{border-color:#e6a9a9;background:#71363a}.status-badge.status-paused,.status-badge.status-awaiting{border-color:#e2c68d;background:#66552f}.hero-meta{display:flex;flex-wrap:wrap;gap:9px 24px;margin-top:22px;padding-top:17px;border-top:1px solid #ffffff32;color:#d0e1d6;font-size:.82rem}.hero-meta b{color:#fff;font-weight:650}
 .observer{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding:13px 16px;margin:14px 0 24px;border:1px solid var(--line);background:#fff;border-radius:12px;color:var(--muted);font-size:.8rem}.observer strong{color:var(--ink)}.freshness-stale{color:var(--rose)!important}.observer-error{flex-basis:100%;color:var(--rose)}
 .toolbar{display:flex;gap:8px;margin-left:auto}.button{font:inherit;font-size:.78rem;font-weight:650;border:1px solid #cddbd1;background:#fff;color:#244c3d;border-radius:8px;padding:7px 11px;cursor:pointer}.button:hover:not(:disabled){background:var(--soft)}.button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #82b7da;outline-offset:2px}.button:disabled{cursor:default;color:#87958d;background:#f5f7f5}.noscript{margin:0 0 20px;padding:10px 14px;border-radius:9px;background:#fff7e6;color:#75541a;font-size:.83rem}
 .phase-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}.phase-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 18px}.phase-top{display:flex;justify-content:space-between;align-items:center}.phase-number{font-size:.7rem;letter-spacing:.13em;color:#8a9a91;font-weight:750}.phase-state{font-size:.73rem;color:var(--muted);font-weight:650}.phase-card h3{margin:7px 0 15px;font-size:1.05rem}.phase-current{border-color:#87b89c;box-shadow:inset 0 0 0 1px #b8dac4}.phase-done .phase-state{color:var(--green)}.phase-current .phase-state{color:var(--green)}.meter{height:5px;border-radius:99px;overflow:hidden;background:#e7ede8}.meter span{display:block;height:100%;background:var(--green);border-radius:inherit}
 .layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.85fr);gap:16px;align-items:start}.column{display:grid;gap:16px}.panel{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px 23px}.section-heading{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:17px}.section-heading h2{margin:0;font-size:1.2rem;letter-spacing:-.02em}.small-note{font-size:.76rem;color:var(--muted)}.focus-row{padding:14px 16px;border-left:3px solid var(--green);background:#f0f6f1;border-radius:0 9px 9px 0}.focus-label{display:block;margin-bottom:3px;font-weight:750;color:#205c46}.focus-row p{margin:0;color:#43574c}.narrative-list{margin-top:17px}.narrative-list h3{margin:0 0 7px;font-size:.79rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.narrative-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.narrative-list li{display:grid;grid-template-columns:minmax(115px,.55fr) minmax(0,1fr);gap:10px;padding-top:8px;border-top:1px solid #edf1ed;font-size:.82rem}.narrative-list strong{color:#365548}.narrative-list li span{color:var(--muted)}
-.empty-state,.muted{color:var(--muted)}.empty-state{margin:5px 0 0;font-size:.88rem}.work-list{display:grid;gap:10px}.work-card{border:1px solid #e4ebe6;border-radius:11px;padding:15px 16px}.work-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.work-id{font-size:.7rem;color:var(--muted);font-weight:750;letter-spacing:.08em}.work-heading h3{margin:2px 0 0;font-size:.98rem;line-height:1.35}.pill{display:inline-flex;align-items:center;white-space:nowrap;border-radius:99px;padding:4px 9px;font-size:.68rem;font-weight:700;background:#edf1ee;color:#58665e}.pill-active{background:#e1f1e7;color:#216343}.pill-done,.pill-accepted{background:#e1f1e7;color:#216343}.pill-blocked{background:#f8e6e5;color:#953d42}.pill-pending,.pill-queued{background:#f2f0e9;color:#776738}.work-plan{margin:10px 0 0;color:#53635a;font-size:.83rem}.dependencies{margin:8px 0 0;font-size:.76rem;color:#596b61}.dependencies span{font-weight:700;color:#7a8981}
+.empty-state,.muted{color:var(--muted)}.empty-state{margin:5px 0 0;font-size:.88rem}.work-list,.work-card,.work-heading,.work-heading>div,.work-plan,.dependencies{min-width:0;overflow-wrap:anywhere}.work-heading>.pill{max-width:100%;white-space:normal;overflow-wrap:anywhere}.work-list{display:grid;gap:10px}.work-card{border:1px solid #e4ebe6;border-radius:11px;padding:15px 16px}.work-heading{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.work-id{font-size:.7rem;color:var(--muted);font-weight:750;letter-spacing:.08em}.work-heading h3{margin:2px 0 0;font-size:.98rem;line-height:1.35}.pill{display:inline-flex;align-items:center;white-space:nowrap;border-radius:99px;padding:4px 9px;font-size:.68rem;font-weight:700;background:#edf1ee;color:#58665e}.pill-active{background:#e1f1e7;color:#216343}.pill-done,.pill-accepted{background:#e1f1e7;color:#216343}.pill-blocked{background:#f8e6e5;color:#953d42}.pill-pending,.pill-queued{background:#f2f0e9;color:#776738}.work-plan{margin:10px 0 0;color:#53635a;font-size:.83rem}.dependencies{margin:8px 0 0;font-size:.76rem;color:#596b61}.dependencies span{font-weight:700;color:#7a8981}
 .document-list{display:grid;gap:9px}.document{border:1px solid #e1e9e3;border-radius:10px;overflow:hidden}.document summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px}.document summary::-webkit-details-marker{display:none}.document summary:after{content:"+";order:2;color:#72837a;font-size:1.15rem}.document[open] summary:after{content:"−"}.document-title{min-width:0;overflow-wrap:anywhere;font-weight:700;font-size:.86rem}.document-body{padding:0 14px 14px}.document-summary{margin:0 0 9px;color:#516259;font-size:.81rem}.file-path{overflow-wrap:anywhere;margin:7px 0;color:#78867f;font-size:.72rem}.file-path span{font-weight:750;color:#56685e}.file-link{font-size:.78rem;color:#236747;font-weight:700}.document-error{margin:8px 0;color:var(--rose);font-size:.8rem}.preview,.status-pre{margin:10px 0 0;padding:13px 14px;max-height:420px;overflow:auto;border-radius:8px;background:#f4f6f4;color:#34443b;white-space:pre-wrap;overflow-wrap:anywhere;font: .78rem/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}.preview{border:1px solid #e7ece8}
 .activity-list{list-style:none;margin:0;padding:0}.activity-list li{display:grid;grid-template-columns:10px minmax(0,1fr);gap:12px;position:relative;padding:0 0 18px}.activity-list li:last-child{padding-bottom:0}.activity-marker{width:8px;height:8px;margin-top:7px;border-radius:50%;background:#69a27e;box-shadow:0 0 0 3px #e7f1e9}.activity-content{min-width:0}.activity-meta{display:flex;justify-content:space-between;gap:8px;color:#315d48;font-weight:700;font-size:.77rem}.activity-meta time{font-weight:500;text-align:right;color:#87958d;font-size:.7rem}.activity-summary{margin:4px 0 0;color:#53635a;font-size:.81rem;overflow-wrap:anywhere}.activity-detail{margin:5px 0 0;color:#8a978f;font-size:.7rem}
 .status-details{padding:0}.status-details>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:17px 21px}.status-details>summary::-webkit-details-marker{display:none}.status-details>summary .eyebrow{margin-bottom:1px}.status-details strong{font-size:.91rem}.disclosure{color:var(--green);font-size:.77rem;font-weight:700}.status-pre{margin:0 20px 20px}.terminal-report{padding:17px 20px;border-radius:12px;background:#e8f1eb;color:#3b5a48;font-size:.84rem}.terminal-report a{color:#205b41;font-weight:750}
 .status-summary-copy{display:grid}
-.graph-intro,.graph-note{margin:0 0 12px;color:#596a61;font-size:.81rem}.graph-note{margin:11px 0 0}.graph-group{margin-top:17px;padding-top:16px;border-top:1px solid #e8eee9}.graph-group:first-of-type{margin-top:0;padding-top:0;border-top:0}.graph-group-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.graph-group-heading h3{margin:0;font-size:.96rem}.graph-viewport{max-width:100%;max-height:68vh;overflow:auto;border-radius:10px;outline-offset:3px}.dependency-svg{display:block;max-width:none;background:#f8faf8;border:1px solid #e4ebe6;border-radius:10px}.dependency-edge{fill:none;stroke:#5d806c;stroke-width:2;opacity:.9}.dependency-cycle-edge{stroke:#a23b43;stroke-dasharray:6 4}.graph-node rect{fill:#fff;stroke:#cbd9cf;stroke-width:1.5}.graph-node.status-done rect,.graph-node.status-accepted rect{fill:#edf7f0;stroke:#80ac8d}.graph-node.status-active rect,.graph-node.status-current rect{fill:#f0f6fb;stroke:#7c9db7}.graph-node.status-blocked rect{fill:#fff1ef;stroke:#bd7473}.graph-node-id{font-size:11px;font-weight:750;fill:#315d48}.graph-node-title{font-size:13px;font-weight:650;fill:#20372c}.graph-node-status{font-size:10px;fill:#718078}.graph-text{margin-top:11px;border:1px solid #e3eae4;border-radius:9px;padding:10px 13px}.graph-text>summary{cursor:pointer;color:#365c46;font-size:.8rem;font-weight:700}.graph-text>ul{margin:10px 0 0;padding-left:21px;display:grid;gap:9px}.graph-text>ul>li{padding-left:2px;color:#40564a;font-size:.8rem}.graph-text-meta{color:#75847b;font-size:.74rem}.graph-plan{margin:4px 0;color:#65756c;font-size:.76rem}.graph-dependencies{margin:5px 0 0;color:#53665b;font-size:.76rem}.graph-diagnostics{margin:11px 0 0;padding:10px 14px 10px 32px;border-radius:8px;background:#fff7e9;color:#785b25;font-size:.77rem}.graph-diagnostics li+li{margin-top:4px}
+.graph-intro,.graph-note{margin:0 0 12px;color:#596a61;font-size:.81rem}.graph-note{margin:11px 0 0}.graph-group{margin-top:17px;padding-top:16px;border-top:1px solid #e8eee9}.graph-group:first-of-type{margin-top:0;padding-top:0;border-top:0}.graph-group-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.graph-group-heading h3{margin:0;font-size:.96rem}.graph-viewport{max-width:100%;max-height:68vh;overflow:auto;border-radius:10px;outline-offset:3px}.dependency-svg{display:block;max-width:none;background:#f8faf8;border:1px solid #e4ebe6;border-radius:10px}.dependency-edge{fill:none;stroke:#5d806c;stroke-width:2;opacity:.9}.dependency-cycle-edge{stroke:#a23b43;stroke-dasharray:6 4}.graph-node rect{fill:#fff;stroke:#cbd9cf;stroke-width:1.5}.graph-node.status-done rect,.graph-node.status-accepted rect{fill:#edf7f0;stroke:#80ac8d}.graph-node.status-active rect,.graph-node.status-current rect{fill:#f0f6fb;stroke:#7c9db7}.graph-node.status-blocked rect{fill:#fff1ef;stroke:#bd7473}.graph-node-id{font-size:11px;font-weight:750;fill:#315d48}.graph-node-title{font-size:13px;font-weight:650;fill:#20372c}.graph-node-status{font-size:10px;fill:#718078}.graph-group,.graph-text,.graph-text>summary,.graph-text>ul,.graph-text>ul>li,.graph-plan,.graph-dependencies{min-width:0;overflow-wrap:anywhere}.graph-text{margin-top:11px;border:1px solid #e3eae4;border-radius:9px;padding:10px 13px}.graph-text>summary{cursor:pointer;color:#365c46;font-size:.8rem;font-weight:700}.graph-text>ul{margin:10px 0 0;padding-left:21px;display:grid;gap:9px}.graph-text>ul>li{padding-left:2px;color:#40564a;font-size:.8rem}.graph-text-meta{color:#75847b;font-size:.74rem}.graph-plan{margin:4px 0;color:#65756c;font-size:.76rem}.graph-dependencies{margin:5px 0 0;color:#53665b;font-size:.76rem}.graph-diagnostics{margin:11px 0 0;padding:10px 14px 10px 32px;border-radius:8px;background:#fff7e9;color:#785b25;font-size:.77rem}.graph-diagnostics li+li{margin-top:4px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.stop-reason{margin:17px 0 0;padding-top:13px;border-top:1px solid #ffffff32;color:#f1dfb7;font-size:.88rem}
+.story{margin:0 0 18px}.story h3{font-size:1rem;margin:24px 0 10px}.story p{overflow-wrap:anywhere}.story-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}.story-summary>div{border-left:3px solid var(--green);padding:10px 14px;background:#f2f7f3}.story dt{font-weight:750;color:#365548}.story dd{margin:3px 0 0;overflow-wrap:anywhere}.lifecycle{margin:0;display:grid;gap:7px}.lifecycle>div{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.story small{display:block;color:var(--muted);font-size:.75rem;overflow-wrap:anywhere}.visit-list{list-style:none;padding:0 0 0 15px;border-left:2px solid #bdd5c5}.visit-list>li{position:relative;margin:12px 0}.visit-list>li:before{content:"";position:absolute;left:-21px;top:17px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid white}.visit{border:1px solid var(--line);border-radius:9px}.visit>summary{flex-wrap:wrap;cursor:pointer;padding:12px;display:flex;justify-content:space-between;gap:12px;overflow-wrap:anywhere}.visit>summary small{flex-basis:100%}.visit-body{padding:0 14px 14px}.visit-body>ol{padding-left:22px}.story-event{border-top:1px solid var(--line);padding:12px 0}.story-event p{margin:5px 0}.evidence-links{margin:8px 0;font-size:.82rem;overflow-wrap:anywhere}.story a{color:#205b41}.story-search{font-size:.78rem;color:var(--muted)}.story-search input{display:block;max-width:100%;border:1px solid #cddbd1;border-radius:6px;padding:7px;font:inherit}.coverage{min-width:0;overflow-wrap:anywhere;display:grid;grid-template-columns:1fr 1fr;gap:10px}.coverage article,.observation{padding:12px;border:1px solid var(--line);border-radius:8px;min-width:0}.coverage article>strong,.coverage .file-path,.coverage .file-path code{white-space:normal;overflow-wrap:anywhere}.coverage p{font-size:.8rem}.story-searchable[hidden]{display:none!important}.story .document{margin-top:8px}.file-path code{user-select:all}.story :target,.document:target{outline:3px solid #82b7da;outline-offset:3px;scroll-margin-top:20px}
+@media(max-width:600px){.story-summary,.coverage{grid-template-columns:1fr}.lifecycle>div{grid-template-columns:1fr;gap:1px}.story .section-heading{flex-direction:column;align-items:stretch}.visit>summary{flex-wrap:wrap}}
 footer{margin-top:24px;text-align:center;color:#89968e;font-size:.72rem}
 @media(max-width:800px){main{padding:25px 18px 44px}.layout{grid-template-columns:1fr}.hero{padding:25px 23px}.phase-strip{gap:8px}.phase-card{padding:14px}.toolbar{margin-left:0}}
 @media(max-width:520px){main{padding:17px 12px 32px}.masthead{align-items:flex-start}.hero-top{display:block}.status-badge{display:inline-flex;margin-top:16px}.hero{padding:21px 18px}.hero-meta{display:grid;gap:6px}.phase-strip{grid-template-columns:1fr}.phase-card{padding:13px 15px}.phase-card h3{margin:5px 0 9px}.panel{padding:18px 16px}.section-heading{align-items:flex-start}.observer{gap:7px 12px}.toolbar{width:100%}.button{flex:1}.narrative-list li{grid-template-columns:1fr;gap:2px}.activity-meta{display:grid}.activity-meta time{text-align:left}}
@@ -755,7 +1008,13 @@ _SCRIPT = r"""
   setInterval(updateFreshness, 1000);
 
   // Served by `shiploop view --serve`, the page cannot open file: links; the viewer publishes the report beside it.
-  if (location.protocol === "http:") {
+  if (location.protocol === "http:" || location.protocol === "https:") {
+    document.querySelectorAll("a.offline-source").forEach((link) => {
+      const note = document.createElement("span");
+      note.className = "small-note";
+      note.textContent = "Local source: select the path above to open it on disk.";
+      link.replaceWith(note);
+    });
     const report = document.querySelector("a.report-link");
     if (report) report.setAttribute("href", "report.html");
   }
@@ -767,6 +1026,15 @@ _SCRIPT = r"""
   const autoAllowed = mode === "watch" && !isFinal;
   let paused = false;
   let timer = null;
+  const search = byId("story-search");
+  const filterStory = () => {
+    const query = search ? search.value.toLocaleLowerCase() : "";
+    document.querySelectorAll(".story-searchable").forEach((node) => {
+      node.hidden = !!query && !node.textContent.toLocaleLowerCase().includes(query);
+    });
+  };
+  if (search) search.addEventListener("input", filterStory);
+  let restoredAnchor = null;
   const stateKey = "shiploop-progress-view:" + location.pathname;
   const viewState = () => {
     const details = {};
@@ -776,6 +1044,8 @@ _SCRIPT = r"""
     return {
       scrollY: Math.max(0, window.scrollY || 0),
       details: details,
+      anchor: location.hash,
+      query: search ? search.value : "",
       paused: paused
     };
   };
@@ -806,6 +1076,7 @@ _SCRIPT = r"""
     } catch (_) {}
     if (!state) state = readFragmentState();
     if (!state || typeof state !== "object") return;
+    if (typeof state.anchor === "string") restoredAnchor = state.anchor;
     if (autoAllowed && typeof state.paused === "boolean") paused = state.paused;
     if (state.details && typeof state.details === "object" && !Array.isArray(state.details)) {
       document.querySelectorAll("details[data-state-key]").forEach((node) => {
@@ -815,6 +1086,8 @@ _SCRIPT = r"""
         }
       });
     }
+    if (search && typeof state.query === "string") search.value = state.query;
+    filterStory();
     const scrollY = Number(state.scrollY);
     if (Number.isFinite(scrollY) && scrollY > 0) {
       requestAnimationFrame(() => window.scrollTo(0, scrollY));
@@ -852,7 +1125,8 @@ _SCRIPT = r"""
   if (toggle) {
     if (!autoAllowed) {
       toggle.disabled = true;
-      toggle.textContent = isFinal ? "Final snapshot · updates off" : "Snapshot view · updates off";
+      toggle.textContent = isFinal ? "Final snapshot · updates off" :
+        mode === "stopped" ? "Observer stopped · updates off" : "Snapshot view · updates off";
       toggle.setAttribute("aria-pressed", "true");
     } else {
       toggle.textContent = "Pause updates";
@@ -874,6 +1148,25 @@ _SCRIPT = r"""
     toggle.textContent = paused ? "Resume updates" : "Pause updates";
     toggle.setAttribute("aria-pressed", paused ? "true" : "false");
   }
+  // Fragments are stable evidence identities, never filesystem routes. Reveal all ancestors
+  // after restoring stored disclosure state (which may otherwise close the target).
+  const revealAnchor = (scroll = true) => {
+    let id;
+    try { id = decodeURIComponent(location.hash.slice(1)); } catch (_) { return; }
+    const target = byId(id);
+    if (!target) return;
+    for (let node = target; node && node !== root; node = node.parentElement) {
+      if (node.tagName === "DETAILS") node.open = true;
+      if (node.hidden) node.hidden = false;
+    }
+    if (scroll) requestAnimationFrame(() => target.scrollIntoView({block: "start"}));
+  };
+  window.addEventListener("hashchange", revealAnchor);
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[href^='#']");
+    if (link && link.hash === location.hash) revealAnchor();
+  });
+  revealAnchor(restoredAnchor !== location.hash);
   schedule();
 })();
 </script>
@@ -889,18 +1182,28 @@ def render(snapshot: Mapping[str, Any]) -> str:
     facts = snapshot.get("facts")
     facts = facts if isinstance(facts, Mapping) else {}
     mode = _value(observer.get("mode"), "snapshot").lower()
-    if mode not in ("watch", "snapshot"):
+    if mode not in ("watch", "snapshot", "stopped"):
         mode = "snapshot"
-    final = bool(observer.get("final"))
+    # Engine termination precedes observer reconciliation; explicit finality owns refresh.
+    final = (bool(observer["final"]) if "final" in observer else
+             _value(run.get("status")).lower() in ("done", "halted"))
     observed_at = _value(snapshot.get("observed_at"))
+    generated_at = _value(snapshot.get("generated_at") or snapshot.get("generated")) or datetime.now(timezone.utc).isoformat(timespec="seconds")
     source_changed_at = _value(snapshot.get("source_changed_at"))
     refresh_seconds = max(1, min(3600, round(_number(observer.get("refresh_seconds"), 5))))
     stale_after_seconds = max(0, min(86400, round(_number(observer.get("stale_after_seconds"), 30))))
     activity_html, latest_activity = _activity(snapshot)
+    story = snapshot.get("story")
+    if isinstance(story, Mapping) and story.get("last_event_at"):
+        latest_activity = _value(story["last_event_at"])
     status = _value(run.get("status"), "unknown")
     status_class = _STATUS_CLASSES.get(status.lower(), "other")
-    prompt = _value(run.get("prompt"), _value(facts.get("goal"), "ShipLoop run"))
-    reason = _value(run.get("reason"))
+    original_request = _value(run.get("prompt"))
+    prompt = original_request or _value(facts.get("goal")) or "ShipLoop run"
+    heading = _excerpt(prompt, 110, first_sentence=True) or "ShipLoop run"
+    browser_title = _excerpt(prompt, 70, first_sentence=True) or "ShipLoop run"
+    reason = _blocker_reason(snapshot)
+    reason_source = "saved run reason (run.reason)" if _value(run.get("reason")) else "recorded stop text (facts.stop.text)"
     stage = _value(run.get("stage"), "Unknown")
     owner = _value(run.get("owner"))
     terminal_uri = _local_file_uri(snapshot.get("terminal_report"))
@@ -908,7 +1211,8 @@ def render(snapshot: Mapping[str, Any]) -> str:
     warnings = warnings if isinstance(warnings, (list, tuple)) else ([warnings] if warnings else [])
     auto_allowed = mode == "watch" and not final
     refresh_button_label = ("Pause updates" if auto_allowed else
-                            "Final snapshot · updates off" if final else "Snapshot view · updates off")
+                            "Final snapshot · updates off" if final else
+                            "Observer stopped · updates off" if mode == "stopped" else "Snapshot view · updates off")
     refresh_button_disabled = "" if auto_allowed else " disabled"
     freshness_label = ("Final snapshot age:" if final else
                        "Snapshot age:" if mode == "snapshot" else "Observer data age:")
@@ -919,7 +1223,7 @@ def render(snapshot: Mapping[str, Any]) -> str:
         '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
         'style-src \'unsafe-inline\'; script-src \'unsafe-inline\'; img-src \'none\'; '
         'connect-src \'none\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">'
-        '<meta name="color-scheme" content="light"><title>ShipLoop progress · ' + _escape_html(prompt) + '</title>',
+        '<meta name="color-scheme" content="light"><title>ShipLoop progress · ' + _escape_html(browser_title) + '</title>',
         _STYLE,
         '</head><body><main data-progress-view data-mode="' + _escape_html(mode)
         + '" data-final="' + ("true" if final else "false")
@@ -930,26 +1234,41 @@ def render(snapshot: Mapping[str, Any]) -> str:
         + '" data-last-activity-at="' + _escape_html(latest_activity) + '">',
         '<div class="masthead"><div class="brand">SHIPLOOP / RUN VIEW</div>'
         '<div class="schema">' + _escape_html(snapshot.get("schema"), "Progress snapshot") + '</div></div>',
-        '<header class="hero"><div class="hero-top"><div><p class="eyebrow">RUN GOAL</p>'
-        '<h1>' + _escape_html(prompt) + '</h1></div><span class="status-badge status-' + status_class
+        '<header class="hero"><div class="hero-top"><div><p class="eyebrow">'
+        + ('REQUEST EXCERPT' if original_request else 'RECORDED GOAL') + '</p>'
+        '<h1>' + _escape_html(heading) + '</h1></div><span class="status-badge status-' + status_class
         + '">' + _escape_html(status) + '</span></div><p class="prompt">Run details and accepted progress, from the saved snapshot.</p>'
         '<div class="hero-meta"><span>Run <b>' + _escape_html(run.get("id"), "Unknown") + '</b></span>'
         '<span>Revision <b>' + _escape_html(run.get("revision"), "Unknown") + '</b></span>'
         '<span>Stage <b>' + _escape_html(stage) + '</b></span>'
         + ('<span>Owner <b>' + _escape_html(owner) + '</b></span>' if owner else '')
-        + '</div>' + ('<p class="stop-reason">' + _escape_html(reason) + '</p>' if reason else '') + '</header>',
+        + '</div><details class="request-preview" id="original-request" data-state-key="original-request">'
+        '<summary>Full original request</summary><p class="small-note">Source: saved run prompt (run.prompt); '
+        'missing requests are labeled below. The heading is a display excerpt.</p><pre class="preview" tabindex="0">'
+        + _escape_html(original_request or "Original request not included in this snapshot.") + '</pre></details>'
+        + ('<details class="request-preview" id="recorded-blocker" data-state-key="recorded-blocker">'
+           '<summary>Recorded blocker · ' + _escape_html(_excerpt(reason, 140)) + '</summary>'
+           '<p class="small-note">Source: ' + _escape_html(reason_source) + '. '
+           'This describes the recorded engine/stop condition; independent lifecycle assertions retain their own producer and scope.</p>'
+           '<pre class="preview" tabindex="0">' + _escape_html(reason) + '</pre></details>' if reason else '')
+        + '</header>',
         '<section class="observer" aria-label="Snapshot freshness and refresh controls">'
         '<strong id="observer-age">' + _escape_html(freshness_label) + ' calculating…</strong>'
         '<span id="source-changed-age">Source change time: calculating…</span>'
         '<span id="last-activity-age">Latest run activity: calculating…</span>'
+        '<span>Content generated: ' + _escape_html(generated_at) + '</span>'
         '<span id="page-opened">Page opened: calculating…</span>'
         '<div class="toolbar"><button class="button" id="refresh-toggle" type="button"'
         + refresh_button_disabled + '>' + _escape_html(refresh_button_label) + '</button>'
         + '<button class="button" id="refresh-now" type="button">Refresh now</button></div>'
         '<span id="refresh-state" class="sr-only" aria-live="polite"></span>'
         + ('<span class="observer-error">Observer error: ' + _escape_html(observer.get("error")) + '</span>'
-           if observer.get("error") else '') + '</section>',
+           if observer.get("error") else '')
+        + ''.join('<span class="observer-error">Publication ' + _escape_html(key) + ': '
+                  + _escape_html(value) + '</span>' for key, value in observer.items()
+                  if key != "error" and ("error" in key or key == "publication") and value) + '</section>',
         '<noscript><p class="noscript">This saved snapshot is readable without JavaScript. Browser refresh controls need JavaScript.</p></noscript>',
+        _story(snapshot),
         '<section class="phase-strip" aria-label="Run phases">'
         + "".join(_phase_card(row, index, bool(snapshot.get("plan_accepted")))
                   for index, row in enumerate(_phase_rows(facts))) + '</section>',

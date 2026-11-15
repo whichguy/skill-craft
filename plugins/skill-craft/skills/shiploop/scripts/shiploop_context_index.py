@@ -81,6 +81,8 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
                                "plus one gate line when the call is not enforced"),
      "an Improve stage refuses for a missing skill call"),
     ("RUN/trace.jsonl", "each command, packet, refusal, hook stop and session end, in order", "what happened? `shiploop trace`"),
+    ("RUN/progress-observations.jsonl", "optional run-bound producer observations; display only",
+     "the user asks about execution, acceptance, return or hold"),
     ("RUN/report.html, progress.html, trace.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
      ".progress-disabled, transaction.md, .lock, callback-attempts", "report, progress view, display files, save "
      "journal, lock, counter; no workflow state", "the user asks how the run stands"),
