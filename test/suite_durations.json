@@ -47,7 +47,7 @@
     "test/backchain-graph.test.py": 0.627,
     "test/backchain-toolkit.test.py": 33.158,
     "test/ci-policy.test.py": 1.063,
-    "test/closed-loop.test.py": 125.0,
+    "test/closed-loop.test.py": 115.0,
     "test/dual-body-guard.test.sh": 3.907,
     "test/experiments/agent_harness/test_audit.py": 1.672,
     "test/experiments/in_parallel_queue/test_experiment.py": 0.353,
