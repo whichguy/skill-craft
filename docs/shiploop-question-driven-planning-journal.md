@@ -604,7 +604,28 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   default subject (Grok `grok-4.6`, `xhigh`), marketplace source (skill-craft 2.37.4, ShipLoop 1.34.3), side by side; measures
   M1-M9 and binding, all by script, no judge; predictions P1-P17; decision rules for a documentation row, a setup row and
   binding.
-- **Status.** Registered; runs pending.
+- **Conditions.** pp-1, pp-2 and pp-3 ran side by side from 08:41 on the registered build. pp-3 stopped at release-plan:
+  Grok 1.0.77's headless permission check kept refusing shell scripts the model wrote, and a `--resume-run` met the same
+  refusals. Under the registered rule pp-3 is invalid, and pp-4 replaced it once, from 13:32 on the same build. Each valid
+  run took 20,427 to 21,901 s and cost $89.44 to $96.30; the four runs together cost $355.13.
+- **Result.** Predictions as written: 15 of 17 held. Two missed: P6 (the migration step before the first overdue step) and
+  P9 (a data-aware rollback in the release plan). Every valid product passes all 8 held-out checks. No run has a
+  documentation or setup miss. migrate-before and switchover bind in every run.
+- **Readings** (none rescores a prediction).
+  - *P6.* The word test misses step plans that word the migration as "assigns missing due", or cite it only by
+    criterion ID. In step order, the overdue steps follow the mapped migration steps in every run.
+  - *P9.* Every release plan's own rollback undoes the returned commit. The way back to 1.4.0 on the data file is in the
+    operator documents; 2 of 3 release plans point to it.
+  - *Row owners.* No row belonged to release-plan. switchover belonged to step-plan in 2 runs and to operations in 1.
+  - *Decision records.* No run planned or wrote the decision record that CONTRIBUTING.md asks for (D5, reported, not
+    counted).
+- **Decision.** By the registered rules, no documentation or setup row is recommended, and the binding answer is *yes*. No
+  concern row and no ShipLoop prompt change follows, since the owner constraint asks for a measured miss first. The
+  decision-record gap is the owner's call.
+- **Status.** Firm for these runs: 3 valid runs, one host and model, scored by script. Exploratory beyond them.
+- **Evidence.** docs/experiments/planning-points-probe-20261114/: README.md (design, predictions, results), score.py,
+  export.py, evidence/scores.json, scores.md and runs/pp-{1,2,3,4}/. Also test/shiploop_e2e/baselines.jsonl (three rows,
+  the valid runs). Registration: 57dfccdb250e4342565587f13f802a57eb62eaa5.
 
 ## Findings
 
@@ -653,3 +674,8 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F39 | The plan's applicable concern rows carry the request: 72.9% requested, 24.5% implied, 2.1% beyond (376 rows, 64 plans, Opus medium, retest kappa 0.90); beyond rows in 6 of 64 plans | firm for these runs; vaguer requests unmeasured | E23 |
 | F40 | Of the 8 beyond rows, 6 reuse the ticket service's existing outbox and audit log (a request-only judge read reuse as addition), 1 is a genuine small addition (hello's `.gitignore`) and 1 is a duty-8 abuse limit left unmarked; a scope-basis field would guard almost nothing here, so it is not built, and marking the implied rows (about 1.4 per plan) for visibility is the owner's decision | firm (base-commit check) | E23 |
 | F41 | 71% of applicable rows anchor to a whole file or free text, and the anchor kind does not tell requested rows apart (76% against 73%); the release and migration rows apply in 11, 9 and 1 of 416 work items, so the corpus cannot test the owner's deployment points | firm (census) | E23 |
+| F42 | Given a request that needs a migration before its feature, a staged switch-on and a way back to the current release, the plan applies migrate-before, switchover, state and config in 3 of 3 valid runs (Grok 4.6 xhigh). Both rows bind, and every product passes the 8 held-out checks | firm for these runs | E24 |
+| F43 | No valid run has a documentation or setup miss. Each documents `DUE_TIMES`, every new setting, the switch-on, the way back to 1.4.0, the API and the CHANGELOG; one did so with no documentation step, through the document stage. No documentation or setup row is recommended. No run planned or wrote the decision record CONTRIBUTING.md asks for (D5, reported, not counted) | firm for these runs; D5 is the owner's call | E24 |
+| F44 | release-plan owned neither row in any run (switchover: step-plan 2, operations 1), so it was handed no row. Its rollback undoes the returned commit in every run, and the way back on the data file is in the operator documents. pp-1's release plan names neither 1.4.0 nor the data file (P9 missed as written), yet its product passes the rollback check | firm (3 runs) | E24 |
+| F45 | The step-order word test (M2) cannot see a migration that a step plan words as "assigns missing due" or cites only by criterion ID (2 of 3 step plans). By the concern mapping, the overdue-listing steps follow the migration steps in step order in every run | firm (measure reading) | E24 |
+| F46 | Grok 1.0.77's headless permission check refused shell scripts the model wrote 28 times in 4 runs, and each refusal ended its host session as cancelled. run.py's resumes carried three runs to done but could not carry pp-3 past release-plan: 1 of 4 runs lost, $74.62 | firm (4 runs) | E24 |

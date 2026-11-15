@@ -1,0 +1,180 @@
+{
+ "start_head": "18e410479ec5982a3af2026352cde606b97d53c0",
+ "files": [
+  {
+   "path": "CHANGELOG.md",
+   "status": "M",
+   "added": "7",
+   "removed": "0"
+  },
+  {
+   "path": "README.md",
+   "status": "M",
+   "added": "8",
+   "removed": "3"
+  },
+  {
+   "path": "docs/api.md",
+   "status": "M",
+   "added": "10",
+   "removed": "1"
+  },
+  {
+   "path": "docs/operations.md",
+   "status": "M",
+   "added": "16",
+   "removed": "0"
+  },
+  {
+   "path": "docs/shiploop/architecture.md",
+   "status": "A",
+   "added": "197",
+   "removed": "0"
+  },
+  {
+   "path": "docs/shiploop/environment.md",
+   "status": "A",
+   "added": "432",
+   "removed": "0"
+  },
+  {
+   "path": "docs/shiploop/spec.md",
+   "status": "A",
+   "added": "352",
+   "removed": "0"
+  },
+  {
+   "path": "package.json",
+   "status": "M",
+   "added": "1",
+   "removed": "1"
+  },
+  {
+   "path": "src/app.js",
+   "status": "M",
+   "added": "19",
+   "removed": "6"
+  },
+  {
+   "path": "src/config.js",
+   "status": "M",
+   "added": "10",
+   "removed": "1"
+  },
+  {
+   "path": "src/persistence.js",
+   "status": "M",
+   "added": "9",
+   "removed": "4"
+  },
+  {
+   "path": "src/server.js",
+   "status": "M",
+   "added": "10",
+   "removed": "3"
+  },
+  {
+   "path": "src/store.js",
+   "status": "M",
+   "added": "43",
+   "removed": "10"
+  },
+  {
+   "path": "src/tickets/query.js",
+   "status": "M",
+   "added": "21",
+   "removed": "4"
+  },
+  {
+   "path": "test/due-api.test.js",
+   "status": "A",
+   "added": "281",
+   "removed": "0"
+  },
+  {
+   "path": "test/due-cli.test.js",
+   "status": "A",
+   "added": "17",
+   "removed": "0"
+  },
+  {
+   "path": "test/due-config.test.js",
+   "status": "A",
+   "added": "48",
+   "removed": "0"
+  },
+  {
+   "path": "test/due-persistence.test.js",
+   "status": "A",
+   "added": "189",
+   "removed": "0"
+  },
+  {
+   "path": "test/due-query.test.js",
+   "status": "A",
+   "added": "18",
+   "removed": "0"
+  },
+  {
+   "path": "test/due-store.test.js",
+   "status": "A",
+   "added": "106",
+   "removed": "0"
+  },
+  {
+   "path": "test/due-system.test.js",
+   "status": "A",
+   "added": "168",
+   "removed": "0"
+  }
+ ],
+ "documents_added_lines": {
+  "README.md": [
+   "| `DUE_TIMES` | off | exact `on` includes `due` on ticket JSON and honours `GET /tickets?overdue=true`; any other value is off. Set `DUE_TIMES=on` only after the data file already holds due |",
+   "| `DUE_HOURS_URGENT` | `4` | hours added to `created` for an urgent ticket's due; existing due times do not move |",
+   "| `DUE_HOURS_HIGH` | `24` | hours for a high ticket |",
+   "| `DUE_HOURS_NORMAL` | `72` | hours for a normal ticket |",
+   "| `DUE_HOURS_LOW` | `168` | hours for a low ticket |",
+   "[docs/operations.md](docs/operations.md) covers the data file, the worker, due times (`DUE_TIMES=on` after the file holds due, and rollback to 1.4.0), and what to do with dead notifications.",
+   "title. Due is not a column. `scripts/weekly-report.js` runs `list --raw` and reads these columns by position, so they",
+   "must keep their positions."
+  ],
+  "docs/operations.md": [
+   "## Due times",
+   "Each ticket gets a `due` time when it is created or when this release first loads a ticket that has none: `created` plus",
+   "the hours for its priority (`DUE_HOURS_URGENT` 4, `DUE_HOURS_HIGH` 24, `DUE_HOURS_NORMAL` 72, `DUE_HOURS_LOW` 168). Due",
+   "is set once; changing the hours or a ticket's priority does not move it. The data file stays version 1.",
+   "1. Start this release with `DATA_FILE` set and `DUE_TIMES` unset. The first start writes `due` into the file.",
+   "2. Confirm the file holds `due` on every ticket.",
+   "3. Then set `DUE_TIMES=on` and restart. HTTP includes `due` and honours `GET /tickets?overdue=true`.",
+   "Until `DUE_TIMES=on`, HTTP answers match 1.4.0. Unset, empty, `ON`, and `1` are off; only the exact string `on` enables",
+   "the answers.",
+   "**Rollback to 1.4.0.** Install release 1.4.0 on the same `DATA_FILE`. 1.4.0 still starts, drops `due`, and shows every",
+   "ticket.",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "docs/api.md": [
+   "When `DUE_TIMES=on`, the ticket also has `due` (ISO 8601 UTC): created plus the hours for its priority",
+   "(`DUE_HOURS_URGENT` 4, `DUE_HOURS_HIGH` 24, `DUE_HOURS_NORMAL` 72, `DUE_HOURS_LOW` 168). Due is set once; changing",
+   "priority does not move it. Until `DUE_TIMES=on`, ticket JSON matches 1.4.0 (no `due`). Set `DUE_TIMES=on` only after",
+   "the data file holds due. A request body must not send `due` (400 `invalid`). Rollback to 1.4.0 still shows every",
+   "ticket ([operations](operations.md#due-times)).",
+   "| `due` | when a first response is due; present only when `DUE_TIMES=on` |",
+   "| `overdue` | when `DUE_TIMES=on`, `true` lists only open and in-progress tickets whose `due` has passed; any other value is `invalid`. Until `DUE_TIMES=on`, `overdue` is ignored |",
+   "open tickets that are urgent. A filter value that is not a status or a priority is `invalid`. `overdue=true` is ANDed",
+   "with those filters after they run."
+  ],
+  "CHANGELOG.md": [
+   "## 1.5.0 (2026-11-14)",
+   "- Each ticket gets a due time: created plus the hours for its priority (`DUE_HOURS_URGENT` 4, `DUE_HOURS_HIGH` 24, `DUE_HOURS_NORMAL` 72, `DUE_HOURS_LOW` 168). Due is set once; a later change of hours or priority does not move it.",
+   "- Until `DUE_TIMES=on`, HTTP answers match 1.4.0 (no `due` on ticket JSON; `overdue` ignored). Set `DUE_TIMES=on` only after the data file holds due.",
+   "- `GET /tickets?overdue=true` lists open and in-progress tickets whose due has passed.",
+   "- Rollback to 1.4.0: the data file stays version 1; 1.4.0 still starts on a file this release wrote and shows every ticket.",
+   ""
+  ]
+ },
+ "head": "dca23e51b38d0e2e6c8c4ecdd6a2bf20f8aac495"
+}

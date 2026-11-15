@@ -1,0 +1,239 @@
+[
+ {
+  "action": "nav-c03f512203f2498d8ebc00c6f929a7c5",
+  "result": {
+   "assumptions": [
+    {
+     "assumption": "DUE_TIMES enables HTTP due and overdue only when it is the exact string on, not 1 or ON",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/spec.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/src/config.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/notes/research.md"
+     ],
+     "id": "A1"
+    },
+    {
+     "assumption": "Hour environment names are DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW with defaults 4, 24, 72, 168",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/spec.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/architecture.md"
+     ],
+     "id": "A2"
+    },
+    {
+     "assumption": "Overdue is due strictly before now (due < now), exclusive at the exact due instant",
+     "check": "node Date.parse comparison: at 2025-09-01T12:00:00.000Z, due < now is false; at 13:00 it is true",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/spec-replay-due.txt"
+     ],
+     "id": "A3"
+    },
+    {
+     "assumption": "Hours are UTC durations added to created, not local business hours",
+     "check": "new Date(Date.parse('2025-09-01T08:00:00.000Z') + hours * 3600 * 1000).toISOString() for 4, 24, 72, 168",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/spec-replay-due.txt"
+     ],
+     "id": "A4"
+    },
+    {
+     "assumption": "Release 1.4.0 ticketRecord drops unknown ticket fields including due and still loads every ticket",
+     "check": "node RUN/scratch/probe-due-compat.js against current ticketRecord after injecting due and extra",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/probe-due-compat-out.txt",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/probe-due-compat.js"
+     ],
+     "id": "A5"
+    },
+    {
+     "assumption": "Existing tests stay green if HTTP omits due by default and existing test files are not edited",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/test/api.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/test/helpers.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/spec.md"
+     ],
+     "id": "A6"
+    },
+    {
+     "assumption": "CLI openStore loads without persistence and never writes due into DATA_FILE",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/bin/tickets.js"
+     ],
+     "id": "A7"
+    },
+    {
+     "assumption": "This run is source-only: no production DATA_FILE, no deploy, no live 1.4.0 binary",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/environment.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/notes/research.md"
+     ],
+     "id": "A8"
+    },
+    {
+     "assumption": "Existing matchesFilters OR of equality fields stays; overdue is ANDed after it",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/src/tickets/query.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/probe-due-compat-out.txt"
+     ],
+     "id": "A9"
+    },
+    {
+     "assumption": "Assigning due is not an audit changes.due entry and not an outbox event",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/src/store.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/spec.md"
+     ],
+     "id": "A10"
+    }
+   ],
+   "concerns": {
+    "W1": [
+     {
+      "applies": "no",
+      "id": "ui",
+      "reason": "JSON HTTP API; CLI table, show, and list --raw columns stay frozen (R-3, AD-5)"
+     },
+     {
+      "anchor": "R-7 R-8 AD-4 AD-5",
+      "applies": "yes",
+      "decision": "HTTP include due iff dueTimes; overdue=true is a dedicated list option 400 for other values when the flag is on",
+      "id": "api",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "messaging",
+      "reason": "due assignment is not an outbox event; existing create/resolve notifications stay (AD-6)"
+     },
+     {
+      "anchor": "R-6 AD-3",
+      "applies": "yes",
+      "decision": "TicketStore owns due as an ISO 8601 UTC string assigned once and copied through PATCH, transition, reopen, and restart",
+      "id": "state",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "R-9 AD-2",
+      "applies": "yes",
+      "decision": "On load, assign missing due from stored created plus current hours and save once when persistence is set, while DUE_TIMES is still off",
+      "id": "migrate-before",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "migrate-after",
+      "reason": "No post-release cleanup; due stays on ticket records"
+     },
+     {
+      "anchor": "R-10 R-11 AD-2",
+      "applies": "yes",
+      "decision": "Operators set DUE_TIMES=on only after the production file holds due; rollback is 1.4.0 on that same version-1 file",
+      "id": "switchover",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "concurrency",
+      "reason": "One Node process; store mutations are sequential (docs/operations.md)"
+     },
+     {
+      "applies": "no",
+      "id": "platform-services",
+      "reason": "Reuse node:http and the existing JSON file; no new platform service"
+     },
+     {
+      "applies": "no",
+      "id": "scale",
+      "reason": "No volume, latency, or quota bound in the request or existing docs"
+     },
+     {
+      "applies": "no",
+      "id": "security",
+      "reason": "due is not secret; unknown body field due already 400; no new auth"
+     },
+     {
+      "applies": "no",
+      "id": "observability",
+      "reason": "No new log, metric, or due audit event; LOG_REQUESTS unchanged"
+     },
+     {
+      "anchor": "R-5 R-10 AD-2 NFR-3",
+      "applies": "yes",
+      "decision": "DUE_TIMES exact on; DUE_HOURS_* via wholeNumber min 0 with defaults 4/24/72/168; omitted createService keys stay off/defaults",
+      "id": "config",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "performance",
+      "reason": "No latency or throughput bound (spec NFR exclusions)"
+     },
+     {
+      "applies": "no",
+      "id": "accessibility",
+      "reason": "No human-facing UI change; CLI columns frozen"
+     }
+    ]
+   },
+   "evidence_refs": [
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/architecture.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/spec.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/environment.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/plan-backchain-candidate.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/backchain/nav-c03f512203f2498d8ebc00c6f929a7c5/check-c817379b4cb2.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/notes/nav-c03f512203f2498d8ebc00c6f929a7c5.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/notes/research.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/notes/current-system-baseline.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/baseline-npm-test.txt",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/spec-replay-due.txt",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/probe-due-compat-out.txt",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/results/nav-ed492c935d664bb7b7898ac27d8a2689.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/results/nav-f304f929d0aa4fcbbc54ccaaa09b4b19.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/inbox/nav-c03f512203f2498d8ebc00c6f929a7c5-final-result.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/improve-plan-pass1-npm-test.txt",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/scratch/improve-plan-pass2-r9-load.txt"
+   ],
+   "headline": "One work item W1 implements due times atomically; W1 context names R-5–R-13 replay oracles including R-9 fixture and sticky restart due; AD-1–AD-6 kept.",
+   "outcome": "done",
+   "summary": "Design basis: keep the existing Node HTTP API, version-1 JSON file, and CLI readers. Add stored due on each ticket (created plus UTC hours for its priority at assignment), present due on HTTP only when DUE_TIMES is the string on, and list overdue as isActive and due < now ANDed after the existing matcher. Channel remains request/response; no queue, worker job, cache, or due notification. Crash during save still leaves the old file or the new file (existing rename). UI N/A (JSON API; CLI columns frozen). Ambition fallback: GUIDES/platforms/ui.md#light-expressive-starting-point unused because there is no human-facing surface.\n\nWork queue: one item W1 covering R-5–R-13 and AD-1–AD-6 (R-1–R-4 preserved inside it). Split refused: persist without HTTP strip fails existing test/api.test.js body equality. Document/changelog is W1's document stage. No environment-prep item: local-test harness is ready. No deploy item: source-only (A8); OP-1 and OP-2 stay operator handoff.\n\nBackchain route: navigator five-lens audit; did not spawn the source-aware-native Until Loop child (eight seed steps, contracts already in spec/architecture). Ran printed backchain-check on RUN/scratch/plan-backchain-candidate.json; receipt RUN/backchain/nav-c03f512203f2498d8ebc00c6f929a7c5/check-c817379b4cb2.json reports ok, complete, 8 steps, parallel groups [S1,S2,S4] then [S7,S8]. Internal suppliers: S1 config → S3 store; S2 persistence → S3; S4 query → S5 HTTP; S3+S5 → S6 wiring → S7 tests and S8 docs.\n\nAssumptions A1–A10 all evidenced or probed; none open. A2 locked by spec.md. Architecture Structure gained Namespace and data (this plan); AD-1–AD-6 unchanged; no AD-7.\n\nPreservation: existing tests unmodified; default flag-off omits due; VERSION stays 1; RAW_COLUMNS frozen; matchesFilters OR unchanged.\n\nPlan Improve pass 1 expanded R-5–R-11 HTTP oracles. Pass 2: W1 restart still said leaves T-0001 due (presence, not 2025-09-01T12:00:00.000Z); R-9 pointed at spec.md instead of the loadable document; R-6 omitted POST /tickets/T-0001/transition and GET audit; R-10 omitted the POST body. Inner stages use W1 context as the only execution directive. Named those inputs. Architecture Real-boundary sticky/backfill and environment TC-9/TC-24 match. AD-1–AD-6 and the Backchain candidate unchanged.",
+   "work_items": [
+    {
+     "context": "Ready: npm test 117/117 at baseline commit 18e410479ec5982a3af2026352cde606b97d53c0 (WORKTREE HEAD aef76b6 is knowledge-only); architecture AD-1–AD-6; planned TC-5–TC-11, TC-21–TC-34, TC-36 in KNOWLEDGE/environment.md ## Planned checks; withService already spreads extra keys onto createService; existing test/*.test.js and test/helpers.js must not be edited; product due-times still unimplemented. Confirm by: npm test exit 0 on current product code; test/due-*.test.js absent.\n\nDone: TC-5–TC-11, TC-21–TC-34, TC-36 pass; existing 117 pass on unchanged test files versus 18e410479ec5982a3af2026352cde606b97d53c0; DUE_TIMES off omits due and ignores overdue; DATA_FILE version remains 1; inlined 1.4.0 keys load every ticket from a file this release wrote; README/CHANGELOG/docs/api.md/docs/operations.md name DUE_HOURS_*, DUE_TIMES=on after backfill, and rollback to 1.4.0. Confirm by: npm test exit 0; node --test test/due-api.test.js test/due-config.test.js test/due-store.test.js test/due-persistence.test.js test/due-query.test.js test/due-cli.test.js exit 0; git diff 18e410479ec5982a3af2026352cde606b97d53c0 -- test/api.test.js test/store.test.js test/persistence.test.js test/query.test.js test/config.test.js test/helpers.js empty; grep DUE_TIMES DUE_HOURS due in README.md CHANGELOG.md docs/api.md docs/operations.md.\n\nScope: src/config.js, src/store.js, src/persistence.js, src/tickets/query.js, src/app.js, src/server.js, test/due-api.test.js, test/due-config.test.js, test/due-store.test.js, test/due-persistence.test.js, test/due-query.test.js, test/due-cli.test.js, README.md, CHANGELOG.md, docs/api.md, docs/operations.md. Not test/helpers.js. Not src/format.js except inspect RAW_COLUMNS frozen. bin/tickets.js already never writes.\n\nWhy one item: createApp currently returns store objects as-is, so adding due on store records without HTTP strip fails existing body-equality tests (R-12). Persist and presentation must ship atomically.\n\nInternal implement order (Backchain S1–S8, candidate RUN/scratch/plan-backchain-candidate.json): S1 loadConfig dueTimes/dueHours → S2 ticketRecord due version 1 → S3 TicketStore assign once → S4 parseListQuery overdue → S5 createApp present/strip/overdue → S6 createService wires dueTimes and dueHours → S7 npm test + TC-* → S8 operator docs. S1, S2, S4 are parallel; S7 and S8 are parallel after S6.\n\nReconciliation map (each acceptance line in this item; W1 context is the INNER execution directive). HTTP due-time tests inject `{ dueTimes: true, clock }` from an empty store. dueHours keys are the priority names urgent|high|normal|low. Omitted dueTimes/dueHours and parseListQuery's second argument default so existing tests keep passing.\n\nR-5 hours/config TC-5/TC-21/TC-22/TC-34/TC-36: `const clock = manualClock('2025-09-01T08:00:00.000Z'); await withService({ dueTimes: true, clock }, …)`; POST `{ \"title\": \"VPN drops every hour\", \"requester\": \"maria@example.com\", \"priority\": \"urgent\" }` due `2025-09-01T12:00:00.000Z`; high `2025-09-02T08:00:00.000Z`; normal `2025-09-04T08:00:00.000Z`; low `2025-09-08T08:00:00.000Z`; `loadConfig({ DUE_HOURS_URGENT: 'nope' })` ConfigError matching /DUE_HOURS_URGENT/; `{ dueTimes: true, dueHours: { urgent: 1 } }` then `{ urgent: 0 }` dues `2025-09-01T09:00:00.000Z` then `2025-09-01T08:00:00.000Z`; `loadConfig({})` and empty hour strings yield `dueTimes` false and `{ urgent: 4, high: 24, normal: 72, low: 168 }`; `loadConfig({ DUE_TIMES: 'on', DUE_HOURS_URGENT: '1', DUE_HOURS_HIGH: '2', DUE_HOURS_NORMAL: '3', DUE_HOURS_LOW: '4' })` yields `dueTimes` true and those hours (HTTP `{ dueTimes: true }` does not prove the env path).\n\nR-6 sticky due TC-6/TC-23/TC-24: after that urgent create, `PATCH /tickets/T-0001` `{ \"priority\": \"low\" }` (open may change priority); `GET /tickets/T-0001` due still `2025-09-01T12:00:00.000Z`; `GET /tickets/T-0001/audit` last `changes` at this checkpoint only `{ \"priority\": { \"from\": \"urgent\", \"to\": \"low\" } }` before later transitions; then `POST /tickets/T-0001/transition` `{ \"to\": \"in_progress\" }` then `{ \"to\": \"resolved\" }` then `{ \"to\": \"open\" }` (reopen allowed from resolved) due still `2025-09-01T12:00:00.000Z`; POST/PATCH body `due` is 400 and `error.code` `invalid`; after the ticket is on a temp DATA_FILE, stop and start `{ dataFile, dueTimes: true, clock, dueHours: { urgent: 1 } }` T-0001 due still `2025-09-01T12:00:00.000Z`; a new urgent POST at that clock due `2025-09-01T09:00:00.000Z` (created plus one hour).\n\nR-7 show due TC-7/TC-25: POST, GET, list item, PATCH (title only), and in_progress transition bodies all have the same due string as R-5 for that priority; GET after create, in_progress, resolved, and closed keeps `2025-09-01T12:00:00.000Z` for the urgent VPN ticket.\n\nR-8 overdue TC-8/TC-26/TC-27: empty store, same clock and flag; POST urgent VPN T-0001 due `2025-09-01T12:00:00.000Z`; POST `{ \"title\": \"Badge reader slow\", \"requester\": \"li@example.com\", \"priority\": \"low\" }` T-0002 due `2025-09-08T08:00:00.000Z`; `GET /tickets?overdue=true` at 08:00 is `{ \"items\": [], \"next\": null }`; `clock.set('2025-09-01T12:00:00.000Z')` same GET empty (exclusive: due has not passed); `clock.set('2025-09-01T13:00:00.000Z')` ids `[\"T-0001\"]`, T-0002 absent; `GET /tickets?overdue=true&priority=urgent` ids `[\"T-0001\"]`; `GET /tickets?overdue=true&priority=low` is `{ \"items\": [], \"next\": null }` (matcher then overdue AND; ignoring priority would still list T-0001); `POST /tickets/T-0001/transition` `{ \"to\": \"in_progress\" }` (open→in_progress allowed) still `[\"T-0001\"]`; `{ \"to\": \"resolved\" }` (in_progress→resolved allowed) empty; `GET /tickets?overdue=true&status=resolved` empty; `{ \"to\": \"closed\" }` (resolved→closed allowed) empty; `overdue=false` and `overdue=1` are 400 and `error.code` `invalid`.\n\nR-9 backfill TC-9/TC-28: write this exact version-1 document (T-0001 high, no due): {\"version\":1,\"savedAt\":\"2025-09-01T08:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"VPN drops every hour\",\"priority\":\"high\",\"requester\":\"maria@example.com\",\"status\":\"open\",\"created\":\"2025-09-01T08:00:00.000Z\",\"updated\":\"2025-09-01T08:00:00.000Z\"}],\"audit\":[],\"outbox\":{\"nextId\":1,\"events\":[]}}; first start default hours, DUE_TIMES unset, file due `2025-09-02T08:00:00.000Z`; second start `dueHours.high === 1` leaves due `2025-09-02T08:00:00.000Z`; `bin/tickets.js --data FILE list --raw` does not change mtime/content.\n\nR-10 flag TC-10/TC-29: `withService({})` POST `{ \"title\": \"VPN drops every hour\", \"requester\": \"maria@example.com\", \"priority\": \"high\" }` body has no due key; `GET /tickets?overdue=true` ids `[\"T-0001\"]` same as `GET /tickets`; `loadConfig({ DUE_TIMES: 'ON' })` and `{ DUE_TIMES: '1' }` are dueTimes false.\n\nR-11 rollback TC-11/TC-30: after this release writes, `JSON.parse` `version === 1`; copy only `id`, `title`, `priority`, `requester`, `status`, `created`, `updated` from that written file; every id loads; extra unknown keys besides due also drop.\n\nR-12 preservation: existing 117 plus flag-off omit due so POST/GET body equality in test/api.test.js holds. R-13 new files via npm test; do not edit test/helpers.js. R-1–R-4 preserved (existing HTTP/list/file/runtime). NFR-1 via R-10/R-11/R-12; NFR-2 package.json has no added dependencies; NFR-3 env hours and flag. State/data: ticket.due T-1–T-3; DATA_FILE T-2/T-8; HTTP T-5/T-6; CLI columns frozen; audit/outbox no due event. OP-1 production enable and OP-2 live 1.4.0 binary remain operator-owned at handoff (KNOWLEDGE/architecture.md Real-boundary checks); local TC-11 is the automated rollback proof.\n\nLoadable seams (CommonJS): tests import createService from src/server.js, TicketStore from src/store.js, loadConfig from src/config.js, parseListQuery from src/tickets/query.js, createPersistence from src/persistence.js, rawLine from src/format.js, withService from test/helpers.js. Omitted dueTimes/dueHours and parseListQuery second arg default so existing tests keep passing.\n\nAuthority: execution worktree only; no push, no deploy, no new npm packages, no credential change. Correction: if existing HTTP tests fail, strip due unless dueTimes; if 1.4.0 would refuse the file, keep VERSION=1 and extra-field drop.\n\nEnvironments: local-test, local-dev, operator-cli, production-host (not deployed this run). New names: dueTimes, dueHours, due, overdue, DUE_TIMES, DUE_HOURS_URGENT|HIGH|NORMAL|LOW. Collision: TicketStore.dueNotifications() remains outbox timing. Storage: version-1 JSON; ticketRecord copies due when present. Namespace paragraph: KNOWLEDGE/architecture.md ## Structure ### Namespace and data (this plan).\n\nHarness: KNOWLEDGE/environment.md ## Harnesses and suites. HTTP cases: withService({ dueTimes: true, clock }) from an empty store. Sticky restart: temp DATA_FILE, copy folder(t) from test/persistence.test.js into new files. Rollback: inlined 1.4.0 keys id,title,priority,requester,status,created,updated. Do not edit helpers.js. Focused command names the six due files (name-pattern TC- on the whole tree false-passes unmatched files).\n\nBaseline: RUN/notes/current-system-baseline.md; RUN/scratch/baseline-npm-test.txt (117/117 exit 0). Product HEAD at start of run: 18e410479ec5982a3af2026352cde606b97d53c0.\n\nNo new test facility. No environment-prep item (local-test already ready). No deploy item (source-only; Q10). House style: module-level purpose comments; destructure known fields in existing tests.\n\nProving check at INNER test: npm test. Content check at INNER document: grep of DUE_TIMES, DUE_HOURS_URGENT, due in README.md CHANGELOG.md docs/api.md docs/operations.md.",
+     "follows": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4",
+      "R-5",
+      "R-6",
+      "R-7",
+      "R-8",
+      "R-9",
+      "R-10",
+      "R-11",
+      "R-12",
+      "R-13",
+      "AD-1",
+      "AD-2",
+      "AD-3",
+      "AD-4",
+      "AD-5",
+      "AD-6"
+     ],
+     "id": "W1",
+     "title": "Implement due times (config, store, persistence, query, app, server, tests, operator docs)"
+    }
+   ]
+  }
+ }
+]

@@ -161,3 +161,96 @@ and pristine; `priority-moves-due` and `due-not-persisted` fail restart; `no-bac
 - The plan-text measures (M2 to M6) count words, not intent: a plan that names a document without planning to change it counts
   as naming it, and a paraphrase the patterns miss counts as absent. Each matched excerpt is kept in the evidence so a reader
   can see what counted.
+
+## Results (2026-11-14; scored once by score.py, no judge)
+
+Scored: pp-1, pp-2 and pp-4. pp-3 is invalid under the replacement rule above and is not scored; pp-4 replaced it.
+Evidence: [evidence/scores.md](evidence/scores.md) and [evidence/scores.json](evidence/scores.json) (score.py's tables and
+every matched excerpt), and `evidence/runs/<run>/` ([export.py](export.py): identity and action history, plan, step plans
+with their criterion texts, release plan, case checks, and the delivery's file list with the lines it added to README.md,
+docs/operations.md, docs/api.md and CHANGELOG.md; no product code). score.py changed once after registration, and not in a
+measure: it falls back to the run folder while a live run has no receipt yet. The final scoring read each run's
+`shiploop-run.json`.
+
+| Run | ShipLoop | Case checks | Seconds | Cost | Host sessions (ended cancelled) | Turns |
+|---|---|---|---|---|---|---|
+| pp-1 | done | 8 of 8 | 21,901 | $96.30 | 12 (11) | 1,121 |
+| pp-2 | done | 8 of 8 | 20,917 | $94.77 | 6 (5) | 1,076 |
+| pp-4 | done | 8 of 8 | 20,427 | $89.44 | 5 (4) | 1,040 |
+| pp-3, invalid | active at release-plan | ran on the unreturned base | | $74.62 | 8 (8), with its resume | 837 |
+
+All four runs together cost $355.13.
+
+**Predictions as written: 15 of 17 held; P6 and P9 missed.**
+
+- P1 to P5 held. migrate-before, switchover, state and config apply in every run; migrate-after applies in none. Each plan has
+  one work item.
+- P6 missed: M2 is *same* in every run, but the first step matching `MIGRATION` comes no later than the first step matching
+  `overdue` only in pp-1 (S5 before S7). In pp-2 it is S8 after S2; in pp-4 no step matches.
+- P7 held: the release is last in every run (one item).
+- P8 held: every release plan plans a rollback. P9 missed: pp-1's rollback is not data-aware.
+- P10 and P11 held. Every plan names README.md, docs/api.md, docs/operations.md and CHANGELOG.md. Every plan names `DUE_TIMES`
+  and the hours settings: `RESPONSE_HOURS_*` in pp-1 and pp-4, `DUE_HOURS_*` in pp-2.
+- P12 to P16 held. Every product passes all eight checks. Every product has D1, D2, D3, D4 and D6, so there is no
+  documentation miss. Every product adds four hours settings, each in README.md, so there is no setup miss.
+- P17 held: migrate-before and switchover both bind in every run.
+
+**Readings** (each one checkable in the evidence; none rescores a prediction):
+
+- *P6.* In pp-2, the first step matching the migration words is S8, the operator documents ("DUE_TIMES=on after backfill").
+  Its first step matching `overdue` is S2, which adds the query parser's option. Its own concern mapping puts migrate-before
+  on S4 and S5, and the steps that list overdue tickets depend on S5: S6 in the store, S7 over HTTP. pp-4's steps cite their
+  criteria by ID ("Add C10 in src/store.js"). C10 words the migration as "assigns missing due from created and priority then
+  saves", which `MIGRATION` does not match. Its mapping puts migrate-before on S4, ahead of the overdue steps S6 and S8. In
+  pp-1 the backfill is S5 and the overdue steps are S7 and S8. So in step order, every run's overdue-listing steps come after
+  its mapped migration steps. What P6 missed is a step plan worded in a way the pattern cannot see. Every product passes
+  migrate, restart and switch.
+- *P9.* pp-1's release plan rolls back only the repository. It uses `git reset --keep` to the base commit or, with later
+  commits, a `git restore --source=<base>` followed by a commit "Roll back the ShipLoop return", and it points to the
+  standing procedure in the knowledge file. No segment names 1.4.0, `DUE_TIMES` or the data file. The data-aware segments of
+  pp-2 and pp-4 are pointers: "production enable and live 1.4.0 rollback stay with operators", and "Product rollback:
+  docs/operations.md 1.4.0." In every run, the release plan's own rollback undoes the returned commit, which is what
+  ShipLoop's release does. The product's way back to 1.4.0 is in the operator documents: every run delivered them (D3), and
+  the rollback check passes in every run.
+- *Row owners.* migrate-before belongs to step-plan in every run. switchover belongs to step-plan in pp-1 and pp-2, and in
+  pp-3's plan, and to operations in pp-4. No row belonged to release-plan, so `shiploop_concerns.handoff_rows` gave
+  release-plan no row in any run. Where step-plan owned switchover, it mapped the row to code steps (pp-1: S6 and S9) or to
+  code and the operator documents (pp-2: S3 and S8). In pp-4, the operations result names `DUE_TIMES`.
+- *Documentation without a step.* pp-1's step plan has no documentation step, yet README.md, docs/api.md,
+  docs/operations.md, CHANGELOG.md and package.json changed: the document stage made those edits. pp-2 (S8) and pp-4 (S10,
+  S11) planned documentation steps.
+- *Decision records (D5, reported, not counted).* No run added a record under docs/decisions/. The base's CONTRIBUTING.md says
+  to "record the decision" before a change to the API or the data file. The docs/decisions/ that M5 counts in pp-1's and
+  pp-4's plans is the existing `0008-json-data-file.md`, named as a file to read. No plan or step plan planned a new record.
+  Each run recorded its decisions in ShipLoop's own docs/shiploop/architecture.md (AD-n) instead. Whether this change needs a
+  record is itself a reading: it adds a field under decision 8's own rule, and the file stays at version 1.
+- *M6 excerpts.* pp-1's first matched segment is a path ending `.json` under the run's experiments folder. The pattern's
+  configuration-file branch matched it, and it is not a setting. pp-1 also names `RESPONSE_HOURS_URGENT`, a real new setting,
+  beside `TEST_SETTINGS`, a constant in the base's tests. So P11 holds on a real setting name in every run.
+- *Validity.* No run logged `EADDRINUSE`. The fixed-port counts in scores.md are not server starts: pp-1's six are its own
+  `lsof -nP -iTCP:4180 -sTCP:LISTEN` checks, and pp-4's one is a line number, 4180, in a search result. pp-4 overlapped pp-1 by
+  4,463 s and pp-2 by 3,495 s.
+- *pp-3 and the host's refusals.* Grok 1.0.77's headless permission check refused shell commands the model wrote, with
+  "permission required: Execute `…` was not run, as a headless run cannot ask for approval". The refused commands were
+  scripts that begin with a variable assignment, `cd`, `set -e` or `echo`, `python3 -c` programs, and a `cp` into the run's
+  inbox. There were 28 refusals in the four runs: pp-1 11, pp-2 5, pp-3 8, pp-4 4. In every run, each refusal matches one host
+  session that ended cancelled, and run.py resumed after it. pp-3 stopped at release-plan, at revision 40, after three resumes
+  in a row made no progress. A `--resume-run` met the same refusals. So pp-3 is invalid by the registered rule. Its case
+  checks ran on the `work/` checkout the run never returned (still the base commit), so they say nothing about its product.
+
+**Answers.**
+
+- **Does documentation or setup need its own concern row?** No row is recommended. Under the registered rule, no valid run has
+  a documentation miss (D1, D2, D3 or D6) or a setup miss. Every delivery documents `DUE_TIMES`, every new setting, the
+  switch-on, the way back to 1.4.0, the API and the CHANGELOG. pp-1 did all of this with no documentation step. One reading
+  is for the owner. No run planned or wrote the decision record that the repository's CONTRIBUTING.md asks for when the API
+  or the data file changes. That check (D5) was registered as reported, not counted. If it counts as a miss, it is the one
+  measured case for a documentation row, and it happened at planning.
+- **Do the release and migration rows bind in practice?** *Yes*, by the registered rule: both rows bind in every valid run.
+  Each row applies, its owner acts on it, and the product passes the checks it serves. Two qualifications come from the
+  readings. First, the rows bind at step-plan, and at operations in pp-4, but never at release-plan, which owned no row.
+  Second, release-plan's own rollback undoes the returned commit, while the way back on the data file is delivered as
+  operator documentation. Neither one is a product miss. So no concern row and no prompt change is proposed: the owner
+  constraint asks for a measured miss first, and here the outcomes did not differ.
+- **Limits.** One host and model, three valid runs. The request states the migration, switch-on and rollback outcomes, so it
+  partly decides whether those rows apply. Documentation was the only point left to the repository.

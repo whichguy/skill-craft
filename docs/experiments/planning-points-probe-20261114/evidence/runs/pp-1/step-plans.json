@@ -1,0 +1,277 @@
+[
+ {
+  "action": "nav-beb26b0902d248e2bb00a5c541db7ad5",
+  "workitem": "W1",
+  "concerns": [
+   {
+    "id": "api",
+    "steps": [
+     "S6",
+     "S8"
+    ]
+   },
+   {
+    "id": "state",
+    "steps": [
+     "S3",
+     "S4",
+     "S5",
+     "S7"
+    ]
+   },
+   {
+    "id": "migrate-before",
+    "steps": [
+     "S5"
+    ]
+   },
+   {
+    "id": "switchover",
+    "steps": [
+     "S6",
+     "S9"
+    ]
+   },
+   {
+    "id": "security",
+    "steps": [
+     "S6"
+    ]
+   },
+   {
+    "id": "observability",
+    "steps": [
+     "S3",
+     "S5"
+    ]
+   },
+   {
+    "id": "config",
+    "steps": [
+     "S1",
+     "S9"
+    ]
+   }
+  ],
+  "steps": [
+   {
+    "id": "S1",
+    "deps": [],
+    "task": "C1 C2 C3 C4: extend loadConfig with dueTimes (on only when DUE_TIMES is exactly on) and responseHoursUrgent/High/Normal/Low via wholeNumber defaults 4/24/72/168 including 0.",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3",
+     "C4"
+    ],
+    "paths": [
+     "src/config.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S2",
+    "deps": [],
+    "task": "C5 C6: add due to ticketRecord and readTicket with time() like created; keep VERSION 1; invalid due is DataFileError naming tickets[n].due.",
+    "criteria": [
+     "C5",
+     "C6"
+    ],
+    "paths": [
+     "src/persistence.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S3",
+    "deps": [],
+    "task": "C7 C8: optional hours on TicketStore constructor and open default 4/24/72/168; create assigns due from created plus hours[priority]; leave CREATED_FIELDS and create audit without due.",
+    "criteria": [
+     "C7",
+     "C8"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S4",
+    "deps": [
+     "S3"
+    ],
+    "task": "C9: keep stored due through update, transition, and a new TicketStore on the same snapshot with different hours.",
+    "criteria": [
+     "C9"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S5",
+    "deps": [
+     "S2",
+     "S3"
+    ],
+    "task": "C10 C11: on open, backfill missing due from stored created and priority then save() when persistence exists, without apply/audit/updated; keep dues already present.",
+    "criteria": [
+     "C10",
+     "C11"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S6",
+    "deps": [
+     "S3"
+    ],
+    "task": "C12 C13 C14: add optional dueTimes to createApp default off; project ticket JSON without due unless dueTimes is on; POST/PATCH due stays 400 unknown field: due.",
+    "criteria": [
+     "C12",
+     "C13",
+     "C14"
+    ],
+    "paths": [
+     "src/app.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S7",
+    "deps": [
+     "S3"
+    ],
+    "task": "C15: TicketStore.list extra-AND overdue true as ACTIVE and now > due; do not put overdue into matchesFilters; do not add a permanent overdue key to parseListQuery.",
+    "criteria": [
+     "C15"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S8",
+    "deps": [
+     "S6",
+     "S7"
+    ],
+    "task": "C16 C17: GET /tickets reads overdue itself; when dueTimes is on, overdue=true uses store list AND and other values 400 invalid; when off, ignore overdue.",
+    "criteria": [
+     "C16",
+     "C17"
+    ],
+    "paths": [
+     "src/app.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S9",
+    "deps": [
+     "S1",
+     "S5",
+     "S8"
+    ],
+    "task": "C18 C19 C20: createService passes hours into TicketStore.open and dueTimes into createApp so env-backed HTTP and flag-off persist work.",
+    "criteria": [
+     "C18",
+     "C19",
+     "C20"
+    ],
+    "paths": [
+     "src/server.js"
+    ],
+    "skills": []
+   }
+  ],
+  "criteria": [
+   {
+    "id": "C1",
+    "text": "loadConfig returns responseHoursUrgent 4, responseHoursHigh 24, responseHoursNormal 72, responseHoursLow 168 when those variables are unset or empty, and RESPONSE_HOURS_* '0' is the number 0. Confirm by: DT-9 and the hours-0 overlays of DT-7 and DT-11 in node --test test/due-times.test.js; pass when loadConfig({}) hours are 4/24/72/168, RESPONSE_HOURS_LOW empty uses 168, and a '0' overlay is the number 0. Due === created from hours 0 is C7. Serves R-3."
+   },
+   {
+    "id": "C2",
+    "text": "loadConfig throws ConfigError naming RESPONSE_HOURS_URGENT for nope, -5, and 4.5. Confirm by: DT-10 in node --test test/due-times.test.js; pass when each throw is ConfigError and the message matches /RESPONSE_HOURS_URGENT/. Serves R-3."
+   },
+   {
+    "id": "C3",
+    "text": "dueTimes is the string on only when DUE_TIMES is exactly on; unset, 1, true, and ON leave it not on. Confirm by: DT-30 in node --test test/due-times.test.js; pass when those overlays match unset HTTP (POST has no due key). Serves R-8."
+   },
+   {
+    "id": "C4",
+    "text": "loadConfig contract comment names DUE_TIMES and RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW. Confirm by: grep DUE_TIMES and RESPONSE_HOURS in src/config.js; pass when both match. Serves R-3 R-8."
+   },
+   {
+    "id": "C5",
+    "text": "toDocument keeps version 1 and ticketRecord names due; extra unknown ticket keys are dropped; a ticket without due still loads so open can backfill. Confirm by: DT-32 DT-31 DT-33 in node --test test/due-times.test.js; pass when a due-bearing save has version 1 and due, a record without due loads, and fixtures/persistence-1.4.0.js loads both tickets with no due key. Serves R-9 AD-4."
+   },
+   {
+    "id": "C6",
+    "text": "A ticket due that is present but not an ISO time refuses start with DataFileError naming tickets[0].due. Confirm by: DT-26 in node --test test/due-times.test.js; pass when the error message matches /tickets\\[0\\]\\.due/. Serves R-7."
+   },
+   {
+    "id": "C7",
+    "text": "TicketStore constructor and open take optional hours defaulting to urgent 4 high 24 normal 72 low 168; create at C0 assigns due created plus those hours (high 2025-09-02T08:15:00.000Z, urgent 2025-09-01T12:15:00.000Z, normal 2025-09-04T08:15:00.000Z, low 2025-09-08T08:15:00.000Z) and hours 0 yields due === created. Confirm by: DT-5 DT-6 DT-7 DT-27 in node --test test/due-times.test.js; pass when those due strings match. Serves R-2 R-3 AD-2 AD-3."
+   },
+   {
+    "id": "C8",
+    "text": "Create audit changes keys stay title, priority, requester, status; CREATED_FIELDS does not gain due; create still enqueues ticket.created only. Confirm by: DT-16 in node --test test/due-times.test.js; pass when GET audit create entry changes keys are exactly those four. Serves R-5 AD-7."
+   },
+   {
+    "id": "C9",
+    "text": "A stored due is unchanged by PATCH priority, a transition, and a restart with different hours. Confirm by: DT-12 DT-13 in node --test test/due-times.test.js; pass when T-0001 due stays 2025-09-02T08:15:00.000Z through that walk. Serves R-4."
+   },
+   {
+    "id": "C10",
+    "text": "TicketStore.open fills missing due from each ticket's stored created and priority using current hours, then save() when persistence exists, without audit or updated change. Confirm by: DT-24 in node --test test/due-times.test.js on the spec two-ticket version-1 document (T-0001 high, T-0002 low); pass when the file stays version 1, dues are 2025-09-02T08:15:00.000Z and 2025-09-08T08:15:00.000Z, both updated remain C0, and audit is []. Serves R-7 AD-3."
+   },
+   {
+    "id": "C11",
+    "text": "Tickets that already have due keep those strings on a later open even when hours change. Confirm by: DT-25 DT-28 in node --test test/due-times.test.js; pass when those due strings stay. Serves R-7."
+   },
+   {
+    "id": "C12",
+    "text": "createApp omits due on POST, GET list items, GET by id, PATCH, and transition unless dueTimes is on; with the switch off Object.keys of a created ticket are exactly id,title,priority,requester,status,created,updated. Confirm by: DT-1 DT-14 DT-15 in node --test test/due-times.test.js; pass when flag-off keys match that list and flag-on bodies include due 2025-09-02T08:15:00.000Z. Serves R-1 R-5 R-8 AD-5."
+   },
+   {
+    "id": "C13",
+    "text": "POST /tickets and PATCH /tickets/:id with due answer 400 invalid unknown field: due. Confirm by: DT-2 DT-3 in node --test test/due-times.test.js; pass when status is 400, body.error.code is invalid, and the message matches /unknown field: due/. Serves R-1."
+   },
+   {
+    "id": "C14",
+    "text": "createApp contract comment names dueTimes and that HTTP ticket JSON omits due unless dueTimes is on. Confirm by: grep dueTimes in src/app.js; pass when it matches. Serves R-8 AD-5."
+   },
+   {
+    "id": "C15",
+    "text": "TicketStore.list treats overdue true as an extra AND of status in ACTIVE (open, in_progress) and clock.now() strictly after due; listings without overdue stay the 1.4.0 match; matchesFilters stays OR. Confirm by: DT-17 DT-19 DT-20 DT-21 DT-22 DT-23 in node --test test/due-times.test.js; pass when overdue ids and paging match those oracles. Serves R-6 AD-6."
+   },
+   {
+    "id": "C16",
+    "text": "While dueTimes is on, GET /tickets?overdue=true uses that AND and any other present overdue value is 400 invalid. Confirm by: DT-17 DT-18 in node --test test/due-times.test.js; pass when overdue=true returns the overdue active ids and overdue=false, 1, TRUE, and empty each return 400. Serves R-6."
+   },
+   {
+    "id": "C17",
+    "text": "While dueTimes is not on, GET /tickets?overdue=true is ignored like an unknown query key. Confirm by: DT-29 in node --test test/due-times.test.js; pass when flag-off overdue=true at C0 still lists T-0001. Serves R-8."
+   },
+   {
+    "id": "C18",
+    "text": "createService passes loadConfig hours into TicketStore.open and dueTimes into createApp, so RESPONSE_HOURS_HIGH 2 with DUE_TIMES on at C0 yields due 2025-09-01T10:15:00.000Z, and a flag-off create still stores due. Confirm by: DT-8 DT-29 in node --test test/due-times.test.js; pass when those dues match and the data file contains due while HTTP omits it. Serves R-3 R-8 AD-1."
+   },
+   {
+    "id": "C19",
+    "text": "Existing tests still pass as they are. Confirm by: npm test; pass when the 1.4.0 titles still pass and test/helpers.js plus existing test/*.test.js are unmodified. Serves R-10."
+   },
+   {
+    "id": "C20",
+    "text": "New node:test cases for due times live in test/due-times.test.js and npm test runs them with the existing suite. Confirm by: node --test test/due-times.test.js printing DT-1 through DT-33; pass when that file runs and package.json test remains node --test. Serves R-11."
+   }
+  ],
+  "headline": "Due times persist on every ticket, HTTP shows due only when DUE_TIMES=on, and overdue lists open work; proven by node --test test/due-times.test.js (DT-1..DT-33) and npm test."
+ }
+]

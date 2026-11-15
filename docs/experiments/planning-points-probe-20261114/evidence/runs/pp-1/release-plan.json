@@ -1,0 +1,52 @@
+[
+ {
+  "action": "nav-1f466023913745be9ab4ec7e91029f07",
+  "result": {
+   "assumptions": [
+    {
+     "assumption": "SYS-A7 R-7: production DATA_FILE already in use holds due on every ticket and stays version 1 after start",
+     "disposition": "open",
+     "due_stage": "handoff",
+     "id": "SYS-A7",
+     "owner": "operators",
+     "reason": "This repository has no production host or operations file; local DT-24 uses the spec two-ticket fixture",
+     "settle": "Operators start 1.5.0 on the production DATA_FILE, confirm every ticket has due and version is 1, and report that observation at handoff"
+    }
+   ],
+   "consumer_checks": [
+    {
+     "command": "node -e \"const p=require('./package.json'); const fs=require('fs'); const c=fs.readFileSync('CHANGELOG.md','utf8'); if(p.version!=='1.5.0') process.exit(1); if(Object.prototype.hasOwnProperty.call(p,'dependencies')) process.exit(1); if(!p.engines||p.engines.node!=='>=22') process.exit(1); if(!p.scripts||p.scripts.test!=='node --test') process.exit(1); if(!c.includes('## 1.5.0')) process.exit(1); if(!fs.existsSync('test/due-times.test.js')) process.exit(1);\"",
+     "suite": "check"
+    },
+    {
+     "command": "node --check src/server.js",
+     "suite": "check"
+    },
+    {
+     "command": "node --test test/due-times.test.js",
+     "suite": "check"
+    }
+   ],
+   "consumer_entry": {
+    "how": "From the product root, npm start (node src/server.js) serves the HTTP API on PORT (default 4180). Operators run node bin/tickets.js. README.md Running and Configuration document DUE_TIMES and RESPONSE_HOURS_*.",
+    "sources": [
+     "src/server.js",
+     "package.json",
+     "README.md",
+     "bin/tickets.js"
+    ]
+   },
+   "evidence_refs": [
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/shiploop/environment.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/return-plan.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/workspace.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/results/nav-e1f7c7769b7947a7b3e3be5cafe3a050.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/results/nav-f1952c4a9f4a4d45b29fa78bf61a5759.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/notes/nav-1f466023913745be9ab4ec7e91029f07.md"
+   ],
+   "headline": "Source-only return onto master is planned as a fast-forward; production DATA_FILE stays operators at handoff",
+   "outcome": "done",
+   "summary": "Target: original branch master at 499974b39fcf4ed962432a1a65793308eb1cecd2. Candidate: worktree HEAD cd045d6daea1 package 1.5.0 branch shiploop/run-75c5a2988a6f2943. Delivery source-only; no CI, no deploy host, no push. Authority: isolated workspace start; source return authorized; no pending approval. User impact: none until operators start 1.5.0 and set DUE_TIMES=on. Monitoring: none. Stop: dry-run, confirm, or consumer_check fail.\n\nSteps (separate): (1) release-check runs the eight system_commands, dry-run git log/diff, and confirm present on the candidate (exit 0) plus confirm absent on 1.4.0 identity (exit 1). (2) release performs workspace return; expected fast-forward-merge of master to shiploop/run-75c5a2988a6f2943; 15 keep, 178 exclude (.shiploop-improve), 0 undecided; no artifact publication, no host deploy, no visibility change, no browser. (3) release-verify runs consumer_checks in a clean copy of the returned tree. (4) operations follows docs/operations.md. (5) handoff reports SYS-A7. Worktree return is this release, not unverified.\n\nData: version 1 extra ticket due; backfill on start; no schema step at return. Cutover owner operators: start 1.5.0 so the file holds due, then DUE_TIMES=on. Source return is not a prerequisite for pre-release local-test.\n\nRollback (repository root): git reset --keep 499974b39fcf4ed962432a1a65793308eb1cecd2. With later commits: git restore --source=499974b39fcf4ed962432a1a65793308eb1cecd2 --staged --worktree :/ && git commit -m 'Roll back the ShipLoop return'. Working-tree: git diff --binary 499974b39fcf4ed962432a1a65793308eb1cecd2 shiploop/run-75c5a2988a6f2943 -- CHANGELOG.md README.md docs fixtures package.json src test | git apply -R.\n\nConfirm present: exit 0, version 1.5.0, CHANGELOG ## 1.5.0, test/due-times.test.js exists. Confirm absent: exit 1 on 1.4.0. Standing procedure in KNOWLEDGE/environment.md ## Commands ### Deploy ### Dry-run ### Rollback ### Confirm and ## Harnesses and suites ### Release checks.\n\nPlan concerns api/state/migrate-before/switchover/security/observability/config stay pre-release SYS-ASSEMBLED. SYS-A7 due_stage handoff owner operators."
+  }
+ }
+]

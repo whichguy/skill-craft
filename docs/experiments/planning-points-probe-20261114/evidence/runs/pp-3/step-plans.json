@@ -1,0 +1,209 @@
+[
+ {
+  "action": "nav-8f9ac7c2265d41fbb9bd09fa8c11f91a",
+  "workitem": "W1",
+  "concerns": [
+   {
+    "id": "api",
+    "steps": [
+     "S2",
+     "S3"
+    ]
+   },
+   {
+    "id": "state",
+    "steps": [
+     "S2"
+    ]
+   },
+   {
+    "id": "migrate-before",
+    "steps": [
+     "S2"
+    ]
+   },
+   {
+    "id": "switchover",
+    "steps": [
+     "S1",
+     "S2",
+     "S5"
+    ]
+   },
+   {
+    "id": "concurrency",
+    "steps": [
+     "S2"
+    ]
+   },
+   {
+    "id": "security",
+    "steps": [
+     "S2"
+    ]
+   },
+   {
+    "id": "config",
+    "steps": [
+     "S1",
+     "S2"
+    ]
+   }
+  ],
+  "steps": [
+   {
+    "id": "S1",
+    "deps": [],
+    "task": "Add C1 C2 hours and flag parse in src/config.js and C3 C4 dueAt in src/tickets/due.js.",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3",
+     "C4"
+    ],
+    "paths": [
+     "src/config.js",
+     "src/tickets/due.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S2",
+    "deps": [
+     "S1"
+    ],
+    "task": "Persist due C5 C6, HTTP omit and client-set 400 C7, and constructor plus createService wiring C8.",
+    "criteria": [
+     "C5",
+     "C6",
+     "C7",
+     "C8"
+    ],
+    "paths": [
+     "src/persistence.js",
+     "src/store.js",
+     "src/app.js",
+     "src/server.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S3",
+    "deps": [
+     "S2"
+    ],
+    "task": "Add overdue list C9 and flag-on overdue 400 C10 in store.list and app parse.",
+    "criteria": [
+     "C9",
+     "C10"
+    ],
+    "paths": [
+     "src/store.js",
+     "src/app.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S4",
+    "deps": [
+     "S2"
+    ],
+    "task": "Print due in details when present C11, keep RAW_COLUMNS C12, keep no --overdue C13.",
+    "criteria": [
+     "C11",
+     "C12",
+     "C13"
+    ],
+    "paths": [
+     "src/format.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S5",
+    "deps": [
+     "S1",
+     "S2",
+     "S3",
+     "S4"
+    ],
+    "task": "Bump package 1.5.0 with CHANGELOG C14 and document hours, flag, overdue, 1.4.0 rollback C15.",
+    "criteria": [
+     "C14",
+     "C15"
+    ],
+    "paths": [
+     "package.json",
+     "CHANGELOG.md",
+     "README.md",
+     "docs/api.md",
+     "docs/operations.md"
+    ],
+    "skills": []
+   }
+  ],
+  "criteria": [
+   {
+    "id": "C1",
+    "text": "loadConfig parses RESPONSE_HOURS_URGENT, RESPONSE_HOURS_HIGH, RESPONSE_HOURS_NORMAL and RESPONSE_HOURS_LOW with wholeNumber 0 through 8760, defaults 4, 24, 72 and 168 when unset or empty, and throws ConfigError naming the variable for nope, 4.0, -1 and 8761 (R-3, AD-6). Confirm by: DT-07, DT-10 and the S1 Proof loadConfig assertions; pass when those defaults hold, 0 and 8760 are accepted, and those four bad values throw ConfigError whose message contains the variable name."
+   },
+   {
+    "id": "C2",
+    "text": "loadConfig sets dueTimes true only when DUE_TIMES is the exact string on, and false for unset, empty, 1, true and ON (R-7, AD-2). Confirm by: DT-26 and the S1 Proof; pass when dueTimes is true solely for on."
+   },
+   {
+    "id": "C3",
+    "text": "dueAt(created, hours) returns new Date(Date.parse(created) + hours * 3600000).toISOString() for the R-2 table and hours 0, 2, 8, 8760, and throws for a non-time created or non-finite hours (R-2, AD-9). Confirm by: DT-25 and the S1 Proof; pass when dueAt of 2025-09-01T08:00:00.000Z with 4 equals 2025-09-01T12:00:00.000Z and the other listed hours match those ISO strings, and bad inputs throw."
+   },
+   {
+    "id": "C4",
+    "text": "dueAt and loadConfig carry contract comments naming created, hours, ISO due, RESPONSE_HOURS and DUE_TIMES. Confirm by: reading src/tickets/due.js and src/config.js; pass when those files contain dueAt, @param or equivalent JSDoc, RESPONSE_HOURS and DUE_TIMES."
+   },
+   {
+    "id": "C5",
+    "text": "TicketStore.create sets due once from created plus the hours of the priority at that moment; PATCH priority and a later hours change do not move it, including across a stopped then restarted createService on the same DATA_FILE (R-2, R-3, AD-1). Confirm by: DT-02, DT-03, DT-05, DT-06, DT-08, DT-09 and the S2 Proof; pass when urgent at 2025-09-01T08:00:00.000Z has due 2025-09-01T12:00:00.000Z, PATCH to low keeps that due, a second process with urgent hours 8 still shows T-0001 due 12:00Z and T-0002 due 16:00Z, high hours 2 yields 10:00Z, low 0 equals created, and high 8760 yields 2026-09-01T08:00:00.000Z."
+   },
+   {
+    "id": "C6",
+    "text": "TicketStore.open with persistence fills missing due from stored created and stored priority then save, a present non-time due is DataFileError naming due, and a frozen 1.4.0 ticketRecord drops due so a later open re-backfills from current hours and stored priority (R-6, R-8, AD-3, AD-7). Confirm by: DT-17, DT-18, DT-22, DT-23 and the S2 Proof; pass when the R-6 fixture file then has due 2025-09-02T08:00:00.000Z and keeps it on a second open with high 1, not-a-time throws DataFileError matching due, frozen 1.4.0 ticketRecord omits due without throwing, and DT-23 re-backfill dues are 2025-09-01T09:00:00.000Z and 2025-09-01T12:00:00.000Z."
+   },
+   {
+    "id": "C7",
+    "text": "HTTP ticket JSON includes due if and only if dueTimes is on; flag-off GET equals POST and ignores overdue; POST, PATCH and transition with a due field answer 400 invalid naming due (R-4, R-7, AD-5). Confirm by: DT-04, DT-11, DT-20, DT-21 and the S2 Proof; pass when flag-on create, get, list, patch and transition show due 2025-09-01T12:00:00.000Z, flag-off bodies have no own property due, the file still stores due, and a due field in those three bodies is 400."
+   },
+   {
+    "id": "C8",
+    "text": "createService, createApp and TicketStore.open or the constructor default dueTimes false and merge responseHours onto 4, 24, 72, 168 so TEST_SETTINGS and partial { high: 1 } keep urgent 4; createService passes responseHours into the store and dueTimes into createApp (R-3, AD-11, AD-12). Confirm by: existing test/api.test.js, test/store.test.js and test/persistence.test.js still passing plus the S2 Proof merge; pass when those existing files stay green without new required keys and { high: 1 } leaves urgent due at 4 hours."
+   },
+   {
+    "id": "C9",
+    "text": "GET /tickets?overdue=true with the flag on lists only open and in_progress tickets whose due has passed, including equality at the due instant, cursor-paged, and omits closed (R-5, AD-4). Confirm by: DT-12, DT-13, DT-14, DT-16 and the S3 Proof; pass when the two-ticket fixture at 12:00Z returns ids [T-0001], in_progress stays listed, resolved or closed does not, and overdue=true&status=open&limit=1 pages T-0001 then T-0002."
+   },
+   {
+    "id": "C10",
+    "text": "When dueTimes is on, overdue with any value other than the exact string true, including false, TRUE and empty, answers 400 invalid (R-5, AD-4). Confirm by: DT-15 and the S3 Proof; pass when those three requests are 400 with error.code invalid."
+   },
+   {
+    "id": "C11",
+    "text": "details and CLI show print a due line only when the ticket record has due, and show does not write the file (R-6, NFR-5, AD-8). Confirm by: DT-19 and the S4 Proof; pass when show of the R-6 fixture has no due line and unchanged bytes, and after a service open show includes due 2025-09-02T08:00:00.000Z."
+   },
+   {
+    "id": "C12",
+    "text": "rawLine and list --raw stay four tab-separated columns id, status, priority, title in that order when the object has due (R-1, AD-8). Confirm by: DT-01 and the S4 Proof; pass when rawLine of a ticket with due equals T-0001, open, high, VPN drops every hour joined by tabs and no fifth column."
+   },
+   {
+    "id": "C13",
+    "text": "The CLI has no --overdue option; parseArgs rejects it before openStore (R-5). Confirm by: DT-27 and the S4 Proof; pass when main(['list', '--overdue']) returns 2 and stderr contains unknown option --overdue."
+   },
+   {
+    "id": "C14",
+    "text": "package.json version is 1.5.0 and CHANGELOG.md has a 1.5.0 section for due times, with no added npm packages (R-7, NFR-1). Confirm by: reading package.json and CHANGELOG.md; pass when version is 1.5.0, CHANGELOG mentions 1.5.0 and due, and dependencies is absent."
+   },
+   {
+    "id": "C15",
+    "text": "README.md, docs/api.md and docs/operations.md name RESPONSE_HOURS, DUE_TIMES, overdue, and rollback to 1.4.0 (R-3, R-5, R-7, R-8). Confirm by: reading those files; pass when each of README.md, docs/api.md and docs/operations.md contains RESPONSE_HOURS and DUE_TIMES, docs/api.md contains overdue, and docs/operations.md contains 1.4.0."
+   }
+  ],
+  "headline": "W1 step plan: five steps for due times, node -e proofs, DT-01–DT-27 focused."
+ }
+]

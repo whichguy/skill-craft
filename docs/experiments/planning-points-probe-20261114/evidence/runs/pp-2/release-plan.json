@@ -1,0 +1,78 @@
+[
+ {
+  "action": "nav-964d9fce57ae4b35bb2e5f8c8d703f5d",
+  "result": {
+   "assumptions": [
+    {
+     "assumption": "SYS-OP-1 (R-10 / OP-1): operators start the 1.5.0 process with DUE_TIMES unset until the production DATA_FILE holds due, then set DUE_TIMES=on and restart.",
+     "disposition": "open",
+     "due_stage": "operations",
+     "id": "SYS-OP-1",
+     "owner": "operators",
+     "reason": "Source-only delivery: return does not start the service, write a production DATA_FILE, or set DUE_TIMES on production-host.",
+     "settle": "On production-host, confirm the file already holds due, then set DUE_TIMES=on and restart; HTTP ticket JSON then includes due."
+    },
+    {
+     "assumption": "SYS-OP-2 (R-11 / OP-2): if 1.5.0 misbehaves, operators can run release 1.4.0 on the data file 1.5.0 wrote and still list every ticket.",
+     "disposition": "open",
+     "due_stage": "operations",
+     "id": "SYS-OP-2",
+     "owner": "operators",
+     "reason": "Local TC-11 inlines 1.4.0 ticket keys; this return does not start the 1.4.0 binary on an operations host.",
+     "settle": "Start release 1.4.0 against that file; it starts and shows every ticket (due dropped)."
+    }
+   ],
+   "consumer_checks": [
+    {
+     "command": "node --test test/due-system.test.js",
+     "ids": [
+      "SYS-1",
+      "SYS-2",
+      "SYS-3",
+      "SYS-4",
+      "SYS-5",
+      "SYS-6"
+     ],
+     "min_tests": 6,
+     "suite": "focused"
+    },
+    {
+     "command": "npm test",
+     "min_tests": 146,
+     "suite": "regression"
+    },
+    {
+     "command": "grep -q DUE_TIMES src/config.js && grep -q DUE_HOURS_URGENT src/config.js && grep -q overdue src/tickets/query.js && grep -q dueTimes src/app.js && grep -q dueTimes src/server.js && grep -q due src/persistence.js && grep -q DUE_HOURS_URGENT README.md && grep -q DUE_HOURS_HIGH README.md && grep -q DUE_HOURS_NORMAL README.md && grep -q DUE_HOURS_LOW README.md && grep -q 'DUE_TIMES=on' README.md && grep -q 'DUE_TIMES=on' docs/operations.md && grep -q due docs/api.md && grep -q overdue docs/api.md && grep -q 1.4.0 CHANGELOG.md && grep -q DUE_TIMES CHANGELOG.md",
+     "suite": "check"
+    },
+    {
+     "command": "node -e 'const p=require(\"./package.json\"); if (p.version!==\"1.5.0\" || p.dependencies || p.scripts.test!==\"node --test\") process.exit(1)'",
+     "suite": "check"
+    }
+   ],
+   "consumer_entry": {
+    "how": "A person runs npm start (node src/server.js) on PORT (default 4180) as README.md Running documents; operators use node bin/tickets.js with DATA_FILE or --data FILE.",
+    "sources": [
+     "README.md",
+     "package.json",
+     "src/server.js",
+     "bin/tickets.js"
+    ]
+   },
+   "evidence_refs": [
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/environment.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/notes/nav-964d9fce57ae4b35bb2e5f8c8d703f5d.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/results/nav-91c345ac75f94683b94c7588d4c604fd.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/results/nav-88781fa903b4472a883a83f043f77e70.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/results/nav-24d0d8c39447435e9cbd1b94cbbf810f.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/workspace.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/docs/shiploop/spec.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/worktree/README.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2/.shiploop-runs/work-20261114-164122-969833/run/inbox/nav-964d9fce57ae4b35bb2e5f8c8d703f5d-final-result.md"
+   ],
+   "headline": "Source-only 1.5.0 return onto master planned; production enable and live 1.4.0 rollback stay with operators.",
+   "outcome": "done",
+   "summary": "Target: source checkout original branch master. Candidate: WORKTREE HEAD 72a2c07192dd4a1af4f7e00a7ca0b74624c86325 (package 1.5.0) plus the environment.md standing procedure this Improve pass commits (named 18-file preserve-diff; present-versus-absent labels on the package.json and grep commands). Run branch shiploop/run-ce5b9050635ba191. Source head 18e410479ec5982a3af2026352cde606b97d53c0. start_clean true. No CI, no deploy hook.\n\nRevalidated integrated plan: system-test-author nav-91c345ac75f94683b94c7588d4c604fd; system-test nav-88781fa903b4472a883a83f043f77e70 SYS-1–SYS-8 passed; handshake KNOWLEDGE/environment.md ## Harnesses and suites. No add-work. SYS-OP-1/SYS-OP-2 remain operations.\n\nDelivery: source-only Git fast-forward of master to the run branch. Return does not start the service, write DATA_FILE, or set DUE_TIMES. Consumer verification is a later step (release-verify) on a clean copy of the returned tree (no Git history). No ordering conflict: consumer_checks observe the returned tree after return; they do not need a running process.\n\nAuthority (pending approvals: none):\n- release-check: local worktree reads; plan-return/review-return dry-run. No original-branch mutation. Already granted by workspace start.\n- release: ShipLoop workspace return helper; fast-forward master to shiploop/run-ce5b9050635ba191. No push, no deploy, no role grant. Authorized at release only.\n- release-verify: local consumer-check copy under the workspace root. No write into the user's checkout.\n- operations: operators own OP-1/OP-2 on production-host.\n\nDecision (Improve pass 1): do not glob test/*.test.js for the preserve-diff. Name the 18 1.4.0 files. On the 1.5.0 tree, git pathspec test/*.test.js matches test/due-*.test.js and the command exits 1 (observed GLOB_DIFF_EXIT:1). Named-file command exits 0 on the candidate and also 0 on the original-branch tree, so it is not a present-versus-absent discriminator.\n\nObserved present (WORKTREE 1.5.0, cwd WORKTREE): node --test test/due-system.test.js EXIT 0, 6/6 SYS-1–SYS-6; npm test tests 146 / pass 146 EXIT 0; C2/C4/C7/C9/C15 greps GREP_EXIT 0; package.json command PKG_EXIT 0; named preserve-diff DIFF_EXIT 0. consumer_entry sources README.md package.json src/server.js bin/tickets.js exist.\n\nObserved absent (original branch /Users/dadleet/e2e-runs-planning-points/20261114/pp-2/work HEAD 18e410479ec5982a3af2026352cde606b97d53c0 package 1.4.0): package.json command PKG_ABSENT_EXIT 1; grep -q DUE_TIMES src/config.js GREP_DUE_TIMES_ABSENT_EXIT 1; test/due-system.test.js missing DUE_SYSTEM_EXISTS 1; named preserve-diff SOURCE_DIFF_EXIT 0; npm test tests 117 / pass 117 EXIT 0.\n\nSteps:\n1. release-check — candidate current; rerun SYS focused, npm test, greps on WORKTREE; git diff --exit-code 18e410479ec5982a3af2026352cde606b97d53c0 -- test/api.test.js test/audit.test.js test/config.test.js test/errors.test.js test/helpers.js test/http.test.js test/ids.test.js test/notifier.test.js test/outbox.test.js test/pagination.test.js test/persistence.test.js test/query.test.js test/router.test.js test/service.test.js test/states.test.js test/store.test.js test/validate.test.js test/worker.test.js (Git history; not a consumer_check; expected EXIT 0 on the candidate; do not treat EXIT 0 on the original branch as present); confirm commands on candidate (present: package.json EXIT 0, grep DUE_TIMES EXIT 0, npm test 146, SYS-1–SYS-6 pass) and original branch 18e410479ec5982a3af2026352cde606b97d53c0 (absent: package.json EXIT 1, grep DUE_TIMES EXIT 1, npm test 117 EXIT 0, test/due-system.test.js missing); plan-return then review-return keep product paths, exclude .shiploop-improve/. Stop if source drifted, those 1.4.0 test files edited, or confirm cannot tell present from absent.\n2. release — workspace return; expected fast-forward. Does not start npm start, write DATA_FILE, or set DUE_TIMES.\n3. release-verify — rerun consumer_checks in a clean copy of the returned tree. Observe package 1.5.0, 146 tests, SYS-1–SYS-6, greps.\n4. operations — SYS-OP-1 enable DUE_TIMES=on after the file holds due; SYS-OP-2 live 1.4.0 on a 1.5.0-written file. Owner operators.\n5. handoff — verified return receipt.\n\nRollback (repository root, master checked out; never this workspace's absolute paths):\n- Nothing committed on top: git reset --keep 18e410479ec5982a3af2026352cde606b97d53c0\n- Later commits on top (clean tree): git restore --source=18e410479ec5982a3af2026352cde606b97d53c0 --staged --worktree :/ && git commit -m 'Roll back the ShipLoop return'\n- Working-tree or keep-path reversal: git diff --binary 18e410479ec5982a3af2026352cde606b97d53c0 shiploop/run-ce5b9050635ba191 -- <kept paths> | git apply -R\nReturned commits stay on shiploop/run-ce5b9050635ba191.\n\nUser impact: none until an operator starts 1.5.0; DUE_TIMES stays unset so HTTP matches 1.4.0. Monitoring: none (no process started). Stop: plan-return refuse, source drift, existing tests changed.\n\nconsumer_entry: npm start (node src/server.js on PORT, default 4180) as README.md Running; operators use node bin/tickets.js. No schema/data cutover in this return. First 1.5.0 start on a production file is operations (backfill, then optional DUE_TIMES=on)."
+  }
+ }
+]

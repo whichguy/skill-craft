@@ -1,0 +1,331 @@
+[
+ {
+  "action": "nav-c5a16a2bf1d749b6a940761874ddd4dc",
+  "workitem": "W1",
+  "concerns": [
+   {
+    "id": "api",
+    "steps": [
+     "S7",
+     "S8"
+    ]
+   },
+   {
+    "id": "messaging",
+    "steps": [
+     "S4"
+    ]
+   },
+   {
+    "id": "state",
+    "steps": [
+     "S2",
+     "S3",
+     "S4"
+    ]
+   },
+   {
+    "id": "migrate-before",
+    "steps": [
+     "S4"
+    ]
+   },
+   {
+    "id": "security",
+    "steps": [
+     "S7"
+    ]
+   },
+   {
+    "id": "config",
+    "steps": [
+     "S1"
+    ]
+   }
+  ],
+  "steps": [
+   {
+    "id": "S1",
+    "deps": [],
+    "task": "Add C1 C2 C3 in src/config.js.",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "paths": [
+     "src/config.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S2",
+    "deps": [],
+    "task": "Add C8 C9 in src/persistence.js.",
+    "criteria": [
+     "C8",
+     "C9"
+    ],
+    "paths": [
+     "src/persistence.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S3",
+    "deps": [],
+    "task": "In src/store.js assign due on create at 2025-09-01T08:00:00.000Z (urgent 12:00, high 2025-09-02T08:00:00.000Z, normal +72h, low +168h); freeze across PATCH priority; exclude due from CREATED_FIELDS; constructor and TicketStore.open forward responseHoursUrgent (hours 2 -> 10:00).",
+    "criteria": [
+     "C4",
+     "C5",
+     "C6",
+     "C7"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S4",
+    "deps": [
+     "S2",
+     "S3"
+    ],
+    "task": "Add C10 in src/store.js.",
+    "criteria": [
+     "C10"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S5",
+    "deps": [],
+    "task": "Add C11 C12 C13 in src/tickets/query.js.",
+    "criteria": [
+     "C11",
+     "C12",
+     "C13"
+    ],
+    "paths": [
+     "src/tickets/query.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S6",
+    "deps": [
+     "S3",
+     "S5"
+    ],
+    "task": "In src/store.js apply overdue as isActive and now>=due before paginate: 11:59:59.999Z empty, 12:00 [T-0002], limit 1 [T-0002], T-0002 in_progress still listed, resolved then closed omitted.",
+    "criteria": [
+     "C14",
+     "C15"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S7",
+    "deps": [
+     "S1",
+     "S3"
+    ],
+    "task": "Add C16 C17 C18 C19 in src/app.js.",
+    "criteria": [
+     "C16",
+     "C17",
+     "C18",
+     "C19"
+    ],
+    "paths": [
+     "src/app.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S8",
+    "deps": [
+     "S6",
+     "S7"
+    ],
+    "task": "In src/app.js wire GET overdue=true through parseListQuery second arg into store.list; F-5 ids T-0001,T-0002,T-0004 after T-0003 closed; priority=high [T-0002]; status=resolved []; limit=1 mixed [T-0002]; false/TRUE/1 400; flag off ignored.",
+    "criteria": [
+     "C20",
+     "C21"
+    ],
+    "paths": [
+     "src/app.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S9",
+    "deps": [
+     "S1",
+     "S3",
+     "S4",
+     "S7"
+    ],
+    "task": "In src/server.js createService defaults missing dueTimes to false, passes hours into TicketStore.open (open already forwards them) and dueTimes into createApp; F-3 second life { ...loadConfig({ RESPONSE_HOURS_URGENT: '2', DUE_TIMES: 'on' }), port: 0, workerIntervalMs: 0, dataFile } with a new manualClock at 08:00 keeps T-0001 at 12:00 and assigns T-0002 at 10:00.",
+    "criteria": [
+     "C22",
+     "C23"
+    ],
+    "paths": [
+     "src/server.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S10",
+    "deps": [
+     "S8",
+     "S9"
+    ],
+    "task": "Add C24 in README.md docs/api.md docs/operations.md.",
+    "criteria": [
+     "C24"
+    ],
+    "paths": [
+     "README.md",
+     "docs/api.md",
+     "docs/operations.md"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S11",
+    "deps": [],
+    "task": "Add C25 C26 C27 in package.json and CHANGELOG.md.",
+    "criteria": [
+     "C25",
+     "C26",
+     "C27"
+    ],
+    "paths": [
+     "package.json",
+     "CHANGELOG.md"
+    ],
+    "skills": []
+   }
+  ],
+  "criteria": [
+   {
+    "id": "C1",
+    "text": "loadConfig sets dueTimes true only when trimmed DUE_TIMES equals on (R-7, AD-1). Confirm by: node scratch/proofs/W1-S1.js and focused ID TC-7d; pass when dueTimes is true for ' on ' and on, and false for ON, 1, and unset."
+   },
+   {
+    "id": "C2",
+    "text": "loadConfig reads RESPONSE_HOURS_URGENT HIGH NORMAL LOW via wholeNumber with defaults 4/24/72/168 and names the variable on ConfigError (R-2, AD-2). Confirm by: W1-S1.js and TC-2b; pass when defaults match, '2' yields 2, empty uses 4, 0 is accepted, and nope throws ConfigError naming RESPONSE_HOURS_HIGH."
+   },
+   {
+    "id": "C3",
+    "text": "loadConfig carries a contract docstring naming DUE_TIMES and RESPONSE_HOURS_* (R-2, R-7). Confirm by: grep DUE_TIMES and RESPONSE_HOURS in src/config.js; pass when both names appear."
+   },
+   {
+    "id": "C4",
+    "text": "TicketStore.create assigns due as created plus priority hours at 2025-09-01T08:00:00.000Z (R-1). Confirm by: W1-S3.js and TC-1; pass when urgent is 2025-09-01T12:00:00.000Z, high 2025-09-02T08:00:00.000Z, normal 2025-09-04T08:00:00.000Z, low 2025-09-08T08:00:00.000Z, and hours 0 yields due equal to created."
+   },
+   {
+    "id": "C5",
+    "text": "A ticket's due is set once: PATCH priority and a no-op PATCH leave due unchanged, and due is not a CREATED_FIELDS value (R-3). Confirm by: W1-S3.js and TC-3a; pass when T-0001 stays 2025-09-01T12:00:00.000Z after PATCH priority low."
+   },
+   {
+    "id": "C6",
+    "text": "TicketStore({ clock }) uses default hours 4/24/72/168; constructor and TicketStore.open forward responseHoursUrgent from loadConfig RESPONSE_HOURS_URGENT 2 to assign 2025-09-01T10:00:00.000Z so S9 can pass hours from createService without editing store.js (R-2, A6). Confirm by: W1-S3.js and TC-2a TC-2e; pass when clock-only urgent is 12:00 and both new TicketStore({ clock, responseHoursUrgent: 2 }) and TicketStore.open({ clock, responseHoursUrgent: 2 }) assign 10:00."
+   },
+   {
+    "id": "C7",
+    "text": "TicketStore.create and update carry a contract docstring that due is assigned once (R-3). Confirm by: grep due in src/store.js; pass when the file names due."
+   },
+   {
+    "id": "C8",
+    "text": "ticketRecord and readTicket keep a valid due on version-1 JSON; version 2 is DataFileError; due not-a-time is refused; CLI show prints T-0001 and has no field line due (R-6, R-8, AD-4, AD-5, AD-8). Confirm by: W1-S2.js and TC-8 TC-8c TC-8f; pass when load round-trips due, version 2 throws, not-a-time throws, show stdout has T-0001 and updated, and /^\\s*due\\b/m does not match."
+   },
+   {
+    "id": "C9",
+    "text": "Persistence record functions name due as an extra ticket field on version 1 (R-6, AD-4). Confirm by: grep due in src/persistence.js; pass when due appears."
+   },
+   {
+    "id": "C10",
+    "text": "TicketStore.open with persistence assigns missing due from created and priority then saves; updated and history stay; outbox pending stays empty; a valid due is not rewritten; CLI list does not write the file (R-6, AD-6). Confirm by: W1-S4.js and TC-6; pass when a high ticket created at 08:00 gets due 2025-09-02T08:00:00.000Z, updated stays 09:00, history length 1, pending [], and CLI list leaves bytes unchanged."
+   },
+   {
+    "id": "C11",
+    "text": "parseListQuery called with one argument and overdue=true still deepEquals { filters: {}, limit: 20, after: null } (R-5, R-9). Confirm by: W1-S5.js and TC-5g; pass when the one-arg result has exactly those three keys and values."
+   },
+   {
+    "id": "C12",
+    "text": "When overdue parsing is enabled, overdue=false, TRUE, and 1 throw InvalidError (R-5, AD-3). Confirm by: W1-S5.js and TC-5e TC-5f; pass when each of those values throws InvalidError."
+   },
+   {
+    "id": "C13",
+    "text": "parseListQuery carries a contract docstring for the optional overdue argument (R-5). Confirm by: grep overdue in src/tickets/query.js; pass when overdue appears."
+   },
+   {
+    "id": "C14",
+    "text": "store.list applies overdue as an extra AND of isActive and now >= due before paginate (R-5, AD-3). Confirm by: W1-S6.js and TC-5a TC-5i TC-5h; pass when at 11:59:59.999Z overdue is empty, at 12:00 it is T-0002, overdue limit 1 after low then urgent is [T-0002], T-0002 stays listed in_progress, and after resolved then closed overdue is empty (a status !== resolved filter would list closed T-0002)."
+   },
+   {
+    "id": "C15",
+    "text": "TicketStore.list carries a contract docstring that overdue is an extra AND before paginate (R-5, AD-3). Confirm by: grep overdue in src/store.js; pass when overdue appears."
+   },
+   {
+    "id": "C16",
+    "text": "When dueTimes is true, HTTP POST 201, GET, PATCH, and in_progress transition bodies include due (R-4, AD-5, AD-7). Confirm by: W1-S7.js and TC-4; pass when each body.due is 2025-09-01T12:00:00.000Z."
+   },
+   {
+    "id": "C17",
+    "text": "When dueTimes is omitted or false, HTTP ticket JSON omits due while store.get still has it (R-7, AD-7). Confirm by: W1-S7.js and TC-7; pass when POST 201 has no due key and store.get('T-0001').due is 2025-09-01T12:00:00.000Z."
+   },
+   {
+    "id": "C18",
+    "text": "POST and PATCH bodies that include due answer 400 unknown field: due and leave stored due unchanged (R-3, R-9). Confirm by: W1-S7.js and TC-3e; pass when both requests are 400 with that message."
+   },
+   {
+    "id": "C19",
+    "text": "createApp carries a contract docstring that HTTP due is projected iff dueTimes (R-4, AD-5). Confirm by: grep dueTimes or due in src/app.js; pass when the file names the flag or due."
+   },
+   {
+    "id": "C20",
+    "text": "GET /tickets?overdue=true lists active overdue tickets including F-5, limit 1 mixed dues is T-0002, overdue=false TRUE and 1 are 400, and with dueTimes false overdue=true matches GET /tickets (R-5, R-7, AD-3). Confirm by: W1-S8.js and TC-5 TC-5b TC-5c TC-5d; pass when F-5 overdue ids are [T-0001, T-0002, T-0004] then still those ids after T-0003 closed, priority=high is [T-0002], status=resolved is [], limit 1 mixed dues is [T-0002], and the invalid values are 400."
+   },
+   {
+    "id": "C21",
+    "text": "createApp documents GET overdue=true as an extra AND list (R-5). Confirm by: grep overdue in src/app.js; pass when overdue appears."
+   },
+   {
+    "id": "C22",
+    "text": "createService defaults missing dueTimes to false and hours to 4/24/72/168; a second life with loadConfig RESPONSE_HOURS_URGENT 2 and DUE_TIMES on keeps T-0001 at 12:00 and assigns T-0002 at 10:00 (R-2, R-7, AD-1, A7). Confirm by: W1-S9.js and TC-3c; pass when the first HTTP body omits due, T-0001 stays 12:00, and T-0002 is 10:00."
+   },
+   {
+    "id": "C23",
+    "text": "createService carries a contract docstring naming dueTimes and the hour settings (R-2, R-7). Confirm by: grep dueTimes in src/server.js; pass when dueTimes appears."
+   },
+   {
+    "id": "C24",
+    "text": "README.md, docs/api.md, and docs/operations.md name DUE_TIMES, RESPONSE_HOURS_*, HTTP due, overdue=true, and 1.4.0 rollback (R-2, R-4, R-5, R-7, R-8). Confirm by: grep those names in the three files; pass when each file contains DUE_TIMES and RESPONSE_HOURS, api.md contains overdue=true, and operations.md contains 1.4.0."
+   },
+   {
+    "id": "C25",
+    "text": "CHANGELOG.md has a due-times section naming DUE_TIMES (NFR-2, CONTRIBUTING Releases). Confirm by: grep DUE_TIMES in CHANGELOG.md; pass when DUE_TIMES appears."
+   },
+   {
+    "id": "C26",
+    "text": "package.json has no dependencies and its version is no longer 1.4.0 (NFR-4, AD-9). Confirm by: node -e reading package.json; pass when dependencies is absent and version is not 1.4.0."
+   },
+   {
+    "id": "C27",
+    "text": "Existing behaviour and the existing 117 test titles stay as they are (R-9). Confirm by: npm test; pass when the current 117 sentence-case titles still pass."
+   }
+  ],
+  "headline": "W1 step-plan: due times in config, store, persist, query, and HTTP; proved by TC- IDs, npm test, and node --check."
+ }
+]

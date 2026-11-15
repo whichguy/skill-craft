@@ -1,0 +1,230 @@
+{
+ "run": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-3",
+ "case": "ticket-due-times",
+ "host": "grok",
+ "model": "grok-4.6",
+ "effort": "xhigh",
+ "pass": false,
+ "versions": {
+  "source": "marketplace (resumed on its original install)",
+  "plugin_version": "2.37.4",
+  "shiploop_version": "1.34.3",
+  "plugin_sha256": "99a7db55c8dc",
+  "released": {
+   "origin_main": "b777f69480d6e9457ccd67f02257c2bde6a4146b",
+   "local_head": "57dfccdb250e4342565587f13f802a57eb62eaa5",
+   "local_behind_main": true,
+   "catalog_version": "2.37.4",
+   "shiploop_version": "1.34.3",
+   "unreleased": [],
+   "ci": "success"
+  },
+  "gate": []
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 4,
+  "resumes": 3,
+  "session_stops": [
+   "cancelled",
+   "cancelled",
+   "cancelled",
+   "cancelled"
+  ],
+  "resume_stop": "resumed host made no ShipLoop progress 3 times in a row (revision 40)",
+  "engine_status": "active",
+  "engine_stage": "release-plan",
+  "engine_unaccepted_stage": "release-plan",
+  "engine_status_reason": null,
+  "engine_blocked_by": null,
+  "engine_awaiting_kind": null,
+  "engine_awaiting_no_default": null
+ },
+ "span": {
+  "started": 1794674443.403,
+  "ended": 1794691782.503
+ },
+ "shiploop": {
+  "status": "active",
+  "stage": "release-plan",
+  "revision": 40,
+  "runs": 1
+ },
+ "history": [
+  {
+   "stage": "intake",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "discovery",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "research",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "spec",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "test-strategy",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "plan",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "prepare",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "step-plan",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "test-spec",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "validate-existing",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "carry-forward",
+   "outcome": "done",
+   "workitem": "W1",
+   "accepted": true
+  },
+  {
+   "stage": "system-test-author",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "system-test",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  },
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "workitem": null,
+   "accepted": true
+  }
+ ]
+}

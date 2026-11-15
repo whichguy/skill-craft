@@ -1,0 +1,225 @@
+[
+ {
+  "action": "nav-2e6c1b162fe24b3ebaee525a7befff14",
+  "result": {
+   "assumptions": [
+    {
+     "assumption": "DUE_TIMES is enabled by (value ?? '').trim() === 'on' (case-sensitive); unset, ON, and 1 are off.",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/architecture.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/spec.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/log-requests-flag.json"
+     ],
+     "id": "A1"
+    },
+    {
+     "assumption": "Hours env names are RESPONSE_HOURS_URGENT, RESPONSE_HOURS_HIGH, RESPONSE_HOURS_NORMAL, RESPONSE_HOURS_LOW via existing wholeNumber with defaults 4/24/72/168.",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/spec.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/src/config.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/architecture.md"
+     ],
+     "id": "A2"
+    },
+    {
+     "assumption": "Overdue includes now === due (Date.parse(clock.now()) >= Date.parse(due)).",
+     "check": "Date.parse comparison of now equal to urgent due, one ms before, and one ms after",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/hour-math.json"
+     ],
+     "id": "A3"
+    },
+    {
+     "assumption": "A later 1.4.0 write of a due-bearing version-1 file drops due; S8 requires start and show, not that 1.4.0 preserve due after it saves.",
+     "check": "1.4.0 seven-field ticketRecord save of a due-bearing version-1 file",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/rollback-save-due.json"
+     ],
+     "id": "A4"
+    },
+    {
+     "assumption": "HTTP is the due surface; CLI list, list --raw, and show stay the 1.4.0 columns and never print due.",
+     "check": "node bin/tickets.js --data FILE list, list --raw, and show on a due-bearing version-1 file",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/rollback-cli-due.json"
+     ],
+     "id": "A5"
+    },
+    {
+     "assumption": "TicketStore constructed with { clock } only uses default hours 4/24/72/168.",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/test/store.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/bin/tickets.js"
+     ],
+     "id": "A6"
+    },
+    {
+     "assumption": "createService defaults missing dueTimes to false and hours to 4/24/72/168 so TEST_SETTINGS HTTP bodies stay seven fields.",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/test/helpers.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/test/api.test.js"
+     ],
+     "id": "A7"
+    },
+    {
+     "assumption": "Existing files under test/ stay byte-identical; new coverage is test/due*.test.js only.",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/spec.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/request.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/baseline-npm-test.txt"
+     ],
+     "id": "A8"
+    }
+   ],
+   "concerns": {
+    "W1": [
+     {
+      "applies": "no",
+      "id": "ui",
+      "reason": "Request is HTTP JSON plus operator CLI; no page or screen; CLI format stays 1.4.0 (AD-5)."
+     },
+     {
+      "anchor": "R-4 R-5 AD-3 AD-5 AD-7",
+      "applies": "yes",
+      "decision": "HTTP ticket JSON gains due when DUE_TIMES is on; GET /tickets?overdue=true lists active overdue tickets.",
+      "id": "api",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "R-6 F-4",
+      "applies": "yes",
+      "decision": "Backfill writes neither audit nor outbox notification; existing ticket.created outbox stays as today.",
+      "id": "messaging",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "R-1 R-3 R-6 AD-4 AD-7",
+      "applies": "yes",
+      "decision": "Ticket.due is assigned once in TicketStore and persisted on version-1 JSON; PATCH and later hours do not move it.",
+      "id": "state",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "R-6 AD-6",
+      "applies": "yes",
+      "decision": "TicketStore.open with persistence assigns missing due from created and priority then saves so the file holds due before operators set the flag.",
+      "id": "migrate-before",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "migrate-after",
+      "reason": "No post-release schema contraction; due stays on version-1 tickets."
+     },
+     {
+      "anchor": "R-7 RB-4",
+      "applies": "yes",
+      "decision": "Operators set DUE_TIMES=on after the data file holds due; this run returns source only and does not deploy.",
+      "id": "switchover",
+      "owner_stage": "operations"
+     },
+     {
+      "applies": "no",
+      "id": "concurrency",
+      "reason": "One Node process already owns DATA_FILE (ADR 0008); overdue is a synchronous GET."
+     },
+     {
+      "applies": "no",
+      "id": "platform-services",
+      "reason": "No new platform service; reuse node:http, JSON file, and injectable clock."
+     },
+     {
+      "applies": "no",
+      "id": "scale",
+      "reason": "No volume or latency bound in the request; whole-file rewrite stays as ADR 0008."
+     },
+     {
+      "anchor": "R-3 R-9",
+      "applies": "yes",
+      "decision": "POST and PATCH body due stay 400 unknown field; no new auth; due has the same visibility as created.",
+      "id": "security",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "observability",
+      "reason": "No new due-time log; LOG_REQUESTS unchanged; backfill is not an audit line."
+     },
+     {
+      "anchor": "R-2 R-7 AD-1 AD-2",
+      "applies": "yes",
+      "decision": "loadConfig adds dueTimes from trimmed DUE_TIMES===on and RESPONSE_HOURS_* via wholeNumber with defaults 4/24/72/168.",
+      "id": "config",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "performance",
+      "reason": "No speed or resource bound in the request or existing contract."
+     },
+     {
+      "applies": "no",
+      "id": "accessibility",
+      "reason": "No graphical UI; CLI output must stay as today so restyling is out of scope."
+     }
+    ]
+   },
+   "evidence_refs": [
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/architecture.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/spec.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/environment.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/notes/nav-2e6c1b162fe24b3ebaee525a7befff14.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/plan-backchain-candidate.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/backchain/nav-2e6c1b162fe24b3ebaee525a7befff14/check-aa31abb6154d.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/notes/research.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/baseline-npm-test.txt",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/decisions/0008-json-data-file.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/results/nav-d03a77a652814337941f15390fe6542d.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/hour-math.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/rollback-save-due.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/rollback-cli-due.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/log-requests-flag.json"
+   ],
+   "headline": "One work item ships due times in existing CommonJS modules; R-1..R-10 and AD-1..AD-10 mapped.",
+   "outcome": "done",
+   "summary": "Backchain route: skipped native Backchain plan/draft child because the increment is one cohesive item, AD-1..AD-9 already accepted, and the in-host CLAIM/NEEDS/SUPPLY/PULL/RESOLVE audit plus shiploop backchain-check cover the graph; a native child would start another Until Loop without new suppliers. Check: valid complete, 10 steps, receipt RUN/backchain/nav-2e6c1b162fe24b3ebaee525a7befff14/check-aa31abb6154d.json. Queue: single W1 replaces the placeholder (tests/docs/deploy are INNER stages or operator-owned; baseline 117/117 is works). Design basis: keep 1.4.0 HTTP+CLI+version-1 JSON; add stored due, RESPONSE_HOURS_*, DUE_TIMES, HTTP due, overdue GET; TicketStore owns due; request/response only; crash before backfill save leaves the old file and the next open retries; source return, no deploy grant. AD-10 records one increment in existing CommonJS modules. Git history: ADR 0008 at 1fa6cfd requires ticketRecord to name every persisted field, so due is added there. Assumptions A1-A8 evidenced or probed; none open. Primary R-1..R-10 each in W1 follows. Improve pass 1: F-3 second life must pass DUE_TIMES=on through loadConfig (spread without it sets dueTimes false); overdue AND runs in store.list before paginate (TC-5 (i) limit=1 mixed dues); data document is { version, savedAt, nextNumber, tickets, audit, outbox.nextId } not root nextEventId.",
+   "work_items": [
+    {
+     "context": "Ready: discovery baseline npm test 117/117 at 1fa6cfd (RUN/scratch/baseline-npm-test.txt); classify works; validate-existing reruns npm test on unchanged product before edits. No foundation repair, no test-bootstrap, no env-prep item. Copied 1.4.0 ticketRecord and CLI spawn are planned INNER-test fixtures (environment.md Harnesses), not missing harnesses.\n\nDone: TC-1..TC-8 pass under quoted focused glob including TC-5 (i); npm test runs them with the existing 117 unmodified titles; package.json still has no dependencies and its version is bumped with the CHANGELOG section (CONTRIBUTING Releases); README, docs/operations.md, docs/api.md, CHANGELOG.md name DUE_TIMES, RESPONSE_HOURS_*, HTTP due, overdue=true, and 1.4.0 rollback; existing files under test/ including helpers.js stay byte-identical.\n\nScope: src/config.js (dueTimes, responseHoursUrgent|High|Normal|Low), src/store.js (assign, freeze, backfill-on-open then save, list extra AND before paginate), src/persistence.js ticketRecord/readTicket (due on version 1), src/tickets/query.js (optional overdue parse; one-arg return stays {filters, limit, after}), src/app.js (HTTP due iff dueTimes), src/server.js createService (defaults dueTimes false and hours 4/24/72/168; pass into store and app). New CommonJS files test/due*.test.js. Docs listed above. package.json version with CHANGELOG. Do not edit bin/tickets.js, src/format.js, scripts/weekly-report.js, or existing test/.\n\nSeam and format: tests require createService via withService from test/helpers.js (do not edit), TicketStore from src/store.js, loadConfig from src/config.js, parseListQuery from src/tickets/query.js, copied seven-field ticketRecord body at 1fa6cfd in a new test file. CommonJS 'use strict' named module.exports.\n\nProving: focused `node --test --test-name-pattern 'TC-' 'test/due*.test.js'`; smoke as environment.md Commands; full `npm test`. Hours env: const cfg = loadConfig({ RESPONSE_HOURS_URGENT: '2' }) then withService({ ...cfg, port: 0, workerIntervalMs: 0, clock }) because withService is { ...TEST_SETTINGS, ...config }. TC-7 (e) reads store.due while HTTP omits. TC-5 (h) closed omitted via isActive. TC-5 (i) GET /tickets?overdue=true&limit=1 after low T-0001 then urgent T-0002 at 08:00, clock 12:00, items ids [T-0002] (paginate-then-filter is []). TC-8 (f) CLI show never prints due. F-3 second life is { ...loadConfig({ RESPONSE_HOURS_URGENT: '2', DUE_TIMES: 'on' }), port: 0, workerIntervalMs: 0, dataFile, clock } with a new manualClock at 08:00 so spreading loadConfig cannot leave dueTimes false.\n\nAuthority: source-only workspace return to master; request named no deploy target; operators copy the release (docs/operations.md). Production DUE_TIMES=on after the file holds due is RB-4, operator-owned, unverified here. Correction: send-back / Improve / existing validate unknown-field 400.\n\nNamespaces: HTTP process, CLI process, operator DATA_FILE (architecture.md Structure). Data: extra ticket key due on version-1 document { version, savedAt, nextNumber, tickets, audit, outbox: { nextId, events } } (AD-4, ADR 0008 at 1fa6cfd); no root nextEventId.\n\nLocators: spec.md R-1..R-10 F-1..F-6 T-1..T-9 NFR-1..NFR-4; architecture.md AD-1..AD-10 RB-1..RB-4; environment.md Harnesses and Commands including TC-5 (i); research.md A1-A8; test-strategy result nav-d03a77a652814337941f15390fe6542d. Revalidate withService spread, parseListQuery one-arg, CREATED_FIELDS, overdue-before-paginate, and 117 titles before implement.\n\nGraph: RUN/scratch/plan-backchain-candidate.json S1 config || S2 assign || S3 persist || S5 query → S4 backfill || S6 list → S7 HTTP → S8 wiring → S9 tests / S10 docs. Check valid complete: RUN/backchain/nav-2e6c1b162fe24b3ebaee525a7befff14/check-aa31abb6154d.json.",
+     "follows": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4",
+      "R-5",
+      "R-6",
+      "R-7",
+      "R-8",
+      "R-9",
+      "R-10",
+      "AD-1",
+      "AD-2",
+      "AD-3",
+      "AD-4",
+      "AD-5",
+      "AD-6",
+      "AD-7",
+      "AD-8",
+      "AD-9",
+      "AD-10"
+     ],
+     "id": "W1",
+     "title": "Ship due times: assign, freeze, backfill, HTTP project, and overdue list behind DUE_TIMES"
+    }
+   ]
+  }
+ }
+]

@@ -1,0 +1,1173 @@
+{
+ "runs": [
+  {
+   "run": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1",
+   "case": "ticket-due-times",
+   "host": "grok",
+   "model": "grok-4.6",
+   "effort": "xhigh",
+   "pass": true,
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.37.4",
+    "shiploop_version": "1.34.3"
+   },
+   "shiploop_status": "done",
+   "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 12,
+    "resumes": 11,
+    "session_stops": [
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "end_turn"
+    ],
+    "resume_stop": "ShipLoop run is done",
+    "engine_status": "done",
+    "engine_stage": "done",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+   },
+   "validity": {
+    "EADDRINUSE": 0,
+    "port_4180_start": 6
+   },
+   "plan_action": "nav-ff849af152f949388c660987a32bc5db",
+   "replans": [],
+   "work_items": [
+    {
+     "id": "W1",
+     "title": "Due times: persist, project HTTP, overdue listing, hours env, and 1.4.0-safe version 1"
+    }
+   ],
+   "M1_rows": {
+    "migrate-before": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "On start, backfill missing due from stored created plus current hours, then save() when DATA_FILE is set, so the file holds dues before operators set DUE_TIMES=on",
+       "anchor": "R-7 AD-3"
+      }
+     ]
+    },
+    "migrate-after": {
+     "applies": false,
+     "rows": []
+    },
+    "switchover": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "Persist due while DUE_TIMES is unset; only exact on changes HTTP; operators enable after the file holds dues; rollback is running 1.4.0 on the same file",
+       "anchor": "R-8 R-9 AD-1"
+      }
+     ]
+    },
+    "state": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "TicketStore owns due on the ticket; persist always; HTTP is a projection; overdue is derived at read from stored due, status, and clock",
+       "anchor": "AD-1 AD-3 R-2 R-4"
+      }
+     ]
+    },
+    "config": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW via wholeNumber defaults 4/24/72/168 including 0; DUE_TIMES exact on; omitted TEST_SETTINGS keys stay off and default hours",
+       "anchor": "R-3 R-8 AD-2"
+      }
+     ]
+    }
+   },
+   "M2_order": {
+    "items": [
+     "W1"
+    ],
+    "migration_items": [
+     "W1"
+    ],
+    "migration_basis": "migrate-before rows",
+    "feature_items": [
+     "W1"
+    ],
+    "verdict": "same",
+    "steps": [
+     "S1",
+     "S2",
+     "S3",
+     "S4",
+     "S5",
+     "S6",
+     "S7",
+     "S8",
+     "S9"
+    ],
+    "first_migration_step": "S5",
+    "first_overdue_step": "S7",
+    "migration_step_first": true,
+    "held": true
+   },
+   "M3_release_last": {
+    "verdict": "last",
+    "rows": [
+     {
+      "item": "W1",
+      "owner_stage": "step-plan",
+      "decision": "Persist due while DUE_TIMES is unset; only exact on changes HTTP; operators enable after the file holds dues; rollback is running 1.4.0 on the same file",
+      "anchor": "R-8 R-9 AD-1"
+     }
+    ],
+    "last_item": "W1"
+   },
+   "M4_rollback": {
+    "reached": true,
+    "action": "nav-1f466023913745be9ab4ec7e91029f07",
+    "planned": true,
+    "data_aware": false,
+    "rollback_segments": [
+     "Rollback (repository root): git reset --keep 499974b39fcf4ed962432a1a65793308eb1cecd2.",
+     "With later commits: git restore --source=499974b39fcf4ed962432a1a65793308eb1cecd2 --staged --worktree :/ && git commit -m 'Roll back the ShipLoop return'.",
+     "Standing procedure in KNOWLEDGE/environment.md ## Commands ### Deploy ### Dry-run ### Rollback ### Confirm and ## Harnesses and suites ### Release checks."
+    ],
+    "data_aware_segments": []
+   },
+   "M5_docs_in_plan": {
+    "named": [
+     "CHANGELOG.md",
+     "README.md",
+     "docs/api.md",
+     "docs/decisions/",
+     "docs/operations.md"
+    ],
+    "any": true,
+    "excerpts": {
+     "README.md": [
+      "Scope: src/config.js, src/store.js, src/persistence.js, src/app.js, src/server.js (pass hours into TicketStore.open and dueTimes into createApp), src/tickets/query.js, test/due-times.test.js, fixtures/persistence-1.4.0.js, docs/api.md, docs/operations.md, README.md, CHANGELOG.md, package.json."
+     ],
+     "docs/operations.md": [
+      "Scope: src/config.js, src/store.js, src/persistence.js, src/app.js, src/server.js (pass hours into TicketStore.open and dueTimes into createApp), src/tickets/query.js, test/due-times.test.js, fixtures/persistence-1.4.0.js, docs/api.md, docs/operations.md, README.md, CHANGELOG.md, package.json."
+     ],
+     "docs/api.md": [
+      "Scope: src/config.js, src/store.js, src/persistence.js, src/app.js, src/server.js (pass hours into TicketStore.open and dueTimes into createApp), src/tickets/query.js, test/due-times.test.js, fixtures/persistence-1.4.0.js, docs/api.md, docs/operations.md, README.md, CHANGELOG.md, package.json."
+     ],
+     "CHANGELOG.md": [
+      "Done: loadConfig dueTimes plus RESPONSE_HOURS_* (defaults 4/24/72/168, wholeNumber including 0); TicketStore.create assigns due; open backfills missing due then save() when DATA_FILE set, no audit or updated change; PATCH, transition, and hours restart leave due; persistence version 1 extra due ISO field; createApp projector omits due unless dueTimes==='on' (DT-1 Object.keys exactly id,title,priority,requester,status,created,updated while flag off); overdue extra AND on ACTIVE and now>due; flag-off GET ?overdue=true at C0 lists the not-yet-due ticket (query ignored); flag-on overdue=false/1/TRUE/empty is 400; parseListQuery default return stays { filters, limit, after } when overdue is absent (test/query.test.js); CLI RAW_COLUMNS/details and CREATED_FIELDS unchanged; frozen 1.4.0 loader lists both tickets without due; test/due-times.test.js prints DT-1 through DT-33 including DT-4 (b), DT-4 (c), and DT-6 (a)\u2013(d); npm test passes; existing test files unmodified; package.json and CHANGELOG.md 1.5.0.",
+      "Scope: src/config.js, src/store.js, src/persistence.js, src/app.js, src/server.js (pass hours into TicketStore.open and dueTimes into createApp), src/tickets/query.js, test/due-times.test.js, fixtures/persistence-1.4.0.js, docs/api.md, docs/operations.md, README.md, CHANGELOG.md, package.json."
+     ],
+     "docs/decisions/": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/decisions/0008-json-data-file.md",
+      "Reopen KNOWLEDGE/spec.md R-1..R-11, KNOWLEDGE/architecture.md AD-1..AD-8 and ## Structure, KNOWLEDGE/environment.md ## Harnesses and suites, docs/decisions/0008-json-data-file.md."
+     ]
+    }
+   },
+   "M6_setup_in_plan": {
+    "names_DUE_TIMES": true,
+    "hours_setting": true,
+    "held": true,
+    "excerpts": [
+     {
+      "segment": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-hours-undefined.json",
+      "names": [],
+      "files": [
+       "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-hours-undefined.json"
+      ]
+     },
+     {
+      "segment": "RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW via wholeNumber defaults 4/24/72/168 including 0; DUE_TIMES exact on; omitted TEST_SETTINGS keys stay off and default hours",
+      "names": [
+       "RESPONSE_HOURS_URGENT",
+       "TEST_SETTINGS"
+      ],
+      "files": []
+     },
+     {
+      "segment": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-hours-undefined.json",
+      "names": [],
+      "files": [
+       "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-hours-undefined.json"
+      ]
+     },
+     {
+      "segment": "Done: loadConfig dueTimes plus RESPONSE_HOURS_* (defaults 4/24/72/168, wholeNumber including 0); TicketStore.create assigns due; open backfills missing due then save() when DATA_FILE set, no audit or updated change; PATCH, transition, and hours restart leave due; persistence version 1 extra due ISO field; createApp projector omits due unless dueTimes==='on' (DT-1 Object.keys exactly id,title,prior",
+      "names": [
+       "CREATED_FIELDS",
+       "RAW_COLUMNS"
+      ],
+      "files": []
+     }
+    ]
+   },
+   "M7_checks": {
+    "ran": true,
+    "checks": {
+     "suite": {
+      "pass": true,
+      "output": "the delivery's own node --test passes 155 tests, the base's 117 and 38 more\n"
+     },
+     "pristine": {
+      "pass": true,
+      "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n"
+     },
+     "migrate": {
+      "pass": true,
+      "output": "migrate: every expectation holds\n"
+     },
+     "restart": {
+      "pass": true,
+      "output": "restart: every expectation holds\n"
+     },
+     "switch": {
+      "pass": true,
+      "output": "switch: every expectation holds\n"
+     },
+     "rollback": {
+      "pass": true,
+      "output": "rollback: every expectation holds\n"
+     },
+     "off": {
+      "pass": true,
+      "output": "off: every expectation holds\n"
+     },
+     "cli": {
+      "pass": true,
+      "output": "cli: every expectation holds\n"
+     }
+    }
+   },
+   "M9_setup_product": {
+    "new_settings": [
+     "RESPONSE_HOURS_HIGH",
+     "RESPONSE_HOURS_LOW",
+     "RESPONSE_HOURS_NORMAL",
+     "RESPONSE_HOURS_URGENT"
+    ],
+    "new_config_files": [],
+    "reads_DUE_TIMES": true,
+    "has_setting": true,
+    "miss": false
+   },
+   "M8_docs_product": {
+    "D1_readme_DUE_TIMES": true,
+    "D2_readme_settings": true,
+    "D2_wanted": [
+     "RESPONSE_HOURS_HIGH",
+     "RESPONSE_HOURS_LOW",
+     "RESPONSE_HOURS_NORMAL",
+     "RESPONSE_HOURS_URGENT"
+    ],
+    "D3_operator_procedure": true,
+    "D3_switch_segments": [
+     "| `DUE_TIMES` | off | exactly `on` adds `due` to HTTP ticket JSON and honours `GET /tickets?overdue=true`; any other value leaves HTTP as 1.4.0 |",
+     "- Fill those dues before turning HTTP due times on: start 1.5.0 with `DUE_TIMES` unset so the file holds `due`, then",
+     "restart with `DUE_TIMES=on`."
+    ],
+    "D3_back_segments": [
+     "| `DUE_TIMES` | off | exactly `on` adds `due` to HTTP ticket JSON and honours `GET /tickets?overdue=true`; any other value leaves HTTP as 1.4.0 |",
+     "Unset, empty, `1`, `true`, and `ON` leave HTTP as 1.4.0; stored dues stay.",
+     "- To roll back, run 1.4.0 on the same file.",
+     "A 1.4.0 save rewrites without"
+    ],
+    "D4_changelog_and_version": true,
+    "D5_new_decision_records": [],
+    "D6_api_due_overdue": true,
+    "miss": false
+   },
+   "binding": {
+    "migrate-before": {
+     "a_applies": true,
+     "b_acted": true,
+     "c_product": true,
+     "binds": true,
+     "owners": [
+      {
+       "item": "W1",
+       "owner": "step-plan",
+       "acted": true,
+       "how": "mapped to steps"
+      }
+     ],
+     "product_checks": {
+      "migrate": true,
+      "restart": true,
+      "switch": true
+     }
+    },
+    "switchover": {
+     "a_applies": true,
+     "b_acted": true,
+     "c_product": true,
+     "binds": true,
+     "owners": [
+      {
+       "item": "W1",
+       "owner": "step-plan",
+       "acted": true,
+       "how": "mapped to steps"
+      }
+     ],
+     "product_checks": {
+      "off": true,
+      "rollback": true
+     }
+    }
+   }
+  },
+  {
+   "run": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-2",
+   "case": "ticket-due-times",
+   "host": "grok",
+   "model": "grok-4.6",
+   "effort": "xhigh",
+   "pass": true,
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.37.4",
+    "shiploop_version": "1.34.3"
+   },
+   "shiploop_status": "done",
+   "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 6,
+    "resumes": 5,
+    "session_stops": [
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "end_turn"
+    ],
+    "resume_stop": "ShipLoop run is done",
+    "engine_status": "done",
+    "engine_stage": "done",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+   },
+   "validity": {
+    "EADDRINUSE": 0,
+    "port_4180_start": 0
+   },
+   "plan_action": "nav-c03f512203f2498d8ebc00c6f929a7c5",
+   "replans": [],
+   "work_items": [
+    {
+     "id": "W1",
+     "title": "Implement due times (config, store, persistence, query, app, server, tests, operator docs)"
+    }
+   ],
+   "M1_rows": {
+    "migrate-before": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "On load, assign missing due from stored created plus current hours and save once when persistence is set, while DUE_TIMES is still off",
+       "anchor": "R-9 AD-2"
+      }
+     ]
+    },
+    "migrate-after": {
+     "applies": false,
+     "rows": []
+    },
+    "switchover": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "Operators set DUE_TIMES=on only after the production file holds due; rollback is 1.4.0 on that same version-1 file",
+       "anchor": "R-10 R-11 AD-2"
+      }
+     ]
+    },
+    "state": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "TicketStore owns due as an ISO 8601 UTC string assigned once and copied through PATCH, transition, reopen, and restart",
+       "anchor": "R-6 AD-3"
+      }
+     ]
+    },
+    "config": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "DUE_TIMES exact on; DUE_HOURS_* via wholeNumber min 0 with defaults 4/24/72/168; omitted createService keys stay off/defaults",
+       "anchor": "R-5 R-10 AD-2 NFR-3"
+      }
+     ]
+    }
+   },
+   "M2_order": {
+    "items": [
+     "W1"
+    ],
+    "migration_items": [
+     "W1"
+    ],
+    "migration_basis": "migrate-before rows",
+    "feature_items": [
+     "W1"
+    ],
+    "verdict": "same",
+    "steps": [
+     "S1",
+     "S2",
+     "S3",
+     "S4",
+     "S5",
+     "S6",
+     "S7",
+     "S8"
+    ],
+    "first_migration_step": "S8",
+    "first_overdue_step": "S2",
+    "migration_step_first": false,
+    "held": false
+   },
+   "M3_release_last": {
+    "verdict": "last",
+    "rows": [
+     {
+      "item": "W1",
+      "owner_stage": "step-plan",
+      "decision": "Operators set DUE_TIMES=on only after the production file holds due; rollback is 1.4.0 on that same version-1 file",
+      "anchor": "R-10 R-11 AD-2"
+     }
+    ],
+    "last_item": "W1"
+   },
+   "M4_rollback": {
+    "reached": true,
+    "action": "nav-964d9fce57ae4b35bb2e5f8c8d703f5d",
+    "planned": true,
+    "data_aware": true,
+    "rollback_segments": [
+     "Source-only 1.5.0 return onto master planned; production enable and live 1.4.0 rollback stay with operators.",
+     "Rollback (repository root, master checked out; never this workspace's absolute paths):",
+     "- Later commits on top (clean tree): git restore --source=18e410479ec5982a3af2026352cde606b97d53c0 --staged --worktree :/ && git commit -m 'Roll back the ShipLoop return'"
+    ],
+    "data_aware_segments": [
+     "Source-only 1.5.0 return onto master planned; production enable and live 1.4.0 rollback stay with operators."
+    ]
+   },
+   "M5_docs_in_plan": {
+    "named": [
+     "CHANGELOG.md",
+     "README.md",
+     "docs/api.md",
+     "docs/operations.md",
+     "the word documentation"
+    ],
+    "any": true,
+    "excerpts": {
+     "README.md": [
+      "Done: TC-5\u2013TC-11, TC-21\u2013TC-34, TC-36 pass; existing 117 pass on unchanged test files versus 18e410479ec5982a3af2026352cde606b97d53c0; DUE_TIMES off omits due and ignores overdue; DATA_FILE version remains 1; inlined 1.4.0 keys load every ticket from a file this release wrote; README/CHANGELOG/docs/api.md/docs/operations.md name DUE_HOURS_*, DUE_TIMES=on after backfill, and rollback to 1.4.0.",
+      "Confirm by: npm test exit 0; node --test test/due-api.test.js test/due-config.test.js test/due-store.test.js test/due-persistence.test.js test/due-query.test.js test/due-cli.test.js exit 0; git diff 18e410479ec5982a3af2026352cde606b97d53c0 -- test/api.test.js test/store.test.js test/persistence.test.js test/query.test.js test/config.test.js test/helpers.js empty; grep DUE_TIMES DUE_HOURS due in README.md CHANGELOG.md docs/api.md docs/operations.md.",
+      "Scope: src/config.js, src/store.js, src/persistence.js, src/tickets/query.js, src/app.js, src/server.js, test/due-api.test.js, test/due-config.test.js, test/due-store.test.js, test/due-persistence.test.js, test/due-query.test.js, test/due-cli.test.js, README.md, CHANGELOG.md, docs/api.md, docs/operations.md."
+     ],
+     "docs/operations.md": [
+      "One Node process; store mutations are sequential (docs/operations.md)",
+      "Done: TC-5\u2013TC-11, TC-21\u2013TC-34, TC-36 pass; existing 117 pass on unchanged test files versus 18e410479ec5982a3af2026352cde606b97d53c0; DUE_TIMES off omits due and ignores overdue; DATA_FILE version remains 1; inlined 1.4.0 keys load every ticket from a file this release wrote; README/CHANGELOG/docs/api.md/docs/operations.md name DUE_HOURS_*, DUE_TIMES=on after backfill, and rollback to 1.4.0.",
+      "Confirm by: npm test exit 0; node --test test/due-api.test.js test/due-config.test.js test/due-store.test.js test/due-persistence.test.js test/due-query.test.js test/due-cli.test.js exit 0; git diff 18e410479ec5982a3af2026352cde606b97d53c0 -- test/api.test.js test/store.test.js test/persistence.test.js test/query.test.js test/config.test.js test/helpers.js empty; grep DUE_TIMES DUE_HOURS due in README.md CHANGELOG.md docs/api.md docs/operations.md."
+     ],
+     "docs/api.md": [
+      "Done: TC-5\u2013TC-11, TC-21\u2013TC-34, TC-36 pass; existing 117 pass on unchanged test files versus 18e410479ec5982a3af2026352cde606b97d53c0; DUE_TIMES off omits due and ignores overdue; DATA_FILE version remains 1; inlined 1.4.0 keys load every ticket from a file this release wrote; README/CHANGELOG/docs/api.md/docs/operations.md name DUE_HOURS_*, DUE_TIMES=on after backfill, and rollback to 1.4.0.",
+      "Confirm by: npm test exit 0; node --test test/due-api.test.js test/due-config.test.js test/due-store.test.js test/due-persistence.test.js test/due-query.test.js test/due-cli.test.js exit 0; git diff 18e410479ec5982a3af2026352cde606b97d53c0 -- test/api.test.js test/store.test.js test/persistence.test.js test/query.test.js test/config.test.js test/helpers.js empty; grep DUE_TIMES DUE_HOURS due in README.md CHANGELOG.md docs/api.md docs/operations.md.",
+      "Scope: src/config.js, src/store.js, src/persistence.js, src/tickets/query.js, src/app.js, src/server.js, test/due-api.test.js, test/due-config.test.js, test/due-store.test.js, test/due-persistence.test.js, test/due-query.test.js, test/due-cli.test.js, README.md, CHANGELOG.md, docs/api.md, docs/operations.md."
+     ],
+     "CHANGELOG.md": [
+      "Done: TC-5\u2013TC-11, TC-21\u2013TC-34, TC-36 pass; existing 117 pass on unchanged test files versus 18e410479ec5982a3af2026352cde606b97d53c0; DUE_TIMES off omits due and ignores overdue; DATA_FILE version remains 1; inlined 1.4.0 keys load every ticket from a file this release wrote; README/CHANGELOG/docs/api.md/docs/operations.md name DUE_HOURS_*, DUE_TIMES=on after backfill, and rollback to 1.4.0.",
+      "Confirm by: npm test exit 0; node --test test/due-api.test.js test/due-config.test.js test/due-store.test.js test/due-persistence.test.js test/due-query.test.js test/due-cli.test.js exit 0; git diff 18e410479ec5982a3af2026352cde606b97d53c0 -- test/api.test.js test/store.test.js test/persistence.test.js test/query.test.js test/config.test.js test/helpers.js empty; grep DUE_TIMES DUE_HOURS due in README.md CHANGELOG.md docs/api.md docs/operations.md.",
+      "Scope: src/config.js, src/store.js, src/persistence.js, src/tickets/query.js, src/app.js, src/server.js, test/due-api.test.js, test/due-config.test.js, test/due-store.test.js, test/due-persistence.test.js, test/due-query.test.js, test/due-cli.test.js, README.md, CHANGELOG.md, docs/api.md, docs/operations.md."
+     ],
+     "the word documentation": [
+      "No volume, latency, or quota bound in the request or existing docs",
+      "Internal suppliers: S1 config \u2192 S3 store; S2 persistence \u2192 S3; S4 query \u2192 S5 HTTP; S3+S5 \u2192 S6 wiring \u2192 S7 tests and S8 docs.",
+      "Internal implement order (Backchain S1\u2013S8, candidate RUN/scratch/plan-backchain-candidate.json): S1 loadConfig dueTimes/dueHours \u2192 S2 ticketRecord due version 1 \u2192 S3 TicketStore assign once \u2192 S4 parseListQuery overdue \u2192 S5 createApp present/strip/overdue \u2192 S6 createService wires dueTimes and dueHours \u2192 S7 npm test + TC-* \u2192 S8 operator docs."
+     ]
+    }
+   },
+   "M6_setup_in_plan": {
+    "names_DUE_TIMES": true,
+    "hours_setting": true,
+    "held": true,
+    "excerpts": [
+     {
+      "segment": "Hour environment names are DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW with defaults 4, 24, 72, 168",
+      "names": [
+       "DUE_HOURS_HIGH",
+       "DUE_HOURS_LOW",
+       "DUE_HOURS_NORMAL",
+       "DUE_HOURS_URGENT"
+      ],
+      "files": []
+     },
+     {
+      "segment": "Confirm by: npm test exit 0; node --test test/due-api.test.js test/due-config.test.js test/due-store.test.js test/due-persistence.test.js test/due-query.test.js test/due-cli.test.js exit 0; git diff 18e410479ec5982a3af2026352cde606b97d53c0 -- test/api.test.js test/store.test.js test/persistence.test.js test/query.test.js test/config.test.js test/helpers.js empty; grep DUE_TIMES DUE_HOURS due in RE",
+      "names": [
+       "DUE_HOURS"
+      ],
+      "files": []
+     },
+     {
+      "segment": "Internal implement order (Backchain S1\u2013S8, candidate RUN/scratch/plan-backchain-candidate.json): S1 loadConfig dueTimes/dueHours \u2192 S2 ticketRecord due version 1 \u2192 S3 TicketStore assign once \u2192 S4 parseListQuery overdue \u2192 S5 createApp present/strip/overdue \u2192 S6 createService wires dueTimes and dueHours \u2192 S7 npm test + TC-* \u2192 S8 operator docs.",
+      "names": [],
+      "files": [
+       "RUN/scratch/plan-backchain-candidate.json"
+      ]
+     },
+     {
+      "segment": "R-5 hours/config TC-5/TC-21/TC-22/TC-34/TC-36: `const clock = manualClock('2025-09-01T08:00:00.000Z'); await withService({ dueTimes: true, clock }, \u2026)`; POST `{ \"title\": \"VPN drops every hour\", \"requester\": \"maria@example.com\", \"priority\": \"urgent\" }` due `2025-09-01T12:00:00.000Z`; high `2025-09-02T08:00:00.000Z`; normal `2025-09-04T08:00:00.000Z`; low `2025-09-08T08:00:00.000Z`; `loadConfig({ DU",
+      "names": [
+       "DUE_HOURS_HIGH",
+       "DUE_HOURS_LOW",
+       "DUE_HOURS_NORMAL",
+       "DUE_HOURS_URGENT"
+      ],
+      "files": []
+     },
+     {
+      "segment": "New names: dueTimes, dueHours, due, overdue, DUE_TIMES, DUE_HOURS_URGENT|HIGH|NORMAL|LOW.",
+      "names": [
+       "DUE_HOURS_URGENT"
+      ],
+      "files": []
+     },
+     {
+      "segment": "Content check at INNER document: grep of DUE_TIMES, DUE_HOURS_URGENT, due in README.md CHANGELOG.md docs/api.md docs/operations.md.",
+      "names": [
+       "DUE_HOURS_URGENT"
+      ],
+      "files": []
+     }
+    ]
+   },
+   "M7_checks": {
+    "ran": true,
+    "checks": {
+     "suite": {
+      "pass": true,
+      "output": "the delivery's own node --test passes 146 tests, the base's 117 and 29 more\n"
+     },
+     "pristine": {
+      "pass": true,
+      "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n"
+     },
+     "migrate": {
+      "pass": true,
+      "output": "migrate: every expectation holds\n"
+     },
+     "restart": {
+      "pass": true,
+      "output": "restart: every expectation holds\n"
+     },
+     "switch": {
+      "pass": true,
+      "output": "switch: every expectation holds\n"
+     },
+     "rollback": {
+      "pass": true,
+      "output": "rollback: every expectation holds\n"
+     },
+     "off": {
+      "pass": true,
+      "output": "off: every expectation holds\n"
+     },
+     "cli": {
+      "pass": true,
+      "output": "cli: every expectation holds\n"
+     }
+    }
+   },
+   "M9_setup_product": {
+    "new_settings": [
+     "DUE_HOURS_HIGH",
+     "DUE_HOURS_LOW",
+     "DUE_HOURS_NORMAL",
+     "DUE_HOURS_URGENT"
+    ],
+    "new_config_files": [],
+    "reads_DUE_TIMES": true,
+    "has_setting": true,
+    "miss": false
+   },
+   "M8_docs_product": {
+    "D1_readme_DUE_TIMES": true,
+    "D2_readme_settings": true,
+    "D2_wanted": [
+     "DUE_HOURS_HIGH",
+     "DUE_HOURS_LOW",
+     "DUE_HOURS_NORMAL",
+     "DUE_HOURS_URGENT"
+    ],
+    "D3_operator_procedure": true,
+    "D3_switch_segments": [
+     "| `DUE_TIMES` | off | exact `on` includes `due` on ticket JSON and honours `GET /tickets?overdue=true`; any other value is off.",
+     "Set `DUE_TIMES=on` only after the data file already holds due |",
+     "[docs/operations.md](docs/operations.md) covers the data file, the worker, due times (`DUE_TIMES=on` after the file holds due, and rollback to 1.4.0), and what to do with dead notifications.",
+     "Start this release with `DATA_FILE` set and `DUE_TIMES` unset."
+    ],
+    "D3_back_segments": [
+     "[docs/operations.md](docs/operations.md) covers the data file, the worker, due times (`DUE_TIMES=on` after the file holds due, and rollback to 1.4.0), and what to do with dead notifications.",
+     "Until `DUE_TIMES=on`, HTTP answers match 1.4.0.",
+     "**Rollback to 1.4.0.** Install release 1.4.0 on the same `DATA_FILE`.",
+     "1.4.0 still starts, drops `due`, and shows every"
+    ],
+    "D4_changelog_and_version": true,
+    "D5_new_decision_records": [],
+    "D6_api_due_overdue": true,
+    "miss": false
+   },
+   "binding": {
+    "migrate-before": {
+     "a_applies": true,
+     "b_acted": true,
+     "c_product": true,
+     "binds": true,
+     "owners": [
+      {
+       "item": "W1",
+       "owner": "step-plan",
+       "acted": true,
+       "how": "mapped to steps"
+      }
+     ],
+     "product_checks": {
+      "migrate": true,
+      "restart": true,
+      "switch": true
+     }
+    },
+    "switchover": {
+     "a_applies": true,
+     "b_acted": true,
+     "c_product": true,
+     "binds": true,
+     "owners": [
+      {
+       "item": "W1",
+       "owner": "step-plan",
+       "acted": true,
+       "how": "mapped to steps"
+      }
+     ],
+     "product_checks": {
+      "off": true,
+      "rollback": true
+     }
+    }
+   }
+  },
+  {
+   "run": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4",
+   "case": "ticket-due-times",
+   "host": "grok",
+   "model": "grok-4.6",
+   "effort": "xhigh",
+   "pass": true,
+   "versions": {
+    "source": "marketplace",
+    "plugin_version": "2.37.4",
+    "shiploop_version": "1.34.3"
+   },
+   "shiploop_status": "done",
+   "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 5,
+    "resumes": 4,
+    "session_stops": [
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "cancelled",
+     "end_turn"
+    ],
+    "resume_stop": "ShipLoop run is done",
+    "engine_status": "done",
+    "engine_stage": "done",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+   },
+   "validity": {
+    "EADDRINUSE": 0,
+    "port_4180_start": 1
+   },
+   "plan_action": "nav-2e6c1b162fe24b3ebaee525a7befff14",
+   "replans": [],
+   "work_items": [
+    {
+     "id": "W1",
+     "title": "Ship due times: assign, freeze, backfill, HTTP project, and overdue list behind DUE_TIMES"
+    }
+   ],
+   "M1_rows": {
+    "migrate-before": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "TicketStore.open with persistence assigns missing due from created and priority then saves so the file holds due before operators set the flag.",
+       "anchor": "R-6 AD-6"
+      }
+     ]
+    },
+    "migrate-after": {
+     "applies": false,
+     "rows": []
+    },
+    "switchover": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "operations",
+       "decision": "Operators set DUE_TIMES=on after the data file holds due; this run returns source only and does not deploy.",
+       "anchor": "R-7 RB-4"
+      }
+     ]
+    },
+    "state": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "Ticket.due is assigned once in TicketStore and persisted on version-1 JSON; PATCH and later hours do not move it.",
+       "anchor": "R-1 R-3 R-6 AD-4 AD-7"
+      }
+     ]
+    },
+    "config": {
+     "applies": true,
+     "rows": [
+      {
+       "item": "W1",
+       "owner_stage": "step-plan",
+       "decision": "loadConfig adds dueTimes from trimmed DUE_TIMES===on and RESPONSE_HOURS_* via wholeNumber with defaults 4/24/72/168.",
+       "anchor": "R-2 R-7 AD-1 AD-2"
+      }
+     ]
+    }
+   },
+   "M2_order": {
+    "items": [
+     "W1"
+    ],
+    "migration_items": [
+     "W1"
+    ],
+    "migration_basis": "migrate-before rows",
+    "feature_items": [
+     "W1"
+    ],
+    "verdict": "same",
+    "steps": [
+     "S1",
+     "S2",
+     "S3",
+     "S4",
+     "S5",
+     "S6",
+     "S7",
+     "S8",
+     "S9",
+     "S10",
+     "S11"
+    ],
+    "first_migration_step": null,
+    "first_overdue_step": "S6",
+    "migration_step_first": false,
+    "held": false
+   },
+   "M3_release_last": {
+    "verdict": "last",
+    "rows": [
+     {
+      "item": "W1",
+      "owner_stage": "operations",
+      "decision": "Operators set DUE_TIMES=on after the data file holds due; this run returns source only and does not deploy.",
+      "anchor": "R-7 RB-4"
+     }
+    ],
+    "last_item": "W1"
+   },
+   "M4_rollback": {
+    "reached": true,
+    "action": "nav-78412cdc0cf84b16b6c9b394df9a5d4c",
+    "planned": true,
+    "data_aware": true,
+    "rollback_segments": [
+     "Rollback with master checked out and nothing on top: git reset --keep 1fa6cfd1a93eccf2879bd2f88acdd72c0635c29d.",
+     "Product rollback: docs/operations.md 1.4.0."
+    ],
+    "data_aware_segments": [
+     "Product rollback: docs/operations.md 1.4.0."
+    ]
+   },
+   "M5_docs_in_plan": {
+    "named": [
+     "CHANGELOG.md",
+     "README.md",
+     "docs/api.md",
+     "docs/decisions/",
+     "docs/operations.md",
+     "the word documentation"
+    ],
+    "any": true,
+    "excerpts": {
+     "README.md": [
+      "Done: TC-1..TC-8 pass under quoted focused glob including TC-5 (i); npm test runs them with the existing 117 unmodified titles; package.json still has no dependencies and its version is bumped with the CHANGELOG section (CONTRIBUTING Releases); README, docs/operations.md, docs/api.md, CHANGELOG.md name DUE_TIMES, RESPONSE_HOURS_*, HTTP due, overdue=true, and 1.4.0 rollback; existing files under test/ including helpers.js stay byte-identical."
+     ],
+     "docs/operations.md": [
+      "Done: TC-1..TC-8 pass under quoted focused glob including TC-5 (i); npm test runs them with the existing 117 unmodified titles; package.json still has no dependencies and its version is bumped with the CHANGELOG section (CONTRIBUTING Releases); README, docs/operations.md, docs/api.md, CHANGELOG.md name DUE_TIMES, RESPONSE_HOURS_*, HTTP due, overdue=true, and 1.4.0 rollback; existing files under test/ including helpers.js stay byte-identical.",
+      "Authority: source-only workspace return to master; request named no deploy target; operators copy the release (docs/operations.md)."
+     ],
+     "docs/api.md": [
+      "Done: TC-1..TC-8 pass under quoted focused glob including TC-5 (i); npm test runs them with the existing 117 unmodified titles; package.json still has no dependencies and its version is bumped with the CHANGELOG section (CONTRIBUTING Releases); README, docs/operations.md, docs/api.md, CHANGELOG.md name DUE_TIMES, RESPONSE_HOURS_*, HTTP due, overdue=true, and 1.4.0 rollback; existing files under test/ including helpers.js stay byte-identical."
+     ],
+     "CHANGELOG.md": [
+      "Done: TC-1..TC-8 pass under quoted focused glob including TC-5 (i); npm test runs them with the existing 117 unmodified titles; package.json still has no dependencies and its version is bumped with the CHANGELOG section (CONTRIBUTING Releases); README, docs/operations.md, docs/api.md, CHANGELOG.md name DUE_TIMES, RESPONSE_HOURS_*, HTTP due, overdue=true, and 1.4.0 rollback; existing files under test/ including helpers.js stay byte-identical.",
+      "package.json version with CHANGELOG."
+     ],
+     "docs/decisions/": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/decisions/0008-json-data-file.md"
+     ],
+     "the word documentation": [
+      "Docs listed above.",
+      "Graph: RUN/scratch/plan-backchain-candidate.json S1 config || S2 assign || S3 persist || S5 query \u2192 S4 backfill || S6 list \u2192 S7 HTTP \u2192 S8 wiring \u2192 S9 tests / S10 docs."
+     ]
+    }
+   },
+   "M6_setup_in_plan": {
+    "names_DUE_TIMES": true,
+    "hours_setting": true,
+    "held": true,
+    "excerpts": [
+     {
+      "segment": "Hours env names are RESPONSE_HOURS_URGENT, RESPONSE_HOURS_HIGH, RESPONSE_HOURS_NORMAL, RESPONSE_HOURS_LOW via existing wholeNumber with defaults 4/24/72/168.",
+      "names": [
+       "RESPONSE_HOURS_HIGH",
+       "RESPONSE_HOURS_LOW",
+       "RESPONSE_HOURS_NORMAL",
+       "RESPONSE_HOURS_URGENT"
+      ],
+      "files": []
+     },
+     {
+      "segment": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/hour-math.json",
+      "names": [],
+      "files": [
+       "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/hour-math.json"
+      ]
+     },
+     {
+      "segment": "createService defaults missing dueTimes to false and hours to 4/24/72/168 so TEST_SETTINGS HTTP bodies stay seven fields.",
+      "names": [
+       "TEST_SETTINGS"
+      ],
+      "files": []
+     },
+     {
+      "segment": "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/hour-math.json",
+      "names": [],
+      "files": [
+       "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/scratch/hour-math.json"
+      ]
+     },
+     {
+      "segment": "Hours env: const cfg = loadConfig({ RESPONSE_HOURS_URGENT: '2' }) then withService({ ...cfg, port: 0, workerIntervalMs: 0, clock }) because withService is { ...TEST_SETTINGS, ...config }.",
+      "names": [
+       "RESPONSE_HOURS_URGENT",
+       "TEST_SETTINGS"
+      ],
+      "files": []
+     },
+     {
+      "segment": "F-3 second life is { ...loadConfig({ RESPONSE_HOURS_URGENT: '2', DUE_TIMES: 'on' }), port: 0, workerIntervalMs: 0, dataFile, clock } with a new manualClock at 08:00 so spreading loadConfig cannot leave dueTimes false.",
+      "names": [
+       "RESPONSE_HOURS_URGENT"
+      ],
+      "files": []
+     }
+    ]
+   },
+   "M7_checks": {
+    "ran": true,
+    "checks": {
+     "suite": {
+      "pass": true,
+      "output": "the delivery's own node --test passes 141 tests, the base's 117 and 24 more\n"
+     },
+     "pristine": {
+      "pass": true,
+      "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n"
+     },
+     "migrate": {
+      "pass": true,
+      "output": "migrate: every expectation holds\n"
+     },
+     "restart": {
+      "pass": true,
+      "output": "restart: every expectation holds\n"
+     },
+     "switch": {
+      "pass": true,
+      "output": "switch: every expectation holds\n"
+     },
+     "rollback": {
+      "pass": true,
+      "output": "rollback: every expectation holds\n"
+     },
+     "off": {
+      "pass": true,
+      "output": "off: every expectation holds\n"
+     },
+     "cli": {
+      "pass": true,
+      "output": "cli: every expectation holds\n"
+     }
+    }
+   },
+   "M9_setup_product": {
+    "new_settings": [
+     "RESPONSE_HOURS_HIGH",
+     "RESPONSE_HOURS_LOW",
+     "RESPONSE_HOURS_NORMAL",
+     "RESPONSE_HOURS_URGENT"
+    ],
+    "new_config_files": [],
+    "reads_DUE_TIMES": true,
+    "has_setting": true,
+    "miss": false
+   },
+   "M8_docs_product": {
+    "D1_readme_DUE_TIMES": true,
+    "D2_readme_settings": true,
+    "D2_wanted": [
+     "RESPONSE_HOURS_HIGH",
+     "RESPONSE_HOURS_LOW",
+     "RESPONSE_HOURS_NORMAL",
+     "RESPONSE_HOURS_URGENT"
+    ],
+    "D3_operator_procedure": true,
+    "D3_switch_segments": [
+     "| `DUE_TIMES` | off | `on` (trimmed, case-sensitive) includes `due` on HTTP tickets and enables `GET /tickets?overdue=true`; any other value, including `ON` and `1`, leaves HTTP as today |",
+     "Turn `DUE_TIMES=on` only after the data file holds `due`.",
+     "HTTP still omits `due` until `DUE_TIMES=on`.",
+     "Cutover: run once with `DATA_FILE` so the file holds `due`, then set `DUE_TIMES=on`."
+    ],
+    "D3_back_segments": [
+     "1.4.0 still starts on a due-bearing file.",
+     "[docs/operations.md](docs/operations.md) covers the data file, the worker, due-time cutover, 1.4.0 rollback and what to do with dead notifications.",
+     "## Rollback to 1.4.0",
+     "1.4.0 starts on a version-1 file that has `due` and shows every ticket; it drops `due` on load."
+    ],
+    "D4_changelog_and_version": true,
+    "D5_new_decision_records": [],
+    "D6_api_due_overdue": true,
+    "miss": false
+   },
+   "binding": {
+    "migrate-before": {
+     "a_applies": true,
+     "b_acted": true,
+     "c_product": true,
+     "binds": true,
+     "owners": [
+      {
+       "item": "W1",
+       "owner": "step-plan",
+       "acted": true,
+       "how": "mapped to steps"
+      }
+     ],
+     "product_checks": {
+      "migrate": true,
+      "restart": true,
+      "switch": true
+     }
+    },
+    "switchover": {
+     "a_applies": true,
+     "b_acted": true,
+     "c_product": true,
+     "binds": true,
+     "owners": [
+      {
+       "item": "W1",
+       "owner": "operations",
+       "acted": true,
+       "how": "1 accepted operations results, named: True"
+      }
+     ],
+     "product_checks": {
+      "off": true,
+      "rollback": true
+     }
+    }
+   }
+  }
+ ],
+ "predictions": [
+  {
+   "id": "P1",
+   "prediction": "migrate-before applies to at least one work item, in every run",
+   "probability": 70,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P2",
+   "prediction": "switchover applies to at least one work item, in every run",
+   "probability": 55,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P3",
+   "prediction": "state applies to at least one work item, in every run",
+   "probability": 80,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P4",
+   "prediction": "config applies to at least one work item, in every run",
+   "probability": 80,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P5",
+   "prediction": "migrate-after applies in at most one run",
+   "probability": 65,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P6",
+   "prediction": "the migration comes before the feature in every run",
+   "probability": 70,
+   "held": false,
+   "population": 3
+  },
+  {
+   "id": "P7",
+   "prediction": "the release is planned last in every run",
+   "probability": 60,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P8",
+   "prediction": "in every run that reaches release-plan, its result plans a rollback",
+   "probability": 90,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P9",
+   "prediction": "in every run that reaches release-plan, the rollback is data-aware",
+   "probability": 55,
+   "held": false,
+   "population": 3
+  },
+  {
+   "id": "P10",
+   "prediction": "in every run, the plan names at least one product document",
+   "probability": 70,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P11",
+   "prediction": "in every run, the plan names DUE_TIMES and a setting for the hours",
+   "probability": 75,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P12",
+   "prediction": "in every completed run, migrate, restart and switch pass",
+   "probability": 55,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P13",
+   "prediction": "in every completed run, rollback passes",
+   "probability": 75,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P14",
+   "prediction": "in every completed run, off passes",
+   "probability": 50,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P15",
+   "prediction": "in every completed run, there is no documentation miss",
+   "probability": 40,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P16",
+   "prediction": "in every completed run, there is no setup miss",
+   "probability": 65,
+   "held": true,
+   "population": 3
+  },
+  {
+   "id": "P17",
+   "prediction": "migrate-before and switchover both bind in every run",
+   "probability": 35,
+   "held": true,
+   "population": 3
+  }
+ ]
+}

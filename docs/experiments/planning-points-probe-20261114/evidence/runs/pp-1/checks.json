@@ -1,0 +1,50 @@
+[
+ {
+  "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+  "pass": true,
+  "returncode": 0,
+  "output": "the delivery's own node --test passes 155 tests, the base's 117 and 38 more\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+  "pass": true,
+  "returncode": 0,
+  "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" migrate",
+  "pass": true,
+  "returncode": 0,
+  "output": "migrate: every expectation holds\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" restart",
+  "pass": true,
+  "returncode": 0,
+  "output": "restart: every expectation holds\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" switch",
+  "pass": true,
+  "returncode": 0,
+  "output": "switch: every expectation holds\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" rollback",
+  "pass": true,
+  "returncode": 0,
+  "output": "rollback: every expectation holds\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" off",
+  "pass": true,
+  "returncode": 0,
+  "output": "off: every expectation holds\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" cli",
+  "pass": true,
+  "returncode": 0,
+  "output": "cli: every expectation holds\n"
+ }
+]

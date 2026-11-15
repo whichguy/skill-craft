@@ -1,0 +1,289 @@
+[
+ {
+  "action": "nav-ff849af152f949388c660987a32bc5db",
+  "result": {
+   "assumptions": [
+    {
+     "assumption": "1.4.0 ignores extra ticket due on load and still returns the ticket",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/scratch/due-field-1.4.0-load.json",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/persistence.js"
+     ],
+     "id": "A1"
+    },
+    {
+     "assumption": "1.4.0 refuses a data file whose version is not 1",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/scratch/due-field-1.4.0-load.json"
+     ],
+     "id": "A2"
+    },
+    {
+     "assumption": "TicketStore.open does not save; backfill must call save or the file will not hold dues until a later mutation or stop",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/store.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/server.js"
+     ],
+     "id": "A3"
+    },
+    {
+     "assumption": "matchesFilters is OR via Array.some; overdue must be a separate AND",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/tickets/query.js"
+     ],
+     "id": "A4"
+    },
+    {
+     "assumption": "Settings are env-only; LOG_REQUESTS uses token 1, while DUE_TIMES enable is exact on",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/config.js"
+     ],
+     "id": "A5"
+    },
+    {
+     "assumption": "Existing tests omit unknown keys via destructure or TEST_SETTINGS; extra in-memory ticket keys do not fail those files if HTTP omits due when the flag is off",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/helpers.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/config.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/store.test.js"
+     ],
+     "id": "A6"
+    },
+    {
+     "assumption": "No production DATA_FILE was loaded; backfill confirmation uses the spec two-ticket fixture, not live operations data",
+     "disposition": "open",
+     "due_item": "W1",
+     "id": "A7",
+     "reason": "This repository has no production host or operations file; discovery left A7 unread",
+     "settle": "Author DT-24 against the spec two-ticket version-1 document; leave production DATA_FILE unverified for operators at handoff"
+    },
+    {
+     "assumption": "The current suite is 117 passing tests and they must still pass unchanged",
+     "check": "npm test at WORKTREE HEAD 499974b39fcf4ed962432a1a65793308eb1cecd2, Node v26.12.1",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/scratch/baseline-npm-test.txt"
+     ],
+     "id": "A8"
+    },
+    {
+     "assumption": "Delivery is source-only; returning the worktree does not deploy and no production write is authorized",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/shiploop/environment.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/notes/discovery.md"
+     ],
+     "id": "A9"
+    },
+    {
+     "assumption": "createApp returns store tickets as-is, so the HTTP projector must land in the same change as store due: flag-off HTTP that includes due violates R-8 and DT-1 Object.keys. The existing 117 tests would still pass with leaked due because they compare POST body to GET body or destructure named fields",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/app.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/api.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/store.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/shiploop/environment.md",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-a10-r10.json"
+     ],
+     "id": "A10"
+    },
+    {
+     "assumption": "node --test loads every test/**/*.js file, so the frozen 1.4.0 persistence module must live at fixtures/persistence-1.4.0.js not under test/",
+     "disposition": "evidenced",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/shiploop/environment.md"
+     ],
+     "id": "A11"
+    },
+    {
+     "assumption": "parseListQuery currently returns exactly { filters, limit, after } even when overdue is present; test/query.test.js deepEquals that object. A permanent overdue key, including undefined, fails R-10. Overdue parsing must omit the key when absent, or live in the GET handler that knows the flag",
+     "check": "node assert.deepEqual of parseListQuery default object versus the same plus overdue: undefined; also query('overdue=true') equals the empty query",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/query.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-a10-r10.json",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/tickets/query.js"
+     ],
+     "id": "A12"
+    },
+    {
+     "assumption": "TicketStore constructors used by existing tests and the CLI omit hours. If create assigns due from hours without defaulting omitted hours to 4/24/72/168, new Date(NaN).toISOString() throws RangeError and R-10 fails",
+     "check": "node: new Date(Date.parse(C0) + undefined * 3600 * 1000).toISOString() throws RangeError Invalid time value; grep TicketStore constructors without hours",
+     "disposition": "probed",
+     "evidence": [
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/store.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/persistence.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/worker.test.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/bin/tickets.js",
+      "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-hours-undefined.json"
+     ],
+     "id": "A13"
+    }
+   ],
+   "concerns": {
+    "W1": [
+     {
+      "applies": "no",
+      "id": "ui",
+      "reason": "HTTP JSON and CLI only; the request adds no page, screen, or rendered report"
+     },
+     {
+      "anchor": "R-5 R-6 R-1 AD-5",
+      "applies": "yes",
+      "decision": "Ticket JSON gains due on POST, GET list, GET by id, PATCH, and transition only when DUE_TIMES is on; overdue=true is a list query; POST/PATCH due is 400 unknown field",
+      "id": "api",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "messaging",
+      "reason": "No new outbox event or notification; create still enqueues ticket.created without due (AD-7)"
+     },
+     {
+      "anchor": "AD-1 AD-3 R-2 R-4",
+      "applies": "yes",
+      "decision": "TicketStore owns due on the ticket; persist always; HTTP is a projection; overdue is derived at read from stored due, status, and clock",
+      "id": "state",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "R-7 AD-3",
+      "applies": "yes",
+      "decision": "On start, backfill missing due from stored created plus current hours, then save() when DATA_FILE is set, so the file holds dues before operators set DUE_TIMES=on",
+      "id": "migrate-before",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "migrate-after",
+      "reason": "No contraction or cleanup; due stays an extra version-1 field; a 1.4.0 save strips it and re-upgrade backfills"
+     },
+     {
+      "anchor": "R-8 R-9 AD-1",
+      "applies": "yes",
+      "decision": "Persist due while DUE_TIMES is unset; only exact on changes HTTP; operators enable after the file holds dues; rollback is running 1.4.0 on the same file",
+      "id": "switchover",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "concurrency",
+      "reason": "One process per host already owns DATA_FILE; this change adds no second writer or lock"
+     },
+     {
+      "applies": "no",
+      "id": "platform-services",
+      "reason": "Reuse node:http, JSON file, and env config; no flag service, cache, or extra worker"
+     },
+     {
+      "applies": "no",
+      "id": "scale",
+      "reason": "Listing still scans in-memory tickets; the spec excludes a performance bound"
+     },
+     {
+      "anchor": "R-1 DT-2 DT-3",
+      "applies": "yes",
+      "decision": "due is not client-writable; onlyFields refuses it on POST and PATCH with 400 invalid unknown field: due; no new auth",
+      "id": "security",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "R-5 AD-7 DT-16 DT-24",
+      "applies": "yes",
+      "decision": "Due assignment and backfill are not audit actions and enqueue no notification; reuse stderr start logs and LOG_REQUESTS",
+      "id": "observability",
+      "owner_stage": "step-plan"
+     },
+     {
+      "anchor": "R-3 R-8 AD-2",
+      "applies": "yes",
+      "decision": "RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW via wholeNumber defaults 4/24/72/168 including 0; DUE_TIMES exact on; omitted TEST_SETTINGS keys stay off and default hours",
+      "id": "config",
+      "owner_stage": "step-plan"
+     },
+     {
+      "applies": "no",
+      "id": "performance",
+      "reason": "Spec excludes latency, throughput, and size bounds"
+     },
+     {
+      "applies": "no",
+      "id": "accessibility",
+      "reason": "No human-facing UI; CLI table and list --raw stay four columns"
+     }
+    ]
+   },
+   "evidence_refs": [
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/shiploop/architecture.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/shiploop/spec.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/shiploop/environment.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/notes/nav-ff849af152f949388c660987a32bc5db.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/notes/research.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/notes/discovery.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/notes/current-system-baseline.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/scratch/plan-candidate.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/backchain/nav-ff849af152f949388c660987a32bc5db/check-15b35e989b24.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/backchain/nav-ff849af152f949388c660987a32bc5db/candidate-15b35e989b24.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/scratch/baseline-npm-test.txt",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/scratch/due-field-1.4.0-load.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/docs/decisions/0008-json-data-file.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/results/nav-04e104c2c1a24471a61f57a8aa333534.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/results/nav-445875f61bae4269b6f45cd5fae2b938.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/results/nav-5fe22e4fa64643ffb2b337526d9d7ff8.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/results/nav-8049a73eadcd4a1eb91d3cb80ed75b01.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/run/results/nav-fd489988c87049ffb0f7d6c6b93817b0.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/app.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/store.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/config.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/persistence.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/tickets/query.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/src/server.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-a10-r10.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/nav-834838e3ee8342f48879b251c49910a3/planning-investigation.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/query.test.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/api.test.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/store.test.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/.shiploop-improve/.experiments/nav-834838e3ee8342f48879b251c49910a3/nav-ff849af152f949388c660987a32bc5db/probe-hours-undefined.json",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/test/worker.test.js",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-1/.shiploop-runs/work-20261114-164101-acb42c/worktree/bin/tickets.js"
+   ],
+   "headline": "One work item W1 owns R-1–R-11: persist due, project HTTP, overdue, hours, and 1.4.0-safe version 1",
+   "outcome": "done",
+   "summary": "Design basis: baseline is the 1.4.0 HTTP JSON API plus read-only CLI and a version-1 DATA_FILE (decision 8 at 499974b). Delta keeps that process and file; adds due on the ticket, hours env, an HTTP projector, and overdue as an extra AND. State owner is TicketStore; due lifetime is the ticket; crash recovery is the existing temp-plus-rename, plus a start-time backfill save because open() does not write. Channel is HTTP request/response; hours and DUE_TIMES are process env at start; no cache, push, extra worker, or flag service. UI: none (headless JSON and unchanged CLI). Safeguard: onlyFields refuses client due. Deployment: source-only; request names no target.\n\nQueue: one item W1. Projector must land with store due because R-8 and DT-1 require flag-off HTTP to omit due; the existing 117 tests compare POST to GET or pick named keys and would still pass if due leaked (A10 corrected). parseListQuery default return { filters, limit, after } is an R-10 seam for overdue (A12). Omitted hours on TicketStore must default to 4/24/72/168 (A13) or store.create throws RangeError. Overdue shares the list path and due field and has no extra prerequisite. Tests live in one file. No repair, bootstrap, environment-prep, or deploy item. Frozen 1.4.0 persistence is W1 test-authoring setup. AD-8 1.5.0 at W1 document. Architecture Structure records environments, namespaces, the version-1 due field, and the R-10 seams; AD-1..AD-8 kept, no new AD.\n\nBackchain route: host five-lens audit plus printed backchain-check on RUN/scratch/plan-candidate.json. No source-aware-native child (seams and DT map already recorded; nested Until Loop is plan-only). Receipt check-15b35e989b24.json: valid, incomplete (residual A7 production DATA_FILE). Parallel group S1 config with S2 persistence.\n\nNFR: compatibility R-1/R-9/R-10; operability R-3/R-7/R-8/R-9 plus AD-8; reliability backfill save; security due not writable; performance and accessibility excluded; observability no audit for due/backfill; delivery source-only.\n\nAssumptions A1–A6 evidenced, A8 probed, A9–A11 evidenced, A10 corrected and evidenced, A12 probed, A13 probed (hours default on TicketStore), A7 open due_item W1.",
+   "work_items": [
+    {
+     "context": "Ready: discovery baseline npm test 117 pass at 499974b39fcf4ed962432a1a65793308eb1cecd2 (RUN/scratch/baseline-npm-test.txt); product still 1.4.0; AD-1..AD-8 and R-1..R-11 recorded; DT-1..DT-33 planned in KNOWLEDGE/environment.md ## Harnesses and suites; withService and manualClock ready; no repair or test-bootstrap. Frozen fixtures/persistence-1.4.0.js is a gap filled at this item's test authoring: copy git show 499974b39fcf4ed962432a1a65793308eb1cecd2:src/persistence.js before ticketRecord gains due (path outside test/, because node --test loads every test/**/*.js). Plan Improve pass 1 reconfirmed npm test 117 pass 0 fail and git show of that blob still has no due in ticketRecord.\n\nDone: loadConfig dueTimes plus RESPONSE_HOURS_* (defaults 4/24/72/168, wholeNumber including 0); TicketStore.create assigns due; open backfills missing due then save() when DATA_FILE set, no audit or updated change; PATCH, transition, and hours restart leave due; persistence version 1 extra due ISO field; createApp projector omits due unless dueTimes==='on' (DT-1 Object.keys exactly id,title,priority,requester,status,created,updated while flag off); overdue extra AND on ACTIVE and now>due; flag-off GET ?overdue=true at C0 lists the not-yet-due ticket (query ignored); flag-on overdue=false/1/TRUE/empty is 400; parseListQuery default return stays { filters, limit, after } when overdue is absent (test/query.test.js); CLI RAW_COLUMNS/details and CREATED_FIELDS unchanged; frozen 1.4.0 loader lists both tickets without due; test/due-times.test.js prints DT-1 through DT-33 including DT-4 (b), DT-4 (c), and DT-6 (a)–(d); npm test passes; existing test files unmodified; package.json and CHANGELOG.md 1.5.0.\n\nScope: src/config.js, src/store.js, src/persistence.js, src/app.js, src/server.js (pass hours into TicketStore.open and dueTimes into createApp), src/tickets/query.js, test/due-times.test.js, fixtures/persistence-1.4.0.js, docs/api.md, docs/operations.md, README.md, CHANGELOG.md, package.json. Do not edit test/helpers.js or existing test/*.test.js. No npm package. No DATA_FILE version bump.\n\nProving checks: focused `node --test test/due-times.test.js` (ENOENT until that file exists; environment.md records this); smoke `node --test --test-name-pattern='DT-1 |DT-5 |DT-12 |DT-17 |DT-24 |DT-29 |DT-31 ' test/due-times.test.js`; full `npm test`. Env-backed HTTP: withService({ clock, ...loadConfig({ PORT:'0', WORKER_INTERVAL_MS:'0', DUE_TIMES, RESPONSE_HOURS_* }) }). Clock C0. HTTP bodies are the spec JSON {\"title\":\"VPN drops every hour\",\"requester\":\"maria@example.com\",\"priority\": as the case}, not ticketBody() printer default. DT-1 Object.keys flag-off. DT-4 positional columns id, status, priority, title. DT-4 (b) show has no due line. DT-4 (c) weekly-report --json totals. DT-29 flag-off overdue lists T-0001 at C0 then enable at C0 overdue [] then past due [\"T-0001\"]. red_na: DT-1, DT-2, DT-3, DT-4, DT-4 (b), DT-4 (c), DT-15, DT-16, DT-31, DT-33.\n\nLoadable seam: CommonJS require. Tests require('../src/config'), require('../src/server').createService, require('./helpers').withService, require('../fixtures/persistence-1.4.0'). createApp today is createApp({ store, maxBodyBytes, log, logRequests }); add dueTimes. Hours map is injected at TicketStore.open and is optional: omitted hours default to 4/24/72/168 so existing `new TicketStore({ clock })` and `TicketStore.open({ clock, persistence })` still create; assignment stays in the store. Overdue: GET /tickets handler knows dueTimes so flag-off ignores the query and flag-on 400s other values; TicketStore.list extra AND on ACTIVE and now>due; do not put overdue into matchesFilters; do not add a permanent overdue key to parseListQuery's default object.\n\nAuthority: source-only; request names no deploy target; production DATA_FILE unread (A7); operators set DUE_TIMES=on after backfill. Correction: InvalidError / ConfigError / DataFileError envelopes. Reopen KNOWLEDGE/spec.md R-1..R-11, KNOWLEDGE/architecture.md AD-1..AD-8 and ## Structure, KNOWLEDGE/environment.md ## Harnesses and suites, docs/decisions/0008-json-data-file.md. Git constraint from 499974b decision 8: named record fields, keep version 1.",
+     "follows": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4",
+      "R-5",
+      "R-6",
+      "R-7",
+      "R-8",
+      "R-9",
+      "R-10",
+      "R-11",
+      "AD-1",
+      "AD-2",
+      "AD-3",
+      "AD-4",
+      "AD-5",
+      "AD-6",
+      "AD-7",
+      "AD-8"
+     ],
+     "id": "W1",
+     "title": "Due times: persist, project HTTP, overdue listing, hours env, and 1.4.0-safe version 1"
+    }
+   ]
+  }
+ }
+]

@@ -1,0 +1,227 @@
+[
+ {
+  "action": "nav-4ce149540edd4b43927de2838bc4d9d9",
+  "workitem": "W1",
+  "concerns": [
+   {
+    "id": "api",
+    "steps": [
+     "S3",
+     "S7"
+    ]
+   },
+   {
+    "id": "state",
+    "steps": [
+     "S5"
+    ]
+   },
+   {
+    "id": "migrate-before",
+    "steps": [
+     "S4",
+     "S5"
+    ]
+   },
+   {
+    "id": "switchover",
+    "steps": [
+     "S3",
+     "S8"
+    ]
+   },
+   {
+    "id": "config",
+    "steps": [
+     "S1"
+    ]
+   }
+  ],
+  "steps": [
+   {
+    "id": "S1",
+    "deps": [],
+    "task": "C1 C2. Add loadConfig dueTimes and dueHours from DUE_TIMES and DUE_HOURS_*.",
+    "criteria": [
+     "C1",
+     "C2"
+    ],
+    "paths": [
+     "src/config.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S2",
+    "deps": [],
+    "task": "C3 C4. Add parseListQuery overdue option when dueTimes is true.",
+    "criteria": [
+     "C3",
+     "C4"
+    ],
+    "paths": [
+     "src/tickets/query.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S3",
+    "deps": [],
+    "task": "C5 C6 C7. createApp strips or presents due from the store record; createService passes dueTimes.",
+    "criteria": [
+     "C5",
+     "C6",
+     "C7"
+    ],
+    "paths": [
+     "src/app.js",
+     "src/server.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S4",
+    "deps": [],
+    "task": "C8 C9. ticketRecord copies due; VERSION stays 1; extra unknown keys still drop.",
+    "criteria": [
+     "C8",
+     "C9"
+    ],
+    "paths": [
+     "src/persistence.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S5",
+    "deps": [
+     "S1",
+     "S3",
+     "S4"
+    ],
+    "task": "C10 C11. TicketStore assigns due once; createService passes dueHours; CLI columns stay four.",
+    "criteria": [
+     "C10",
+     "C11"
+    ],
+    "paths": [
+     "src/store.js",
+     "src/server.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S6",
+    "deps": [
+     "S5"
+    ],
+    "task": "C12. TicketStore.list overdue is isActive and due < now.",
+    "criteria": [
+     "C12"
+    ],
+    "paths": [
+     "src/store.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S7",
+    "deps": [
+     "S2",
+     "S3",
+     "S6"
+    ],
+    "task": "C13. GET /tickets?overdue=true uses parseListQuery and store.list; other overdue values 400.",
+    "criteria": [
+     "C13"
+    ],
+    "paths": [
+     "src/app.js"
+    ],
+    "skills": []
+   },
+   {
+    "id": "S8",
+    "deps": [
+     "S7"
+    ],
+    "task": "C14 C15. Operator docs name hours, DUE_TIMES=on after backfill, and 1.4.0 rollback; existing tests stay green.",
+    "criteria": [
+     "C14",
+     "C15"
+    ],
+    "paths": [
+     "README.md",
+     "CHANGELOG.md",
+     "docs/api.md",
+     "docs/operations.md",
+     "package.json"
+    ],
+    "skills": []
+   }
+  ],
+  "criteria": [
+   {
+    "id": "C1",
+    "text": "loadConfig reads DUE_TIMES as true only for the exact string on and DUE_HOURS_URGENT|HIGH|NORMAL|LOW via wholeNumber min 0 with defaults 4/24/72/168; DUE_HOURS_URGENT nope throws ConfigError matching /DUE_HOURS_URGENT/; empty hour strings and omitted keys take those defaults (R-5, R-10, AD-2, NFR-3). Confirm by: node --test test/due-config.test.js prints TC-21, TC-29, TC-34, TC-36; pass when those four tests pass with those exact values."
+   },
+   {
+    "id": "C2",
+    "text": "src/config.js module comment names DUE_TIMES and DUE_HOURS_URGENT|HIGH|NORMAL|LOW (Code craft 2-3). Confirm by: grep DUE_TIMES and DUE_HOURS_URGENT in src/config.js; pass when both match."
+   },
+   {
+    "id": "C3",
+    "text": "parseListQuery(params, true) sets overdue for overdue=true, throws InvalidError for overdue=false, and omits overdue when the param is absent; omitted or false second arg ignores overdue (R-8, R-10, AD-4). Confirm by: node --test test/due-query.test.js prints TC-33; pass when that test passes."
+   },
+   {
+    "id": "C4",
+    "text": "src/tickets/query.js names the overdue list option in its contract comment (Code craft 2-3). Confirm by: grep overdue src/tickets/query.js; pass when it matches."
+   },
+   {
+    "id": "C5",
+    "text": "withService({}) POST {title:VPN drops every hour, requester:maria@example.com, priority:high} body has no due key, and GET /tickets?overdue=true ids [T-0001] match GET /tickets (R-10, AD-5). Confirm by: node --test test/due-api.test.js prints TC-10; pass when that test passes."
+   },
+   {
+    "id": "C6",
+    "text": "POST /tickets and PATCH /tickets/T-0001 with body field due answer 400 and error.code invalid (R-6). Confirm by: node --test test/due-api.test.js prints TC-23; pass when that test passes."
+   },
+   {
+    "id": "C7",
+    "text": "src/app.js and src/server.js name dueTimes on createApp / createService (Code craft 2-3, AD-5). Confirm by: grep dueTimes src/app.js and src/server.js; pass when both match."
+   },
+   {
+    "id": "C8",
+    "text": "fromDocument copies ticket due, keeps version 1, and drops extra unknown ticket keys besides due (R-9, R-11, AD-1). Confirm by: node --test test/due-persistence.test.js prints TC-11 and TC-30; pass when JSON.parse version === 1, every id loads, and extra is absent."
+   },
+   {
+    "id": "C9",
+    "text": "src/persistence.js ticketRecord comment names due as a persisted ticket field (Code craft 2-3, AD-1). Confirm by: grep due src/persistence.js; pass when it matches."
+   },
+   {
+    "id": "C10",
+    "text": "TicketStore assigns due once: at 2025-09-01T08:00:00.000Z urgent 2025-09-01T12:00:00.000Z, high 2025-09-02T08:00:00.000Z, normal 2025-09-04T08:00:00.000Z, low 2025-09-08T08:00:00.000Z; dueHours.urgent 1 then 0 yield 2025-09-01T09:00:00.000Z then 2025-09-01T08:00:00.000Z; PATCH priority, reopen, and restart with dueHours.urgent 1 leave 2025-09-01T12:00:00.000Z; missing due on load of the spec R-9 JSON becomes 2025-09-02T08:00:00.000Z and stays; HTTP GET/list/PATCH title/in_progress/resolved/closed keep the same string when dueTimes is true (R-5, R-6, R-7, R-9, AD-3). Confirm by: node --test prints TC-5, TC-6, TC-7, TC-9, TC-22, TC-24, TC-25, TC-28, TC-32; pass when each named due string matches."
+   },
+   {
+    "id": "C11",
+    "text": "rawLine of a ticket that has due still prints four tab-separated columns id, status, priority, title (R-3, AD-5). Confirm by: node --test test/due-cli.test.js prints TC-31; pass when RAW_COLUMNS is unchanged and the line has four fields."
+   },
+   {
+    "id": "C12",
+    "text": "store.list({overdue:true}) at 2025-09-01T12:00:00.000Z after an urgent create at 08:00 is empty, and at 2025-09-01T13:00:00.000Z ids [T-0001] while resolved is empty (R-8, AD-4). Confirm by: node --test test/due-store.test.js prints TC-35; pass when those pages match."
+   },
+   {
+    "id": "C13",
+    "text": "GET /tickets?overdue=true with dueTimes true: at 08:00 {items:[], next:null}; clock.set 2025-09-01T12:00:00.000Z empty; at 13:00 ids [T-0001]; overdue+priority=urgent ids [T-0001]; overdue+priority=low empty; in_progress still listed; overdue+status=resolved empty; overdue=false and overdue=1 are 400 error.code invalid (R-8, AD-4). Confirm by: node --test test/due-api.test.js prints TC-8, TC-26, TC-27; pass when those bodies match."
+   },
+   {
+    "id": "C14",
+    "text": "Existing behaviour and the existing 117 tests still pass on unchanged test/api.test.js and friends versus 18e410479ec5982a3af2026352cde606b97d53c0 (R-12). Confirm by: npm test; pass when exit 0 and titles such as creates an open ticket and answers 201 with it still print."
+   },
+   {
+    "id": "C15",
+    "text": "README.md, docs/api.md, docs/operations.md, and CHANGELOG.md name DUE_HOURS_URGENT|HIGH|NORMAL|LOW, DUE_TIMES=on after the file holds due, and rollback to 1.4.0 (R-10, R-11, OP-1, OP-2). Confirm by: grep those names in those files; pass when each file matches."
+   }
+  ],
+  "headline": "W1 plans eight steps that add sticky due times behind DUE_TIMES=on; focused due-*.test.js TC-5–TC-36 and npm test prove them."
+ }
+]

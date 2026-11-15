@@ -97,6 +97,9 @@ class Run:
         self.result = json.loads((out / "result.json").read_text()) if (out / "result.json").is_file() else {}
         receipt = json.loads((out / "shiploop-run.json").read_text()) if (out / "shiploop-run.json").is_file() else {}
         self.run_dir = pathlib.Path(receipt.get("run_dir") or (self.result.get("shiploop") or {}).get("run_dir") or "")
+        if not self.run_dir.name:  # a live run: the harness writes its receipt at the end
+            found = sorted(out.glob(".shiploop-runs/*/run"))
+            self.run_dir = found[-1] if found else self.run_dir
         self.state = block(self.run_dir / "state.md") or {} if self.run_dir.name else {}
         self.accepted = set((self.state.get("accepted") or {}).keys())
         self.history = [entry for entry in self.state.get("history") or [] if isinstance(entry, dict)]

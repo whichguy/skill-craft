@@ -9038,3 +9038,26 @@ Read over the done stages (B 21, T 18, none unmatched) unless a population is na
 
 Evidence: `docs/experiments/closeout-one-command-20261114/` (README, `analysis/whole_score.py`, `evidence/whole-scores.json`,
 `whole-baselines.jsonl`) and the run folders `~/e2e-runs-sp/20261114/closeout-whole/`.
+
+## 2026-11-14 — Planning-points probe, `ticket-due-times` on Grok 4.6 xhigh: 3 of 3 valid deliveries pass, both rows bind, one run lost to headless refusals
+
+This is journal entry E24 in `docs/shiploop-question-driven-planning-journal.md`. The design, predictions and results are in
+`docs/experiments/planning-points-probe-20261114/README.md`, registered in 57dfccdb250e4342565587f13f802a57eb62eaa5 before any
+run. The round ran the published build, `run.py --source marketplace` (skill-craft 2.37.4, ShipLoop 1.34.3), with the E2E
+default subject. No commit to `skills/shiploop/` or `changes/shiploop/` landed between the 1.34.3 release (48bc8d63) and this
+entry, and main still ships ShipLoop 1.34.3. So this round vouches for that source and for no later change.
+
+- **Deliveries.** pp-1, pp-2 and pp-4 reached done and pass all 8 checks: the base's suite and pristine tests, plus the
+  held-out probe's migrate, restart, switch, rollback, off and cli modes. They took 20,427 to 21,901 s and cost $89.44 to
+  $96.30 each. Scored by script, 15 of the 17 registered predictions held. P6 missed because the step-order word test cannot
+  see a migration worded as "assigns missing due". P9 missed because pp-1's release plan rolls back only the returned commit.
+- **Host refusals.** Grok 1.0.77's headless permission check refused shell scripts the model wrote: scripts that begin with
+  a variable assignment, `cd` or `set -e`, `python3 -c` programs, and a `cp` into the run's inbox. That happened 28 times in
+  4 runs, and each refusal ended its session as cancelled. run.py resumed after each one. pp-3 stopped at release-plan after
+  three resumes in a row made no progress, and `--resume-run` met the same refusals. So pp-3 is invalid by the registered
+  rule, and pp-4 replaced it ($74.62 and about 5 h lost).
+- **Harness questions.** (1) Retaining state: the metrics line already counts the cancelled tool calls. Seeing the
+  refusals' text still means reading stderr.txt. (2) Still to learn: what happens to the release and migration rows when
+  the request does not state the switch-on and rollback itself. Also open is the repository's decision-record rule, which no
+  run planned or followed. (3) Evaluation criteria: a step-order measure must read each step's criteria by ID, because these
+  step plans name their criteria by ID only.

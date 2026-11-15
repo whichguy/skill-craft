@@ -1,0 +1,62 @@
+[
+ {
+  "action": "nav-78412cdc0cf84b16b6c9b394df9a5d4c",
+  "result": {
+   "assumptions": [
+    {
+     "assumption": "SYS-RB4 R-7 production DUE_TIMES=on cutover after DATA_FILE holds due",
+     "disposition": "open",
+     "due_stage": "release-verify",
+     "id": "SYS-RB4",
+     "owner": "operations host owner",
+     "reason": "no production host, account, or DATA_FILE is bound from this repository; source return does not copy a release",
+     "settle": "operations host owner runs the documented cutover after authorized release and reports HTTP tickets include due and GET overdue=true lists only active overdue"
+    }
+   ],
+   "consumer_checks": [
+    {
+     "command": "grep -q DUE_TIMES CHANGELOG.md",
+     "suite": "check"
+    },
+    {
+     "command": "grep -q DUE_TIMES README.md && grep -q RESPONSE_HOURS README.md && grep -q overdue=true docs/api.md && grep -q 1.4.0 docs/operations.md",
+     "suite": "check"
+    },
+    {
+     "command": "node -e \"const p=require('./package.json'); if (p.dependencies || p.version==='1.4.0') process.exit(1)\"",
+     "suite": "check"
+    },
+    {
+     "command": "test -f test/due-app.test.js",
+     "suite": "check"
+    },
+    {
+     "command": "npm test",
+     "min_tests": 141,
+     "suite": "regression"
+    }
+   ],
+   "consumer_entry": {
+    "how": "npm start (node src/server.js) then HTTP JSON on PORT (default 4180); operators: node bin/tickets.js list",
+    "sources": [
+     "package.json",
+     "src/server.js",
+     "src/app.js",
+     "README.md",
+     "bin/tickets.js",
+     "docs/api.md"
+    ]
+   },
+   "evidence_refs": [
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/worktree/docs/shiploop/environment.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/notes/nav-78412cdc0cf84b16b6c9b394df9a5d4c.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/workspace.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/results/nav-440c7f33266041bd957ca5e80c5eaba1.md",
+    "/Users/dadleet/e2e-runs-planning-points/20261114/pp-4/.shiploop-runs/work-20261114-213147-b8da7b/run/results/nav-c3d5ec74e9bc4baea72d67dfb9f530c2.md"
+   ],
+   "headline": "Isolated source return of 1.5.0 onto master is the authorized delivery; production DUE_TIMES=on stays with operators.",
+   "outcome": "done",
+   "summary": "Revalidated system-test-author nav-440c7f33266041bd957ca5e80c5eaba1. Target original branch master. Candidate run branch shiploop/run-f64e1df48c5c4c23 package.json 1.5.0. Operation: clean-start fast-forward; no push, no CI, no deploy. Authority: workspace start from clean master at 1fa6cfd1a93eccf2879bd2f88acdd72c0635c29d; no extra approval. Production copy not authorized.\n\nSteps: release-check dry-run merge-base plus plan-return/review-return and absent-vs-present confirms; release workspace return; release-verify consumer_checks on the returned copy; operations owns DUE_TIMES=on after DATA_FILE holds due; handoff needs the return receipt. User impact: master gains 1.5.0; HTTP stays 1.4.0-shaped until operators set the flag. Monitoring: none new. Stop: return refusal, dirty source, failing confirm.\n\nRollback with master checked out and nothing on top: git reset --keep 1fa6cfd1a93eccf2879bd2f88acdd72c0635c29d. Later commits: git restore --source=1fa6cfd1a93eccf2879bd2f88acdd72c0635c29d --staged --worktree :/ then commit. Kept-paths reversal: git diff --binary 1fa6cfd1a93eccf2879bd2f88acdd72c0635c29d shiploop/run-f64e1df48c5c4c23 -- <kept paths> | git apply -R. Product rollback: docs/operations.md 1.4.0.\n\nConfirm present: DUE_TIMES in CHANGELOG and README, overdue=true in docs/api.md, package.json 1.5.0 no dependencies, test/due-app.test.js exists, npm test 141. Absent (1.4.0): those greps exit 1; package.json version 1.4.0; no due-app test file.\n\nConsumer entry: npm start then HTTP on PORT 4180; node bin/tickets.js list. Switchover concern remains owner operations. SYS-RB4 carried, due_stage release-verify."
+  }
+ }
+]

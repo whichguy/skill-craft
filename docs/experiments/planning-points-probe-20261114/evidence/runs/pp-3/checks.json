@@ -1,0 +1,50 @@
+[
+ {
+  "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+  "pass": false,
+  "returncode": 1,
+  "output": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+  "pass": true,
+  "returncode": 0,
+  "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" migrate",
+  "pass": false,
+  "returncode": 1,
+  "output": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`\nFAIL: migrate: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`\nFAIL: migrate: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`\nFAIL: migrate: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`\nFAIL: migrate: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`\nFAIL: migrate: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`\nFAIL: migrate: T-0007 (low, created 2026-11-14T20:29:51.000Z) shows no `due`\nFAIL: migrate: T-0008 (urgent, created 2026-11-14T16:29:51.000Z) shows no `due`\nFAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])\nFAIL: migrate: the new ticket T-0009 shows due None, created '2026-11-14T21:29:51.805Z'\nFAIL: migrate: the new ticket T-0009, due in 4 hours, is listed as overdue\nmigrate: 11 expectation(s) failed\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" restart",
+  "pass": false,
+  "returncode": 1,
+  "output": "a restart: T-0003 is due None, not None as before\nFAIL: restart, after a restart: T-0004 is due None, not None as before\nFAIL: restart, after a restart: T-0005 is due None, not None as before\nFAIL: restart, after a restart: T-0006 is due None, not None as before\nFAIL: restart, after a restart: T-0007 is due None, not None as before\nFAIL: restart, after a restart: T-0008 is due None, not None as before\nFAIL: restart, after a restart: T-0009 is due None, not None as before\nFAIL: restart: T-0003's priority change moved its due time from None to None\nFAIL: restart, after a priority change: T-0001 is due None, not None as before\nFAIL: restart, after a priority change: T-0002 is due None, not None as before\nFAIL: restart, after a priority change: T-0003 is due None, not None as before\nFAIL: restart, after a priority change: T-0004 is due None, not None as before\nFAIL: restart, after a priority change: T-0005 is due None, not None as before\nFAIL: restart, after a priority change: T-0006 is due None, not None as before\nFAIL: restart, after a priority change: T-0007 is due None, not None as before\nFAIL: restart, after a priority change: T-0008 is due None, not None as before\nFAIL: restart, after a priority change: T-0009 is due None, not None as before\nFAIL: restart, after a second restart: T-0001 is due None, not None as before\nFAIL: restart, after a second restart: T-0002 is due None, not None as before\nFAIL: restart, after a second restart: T-0003 is due None, not None as before\nFAIL: restart, after a second restart: T-0004 is due None, not None as before\nFAIL: restart, after a second restart: T-0005 is due None, not None as before\nFAIL: restart, after a second restart: T-0006 is due None, not None as before\nFAIL: restart, after a second restart: T-0007 is due None, not None as before\nFAIL: restart, after a second restart: T-0008 is due None, not None as before\nFAIL: restart, after a second restart: T-0009 is due None, not None as before\nrestart: 36 expectation(s) failed\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" switch",
+  "pass": false,
+  "returncode": 1,
+  "output": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0002 (high, created 2025-09-02T09:30:00.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0003 (normal, created 2025-09-03T10:15:00.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0004 (low, created 2025-09-04T11:45:00.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0005 (urgent, created 2025-09-05T13:20:00.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0006 (low, created 2025-09-06T15:05:00.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0007 (low, created 2026-11-14T20:29:52.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0008 (urgent, created 2026-11-14T16:29:52.000Z) shows no `due`\nFAIL: switch, after DUE_TIMES=on: T-0009 (normal, created 2026-11-14T21:29:53.027Z) shows no `due`\nswitch: 9 expectation(s) failed\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" rollback",
+  "pass": true,
+  "returncode": 0,
+  "output": "rollback: every expectation holds\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" off",
+  "pass": true,
+  "returncode": 0,
+  "output": "off: every expectation holds\n"
+ },
+ {
+  "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" cli",
+  "pass": true,
+  "returncode": 0,
+  "output": "cli: every expectation holds\n"
+ }
+]

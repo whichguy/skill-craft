@@ -1,0 +1,132 @@
+{
+ "start_head": "499974b39fcf4ed962432a1a65793308eb1cecd2",
+ "files": [
+  {
+   "path": "CHANGELOG.md",
+   "status": "M",
+   "added": "7",
+   "removed": "0"
+  },
+  {
+   "path": "README.md",
+   "status": "M",
+   "added": "6",
+   "removed": "1"
+  },
+  {
+   "path": "docs/api.md",
+   "status": "M",
+   "added": "5",
+   "removed": "2"
+  },
+  {
+   "path": "docs/operations.md",
+   "status": "M",
+   "added": "9",
+   "removed": "1"
+  },
+  {
+   "path": "docs/shiploop/architecture.md",
+   "status": "A",
+   "added": "144",
+   "removed": "0"
+  },
+  {
+   "path": "docs/shiploop/environment.md",
+   "status": "A",
+   "added": "454",
+   "removed": "0"
+  },
+  {
+   "path": "docs/shiploop/spec.md",
+   "status": "A",
+   "added": "394",
+   "removed": "0"
+  },
+  {
+   "path": "fixtures/persistence-1.4.0.js",
+   "status": "A",
+   "added": "206",
+   "removed": "0"
+  },
+  {
+   "path": "package.json",
+   "status": "M",
+   "added": "1",
+   "removed": "1"
+  },
+  {
+   "path": "src/app.js",
+   "status": "M",
+   "added": "23",
+   "removed": "7"
+  },
+  {
+   "path": "src/config.js",
+   "status": "M",
+   "added": "16",
+   "removed": "2"
+  },
+  {
+   "path": "src/persistence.js",
+   "status": "M",
+   "added": "2",
+   "removed": "0"
+  },
+  {
+   "path": "src/server.js",
+   "status": "M",
+   "added": "18",
+   "removed": "2"
+  },
+  {
+   "path": "src/store.js",
+   "status": "M",
+   "added": "45",
+   "removed": "12"
+  },
+  {
+   "path": "test/due-times.test.js",
+   "status": "A",
+   "added": "769",
+   "removed": "0"
+  }
+ ],
+ "documents_added_lines": {
+  "README.md": [
+   "| `DUE_TIMES` | off | exactly `on` adds `due` to HTTP ticket JSON and honours `GET /tickets?overdue=true`; any other value leaves HTTP as 1.4.0 |",
+   "| `RESPONSE_HOURS_URGENT` | `4` | whole-number hours for urgent tickets, including `0` |",
+   "| `RESPONSE_HOURS_HIGH` | `24` | whole-number hours for high tickets, including `0` |",
+   "| `RESPONSE_HOURS_NORMAL` | `72` | whole-number hours for normal tickets, including `0` |",
+   "| `RESPONSE_HOURS_LOW` | `168` | whole-number hours for low tickets, including `0` |",
+   "A value the service cannot use (`PORT=http` or `RESPONSE_HOURS_URGENT=nope`, say) stops it at start with a message naming the variable."
+  ],
+  "docs/operations.md": [
+   "  example `data/tickets.json: tickets[3].priority is not a priority` or `tickets[0].due is not a time`. Fix the record,",
+   "  or restore the backup.",
+   "- At start, a ticket that has no `due` receives one from its `created` time and the hours for its stored priority, then",
+   "  the file is rewritten. Tickets that already have `due` keep it. That write adds no audit entry, leaves `updated` as",
+   "  it was, and enqueues no notification.",
+   "- Fill those dues before turning HTTP due times on: start 1.5.0 with `DUE_TIMES` unset so the file holds `due`, then",
+   "  restart with `DUE_TIMES=on`. Unset, empty, `1`, `true`, and `ON` leave HTTP as 1.4.0; stored dues stay.",
+   "- To roll back, run 1.4.0 on the same file. It starts, lists every ticket, and drops `due`. A 1.4.0 save rewrites without",
+   "  `due`; the next 1.5.0 start fills any ticket that still lacks it."
+  ],
+  "docs/api.md": [
+   "  \"updated\": \"2025-09-01T08:15:00.000Z\",",
+   "  \"due\": \"2025-09-02T08:15:00.000Z\"",
+   "| `due` | when a response is due; present on HTTP ticket JSON only while `DUE_TIMES` is exactly `on`. Assigned at create from `created` plus the hours for that priority. Sending `due` on POST or PATCH is 400 `invalid` (`unknown field: due`). |",
+   "| `overdue` | `true` lists open and in-progress tickets whose `due` has passed; any other present value is `invalid`. Honoured only while `DUE_TIMES` is exactly `on`; otherwise ignored like an unknown query key |",
+   "open tickets that are urgent. `overdue=true` is an extra constraint on that result. A filter value that is not a status or a priority is `invalid`."
+  ],
+  "CHANGELOG.md": [
+   "## 1.5.0 (2026-11-14)",
+   "- Due times: each ticket gets `due` from its `created` time plus the response hours for its priority (urgent 4, high 24, normal 72, low 168). Operators change those hours with `RESPONSE_HOURS_URGENT`, `RESPONSE_HOURS_HIGH`, `RESPONSE_HOURS_NORMAL`, and `RESPONSE_HOURS_LOW`.",
+   "- HTTP ticket JSON includes `due`, and `GET /tickets?overdue=true` lists open and in-progress tickets whose due time has passed, only when `DUE_TIMES` is exactly `on`.",
+   "- Tickets already in the data file receive `due` at start and keep it. The document version stays 1, so release 1.4.0 still starts on that file and lists every ticket.",
+   "- `list --raw`, `show`, and `scripts/weekly-report.js` stay on the 1.4.0 columns and fields.",
+   ""
+  ]
+ },
+ "head": "e78685aa693f80b6437c62e5ab972b1afbd69202"
+}
