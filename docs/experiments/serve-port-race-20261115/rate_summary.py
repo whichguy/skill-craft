@@ -34,10 +34,11 @@ if __name__ == "__main__":
             row = json.loads(line)
             early, n = row["outcomes"].get("early exit", 0), row["calls"]
             lo, hi = interval(early, n)
-            other = {k: v for k, v in row["outcomes"].items() if k not in ("passed", "early exit")}
+            other = {k: v for k, v in row["outcomes"].items() if k not in ("passed", "early exit", "passed after retry")}
+            retried = row["outcomes"].get("passed after retry", 0)
             collisions = early + row["outcomes"].get("foreign listener", 0)
             clo, chi = interval(collisions, n)
-            print(f"{row['tag']:12} workers={row['workers']:2} calls={n:5} early_exits={early:2} {row['early_exit_codes']} other={other} "
+            print(f"{row['tag']:12} workers={row['workers']:2} calls={n:5} retried={retried:2} early_exits={early:2} {row['early_exit_codes']} other={other} "
                   f"rate={100 * early / n:.3f}% (95%: {100 * lo:.3f}% to {100 * hi:.3f}%); collisions={collisions} "
                   f"{100 * collisions / n:.3f}% (95%: {100 * clo:.3f}% to {100 * chi:.3f}%); window median {row['window_s']['median']} s "
                   f"max {row['window_s']['max']} s, {row['seconds']} s, load {row['load1_at_end']:.0f}")

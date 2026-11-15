@@ -575,8 +575,9 @@ that inventory exists to catch the code under test writing under the product, `.
     flags (`111e2a27`) and the step in place, so it cannot say which of them would have prevented a failure. F22 stays interim
     until the next release's full tier and the Monday run.
 - F23 (updated 2026-11-15: the cause is firm and the rate bounded, see Round 6; mended in ~~the two ticket suites' tests~~ [superseded 2026-11-15,
-  later the same day: the tests of the five calibration suites that grade variants through serve.py, see the follow-up in Round 6], `checks/serve.py`
-  left to the owner): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
+  later the same day: the tests of the five calibration suites that grade variants through serve.py, see the follow-up in Round 6], ~~`checks/serve.py`
+  left to the owner~~ [superseded later the same day: the owner answered "Yes, add retry", and `checks/serve.py` chooses the port again, see the last
+  update of Round 6]): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
   candidate exited before it listened on the port the harness had chosen. `checks/serve.py` picks the port with `free_port()`
   (bind to port 0, read the number, close) and starts the candidate with `PORT=<it>`, so another process can take that port in
   between, and the shard runs several server-starting suites at once (`--jobs 4`). ~~That is a reading, not an observation: the
@@ -590,7 +591,8 @@ that inventory exists to catch the code under test writing under the product, `.
   ~~Not fixed here: a retry in `checks/serve.py` would also reach live deliveries, which is the owner's call as in `8c5b4d4e`, and
   one failure is not a rate.~~ [superseded 2026-11-15: the rate is now measured (about one early exit in 181 CI executions of this
   suite, 0.12% of serve.py runs on this Mac), and the calibration suites' tests are mended; a retry in `checks/serve.py` is still the
-  owner's call, as in `8c5b4d4e`, and is put to them in Round 6.]
+  owner's call, as in `8c5b4d4e`, and is put to them in Round 6.] [superseded later the same day: the owner said yes, and it is made;
+  Round 6's update has what it does and what it was measured to do.]
 
 ## Round 6 (2026-11-15): the ticket-comments early exit measured, and the mend in the tests (F23, F24)
 
@@ -650,9 +652,9 @@ grade fails and the second passes); with the rule off (`REGRADES = 0`) 3 of the 
 
 **Decision** (routine, AGENTS.md "Decisions": a choice between equivalent fixes, and the owner's carve-out for live scoring). The regrade in the tests of the
 suite that failed and of its sibling, which has more serve.py runs and the same shape. Not done, with the reason:
-- A retry or a different `free_port()` in `checks/serve.py`: it scores live deliveries and changes the oracle digest (`boundary.oracle_files` hashes `checks/`), so it is the
+- ~~A retry or a different `free_port()` in `checks/serve.py`: it scores live deliveries and changes the oracle digest (`boundary.oracle_files` hashes `checks/`), so it is the
   owner's call (`8c5b4d4e`). The question is in the report that goes with this commit; the rule it would copy is `quality.serve_on_free_port`'s (a server that exits on `EADDRINUSE` naming its own port is
-  started again on another, at most three tries, `d9a92f05`).
+  started again on another, at most three tries, `d9a92f05`).~~ [superseded 2026-11-15, later the same day: the question was put to the owner, who answered "Yes, add retry"; made, in the update below.]
 - A shared helper in `test/shiploop_e2e/`: it would change the evaluator digest (`boundary.evaluator_files` hashes the `*.py` at the top of that folder).
 - ~~The other three suites (`user-directory`, `user-chain`, `brownfield`): the same change applies at the places named above; not made because the task named the ticket
   pair and no failure with this signature is on record for them. `user-directory`'s 184 runs make it the most exposed, about 3.4 times `ticket-comments`.~~ [superseded
@@ -686,7 +688,8 @@ is untouched.
   plus 4; one skip, the abstract base of the per-link calibrations), `user-chain` 23 OK in 103.9 s (19 plus 4), `brownfield` 31 OK in 84.8 s (27 plus 4);
   `test-groups` 65 tests OK in 40.4 s. `ruff --select E9,F,B`: the same findings before and after (`user-directory` one B905 and `user-chain` a B905 and an F841, all at lines
   this change did not write; `brownfield` none). `git diff --check` clean.
-- *What stays.* (1) `checks/serve.py` and the live scoring checks: the owner's open question (F23). (2) The variants' hidden acceptance (`user-directory`, `user-chain`,
+- *What stays.* (1) ~~`checks/serve.py` and the live scoring checks: the owner's open question (F23).~~ [superseded later the same day: the owner said yes to the retry in
+  `checks/serve.py`; see the last update of Round 6.] (2) The variants' hidden acceptance (`user-directory`, `user-chain`,
   `brownfield`'s `CalibrationTest`) is graded once: it goes through `quality.serve_on_free_port` (a server whose port was taken is started again on another, three starts)
   and the listener-ownership check of `f1399b5b`, which is what mended the one failure of these suites on record that is of this family (`user-directory`, 2026-11-05); in
   the CI history of 2026-10-31 to 2026-11-15 `user-directory` failed 1 of 68 executions (that one), `user-chain` 0 of 130 and `brownfield` 0 of 214. (3) `brownfield`'s
@@ -703,8 +706,36 @@ is untouched.
   run of a link of the ticket or user chains makes 3 to 12 serve.py runs (its regression and own checks), so about 0.4 to 1.4% of live runs at this Mac's rate, if the rate holds
   for the way live runs call serve.py (one at a time). The number will change with what other programs hold. Update 2026-11-15, later the same day: the calibration
   exposure is closed in the tests of all five suites that grade variants through serve.py (the ticket pair, then `user-directory`, `user-chain` and `brownfield`; see the
-  follow-up above); the live exposure in the line above is unchanged, and the live scoring through serve.py stays the owner's question.
+  follow-up above); ~~the live exposure in the line above is unchanged, and the live scoring through serve.py stays the owner's question.~~ [superseded later the same
+  day: the owner said yes to a retry in serve.py, so the live exposure is closed too; see the last update of Round 6.]
 - F25 (firm for the wiring with a held port, none for a natural collision): the three suites of the follow-up regrade through their own grading paths. With the first grade of
   every delivery handed a held port (`docs/experiments/serve-port-race-20261115/wiring_probe.py`, `wiring-results.txt`), `user-directory`'s three calibration classes (41
   deliveries), `user-chain`'s (22) and `brownfield`'s `CaseChecksTest` (3) pass with the regrade as shipped, and fail with it off (`--regrades 0`: 43, 17 and 2 failures, subtests
   included). Not shown: the rescue of a natural collision (there is no counter), and Linux (the route tests and the probe were run on macOS only).
+
+**Update (2026-11-15, later still): the retry in `checks/serve.py`.** The owner answered "Yes, add retry" to the question that ended the report of the commit above.
+It is made in this commit.
+- *What.* `checks/serve.py` starts the candidate again on another free port, at most 3 starts in all (`TRIES`, as `quality.LISTEN_TRIES`), when another process holds
+  the port it was handed: the candidate exits with `EADDRINUSE` naming its own port (`port_taken`, the rule of `quality.port_taken`), or a process outside the
+  candidate's group listens on it (`candidate_problem` says `taken`). Not started again: a candidate that exits for another reason, one that names another port, one
+  that never listens within 10 s, a table lsof cannot read, and a port pinned with `E2E_SERVE_PORT` (the regression's). The ownership check is unchanged and every
+  start must pass it; a retried check prints one line to stderr, and after the third start the failure names the ports. `wait_for_candidate` keeps its contract
+  for `due_times_probe.py`.
+- *One more trigger than the question named.* The question said "exits with `EADDRINUSE` naming its own `PORT`"; a foreign listener on the port is retried too, because it
+  is the other face of the same cause: of the 7 collisions measured at 16 callers on Linux, 6 were that signature, and a retry on `EADDRINUSE` alone would have cured one.
+  `quality.serve_on_free_port` gets both, because its wait does not give up on a foreign listener before the candidate's own bind fails. It is stated here and in the
+  commit so that it can be narrowed if the owner wants the narrower rule.
+- *Measured, the same probe, the retry in place* (`matrix-linux-retry.jsonl`, `matrix-macos-retry.jsonl`). Linux, 16 callers, 12,000 calls: 5 chosen again, 0 failed
+  (the same row without the retry: 1 early exit and 3 foreign-listener lines in 12,000, and 3 in 6,000 before). 5,000 binds a second, 2,000 calls: 15 chosen again, 0
+  failed (11 early exits without). macOS, 8 callers, 6,000 calls: 7 chosen again (0.12%, the rate without it was 21 in 18,000), none failed on a port. Eight calls of
+  that run ended for another reason: all eight candidates had logged that they listen and exited 0 within 0.6 s of each other, so something outside the probe sent
+  them SIGTERM, and serve.py rightly did not start them again.
+- *Tests* (`test/shiploop-e2e-resources.test.py`). `CandidateProblemTest` (7, no node) pins which refusals are a taken port. `ServeRetryTest` (7) runs the real
+  serve.py: started again on another port; three starts at most and the failure names the ports; an `EADDRINUSE` naming another port, another exit code and a pinned
+  port are started once; a real collision (a socket on every address holds the number `free_port()` hands out) passes on the second start; the candidate of a given-up
+  start is ended before the next. Against the old serve.py 11 of the 14 fail (the three "started once" tests pass by design); the 8 serve.py tests that were there still pass.
+- *Not done.* `due_times_probe.py` (the `ticket-due-times` case) starts its own servers with `serve.free_port()` and keeps the same exposure; the retry does not reach
+  it. A candidate that stays alive beside a foreign listener on its port (a macOS dual bind) is ended and started again; one that always starts a detached listener of its
+  own on `PORT` is started three times and fails as before, and may leave those listeners to the run's reaper.
+- *Digests.* `checks/` is hashed into the oracle digest, so every case's oracle digest changes at this commit and no comparison that needs the old one spans it (as
+  `d9a92f05` said of the evaluator digest). SPEC's "Concurrency must not change a verdict" and the README's `checks` paragraph carry the amendment.

@@ -226,7 +226,13 @@ pre-created. It grades five verdicts into `result.json`:
   group holds the listener, runs the check with `PORT` and `BASE` set, and ends
   only that group. A candidate that exits first fails with its exit code and
   stderr (an `EADDRINUSE` stays visible), a port answered by another process
-  fails and names it, and a listener that cannot be identified fails.
+  fails and names it, and a listener that cannot be identified fails. A port
+  that another process took between the choice and the bind (the candidate
+  exits with `EADDRINUSE` naming its own port, or another process listens on
+  it) is chosen again, at most three starts in all (added 2026-11-15; the same
+  rule `quality.serve_on_free_port` has); nothing else is started again, a
+  port pinned with `E2E_SERVE_PORT` is tried once, and the response a check
+  accepts is unchanged: every start must be the only listener on its own port.
 
 The output directory keeps the prompt, argv, raw events, a readable
 `transcript.md` (built from the text the model actually saw), stderr and the

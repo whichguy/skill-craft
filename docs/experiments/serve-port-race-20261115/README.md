@@ -13,6 +13,7 @@ excerpt is `docs/experiments/git-maintenance-lock-20261114/ci-attempt2-failure-e
 | `pinned_port_demo.py`, `pinned-ports-linux.jsonl`, `pinned-ports-macos.jsonl` | What the candidate and serve.py do when the port they are handed is taken, by seven kinds of socket, on Linux and on macOS. |
 | `port_pool.py`, `port-pool-linux.txt`, `port-pool-macos.txt` | Which port numbers the kernel hands out, by each way this harness asks for one. |
 | `serve_race_probe.py`, `run_matrix.sh`, `matrix-linux.jsonl`, `matrix-linux-v2.jsonl`, `matrix-macos*.jsonl`, `rate_summary.py`, `rates.txt` | The rate half: the real serve.py called many times at once, with neighbours that bind ports, on Linux and on macOS; the rows and their intervals. |
+| `matrix-linux-retry.jsonl`, `matrix-macos-retry.jsonl` | The same probe against serve.py with its retry (section 8). |
 | `bad_ports.py`, `macos-bad-ports.txt` | Why the same twelve port numbers failed in every run on macOS (addresses not kept). |
 | `tap/sitecustomize.py`, `run_tap.sh`, `tap-summary.txt` | A tap that counts how many times each suite starts a candidate through serve.py and how those runs ended. |
 | `lsof_shim.py` | The one lsof call serve.py makes, for the Linux container that has no lsof. Used only there. |
@@ -25,7 +26,9 @@ excerpt is `docs/experiments/git-maintenance-lock-20261114/ci-attempt2-failure-e
   log), so the kernel and Node differ and the Node frames of the CI record (`callSetupListenHandle`) are not Node 26.12.1's.
 - **macOS**: this machine (Darwin 27.2.0, Node v26.12.1, Python 3.15.1, real lsof), at low priority, with the other work that was on it (load average 7 to 16).
 - The candidate is the `reference` delivery of the `ticket-comments` case (`reference_ticket_comments.build`), started as the case's checks start it
-  (`node src/server.js`), with `-- true` as the check, so each call is one `free_port()`, one Popen and one `wait_for_candidate()`.
+  (`node src/server.js`), with `-- true` as the check, so each call is one `free_port()`, one Popen and one wait for the candidate.
+- Sections 1 to 7 measured `checks/serve.py` as it was before its retry (commit `f8aa961c` and the ones before it); `matrix-*-retry.jsonl` (section 8) measured the
+  serve.py that has the retry, which waits through `candidate_problem` where the older one waited through `wait_for_candidate`.
 
 ## Results
 
@@ -96,6 +99,19 @@ go through `quality.serve_on_free_port`, which starts a server whose port was ta
 `ticket-sla` times 82, 130 of `user-chain` times 39, 68 of `user-directory` times 184, 214 of `brownfield` times 4 and 216 of `brownfield-tickets` times 13 is about 37,900 serve.py runs
 in the history, with one early exit: 0.0026% (0.0001 to 0.015) per run, which is 45 times fewer than on macOS and fits mechanism (A) alone (`rates.txt`).
 
+**8. With the retry in `checks/serve.py`** (the owner's "Yes, add retry"; `matrix-*-retry.jsonl`, `rates.txt`). The same probe, the same delivery, the same conditions:
+
+| | calls | chosen again (passed on the next start) | failed on a port | the same row without the retry |
+| --- | ---: | ---: | ---: | --- |
+| Linux, 16 callers, no neighbour | 12,000 | 5 | 0 | 1 early exit and 3 foreign-listener lines in 12,000; 3 in 6,000 more |
+| Linux, 5,000 socket binds a second held 30 ms | 2,000 | 15 | 0 | 11 early exits |
+| macOS, 8 callers | 6,000 | 7 | 0 | 21 early exits in 18,000 (0.12%; 7 in 6,000 is 0.12%) |
+
+Every collision of the three rows was chosen again and passed on the next start; none needed a third. On macOS 8 further calls failed for another reason: each
+candidate had logged "listening" and exited 0, all eight within 0.6 s of each other, so something outside the probe sent the servers SIGTERM; serve.py did not start
+them again (no `EADDRINUSE`), and the probe now labels such a call "stopped from outside". The retry costs one more candidate start for the call that needs it
+(about 0.2 to 0.4 s) and nothing for the others.
+
 ## Reading
 
 - The error is `EADDRINUSE`: a candidate that is handed a port number another socket holds exits with rc 1 before it listens (reproduced on both platforms, with the CI's own line on
@@ -106,7 +122,9 @@ in the history, with one early exit: 0.0026% (0.0001 to 0.015) per run, which is
   where it needs no concurrency; on Linux it is unlikely because a `connect()` source port is even and `free_port()`'s is odd).
 - The CI event is (A). Its holder cannot be named: it was not a listener when serve.py looked, and the record keeps nothing else. The CI rate is about one early exit in 181 executions
   of this suite (one in 85 full-tier executions), and no other suite has shown the signature since 2026-10-31.
-- A regrade in the suites' tests ends the effect on the calibrations (a collision touches one server once). It does not touch the live checks, which run the same serve.py.
+- A regrade in the suites' tests ends the effect on the calibrations (a collision touches one server once). ~~It does not touch the live checks, which run the same serve.py.~~
+  [superseded 2026-11-15, later the same day: the owner said yes to a retry in serve.py itself, section 8; the live checks that go through it choose the port again too. The
+  regrade stays, as a second line.]
 
 ## Limits
 
@@ -118,6 +136,8 @@ in the history, with one early exit: 0.0026% (0.0001 to 0.015) per run, which is
   holders when an early exit happens) and `matrix-macos-v4.jsonl` by the fourth (adds every socket in any state; on macOS `netstat` gave the Python process no TCP rows in this sandboxed
   shell, so those lists are empty and `bad_ports.py`, which reads `netstat` from the shell, is the macOS evidence). An earlier 400-call control of the 5,000-a-second row (1 early exit) was not kept.
 - The tap counts come from macOS; the calls per execution are the same on CI, which runs the same code, except where a test is skipped there.
+- The retry rows are one run per platform, and a retry that is itself taken (about the square of the rate) was not seen. The retry rows came from the probe as committed here before one last
+  edit: it counts the calls that `free_port()` served twice, and the "stopped from outside" label was added after the macOS row, so that row still says "early exit" for those 8.
 
 ## Follow-up (2026-11-15, later the same day): the regrade in the other three suites
 

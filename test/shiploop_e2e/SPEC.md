@@ -901,8 +901,10 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   same checks. A case's HTTP check starts the candidate on a free port of
   its own and accepts a response only once the candidate's own process
   group holds the listener (`checks/serve.py`; amended 2026-10-16: on a
-  fixed port a sibling's server answered the check, a false green). A
-  failure seen only in a parallel run (for example two products' own tests
+  fixed port a sibling's server answered the check, a false green; amended
+  2026-11-15: a port that another process took between the choice and the
+  bind is chosen again, at most three starts in all, and never changes what
+  the check accepts). A failure seen only in a parallel run (for example two products' own tests
   binding the same fixed port, or a host rate limit) is rerun alone
   (`--serial`) before it is attributed to ShipLoop. A pass is never rerun,
   so rerunning alone cannot catch a false green: a check must not accept a

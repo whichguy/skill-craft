@@ -15,7 +15,8 @@ collapsed stderr instead of its last 600 characters, so every early exit is clas
   node-test:N                 N loops of the fixture's own `node --test` (the base of the ticket cases, 128 tests, each with a server)
                               in copies of --fixture (default: test/shiploop_e2e/fixtures/node-tickets of this checkout)
 
-Prints one JSON line: how many calls passed, exited early (and with what error code), found a foreign listener, or timed out; each early
+Prints one JSON line: how many calls passed (and how many of those only after serve.py chose the port again, once serve.py has its retry),
+exited early (and with what error code), found a foreign listener, or timed out; each early
 exit's port, its error code and the window (seconds from the port being released to the first time serve.py saw the candidate listen, an
 upper bound on the time another socket had to take the port); the window's quantiles over the calls that passed; the load average.
 """
@@ -187,20 +188,26 @@ def main() -> None:
     serve.fail = fail
     serve.tail = lambda path: " ".join(path.read_text(errors="replace").split()) or "(no stderr)"
     stamps = threading.local()
-    real_free_port, real_wait = serve.free_port, serve.wait_for_candidate
+    real_free_port = serve.free_port
 
     def free_port() -> int:
         port = real_free_port()
         stamps.released = time.monotonic()
+        stamps.calls = getattr(stamps, "calls", 0) + 1  # a second call inside one main() is a retry
         return port
 
-    def wait_for_candidate(proc, port, stderr) -> None:
+    # serve.py before its retry waits through wait_for_candidate; with the retry, main() waits through candidate_problem.
+    waiting = "candidate_problem" if hasattr(serve, "candidate_problem") else "wait_for_candidate"
+    real_wait = getattr(serve, waiting)
+
+    def wait_for_candidate(proc, port, stderr):
         try:
-            real_wait(proc, port, stderr)
+            return real_wait(proc, port, stderr)
         finally:
             stamps.seen = time.monotonic()
 
-    serve.free_port, serve.wait_for_candidate = free_port, wait_for_candidate
+    serve.free_port = free_port
+    setattr(serve, waiting, wait_for_candidate)
     os.chdir(args.delivery)
     for variable in ("E2E_SERVE_PORT", "PORT"):
         os.environ.pop(variable, None)
@@ -217,15 +224,18 @@ def main() -> None:
                     return
                 remaining[0] -= 1
             stamps.released = stamps.seen = None
+            stamps.calls = 0
             row = {"outcome": None}
             try:
                 code = serve.main(["--start", "node src/server.js", "--", "true"])
-                row["outcome"] = "passed" if code == 0 else f"check exited {code}"
+                row["outcome"] = ("passed" if stamps.calls == 1 else "passed after retry") if code == 0 else f"check exited {code}"
             except Failed as why:
                 text = str(why)
                 found = re.search(r"PORT=(\d+)", text) or re.search(r"port (\d+)", text)
                 row["port"] = int(found.group(1)) if found else None
-                if "exited (rc" in text:
+                if "exited (rc 0)" in text and "listening on" in text:
+                    row["outcome"] = "stopped from outside"  # the server logged that it listens and exited 0: a SIGTERM the probe did not send
+                elif "exited (rc" in text:
                     row["outcome"] = "early exit"
                     named = re.search(r"code: '([A-Z_]+)'", text) or re.search(r"\b(E[A-Z]{3,})\b", text)
                     row["code"] = named.group(1) if named else None
