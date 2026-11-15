@@ -74,7 +74,8 @@ def main(argv: list) -> int:
 
     task_mode = plan["steps"][0].get("kit", {}).get("mode") == "task"
     write = plan.get("fixture") == "write"
-    oracle = json.loads((Path(run).parent.parent / "oracle.json").read_text()) if task_mode and not write else {}
+    real = plan.get("fixture") == "tickets"   # README Amendment A14: the real service; the stand-in worker adds one small file and test per task
+    oracle = json.loads((Path(run).parent.parent / "oracle.json").read_text()) if task_mode and not write and not real else {}
     for step in plan["steps"]:
         if task_mode:
             shell([sys.executable, kit, "ready", "--run", run])   # the A0 loop's first command; in an isolated write run it merges the finished branches
@@ -91,6 +92,16 @@ def main(argv: list) -> int:
                         with open(workspace / "pkg" / "__init__.py", "a") as handle:
                             handle.write(writefix.IMPORTS[step["id"]])
                     oracle[step["id"]] = writefix.TEST_COUNTS[step["id"]]
+            if real:   # the first task also lays down the composed reference solution when the calibration asks for it (PPE_COMPOSED=1)
+                workspace = Path(re.search(r"Workspace \(work only inside it\): (\S+)", begun).group(1))
+                if os.environ.get("PPE_COMPOSED") == "1" and step is plan["steps"][0]:
+                    subprocess.run(["git", "-C", str(workspace), "apply", str(Path(__file__).resolve().parent / "real-repo" / "refs" / "composed.patch")], check=True)
+                tag = step["id"]
+                (workspace / "src" / f"zz{tag}.js").write_text(f"'use strict';\nmodule.exports = {{ tag: '{tag}' }};\n")
+                (workspace / "test" / f"zz{tag}.test.js").write_text(
+                    "'use strict';\nconst { test } = require('node:test');\nconst assert = require('node:assert/strict');\n"
+                    f"test('zz{tag} stand-in', () => assert.equal(require('../src/zz{tag}').tag, '{tag}'));\n")
+                oracle[step["id"]] = 1
             if json.loads((Path(run) / "meta.json").read_text()).get("settle"):
                 shell([sys.executable, kit, "settle", "--run", run, "--step", step["id"]])
             out.append(shell([sys.executable, kit, "complete", "--run", run, "--step", step["id"], "--result",

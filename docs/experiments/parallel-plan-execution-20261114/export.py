@@ -65,10 +65,30 @@ def export(trial: Path, dest_root: Path) -> Path:
             for src in (repo / sub_dir).glob("*.py"):
                 (dest / "final-tree" / sub_dir).mkdir(parents=True, exist_ok=True)
                 shutil.copy(src, dest / "final-tree" / sub_dir / src.name)
+    if (trial / "work" / "plan.json").is_file() and json.loads((trial / "work" / "plan.json").read_text()).get("fixture") == "tickets":
+        export_real(trial, dest)
     err = trial / "stderr.txt"
     if err.is_file():
         (dest / "stderr.tail.txt").write_text(err.read_text(errors="replace")[-4096:])
     return dest
+
+
+def export_real(trial: Path, dest: Path) -> None:
+    """A real-repository trial (README Amendment A14): the code the workers wrote as diffs, not the whole service (which is the base's, in
+    the harness's fixtures): final.diff (the base to the final tree, staged first because a shared run leaves its changes uncommitted) and, in an
+    isolated run, attempts/<task>-<n>.diff (each attempt's branch against the commit it started from, a fix attempt against main as it was)."""
+    repo = trial / "work" / "repo"
+    git = ["git", "-C", str(repo)]
+    base = subprocess.run(git + ["rev-list", "--max-parents=0", "HEAD"], capture_output=True, text=True).stdout.split()[0]
+    subprocess.run(git + ["add", "-A"], capture_output=True)
+    (dest / "final.diff").write_text(subprocess.run(git + ["diff", "--cached", "--no-color", base], capture_output=True, text=True).stdout)
+    ledger = [json.loads(line) for line in (trial / "work" / "run" / "ledger.jsonl").read_text().splitlines() if line.strip()]
+    for e in ledger:
+        d = e["detail"]
+        if e["kind"] == "workspace" and d.get("mode") == "isolated" and d.get("branch"):
+            (dest / "attempts").mkdir(exist_ok=True)
+            diff = subprocess.run(git + ["diff", "--no-color", d["base"], d["branch"]], capture_output=True, text=True).stdout
+            (dest / "attempts" / f"{e['step']}-{d['attempt']}.diff").write_text(diff)
 
 
 def main(argv=None) -> int:

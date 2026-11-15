@@ -36,6 +36,7 @@ sys.path.insert(0, str(HERE))
 import evidence  # noqa: E402
 import hosts  # noqa: E402  (the E2E harness's host adapters, used read-only)
 import score  # noqa: E402
+import ticketfix  # noqa: E402  (the real-repository fixture of README Amendment A14)
 import writefix  # noqa: E402
 
 ARMS = ("A0", "A0p", "A1", "A2", "A3", "A3s")   # a task plan (real agent work) takes A0, A0p, A3 and A3s
@@ -50,12 +51,14 @@ def is_task_plan(plan: dict) -> bool:
 # variable in a task trial (Codex runs with approvals off).
 TASK_ALLOW = tuple(f"Bash({c}:*)" for c in ("python3", "grep", "awk", "sort", "uniq", "wc", "cat", "head", "tail", "cut", "sed", "ls", "tr"))
 WRITE_ALLOW = ("Edit", "Write", "Read")   # a write plan's workers write files inside the trial's work directory (README Amendment A10)
+REAL_ALLOW = tuple(f"Bash({c}:*)" for c in ("npm", "node", "find", "diff", "mkdir", "cp", "mv", "rm", "touch", "echo", "test", "tee", "xargs", "env", "git status", "git diff"))
 
 
 def packet_text(arm: str, plan: dict, kit: Path, run_dir: Path, plan_path: Path, variant: str, host: str, capacity: int) -> str:
     failure = (HERE / "packets" / "failure-rule.txt").read_text().rstrip("\n") if any(s.get("kit", {}).get("fail") for s in plan["steps"]) else ""
     name = PACKET_FILE.get(arm, arm)
-    text = string.Template((HERE / "packets" / (f"task-{name}.md" if is_task_plan(plan) else f"{name}.md")).read_text()).substitute(
+    template = f"real-{name}.md" if plan.get("fixture") == "tickets" else (f"task-{name}.md" if is_task_plan(plan) else f"{name}.md")
+    text = string.Template((HERE / "packets" / template).read_text()).substitute(
         kit=kit, run_dir=run_dir, plan_path=plan_path, failure_rule=failure, capacity=capacity, last_step=plan["steps"][-1]["id"])
     if variant == "H":
         text += "\n" + (HERE / "packets" / f"H-{host}.txt").read_text().strip() + "\n"
@@ -161,6 +164,9 @@ def main(argv=None) -> int:
                         help="Codex only: pass --enable NAME (README Amendment A1: multi_agent_v2 is off in the harness's "
                              "throwaway profile and on in the owner's own)")
     parser.add_argument("--settle", type=float, default=0.0, help="task plans: seconds of slow verification inside every task (the work-length dial)")
+    parser.add_argument("--land", action="store_true", help="tickets plan, isolated: a teammate's change (real-repo/landing.patch) lands on main just before the first merge (A14)")
+    parser.add_argument("--on-failure", choices=("redo", "fix"), default="redo", help="tickets plan, isolated: the recovery rule for a conflict or a red re-test (A14)")
+    parser.add_argument("--max-attempts", type=int, default=4, help="tickets plan, isolated: attempts a task gets before its merge fails")
     parser.add_argument("--workspace", choices=("shared", "isolated"), default="shared",
                         help="write plans: every task edits the one checkout (shared) or each attempt gets its own git worktree that the script merges (isolated)")
     parser.add_argument("--seed", type=int, default=20261114, help="task plans: the seed of the generated log files")
@@ -181,10 +187,11 @@ def main(argv=None) -> int:
     effort = args.effort if args.effort is not None else host.effort
     if is_task_plan(plan) and args.arm not in ("A0", "A0p", "A3", "A3s"):
         parser.error("a task plan runs under A0, A0p, A3 or A3s")
-    write = plan.get("fixture") == "write"
+    real = plan.get("fixture") == "tickets"
+    write = plan.get("fixture") in ("write", "tickets")
     capacity = 1 if args.arm == "A3s" else (args.capacity or len(plan["steps"]))
     packet = packet_text(args.arm, plan, kit, run_dir, work / "plan.json", args.variant, args.host, capacity)
-    allow = (f"Bash(python3 {kit}:*)",) + (TASK_ALLOW if is_task_plan(plan) else ()) + (WRITE_ALLOW if write else ())
+    allow = (f"Bash(python3 {kit}:*)",) + (TASK_ALLOW if is_task_plan(plan) else ()) + (WRITE_ALLOW if write else ()) + (REAL_ALLOW if real else ())
 
     def build(prompt_file: Path) -> list:
         cmd = host.argv(prompt=packet, prompt_file=prompt_file, cwd=work, model=model, effort=effort, permission_mode="auto",
@@ -207,9 +214,18 @@ def main(argv=None) -> int:
     shutil.copy(plan_src, work / "plan.json")
     init = [sys.executable, str(kit), "init", "--plan", str(work / "plan.json"), "--run", str(run_dir), "--settle", str(args.settle)]
     if write:   # the base commit every worker starts from; the hidden oracle sits beside work/, read only by the scorer
-        writefix.make_repo(work / "repo")
         (trial / "oracle").mkdir()
-        (trial / "oracle" / "hidden_tests.py").write_text(writefix.ORACLE)
+        if real:
+            ticketfix.make_repo(work / "repo")
+            if args.workspace == "isolated":
+                init += ["--retest", "npm test --silent", "--on-failure", args.on_failure, "--max-attempts", str(args.max_attempts)]
+                if args.land:
+                    shutil.copy(ticketfix.REAL / "landing.patch", trial / "oracle" / "landing.patch")
+                    ticketfix.base_after_landing(trial / "oracle" / "base-after-landing")
+                    init += ["--land", str(trial / "oracle" / "landing.patch"), "--land-message", ticketfix.LANDING_MESSAGE]
+        else:
+            writefix.make_repo(work / "repo")
+            (trial / "oracle" / "hidden_tests.py").write_text(writefix.ORACLE)
         init += ["--repo", str(work / "repo"), "--workspace", args.workspace]
     subprocess.run(init, check=True, stdout=subprocess.DEVNULL, env=clean_env)
     (trial / "packet.md").write_text(packet)
@@ -227,6 +243,9 @@ def main(argv=None) -> int:
            "permission_mode": "auto", "allow": list(allow), "plan": args.plan, "arm": args.arm, "variant": args.variant,
            "capacity": capacity, "enabled_features": args.enable_feature, "timeout_s": args.timeout,
            "task_plan": is_task_plan(plan), "settle_s": args.settle, "workspace": args.workspace if write else None,
+           "land": bool(real and args.land), "on_failure": args.on_failure if real else None, "max_attempts": args.max_attempts if real else None,
+           "provenance": ticketfix.provenance() if real else None,   # hashes of what the oracle is made of, frozen at launch (A14)
+           "oracle_deferred": bool(real and os.environ.get("PPE_DEFER_ORACLE") == "1"),
            "seed": args.seed if is_task_plan(plan) and not write else None,
            "lines": args.lines if is_task_plan(plan) and not write else None,
            "budget_usd": args.budget if args.host == "claude" else None,

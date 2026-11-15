@@ -19,6 +19,7 @@ import argparse
 import collections
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -26,6 +27,7 @@ import sys
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import dagkit  # noqa: E402
+import ticketfix  # noqa: E402  (the real-repository oracle of README Amendment A14)
 import writefix  # noqa: E402
 
 FINAL_RE = re.compile(r"^FINAL (\{.*\})\s*$", re.M)
@@ -458,6 +460,7 @@ def tokens(view: list, host: str, native: dict | None = None) -> dict:
         if host == "codex":   # the parent's turn usage counts input_tokens including its cached part
             parent_in = out["input"]
             kids = [a["tokens"] for a in (native or {}).get("agents", []) if a.get("tokens")]
+            out["children_without_usage"] = sum(1 for a in (native or {}).get("agents", []) if not a.get("tokens"))   # a total missing a child is incomplete, not smaller
             kids_in = sum(k.get("input_tokens") or 0 for k in kids)
             out.update(parent_input_all=parent_in, children_input_all=kids_in if native else None, children_included=False if native else None,
                        input_all=(parent_in or 0) + kids_in, output_all=(out["output"] or 0) + sum(k.get("output_tokens") or 0 for k in kids))
@@ -604,7 +607,10 @@ def write_measures(trial: Path, plan: dict, run: dagkit.Run, events: list) -> di
         out = run.dir / "out" / f"{s['id']}.json"
         reported[s["id"]] = json.loads(out.read_text()).get("result", {}).get("answer") if out.is_file() else None
     oracle = trial / "oracle" / "hidden_tests.py"
-    verdict = writefix.evaluate(oracle, Path(meta["repo"]), reported) if oracle.is_file() else None
+    if plan.get("fixture") == "tickets":   # the real service: each feature's checks and held-out acceptance, the whole tree's, the interaction checks (ticketfix.evaluate)
+        verdict = {"deferred": True, "valid": False} if os.environ.get("PPE_DEFER_ORACLE") == "1" else ticketfix.evaluate(trial, meta, events)
+    else:
+        verdict = writefix.evaluate(oracle, Path(meta["repo"]), reported) if oracle.is_file() else None
 
     def seconds(kind):
         return round(sum(e["detail"].get("seconds") or 0 for e in events if e["kind"] == kind), 3)
@@ -623,7 +629,72 @@ def write_measures(trial: Path, plan: dict, run: dagkit.Run, events: list) -> di
             "conflicts": len(conflicts), "conflict_paths": sorted({p for e in conflicts for p in e["detail"].get("paths", [])}),
             "retries": sum(1 for e in events if e["kind"] == "retry"), "scope_notes": notes, "merge_latency_s": latency,
             "refused_empty": sum(1 for e in events if e["kind"] == "refused" and e["detail"].get("category") == "empty"),
-            "refused_missing": sum(1 for e in events if e["kind"] == "refused" and e["detail"].get("category") == "missing-output")}
+            "refused_missing": sum(1 for e in events if e["kind"] == "refused" and e["detail"].get("category") == "missing-output"),
+            **real_measures(events)}
+
+
+def real_measures(events: list) -> dict:
+    return {**_real_measures(events), **_real_accounting(events)}
+
+
+def _real_accounting(events: list) -> dict:
+    """README Amendment A14's definitions, in one place. ``kit_total_s``: every second the kit itself spent, counted once: opening workspaces, committing,
+    merging (a conflict's, a red one's with its undo, a clean one's), the landing together with its own re-test, and every other re-test.
+    ``first_round_s``: the earliest first attempt's begin to the latest first attempt's end; ``slowest_first_s``: the longest single first attempt;
+    ``first_attempt_overlap``: the files two tasks' first attempts both changed (the overlap that really happened, not the one expected);
+    ``lock_wait_s``: how long kit commands stood behind another (a re-test holds the lock while it runs)."""
+    def total(kind, key="seconds"):
+        return sum(e["detail"].get(key) or 0 for e in events if e["kind"] == kind)
+    landing_s = total("landed")
+    retest_s = sum(e["detail"].get("seconds") or 0 for e in events if e["kind"] == "retest" and not e["detail"].get("landing"))
+    kit_total = total("workspace") + total("commit") + total("merged") + total("conflict") + total("redtest") + total("redtest", "reset_s") + landing_s + retest_s
+    first, spans = {}, {}
+    for e in events:   # each task's first attempt: the first start to the first end after it
+        if e["kind"] == "start" and e["step"] not in spans:
+            spans[e["step"]] = [e["ts"], None]
+        elif e["kind"] == "end" and e["step"] in spans and spans[e["step"]][1] is None:
+            spans[e["step"]][1] = e["ts"]
+    firsts = {s: round(b - a, 1) for s, (a, b) in spans.items() if b}
+    files = {e["step"]: set(e["detail"].get("files") or []) for e in events if e["kind"] == "commit" and e["detail"].get("attempt") == 1}
+    ids = sorted(files)
+    overlap = {f"{x}+{y}": sorted(files[x] & files[y]) for i, x in enumerate(ids) for y in ids[i + 1:] if files[x] & files[y]}
+    return {"kit_total_s": round(kit_total, 3), "landing_s": round(landing_s, 3),
+            "first_round_s": round(max(b for a, b in spans.values() if b) - min(a for a, b in spans.values()), 1) if spans and all(b for a, b in spans.values()) else None,
+            "slowest_first_s": max(firsts.values()) if firsts else None, "first_attempt_s": firsts, "first_attempt_files": {s: sorted(f) for s, f in files.items()},
+            "first_attempt_overlap": overlap, "lock_wait_s": round(sum(e["detail"].get("waited_s") or 0 for e in events if e["kind"] in ("start", "end")), 3),
+            "faults": [e["detail"].get("what") for e in events if e["kind"] == "fault"], "noop_fixes": sum(1 for e in events if e["kind"] == "commit" and e["detail"].get("noop")),
+            "retest_reruns_kept": sum(len(e["detail"].get("reruns") or []) for e in events if e["kind"] == "retest")}
+
+
+def _real_measures(events: list) -> dict:
+    """README Amendment A14 (a real repository): the re-test of the merged tree, the landing, and what recovery took, from the ledger."""
+    retests = [e for e in events if e["kind"] == "retest" and not e["detail"].get("landing")]
+    fix_ws = [e for e in events if e["kind"] == "workspace" and e["detail"].get("fix")]
+    landed = next((e for e in events if e["kind"] == "landed"), None)
+    work = {}
+    for e in events:   # each attempt's own seconds: its begin (start) to its complete (end), in order
+        if e["kind"] == "start":
+            work.setdefault(e["step"], []).append([e["ts"], None])
+        elif e["kind"] in ("end", "fail") and work.get(e["step"]):
+            work[e["step"]][-1][1] = e["ts"]
+    return {"retests": len(retests), "retest_s": round(sum(e["detail"].get("seconds") or 0 for e in retests), 3),
+            "retest_reruns": sum(1 for e in retests if (e["detail"].get("tries") or 1) > 1),
+            "redtests": sum(1 for e in events if e["kind"] == "redtest"), "mergefails": sum(1 for e in events if e["kind"] == "mergefail"),
+            "retry_causes": sorted(e["detail"].get("cause") or "conflict" for e in events if e["kind"] == "retry"),
+            "fix_attempts": len(fix_ws), "fix_markers": sorted({p for e in fix_ws for p in e["detail"].get("unmerged", [])}),
+            "landed": None if landed is None else {"ok": landed["detail"].get("ok"), "files": len(landed["detail"].get("files", [])), "ts": landed["ts"]},
+            "attempt_s": {s: [round(b - a, 1) for a, b in spans if b] for s, spans in work.items()},
+            "attempt_peak": _peak([(a, b or events[-1]["ts"]) for spans in work.values() for a, b in spans])}
+
+
+def _peak(spans: list) -> int:
+    """The most attempts (of any task) running at one moment, over every attempt's begin to complete: the ledger's own peak forgets earlier attempts."""
+    marks = sorted([(a, 1) for a, _ in spans] + [(b, -1) for _, b in spans], key=lambda m: (m[0], m[1]))
+    now = best = 0
+    for _, d in marks:
+        now += d
+        best = max(best, now)
+    return best
 
 
 def score_trial(trial: Path) -> dict:
@@ -643,6 +714,10 @@ def score_trial(trial: Path) -> dict:
     m["write"] = write_measures(trial, plan, run, events)
     if ans is not None and claim is not None:
         m["final_answer_ok"] = claim.get("answer") == ans["expected_final"]
+    elif plan.get("fixture") == "tickets" and claim is not None:   # no oracle.json for the real service: the answer must be what the last task recorded
+        last = run.dir / "out" / f"{plan['steps'][-1]['id']}.json"
+        recorded = json.loads(last.read_text()).get("result", {}).get("answer") if last.is_file() else None
+        m["final_answer_ok"] = recorded is not None and claim.get("answer") == recorded
     # attribution: Claude's stream names the agent of every call; Codex's rollouts and Grok's log name it for theirs
     attributable = bool(host == "claude" or native["agents"] or (host == "codex" and native.get("threads")) or (host == "grok" and native["agents"]))
     m["mechanism"] = mechanism(view, m, attributable)
@@ -666,7 +741,7 @@ def score_trial(trial: Path) -> dict:
                     "launch_to_exit_s": round(proc_end - launched, 3) if launched and proc_end else None}
     m["valid"] = bool(inv.get("status") == "exited" and not m["scaled_trial"] and m["steps_without_end"] == 0
                       and m["verify_as_expected"] and m["fidelity_ok"] and m["terminal_duplicates"] == 0
-                      and m.get("settled_all") is not False and (ans is None or ans["all_correct"])
+                      and m.get("settled_all") is not False and (ans is None or ans["all_correct"]) and (plan.get("fixture") != "tickets" or m.get("final_answer_ok") is not False)
                       and (m["write"] is None or bool((m["write"]["oracle"] or {}).get("valid"))))
     m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "workspace", "loadavg", "enabled_features")}
     (trial / "score.json").write_text(json.dumps(m, indent=1, default=str) + "\n")
