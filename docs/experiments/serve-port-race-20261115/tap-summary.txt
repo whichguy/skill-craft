@@ -1,0 +1,16 @@
+user-chain: exit 0 in 35 s: Ran 19 tests in 34.473s OK
+ticket-comments: exit 0 in 53 s: Ran 21 tests in 53.242s OK
+brownfield: exit 0 in 27 s: Ran 27 tests in 27.299s OK
+user-directory: exit 0 in 162 s: Ran 41 tests in 161.882s OK (skipped=1)
+resources: exit 0 in 158 s: Ran 111 tests in 157.378s OK
+brownfield-tickets: exit 0 in 238 s: Ran 35 tests in 237.037s OK
+ticket-sla: exit 0 in 690 s: Ran 27 tests in 689.811s OK
+
+suite                 runs  passed  check exited N  FAIL answered by pid  FAIL exited early  of them EADDRINUSE  other FAIL
+ticket-comments         57      38              15                     3                  1                   0           0
+ticket-sla              85      65              17                     3                  0                   0           0
+user-chain              39      26              13                     0                  0                   0           0
+user-directory         184     125              59                     0                  0                   0           0
+brownfield               4       2               2                     0                  0                   0           0
+brownfield-tickets      13       9               4                     0                  0                   0           0
+resources               57       8              19                     3                 27                   0           0

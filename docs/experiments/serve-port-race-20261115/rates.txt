@@ -1,0 +1,20 @@
+# Linux (container, kernel 7.2.12, Node v26.12.1, --cpus 4): matrix-linux.jsonl, matrix-linux-v2.jsonl
+w2           workers= 2 calls= 2000 early_exits= 0 {} other={} rate=0.000% (95%: 0.000% to 0.184%); collisions=0 0.000% (95%: 0.000% to 0.184%); window median 0.145 s max 0.165 s, 147.1 s, load 1
+w8           workers= 8 calls= 4000 early_exits= 0 {} other={} rate=0.000% (95%: 0.000% to 0.092%); collisions=0 0.000% (95%: 0.000% to 0.092%); window median 0.128 s max 0.182 s, 64.4 s, load 3
+w16          workers=16 calls= 6000 early_exits= 0 {} other={'foreign listener': 3} rate=0.000% (95%: 0.000% to 0.061%); collisions=3 0.050% (95%: 0.010% to 0.146%); window median 0.192 s max 0.491 s, 70.7 s, load 2
+test4        workers= 2 calls= 1000 early_exits= 0 {} other={} rate=0.000% (95%: 0.000% to 0.368%); collisions=0 0.000% (95%: 0.000% to 0.368%); window median 0.197 s max 0.387 s, 86.0 s, load 8
+test16       workers= 2 calls= 1000 early_exits= 0 {} other={'foreign listener': 1} rate=0.000% (95%: 0.000% to 0.368%); collisions=1 0.100% (95%: 0.003% to 0.556%); window median 0.625 s max 1.612 s, 355.5 s, load 2
+py1000       workers= 2 calls= 3000 early_exits= 0 {} other={} rate=0.000% (95%: 0.000% to 0.123%); collisions=0 0.000% (95%: 0.000% to 0.123%); window median 0.142 s max 0.29 s, 214.4 s, load 1
+py5000       workers= 2 calls= 2000 early_exits=11 {'EADDRINUSE': 11} other={} rate=0.550% (95%: 0.275% to 0.982%); collisions=11 0.550% (95%: 0.275% to 0.982%); window median 0.143 s max 0.211 s, 143.4 s, load 2
+node2000     workers= 2 calls= 2000 early_exits= 0 {} other={} rate=0.000% (95%: 0.000% to 0.184%); collisions=0 0.000% (95%: 0.000% to 0.184%); window median 0.14 s max 0.199 s, 141.3 s, load 2
+w16-v2       workers=16 calls=12000 early_exits= 1 {'EADDRINUSE': 1} other={'foreign listener': 3} rate=0.008% (95%: 0.000% to 0.046%); collisions=4 0.033% (95%: 0.009% to 0.085%); window median 0.201 s max 0.391 s, 157.6 s, load 6
+
+# macOS (this machine, ambient load 7 to 16): matrix-macos.jsonl (8 workers), matrix-macos-v3.jsonl (8 then 2 workers), matrix-macos-v4.jsonl (8 workers)
+host-w8      workers= 8 calls= 4000 early_exits= 8 {'EADDRINUSE': 8} other={} rate=0.200% (95%: 0.086% to 0.394%); collisions=8 0.200% (95%: 0.086% to 0.394%); window median 0.282 s max 0.644 s, 146.7 s, load 16
+host-w8-v3   workers= 8 calls= 4000 early_exits= 3 {'EADDRINUSE': 3} other={} rate=0.075% (95%: 0.015% to 0.219%); collisions=3 0.075% (95%: 0.015% to 0.219%); window median 0.279 s max 0.572 s, 144.2 s, load 16
+host-w2-v3   workers= 2 calls= 4000 early_exits= 1 {'EADDRINUSE': 1} other={} rate=0.025% (95%: 0.001% to 0.139%); collisions=1 0.025% (95%: 0.001% to 0.139%); window median 0.25 s max 0.533 s, 516.1 s, load 7
+host-w8-v4   workers= 8 calls= 6000 early_exits= 9 {'EADDRINUSE': 9} other={} rate=0.150% (95%: 0.069% to 0.285%); collisions=9 0.150% (95%: 0.069% to 0.285%); window median 0.279 s max 0.565 s, 214.1 s, load 12
+
+Linux, 16 workers, no neighbours, pooled (early exit + foreign listener): 7 in 18000: 0.0389%  95% 0.0156% to 0.0801%
+macOS, pooled early exits (4 runs): 21 in 18000: 0.1167%  95% 0.0722% to 0.1783%
+CI history: early exits per serve.py call (1 in about 37,900): 1 in 37900: 0.0026%  95% 0.0001% to 0.0147%
