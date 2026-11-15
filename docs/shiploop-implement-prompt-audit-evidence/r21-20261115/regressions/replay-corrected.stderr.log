@@ -1,0 +1,35 @@
+EE
+======================================================================
+ERROR: test_check_replay_of_accepted_action_acknowledges_without_gates (__main__.TestLoopTests.test_check_replay_of_accepted_action_acknowledges_without_gates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2735, in test_check_replay_of_accepted_action_acknowledges_without_gates
+    self.assert_check_without_gates(action, accepted=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2759, in assert_check_without_gates
+    self.assertEqual(nav.dispatch(CORE, self.run_dir, state, args), 0)
+                     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/skills/shiploop/scripts/shiploop_navigator.py", line 10356, in dispatch
+    "change makes it run them again." if reusable else
+                                         ^^^^^^^^
+UnboundLocalError: cannot access local variable 'reusable' where it is not associated with a value
+
+======================================================================
+ERROR: test_check_of_paused_unaccepted_action_refuses_with_resume_without_gates (__main__.TestLoopTests.test_check_of_paused_unaccepted_action_refuses_with_resume_without_gates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2745, in test_check_of_paused_unaccepted_action_refuses_with_resume_without_gates
+    self.assert_check_without_gates(action, accepted=False)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2763, in assert_check_without_gates
+    nav.dispatch(CORE, self.run_dir, state, args)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/skills/shiploop/scripts/shiploop_navigator.py", line 10356, in dispatch
+    "change makes it run them again." if reusable else
+                                         ^^^^^^^^
+UnboundLocalError: cannot access local variable 'reusable' where it is not associated with a value
+
+----------------------------------------------------------------------
+Ran 2 tests in 22.500s
+
+FAILED (errors=2)

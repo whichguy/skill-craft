@@ -1,0 +1,28 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/check-release-boundary.py",
+    "--base",
+    "856938eb342a3da09156fe6c333439606c694a7b"
+  ],
+  "attempt": 1,
+  "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+  "duration_seconds": 0.242,
+  "env_override": {
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "exit_code": 0,
+  "expected_tests": null,
+  "explicit_boundary_pass": true,
+  "finished_utc": "2026-11-15T18:27:25.064228+00:00",
+  "id": 5,
+  "inherited_environment": true,
+  "name": "release-boundary",
+  "reason": "",
+  "started_utc": "2026-11-15T18:27:24.821835+00:00",
+  "status": "PASS",
+  "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/05-release-boundary.stderr.log",
+  "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/05-release-boundary.stdout.log",
+  "evidence_parser_correction": "Matched exact retained terminal line check-release-boundary: OK; no rerun"
+}

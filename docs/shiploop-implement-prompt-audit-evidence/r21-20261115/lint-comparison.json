@@ -1,0 +1,37 @@
+{
+  "skills/shiploop/scripts/shiploop_test_loop.py": {
+    "baseline_exit": 0,
+    "baseline_count": 0,
+    "candidate_exit": 0,
+    "candidate_count": 0,
+    "new_findings": []
+  },
+  "skills/shiploop/scripts/shiploop_mutation.py": {
+    "baseline_exit": 0,
+    "baseline_count": 0,
+    "candidate_exit": 0,
+    "candidate_count": 0,
+    "new_findings": []
+  },
+  "skills/shiploop/scripts/shiploop_navigator.py": {
+    "baseline_exit": 1,
+    "baseline_count": 6,
+    "candidate_exit": 1,
+    "candidate_count": 6,
+    "new_findings": []
+  },
+  "skills/shiploop/scripts/shiploop_check.py": {
+    "baseline_exit": 0,
+    "baseline_count": 0,
+    "candidate_exit": 0,
+    "candidate_count": 0,
+    "new_findings": []
+  },
+  "test/shiploop-test-loop.test.py": {
+    "baseline_exit": 1,
+    "baseline_count": 1,
+    "candidate_exit": 1,
+    "candidate_count": 1,
+    "new_findings": []
+  }
+}

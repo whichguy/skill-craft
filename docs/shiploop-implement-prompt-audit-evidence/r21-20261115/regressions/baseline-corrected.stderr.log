@@ -1,0 +1,53 @@
+FFFFF
+======================================================================
+FAIL: test_external_mutation_rows_rerun_before_remote_filtering (__main__.TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering) (indication='host')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2876, in test_external_mutation_rows_rerun_before_remote_filtering
+    self.assertGreater(runner.call_count, 0)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 not greater than 0
+
+======================================================================
+FAIL: test_external_mutation_rows_rerun_before_remote_filtering (__main__.TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering) (indication='target')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2876, in test_external_mutation_rows_rerun_before_remote_filtering
+    self.assertGreater(runner.call_count, 0)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 not greater than 0
+
+======================================================================
+FAIL: test_external_mutation_rows_rerun_before_remote_filtering (__main__.TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering) (indication='mixed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2876, in test_external_mutation_rows_rerun_before_remote_filtering
+    self.assertGreater(runner.call_count, 0)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 not greater than 0
+
+======================================================================
+FAIL: test_actual_external_command_override_reruns (__main__.TestLoopTests.test_actual_external_command_override_reruns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2925, in test_actual_external_command_override_reruns
+    self.assertTrue(refusal)
+    ~~~~~~~~~~~~~~~^^^^^^^^^
+AssertionError: '' is not true
+
+======================================================================
+FAIL: test_release_check_reruns_whole_answer_on_returned_result (__main__.ReleaseVerifyReturnedResultTests.test_release_check_reruns_whole_answer_on_returned_result)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 3711, in test_release_check_reruns_whole_answer_on_returned_result
+    self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2756, in assert_external_completion_refused
+    with self.assertRaises(nav.NavigatorError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+----------------------------------------------------------------------
+Ran 3 tests in 45.117s
+
+FAILED (failures=5)

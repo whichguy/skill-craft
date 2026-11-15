@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-test-loop.test.py"
+  ],
+  "attempt": 1,
+  "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+  "duration_seconds": 726.97,
+  "env_override": {
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "exit_code": 0,
+  "expected_tests": 222,
+  "finished_utc": "2026-11-15T18:26:56.711416+00:00",
+  "id": 1,
+  "inherited_environment": true,
+  "name": "test-loop",
+  "observed_test_counts": [
+    222
+  ],
+  "reason": "",
+  "required_skips": 0,
+  "started_utc": "2026-11-15T18:14:49.741545+00:00",
+  "status": "PASS",
+  "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/01-test-loop.stderr.log",
+  "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/01-test-loop.stdout.log",
+  "terminal_ok": true,
+  "unittest_seconds": [
+    726.59
+  ]
+}

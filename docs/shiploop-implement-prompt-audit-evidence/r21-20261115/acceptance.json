@@ -1,0 +1,210 @@
+{
+  "status": "PASS",
+  "meaning": "Parent acceptance of the scoped R21 repair: all selected test commands passed, source identity remained unchanged, and the generated-output audit deviation was separately resolved. This does not relabel the original worker aggregate.",
+  "source_head": "cc9df6d2c9413a586147392f10149f138905e935",
+  "tested_source_head": "4087731ff6ce672d635df7e479b890c2c2d66d96",
+  "integrated_main": "7fb5ba64f019230c24b5f3099d4154357dc6891f",
+  "new_regression_methods": 11,
+  "full_suite_tests": 484,
+  "full_suites": 4,
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+      "duration_seconds": 726.97,
+      "env_override": {
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "exit_code": 0,
+      "expected_tests": 222,
+      "finished_utc": "2026-11-15T18:26:56.711416+00:00",
+      "id": 1,
+      "inherited_environment": true,
+      "name": "test-loop",
+      "observed_test_counts": [
+        222
+      ],
+      "reason": "",
+      "required_skips": 0,
+      "started_utc": "2026-11-15T18:14:49.741545+00:00",
+      "status": "PASS",
+      "stderr_path": "validation/01-test-loop.stderr.log",
+      "stdout_path": "validation/01-test-loop.stdout.log",
+      "terminal_ok": true,
+      "unittest_seconds": [
+        726.59
+      ]
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+      "duration_seconds": 321.616,
+      "env_override": {
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "exit_code": 0,
+      "expected_tests": 102,
+      "finished_utc": "2026-11-15T18:20:11.357700+00:00",
+      "id": 2,
+      "inherited_environment": true,
+      "name": "callback-contract",
+      "observed_test_counts": [
+        102
+      ],
+      "reason": "",
+      "required_skips": 0,
+      "started_utc": "2026-11-15T18:14:49.741853+00:00",
+      "status": "PASS",
+      "stderr_path": "validation/02-callback-contract.stderr.log",
+      "stdout_path": "validation/02-callback-contract.stdout.log",
+      "terminal_ok": true,
+      "unittest_seconds": [
+        321.251
+      ]
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-navigator-contract.test.py"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+      "duration_seconds": 146.754,
+      "env_override": {
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "exit_code": 0,
+      "expected_tests": 149,
+      "finished_utc": "2026-11-15T18:28:39.256226+00:00",
+      "id": 3,
+      "inherited_environment": true,
+      "name": "navigator-contract",
+      "observed_test_counts": [
+        149
+      ],
+      "reason": "",
+      "required_skips": 0,
+      "started_utc": "2026-11-15T18:26:12.502606+00:00",
+      "status": "PASS",
+      "stderr_path": "validation/03-navigator-contract.stderr.log",
+      "stdout_path": "validation/03-navigator-contract.stdout.log",
+      "terminal_ok": true,
+      "unittest_seconds": [
+        146.601
+      ]
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-package-integrity.test.py"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+      "duration_seconds": 0.407,
+      "env_override": {
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "exit_code": 0,
+      "expected_tests": 11,
+      "finished_utc": "2026-11-15T18:27:14.408409+00:00",
+      "id": 4,
+      "inherited_environment": true,
+      "name": "package-integrity",
+      "observed_test_counts": [
+        11
+      ],
+      "reason": "",
+      "required_skips": 0,
+      "started_utc": "2026-11-15T18:27:14.001677+00:00",
+      "status": "PASS",
+      "stderr_path": "validation/04-package-integrity.stderr.log",
+      "stdout_path": "validation/04-package-integrity.stdout.log",
+      "terminal_ok": true,
+      "unittest_seconds": [
+        0.352
+      ]
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "856938eb342a3da09156fe6c333439606c694a7b"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+      "duration_seconds": 0.242,
+      "env_override": {
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "evidence_parser_correction": "Matched exact retained terminal line check-release-boundary: OK; no rerun",
+      "exit_code": 0,
+      "expected_tests": null,
+      "explicit_boundary_pass": true,
+      "finished_utc": "2026-11-15T18:27:25.064228+00:00",
+      "id": 5,
+      "inherited_environment": true,
+      "name": "release-boundary",
+      "reason": "",
+      "started_utc": "2026-11-15T18:27:24.821835+00:00",
+      "status": "PASS",
+      "stderr_path": "validation/05-release-boundary.stderr.log",
+      "stdout_path": "validation/05-release-boundary.stdout.log"
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+        "diff",
+        "--check",
+        "856938eb342a3da09156fe6c333439606c694a7b..HEAD"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+      "duration_seconds": 0.02,
+      "env_override": {
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "exit_code": 0,
+      "expected_tests": null,
+      "finished_utc": "2026-11-15T18:27:39.747412+00:00",
+      "id": 6,
+      "inherited_environment": true,
+      "name": "diff-check",
+      "reason": "",
+      "started_utc": "2026-11-15T18:27:39.727507+00:00",
+      "status": "PASS",
+      "stderr_path": "validation/06-diff-check.stderr.log",
+      "stdout_path": "validation/06-diff-check.stdout.log"
+    }
+  ],
+  "original_worker_aggregate_status": "INCOMPLETE",
+  "original_worker_receipt": "validation/receipt.json",
+  "artifact_resolution": "validation/artifact-resolution.json",
+  "generated_ignored_files_removed": 43,
+  "source_files_stable": 12636,
+  "test_retries": 0,
+  "review": "final-review.md",
+  "review_status": "APPROVE",
+  "integration": "integration.json",
+  "limits": [
+    "No live platform or installed-host qualification.",
+    "Targetless declarations remain a checkout contract, not shell hermeticity detection.",
+    "The permission-result fixture is not a semantic authority-expiration validator.",
+    "Published main integration preserves all skill/scripts/fixture trees and the selected suites/helpers; prior test and review runs retain their actual source revision."
+  ]
+}

@@ -1,0 +1,13 @@
+1. **P2 — `check` can raise `UnboundLocalError`.** [shiploop_navigator.py:10356](/Users/dadleet/src/skill-craft-r21-20261115/skills/shiploop/scripts/shiploop_navigator.py:10356) reads `reusable`, assigned only for an active, unaccepted action. Checking an already accepted producer action—or an inactive run with a valid draft—skips that assignment and reaches this branch. **Static control-flow finding; not executed.** Handle these cases explicitly without claiming fresh gates ran. Smallest validation: check an accepted producer action and a paused run; require a deliberate response without traceback, execution or state changes.
+
+2. **P2 — The reference exceeds its package limit.** The addition at [test-loop.md:63](/Users/dadleet/src/skill-craft-r21-20261115/skills/shiploop/references/test-loop.md:63) increases the file from **8,159 to 8,628 bytes**, exceeding the 8,192-byte contract by **436 bytes**. The package-integrity checker enforces that bound. **Demonstrated by byte measurement and contract inspection; tests not run.** Condense the reference while preserving its obligations. Smallest validation: byte count and the existing entry-card ledger/bounds check.
+
+3. **P3 — Mutation refusal still promises reuse unconditionally.** [shiploop_mutation.py:534](/Users/dadleet/src/skill-craft-r21-20261115/skills/shiploop/scripts/shiploop_mutation.py:534) says unchanged candidates and focused commands reuse the run. With host-dependent, targeted or mixed remote commands, the new predicate deliberately prevents that. **Static messaging inconsistency.** Qualify this promise using eligibility. Smallest validation: an external-marked focused suite with an undisposed survivor should describe fresh execution on resubmission.
+
+**Request changes** for this snapshot.
+
+The central freshness implementation otherwise looks sound: actual overrides reach candidate eligibility; mutation checks the focused set before remote splitting; both check and numbered Proof receipts share the veto; and the whole-answer shortcut cannot bypass it. Release verification always reruns. Targetless checkout reuse remains available. The broader Proof and mixed-command exclusions are intentional conservative behavior.
+
+The new fixtures exercise real sibling-state changes, actual check/completion refusal, permission-denied command output and returned-result verification. Fresh passing observations still reach acceptance in the inspected control flow. Successful external completion remains an execution-validation limit: I did not run tests or inspect the worker’s pending positive-control results.
+
+HEAD remained `856938eb342a3da09156fe6c333439606c694a7b`. All six reviewed files retained identical hashes across the review; **no source changes observed**.

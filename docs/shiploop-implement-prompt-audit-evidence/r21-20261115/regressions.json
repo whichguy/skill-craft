@@ -1,0 +1,384 @@
+[
+  {
+    "id": "baseline-initial",
+    "purpose": "Initial regression attempt: includes a missing new predicate and two mutation-fixture setup failures; those are not freshness proof.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_external_system_check_reruns_whole_and_lower_receipts",
+        "TestLoopTests.test_external_authority_denial_reruns_stateless_named_target",
+        "TestLoopTests.test_release_check_reruns_whole_answer_on_unchanged_checkout",
+        "TestLoopTests.test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts",
+        "TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering",
+        "TestLoopTests.test_reuse_rule_and_actual_command_overrides"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 1,
+      "seconds": 63.84037116699983,
+      "selected_methods": 6
+    },
+    "tests": [
+      6
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M test/shiploop-test-loop.test.py\n",
+    "status_after": " M test/shiploop-test-loop.test.py\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "9b788289582c7c717aa9303036750b53f7b75b6de1cd7c25be17ef4d3919812a",
+    "tracked_fingerprint_after": "9b788289582c7c717aa9303036750b53f7b75b6de1cd7c25be17ef4d3919812a",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "8d0c37dee6ffb204b96413ab9d8c103d5cc114822920466746d054778af19fd9",
+      "skills/shiploop/scripts/shiploop_check.py": "7de0d6e0a08d2a553a9c59816983e2976270031ed70a5612c5ac03398e69c9dc",
+      "skills/shiploop/scripts/shiploop_mutation.py": "4e79903f84a0f1eeb3c9043e446faf81a2bbf1463d81d610c7516a1db013b5e0",
+      "skills/shiploop/scripts/shiploop_navigator.py": "7cca07c7f7a29baca4b4f2f9b77717c76f6e697854b18d2738989f9fad2fe1cd",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "ed9f45d82d683d895e36dff1c623004224dc34e43a62fea9007c140d85af5ab1",
+      "test/shiploop-test-loop.test.py": "399775186dcd816f3b2e410413167e8c6e14fd371f9258cfaf2c613bffa9825f"
+    },
+    "stdout": "regressions/baseline-initial.stdout.log",
+    "stderr": "regressions/baseline-initial.stderr.log"
+  },
+  {
+    "id": "baseline-corrected",
+    "purpose": "Corrected baseline mutation subcases, actual override and returned-result failures on unchanged pre-R21 runtime.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering",
+        "TestLoopTests.test_actual_external_command_override_reruns",
+        "ReleaseVerifyReturnedResultTests.test_release_check_reruns_whole_answer_on_returned_result"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 1,
+      "seconds": 45.760699374999604,
+      "selected_methods": 3
+    },
+    "tests": [
+      3
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M test/shiploop-test-loop.test.py\n",
+    "status_after": " M test/shiploop-test-loop.test.py\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "aba919116ca2ad34fa8439f5da45771e37156f7f24d98ec8a7675a455fbdfacf",
+    "tracked_fingerprint_after": "aba919116ca2ad34fa8439f5da45771e37156f7f24d98ec8a7675a455fbdfacf",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "8d0c37dee6ffb204b96413ab9d8c103d5cc114822920466746d054778af19fd9",
+      "skills/shiploop/scripts/shiploop_check.py": "7de0d6e0a08d2a553a9c59816983e2976270031ed70a5612c5ac03398e69c9dc",
+      "skills/shiploop/scripts/shiploop_mutation.py": "4e79903f84a0f1eeb3c9043e446faf81a2bbf1463d81d610c7516a1db013b5e0",
+      "skills/shiploop/scripts/shiploop_navigator.py": "7cca07c7f7a29baca4b4f2f9b77717c76f6e697854b18d2738989f9fad2fe1cd",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "ed9f45d82d683d895e36dff1c623004224dc34e43a62fea9007c140d85af5ab1",
+      "test/shiploop-test-loop.test.py": "828b8048fda01007357c713424fcaffbada5621ea160e429915d8f491c1c85bc"
+    },
+    "stdout": "regressions/baseline-corrected.stdout.log",
+    "stderr": "regressions/baseline-corrected.stderr.log"
+  },
+  {
+    "id": "first-pass",
+    "purpose": "Eight R21 methods pass after initial implementation.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_external_system_check_reruns_whole_and_lower_receipts",
+        "TestLoopTests.test_external_authority_denial_reruns_stateless_named_target",
+        "TestLoopTests.test_release_check_reruns_whole_answer_on_unchanged_checkout",
+        "TestLoopTests.test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts",
+        "TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering",
+        "TestLoopTests.test_reuse_eligibility_rule_table",
+        "TestLoopTests.test_actual_external_command_override_reruns",
+        "ReleaseVerifyReturnedResultTests.test_release_check_reruns_whole_answer_on_returned_result"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 0,
+      "seconds": 108.65906183300103,
+      "selected_methods": 8
+    },
+    "tests": [
+      8
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "status_after": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "8803114254c0693dda20edd91772231441c846884ca53853e5239c1fedcb126d",
+    "tracked_fingerprint_after": "8803114254c0693dda20edd91772231441c846884ca53853e5239c1fedcb126d",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "d5f8312ea9b2a62386ac840662a3ed098607ba461c4f3bdf5f6dbb5e78583943",
+      "skills/shiploop/scripts/shiploop_check.py": "f23d68e7badb661b2c160badcc191eb0bea2ef7eda3ec75c85c829503729dbf7",
+      "skills/shiploop/scripts/shiploop_mutation.py": "100a9c34070ba82084bc00c55c5ce850d5964769ce303961dd9744e235d8c05d",
+      "skills/shiploop/scripts/shiploop_navigator.py": "5547f7e3214080002988b410985268b74ec7ea33707586dbed8c973b46f2165b",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "6b96a78f499708f7707b0fb2b95cde66481d3abab222385ffdc75620d7856e04",
+      "test/shiploop-test-loop.test.py": "6837076f28fa23eda3e06ca62ddabadf66298863636b191eb287ac764d93a6c7"
+    },
+    "stdout": "regressions/first-pass.stdout.log",
+    "stderr": "regressions/first-pass.stderr.log"
+  },
+  {
+    "id": "local-controls",
+    "purpose": "Eight R21 methods and six existing local reuse/floor controls.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_external_system_check_reruns_whole_and_lower_receipts",
+        "TestLoopTests.test_external_authority_denial_reruns_stateless_named_target",
+        "TestLoopTests.test_release_check_reruns_whole_answer_on_unchanged_checkout",
+        "TestLoopTests.test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts",
+        "TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering",
+        "TestLoopTests.test_reuse_eligibility_rule_table",
+        "TestLoopTests.test_actual_external_command_override_reruns",
+        "ReleaseVerifyReturnedResultTests.test_release_check_reruns_whole_answer_on_returned_result",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt",
+        "TestLoopTests.test_complete_takes_the_checks_matching_yes_and_runs_nothing_again",
+        "TestLoopTests.test_complete_after_a_passing_check_on_an_unchanged_tree_takes_that_run_and_says_so",
+        "TestLoopTests.test_each_surviving_mutant_needs_a_disposition_and_a_resubmission_with_them_reuses_the_run",
+        "TestLoopTests.test_the_check_and_complete_agree_on_the_floor_the_base_run_sets"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 0,
+      "seconds": 213.34607812499962,
+      "selected_methods": 14
+    },
+    "tests": [
+      14
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "status_after": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "5192accadbe6553e2ccee6e20299136320d8db659e95eb52c1c091e410d7dd18",
+    "tracked_fingerprint_after": "5192accadbe6553e2ccee6e20299136320d8db659e95eb52c1c091e410d7dd18",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "d5f8312ea9b2a62386ac840662a3ed098607ba461c4f3bdf5f6dbb5e78583943",
+      "skills/shiploop/scripts/shiploop_check.py": "f23d68e7badb661b2c160badcc191eb0bea2ef7eda3ec75c85c829503729dbf7",
+      "skills/shiploop/scripts/shiploop_mutation.py": "100a9c34070ba82084bc00c55c5ce850d5964769ce303961dd9744e235d8c05d",
+      "skills/shiploop/scripts/shiploop_navigator.py": "5547f7e3214080002988b410985268b74ec7ea33707586dbed8c973b46f2165b",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+      "test/shiploop-test-loop.test.py": "9c2b50363c7e82956e3ae027de83f533d3090bfbb387a89e5c129ada3f8f4a0f"
+    },
+    "stdout": "regressions/local-controls.stdout.log",
+    "stderr": "regressions/local-controls.stderr.log"
+  },
+  {
+    "id": "replay-initial",
+    "purpose": "Initial replay test setup; preserved diagnostic attempt.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_check_replay_of_accepted_action_acknowledges_without_gates",
+        "TestLoopTests.test_check_of_paused_unaccepted_action_refuses_with_resume_without_gates"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 1,
+      "seconds": 37.78214612500051,
+      "selected_methods": 2
+    },
+    "tests": [
+      2
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "status_after": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "dc6d47166c79fba4909dc0b39c7523edd205c81fe82fb2a7d4a9014b9450c732",
+    "tracked_fingerprint_after": "dc6d47166c79fba4909dc0b39c7523edd205c81fe82fb2a7d4a9014b9450c732",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "d5f8312ea9b2a62386ac840662a3ed098607ba461c4f3bdf5f6dbb5e78583943",
+      "skills/shiploop/scripts/shiploop_check.py": "f23d68e7badb661b2c160badcc191eb0bea2ef7eda3ec75c85c829503729dbf7",
+      "skills/shiploop/scripts/shiploop_mutation.py": "100a9c34070ba82084bc00c55c5ce850d5964769ce303961dd9744e235d8c05d",
+      "skills/shiploop/scripts/shiploop_navigator.py": "5547f7e3214080002988b410985268b74ec7ea33707586dbed8c973b46f2165b",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+      "test/shiploop-test-loop.test.py": "cbb9ee2c0885e5f3a4f2d8889b9ba6715ec2e7c906adf76b7e4155065ed53ce5"
+    },
+    "stdout": "regressions/replay-initial.stdout.log",
+    "stderr": "regressions/replay-initial.stderr.log"
+  },
+  {
+    "id": "replay-corrected",
+    "purpose": "Both replay tests reproduce UnboundLocalError in the first candidate.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_check_replay_of_accepted_action_acknowledges_without_gates",
+        "TestLoopTests.test_check_of_paused_unaccepted_action_refuses_with_resume_without_gates"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 1,
+      "seconds": 23.176656957999512,
+      "selected_methods": 2
+    },
+    "tests": [
+      2
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "status_after": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "af092fa010b250d12be4f4f95ece077eb2fd4d1373685d071d3d65bbbe695a7b",
+    "tracked_fingerprint_after": "af092fa010b250d12be4f4f95ece077eb2fd4d1373685d071d3d65bbbe695a7b",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "d5f8312ea9b2a62386ac840662a3ed098607ba461c4f3bdf5f6dbb5e78583943",
+      "skills/shiploop/scripts/shiploop_check.py": "f23d68e7badb661b2c160badcc191eb0bea2ef7eda3ec75c85c829503729dbf7",
+      "skills/shiploop/scripts/shiploop_mutation.py": "100a9c34070ba82084bc00c55c5ce850d5964769ce303961dd9744e235d8c05d",
+      "skills/shiploop/scripts/shiploop_navigator.py": "5547f7e3214080002988b410985268b74ec7ea33707586dbed8c973b46f2165b",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+      "test/shiploop-test-loop.test.py": "1372de18dc3f70272f7b143d3b8bcac18790d39ea21eb43820bea1991d1f0123"
+    },
+    "stdout": "regressions/replay-corrected.stdout.log",
+    "stderr": "regressions/replay-corrected.stderr.log"
+  },
+  {
+    "id": "final-selected",
+    "purpose": "Eleven new methods and six local controls pass after review repairs.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_check_replay_of_accepted_action_acknowledges_without_gates",
+        "TestLoopTests.test_check_of_paused_unaccepted_action_refuses_with_resume_without_gates",
+        "TestLoopTests.test_external_undisposed_survivor_guidance_requires_fresh_checks",
+        "TestLoopTests.test_external_system_check_reruns_whole_and_lower_receipts",
+        "TestLoopTests.test_external_authority_denial_reruns_stateless_named_target",
+        "TestLoopTests.test_release_check_reruns_whole_answer_on_unchanged_checkout",
+        "TestLoopTests.test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts",
+        "TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering",
+        "TestLoopTests.test_reuse_eligibility_rule_table",
+        "TestLoopTests.test_actual_external_command_override_reruns",
+        "ReleaseVerifyReturnedResultTests.test_release_check_reruns_whole_answer_on_returned_result",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt",
+        "TestLoopTests.test_complete_takes_the_checks_matching_yes_and_runs_nothing_again",
+        "TestLoopTests.test_complete_after_a_passing_check_on_an_unchanged_tree_takes_that_run_and_says_so",
+        "TestLoopTests.test_each_surviving_mutant_needs_a_disposition_and_a_resubmission_with_them_reuses_the_run",
+        "TestLoopTests.test_the_check_and_complete_agree_on_the_floor_the_base_run_sets"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 0,
+      "seconds": 160.451455583001,
+      "selected_methods": 17
+    },
+    "tests": [
+      17
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "status_after": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "5d675582f9c81d83824677d5e3f0390726065e821ce46666014ecbbc1e510453",
+    "tracked_fingerprint_after": "5d675582f9c81d83824677d5e3f0390726065e821ce46666014ecbbc1e510453",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "40f612d1a3d1bfc2ca30af1fbcfbc5f9750e554146ce6553e14f2f561e2eaeb7",
+      "skills/shiploop/scripts/shiploop_check.py": "d3b4fa1557f397f534a7a7d5778b12dc4449cec252a8dff9bbedf9cb1134bb57",
+      "skills/shiploop/scripts/shiploop_mutation.py": "4bb9efb95543499059a77d9337242919c71d35a0e97adc3e2c0fccdbc80b085b",
+      "skills/shiploop/scripts/shiploop_navigator.py": "95268a6c089643d92e90219194aab614585f905b5d18ccfd0ad495e5cea9a2e8",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+      "test/shiploop-test-loop.test.py": "2572703735f43ef11d5d379577be9196d8ac8b3ccbbc7a635d34edc3c68adcbd"
+    },
+    "stdout": "regressions/final-selected.stdout.log",
+    "stderr": "regressions/final-selected.stderr.log"
+  },
+  {
+    "id": "reference-checks",
+    "purpose": "Four reference checks at 8186 bytes, before the final five-byte stage-name clarification.",
+    "command": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-package-integrity.test.py",
+        "PackageIntegrityTests.test_entry_card_split_holds_its_ledger_and_bounds",
+        "CardSplitSensitivityTests"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r21-20261115",
+      "env": {
+        "SHIPLOOP_PROGRESS": "off"
+      }
+    },
+    "terminal": {
+      "exit": 0,
+      "seconds": 0.21796683299908182,
+      "argv_count": 5
+    },
+    "tests": [
+      4
+    ],
+    "identity_unchanged": true,
+    "source_head_before": "856938eb342a3da09156fe6c333439606c694a7b",
+    "source_head_after": "856938eb342a3da09156fe6c333439606c694a7b",
+    "status_before": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "status_after": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_mutation.py\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/r21-external-state-reuse.md\n",
+    "tracked_file_count": 12635,
+    "tracked_fingerprint_before": "c0d0de8fbeb7405fd8c8e25cc1f159af0fb38be828ba0aedfc16568789ad6171",
+    "tracked_fingerprint_after": "c0d0de8fbeb7405fd8c8e25cc1f159af0fb38be828ba0aedfc16568789ad6171",
+    "source_files_sha256": {
+      "skills/shiploop/references/test-loop.md": "c2ae7ef69ff2354f60f4425f00e283ba1449378eb3d28b105796d468d2745b7f",
+      "skills/shiploop/scripts/shiploop_check.py": "d3b4fa1557f397f534a7a7d5778b12dc4449cec252a8dff9bbedf9cb1134bb57",
+      "skills/shiploop/scripts/shiploop_mutation.py": "4bb9efb95543499059a77d9337242919c71d35a0e97adc3e2c0fccdbc80b085b",
+      "skills/shiploop/scripts/shiploop_navigator.py": "95268a6c089643d92e90219194aab614585f905b5d18ccfd0ad495e5cea9a2e8",
+      "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+      "test/shiploop-test-loop.test.py": "2572703735f43ef11d5d379577be9196d8ac8b3ccbbc7a635d34edc3c68adcbd"
+    },
+    "stdout": "regressions/reference-checks.stdout.log",
+    "stderr": "regressions/reference-checks.stderr.log"
+  }
+]

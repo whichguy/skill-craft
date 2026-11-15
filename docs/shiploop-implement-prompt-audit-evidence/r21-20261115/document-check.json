@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "source_head": "cc9df6d2c9413a586147392f10149f138905e935",
+  "recommendations": 22,
+  "considerations": 8,
+  "craft_rules": 14,
+  "acceptance_references": 52,
+  "anchors": 186,
+  "files": 41,
+  "local_links": 208,
+  "full_suite_tests": 484,
+  "new_regression_methods": 11,
+  "original_worker_audit": "INCOMPLETE; retained",
+  "artifact_resolution": "PASS",
+  "visual_render_checked": false,
+  "scope": "Source and retained evidence consistency; no runtime test execution",
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/dadleet/src/skill-craft-r21-20261115/docs/shiploop-implement-prompt-audit-evidence/r21-20261115/validate_evidence.py",
+    "/Users/dadleet/src/skill-craft-r21-20261115"
+  ]
+}

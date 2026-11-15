@@ -1,0 +1,176 @@
+{
+  "status": "PASS",
+  "tested_reviewed_source": "4087731ff6ce672d635df7e479b890c2c2d66d96",
+  "integrated_source": "cc9df6d2c9413a586147392f10149f138905e935",
+  "published_main": "7fb5ba64f019230c24b5f3099d4154357dc6891f",
+  "r21_files": [
+    {
+      "path": "changes/shiploop/r21-external-state-reuse.md",
+      "sha256": "cbeb95c4dc0b9ae2800aa484bafaa3466052c27e4a912a913b5aa6c008de8c8e",
+      "unchanged": true
+    },
+    {
+      "path": "skills/shiploop/references/test-loop.md",
+      "sha256": "1b672191f4afd63b0452c15fb0d3ef75f848cc0f750d19fe64f4051ad705d2dd",
+      "unchanged": true
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_check.py",
+      "sha256": "d3b4fa1557f397f534a7a7d5778b12dc4449cec252a8dff9bbedf9cb1134bb57",
+      "unchanged": true
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_mutation.py",
+      "sha256": "4bb9efb95543499059a77d9337242919c71d35a0e97adc3e2c0fccdbc80b085b",
+      "unchanged": true
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "sha256": "95268a6c089643d92e90219194aab614585f905b5d18ccfd0ad495e5cea9a2e8",
+      "unchanged": true
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+      "sha256": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+      "unchanged": true
+    },
+    {
+      "path": "test/shiploop-test-loop.test.py",
+      "sha256": "2572703735f43ef11d5d379577be9196d8ac8b3ccbbc7a635d34edc3c68adcbd",
+      "unchanged": true
+    }
+  ],
+  "shiploop_skill_trees": {
+    "4087731ff6ce672d635df7e479b890c2c2d66d96": "ae99edd82a13b7af4c2f914fc02193bfe7996d68",
+    "cc9df6d2c9413a586147392f10149f138905e935": "ae99edd82a13b7af4c2f914fc02193bfe7996d68"
+  },
+  "changed_anchor_locations": [],
+  "upstream_changes": [
+    "docs/experiments/parallel-plan-execution-20261114/README.md",
+    "docs/experiments/parallel-plan-execution-20261114/calibrate_real.py",
+    "docs/experiments/parallel-plan-execution-20261114/dagkit.py",
+    "docs/experiments/parallel-plan-execution-20261114/export.py",
+    "docs/experiments/parallel-plan-execution-20261114/fakehost.py",
+    "docs/experiments/parallel-plan-execution-20261114/launch.py",
+    "docs/experiments/parallel-plan-execution-20261114/packets/real-A0.md",
+    "docs/experiments/parallel-plan-execution-20261114/packets/real-A3.md",
+    "docs/experiments/parallel-plan-execution-20261114/plans/tickets3.json",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/REPORT.md",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/astra.md",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/interactions.py",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/landing.patch",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/refs/T1.patch",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/refs/T2.patch",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/refs/T3.patch",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/refs/composed.patch",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/review-brief.txt",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/run_cells.sh",
+    "docs/experiments/parallel-plan-execution-20261114/real-repo/score_cells.sh",
+    "docs/experiments/parallel-plan-execution-20261114/real_table.py",
+    "docs/experiments/parallel-plan-execution-20261114/score.py",
+    "docs/experiments/parallel-plan-execution-20261114/ticketfix.py",
+    "docs/experiments/serve-port-race-20261115/README.md",
+    "docs/experiments/serve-port-race-20261115/matrix-linux-retry.jsonl",
+    "docs/experiments/serve-port-race-20261115/matrix-macos-retry.jsonl",
+    "docs/experiments/serve-port-race-20261115/rate_summary.py",
+    "docs/experiments/serve-port-race-20261115/rates.txt",
+    "docs/experiments/serve-port-race-20261115/serve_race_probe.py",
+    "docs/local-validation-journal.md",
+    "docs/shiploop-parallel-execution-journal.md",
+    "test/shiploop-e2e-epoch.test.py",
+    "test/shiploop-e2e-resources.test.py",
+    "test/shiploop-e2e-roles.test.py",
+    "test/shiploop_e2e/GYM_MEMBERSHIP.md",
+    "test/shiploop_e2e/README.md",
+    "test/shiploop_e2e/SPEC.md",
+    "test/shiploop_e2e/checks/serve.py",
+    "test/shiploop_e2e/hosts.py"
+  ],
+  "scope": "Source integration and byte identity; earlier test/review runs retain their actual revisions.",
+  "skills_trees": {
+    "4087731ff6ce672d635df7e479b890c2c2d66d96": "31cc5c24725fa3077af09ca3180b72d30938cdba",
+    "cc9df6d2c9413a586147392f10149f138905e935": "31cc5c24725fa3077af09ca3180b72d30938cdba"
+  },
+  "scripts_trees": {
+    "4087731ff6ce672d635df7e479b890c2c2d66d96": "d80b9540347f3c02900b84a51ee8d4873d425fbf",
+    "cc9df6d2c9413a586147392f10149f138905e935": "d80b9540347f3c02900b84a51ee8d4873d425fbf"
+  },
+  "test_fixtures_trees": {
+    "4087731ff6ce672d635df7e479b890c2c2d66d96": "a05a0cb82dddd17978a85ca8386072657c712702",
+    "cc9df6d2c9413a586147392f10149f138905e935": "a05a0cb82dddd17978a85ca8386072657c712702"
+  },
+  "unchanged_validation_inputs": [
+    {
+      "path": "test/experiments/shiploop_repeatable_tests/samples/red-followup/test_support.py",
+      "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+    },
+    {
+      "path": "test/experiments/shiploop_repeatable_tests/samples/trial-01/test_support.py",
+      "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+    },
+    {
+      "path": "test/experiments/shiploop_repeatable_tests/samples/trial-02/test_support.py",
+      "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+    },
+    {
+      "path": "test/experiments/shiploop_repeatable_tests/samples/trial-03/test_support.py",
+      "sha256": "4a51148b7467848db64f11a97abbf688a0013e86d5d127bb9756c1a8adfd44f8"
+    },
+    {
+      "path": "test/experiments/shiploop_repeatable_tests/samples/trial-04/test_support.py",
+      "sha256": "6225403efdc5f957a0590bc907f9157a43caa37dba3e8af37f421a2599a138e2"
+    },
+    {
+      "path": "test/experiments/shiploop_repeatable_tests/samples/trial-05/test_support.py",
+      "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+    },
+    {
+      "path": "test/experiments/shiploop_repeatable_tests/samples/trial-06/test_support.py",
+      "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+    },
+    {
+      "path": "test/package_build.py",
+      "sha256": "1a0f5739799322e1f9c26904bb91e020da9520e874867f7f21eb7e8635db32e0"
+    },
+    {
+      "path": "test/shiploop-callback-contract.test.py",
+      "sha256": "6f56e1a82336795b056e18ba26789d25db0d3c4eb0e56e40535f721ee07952bb"
+    },
+    {
+      "path": "test/shiploop-e2e-support.py",
+      "sha256": "2c5551da65a563b40676a315f5b5044247cf7f5d4635b8c744a81d17dc183885"
+    },
+    {
+      "path": "test/shiploop-navigator-contract.test.py",
+      "sha256": "bec49e39e0c943a1f889b170593c10f0a143faee904b0079ce392947b097c0f1"
+    },
+    {
+      "path": "test/shiploop-package-integrity.test.py",
+      "sha256": "2cc548666148b98e5f9c520775885f9b874bb92da485ee1691e1e63315f372d1"
+    },
+    {
+      "path": "test/shiploop-test-loop.test.py",
+      "sha256": "2572703735f43ef11d5d379577be9196d8ac8b3ccbbc7a635d34edc3c68adcbd"
+    },
+    {
+      "path": "test/shiploop_consumer_delivery_support.py",
+      "sha256": "5e416ad54c294494a6ea625a6b56dca20d9dace8897f5699800ed109a923ef16"
+    },
+    {
+      "path": "test/shiploop_inner_fixture.py",
+      "sha256": "f84ca5d017aebd6a9812335088212ee541ca9c3217751b39c7ce8266772d4660"
+    },
+    {
+      "path": "test/shiploop_knowledge_support.py",
+      "sha256": "3cc2eaa54dfdd4d01fddac0e00f42563f8885cf40cb8ecca3ce543efc644b940"
+    },
+    {
+      "path": "test/shiploop_loop_support.py",
+      "sha256": "32497a47c66c66e4054e5f3fae4eb44ca6b6cafbada94f95e93ef461f5d45822"
+    },
+    {
+      "path": "test/state_home.py",
+      "sha256": "c2cf96a2ae4d51eac9c055786ff16662419e38f9810fb4d0d08a55864e8b7b49"
+    }
+  ]
+}

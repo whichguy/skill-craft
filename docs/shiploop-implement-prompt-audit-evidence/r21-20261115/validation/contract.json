@@ -1,0 +1,48 @@
+{
+  "commands": [
+    [
+      "python3",
+      "-B",
+      "test/shiploop-test-loop.test.py"
+    ],
+    [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py"
+    ],
+    [
+      "python3",
+      "-B",
+      "test/shiploop-navigator-contract.test.py"
+    ],
+    [
+      "python3",
+      "-B",
+      "test/shiploop-package-integrity.test.py"
+    ],
+    [
+      "python3",
+      "-B",
+      "scripts/check-release-boundary.py",
+      "--base",
+      "856938eb342a3da09156fe6c333439606c694a7b"
+    ],
+    [
+      "git",
+      "-C",
+      "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+      "diff",
+      "--check",
+      "856938eb342a3da09156fe6c333439606c694a7b..HEAD"
+    ]
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+  "deadline_utc": "2026-11-15T19:45:00Z",
+  "expected_head": "4087731ff6ce672d635df7e479b890c2c2d66d96",
+  "generated_outputs": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation",
+    "suite-owned temporary directories"
+  ],
+  "max_concurrency": 2,
+  "retry_policy": "none"
+}

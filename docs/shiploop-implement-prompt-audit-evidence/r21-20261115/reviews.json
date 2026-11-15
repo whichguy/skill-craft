@@ -1,0 +1,123 @@
+{
+  "plan-review": {
+    "launch": {
+      "argv": [
+        "/Users/dadleet/src/grok-build-additions/skills/ask-astra/scripts/ask-astra.sh",
+        "ask",
+        "--json",
+        "--effort",
+        "high",
+        "--no-fallback",
+        "--profile",
+        "consult",
+        "--no-tools",
+        "--cwd",
+        "/Users/dadleet/src/skill-craft-r21-20261115",
+        "Read-only R21 implementation design review. Source /Users/dadleet/src/skill-craft-r21-20261115 at 856938eb342a3da09156fe6c333439606c694a7b. User authorized implementing R21 with regression tests for stale external-state reuse, simple and generic; explicitly no compatibility/migration requirement. Do not edit files, run tests, consult advisors or spawn agents. Return at most 700 words with exact symbols/paths and the smallest concrete acceptance matrix.\nRead docs/shiploop-implement-step-fix-plan-2026-10-17.md R21; skills/shiploop/scripts/{shiploop_check.py,shiploop_test_loop.py,shiploop_navigator.py,shiploop_test_layers.py,shiploop_mutation.py}; nearby reuse/outer-stage tests in test/shiploop-test-loop.test.py. R08 is already fixed via one v2 receipt schema; retain it. Relevant decisions: a3b2f975 valid local whole-record reuse and release-verify exclusion, f04cbdde target optional for checkout and same-target folding,5086baf6 whole-answer shortcut,1e4e04c2/33843698 no evidence for per-command caching. Owner now explicitly authorizes correctness repair.\nProposed minimal direction: one shared reuse-eligibility predicate using existing target/keeps_state/host_dependent and known-remote declarations; bypass lower candidate receipts, Proof check/numbered receipts and whole-answer shortcut for uncertain external checks. Always re-evaluate release-verify, whose returned-copy/consumer observation is external to the working tree. Preserve proven checkout-only reuse and whole-record behavior. No network calls, wall-clock expiry formats, distributed fingerprints, command parser expansion, new prompt DSL or new authority system. Use a sibling local file as mutable external target: pass check, change only that file, then actual complete must rerun/refuse with same action/draft/repo/command; positive unchanged-local reuse controls. Also verify a live permission-denied fixture response cannot be hidden by an old pass, while accurately limiting that claim to observed authority, not a new semantic permission validator.\nQuestions: What existing declarations can honestly establish reuse safety (named targets may be checkout targets with keeps_state=no; Proof rows may lack target)? Are any reuse layers missing? What is the smallest conservative generic rule that closes the demonstrated boundary without erasing local reuse or adding state? Identify hidden bypasses/false-reuse controls and exact fixture patterns. Prefer bounded policy over speculative new machinery."
+      ],
+      "requested_model": "gpt-6-astra",
+      "effort": "high",
+      "fallback": false,
+      "mode": "read-only consultation"
+    },
+    "exit": {
+      "exit_code": 0,
+      "elapsed_seconds": 126.094
+    }
+  },
+  "review": {
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "-c",
+        "approval_policy=\"never\"",
+        "--sandbox",
+        "read-only",
+        "--cd",
+        "/Users/dadleet/src/skill-craft-r21-20261115",
+        "--json",
+        "--output-last-message",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/review.md",
+        "-"
+      ],
+      "started_at": 1794765440.580179,
+      "hashes_before": {
+        "skills/shiploop/references/test-loop.md": "d5f8312ea9b2a62386ac840662a3ed098607ba461c4f3bdf5f6dbb5e78583943",
+        "skills/shiploop/scripts/shiploop_check.py": "f23d68e7badb661b2c160badcc191eb0bea2ef7eda3ec75c85c829503729dbf7",
+        "skills/shiploop/scripts/shiploop_mutation.py": "100a9c34070ba82084bc00c55c5ce850d5964769ce303961dd9744e235d8c05d",
+        "skills/shiploop/scripts/shiploop_navigator.py": "5547f7e3214080002988b410985268b74ec7ea33707586dbed8c973b46f2165b",
+        "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+        "test/shiploop-test-loop.test.py": "9c2b50363c7e82956e3ae027de83f533d3090bfbb387a89e5c129ada3f8f4a0f"
+      }
+    },
+    "exit": {
+      "exit": 0,
+      "seconds": 151.94262516600065,
+      "hashes_after": {
+        "skills/shiploop/references/test-loop.md": "d5f8312ea9b2a62386ac840662a3ed098607ba461c4f3bdf5f6dbb5e78583943",
+        "skills/shiploop/scripts/shiploop_check.py": "f23d68e7badb661b2c160badcc191eb0bea2ef7eda3ec75c85c829503729dbf7",
+        "skills/shiploop/scripts/shiploop_mutation.py": "100a9c34070ba82084bc00c55c5ce850d5964769ce303961dd9744e235d8c05d",
+        "skills/shiploop/scripts/shiploop_navigator.py": "5547f7e3214080002988b410985268b74ec7ea33707586dbed8c973b46f2165b",
+        "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+        "test/shiploop-test-loop.test.py": "9c2b50363c7e82956e3ae027de83f533d3090bfbb387a89e5c129ada3f8f4a0f"
+      },
+      "source_unchanged": true
+    }
+  },
+  "final-review": {
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "-c",
+        "approval_policy=\"never\"",
+        "--sandbox",
+        "read-only",
+        "--cd",
+        "/Users/dadleet/src/skill-craft-r21-20261115",
+        "--json",
+        "--output-last-message",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/final-review.md",
+        "-"
+      ],
+      "source_head": "4087731ff6ce672d635df7e479b890c2c2d66d96",
+      "started_at": 1794766437.1465778,
+      "hashes_before": {
+        "changes/shiploop/r21-external-state-reuse.md": "cbeb95c4dc0b9ae2800aa484bafaa3466052c27e4a912a913b5aa6c008de8c8e",
+        "skills/shiploop/references/test-loop.md": "1b672191f4afd63b0452c15fb0d3ef75f848cc0f750d19fe64f4051ad705d2dd",
+        "skills/shiploop/scripts/shiploop_check.py": "d3b4fa1557f397f534a7a7d5778b12dc4449cec252a8dff9bbedf9cb1134bb57",
+        "skills/shiploop/scripts/shiploop_mutation.py": "4bb9efb95543499059a77d9337242919c71d35a0e97adc3e2c0fccdbc80b085b",
+        "skills/shiploop/scripts/shiploop_navigator.py": "95268a6c089643d92e90219194aab614585f905b5d18ccfd0ad495e5cea9a2e8",
+        "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+        "test/shiploop-test-loop.test.py": "2572703735f43ef11d5d379577be9196d8ac8b3ccbbc7a635d34edc3c68adcbd"
+      }
+    },
+    "exit": {
+      "exit": 0,
+      "seconds": 153.3643546250005,
+      "hashes_after": {
+        "changes/shiploop/r21-external-state-reuse.md": "cbeb95c4dc0b9ae2800aa484bafaa3466052c27e4a912a913b5aa6c008de8c8e",
+        "skills/shiploop/references/test-loop.md": "1b672191f4afd63b0452c15fb0d3ef75f848cc0f750d19fe64f4051ad705d2dd",
+        "skills/shiploop/scripts/shiploop_check.py": "d3b4fa1557f397f534a7a7d5778b12dc4449cec252a8dff9bbedf9cb1134bb57",
+        "skills/shiploop/scripts/shiploop_mutation.py": "4bb9efb95543499059a77d9337242919c71d35a0e97adc3e2c0fccdbc80b085b",
+        "skills/shiploop/scripts/shiploop_navigator.py": "95268a6c089643d92e90219194aab614585f905b5d18ccfd0ad495e5cea9a2e8",
+        "skills/shiploop/scripts/shiploop_test_loop.py": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+        "test/shiploop-test-loop.test.py": "2572703735f43ef11d5d379577be9196d8ac8b3ccbbc7a635d34edc3c68adcbd"
+      },
+      "source_unchanged": true
+    }
+  }
+}

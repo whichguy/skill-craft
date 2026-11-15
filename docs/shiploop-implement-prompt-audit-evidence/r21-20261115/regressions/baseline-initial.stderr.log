@@ -1,0 +1,162 @@
+FFFFFFFFFEEEEEE
+======================================================================
+ERROR: test_reuse_rule_and_actual_command_overrides (__main__.TestLoopTests.test_reuse_rule_and_actual_command_overrides) (label='host')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2896, in test_reuse_rule_and_actual_command_overrides
+    self.assertFalse(test_loop.reuse_eligible(state, "system-test", self.item(), rows))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'shiploop_test_loop' has no attribute 'reuse_eligible'
+
+======================================================================
+ERROR: test_reuse_rule_and_actual_command_overrides (__main__.TestLoopTests.test_reuse_rule_and_actual_command_overrides) (label='unknown target')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2896, in test_reuse_rule_and_actual_command_overrides
+    self.assertFalse(test_loop.reuse_eligible(state, "system-test", self.item(), rows))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'shiploop_test_loop' has no attribute 'reuse_eligible'
+
+======================================================================
+ERROR: test_reuse_rule_and_actual_command_overrides (__main__.TestLoopTests.test_reuse_rule_and_actual_command_overrides) (label='named stateless')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2896, in test_reuse_rule_and_actual_command_overrides
+    self.assertFalse(test_loop.reuse_eligible(state, "system-test", self.item(), rows))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'shiploop_test_loop' has no attribute 'reuse_eligible'
+
+======================================================================
+ERROR: test_reuse_rule_and_actual_command_overrides (__main__.TestLoopTests.test_reuse_rule_and_actual_command_overrides) (label='known remote')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2896, in test_reuse_rule_and_actual_command_overrides
+    self.assertFalse(test_loop.reuse_eligible(state, "system-test", self.item(), rows))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'shiploop_test_loop' has no attribute 'reuse_eligible'
+
+======================================================================
+ERROR: test_reuse_rule_and_actual_command_overrides (__main__.TestLoopTests.test_reuse_rule_and_actual_command_overrides) (label='mixed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2896, in test_reuse_rule_and_actual_command_overrides
+    self.assertFalse(test_loop.reuse_eligible(state, "system-test", self.item(), rows))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'shiploop_test_loop' has no attribute 'reuse_eligible'
+
+======================================================================
+ERROR: test_reuse_rule_and_actual_command_overrides (__main__.TestLoopTests.test_reuse_rule_and_actual_command_overrides)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2897, in test_reuse_rule_and_actual_command_overrides
+    self.assertTrue(test_loop.reuse_eligible(state, "system-test", self.item(), [local]))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'shiploop_test_loop' has no attribute 'reuse_eligible'
+
+======================================================================
+FAIL: test_external_system_check_reruns_whole_and_lower_receipts (__main__.TestLoopTests.test_external_system_check_reruns_whole_and_lower_receipts) (whole=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2788, in test_external_system_check_reruns_whole_and_lower_receipts
+    self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2756, in assert_external_completion_refused
+    with self.assertRaises(nav.NavigatorError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_external_system_check_reruns_whole_and_lower_receipts (__main__.TestLoopTests.test_external_system_check_reruns_whole_and_lower_receipts) (whole=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2788, in test_external_system_check_reruns_whole_and_lower_receipts
+    self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2756, in assert_external_completion_refused
+    with self.assertRaises(nav.NavigatorError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_external_authority_denial_reruns_stateless_named_target (__main__.TestLoopTests.test_external_authority_denial_reruns_stateless_named_target)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2803, in test_external_authority_denial_reruns_stateless_named_target
+    self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2756, in assert_external_completion_refused
+    with self.assertRaises(nav.NavigatorError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_release_check_reruns_whole_answer_on_unchanged_checkout (__main__.TestLoopTests.test_release_check_reruns_whole_answer_on_unchanged_checkout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2819, in test_release_check_reruns_whole_answer_on_unchanged_checkout
+    self.assert_external_completion_refused(external, action, DONE, test_loop.verify_path(action, 1))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2756, in assert_external_completion_refused
+    with self.assertRaises(nav.NavigatorError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts (__main__.TestLoopTests.test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts) (numbered=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2841, in test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts
+    self.assert_external_completion_refused(external, action, done,
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+        test_loop.step_proof_path(action, 2 if numbered else 1), prior=prior)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2756, in assert_external_completion_refused
+    with self.assertRaises(nav.NavigatorError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts (__main__.TestLoopTests.test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts) (numbered=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2841, in test_external_declarations_rerun_targetless_proof_check_and_numbered_receipts
+    self.assert_external_completion_refused(external, action, done,
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+        test_loop.step_proof_path(action, 2 if numbered else 1), prior=prior)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2756, in assert_external_completion_refused
+    with self.assertRaises(nav.NavigatorError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_external_mutation_rows_rerun_before_remote_filtering (__main__.TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering) (indication='host')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2874, in test_external_mutation_rows_rerun_before_remote_filtering
+    self.assertGreater(runner.call_count, 0)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 not greater than 0
+
+======================================================================
+FAIL: test_external_mutation_rows_rerun_before_remote_filtering (__main__.TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering) (indication='target')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2860, in test_external_mutation_rows_rerun_before_remote_filtering
+    self.assertTrue(store.read_record(checked)["mutants"])
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_external_mutation_rows_rerun_before_remote_filtering (__main__.TestLoopTests.test_external_mutation_rows_rerun_before_remote_filtering) (indication='mixed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r21-20261115/test/shiploop-test-loop.test.py", line 2860, in test_external_mutation_rows_rerun_before_remote_filtering
+    self.assertTrue(store.read_record(checked)["mutants"])
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true
+
+----------------------------------------------------------------------
+Ran 6 tests in 63.222s
+
+FAILED (failures=9, errors=6)

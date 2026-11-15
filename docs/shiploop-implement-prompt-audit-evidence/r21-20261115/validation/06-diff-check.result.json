@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+    "diff",
+    "--check",
+    "856938eb342a3da09156fe6c333439606c694a7b..HEAD"
+  ],
+  "attempt": 1,
+  "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+  "duration_seconds": 0.02,
+  "env_override": {
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "exit_code": 0,
+  "expected_tests": null,
+  "finished_utc": "2026-11-15T18:27:39.747412+00:00",
+  "id": 6,
+  "inherited_environment": true,
+  "name": "diff-check",
+  "reason": "",
+  "started_utc": "2026-11-15T18:27:39.727507+00:00",
+  "status": "PASS",
+  "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/06-diff-check.stderr.log",
+  "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/06-diff-check.stdout.log"
+}

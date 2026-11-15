@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-package-integrity.test.py"
+  ],
+  "attempt": 1,
+  "cwd": "/Users/dadleet/src/skill-craft-r21-verify-20261115",
+  "duration_seconds": 0.407,
+  "env_override": {
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "exit_code": 0,
+  "expected_tests": 11,
+  "finished_utc": "2026-11-15T18:27:14.408409+00:00",
+  "id": 4,
+  "inherited_environment": true,
+  "name": "package-integrity",
+  "observed_test_counts": [
+    11
+  ],
+  "reason": "",
+  "required_skips": 0,
+  "started_utc": "2026-11-15T18:27:14.001677+00:00",
+  "status": "PASS",
+  "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/04-package-integrity.stderr.log",
+  "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r21-20261115/validation/04-package-integrity.stdout.log",
+  "terminal_ok": true,
+  "unittest_seconds": [
+    0.352
+  ]
+}
