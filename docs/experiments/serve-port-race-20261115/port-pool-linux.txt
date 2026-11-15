@@ -1,0 +1,4 @@
+{"kernel_range": [32768, 60999], "platform": "linux"}
+{"way": "python bind(0) then close", "n": 2000, "min": 32779, "max": 60993, "distinct": 1868, "odd_share": 1.0, "lower_half_share": 0.506}
+{"way": "node listen(0)", "n": 2000, "min": 32785, "max": 46875, "distinct": 1733, "odd_share": 1.0, "lower_half_share": 1.0}
+{"way": "connect() source port", "n": 2000, "min": 32776, "max": 60998, "distinct": 2000, "odd_share": 0.0, "lower_half_share": 0.79}

@@ -1,0 +1,14 @@
+12 ports; a bind of each kind, and the TCP sockets that have the port as their local port, now
+  port  IPv4 127.0.0.1  IPv6 :: dual-stack  IPv6 :: only   held by
+ 49256              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:443 ESTABLISHED
+ 49301              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:80 ESTABLISHED
+ 49314              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:443 ESTABLISHED
+ 54691              ok          EADDRINUSE    EADDRINUSE   tcp6 local wildcard -> remote wildcard:* LISTEN
+ 63716              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:443 ESTABLISHED
+ 63721              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:443 ESTABLISHED
+ 63723              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:443 ESTABLISHED
+ 63806              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:443 ESTABLISHED
+ 63811              ok          EADDRINUSE    EADDRINUSE   tcp6 local an address -> remote an address:443 ESTABLISHED
+ 63812              ok                  ok            ok   nothing now
+ 63813              ok                  ok            ok   nothing now
+ 64835              ok          EADDRINUSE            ok   tcp4 local an address -> remote an address:5223 ESTABLISHED

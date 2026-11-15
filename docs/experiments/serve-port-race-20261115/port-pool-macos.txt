@@ -1,0 +1,4 @@
+{"kernel_range": [49152, 65535], "platform": "darwin"}
+{"way": "python bind(0) then close", "n": 2000, "min": 54872, "max": 56872, "distinct": 2000, "odd_share": 0.499, "lower_half_share": 1.0}
+{"way": "node listen(0)", "n": 2000, "min": 56873, "max": 58872, "distinct": 2000, "odd_share": 0.5, "lower_half_share": 0.235}
+{"way": "connect() source port", "n": 2000, "min": 58874, "max": 60880, "distinct": 2000, "odd_share": 0.499, "lower_half_share": 0.0}

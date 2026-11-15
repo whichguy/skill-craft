@@ -1,0 +1,18 @@
+941 jobs (0 whose log could not be read), created 2026-10-31 to 2026-11-15, 476 runs
+jobs: {'quick / quick': 384, 'full / shiploop-2': 95, 'full / shiploop-1': 95, 'full / python-floor': 82, 'full / e2e-apparatus': 95, 'full / core': 95, 'full / shiploop-3': 95}
+node: {'v27.0.0-alpha.0.1.0': 112, 'v27.0.0-alpha.0.0.0': 828, None: 1}  image: {'ubuntu-26.04': 860, 'ubuntu-24.04': 81}
+first job on each node: {'v27.0.0-alpha.0.0.0': '2026-10-31T00:16', None: '2026-11-01T13:30', 'v27.0.0-alpha.0.1.0': '2026-11-12T19:22'}
+
+suite                              executions   OK FAIL   quick/full   by node
+shiploop-e2e-ticket-comments              181  180    1    96/85       v27.0.0-alpha.0.0.0: {'OK': 159}; v27.0.0-alpha.0.1.0: {'OK': 21, 'FAIL': 1}
+shiploop-e2e-ticket-sla                    84   84    0     0/84       v27.0.0-alpha.0.0.0: {'OK': 70}; v27.0.0-alpha.0.1.0: {'OK': 14}
+shiploop-e2e-user-chain                   130  130    0    61/69       v27.0.0-alpha.0.0.0: {'OK': 108}; v27.0.0-alpha.0.1.0: {'OK': 22}
+shiploop-e2e-user-directory                68   67    1     0/68       v27.0.0-alpha.0.0.0: {'OK': 53, 'FAIL': 1}; v27.0.0-alpha.0.1.0: {'OK': 14}
+shiploop-e2e-brownfield                   214  214    0   119/95       v27.0.0-alpha.0.0.0: {'OK': 192}; v27.0.0-alpha.0.1.0: {'OK': 22}
+shiploop-e2e-brownfield-tickets           216  215    1   121/95       v27.0.0-alpha.0.0.0: {'OK': 193, 'FAIL': 1}; v27.0.0-alpha.0.1.0: {'OK': 22}
+shiploop-e2e-resources                     66   66    0    24/42       v27.0.0-alpha.0.0.0: {'OK': 42}; v27.0.0-alpha.0.1.0: {'OK': 24}
+shiploop-e2e-quality                      214  214    0   119/95       v27.0.0-alpha.0.0.0: {'OK': 192}; v27.0.0-alpha.0.1.0: {'OK': 22}
+
+jobs whose log names a port collision (before it listened on PORT / did not listen on PORT / answered by pid / EADDRINUSE / address already in use): 1
+  run 43669277848 attempt 2 commit 9710190f 2026-11-15T02:45Z full / shiploop-2 failure node v27.0.0-alpha.0.1.0
+      2026-11-15T03:26:24.3213939Z 2 : {'basics': 'exit 5: check exited 5; candidate stderr: 2026-11-15T03:22:43.925Z info tickets listening on 49233; data in memory; notifications in memory; worker every 5

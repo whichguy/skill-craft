@@ -574,13 +574,92 @@ that inventory exists to catch the code under test writing under the product, `.
     the setting. That is one pass, and `full / shiploop-2`, which failed twice on the release run, passed with both the fixture
     flags (`111e2a27`) and the step in place, so it cannot say which of them would have prevented a failure. F22 stays interim
     until the next release's full tier and the Monday run.
-- F23 (interim): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
+- F23 (updated 2026-11-15: the cause is firm and the rate bounded, see Round 6; mended in the two ticket suites' tests, `checks/serve.py`
+  left to the owner): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
   candidate exited before it listened on the port the harness had chosen. `checks/serve.py` picks the port with `free_port()`
   (bind to port 0, read the number, close) and starts the candidate with `PORT=<it>`, so another process can take that port in
-  between, and the shard runs several server-starting suites at once (`--jobs 4`). That is a reading, not an observation: the
-  record does not name the listen error, and no rate was measured. The shard passed on the six release commits before this one.
+  between, and the shard runs several server-starting suites at once (`--jobs 4`). ~~That is a reading, not an observation: the
+  record does not name the listen error, and no rate was measured.~~ [superseded 2026-11-15: the error is `EADDRINUSE`, reproduced
+  with the real `serve.py` on Linux and macOS, and the rate is bounded; the record did not name it because `tail()` keeps the last 600
+  characters of the candidate's stderr and the calibration test printed the first 300 of the check's output, so the error line fell off the
+  front and `code: 'EADDRINUSE'` off the end.] The shard passed on the six release commits before this one.
   It is a related class to the one `26728edd` and `8c5b4d4e` measured and fixed for the `brownfield-tickets` calibration suite
   (another project's server answering on the same port number, mended by grading again until a grade agrees), not the same
   mechanism; `8c5b4d4e` names `ticket-comments` and `ticket-sla` as not examined and leaves the live scoring check to the owner.
-  Not fixed here: a retry in `checks/serve.py` would also reach live deliveries, which is the owner's call as in `8c5b4d4e`, and
-  one failure is not a rate.
+  ~~Not fixed here: a retry in `checks/serve.py` would also reach live deliveries, which is the owner's call as in `8c5b4d4e`, and
+  one failure is not a rate.~~ [superseded 2026-11-15: the rate is now measured (about one early exit in 181 CI executions of this
+  suite, 0.12% of serve.py runs on this Mac), and the calibration suites' tests are mended; a retry in `checks/serve.py` is still the
+  owner's call, as in `8c5b4d4e`, and is put to them in Round 6.]
+
+## Round 6 (2026-11-15): the ticket-comments early exit measured, and the mend in the tests (F23, F24)
+
+**Question.** Round 5 left F23 as a reading: a candidate "exited (rc 1) before it listened on PORT=55427", its error cut off, no rate. What
+is the error, how often does it happen, do `shiploop-e2e-ticket-sla` and the other suites that start servers through `checks/serve.py` share
+it, and what is the narrowest mend? `8c5b4d4e` left a retry in `checks/serve.py` or in live scoring to the owner, and allowed a mend confined to
+the calibration suites' tests.
+
+**What was run** (`docs/experiments/serve-port-race-20261115/`; its README has the commands and the files).
+- The CI history: all 941 job logs of the 476 `ci.yml` runs since 2026-10-31 (`ci_history.py`, read-only).
+- The real `serve.py` against a port another socket holds, seven kinds of holder, on Linux and on macOS (`pinned_port_demo.py`); which port
+  numbers the kernel hands out (`port_pool.py`).
+- The real `serve.py` (imported, so `free_port()`, the Popen and `wait_for_candidate()` are the repository's) called 33,000 times on Linux
+  (a container: kernel 7.2.12, Node 26.12.1, 4 CPUs, no network, lsof replaced by a shim) and 18,000 times on this Mac, from 2 to 16 callers at
+  once, with and without neighbours that bind ports (`serve_race_probe.py`, `run_matrix.sh`).
+- One unmodified run of each suite that goes through serve.py, with a tap that counts its serve.py runs (`tap/`, `run_tap.sh`).
+
+**Results.**
+- *The record.* The visible text starts inside the first stack frame of a Node `listen` failure. `tail()` keeps the last 600 characters of the
+  collapsed stderr and the test printed `output[:300]`, so `Error: listen EADDRINUSE: address already in use :::55427` fell off the front and
+  `code: 'EADDRINUSE'` off the end. The runner was Ubuntu 26.04 with Node `v27.0.0-alpha.0.1.0` (first used by CI on 2026-11-12), whose `net` has a
+  `callSetupListenHandle` frame that Node 26.12.1 has not, so the stack cannot be compared line for line.
+- *The error.* On Linux every kind of socket on the port (a Node or Python listener on any address, a bound socket, an established
+  connection's local port) makes the candidate exit rc 1 with `EADDRINUSE`. serve.py then says "answered by pid H, not by the candidate"
+  when the holder is still a listener at its first lsof look, and exactly the CI line, "exited (rc 1) before it listened on PORT=N: Error: listen
+  EADDRINUSE", when the holder is not a listener or has gone. So the CI holder was not a listener when serve.py looked. It was reproduced
+  without a synthetic neighbour: 16 callers at once gave 1 early exit (`EADDRINUSE`) and 6 foreign-listener lines in 18,000 calls (0.039%,
+  0.016 to 0.080), and the three the probe recorded were each another live candidate of the probe: two callers had been handed one number.
+- *Where the number comes from.* On Linux `free_port()`'s port is always odd and drawn over all of 32768 to 60999 (14,116 numbers), a Node
+  `listen(0)` is always odd and from the lower half (7,058), a `connect()` source port is always even; the distinct counts in 2,000 draws
+  (1,868 and 1,733) are what uniform draws from those pools give. A candidate is lost when another socket takes its number in the window
+  between the release and the candidate's bind (0.13 to 0.2 s at the median) and still holds it then: about the sockets holding a number at that
+  moment over 14,116. Five thousand binds a second held 30 ms (about 165 held) gave 11 early exits in 2,000 calls (0.55%, 0.28 to 0.98;
+  1.2% predicted); `node --test` of the base fixture in 4 and in 16 loops gave no early exit in 2,000 calls (one foreign-listener line).
+- *The rate on CI.* One early exit in 181 executions of this suite (85 full-tier), 180 OK; none in 84 of `ticket-sla`. The tap counted 54
+  serve.py runs in one execution of `ticket-comments`, 82 of `ticket-sla`, 184 of `user-directory`, 39 of `user-chain`, 4 of `brownfield`, 13 of
+  `brownfield-tickets`: about 37,900 runs in the history for one early exit (0.0026%, 0.0001 to 0.015), which mechanism (A) alone explains.
+  The one failure came on the newer Node (1 of 22 executions on it, 0 of 159 before; a chance of 12 percent that the one failure falls among
+  those 22 by luck, so an effect of the Node version is neither shown nor excluded).
+- *A second mechanism, on macOS.* 21 early exits in 18,000 calls (0.12%, 0.07 to 0.18), all `EADDRINUSE`, 1 of them in a run of two callers,
+  on twelve port numbers that recur from run to run. `free_port()` binds IPv4 loopback and a Node candidate binds the IPv6 wildcard, so a number held
+  by an IPv6 socket, or by a connection whose local address is not loopback, is handed out although the candidate cannot bind it. Today eight of the
+  twelve are long-lived IPv6 connections (remote port 443 or 80), one is an IPv6 wildcard listener, one an IPv4 connection to port 5223 (`bad_ports.py`,
+  `macos-bad-ports.txt`; addresses not kept). It needs no concurrency, and on Linux it is unlikely (a connection's source port is even, `free_port()`'s is odd).
+- *The suites.* All five calibration suites that grade variants through serve.py do it once: `ticket-comments`, `ticket-sla`, `user-directory`
+  (`CalibrationBase.setUpClass`), `user-chain` and `brownfield` (`CaseChecksTest.checks`); `brownfield-tickets` grades again (`26728edd`); every
+  `ChainRunTest` grades a failed check once more and the hidden acceptance goes through `quality.serve_on_free_port` (`d9a92f05`). `user-directory` has
+  the most serve.py runs. The other family failure in these suites, `user-directory`'s on 2026-11-05 (run 42133217612, a hidden check answered by another
+  server), is the wrong-answer face of the same cause and was mended by `f1399b5b`'s ownership check; `brownfield-tickets`' of 2026-11-01 was a
+  `FileExistsError`, not a port.
+
+**Change** (`test/shiploop-e2e-ticket-comments.test.py`, `test/shiploop-e2e-ticket-sla.test.py`). `CalibrationTest.setUpClass` grades each variant's own
+checks again, alone, until the failed set is the one its defect declares, at most 3 more times, and the last grade stands (`settle`, `own_checks`: the rule of
+`26728edd` and `8c5b4d4e`, in the tests only); a defect read by the wrong check disagrees every time and fails after 4 grades. The failure text now carries the
+check's whole output (run_checks keeps its last 2000 characters). Tests: `SettleTest` (3, no node) and `RegradeRouteTest` (the real serve.py, a held port, the first
+grade fails and the second passes); with the rule off (`REGRADES = 0`) 3 of the 4 fail in each suite. The two suites pass whole (21 and 27 tests).
+
+**Decision** (routine, AGENTS.md "Decisions": a choice between equivalent fixes, and the owner's carve-out for live scoring). The regrade in the tests of the
+suite that failed and of its sibling, which has more serve.py runs and the same shape. Not done, with the reason:
+- A retry or a different `free_port()` in `checks/serve.py`: it scores live deliveries and changes the oracle digest (`boundary.oracle_files` hashes `checks/`), so it is the
+  owner's call (`8c5b4d4e`). The question is in the report that goes with this commit; the rule it would copy is `quality.serve_on_free_port`'s (a server that exits on `EADDRINUSE` naming its own port is
+  started again on another, at most three tries, `d9a92f05`).
+- A shared helper in `test/shiploop_e2e/`: it would change the evaluator digest (`boundary.evaluator_files` hashes the `*.py` at the top of that folder).
+- The other three suites (`user-directory`, `user-chain`, `brownfield`): the same change applies at the places named above; not made because the task named the ticket
+  pair and no failure with this signature is on record for them. `user-directory`'s 184 runs make it the most exposed, about 3.4 times `ticket-comments`.
+
+**Findings**
+- F23 (above, updated): firm for the cause (`EADDRINUSE` from a port number another socket took between `free_port()` and the candidate's bind), measured for the
+  rate on Linux and macOS, interim for the CI rate (one event). Unknown: which socket held 55427 on the runner.
+- F24 (firm for the inventory, exploratory for the Mac's rate): `free_port()` asks the IPv4 allocator, a Node candidate binds the IPv6 wildcard, and on macOS
+  twelve port numbers that other programs held through IPv6 sockets were handed out again and again: 0.12% of serve.py runs on this Mac on this day against 0.0026% on CI. A live
+  run of a link of the ticket or user chains makes 3 to 12 serve.py runs (its regression and own checks), so about 0.4 to 1.4% of live runs at this Mac's rate, if the rate holds
+  for the way live runs call serve.py (one at a time). The number will change with what other programs hold.
