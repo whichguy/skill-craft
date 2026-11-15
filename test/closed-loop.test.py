@@ -492,6 +492,17 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual(report["claims"]["grading.sensitive:d1"]["state"], "unknown")
         self.assertIn("no improver.bounded claim has reached 'bounded'", report["blocked"])
 
+    def test_a_readiness_with_sensitivity_and_calibration_proven_survives_a_reload(self):
+        lab = Lab(self, claims=FULL_CLAIMS)
+        lab.config(sensitive={"d1": True}, calibrated={"fake": True})
+        lab.init("A1")  # recorded: the saved state sorts its keys, so the claims come back in another order
+        status = lab.ok("status", "--campaign", lab.campaign)
+        allowed = " | ".join(status["readiness"]["allowed_claims"])
+        self.assertIn("quality claims about d1", allowed)
+        self.assertIn("measured efficiency on profile fake", allowed)
+        lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)  # and it can be refreshed again
+        self.assertEqual(lab.step()["action"], "start")
+
     def test_a_proven_claim_without_evidence_is_refused_and_a_failed_refresh_withdraws_the_earlier_pass(self):
         lab = Lab(self)
         lab.init("A1")  # a passing readiness is recorded
@@ -691,6 +702,15 @@ class GateTests(unittest.TestCase):
 
 
 class StateTests(unittest.TestCase):
+    def test_a_file_system_error_is_a_json_error_not_a_traceback(self):
+        lab = Lab(self)
+        lab.init("A1")
+        done = subprocess.run([sys.executable, str(SCRIPT), "contract", "--campaign", str(lab.campaign), "--out",
+                               str(lab.tmp / "no-such-folder" / "contract.json")], capture_output=True, text=True, check=False)
+        self.assertEqual(done.returncode, cl.EXIT_ERROR)
+        self.assertNotIn("Traceback", done.stderr)
+        self.assertIn("file system error", json.loads(done.stderr)["error"])
+
     def test_missing_state_is_an_error_and_is_never_recreated(self):
         lab = Lab(self)
         for verb in ("status", "step", "certificate", "report"):
@@ -863,20 +883,29 @@ class FingerprintTests(unittest.TestCase):
         self.assertEqual(code, cl.EXIT_ERROR)
         self.assertIn("does not hold the current content", err)
 
-    def test_a_git_that_cannot_show_what_it_holds_is_a_problem_even_when_the_add_works(self):
+    def stub_git(self, lab, failing: str) -> Path:
+        """A `git` that fails when the command line contains `failing` (a shell case pattern) and otherwise runs the real one."""
+        stub = lab.tmp / "stub-bin"
+        stub.mkdir(exist_ok=True)
+        (stub / "git").write_text(f'#!/bin/sh\ncase "$*" in\n  {failing}) echo "fatal: boom" >&2; exit 128;;\nesac\n'
+                                  f'exec "{shutil.which("git")}" "$@"\n')
+        (stub / "git").chmod(0o755)
+        return stub
+
+    def test_a_git_that_cannot_show_what_it_holds_or_write_the_tree_is_a_problem(self):
         lab = Lab(self)
         lab.init("A1")
-        stub = lab.tmp / "stub-bin"
-        stub.mkdir()
-        (stub / "git").write_text(f'#!/bin/sh\nfor arg in "$@"; do\n  if [ "$arg" = ls-files ]; then echo "fatal: boom" >&2; exit 128; fi\n'
-                                  f'done\nexec "{shutil.which("git")}" "$@"\n')
-        (stub / "git").chmod(0o755)
-        with mock.patch.dict(os.environ, {"PATH": f"{stub}{os.pathsep}{os.environ['PATH']}"}):
-            problem = cl.fingerprint_problem(lab.campaign)
-        self.assertIn("git cannot show what the fingerprint holds", problem)  # the `add` before it succeeded
-        self.assertIn("boom", problem)
+        for failing, expected in (("*ls-files*-s*", "git cannot show what the fingerprint holds"),
+                                  ("*write-tree*", "git cannot write the fingerprint tree"),
+                                  ("*check-attr*", "git cannot read the attributes"),
+                                  ("*ls-files*-v*", "git cannot list the campaign folder's index")):
+            stub = self.stub_git(lab, failing)
+            with mock.patch.dict(os.environ, {"PATH": f"{stub}{os.pathsep}{os.environ['PATH']}"}):
+                problem = cl.fingerprint_problem(lab.campaign)
+            self.assertIn(expected, problem, failing)
+            self.assertIn("boom", problem, failing)
 
-    def test_an_index_flag_that_freezes_a_staged_state_file_is_caught_by_content(self):
+    def test_an_index_flag_on_a_staged_state_file_is_caught_even_while_the_bytes_still_match(self):
         for flag in ("--assume-unchanged", "--skip-worktree"):
             with self.subTest(flag):
                 lab = Lab(self)
@@ -884,20 +913,58 @@ class FingerprintTests(unittest.TestCase):
                 lab.step()
                 for git_args in (["add", "campaign.json"], ["update-index", flag, "campaign.json"]):
                     subprocess.run(["git", "-C", str(lab.campaign), *git_args], check=True, capture_output=True)
-                self.assertIsNone(cl.fingerprint_problem(lab.campaign))  # the staged copy is still the current content
-                lab.ok("unknown", "--campaign", lab.campaign, "add", "--text", "is the oracle sensitive?", "--inside-claim")
-                self.assertIn("does not hold the current content of campaign.json", cl.fingerprint_problem(lab.campaign))
-                self.assertEqual(lab.check("C1")[0], cl.EXIT_ERROR)  # the runtime would have called the changed folder unchanged
+                self.assertIn("flagged assume-unchanged or skip-worktree", cl.fingerprint_problem(lab.campaign))  # before any change
+                self.assertEqual(lab.check("C1")[0], cl.EXIT_ERROR)  # the next change would have been invisible to the runtime
+                for clear in ("--no-assume-unchanged", "--no-skip-worktree"):  # one mode per command: the first one wins
+                    subprocess.run(["git", "-C", str(lab.campaign), "update-index", clear, "campaign.json"], check=True,
+                                   capture_output=True)
+                self.assertIsNone(cl.fingerprint_problem(lab.campaign))  # clearing the flag restores the checks
 
-    def test_a_git_filter_that_rewrites_a_state_file_is_caught_by_content(self):
+    def test_an_unmerged_index_entry_is_caught(self):
+        lab = Lab(self)
+        lab.init("A1")
+        blob = subprocess.run(["git", "-C", str(lab.campaign), "hash-object", "-w", "--stdin"], input="x\n", text=True, check=True,
+                              capture_output=True).stdout.strip()
+        stages = "".join(f"100644 {blob} {stage}\t.shiploop/conflict.txt\n" for stage in (1, 2, 3))  # in a path the runtime excludes
+        subprocess.run(["git", "-C", str(lab.campaign), "update-index", "--index-info"], input=stages, text=True, check=True,
+                       capture_output=True)
+        problem = cl.fingerprint_problem(lab.campaign)
+        # The index guard names it before `git write-tree` could: both messages contain "unmerged", so the guard's own words are asserted
+        # (the mutation check found the test passing with the index guard removed; the write-tree guard has a stub-git test of its own).
+        self.assertIn("flagged", problem)
+        self.assertIn("unmerged", problem)
+
+    def test_a_git_filter_that_rewrites_a_state_file_is_caught_even_when_it_returns_the_current_bytes(self):
         lab = Lab(self)
         lab.init("A1")
         lab.step()
-        (lab.campaign / ".gitattributes").write_text("campaign.json filter=constant\n")
-        subprocess.run(["git", "-C", str(lab.campaign), "config", "filter.constant.clean", "printf constant"], check=True,
+        saved = lab.tmp / "saved-campaign.json"
+        shutil.copy(lab.campaign / "campaign.json", saved)  # a static filter that always answers with a saved copy
+        (lab.campaign / ".gitattributes").write_text("campaign.json filter=saved\n")
+        subprocess.run(["git", "-C", str(lab.campaign), "config", "filter.saved.clean", f"cat {saved}"], check=True,
                        capture_output=True)
-        self.assertIn("campaign.json", cl.fingerprint_problem(lab.campaign) or "")
+        self.assertIn("a Git filter applies to campaign.json", cl.fingerprint_problem(lab.campaign))  # it matches today; not tomorrow
         self.assertEqual(lab.check("C1")[0], cl.EXIT_ERROR)
+
+    def test_crlf_normalisation_is_not_a_hiding_mechanism_and_is_not_refused(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        subprocess.run(["git", "-C", str(lab.campaign), "config", "core.autocrlf", "true"], check=True, capture_output=True)
+        for name in ("campaign.json", "journal.md"):  # as a checkout under core.autocrlf=true leaves them
+            path = lab.campaign / name
+            path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+        self.assertIsNone(cl.fingerprint_problem(lab.campaign))
+        self.assertEqual(lab.check("C1")[0], cl.EXIT_OK)  # and the orchestrator still reads its own state
+
+    def test_a_file_system_monitor_hook_is_caught_and_the_builtin_one_is_not(self):
+        lab = Lab(self)
+        lab.init("A1")
+        subprocess.run(["git", "-C", str(lab.campaign), "config", "core.fsmonitor", "./hide-changes.sh"], check=True,
+                       capture_output=True)
+        self.assertIn("core.fsmonitor names a hook", cl.fingerprint_problem(lab.campaign))
+        subprocess.run(["git", "-C", str(lab.campaign), "config", "core.fsmonitor", "false"], check=True, capture_output=True)
+        self.assertIsNone(cl.fingerprint_problem(lab.campaign))
 
     def test_a_hung_git_or_a_missing_temporary_directory_is_a_problem_not_a_crash(self):
         lab = Lab(self)
@@ -1207,6 +1274,22 @@ class EvidenceTests(unittest.TestCase):
             self.assertIn(expected, err)
         self.assertEqual(lab.step()["task"]["id"], task["id"])  # still open
 
+    def test_a_later_hunt_supersedes_a_finding_only_by_naming_it_and_rejecting_it_with_a_reason(self):
+        lab, task = self.hunt_lab()
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--result", json.dumps(
+            {"blind_spots": [{"what": "timing is not measured", "disposition": "added-as-task"}]}))
+        self.assertEqual(lab.step()["rung"], "E3")  # stopped incomplete: the finding was not rejected
+        lab.ok("reopen", "--campaign", lab.campaign, "--yes-owner-approved", "--note", "the follow-up task is done")
+        again = lab.ok("task", "--campaign", lab.campaign, "add", "--kind", "hunt", "--text", "hunt again")["task"]
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", again["id"], "--result", json.dumps({"blind_spots": []}))
+        stop = lab.step()  # a clean hunt does not clear what an earlier one found
+        self.assertEqual((stop["status"], stop["rung"]), ("incomplete", "E3"))
+        lab.ok("reopen", "--campaign", lab.campaign, "--yes-owner-approved")
+        third = lab.ok("task", "--campaign", lab.campaign, "add", "--kind", "hunt", "--text", "name it")["task"]
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", third["id"], "--result", json.dumps({"blind_spots": [
+            {"what": "Timing  is not MEASURED", "disposition": "rejected", "reason": "the follow-up task measured it"}]}))
+        self.assertEqual(lab.step()["status"], "converged")  # the same blind spot, named and rejected with a reason
+
     def test_a_blind_spot_handed_to_the_owner_or_left_as_a_task_keeps_the_campaign_incomplete(self):
         for disposition in ("deferred-to-owner", "added-as-task"):
             with self.subTest(disposition):
@@ -1452,7 +1535,12 @@ class CertificateTests(unittest.TestCase):
         self.assertEqual(lab.state()["unknowns"][1]["resolution"], "the seeded-defect probe caught d1")
         self.assertEqual(lab.certificate()["status"], "converged")
         lab.ok("report", "--campaign", lab.campaign)
-        self.assertEqual(len(json.loads((lab.campaign / "report.json").read_text())["unknowns"]), 1)  # the resolved one is gone
+        report = json.loads((lab.campaign / "report.json").read_text())
+        self.assertEqual(len(report["unknowns"]), 1)  # the resolved one is gone from the open list...
+        self.assertEqual(report["resolved_unknowns"][0]["resolution"], "the seeded-defect probe caught d1")  # ...and quoted
+        markdown = (lab.campaign / "report.md").read_text()
+        self.assertIn("## Unresolved unknowns", markdown)
+        self.assertIn("is the oracle sensitive to d1?: the seeded-defect probe caught d1", markdown)
         code, _, err = lab.cli("unknown", "--campaign", lab.campaign, "resolve", "--index", "9")
         self.assertEqual(code, cl.EXIT_ERROR)
         self.assertIn("existing unknown", err)
@@ -1881,6 +1969,31 @@ class QuotaTests(unittest.TestCase):
         self.assertIn(f"step {key} has run for", stop["reason"])
         self.assertIn("over execution.step_timeout_seconds (0.5)", stop["reason"])
 
+    def test_cancelling_a_step_keeps_the_seconds_it_ran_so_a_reopen_cannot_launder_them(self):
+        lab = Lab(self)
+        lab.init("A1", "--budget", "seconds=1")
+        lab.config(poll_delay=99)
+        key = lab.step()["key"]
+        time.sleep(1.2)
+        self.assertEqual(lab.ok("next", "--campaign", lab.campaign)["action"], "stop")  # spent while it ran
+        lab.ok("cancel", "--campaign", lab.campaign, "--key", key)
+        self.assertGreaterEqual(lab.state()["consumed"]["seconds"], 1.2)  # cancelling did not erase it
+        lab.ok("cleanup", "--campaign", lab.campaign)
+        lab.ok("reopen", "--campaign", lab.campaign, "--yes-owner-approved")  # the budget was not raised
+        again = lab.ok("next", "--campaign", lab.campaign)
+        self.assertEqual(again["action"], "stop")
+        self.assertIn("budget used: seconds", again["reason"])
+
+    def test_a_failed_call_while_a_step_runs_is_not_charged_twice(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(poll_delay=99)
+        lab.step()  # running: its wall time counts as it runs
+        lab.config(crash_step=["poll"])
+        code, _, _ = lab.cli("step", "--campaign", lab.campaign)  # a failed poll: that time is already the step's own
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertEqual(lab.state()["consumed"].get("seconds", 0), 0)
+
     def test_a_probe_that_is_refused_still_costs_what_it_reported(self):
         lab = Lab(self)
         lab.init("A1", ready=False)
@@ -2242,12 +2355,13 @@ class CardTests(unittest.TestCase):
                        "One session acts on a campaign at a time",
                        "never polled once the budget is used", "unknown resolve --index N --evidence"):
             self.assertIn(phrase, card, phrase)
-        for text, phrase in ((until_loop, "`!*`"), (until_loop, "proves visibility by content"), (until_loop, "between the last check and the runtime's"),
+        for text, phrase in ((until_loop, "`!*`"), (until_loop, "now and after the next change"), (until_loop, "git ls-files -v"), (until_loop, "between the last check and the runtime's"),
                              (convergence, "no step is still running"), (convergence, "latest readiness still shows"),
                              (convergence, "scoring identity"), (schema, "launch_intents"), (schema, "readiness` refuses to run a probe"),
                              (readiness, "A proven claim needs evidence"), (readiness, "withdraws the old result first"),
                              (convergence, "no task is open"), (convergence, "One predicate"), (schema, "step_timeout_seconds"),
-                             (schema, "**not polled again**")):
+                             (schema, "**not polled again**"), (schema, "One version per campaign"),
+                             (flat("references/escalation.md"), "supersedes an earlier finding only by naming the same blind spot")):
             self.assertIn(phrase, text, phrase)
 
     def test_the_references_state_the_limits_the_script_enforces(self):

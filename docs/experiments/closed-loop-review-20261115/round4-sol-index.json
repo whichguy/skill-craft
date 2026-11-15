@@ -1,0 +1,34 @@
+{
+  "source": {
+    "user_named_revision": "0f09e78e1d8e1db9899b1430916f6329820ba894",
+    "actual_revision": "76693288f650fb183f7f8e960531beee931a5d7d",
+    "status": "",
+    "source_diff_from_requested": "",
+    "script_sha256": "80b471fc87615f643150d4668d12455d859cf0d5299722623976ab0f34c08747"
+  },
+  "evidence": {
+    "original_index_flags": "/private/tmp/closed-loop-operator-q8u3nqcv/fixed-index-recheck.json",
+    "other_original_reproductions": "/private/tmp/closed-loop-r4-repros-y7yxwpqn/results.json",
+    "readiness_budget_hunt_crash_regressions": "/private/tmp/closed-loop-r4-regressions-21mwh6ib/results.json",
+    "additional_readiness_quota_unknown_probes": "/private/tmp/closed-loop-r4-final-sweep-urcdbpqo/results.json",
+    "filter_returns_original_content": "/private/tmp/closed-loop-operator-57hsnrlg/original-content-filter.json",
+    "git_config_matrix_and_tree_failure": "/private/tmp/closed-loop-git-probes-sb6zwqoc/valid-campaign-evidence.json",
+    "git_config_summary": "/private/tmp/closed-loop-git-probes-sb6zwqoc/SUMMARY.json",
+    "literal_card": "/private/tmp/closed-loop-operator-99n4afvb/literal-card.json",
+    "established_suite": "/private/tmp/closed-loop-suite-2jzrbsj1/result.json",
+    "old_live_run_upgrade": "/private/tmp/closed-loop-r4-upgrade-vx3_ggxi/result.json"
+  },
+  "probe_scripts": [
+    "/private/tmp/closed-loop-r4-repros.py",
+    "/private/tmp/closed-loop-r4-regressions.py",
+    "/private/tmp/closed-loop-r4-final-sweep.py",
+    "/private/tmp/closed-loop-r4-filter-original-content.py",
+    "/private/tmp/closed-loop-r4-literal.py",
+    "/private/tmp/closed_loop_operator_review.py"
+  ],
+  "prioritized_ship_blockers": [
+    "Git snapshot-equality guard permits hidden later changes; flags/original-content filter; missing write-tree check",
+    "Running elapsed seconds evaporate at cancellation, allowing campaign convergence past aggregate elapsed budget",
+    "Successful readiness is un-loadable when saved sorted claims reorder the derived allowed-claims list"
+  ]
+}

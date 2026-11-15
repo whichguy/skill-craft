@@ -12,15 +12,16 @@ iteration, and escalation to broader cases. This plan builds the generic layer t
 subject as the generality test. An Astra max review (read-only, about 10 minutes) of the first draft found real errors; every
 correction I could check against the code, the runtime or the docs held, and section 12 lists them.
 
-## Phase 1 as built (added 2026-11-15, after Astra's max review of the build)
+## Phase 1 as built (added 2026-11-15, updated after four max reviews: Astra twice, Sol twice)
 
 Phase 1 is built and hardened. The sections below are the plan as it was reviewed; where the build differs, the difference is here.
-Evidence and decisions: `docs/closed-loop-journal.md` and `docs/experiments/closed-loop-review-20261115/` (Astra's findings, the
-reproductions, and the mutation check of the new tests).
+Evidence and decisions: `docs/closed-loop-journal.md` and `docs/experiments/closed-loop-review-20261115/` (the four reviews' findings,
+the reproductions, and the mutation checks of the new tests).
 
 | The plan said | The build does | Why |
 | --- | --- | --- |
 | the contract's workspace is the subject's linked worktree (section 5: "tested in P1 with the real runtime") | the workspace is the **campaign folder**, a small Git repo that `init` creates and that holds only campaign state; the runtime's state, the contract and the receipts live in the sibling `<campaign>.work` | the checks read evidence in the campaign folder, so a change to it after a green verify (an unknown added) did not change the fingerprint and the real runtime still completed (the reviewer reproduced it); receipts inside the folder would rewrite the fingerprinted tree |
+| the runtime's Git-tree fingerprint holds whatever is in the workspace | every check and `contract` prove that the fingerprint will hold the state now **and after the next change**: no flagged (`assume-unchanged`, `skip-worktree`) or unmerged index entry, no Git filter on a state file, no `core.fsmonitor` hook, and the runtime's own procedure (`git add -A` into a copy of the index, then `git write-tree`) succeeds and stages what `git add` makes of each state file; otherwise they exit 2 and `contract` refuses | an ignore rule (Astra, round 2), an index flag or a constant clean filter (Sol, round 3), a flag set after a matching snapshot, a filter returning a saved copy, and an unmerged entry that makes `write-tree` fail (Sol, round 4) each let the real runtime complete over an incomplete certificate; a same-as-today comparison cannot see a later change |
 | two sequential root contracts: readiness, then scope | one contract kind, the scope contract; readiness is a gate that records its result | exit checks only read recorded evidence, and the readiness contract reran effectful probes |
 | the start rule is checked by `readiness --require-start` | `step` also refuses to start until the owner has ratified the boundary hash, readiness has recorded a pass for that hash and every selected case is released | `init` then `step` ran a hosted case with none of these |
 | convergence is checked from the facts an adapter reports | the facts are validated first (types, the exact case set, identities, amounts, build consistency); a report that fails is a failed step, never a quiet iteration | malformed and partial reports converged |

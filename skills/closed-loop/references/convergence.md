@@ -47,5 +47,6 @@ readiness probes are what stand behind that trust.
 
 **What `report.md` must say**: the status line (campaign and scope), why the scope is not converged, unresolved material records
 with their reopening conditions, what the scope does not cover, the adapter backlog, the claims the certificate may make, unresolved
-unknowns, quota used against budget (and that it was exhausted), and the iteration count. A script stop, a cap, a non-promotion
+unknowns, what answered each resolved unknown (its `--evidence`), quota used against budget (and that it was exhausted), and the
+iteration count. A script stop, a cap, a non-promotion
 streak or empty findings never appears as convergence.

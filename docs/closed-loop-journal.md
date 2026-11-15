@@ -130,7 +130,8 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
   structural: one predicate for a converged campaign (`completion_problems`) used wherever a stop is made or read, tasks inside the
   certificate (C1), and the recorded readiness re-derived on every load.
 - **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.**
-  1. *Prove visibility by content, not by hunting causes.* Reject: more guards for `assume-unchanged`, `skip-worktree` and filters one
+  1. *Prove visibility by content, not by hunting causes.* **Superseded 2026-11-15 by R5:** a comparison of today's bytes cannot see a
+     later change, so the cause-by-cause guards rejected here are in the guard after all, beside the runtime's own procedure. Reject: more guards for `assume-unchanged`, `skip-worktree` and filters one
      by one (the review had already found two new causes after the ignore-rule guard). Instead `fingerprint_problem` runs the
      runtime's own procedure on a copy and compares each state file's staged blob with its bytes; anything that makes them differ,
      whatever the cause, fails the check.
@@ -144,9 +145,48 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
      before every launch attempt: each was a place where an attestation or a receipt could outlive what it vouched for.
 - **Measurements.** Suite 142 to 157 tests (114 s). 21 further safeguards mutation-checked, all caught after one test was added for the single
   survivor of the first batch (a kill-mid-probe test of the refresh marker); logs in the review folder. Lint and the 3.9 grammar check as before.
-- **Open (unknown).** A fourth review is not planned: each round has found fewer and narrower defects, the class sweep is now
+- **Open (unknown).** **Superseded 2026-11-15 by R5** (a fourth review was run and found three P1 defects). A fourth review is not planned: each round has found fewer and narrower defects, the class sweep is now
   structural, and the remaining limits are disclosed. Nothing has driven the card with a model operator on a real subject, and the
   vendored runtime's null-tree behaviour is unchanged (guarded on this side).
+
+### R5. Sol's second max review, a verification of the fixes, and the round it forced (2026-11-15)
+
+- **Question.** Do the R4 fixes hold, did they introduce regressions or false stops, and is any path to false completion left? R4 had
+  planned no fourth review; one was run before shipping because R4 had changed the Git guard, the accounting and the certificate at
+  the same time, which is where a fix is most likely to break a neighbour.
+- **Conditions.** Codex `gpt-6.1-sol` at max, one attempt, no fallback, read-only, on `76693288f650fb183f7f8e960531beee931a5d7d`
+  (the R4 fixes `aceb1d03a390daf51c80325e1f2465d354cfdb5b` merged with published main, plus the catalog estimate of `76693288`). Brief,
+  answer, run record, reproductions index and the literal card drill: `docs/experiments/closed-loop-review-20261115/round4-sol-*`.
+- **Result.** *Not ready to ship*: of ten earlier reproductions nine fixed and one not (index flags), two paths to false completion
+  (a guard that compared today's bytes, and a cancel that erased spent seconds), one P1 regression (a saved readiness made its own
+  campaign unreadable), four P2 defects and one judgement item. The literal operator drill passed. Status: **firm**. Dispositions and
+  tests: the review folder's README, "Round 4". Six of the eight findings (the guard that did not hold, the step charge at cancel and at a failed poll, the readiness
+  re-derivation, the line-ending refusal, a stranded run after an upgrade) were defects of my own R4 change, and R4's text claimed that
+  a resolved unknown was quoted in the report when it was not, so reviewing the fixes paid; this is the second data point that Sol at max finds what Astra's rounds did not (the first was R4's four new P1 findings).
+- **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.**
+  1. *Guard what the next change needs, not today's content.* The index flags, Git filters and a file-system monitor hook are refused
+     outright, the runtime's own procedure must finish with a written tree, and the staged blob is compared with `git hash-object`
+     *with* filters so line-ending conversion is not refused. This reverses R4 decision 1: a snapshot comparison passes while a flag or a
+     static filter is in place and then hides the next change. Cost: a rare false stop (a campaign folder mid-merge is refused even for
+     a state file, where the runtime's `git add -A` would have resolved the conflict; checked in a scratch repository on 2026-11-15);
+     the message names the command that clears each cause.
+  2. *Ending a step charges at least the wall time it ran, and a failed call while a step runs is not charged again.* The R4 rule
+     made a running step spend `seconds` as it runs; its terminal transitions then forgot it (cancel) or doubled it (a failed poll).
+  3. *No migration for a campaign from an earlier revision.* The repository keeps one supported version and the parent revision was
+     never released; the docs say to finish or abandon a campaign before updating the skill. Rejected: reading a running step's
+     `started` timestamp, a shim for a version nobody has.
+  4. *A later hunt supersedes an earlier finding only by naming it and rejecting it with a reason.* Keeps the policy (a finding is
+     never silently dropped) and gives it an end.
+  5. *A test that passes with either of two guards removed proves neither.* The mutation check found the unmerged-entry test doing
+     this (both guards' messages contain "unmerged"); the assertion now names the index guard's own word.
+- **Measurements.** Suite 157 to 165 tests, 126.0 s in the full run (114.4 s alone for 157 tests at `76693288`; the estimate in
+  `test/suite_durations.json` stays 115.0 and the decision rule written in that commit stands: a CI receipt above 120 s on Linux
+  forces the split-or-exception decision). 23 safeguards mutation-checked: 22 caught on the first pass, the one miss closed by the
+  sharper assertion (README, "Mutation check of the new tests"). Lint and the 3.9 grammar check clean.
+- **Open (unknown).** No further review is planned before 0.1.0; every max review so far has said "not ready", with narrowing
+  findings (Sol: six P1, then three), and the fixes of this round are verified by tests and mutation checks, not by a reviewer.
+  Nothing has driven the card with a model operator on a real subject. An active file-system monitor daemon was not exercised. The
+  vendored runtime's null-tree behaviour is unchanged (guarded on this side by the written-tree requirement).
 
 ## Findings
 
@@ -162,3 +202,7 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F8 | A launch the campaign does not know the outcome of (a crash or a timeout after the adapter may have started it) must be written down before the call and counted as unclean until cleanup covers it; a replay must reuse the recorded base | firm | `ResumeTests`, `EvidenceTests`; the live-base regression I introduced and the reviewer found |
 | F9 | A claim readiness proves is about an evaluator: it must carry its evidence and the scoring identity, and lapse when the identity changes | firm | `ReadinessTests` |
 | F10 | `subprocess.run`'s timeout kills only the direct child: run the adapter in its own session and kill the process group, or a grandchild holding the pipe keeps the call alive | firm | `AdapterProcessTests` |
+| F11 | A guard that proves today's content cannot prove a later change will show: refuse whatever can freeze or rewrite what the fingerprint holds (index flags, filters, monitor hooks) and require the runtime's own procedure to finish, not a snapshot that matches | firm | `FingerprintTests`; `round4-sol-answer.txt`; `mutations-round6-batch1.txt` |
+| F12 | A step that ends must not erase what it spent, and what a running step already accounts for must not be charged again: charge at least the wall time since start at every terminal transition | firm | `QuotaTests`; `round4-sol-answer.txt` |
+| F13 | A re-derivation compared by list order breaks when the saved file sorts its keys: derive in one canonical order, and test the reload of the richest state (every optional claim proven) | firm | `ReadinessTests`; `round4-sol-answer.txt` |
+| F14 | A test whose assertion two guards both satisfy proves neither; assert the guard's own words. A mutation check finds this, a green suite does not | firm (one instance) | `mutations-round6-batch1.txt`, `-batch2.txt` |

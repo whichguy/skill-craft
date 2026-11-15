@@ -148,9 +148,10 @@ adapter reports and cannot show that the adapter reported truthfully: the ratifi
 trust. The budget is checked between steps, so one step can overshoot it, and a contract can complete on the step that used the last
 of it (the report then reads scope converged, campaign incomplete: budget used). The Until Loop's freshness check watches the
 campaign folder only: not the subject, the adapter and its pinned files, or this script. The checks catch a change to those as stale
-or refused the next time they run, so verify and report back to back with no other call between. The checks prove by content that the
-runtime's Git fingerprint holds the campaign's state: an ignore rule, an index flag, a Git filter or a Git error that would blind it
-makes them exit 2 instead of passing. A step in flight spends the `seconds` budget as it runs, and a running step is never polled
+or refused the next time they run, so verify and report back to back with no other call between. The checks prove that the runtime's Git
+fingerprint will hold the campaign's state now and after the next change: an ignore rule, a flagged or unmerged index entry, a Git
+filter, a file-system monitor hook or a Git error that would blind it makes them exit 2 instead of passing. A campaign does not
+survive a skill update (no migrations): finish or abandon it first. A step in flight spends the `seconds` budget as it runs, and a running step is never polled
 once the budget is used (cancel it, or the owner reopens with a larger budget).
 
 ## References

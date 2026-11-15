@@ -116,5 +116,11 @@ flight spends `seconds` as it runs, because the adapter reports its cost only wh
 the budget is used `readiness` refuses to run a probe and a running step is **not polled again**: the campaign stops `incomplete`,
 the step is left for `cancel` and `cleanup`, and the owner may reopen with a larger budget to let it finish. Separately, a step that
 has run longer than `execution.step_timeout_seconds` (default 21600) ends the campaign, and three identical poll failures end it.
+A step that ends (finishes, fails or is cancelled) is charged at least the wall time it ran, so ending it never erases what it
+spent, and wall time that a running step already accounts for is not charged a second time when a call fails during it.
 Exhaustion ends the *campaign* `incomplete`, never converged, though a scope certificate gathered before it can still read
 converged; only the owner raises the budget, with `reopen --budget`.
+
+**One version per campaign.** A campaign belongs to the script version that created it: its state is `closed-loop-campaign/1`, its
+identity includes the script's hash, and there are no migrations (the repository keeps one supported version). Finish or abandon a
+campaign, including any step still running, before updating the skill.

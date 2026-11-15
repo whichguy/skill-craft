@@ -1042,14 +1042,14 @@ def start_action(camp: Campaign, facts=None) -> dict:
 
 
 def hunt_findings(state: dict) -> list:
-    """Blind spots from completed hunt tasks that have not been rejected with a reason."""
-    open_items = []
-    for task in state["tasks"]:
+    """Blind spots from completed hunt tasks whose latest disposition is not a rejection with a reason. A later hunt may supersede
+    an earlier finding only by naming the same blind spot and rejecting it; a clean hunt does not clear what an earlier one found."""
+    latest = {}
+    for task in state["tasks"]:  # chronological: a later hunt that names the same blind spot supersedes the earlier finding
         if task["kind"] == "hunt" and task["status"] == "done":
             for spot in ((task.get("result") or {}).get("blind_spots") or []):
-                if spot.get("disposition") != "rejected":
-                    open_items.append(f"{spot.get('what')} ({spot.get('disposition')})")
-    return open_items
+                latest[" ".join(str(spot.get("what")).split()).lower()] = spot
+    return [f"{spot.get('what')} ({spot.get('disposition')})" for spot in latest.values() if spot.get("disposition") != "rejected"]
 
 
 def completion_problems(camp: Campaign, cert: dict) -> list:
@@ -1184,10 +1184,15 @@ def journal(camp: Campaign, rec: dict) -> None:
 
 def record_iteration(camp: Campaign, key: str, rec: dict, status: str, error=None) -> dict:
     state = camp.state
+    step = state["steps"][key]
+    if is_amount(step.get("started_epoch")):
+        elapsed = max(0.0, time.time() - step["started_epoch"])
+        if elapsed > rec["consumed"].get("seconds", 0):
+            # While it ran, its wall time counted against the budget; ending it (done, failed or cancelled) must not erase that.
+            rec["consumed"] = {**rec["consumed"], "seconds": round(elapsed, 3)}
     state["iterations"].append(rec)
     state["tip"] = rec["build_after"]
     add_consumed(state, rec["consumed"])
-    step = state["steps"][key]
     step["status"], step["iteration"] = status, rec["index"]
     if error:
         step["error"] = error
@@ -1325,6 +1330,8 @@ def write_report(camp: Campaign) -> dict:
         "unresolved": c1.get("blocking", []), "adapter_backlog": c1.get("adapter_backlog", []),
         "outside_scope": c1.get("outside_scope", []), "not_covered": camp.scope()["not_covered"],
         "unknowns": [item for item in state["unknowns"] if not item.get("resolved")], "quota": quota_status(state),
+        "resolved_unknowns": [{"text": item["text"], "resolution": item.get("resolution"), "resolved": item["resolved"]}
+                              for item in state["unknowns"] if item.get("resolved")],
         "iterations": len(state["iterations"]), "allowed_claims": cert["claims"]["allowed"],
         "claims_note": cert["claims"]["note"],
         "scopes": [{"id": s["id"], "cases": s["cases"], "reason": s["reason"]} for s in state["scopes"]],
@@ -1346,6 +1353,12 @@ def write_report(camp: Campaign) -> dict:
         lines += ["## Not covered by this scope", ""] + [f"- {value}: {why}" for value, why in out["not_covered"].items()] + [""]
     if out["adapter_backlog"]:
         lines += ["## Adapter backlog (outside a subject certificate)", ""] + [f"- {item}" for item in out["adapter_backlog"]] + [""]
+    if out["unknowns"]:
+        lines += ["## Unresolved unknowns", ""] + [
+            f"- {item['text']}{' (inside the claim)' if item.get('inside_claim') else ''}" for item in out["unknowns"]] + [""]
+    if out["resolved_unknowns"]:
+        lines += ["## Resolved unknowns (what answered each)", ""] + [
+            f"- {item['text']}: {item['resolution']}" for item in out["resolved_unknowns"]] + [""]
     claims = out["allowed_claims"] or [out["claims_note"] or "none"]
     lines += ["## What this certificate may claim", ""] + [f"- {item}" for item in claims] + [""]
     spent = (f"- consumed {json.dumps(out['quota']['consumed'], sort_keys=True)} of budget "
@@ -1453,7 +1466,7 @@ def derive_readiness(manifest: dict, states: dict) -> tuple:
         allowed.append("efficiency under a stated tolerance, labelled 'stated, not measured'")
         if manifest.get("evaluation_class", "scripted") == "judge-only":
             allowed.append("model-judged quality, labelled with the recorded judge reliability (promotion is the owner's policy)")
-        for claim, value in states.items():
+        for claim, value in sorted(states.items()):  # canonical: the saved state sorts its keys, so insertion order must not matter
             kind, _, name = claim.partition(":")
             if kind == "grading.sensitive" and value == "sensitive":
                 allowed.append(f"quality claims about {name}")
@@ -1527,7 +1540,8 @@ def session(args):
             spent = round(FAILED_CALLS["seconds"], 3)
             if spent > 0:
                 fresh = load_state(campaign_dir)
-                add_consumed(fresh, {"seconds": spent})
+                if running_seconds(fresh) == 0:  # with a step running, this wall time is already counted as that step's own
+                    add_consumed(fresh, {"seconds": spent})
                 fresh["events"].append({"at": now(), "event": "failed-calls", "seconds": spent})
                 save_state(campaign_dir, fresh)
             raise
@@ -1615,12 +1629,15 @@ def validate_proposal(proposal, manifest=None, manifest_dir=None, manifest_name=
 STATE_FILES = (".gitignore", "campaign.json", "campaign.lock", "journal.md", "report.md", "report.json")
 
 
+FSMONITOR_BUILTIN = ("true", "false", "yes", "no", "on", "off", "1", "0")  # core.fsmonitor values that are not a hook command
+
+
 def fingerprint_problem(campaign_dir: Path):
-    """Why the Until Loop's Git-tree fingerprint would not hold this folder's state, or None. It does what the runtime does (copy
-    the real index, `git add -A` into the copy) and then checks, for each state file, that the staged content is the file's own
-    bytes. An ignore rule, an index flag (assume-unchanged, skip-worktree), a clean filter or a file-system monitor each leave the
-    staged content stale or absent, and the runtime then treats a changed folder as unchanged: this proves they are not in play
-    instead of looking for each."""
+    """Why the Until Loop's Git-tree fingerprint would not hold this folder's state now, or after the next change, or None. The
+    fingerprint is `git add -A` into a private copy of the real index followed by `git write-tree`. This does the same, requires
+    that it works, requires that nothing can freeze or rewrite a state file (an assume-unchanged or skip-worktree flag, a Git
+    filter, a file-system monitor hook), and requires that each state file's staged content is what `git add` makes of it. A
+    snapshot that merely matches today would miss a flag or a static filter that hides tomorrow's change."""
     base_env = dict(os.environ, GIT_OPTIONAL_LOCKS="0")
 
     def git(*args, env=None):
@@ -1641,6 +1658,29 @@ def fingerprint_problem(campaign_dir: Path):
     located = git("rev-parse", "--git-path", "index")
     if failed(located):
         return f"git cannot read the campaign folder, so the Until Loop could not fingerprint it ({why(located)})"
+    listed = git("ls-files", "-v")
+    if failed(listed):
+        return f"git cannot list the campaign folder's index ({why(listed)})"
+    flagged = [line[2:] or line for line in listed.stdout.splitlines() if line and line[0] != "H"]
+    if flagged:
+        return ("the campaign folder's Git index has entries flagged assume-unchanged or skip-worktree, or unmerged (" +
+                ", ".join(flagged) + "): a later change to such a file can be invisible to the Until Loop's fingerprint even "
+                "while it matches now; clear each flag with its own `git update-index --no-assume-unchanged FILE` or "
+                "`git update-index --no-skip-worktree FILE` (one mode per command), or unstage the file with `git rm --cached "
+                "FILE`, or resolve the merge")
+    attributes = git("check-attr", "filter", "--", *STATE_FILES)
+    if failed(attributes):
+        return f"git cannot read the attributes of the campaign folder ({why(attributes)})"
+    filtered = [line.split(":")[0] for line in attributes.stdout.splitlines()
+                if line.rsplit(": ", 1)[-1].strip() not in ("unspecified", "unset")]
+    if filtered:
+        return ("a Git filter applies to " + ", ".join(filtered) + ": a filter can rewrite what the fingerprint holds (for "
+                "example to a saved copy), so a later change would not show; remove the .gitattributes or git config rule")
+    monitor = git("config", "--get", "core.fsmonitor")
+    if not isinstance(monitor, Exception) and monitor.returncode == 0 and monitor.stdout.strip() \
+            and monitor.stdout.strip().lower() not in FSMONITOR_BUILTIN:
+        return (f"core.fsmonitor names a hook ({monitor.stdout.strip()[:80]}): a hook decides which files Git re-reads, so it "
+                "can hide a change from the fingerprint; use Git's built-in monitor or none")
     real_index = Path(located.stdout.strip())
     if not real_index.is_absolute():
         real_index = Path(campaign_dir) / real_index
@@ -1665,7 +1705,7 @@ def fingerprint_problem(campaign_dir: Path):
             return f"git cannot fingerprint the campaign folder ({why(added)})"
         present = [name for name in STATE_FILES if (Path(campaign_dir) / name).is_file()]
         staged = git("ls-files", "-s", "--", *present, env=env)
-        raw = git("hash-object", "--no-filters", "--", *present)
+        raw = git("hash-object", "--", *present)  # with the path's filters: the same conversion `git add` applies (autocrlf, eol)
         if failed(staged) or failed(raw):
             return f"git cannot show what the fingerprint holds ({why(staged if failed(staged) else raw)})"
         held = {}
@@ -1677,9 +1717,11 @@ def fingerprint_problem(campaign_dir: Path):
         hidden = [name for name in present if held.get(name) != own.get(name)]
         if hidden:
             return ("the Until Loop's Git fingerprint does not hold the current content of " + ", ".join(hidden) + " (an ignore "
-                    "rule, an assume-unchanged or skip-worktree flag, a clean filter or a file-system monitor): a stale satisfied "
-                    "report could complete, so no check passes until the campaign folder is visible to it; restore the folder's "
-                    ".gitignore and clear the flag or filter")
+                    "rule or a file-system monitor): a stale satisfied report could complete, so no check passes until the "
+                    "campaign folder is visible to it; restore the folder's .gitignore and clear the rule")
+        tree = git("write-tree", env=env)  # the runtime records no fingerprint at all when this fails, and then skips freshness
+        if failed(tree) or not tree.stdout.strip():
+            return f"git cannot write the fingerprint tree, so the Until Loop would record none ({why(tree)})"
     finally:
         if os.path.exists(index):
             os.unlink(index)
@@ -2080,6 +2122,9 @@ def main(argv=None) -> int:
         code, out = args.handler(args)
     except LoopError as error:
         print(json.dumps({"error": str(error)}), file=sys.stderr)
+        return EXIT_ERROR
+    except OSError as error:
+        print(json.dumps({"error": f"file system error ({type(error).__name__}: {error})"}), file=sys.stderr)
         return EXIT_ERROR
     except (KeyError, TypeError, ValueError, AttributeError, IndexError) as error:
         if os.environ.get("CLOSED_LOOP_DEBUG"):

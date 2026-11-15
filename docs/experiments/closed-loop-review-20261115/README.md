@@ -87,6 +87,44 @@ behaviour (the checks now refuse to pass whenever the folder is not provably vis
 
 **Mutation check of round 5.** 21 safeguards (`mutations-round5-batch1.txt`, `-batch2.txt`). Batch 1 (19 runs): 18 caught and one survivor, the pre-probe save of the readiness refresh marker (removing it changed nothing, because the caught-failure path saves the same state). Batch 2 re-ran it against a new test that kills the process mid-probe and added the git timeout and the temporary-file guard: 3 of 3. Every safeguard is held by at least one test that fails without it; that shows the tests are not vacuous, not that the safeguards are complete.
 
+## Round 4: Sol's second max review, a verification of the round-3 fixes (2026-11-15)
+
+**Subject.** `76693288f650fb183f7f8e960531beee931a5d7d`: the round-3 fixes (`aceb1d03a390daf51c80325e1f2465d354cfdb5b`) merged with
+published main (`0f09e78e1d8e1db9899b1430916f6329820ba894`) plus a one-line catalog estimate; the reviewed skill, fixture and tests are
+identical to `0f09e78e`. Codex `gpt-6.1-sol` at max, one attempt, no fallback (`round4-sol-run.json`); the reviewer wrote nothing in the
+checkout. Files: `round4-sol-brief.txt`, `round4-sol-answer.txt`, `round4-sol-index.json` (where its reproductions are), and
+`round4-sol-literal-card.json` (the card run from an empty directory). The brief asked, in order: re-run the reviewer's own
+reproductions against the fixed code; look for regressions and false stops the fixes introduced; look for any remaining path to false
+completion; run the card literally once more.
+
+**Result.** *Not ready to ship.* Of the ten earlier reproductions nine were fixed and one was not (index flags: the guard compared the
+staged bytes with the files' bytes *as they were*, so a flag set after the check still hid a later change). Two paths to false
+completion remained (that guard; a cancellation that erased the seconds a step had spent), and the fixes had introduced one P1
+regression and four P2 defects, all reproduced; one more item was a judgement. The literal operator drill passed. 157 tests passed in
+122.3 s at that commit. Six of the eight findings (1 to 6 below) are defects of the previous round's own changes (a guard that
+did not hold, the step charge at cancel and at a failed poll, the readiness re-derivation, the line-ending refusal, a stranded run
+after an upgrade), and the round-3 text claimed the resolution of an unknown was quoted in the report when it was not (finding 7): the
+reason to review fixes and not only features. Status: **firm**.
+
+| # | Round-4 finding | Disposition | Tests |
+| --- | --- | --- | --- |
+| 1 | P1. Snapshot equality does not prove the fingerprint will hold a later change: an `assume-unchanged` or `skip-worktree` flag set after staging, a static clean filter that returns a saved copy of the current bytes, and an unmerged entry in a path the runtime excludes (`git write-tree` fails, the runtime records no fingerprint and skips freshness) each pass every check, and the runtime then completes | fixed by changing what is checked from today's content to what the next change needs: no index entry is flagged or unmerged (`git ls-files -v`: any tag other than `H`), no Git filter applies to a state file (`git check-attr filter`), `core.fsmonitor` is not a hook command (the built-in values are accepted), and the runtime's own procedure (`git add -A` into a copy of the index, then `git write-tree`) must succeed and stage what `git add` makes of each state file. The comparison uses `git hash-object` *with* filters, so ordinary line-ending conversion is not refused | `FingerprintTests` (six new, three replaced) |
+| 2 | P1. Cancelling a running step erased the seconds it had spent: 0.403 s used of a 0.3 s budget became 0 after `cancel`; after cleanup and `reopen` with the same budget the campaign converged | fixed: ending a step (finished, failed or cancelled) charges at least the wall time since it started | `QuotaTests.test_cancelling_a_step_keeps_the_seconds_it_ran_so_a_reopen_cannot_launder_them` |
+| 3 | P1. A readiness that proved both sensitivity and calibration made its own campaign unreadable: the saved file sorts claim keys, the re-derivation on load listed the allowed claims in another order, and the list comparison called the state malformed (`status` and a new readiness both exited 2). A regression of the round-3 re-derivation | fixed: one canonical (sorted) derivation order | `ReadinessTests.test_a_readiness_with_sensitivity_and_calibration_proven_survives_a_reload` |
+| 4 | P2. A failed poll while a step ran was charged twice (about 0.114 s of the step's own wall time plus 0.106 s of the failed call exhausted a 0.2 s budget) | fixed: the failed call's time is not added while a running step already accounts for it | `QuotaTests.test_a_failed_call_while_a_step_runs_is_not_charged_twice` |
+| 5 | P2. Ordinary `core.autocrlf=true` normalisation made every check and `contract` exit 2 with Git clean and the state unchanged | fixed with finding 1 (hash with filters); line-ending conversion is not a hiding mechanism | `FingerprintTests.test_crlf_normalisation_is_not_a_hiding_mechanism_and_is_not_refused` |
+| 6 | P2. A run started by the parent revision lacks `started_epoch`, so after an upgrade `status`, `cancel` and `cleanup` reject it | decision, no code: a campaign belongs to the script version that created it (its identity includes the script's hash) and there are no migrations, because the repository keeps one supported version; the parent revision was never released (this is the first release), so no installed campaign can predate it. The adapter schema says to finish or abandon a campaign, including a running step, before updating the skill. Rejected: reading the step's `started` timestamp, a shim for a version nobody has | `CardTests` (the sentence is pinned) |
+| 7 | P2. `contract --out` into a missing directory printed a traceback; neither report quoted what resolved an unknown | fixed: a file-system error is a JSON error; both reports list the unresolved unknowns and quote the evidence that answered each resolved one | `StateTests.test_a_file_system_error_is_a_json_error_not_a_traceback`, `CertificateTests` |
+| 8 | Judgement. A hunt finding handed to a task, then investigated, then followed by a clean hunt, blocks forever (including after `reopen`), which follows the stated policy | fixed within the policy: a later hunt supersedes an earlier finding only by naming the same blind spot (same text, case and spacing aside) with `rejected` and a reason; a clean hunt does not clear what an earlier one found | `EvidenceTests.test_a_later_hunt_supersedes_a_finding_only_by_naming_it_and_rejecting_it_with_a_reason` |
+
+What the reviewer confirmed sound: staging, committing, global excludes, split indexes and a different `TMPDIR` pass the Git guard;
+readiness before ratification stays usable; the literal card drill (two scopes, receipt recovery, the owner-gated stop) passes. What
+stays a limit: an active native file-system monitor daemon could not be exercised (the guard refuses a hook command, not a daemon that
+misreports); a writer between the last check and the runtime's own fingerprint; the subject or a pinned adapter changed between the
+verify run and the report; the vendored runtime's null-tree behaviour (now guarded on this side by the `write-tree` requirement).
+
+**Mutation check of round 6.** 23 safeguards, 22 caught on the first pass and the one miss closed by a sharper test; see "Mutation check of the new tests", below.
+
 ## Judgement items and what stayed as it was
 
 - *Boolean fields cannot prove an adapter ran anything.* True, and unfixable by a script. It is now stated in the card, the
@@ -120,9 +158,11 @@ voids an earlier cleanup): 3 of 3. Batch 3 re-ran the four round-3 safeguards (r
 build, a build change needs a promotion, a timeout kills the process group) for a clean log: 4 of 4. Every safeguard is held by at
 least one test that fails without it. Still not evidence that the safeguards are complete.
 
+**Round 6** (`mutations-round6-batch1.txt`, `-batch2.txt`): 23 safeguards, the ones round 6 added or rewrote: the index flag check (removed outright, then once per tag: `assume-unchanged`, `skip-worktree`, unmerged), the filter check, the monitor-hook check and its built-in values, the written-tree requirement, line-ending conversion, three failure paths of the Git guard, the content comparison, the Git timeout and the temporary-file guard; the sorted readiness order; the charge for a step that ends; the skip of a double charge; hunt supersession and the clean-hunt rule; the file-system error catch; and the two report sections. Batch 1 (23 runs, 130 s): 22 caught and one missed. Ignoring the unmerged tag changed nothing, because the test that planted an unmerged entry (in a path the runtime excludes) asserted only the word "unmerged", which the `git write-tree` guard's message also contains: the test passed with either guard removed. Batch 2 re-ran it after the assertion named the index guard's own word ("flagged"): caught. Every safeguard is now held by at least one test that fails without it; still evidence that the tests are not vacuous, not that the safeguards are complete.
+
 ## Files
 
 `astra-brief.txt`, `astra-answer.txt`, `astra-run.json` (model, effort, no fallback), `test-run-at-ff9cb35d.json`,
 `probes-certificate.json`, `probes-additional.json`, `probe-runtime-stale-satisfaction.json`, `mutations-run1.json`,
 `mutations-run2.json`; round 2: `round2-brief.txt`, `round2-answer.txt`, `round2-run.json`, `round2-evidence.json`; rounds 3 and 4:
-`mutations-round3-batch1.txt`, `-batch2.txt`, `-batch3.txt`; round 3 (Sol): `round3-sol-*`; round 5 mutations: `mutations-round5.txt`.
+`mutations-round3-batch1.txt`, `-batch2.txt`, `-batch3.txt`; round 3 (Sol): `round3-sol-*`; round 5 mutations: `mutations-round5-batch1.txt`, `-batch2.txt`; round 4 (Sol): `round4-sol-*`; round 6 mutations: `mutations-round6-batch1.txt`, `-batch2.txt`.
