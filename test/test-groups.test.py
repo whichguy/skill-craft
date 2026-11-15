@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -802,6 +803,59 @@ class ChildBytecodeTest(unittest.TestCase):
                 outcome = run_suites.run_process((sys.executable, str(program)), cwd=root, timeout_seconds=60)
             self.assertEqual(outcome.status, "passed", (outcome.error or "") + outcome.stderr)
             self.assertEqual(sorted(root.rglob("__pycache__")), [])
+
+
+class CIGitMaintenanceTest(unittest.TestCase):
+    """The CI step that turns git's background maintenance off works for a suite the runner starts, without GIT_CONFIG_*.
+
+    A commit makes git start `git maintenance run --auto --quiet --detach`, which holds objects/maintenance.lock for a moment, and
+    four fixtures that inventory or copy a tree right after a commit lost the lock to it on CI (2026-10-26 to 2026-11-14).  The
+    runner removes GIT_CONFIG_* from every suite on purpose (78594ebb: ask-agent's workspace guard refuses them), so the setting
+    is a global one that the workflow's own step makes.  This runs that step's command under a fresh HOME, as on a CI machine,
+    and has a child that run_process starts make fixture commits there.
+    """
+
+    PROGRAM = textwrap.dedent("""\
+        import json, os, subprocess, sys
+        repo, launches = sys.argv[1], 0
+        for number in range(2):
+            trace = os.path.join(repo, f"trace{number}.json")
+            subprocess.run(["git", "-C", repo, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                            "commit", "--allow-empty", "-qm", "fixture"], check=True, env=dict(os.environ, GIT_TRACE2_EVENT=trace))
+            events = [json.loads(line) for line in open(trace)]
+            launches += sum(1 for e in events if e.get("event") == "child_start" and "maintenance" in (e.get("argv") or []))
+        print(launches)
+    """)
+
+    def launches(self, root: Path, step: str | None) -> int:
+        """Detached maintenance launches over two fixture commits on a machine whose HOME has had `step` run."""
+        home, repo = root / "home", root / "repo"
+        home.mkdir()
+        environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_CONFIG_")}
+        environment.update(HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"), GIT_CONFIG_NOSYSTEM="1")
+        with mock.patch.dict(os.environ, environment, clear=True):
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            if step is not None:
+                subprocess.run(shlex.split(step), check=True)
+            program = root / "commits.py"
+            program.write_text(self.PROGRAM, encoding="utf-8")
+            outcome = run_suites.run_process((sys.executable, "-B", str(program), str(repo)), cwd=root, timeout_seconds=60)
+        self.assertEqual(outcome.status, "passed", (outcome.error or "") + outcome.stderr)
+        return int(outcome.stdout.strip())
+
+    def test_the_workflows_step_stops_a_fixture_commit_from_starting_maintenance_for_a_suite_the_runner_starts(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        steps = re.findall(r"^      - name: Keep git's background maintenance out of the suites\n        run: (.+)$", workflow,
+                           re.MULTILINE)
+        self.assertEqual(len(steps), 1, "the checks job has no single step with this name")
+        with tempfile.TemporaryDirectory(prefix="skill-craft-maintenance-") as name:
+            root = Path(name).resolve()
+            (root / "without").mkdir()
+            (root / "with").mkdir()
+            without = self.launches(root / "without", None)
+            with_step = self.launches(root / "with", steps[0])
+        self.assertGreater(without, 0, "this git starts no background maintenance after a commit, so the step has nothing to stop")
+        self.assertEqual(with_step, 0, f"the step `{steps[0]}` left {with_step} of {without} launches")
 
 
 class PacketSourceSelectionTest(unittest.TestCase):

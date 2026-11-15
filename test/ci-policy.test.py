@@ -152,6 +152,18 @@ class CIPolicyTests(unittest.TestCase):
         self.assertNotIn("run-integration", workflow)
         self.assertNotIn("--release-sync", workflow)
 
+    def test_checks_job_turns_git_background_maintenance_off_before_it_runs_the_suites(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("\n  checks:\n", 1)[1].split("\n  browser-fixtures:\n", 1)[0]
+        setting = "git config --global maintenance.auto false"
+        # A commit makes git start a detached `git maintenance run --auto`, which holds objects/maintenance.lock for a
+        # moment; fixtures that inventory or copy a tree right after a commit lost the lock to it on CI four times.
+        self.assertEqual(job.count(setting), 1)
+        self.assertLess(job.index(setting), job.index("bash test/run-all.sh"))
+        # Never as GIT_CONFIG_* variables: run-all.sh strips them from every suite and the workspace guards refuse them.
+        code = "\n".join(line for line in workflow.splitlines() if not line.lstrip().startswith("#"))
+        self.assertNotIn("GIT_CONFIG", code)
+
     def test_release_boundary_job_sees_full_history_and_the_pr_first_parent(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         job = workflow.split("\n  release-boundary:\n", 1)[1].split("\n  hermetic:\n", 1)[0]

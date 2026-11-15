@@ -38,3 +38,48 @@ e6e9d1f9 2.37.2  run 43464757577  success
 2e96482d 2.37.3  run 43604725247  success
 48bc8d63 2.37.4  run 43608872092  success
 9710190f 2.38.0  run 43669277848  FAILURE (this one)
+
+# 2026-11-15: the runner-level setting the owner asked for ("Yes, at the runner"), and what it could be
+
+# The CI step's mechanism, through the runner (globalconfigprobe.py; HOME is a fresh directory as on a CI machine, system config left out):
+$ python3 -I globalconfigprobe.py <checkout> <scratch> 40
+git version 2.54.0 (Apple Git-157)
+fresh machine, no global setting       detached maintenance launches over 40 commits: direct 40, through run_process 40 (passed)
+after the CI step (global setting)     detached maintenance launches over 40 commits: direct 0, through run_process 0 (passed)
+
+# The new workflow test, in throwaway copies of test/ + the workflow (never in the repository): 1 pass, 5 failing mutants.
+head (the step absent, as before the change)     rc=1 FAILED (failures=1)
+now (the step in place)                          rc=0 OK
+step removed                                     rc=1 FAILED (failures=1)
+step moved after the suites                      rc=1 FAILED (failures=1)
+set as GIT_CONFIG_* variables instead            rc=1 FAILED (failures=1)
+step twice                                       rc=1 FAILED (failures=1)
+
+# The suite after the change, ruff and the workflow:
+$ python3 -B test/ci-policy.test.py        Ran 14 tests in 5.258s OK
+$ ruff check --select E9,F,B test/ci-policy.test.py     All checks passed! (HEAD: the same)
+workflow parses as YAML; the checks job's steps: checkout, setup-python, setup-node, "Keep git's background maintenance out of the suites", "Hermetic group", "Checkout unchanged", "Retain suite evidence"
+
+# The route the owner approved, as I proposed it (GIT_CONFIG_COUNT=1, GIT_CONFIG_KEY_0=maintenance.auto, GIT_CONFIG_VALUE_0=false reaching
+# every suite from run_suites.run_process): the three suites that commit 78594ebb protected, through run_process (envroute_probe.py).
+# "stripped" is the runner as it is; "env" empties its strip list for the run and puts the three variables in the parent environment.
+arm       suite                    status  rc  seconds  what it printed
+stripped  ask-agent-parallel       passed  0   231.3    Ran 233 tests OK
+stripped  agent-harness-audit      passed  0     5.7
+stripped  install-arbitrary-skill  passed  0     6.2
+env       ask-agent-parallel       failed  1    83.6    Ran 224 tests, FAILED (failures=2, errors=18), a setUpClass among the errors
+env       agent-harness-audit      failed  1     1.6    prepare refuses Git context environment overrides: GIT_CONFIG_COUNT, GIT_CONFIG_KEY_0, GIT_CONFIG_VALUE_0
+env       install-arbitrary-skill  failed  1     4.6    E6 copied helper prepare: the same refusal
+# 0 of 3 fail with the strip, 3 of 3 without it (load average 10 to 17 from other sessions).
+
+# The route-level test (test-groups CIGitMaintenanceTest: it runs the workflow step's own command under a fresh HOME, then a child that
+# run_process starts makes two fixture commits and counts the detached maintenance launches), in throwaway copies of test/ and the workflow:
+head (no step, as before the change)       FAILED   0 != 1 : the checks job has no single step with this name
+now (the step in place)                    OK
+key misspelled (maintenence.auto)          FAILED   the step left 2 of 2 launches
+set to true                                FAILED   the step left 2 of 2 launches
+--local instead of --global                ERROR    the command fails (HOME is not a repository)
+--system instead of --global               ERROR    the command fails
+gc.auto 0 only                             FAILED   the step left 2 of 2 launches (gc.auto=0 does not stop the launch; maintenance.auto does)
+equivalent: the boolean spelled 0          OK
+# On the final tree: test-groups Ran 65 tests OK, ci-policy Ran 14 tests OK (one more test in each); ruff E9,F,B clean on both, as at HEAD.
