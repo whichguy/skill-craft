@@ -57,6 +57,10 @@ set it deliberately, as design decisions with their rationale.
      style, how slow or external tests are marked;
    - commit and pull-request format, taken from the full messages of recent
      commits;
+   - records the repository requires with a change (a decision record, a
+     changelog entry, a version bump): where each lives, its template and
+     index, and which kinds of change trigger it, from the contribution rules
+     and the existing records;
    - domain terms the code uses for its concepts;
    - security and performance habits (input validation, secret handling,
      caching, batching), which context files usually leave out.
