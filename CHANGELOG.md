@@ -4,6 +4,30 @@ Written by scripts/release.py.
 
 ## 2026-11-15
 
+### skill-craft 2.41.0
+
+- Skills: backchain 0.8.0, plan-dispatcher 0.6.5, shiploop 1.36.3, shiploop-run-review 0.5.2
+
+### backchain 0.8.0
+
+- - The one-pass eval no longer says Backchain's default gate is two consecutive reviews; since 0.7.0 the default completes at the first trivial review.
+- - `finish` with a caller packet reports converged planning only on a final review whose source review is complete; an incomplete one is an incomplete result with its next action. The review's `planning_gaps` and `execution_blockers` must be lists of strings, so a missing or misshapen list no longer reads as "no gap" or crashes.
+  - Legacy elaboration of an inherited plan now refuses a changed `goal`, a changed step `origin`, and a new `initial_state` fact that closes a need the inherited plan left open (the silent inv-7 repair). Other added facts are reported.
+  - New `export --run DIR`: exports only the plan a finished run converged on, and refuses a run that did not converge or whose plan changed after `finish`. `finish` now prints this command. `export PLAN` is unchanged.
+
+### plan-dispatcher 0.6.5
+
+- - For Backchain JSON, the card and protocol now name the shipped exporter: the sibling Backchain skill's `scripts/backchain.py export --run DIR` (the plan a finished run converged on) or `export PLAN.json`. The old pointer named `scripts/export-execution-graph.js`, which no package ships, and told hosts not to resolve an exporter outside this package.
+
+### shiploop 1.36.3
+
+- - The spec and plan packets now tell the host to start a Backchain child with Backchain's own commands: `prepare --run` the new "Backchain planning run directory" line (`<run>/backchain/<action>/run`), then `freeze`, which writes the child's start contract. Earlier packets told the host to write that contract by hand, which Backchain 0.7.0 does itself. The resource block lists `backchain/scripts/backchain.py`.
+  - `--backchain-passes converge` now means Backchain's default gate: the child completes at its first trivial review, and the request carries no `Backchain passes:` line (owner decision, 2026-11-01). Since Backchain 0.7.0 the converge text said "two consecutive trivial reviews", but its marker line never reached a printed packet, so converge runs already ran that gate.
+
+### shiploop-run-review 0.5.2
+
+- - The exporter reads a Backchain 0.7.0 planning run (`run/backchain/<action>/run`: `run.json`, `loop/receipt.json`, `evidence.json`, `cycles/NN/`) as the stage's loop, with one pass per recorded cycle. Before, it found no loop there and filed the stage as "graph check only".
+
 ### skill-craft 2.40.2
 
 - Skills: shiploop 1.36.2

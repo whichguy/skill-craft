@@ -225,12 +225,14 @@ routes. The plan result's `summary` states the route taken and why. Evaluate
 the audit on its own evidence.
 
 Explicit `--backchain-passes converge` requests the whole child at `plan` with two
-consecutive distinct complete trivial/no-change dependency reviews.
+consecutive distinct complete trivial/no-change dependency reviews (superseded 2026-11-15 by
+the owner's decision recorded in the amendment below: converge runs Backchain's default gate,
+which completes at the first trivial review).
 `--backchain-passes none` uses the audit route at `plan` without a whole
 `plan`/`draft` child. A material finding from a read-only `review`/`audit`
 may lead the stage owner to request one `repair`/`revise` within authorized
 edit bounds. That child uses the one-cycle gate in `one` and `none`, and the
-two-review gate in `converge`.
+two-review gate in `converge` (superseded 2026-11-15: Backchain's default gate, as above).
 
 The one-cycle gate sets `required_trivial_reviews: 0`. The child may finish
 on the first accepted report that satisfies the exit condition, including a
@@ -262,6 +264,18 @@ planning minutes; the plan loop's passes 2 to 5 each reported a non-trivial
 finding of confirmation level or wording (no edge, goal or supplier changed),
 passes 6 and 7 changed nothing, and no later packet names the plan graph.
 Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
+Amended 2026-11-15 (docs/backchain-efficiency-journal-2026-11.md, Round 10). From Backchain
+0.7.0 the child's start contract is script-written: ShipLoop's spec and plan packets name
+Backchain SKILL.md step 1's `prepare`, with `--run` the printed Backchain planning run
+directory and the `--passes` the marker line names, and then `freeze`, which writes the
+contract for that gate, so open item a02 is closed for this
+loop and its contract no longer leaves S-4, S-5 and S-12 unmet. A gate-0 complete packet whose
+last report is non-trivial is accepted: `freeze` writes `required_trivial_reviews: 0` for the
+`one` marker, and Backchain's toolkit test completes a one-pass run whose cycle repaired the
+candidate. Owner decision, 2026-11-01: `--backchain-passes converge` no longer restores two
+consecutive trivial reviews; it runs Backchain's default gate, which completes at the first
+trivial review. Its marker line had not reached a printed packet since 0.7.0, so converge runs
+already ran that gate; 0 of 18 confirming reviews in two Backchain studies changed anything.
 
 Prospectively amended 2026-11-08 under the owner's explicit choice,
 "Keep the separate planning review optional," for future default runs with

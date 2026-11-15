@@ -1,0 +1,33 @@
+Use MAX reasoning effort. This is a deep design review. Read-only: do not modify any file anywhere.
+
+Context. The owner of the skill-craft repository (/Users/dadleet/src/skill-craft; ShipLoop is its SDLC delivery-harness skill under skills/shiploop, with an E2E test harness under test/shiploop_e2e) asked for a GENERIC self-improving-loop skill, with ShipLoop as its first application. Their words, in substance:
+- a generic skill, plus a way to call out, discover, or ask the reviewer to define the things that must be specific to a subject so that subject can be iteratively improved;
+- we will need to build out the ShipLoop-specific items that support the generic loop;
+- consider incorporating an until-loop (the until-loop skill: frozen exit checks, runtime-counted trivial streak);
+- the loop must check that (a) there are case scenarios to run, (b) there is a way to evaluate a run, (c) there is a way to call the improvement stage;
+- when concluded it must be able to iterate again;
+- it must be able to escalate: when we cannot seem to improve any more, widen the scope and run a broader set of cases. How would that work?
+
+My draft plan is at:
+/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-ySEdzy/7ac6cc98-2d4a-4cd2-9461-300f4227431d/scratchpad/closed-loop-plan-draft.md
+It supersedes an earlier plan at docs/shiploop-e2e-iterate-skill-plan-2026-11-15.md in the repo's pending commit (a copy: /Users/dadleet/src/skill-craft/.claude/worktrees/e2e-iterate-review-7bcffa/docs/shiploop-e2e-iterate-skill-plan-2026-11-15.md).
+
+STEP 1: verify my factual claims against the sources before judging the design. Primary sources (read what you need):
+- until-loop skill card: /Users/dadleet/.claude/plugins/cache/whichguy/until-loop/0.10.1/skills/until-loop/SKILL.md and its references/runtime-ephemeral.md; the vendored runtime used by improve: /Users/dadleet/src/skill-craft/.claude/worktrees/e2e-iterate-review-7bcffa/skills/improve/runtime/until-loop/ (PROVENANCE.json, ADAPTER.md, scripts/). Check: contract fields; exit_checks semantics; classification is the model's report; the contract is immutable so a revised scope needs a new contract and the trivial streak restarts; what unchanged_first_pass really does and whether it behaves as I describe when the workspace is a git worktree the campaign itself commits to; whether the isolated or receipt mode is the right one for a long campaign without host hooks; whether two contracts (readiness, scope) and C1-C6 as shell exit checks are workable.
+- ShipLoop harness (in /Users/dadleet/src/skill-craft/.claude/worktrees/e2e-iterate-review-7bcffa/test/shiploop_e2e/): iterate.py (clean_streak >= 2, idle_streak >= 2, one worktree per invocation), cycle.py (NON_PROMOTE_STOP = 2, roles_for regression vs capability, explore, qualify), boundary.py (evaluator_files = top-level *.py/*.cjs only; oracle_files; qualification_snapshot; CANDIDATE_PREFIXES; HARNESS_PREFIXES), review.py (the `harness` block and `target` field of discoveries), learning_records.py (select, current), cases.json (37 cases; the style field), suites.json (focused/breadth/batch with not_covered), baselines.jsonl (235 rows; host/model/effort; turns), SPEC.md ("Campaign operator directive", "Case adapters and run evidence", "Qualified iteration", "The promotion contract").
+- Backchain harness: /Users/dadleet/src/backchain (README.md, AGENTS.md, Makefile, harness/bench.sh, cases/, results/).
+- Owner rules: /Users/dadleet/.claude/CLAUDE.md (global; see "Autonomous runs: quota rules") and /Users/dadleet/src/skill-craft/AGENTS.md (Decisions; routine versus ask-first) and the SPEC.
+Report every factual error or overstatement, with file and symbol.
+
+STEP 2: challenge the design. Answer concretely:
+1. Decomposition. Is "generic skill = operator procedure + adapter contract + small stdlib script; the subject's own harness remains the engine; extract a generic engine only when a second subject needs a piece" right? What minimal generic mechanism am I missing that would make the skill real for a new subject without ShipLoop's 25k-line harness? What would you do differently?
+2. until-loop. Is using it for two contracts (setup readiness; per-scope campaign) a good fit or a forced one? Failure modes: a model-reported trivial streak; long-running iterations (hours); compaction recovery; nested loops; the interplay with the SPEC rule that a script stop is not convergence. Are C1-C6 the right exit checks? Is K = 2 defensible?
+3. Stuck modes and the escalation ladder. Are saturation / stall / blocked the right three modes, are the signals really computable from the harness's existing counters, and is the ladder E1-E5 complete, correctly ordered and correctly authority-gated? How should widening interact with evaluator identity, qualification registrations and regression guards? What can go wrong when a scope widens (comparability, leakage of held-out material, budget)?
+4. Readiness and the definer. Are the states (R1 declared/runs; R2 declared/scores/sensitive/calibrated; R3 declared/bounded/exercised) the right ladder? How do you prove "sensitive" for a subject that has no seeded defect or known-good/known-bad pair? What are the safety risks of a model proposing shell commands, and is staging plus ratification enough? Is the known-answer test (definer given only skills/shiploop/, compared with the real adapter against a checklist written first) a sound instrument?
+5. The ShipLoop adapter. Is the S1-S8 list right, anything missing or overbuilt? Is the evaluator-identity constraint (adapter files in a subdirectory, dimensions derived, no SPEC edit) correct and sufficient?
+6. Phases and gates against the owner's own rules: cheapest instrument first, change only for material difference, KISS, scale ceremony to measured gain, no arbitrary caps on model text or ShipLoop's loops, ask before adding a limit; and the global quota rules (every autonomous loop carries a real quota). Is P1's fake-subject escalation demo a valid instrument? Is P2's stop rule (compare with the same scope run by hand through iterate.py) the right test of whether the extra layer is worth keeping? Are the stop conditions I give each phase real?
+7. Name: `closed-loop` for the generic skill (rivals: self-improve, evidence-loop). Collisions with skill-craft's improve skill and the external improve-loop skill?
+8. Anything one-way or owner-only that I treat as routine, or the reverse.
+9. What would you cut? What is the single biggest risk?
+
+Give a verdict (ready / ready with changes / not ready) and a prioritized list of changes. Keep the answer under about 1500 words, with file and symbol citations. Do not rely on external web sources.

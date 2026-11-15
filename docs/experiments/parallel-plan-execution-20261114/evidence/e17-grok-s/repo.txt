@@ -1,0 +1,96 @@
+$ git log --all --graph --oneline --decorate
+* c89b3d8 (HEAD -> main) base: the help-desk ticket service
+
+$ git ls-files
+.gitignore
+CHANGELOG.md
+CONTRIBUTING.md
+README.md
+bin/tickets.js
+docs/api.md
+docs/decisions/0001-record-decisions.md
+docs/decisions/0002-prefixed-sequential-ids.md
+docs/decisions/0003-offset-pagination.md
+docs/decisions/0004-error-envelope.md
+docs/decisions/0005-cursor-pagination.md
+docs/decisions/0006-notification-outbox.md
+docs/decisions/0007-append-only-audit-log.md
+docs/decisions/0008-json-data-file.md
+docs/decisions/README.md
+docs/decisions/template.md
+docs/operations.md
+package.json
+scripts/weekly-report.js
+src/app.js
+src/audit.js
+src/backoff.js
+src/clock.js
+src/config.js
+src/errors.js
+src/format.js
+src/http.js
+src/log.js
+src/notifier.js
+src/outbox.js
+src/pagination.js
+src/persistence.js
+src/router.js
+src/server.js
+src/store.js
+src/templates.js
+src/tickets/ids.js
+src/tickets/priorities.js
+src/tickets/query.js
+src/tickets/states.js
+src/tickets/validate.js
+src/worker.js
+test/api.test.js
+test/audit.test.js
+test/config.test.js
+test/errors.test.js
+test/helpers.js
+test/http.test.js
+test/ids.test.js
+test/notifier.test.js
+test/outbox.test.js
+test/pagination.test.js
+test/persistence.test.js
+test/query.test.js
+test/router.test.js
+test/service.test.js
+test/states.test.js
+test/store.test.js
+test/validate.test.js
+test/worker.test.js
+
+$ git status --short
+ M CHANGELOG.md
+ M README.md
+ M bin/tickets.js
+ M docs/api.md
+ M docs/operations.md
+ M package.json
+ M src/app.js
+ M src/config.js
+ M src/format.js
+ M src/persistence.js
+ M src/server.js
+ M src/store.js
+ M src/templates.js
+ M src/tickets/query.js
+ M src/tickets/validate.js
+ M test/api.test.js
+ M test/config.test.js
+ M test/notifier.test.js
+ M test/persistence.test.js
+ M test/query.test.js
+ M test/service.test.js
+ M test/store.test.js
+ M test/validate.test.js
+?? src/tickets/due.js
+?? test/cli.test.js
+?? test/due.test.js
+?? test/format.test.js
+
+$ git branch -a
+* main

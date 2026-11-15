@@ -1,0 +1,111 @@
+{
+ "source": "grok logs/unified.jsonl",
+ "agents": [
+  {
+   "id": "01a1e058-2733-7c01-9faa-754215152d49",
+   "actor": "agent:152d49",
+   "kind": "codex-worker",
+   "model": "grok-4.6",
+   "start": 1794765236.23,
+   "end": 1794766203.679,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 967414
+  },
+  {
+   "id": "01a1e058-2733-7c01-9faa-7557574dcda5",
+   "actor": "agent:4dcda5",
+   "kind": "codex-worker",
+   "model": "grok-4.6",
+   "start": 1794765236.238,
+   "end": null,
+   "success": null,
+   "tokens": null,
+   "turns": null
+  },
+  {
+   "id": "01a1e058-2733-7c01-9faa-7565104b9c3b",
+   "actor": "agent:4b9c3b",
+   "kind": "codex-worker",
+   "model": "grok-4.6",
+   "start": 1794765236.244,
+   "end": 1794765801.98,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 565663
+  },
+  {
+   "id": "01a1e061-1673-70b2-9c5c-cbe566651a26",
+   "actor": "agent:651a26",
+   "kind": "codex-worker",
+   "model": "grok-4.6",
+   "start": 1794765821.747,
+   "end": 1794766195.686,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 373784
+  },
+  {
+   "id": "01a1e061-de6a-7bd0-852c-35c2e9cfa718",
+   "actor": "agent:cfa718",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794765872.885,
+   "end": 1794766310.942,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 437936
+  },
+  {
+   "id": "01a1e068-ceb4-7810-b954-c47a36881ac8",
+   "actor": "agent:881ac8",
+   "kind": "codex-worker",
+   "model": "grok-4.6",
+   "start": 1794766327.613,
+   "end": 1794766405.189,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 77448
+  },
+  {
+   "id": "01a1e068-ceb4-7810-b954-c466b34c0804",
+   "actor": "agent:4c0804",
+   "kind": "codex-worker",
+   "model": "grok-4.6",
+   "start": 1794766327.621,
+   "end": null,
+   "success": null,
+   "tokens": null,
+   "turns": null
+  },
+  {
+   "id": "01a1e06e-fbe0-7513-915b-117ea80f8d59",
+   "actor": "agent:0f8d59",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794766732.359,
+   "end": 1794767122.91,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 390404
+  },
+  {
+   "id": "01a1e075-15a3-72e0-81a5-3bc3e4fca23e",
+   "actor": "agent:fca23e",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767132.162,
+   "end": 1794767167.547,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 35244
+  }
+ ]
+}

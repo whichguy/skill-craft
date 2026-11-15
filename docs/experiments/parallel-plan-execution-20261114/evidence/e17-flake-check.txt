@@ -1,0 +1,53 @@
+E17: does the delivered suite hang, and is it the delivery or the machine? (journal E17 and F83; 2026-11-15)
+
+Why: the oracle's registered whole-tree check (`python3 $E2E_CHECKS/base_tests.py suite node-tickets`, run once, limit 120 s) failed Codex qs with "the delivery's own node --test: 0 pass, 0 fail (rc None)", that is, node --test did not end within 120 s.
+Everything else of that trial passed (the three features' behavior checks on the final tree, T1 alone, I1 to I5, the base's 18 pristine test files against the delivered source). The registered verdict stands (invalid); this file says how much that verdict is evidence about the delivery.
+
+Method: clean clones (git clone) of three trees: base = the first commit of e17-codex-qs's repository (the pristine node-tickets, 18 test files, 117 tests), codexqs = e17-codex-qs's final tree (21 test files, 138 tests), claudeq0 = e17-claude-q0's final tree (21 test files, worker-added tests of the
+same kind, a valid trial). `node --test` was run one after another by real-repo/flake_loop.py (a run that has not ended within the limit is a hang and is killed with its process group; a normal run takes 1 to 5 s). The machine was shared with other sessions' work, load averages as printed. Own processes only.
+
+Block 1: one loop at a time, limit 120 s (the oracle's own), load average 34 to 37 (flake_loop.py TREE 40):
+load at start: 34.28 29.21 22.80
+base: 40 runs, 0 failed, 0 hung, 49 s; failing tests: {}
+run 27: HUNG (killed at 120 s)
+codexqs: 40 runs, 0 failed, 1 hung, 204 s; failing tests: {}
+run 28: HUNG (killed at 120 s)
+claudeq0: 40 runs, 0 failed, 1 hung, 248 s; failing tests: {}
+load at end: 37.23 39.21 31.12
+
+Block 2: where does it hang? real-repo/hang_diag.py on codexqs (up to 80 runs, limit 30 s; on a hang it lists the processes still alive in the run's group, which names the test file that hung):
+80 runs, no hang
+(no hang in 80 runs, so no test file was named)
+
+Block 3: 300 runs each, limit 30 s, the three loops side by side, load average 33.57 38.02 31.01 at the start and 41 to 88 while they ran (my own three loops are part of that load):
+== base
+run 146: HUNG (killed at 30 s)
+base: 300 runs, 0 failed, 1 hung, 632 s; failing tests: {}
+== claudeq0
+run 73: HUNG (killed at 30 s)
+run 78: HUNG (killed at 30 s)
+run 205: HUNG (killed at 30 s)
+claudeq0: 300 runs, 0 failed, 3 hung, 981 s; failing tests: {}
+== codexqs
+run 74: HUNG (killed at 30 s)
+run 76: HUNG (killed at 30 s)
+run 172: HUNG (killed at 30 s)
+run 205: HUNG (killed at 30 s)
+run 262: HUNG (killed at 30 s)
+run 297: HUNG (killed at 30 s)
+codexqs: 300 runs, 0 failed, 6 hung, 929 s; failing tests: {}
+
+Also, from the earlier check that led here (not logged to a file): the same codexqs tree in a 30-run loop gave 29 passes and 1 failure (137 passes and 1 failure: the base test "creates an open ticket and answers 201 with it" in test/api.test.js), and two single reruns of the oracle's check passed in about 1.5 s.
+
+Totals, hung runs of runs (blocks 1 to 3; block 2's 80 runs counted for codexqs): base 1 of 340 (0.3%), claudeq0 4 of 340 (1.2%), codexqs 7 of 420 (1.7%).
+One-sided Fisher exact tests: codexqs against base p = 0.064; claudeq0 against base p = 0.19; the two delivered trees pooled (11 of 760) against base p = 0.074; codexqs against claudeq0 p = 0.40.
+
+Reading: every tree hangs sometimes on this loaded machine: the pristine base rarely (one event in 340 runs), the two delivered trees at about 1 to 2 in 100, and the Codex tree cannot be told from the valid Claude tree (p = 0.40). At 1.2% to 1.7% a tree, a single once-only check over the twelve delivered trees of the oracle pass
+would see at least one hang with a chance of about 13% to 19%, and it saw one. So the registered verdict is a weak statement about the Codex delivery (a statement that its suite can hang, as a valid Claude tree's can), and the oracle's once-only whole-tree check has a few per cent chance of failing any valid delivery on this machine.
+Known cause family (read before this file was written, in the history): 26728eddd587930f5da3f6600e5d7ab4017d8acc measured that 32 of 928 concurrent `node --test` runs of this base failed (3.4%), 19 in a reset and 13 in a wrong answer, and traced it to the base's tests starting a server with listen(0) (the IPv6 wildcard) while the client dials 127.0.0.1,
+so on a machine that other work also uses a request can reach another project's server holding the same port number (the machine then held 560 listeners). 8c5b4d4ec776dc9a06445c1054e9d4802558a649 and d71eaa7198772501b189dff76308d4ee7ac533cb record two more verdicts lost to it (a fake-host check and a live run, R4b: 1 of 131 node tests failed 3 ms in; the same check then passed 15 of 15), and left the live scoring
+(test/shiploop_e2e/checks/base_tests.py) untouched on purpose as the owner's call. Codex qs is a third live verdict lost to the family. What differs here: the events above are hangs (7 of 8), where the collision measurement records resets and wrong answers (8c5b4d4e's item 3 notes separately that at a load average of 35 to 98 the base's node tests also time out, not attributed to the collision); one wrong answer did appear in the earlier 30-run loop (the base test "creates an open ticket and answers 201 with it",
+the signature of another server answering). Whether the hangs are the same collision (a client connected to a server that never answers) is likely and not proven: no raw TAP was kept.
+
+Limits: at the 30 s limit of block 3 a run slowed by a load average of 80 could be mistaken for a hang (block 1's 120 s hangs are the safer evidence: one in each of the two delivered trees, none in the base); the cause was not found (block 2 caught none), so whether the hang is in the workers' added tests, in the base's
+server tests under load (the family above), or in node --test is unknown; the base's single hang shows the fixture itself is not immune; the difference between the base and the delivered trees is suggestive (p about 0.07) and not established.

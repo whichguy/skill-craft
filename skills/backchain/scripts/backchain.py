@@ -457,6 +457,57 @@ def caller_bounds(run: Run) -> Dict[str, Any]:
     return bounds if isinstance(bounds, dict) else {}
 
 
+def needs_left_open(plan: Any) -> Dict[str, str]:
+    """The needs a plan leaves open, normalized to their text: goal_needs no initial fact or produce supplies, and
+    initial-state inputs (`from: null`) whose need initial_state does not declare."""
+    def facts(values: Any) -> set:
+        return {graph.normalize_need_string(value) for value in values or [] if isinstance(value, str)}
+
+    steps = [step for step in plan.get("steps", []) if isinstance(step, dict)] if isinstance(plan, dict) else []
+    initial = facts(plan.get("initial_state")) if isinstance(plan, dict) else set()
+    supplied = initial | {need for step in steps for need in facts(step.get("produces"))}
+    open_needs = {graph.normalize_need_string(need): need for need in (plan.get("goal_needs") or [])
+                  if isinstance(need, str) and graph.normalize_need_string(need) not in supplied}
+    for step in steps:
+        for entry in step.get("inputs") or []:
+            need = entry.get("need") if isinstance(entry, dict) and entry.get("from") is None else None
+            if isinstance(need, str) and graph.normalize_need_string(need) not in initial:
+                open_needs.setdefault(graph.normalize_need_string(need), need)
+    return open_needs
+
+
+def legacy_boundary_errors(inherited: Any, candidate: Any) -> List[str]:
+    """What legacy elaboration keeps beyond IDs, edges and confirmations (elaborator.v1.md; Astra review, Round 10):
+    the goal, each inherited step's origin, and no new initial_state fact that closes a need the inherited plan left
+    open, the "silent inv-7 repair". Another added fact is reported, not refused: inspected facts are legitimate
+    (6 of 15 control runs in the 2026-11 cohort added them and every grader accepted them)."""
+    errors = []
+    if isinstance(inherited, dict) and isinstance(candidate, dict):
+        if candidate.get("goal") != inherited.get("goal"):
+            errors.append("goal changed")
+        before = {s["id"]: s for s in inherited.get("steps", []) if isinstance(s, dict) and isinstance(s.get("id"), str)}
+        for step in candidate.get("steps", []):
+            if isinstance(step, dict) and step.get("id") in before and step.get("origin") != before[step["id"]].get("origin"):
+                errors.append(f"step {step['id']} origin changed from {before[step['id']].get('origin')!r} to "
+                              f"{step.get('origin')!r}")
+        stated = {graph.normalize_need_string(fact) for fact in inherited.get("initial_state") or [] if isinstance(fact, str)}
+        left_open = needs_left_open(inherited)
+        for fact in candidate.get("initial_state") or []:
+            key = graph.normalize_need_string(fact) if isinstance(fact, str) else None
+            if key is not None and key not in stated and key in left_open:
+                errors.append(f"initial_state adds {fact!r}, which closes the inherited need {left_open[key]!r} the "
+                              "inherited plan left open; supply it with a step or record it unresolved")
+    return errors
+
+
+def initial_facts_added(inherited: Any, candidate: Any) -> List[str]:
+    if not (isinstance(inherited, dict) and isinstance(candidate, dict)):
+        return []
+    stated = {graph.normalize_need_string(fact) for fact in inherited.get("initial_state") or [] if isinstance(fact, str)}
+    return [fact for fact in candidate.get("initial_state") or []
+            if isinstance(fact, str) and graph.normalize_need_string(fact) not in stated]
+
+
 def inherited_obligations(run: Run, meta: Dict[str, Any], plan: Any) -> Optional[Dict[str, Any]]:
     """What the candidate owes an inherited input plan; None without one. Errors fail; differences need a review
     finding. Legacy elaboration keeps every inherited step ID, input edge and unchanged confirmation; a caller's
@@ -473,6 +524,9 @@ def inherited_obligations(run: Run, meta: Dict[str, Any], plan: Any) -> Optional
     if mode == "legacy":
         errors += [f"input edge removed: {edge}" for edge in removed]
         errors += [f"step removed: {identifier}" for identifier in missing_ids]
+        errors += legacy_boundary_errors(inherited, plan)
+        differences += [{"kind": "initial_fact_added", "fact": fact} for fact in initial_facts_added(inherited, plan)
+                        if not any(repr(fact) in error for error in errors)]
     else:
         errors += [f"edit bounds: {error}" for error in bound_errors(inherited, plan, caller_bounds(run))]
         differences += [{"kind": "inherited_edge_absent", "edge": edge} for edge in removed]
@@ -958,8 +1012,6 @@ def command_finish(args: argparse.Namespace) -> int:
                       for key in ("interface", "action", "stage", "action_id") if review.get(key) != caller.get(key)]
         if mismatched:
             raise Unavailable("--review is not this caller action's review: " + "; ".join(mismatched))
-        if not all(isinstance(gap, str) for gap in review.get("planning_gaps") or []):
-            raise Unavailable("--review planning_gaps is a list of strings")
         # Round 2 (F1): the review must be of the final candidate, not an earlier one or an empty shell.
         final = file_sha256(run.plan)
         assessed = review.get("candidate") if isinstance(review.get("candidate"), dict) else {}
@@ -969,7 +1021,12 @@ def command_finish(args: argparse.Namespace) -> int:
              assessed.get("output_sha256") == final),
             ("findings is a list", isinstance(review.get("findings"), list)),
             ("coverage.source_review_status is complete or incomplete",
-             coverage.get("source_review_status") in ("complete", "incomplete"))) if not holds]
+             coverage.get("source_review_status") in ("complete", "incomplete")),
+            # Round 10 (Astra 1): the declared shape, not "absent means none": a missing, null or string value no
+            # longer reads as no gap, and a string or object no longer crashes the union below.
+            *((f"{key} is a list of strings ([] for none)",
+               isinstance(review.get(key), list) and all(isinstance(item, str) for item in review[key]))
+              for key in ("planning_gaps", "execution_blockers"))) if not holds]
         if unbound:
             raise Unavailable("--review does not assess the final candidate: " + "; ".join(unbound))
     cycles = run.recorded()
@@ -977,11 +1034,18 @@ def command_finish(args: argparse.Namespace) -> int:
     data, plan = read_plan(run.plan)
     receipt = check_receipt(data, plan, str(run.plan))
     evidence = read_json(run.evidence) if run.evidence.is_file() else {}
-    gaps = unique(evidence.get("planning_gaps", []) + (review.get("planning_gaps") or [] if review else []))
-    converged = status == "complete" and not problems and not gaps and receipt["ok"]
+    gaps = unique(evidence.get("planning_gaps", []) + (review["planning_gaps"] if review else []))
+    # Round 10 (Astra 1): a caller's planning converges only on a complete source review (caller-contract.md); an
+    # incomplete one returned converged, with the export hint, whenever it listed no planning gap.
+    source_incomplete = review is not None and review["coverage"]["source_review_status"] != "complete"
+    converged = status == "complete" and not problems and not gaps and receipt["ok"] and not source_incomplete
     # The run's own records come first: a model's next action never hides a receipt or binding that does not hold.
-    next_action = "" if converged else ("; ".join(problems) or evidence.get("next_action") or (
-        f"the loop ended {status}" + (f" with planning gaps: {gaps}" if gaps else "")))
+    only_source = status == "complete" and not problems and not gaps and receipt["ok"] and source_incomplete
+    next_action = "" if converged else (
+        "the final review's coverage.source_review_status is incomplete, so planning has not converged; if the "
+        "source assessment is in fact complete, run finish again with that review, otherwise name what is missing "
+        "in its planning_gaps" if only_source else "; ".join(problems) or evidence.get("next_action") or (
+            f"the loop ended {status}" + (f" with planning gaps: {gaps}" if gaps else "")))
     convergence = {
         "binding_id": meta["binding_id"],
         "owner": "selected Until Loop binding",
@@ -1004,7 +1068,7 @@ def command_finish(args: argparse.Namespace) -> int:
     write_atomically(run.result, json_text(result))
     print(f"Result: {run.result}")
     if converged:
-        hint = (f"; hand it to Plan Dispatcher with: {shlex.join([sys.executable, '-I', '-B', str(Path(__file__).resolve()), 'export', str(run.plan)])}"
+        hint = (f"; hand it to Plan Dispatcher with: {shlex.join([sys.executable, '-I', '-B', str(Path(__file__).resolve()), 'export', '--run', str(run.dir)])}"
                 if receipt["completion"] == "complete" else "")
         print(f"backchain finish: converged ({len(evidence.get('cycles', []))} cycle(s)){hint}")
         return EXIT_OK
@@ -1063,8 +1127,39 @@ def command_package(args: argparse.Namespace) -> int:
     return EXIT_OK if receipt["ok"] else EXIT_FAILS
 
 
+def accepted_plan(run: Run) -> Path:
+    """The plan a finished run converged on (Round 10, Astra 7): `export PLAN` exports any complete plan, including one
+    edited after finish or one finish called incomplete."""
+    run.frozen()
+    if not run.result.is_file():
+        raise Unavailable(f"no result at {run.result}; run finish first")
+    result = read_json(run.result)
+    record = result.get("review") or result.get("convergence") if isinstance(result, dict) else None
+    candidate = record.get("candidate") if isinstance(record, dict) else None
+    accepted = candidate.get("output_sha256") if isinstance(candidate, dict) else None
+    if not isinstance(accepted, str):
+        raise Unavailable(f"{run.result} is not a finish result")
+    if result.get("status") != "converged":
+        raise Fails(f"the run did not converge ({run.result} status {result.get('status')!r}); its next action: "
+                    f"{(record or {}).get('next_action') or (record or {}).get('convergence', {}).get('next_action')}")
+    if file_sha256(run.plan) != accepted:
+        raise Fails(f"{run.plan} is not the plan finish accepted (sha256 {accepted}); restore the accepted plan "
+                    f"(result.json's `plan`), or plan the change in a new run")
+    problems = verification(run)
+    if problems:
+        raise Fails("the run's evidence does not hold: " + "; ".join(problems))
+    return run.plan
+
+
 def command_export(args: argparse.Namespace) -> int:
-    data, plan = read_plan(args.plan)
+    if (args.plan is None) == (args.run is None):
+        raise Unavailable("export takes exactly one of PLAN or --run DIR")
+    try:
+        path = accepted_plan(Run(args.run)) if args.run is not None else args.plan
+    except Fails as exc:
+        print(json.dumps({"error": str(exc)}), file=sys.stderr)
+        return EXIT_FAILS
+    data, plan = read_plan(path)
     try:
         exported = export_graph(plan, sha256(data))
     except Fails as exc:
@@ -1092,8 +1187,10 @@ def parser() -> argparse.ArgumentParser:
     package.add_argument("plan", type=Path)
     package.add_argument("--out", type=Path, required=True)
     package.set_defaults(run_command=command_package)
-    export = commands.add_parser("export", help="Plan Dispatcher execution graph of a complete plan")
-    export.add_argument("plan", type=Path)
+    export = commands.add_parser("export", help="Plan Dispatcher execution graph of a complete plan, or of the plan "
+                                                "a finished run converged on (--run)")
+    export.add_argument("plan", type=Path, nargs="?")
+    export.add_argument("--run", type=Path, help="a finished run: export only the plan it converged on")
     export.add_argument("--out", type=Path)
     export.set_defaults(run_command=command_export)
     prepare = commands.add_parser("prepare", help="start a planning run")
