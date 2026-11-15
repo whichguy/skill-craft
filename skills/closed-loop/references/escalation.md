@@ -12,7 +12,8 @@ certificate (`analyze` in `closed_loop.py`); the operator does not guess.
 
 `step` also stops `incomplete` before it analyses anything when: the budget is used; the same step error occurred three times; the
 adapter failed to start the same step three times (its key and base are kept across retries, so a retry can never launch a second
-run or start from another build), or failed to poll a running step three times (once, if the budget is used); three
+run or start from another build), failed to poll a running step three times, or the budget was used or the step timeout passed
+while a step was still running (it is left for `cancel` and `cleanup`); three
 iterations at a scope passed with no quiet pass, no promoted candidate and no finished task; or a case that met its floors before a
 promoted candidate misses them on the build it produced (a **metric regression**: halt, never auto-revert). The owner clears these
 with `reopen --yes-owner-approved [--budget ...]` after deciding what to do. `step` prints `blocked` (exit 1) rather than starting
@@ -60,7 +61,8 @@ changes or the owner supplies what a blocked scope waited for.
 ## Autonomy rules (the owner's global instructions)
 
 Every campaign states a budget; the quota is aggregate over setup, retries, children and widening, and a new scope never renews it.
-An exhausted budget ends the scope `incomplete`, never converged. Work in a dedicated worktree with a random suffix; append one
+An exhausted budget ends the campaign `incomplete`, never converged (a scope certificate gathered before it can still read
+converged). Work in a dedicated worktree with a random suffix; append one
 journal entry per iteration (`journal.md` does); stop and report on three iterations without progress, the same error three times, or
 a metric regression (halt, never auto-revert); code-touching work runs the repository's quick tier before any completion claim.
 These limit a campaign's authorization, not the subject's own loops or any model text.

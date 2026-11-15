@@ -114,6 +114,40 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 - **Open (unknown).** A third review, on Sol at max, of the round-3 fixes; nothing has driven the card with a model operator on a real
   subject; the vendored runtime still records a null tree on a Git error and then skips freshness (disclosed; guarded on this side).
 
+### R4. Sol's first max review, and the round it forced (2026-11-15)
+
+- **Question.** After two Astra rounds, does the hardened build still have paths to false completion, and is the class closed or only
+  the instances? The brief asked for the class: every piece of state in campaign.json against the certificate, the quota and the gates.
+- **Conditions.** Codex `gpt-6.1-sol` at max, read-only, one attempt, 13 minutes, on `56e02efb798b18fc949866639214b37abffd3998`;
+  the quick tier beside it (23 suites, PASS, 301.4 s). Brief, answer, run record and reproductions:
+  `docs/experiments/closed-loop-review-20261115/round3-sol-*`.
+- **Result.** *Not ready to ship*: six P1 and one P2, all reproduced, four of them new to Astra's two rounds; the literal operator
+  drill passed. Status: **firm**. Dispositions and tests: the review folder's README, "Round 3". Whether Sol at max matches Astra at
+  max is still unmeasured, but on this code it found things the Astra rounds had not (open tasks, killed retries, wrong-workspace
+  readiness, responsive polling), which is the one data point so far.
+- **What the class sweep showed.** The recurring mistake across rounds 2 and 3 was local patches to a conjunction: the certificate,
+  the cached stop, the report and the gates each recomputed "converged" from a different subset of state. Round 4's main change is
+  structural: one predicate for a converged campaign (`completion_problems`) used wherever a stop is made or read, tasks inside the
+  certificate (C1), and the recorded readiness re-derived on every load.
+- **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.**
+  1. *Prove visibility by content, not by hunting causes.* Reject: more guards for `assume-unchanged`, `skip-worktree` and filters one
+     by one (the review had already found two new causes after the ignore-rule guard). Instead `fingerprint_problem` runs the
+     runtime's own procedure on a copy and compares each state file's staged blob with its bytes; anything that makes them differ,
+     whatever the cause, fails the check.
+  2. *A step in flight spends the `seconds` budget as it runs, and a running step is not polled once the budget is used.* This
+     replaces the round-3 rule that polled a step to collect its result after exhaustion (a poll that kept answering `running` could
+     continue without bound and charged nothing). A step also ends the campaign past `execution.step_timeout_seconds` (default 21600).
+     The price: a step the budget outlasts mid-run is stopped for the owner, who can cancel it or reopen with a larger budget.
+  3. *Completion at the final authorized step stays valid for the scope certificate* (Sol agreed; the docs contradicted it in two
+     places and now say "the campaign ends incomplete"), but the *campaign* status needs the budget unspent at every read.
+  4. *Resolving an unknown needs evidence,* a refreshing readiness withdraws the old result first, and a cleanup receipt is voided
+     before every launch attempt: each was a place where an attestation or a receipt could outlive what it vouched for.
+- **Measurements.** Suite 142 to 157 tests (114 s). 21 further safeguards mutation-checked, all caught after one test was added for the single
+  survivor of the first batch (a kill-mid-probe test of the refresh marker); logs in the review folder. Lint and the 3.9 grammar check as before.
+- **Open (unknown).** A fourth review is not planned: each round has found fewer and narrower defects, the class sweep is now
+  structural, and the remaining limits are disclosed. Nothing has driven the card with a model operator on a real subject, and the
+  vendored runtime's null-tree behaviour is unchanged (guarded on this side).
+
 ## Findings
 
 | # | Finding | Status | Evidence |

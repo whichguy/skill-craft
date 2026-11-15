@@ -36,6 +36,11 @@ A probe may report `consumed`; it is charged to the campaign budget like any oth
 against a known-good one; an independently specified mutation of the subject; a metamorphic relation for a named property. If none
 exists, the claim stays `unknown` and the report says sensitivity is unknown: do not guess.
 
+**A refresh withdraws the old result first.** `readiness --campaign` records a not-passing result before it probes, so a refresh
+that fails or is interrupted leaves the campaign unstarted rather than standing on the earlier pass. It must run in the campaign's own
+workspace (`--workspace` may be spelled out but must equal it), and the recorded result is re-derived from its claims whenever the
+campaign is loaded: a record that does not follow from them is malformed state.
+
 **The recorded allowed claims travel.** The certificate and `report.md` repeat them, so a result is never reported with a stronger
 claim than readiness allowed.
 

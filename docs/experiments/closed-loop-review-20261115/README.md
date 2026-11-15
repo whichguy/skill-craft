@@ -56,6 +56,37 @@ and gate zero disables the first-pass shortcut. Status: **firm** (reproduced by 
 | - | Instruction bugs: the action table says to repeat every `start` and `poll`; readiness pending ratification is routed to the definer | fixed in the card (a finished step means verify first; "not run" before ratification is expected) | `CardTests` |
 | - | Tests conceal two failures (the quota test checked after an extra stop step; crash recovery never polled the recovered handle); the initialisation existence check was not in the mutation list | fixed: both tests rewritten, a deterministic lock-holding form of the concurrent-init test, and the mutation added | see above |
 
+## Round 3: Sol's first max review (2026-11-15), the first after the owner moved deep reviews from Astra to Sol
+
+**Subject.** `56e02efb798b18fc949866639214b37abffd3998` (source parent `b80ccb36d5f5992e473d63c640eebe152079c16e`, the round-2
+fixes, merged with published main). Codex `gpt-6.1-sol` at max, read-only, one attempt, no fallback, 13 minutes (`round3-sol-run.json`);
+`git status` was identical before and after. Files: `round3-sol-brief.txt`, `round3-sol-answer.txt`, and the reviewer's reproductions
+(`round3-sol-evidence.json`, `-additional.json`, `-git-filter.json`, `-readiness-workspace.json`, `-index.json`). The brief asked for
+the *class* of defect (every piece of campaign state against the certificate, the quota and the gates), a literal run of the card, and
+the runtime; the quick tier ran beside it: 23 suites, PASS, 301.4 s.
+
+**Result.** *Not ready to ship*: six P1 findings and one P2, all reproduced. It also found the literal operator drill (adapter-check
+through stop and report, two scopes, receipt recovery) **succeeded**, the sibling-receipt arrangement sound, gate zero effective, the
+disclosed limits honest, and it disagreed with Astra on one point (a scope that converges on the last authorized step is not invalid;
+my docs contradicted that in two places, now fixed). Four of the six P1 findings are things Astra's two rounds had not found.
+
+| # | Round-3 finding | Disposition | Tests |
+| --- | --- | --- | --- |
+| 1 | P1. Git can hide campaign changes without ignoring files: an `assume-unchanged` or `skip-worktree` flag on a staged state file, or a `.gitattributes` clean filter that returns constant content; every guard passes and the runtime completes over an incomplete certificate | fixed by changing the kind of guard: instead of looking for each cause, `fingerprint_problem` does what the runtime does (copies the real index, `git add -A`) and compares the staged blob of each state file with the file's own bytes; any mismatch or Git failure makes the check exit 2 and `contract` refuse. Closes the class (ignore rules, flags, filters, file-system monitors, a different repository) | `FingerprintTests` (real flags and a real filter) |
+| 2 | P1. Fresh verification completes over an open owner-held task (the certificate omitted tasks that `next` still returned) | fixed: an open task is backlog (check C1), so no certificate converges while one is open | `EvidenceTests.test_an_open_task_...` |
+| 3 | P1. A cached converged stop is revalidated against part of the state: a later deferred hunt, or spending the budget, leaves `next` and `report` saying converged | fixed: one predicate (`completion_problems`: the certificate, unrejected blind spots, the budget) decides a converged stop when it is made and each time it is read | `EvidenceTests.test_a_converged_stop_is_stale_after_...` |
+| 4 | P1. Readiness evidence survives failure or belongs to another workspace: a refresh that raises keeps the old pass; `--workspace OTHER` records proofs from elsewhere; a saved readiness with `start_ok: "false"`, no claims or invented claims is accepted | fixed: a refresh records a not-passing result before it probes; `--workspace` must be the campaign's own; the recorded readiness is re-derived from its claims on every load (and runs require a ratification of this boundary) | `ReadinessTests` (four new) |
+| 5 | P1. A cleanup receipt survives a retried launch killed before its exception handler; P2: a cancellation answered `running` is accepted | fixed: the receipt is voided and saved before every launch attempt, retries included; a cancellation must be acknowledged `cancelled` | `ResumeTests.test_a_kill_during_a_retried_launch_...`, `EvidenceTests.test_a_cancellation_...` |
+| 6 | P1. Responsive polling is unbounded (twelve `running` polls took 1.07 s against a 0.2 s budget and cost nothing recorded), and a probe refused for missing evidence loses its reported cost | fixed: a step in flight spends the `seconds` budget as it runs; a running step is not polled once the budget is used; `execution.step_timeout_seconds` bounds any step; a refused probe's cost is collected first | `QuotaTests` (four new) |
+| - | Sweep and judgement items: resolving an unknown is an unevidenced attestation; `adapter-check --proposal` compares only the proposal's own lists; adapter environment filtering missing from the mutation list; the card and references still said exhaustion makes the *scope* incomplete | fixed: `unknown resolve` needs `--evidence` (quoted in the report); a candidate may not overlap the manifest or its pinned files, and the card says what the check cannot know; the environment mutation added; the wording says the *campaign* ends incomplete | `CertificateTests`, `ProposalTests`, `CardTests` |
+| - | Test gaps: the no-evidence test began from a null readiness; the cleanup mutation exercised a caught failure, not a killed retry; the fake lacked persistent running replies and refused cancellations | fixed: transition tests, a killed-retry test, a `cancel_refuse` knob (persistent running was `poll_delay`) | see above |
+
+What stayed as a limit, now stated more precisely: a writer that changes the campaign between the last check and the runtime's own
+fingerprint; the subject or a pinned adapter changed between the verify run and the report; the vendored runtime's null-tree
+behaviour (the checks now refuse to pass whenever the folder is not provably visible to it).
+
+**Mutation check of round 5.** 21 safeguards (`mutations-round5-batch1.txt`, `-batch2.txt`). Batch 1 (19 runs): 18 caught and one survivor, the pre-probe save of the readiness refresh marker (removing it changed nothing, because the caught-failure path saves the same state). Batch 2 re-ran it against a new test that kills the process mid-probe and added the git timeout and the temporary-file guard: 3 of 3. Every safeguard is held by at least one test that fails without it; that shows the tests are not vacuous, not that the safeguards are complete.
+
 ## Judgement items and what stayed as it was
 
 - *Boolean fields cannot prove an adapter ran anything.* True, and unfixable by a script. It is now stated in the card, the
@@ -94,4 +125,4 @@ least one test that fails without it. Still not evidence that the safeguards are
 `astra-brief.txt`, `astra-answer.txt`, `astra-run.json` (model, effort, no fallback), `test-run-at-ff9cb35d.json`,
 `probes-certificate.json`, `probes-additional.json`, `probe-runtime-stale-satisfaction.json`, `mutations-run1.json`,
 `mutations-run2.json`; round 2: `round2-brief.txt`, `round2-answer.txt`, `round2-run.json`, `round2-evidence.json`; rounds 3 and 4:
-`mutations-round3-batch1.txt`, `-batch2.txt`, `-batch3.txt`.
+`mutations-round3-batch1.txt`, `-batch2.txt`, `-batch3.txt`; round 3 (Sol): `round3-sol-*`; round 5 mutations: `mutations-round5.txt`.

@@ -69,7 +69,7 @@ contract was frozen for.
    hosted or other owner-gated case is released only by the owner (`--approve-case ID --yes-owner-approved`). Begin with the cheapest
    case that exposes the subject; widening is the loop's job.
 4. **Ratify. Nothing runs before this.** Show the owner `boundary_sha256`, the pinned commands and files, `capability`, `env_allow`,
-   `timeout_seconds` and the owner-only list. Only after the owner says yes in this conversation:
+   `timeout_seconds`, `step_timeout_seconds` and the owner-only list. Only after the owner says yes in this conversation:
    `loop ratify --campaign "$C" --yes-owner-approved --note "what they approved"`. Then
    `loop readiness --manifest "$M" --campaign "$C" --require-start`: it runs the effectful probes and records the result. `step`
    refuses to start (it prints `blocked`) until both are done.
@@ -91,7 +91,8 @@ contract was frozen for.
 Read the whole backlog (`certificate`, `checks.C1.detail`), not a truncated view. Group related findings by hypothesis; do not bundle
 unrelated fixes into one candidate. Choose the smallest experiment that discriminates (rung E0 in
 [references/escalation.md](references/escalation.md)). Record what you could not determine with
-`loop unknown --campaign "$C" add --text "..." [--inside-claim]`. `loop next` prints the next action without doing it, and
+`loop unknown --campaign "$C" add --text "..." [--inside-claim]`, and close one with `unknown resolve --index N --evidence "what
+answered it"` (the evidence is quoted in the report). An open task keeps check C1 failing until it is done. `loop next` prints the next action without doing it, and
 `loop coverage` lists what the scope covers and which cases could widen it. Continue while a material actionable idea or coverage
 gap has a useful next investigation inside the recorded authority.
 
@@ -147,8 +148,10 @@ adapter reports and cannot show that the adapter reported truthfully: the ratifi
 trust. The budget is checked between steps, so one step can overshoot it, and a contract can complete on the step that used the last
 of it (the report then reads scope converged, campaign incomplete: budget used). The Until Loop's freshness check watches the
 campaign folder only: not the subject, the adapter and its pinned files, or this script. The checks catch a change to those as stale
-or refused the next time they run, so verify and report back to back with no other call between. A Git ignore rule that would hide
-campaign state from the fingerprint, or a Git error, makes the checks exit 2 instead of passing.
+or refused the next time they run, so verify and report back to back with no other call between. The checks prove by content that the
+runtime's Git fingerprint holds the campaign's state: an ignore rule, an index flag, a Git filter or a Git error that would blind it
+makes them exit 2 instead of passing. A step in flight spends the `seconds` budget as it runs, and a running step is never polled
+once the budget is used (cancel it, or the owner reopens with a larger budget).
 
 ## References
 

@@ -30,6 +30,7 @@ calls:
   crash_step         ["poll", ...]: those `step` subcommands exit non-zero without answering
   crash_probe        [claim, ...]: those probes exit non-zero without answering
   probe_no_evidence  true: every probe answers its state without evidence
+  cancel_refuse      true: `step cancel` answers that the step is still running
   probe_consumed     what every probe reports consuming
   cleanup_unverified true: the owned cleanup answers verified false
 
@@ -181,6 +182,9 @@ def poll(argv: list) -> None:
 
 def cancel(argv: list) -> None:
     given = flags(argv)
+    if config().get("cancel_refuse"):
+        emit({"status": "running", "error": "cannot cancel"})
+        return
     step_file = STEPS / f"{given['handle']}.json"
     known = load(step_file, {})
     known["cancelled"] = True

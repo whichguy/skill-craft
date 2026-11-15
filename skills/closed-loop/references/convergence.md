@@ -12,7 +12,7 @@ quiet), and so is a step that failed, was cancelled, or ran on another build tha
 
 | Check | Requires |
 | --- | --- |
-| **C1 backlog** | every material in-scope record is `verified`, or `dropped`/`refuted`/`rejected`, **with non-empty evidence**. One that is `open`, `admitted`, `promoted` (not yet verified), `deferred`, `owner`, `unknown` or any status this script has not seen keeps the scope incomplete, with its `reopen_when`. Records with `target: adapter` are outside a subject certificate and listed; records whose `cases` miss the scope are outside it and listed |
+| **C1 backlog** | every material in-scope record is `verified`, or `dropped`/`refuted`/`rejected`, **with non-empty evidence**, and **no task is open** (a `needs_owner` task, a diagnosis or a hunt is work the scope still owes). One that is `open`, `admitted`, `promoted` (not yet verified), `deferred`, `owner`, `unknown` or any status this script has not seen keeps the scope incomplete, with its `reopen_when`. Records with `target: adapter` are outside a subject certificate and listed; records whose `cases` miss the scope are outside it and listed |
 | **C2 quiet window** | the last K iterations at the **active** scope that ran on the current build and scoring identity were all quiet (K from the manifest or `init --quiet-window`, an integer of at least 1, default 2: an operational heuristic). A newly widened scope has no iteration yet, so it cannot be converged on the previous scope's evidence |
 | **C3 green** | every scope case has a run on the current build that met its floors against a `comparable` baseline. `none` or `unknown` blocks |
 | **C4 coverage exercised** | every dimension value (and declared combination of dimensions) the scope covers has a run on the current build, and every catalog value outside it is listed as not covered |
@@ -28,10 +28,12 @@ subject or the evaluator changed. The campaign then runs a new iteration rather 
 certify a newer scope.
 
 **Statuses.** The *scope certificate* is `converged` or `incomplete`. The *campaign status* is `in progress` until the campaign
-stops, then the status of its `stop` (a converged stop is also stale while a step is running or a task is open): a scope can be converged while the campaign is `incomplete` because widening needs the owner or
-the budget ran out. A `converged` campaign stop means the declared catalog is covered and every blind spot the hunt named was
-rejected with a reason; it is re-checked every time it is read, so a later unknown or changed build turns it into `incomplete`. It is
-never a claim that no material problem remains outside what the evaluation can see.
+stops, then the status of its `stop`: a scope can be converged while the campaign is `incomplete` because widening needs the
+owner or the budget ran out. A `converged` campaign stop means the declared catalog is covered and every blind spot any hunt named
+was rejected with a reason. **One predicate** decides it, when the stop is made and every time it is read (`next`, `report`): the
+scope certificate converged (which holds running steps and open tasks), no blind spot without a rejection, and the budget not used.
+A later unknown, task, deferred blind spot, changed build or spending turns the stop into `incomplete`. It is never a claim that no
+material problem remains outside what the evaluation can see.
 
 **What the certificate may claim.** It carries the readiness result recorded for this boundary: the claims readiness allows
 (`allowed`) and, when none was recorded, the note that no quality claim is allowed. Claims are bound to the scoring identity they

@@ -31,7 +31,7 @@ manifest.
   **`timeout_seconds`** (default 3600) bounds every adapter call: a hung call is killed, reported as an error, and its time is
   charged to the budget. **`pin`** lists files or folders (relative to the manifest, or absolute) whose content the boundary hash
   covers: list the adapter's own program and every grader or check script, because an argument list alone does not say what the
-  program it names will do.
+  program it names will do. **`step_timeout_seconds`** (default 21600) bounds how long one step may stay running.
 - **`dimensions`** name the properties of a case that coverage is judged on (for example `style`); a case lists `dimensions` as
   `{name: value}`. A scope's *values* are `name=value` strings. **`combinations`** list sets of two or more dimensions whose value
   *pairs* also count as coverage (`style=alpha&size=large`): a catalog of AX, BY and AY exposes AY only through the pair, so a
@@ -108,10 +108,13 @@ audit trail) and `stop`. In the folder: `journal.md` (append-only, one line per 
 a hash of the manifest, this script and the boundary; a contract binds the script's hash, the scope and the campaign identity, so a
 changed script, another scope or another campaign fails its own checks with exit 3.
 
-**Budget.** `--budget seconds=3600,turns=400` is required at `init` and is checked before each step, so a step in flight can
-overshoot it by up to that step's consumption. Everything a campaign spends is charged: each finished or failed step's `consumed`,
-each probe's `consumed` (charged as each probe finishes, so a failing probe still pays for the ones before it), each task's
-`--consumed`, and the wall time of adapter calls that failed or timed out (to `seconds`). `readiness` refuses to run a probe once the
-budget is used. A step that is running when the budget runs out is still polled to collect its result, but a poll that fails then
-ends the campaign at once (three identical poll failures end it before that); the step is left for `cancel` and `cleanup`.
-Exhaustion ends the scope `incomplete`; only the owner raises it, with `reopen --budget`.
+**Budget.** `--budget seconds=3600,turns=400` is required at `init` and is checked before each step, so a step that finishes can
+overshoot it by up to its own consumption. Everything a campaign spends is charged: each finished or failed step's `consumed`,
+each probe's `consumed` (charged as each probe finishes, and even when its answer is refused, so a failing probe still pays for
+the ones before it), each task's `--consumed`, and the wall time of adapter calls that failed or timed out (to `seconds`). A step in
+flight spends `seconds` as it runs, because the adapter reports its cost only when it finishes: `seconds` is wall-clock time. Once
+the budget is used `readiness` refuses to run a probe and a running step is **not polled again**: the campaign stops `incomplete`,
+the step is left for `cancel` and `cleanup`, and the owner may reopen with a larger budget to let it finish. Separately, a step that
+has run longer than `execution.step_timeout_seconds` (default 21600) ends the campaign, and three identical poll failures end it.
+Exhaustion ends the *campaign* `incomplete`, never converged, though a scope certificate gathered before it can still read
+converged; only the owner raises the budget, with `reopen --budget`.

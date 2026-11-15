@@ -55,7 +55,9 @@ withheld path. What it refuses is not a proposal yet.
    (a seeded defect, a mutation, a metamorphic relation). If you cannot, say sensitivity is unknown for that property.
 6. **Improvement stage.** The graders, checks, oracles, the adapter and the manifest are never in the candidate set. Name the
    evaluator paths explicitly and say what an out-of-bounds edit looks like so a probe can plant one. A proposal whose
-   `candidate_paths` overlap any evaluator or withheld path is refused by `adapter-check --proposal`: fix it before you finish.
+   `candidate_paths` overlap any evaluator, withheld or pinned adapter path is refused by `adapter-check --proposal`: fix it before
+   you finish. That check only compares the lists you wrote with each other and with the manifest's pins; it cannot know what else
+   grades the subject, so list every grader and check yourself.
 7. **Mark any hosted, credential, spend or deletion command `needs_owner`.** The owner ratifies the whole execution boundary before
    any effectful probe runs.
 8. Report what you read and what you did not. Reconstruction from source alone cannot discover a withheld harness; say when that is

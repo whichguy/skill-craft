@@ -1,0 +1,4 @@
+{'mutation': 'refresh does not withdraw', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'git has no timeout', 'classes': ['FingerprintTests'], 'result': 'killed', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'temporary file failure unhandled', 'classes': ['FingerprintTests'], 'result': 'killed', 'tail': 'FAILED (errors=1)'}
+SURVIVORS: []
