@@ -10360,8 +10360,16 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 taken = shiploop_check.matching_yes(
                     root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft)) if reusable else None
                 if taken is not None:
-                    # Same-version answers can predate the settlement rule. Recheck cheap admission before reuse.
-                    _check_submitted_unverified(state, cursor_stage, submitted)
+                    # Run-local evidence can disappear without changing the key; same-version answers can predate
+                    # the settlement rule. Recheck cheap admission in evaluator order before consuming a yes.
+                    try:
+                        _check_submitted_evidence(
+                            submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))
+                        _check_submitted_unverified(state, cursor_stage, submitted)
+                    except NavigatorError as exc:
+                        shiploop_check.record_answer(
+                            root, action_id, cursor_stage, taken["key"], yes=False, reason=str(exc))
+                        raise
                     # Nothing the gates read changed since the check said yes: take its answer, run nothing again.
                     test_loop.take_check(root, action_id, taken["records"], shiploop_check.answer_path(action_id))
                     gate_lines = (["Gates: taken from the check of " + str(taken["created_at"]) + " ("

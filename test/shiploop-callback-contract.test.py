@@ -2148,11 +2148,68 @@ class R07ContinuityTests(RealCliCase):
         self.assertIn("settled keys must exactly equal", reply.stdout + reply.stderr)
         self.assertEqual(reply.returncode, 2)
         self.assertEqual(self.state(run), before)
+        _, path, action = printed_callback(head)
+        stage, _, item = nav._active_cursor(before)
+        key = nav._answer_key(run, before, action, stage, item, path)
+        answer = store.read_record(run / nav.shiploop_check.answer_path(action))
+        self.assertEqual(answer["answer"], "no")
+        self.assertEqual(answer["key"], key)
+        self.assertIn("settled keys must exactly equal", answer["reason"])
+        self.assertIsNone(nav.shiploop_check.matching_yes(run, action, key))
+
+    def r07_real_checked_settlement(self, *, remove_evidence: bool) -> None:
+        rows = self.r07_entries("release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        evidence = run / "observation.txt"
+        self.assertFalse(evidence.is_relative_to(self.repo))
+        evidence.write_text("Synthetic declared observation: the reader opens the exported report and displays "
+                            "the expected totals. No authenticated person action is established.\n", encoding="utf-8")
+        command, path, action = printed_callback(head)
+        write_block(path, dict(self.fill_done(head), unverified=[],
+            settled=[self.r07_settlement(row, evidence_refs=["RUN/observation.txt"]) for row in rows]))
+        before = self.state(run)
+        checked = self.run_printed(check_command(command))
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual(self.state(run), before)
+        stage, _, item = nav._active_cursor(before)
+        self.assertTrue(test_loop.reuse_eligible(
+            before, stage, item, test_loop.stage_commands(before, stage, item)[0]))
+        key = nav._answer_key(run, before, action, stage, item, path)
+        self.assertIsNotNone(nav.shiploop_check.matching_yes(run, action, key))
+        if remove_evidence:
+            evidence.unlink()  # Change only the nested reference, outside the checkout fingerprint.
+        self.assertEqual(nav._answer_key(run, before, action, stage, item, path), key)
+        self.assertIsNotNone(nav.shiploop_check.matching_yes(run, action, key))
+        reply = self.run_printed(command)  # No intervening check can replace the cached yes.
+        print("R07 real cached settlement completion:", reply.stdout + reply.stderr, flush=True)
+        if remove_evidence:
+            self.assertIn("evidence_refs cite files that do not exist: " + str(evidence), reply.stdout + reply.stderr)
+            self.assertEqual(reply.returncode, 2)
+            self.assertEqual(self.state(run), before)
+            answer = store.read_record(run / nav.shiploop_check.answer_path(action))
+            self.assertEqual(answer["answer"], "no")
+            self.assertEqual(answer["key"], key)
+            self.assertIn("evidence_refs cite files that do not exist", answer["reason"])
+            self.assertIsNone(nav.shiploop_check.matching_yes(run, action, key))
+        else:
+            self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+            self.assertIn("Gates: taken from the check", reply.stdout)
+            self.assertTrue(evidence.is_file())
+            self.assertEqual(nav.unverified.current_list(self.state(run))[2], [])
+
+    def test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence(self) -> None:
+        self.r07_real_checked_settlement(remove_evidence=True)
+
+    def test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence(self) -> None:
+        self.r07_real_checked_settlement(remove_evidence=False)
 
     def test_r07_cached_yes_with_valid_settlements_still_reuses(self) -> None:
         rows = self.r07_entries("release-check")
         run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
         knowledge_support.write(self.state(run))
+        self.evidence.write_text("Synthetic declared observation: the reader opens the exported report and displays "
+                                 "the expected totals. No authenticated person action is established.\n", encoding="utf-8")
         command = self.r07_seed_passing_answer(run, head, dict(self.fill_done(head), unverified=[],
             settled=[self.r07_settlement(row) for row in rows]))
         reply = self.run_printed(command)
@@ -2164,6 +2221,8 @@ class R07ContinuityTests(RealCliCase):
         rows = self.r07_entries("release-check")
         run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
         knowledge_support.write(self.state(run))
+        self.evidence.write_text("Synthetic declared observation: the reader opens the exported report and displays "
+                                 "the expected totals. No authenticated person action is established.\n", encoding="utf-8")
         good = dict(self.fill_done(head), unverified=[], settled=[self.r07_settlement(r) for r in rows])
         for label, patch, reason in (
             ("missing", {"settled": []}, "settled keys must exactly equal"),
@@ -2206,8 +2265,10 @@ class R07ContinuityTests(RealCliCase):
                 self.assertEqual(template["settled"], [])
                 self.assertNotIn("drop an entry due: product-acceptance", full_packet_text(head))
                 self.assertIn(nav.unverified.SETTLEMENT_RULE, " ".join(full_packet_text(head).split()))
-                self.evidence.write_text("Current required reader surface observed.\n" if basis == "observed" else
-                                         "User explicitly withdrew the opening outcome.\n", encoding="utf-8")
+                self.evidence.write_text("Synthetic declared observation: the reader opens the exported report.\n"
+                                         if basis == "observed" else
+                                         "Synthetic declared user correction: withdraw the outcome that the reader "
+                                         "opens the exported report.\n", encoding="utf-8")
                 reply, _ = self.r07_submit(run, head, dict(self.fill_done(head), unverified=rows[1:],
                     settled=[self.r07_settlement(rows[0], basis)]))
                 self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
@@ -2225,6 +2286,8 @@ class R07ContinuityTests(RealCliCase):
         rows[0] = dict(rows[0], due_stage="release-check")
         run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
         knowledge_support.write(self.state(run))
+        self.evidence.write_text("Synthetic declared user correction: withdraw the outcome that the reader opens "
+                                 "the exported report.\n", encoding="utf-8")
         reply, head = self.r07_submit(run, head, dict(self.fill_done(head), unverified=rows[1:],
             settled=[self.r07_settlement(rows[0], "user-correction")]))
         self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
@@ -2277,7 +2340,8 @@ class R07ContinuityTests(RealCliCase):
         run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
         knowledge_support.write(self.state(run))
         path = run / "observation.txt"
-        path.write_text("Synthetic current reader observation.\n", encoding="utf-8")
+        path.write_text("Synthetic declared observation: the reader opens the exported report and displays "
+                        "the expected totals. No authenticated person action is established.\n", encoding="utf-8")
         refs = ["RUN/observation.txt:1", "https://example.test/current#observation", "user-reply:explicit-correction"]
         reply, _ = self.r07_submit(run, head, dict(self.fill_done(head), unverified=[],
             settled=[self.r07_settlement(row, evidence_refs=refs) for row in rows]))
