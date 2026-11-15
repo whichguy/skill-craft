@@ -13,7 +13,12 @@ it, and do not write anywhere except the staging folder you are given.
 
 ## What to produce
 
-One JSON file in the staging folder, `definer-proposal.json`, and a short `definer-report.md`:
+Three files in the staging folder: `definer-proposal.json` (the slots and your evidence, below), `adapter.proposed.json` (the bare
+`closed-loop-adapter/1` manifest built from the slots: this is the file `adapter-check` reads, so it is the manifest object alone and
+not the wrapper), and a short `definer-report.md`. Before you finish run
+`adapter-check --manifest adapter.proposed.json --proposal definer-proposal.json` and report its answer: it refuses a manifest that
+is not valid, a slot with the wrong shape or a `found` slot with no evidence, and a candidate path that overlaps an evaluator or
+withheld path. What it refuses is not a proposal yet.
 
 ```json
 {
@@ -27,7 +32,7 @@ One JSON file in the staging folder, `definer-proposal.json`, and a short `defin
     "authority":   {"status": "...", "evidence": [], "value": {"routine": [], "owner_only": [], "owner_only_requires": []}},
     "records":     {"status": "...", "evidence": [], "value": {"ledger": "path", "journal": "path"}}
   },
-  "manifest": {"...": "a complete closed-loop-adapter/1 manifest built from the slots, for adapter-check"},
+  "manifest": "adapter.proposed.json: the same manifest, written as its own bare file",
   "risks": ["what could make this wrong or unsafe"],
   "needs_owner": ["each hosted, credential, spend or deletion command, and why"],
   "unknowns": ["what you could not determine, and what would settle it"]
@@ -41,13 +46,16 @@ One JSON file in the staging folder, `definer-proposal.json`, and a short `defin
 2. **Evidence for every slot.** Cite files and symbols. A slot without evidence is `unknown`, and an honest `unknown` with what would
    settle it is a good answer; a plausible guess is not.
 3. **Pinned argument lists only**, never shell strings. Say what each command reads and writes, and its capability class
-   (`read-only`, `writes-worktree`, `hosted`).
+   (`read-only`, `writes-worktree`, `hosted`). List in `execution.pin` the adapter's own program and every grader, check script or
+   fixture directory the commands depend on: an argument list alone does not say what the program it names will do. Set
+   `execution.timeout_seconds` to a bound a hung call should not exceed.
 4. **Cases.** Propose contrasting dimension values at the least cost, not many similar cases. Prefer scripted oracles; if the only
    oracle is a judge, say so and mark the evaluation class.
 5. **Evaluation.** For each property a measure must be sensitive to, propose a probe that fails a known-bad and passes a known-good
    (a seeded defect, a mutation, a metamorphic relation). If you cannot, say sensitivity is unknown for that property.
 6. **Improvement stage.** The graders, checks, oracles, the adapter and the manifest are never in the candidate set. Name the
-   evaluator paths explicitly and say what an out-of-bounds edit looks like so a probe can plant one.
+   evaluator paths explicitly and say what an out-of-bounds edit looks like so a probe can plant one. A proposal whose
+   `candidate_paths` overlap any evaluator or withheld path is refused by `adapter-check --proposal`: fix it before you finish.
 7. **Mark any hosted, credential, spend or deletion command `needs_owner`.** The owner ratifies the whole execution boundary before
    any effectful probe runs.
 8. Report what you read and what you did not. Reconstruction from source alone cannot discover a withheld harness; say when that is

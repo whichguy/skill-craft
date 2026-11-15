@@ -35,49 +35,60 @@ seven script checks, `converged` or `incomplete` with reasons, for one scope on 
 ## Bind the package
 
 Resolve this card's physical directory (follow symlinks), then bind the script and the Until Loop runtime that `improve` ships and
-its tests validate. Do not substitute an installed copy; if the runtime is missing, say so and stop.
+its tests validate. Do not substitute an installed copy; if the runtime is missing, say so and stop. Shell state does not survive
+between tool calls: paste this block at the top of every call that uses `loop` or `until_loop`, and quote every path you pass.
 
 ```sh
-# Replace with the selected, loaded SKILL.md's real directory.
-SKILL_ROOT="/absolute/directory-containing-the-loaded-SKILL.md"
-LOOP="python3 -B $SKILL_ROOT/scripts/closed_loop.py"
-UNTIL="python3 -B $SKILL_ROOT/../improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+# Replace /path/to/skills/closed-loop with this card's real directory, in both lines.
+CL_SCRIPT="/path/to/skills/closed-loop/scripts/closed_loop.py"
+UNTIL_SCRIPT="/path/to/skills/closed-loop/../improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+loop() { python3 -B "$CL_SCRIPT" "$@"; }
+until_loop() { python3 -B "$UNTIL_SCRIPT" "$@"; }
 ```
 
-Every `$LOOP` verb prints one JSON object. Exit 0 ok, 1 a check or readiness gate did not pass (read its `reasons`), 2 an error
-(the message is on stderr), 3 the check script changed since the contract was frozen.
+Below, `M` is the manifest, `WS` the subject's workspace, `C` the campaign folder and `W` its sibling `"$C.work"` (`C` with `.work`
+appended, no trailing slash on `C`). Every `loop` verb prints one JSON object. Exit 0 ok, 1 a check, readiness or authority gate did
+not pass (read its `reasons`), 2 an error (the message is on stderr), 3 the check script, scope or campaign differs from the one the
+contract was frozen for.
 
 ## Procedure
 
-1. **Find the adapter.** An explicit manifest path, or `<subject>/closed-loop.adapter.json`. `$LOOP adapter-check --manifest M`. No
-   manifest, or `readiness` shows an unproven start claim: go to *Define the adapter* before spending any run.
+1. **Find the adapter.** An explicit manifest path, or `<subject>/closed-loop.adapter.json`. `loop adapter-check --manifest "$M"`. No
+   manifest, or readiness shows an unproven start claim: go to *Define the adapter* before spending any run.
 2. **Read readiness**, which runs read-only claims only until the owner ratifies the boundary:
-   `$LOOP readiness --manifest M --workspace WS`. The start rule needs a case that `runs`, a measure that `scores` and an
+   `loop readiness --manifest "$M" --workspace "$WS"`. The start rule needs a case that `runs`, a measure that `scores` and an
    improvement stage that is `bounded` ([references/readiness.md](references/readiness.md)).
-3. **Start the campaign.** Ask the owner for the budget (seconds, turns or spend: the campaign quota is aggregate and never renews),
-   then `$LOOP init --manifest M --campaign C --workspace WS --cases CHEAPEST_CASE --budget seconds=3600,turns=400`. Begin with the
-   cheapest case that exposes the subject; widening is the loop's job.
-4. **Ratify.** Show the owner `boundary_sha256`, the pinned commands, `capability`, `env_allow` and the owner-only list. Only after
-   the owner says yes in this conversation: `$LOOP ratify --campaign C --yes-owner-approved --note "what they approved"`. Then
-   `$LOOP readiness --manifest M --campaign C --require-start`; effectful probes now run.
-5. **Open the scope contract.** `$LOOP contract --campaign C --kind scope --out C/contract-S0.json`, then
-   `mkdir -p C/until` and `$UNTIL start --isolated --directory C/until --receipt C/until-S0.json < C/contract-S0.json`
-   ([references/until-loop.md](references/until-loop.md)). Use absolute, resolved paths.
-6. **Do one iteration per packet.** Repeat `$LOOP step --campaign C` until a step finishes (it polls while one runs; a `task` is
-   yours to do, then `task done`). Then run the packet's `verify_script` exactly as printed, read `$LOOP certificate`, and report
-   with the packet's `done_argv`: classification `trivial` only when `status` shows the last iteration was quiet; `satisfied` only
-   when the certificate is `converged` and every check line printed `exit=0`; continuation `allowed` unless `step` printed a stop.
-7. **When the scope contract completes**, run `$LOOP step`. A `widen` opened a new scope: emit and start a new contract for it (new
-   receipt file). A `stop` ends the campaign: `$LOOP report` and give the owner `report.md`.
-8. **After compaction**, read the receipt file for `next_argv` and run it, then `$LOOP status`. Never replay a `done`.
+3. **Start the campaign.** Ask the owner for the budget (seconds, turns or spend: the quota is aggregate, never renews, and `init`
+   refuses a campaign without one), then
+   `loop init --manifest "$M" --campaign "$C" --workspace "$WS" --cases CHEAPEST_CASE --budget seconds=3600,turns=400`. `C` is a new
+   folder, separate from `WS`; `init` makes it a small Git repo that holds only campaign state, and everything bulky goes to `W`. A
+   hosted or other owner-gated case is released only by the owner (`--approve-case ID --yes-owner-approved`). Begin with the cheapest
+   case that exposes the subject; widening is the loop's job.
+4. **Ratify. Nothing runs before this.** Show the owner `boundary_sha256`, the pinned commands and files, `capability`, `env_allow`,
+   `timeout_seconds` and the owner-only list. Only after the owner says yes in this conversation:
+   `loop ratify --campaign "$C" --yes-owner-approved --note "what they approved"`. Then
+   `loop readiness --manifest "$M" --campaign "$C" --require-start`: it runs the effectful probes and records the result. `step`
+   refuses to start (it prints `blocked`) until both are done.
+5. **Open the scope contract.** `mkdir -p "$W/until"`, then `loop contract --campaign "$C" --out "$W/contract-S0.json"`, then
+   `until_loop start --isolated --directory "$W/until" --receipt "$W/receipt-S0.json" < "$W/contract-S0.json"`
+   ([references/until-loop.md](references/until-loop.md)). Use absolute, resolved paths, and keep these files out of `C`.
+6. **Do one iteration per packet.** Repeat `loop step --campaign "$C"` until a step finishes (it polls while one runs; a `task` is
+   yours to do). Then run the packet's `verify_script` exactly as printed, read `loop certificate`, and report with the packet's
+   `done_argv` **with nothing in between**: a campaign verb that writes state after the verify run makes the runtime refuse a
+   satisfied report (run the verify script again). Classification `trivial` only when `status` shows the last iteration was quiet;
+   `satisfied` only when the certificate is `converged` and every check line printed `exit=0`; continuation `allowed` unless `step`
+   printed a stop or `blocked`.
+7. **When the scope contract completes**, run `loop step`. A `widen` opened a new scope: emit and start a new contract for it (new
+   file names and receipt, `S1`, `S2`, ...). A `stop` ends the campaign: `loop report` and give the owner `report.md`.
+8. **After compaction**, read the receipt file for `next_argv` and run it, then `loop status`. Never replay a `done`.
 
 ## The checkpoint after every finished step
 
 Read the whole backlog (`certificate`, `checks.C1.detail`), not a truncated view. Group related findings by hypothesis; do not bundle
 unrelated fixes into one candidate. Choose the smallest experiment that discriminates (rung E0 in
 [references/escalation.md](references/escalation.md)). Record what you could not determine with
-`$LOOP unknown --campaign C add --text "..." [--inside-claim]`. `$LOOP next` prints the next action without doing it, and
-`$LOOP coverage` lists what the scope covers and which cases could widen it. Continue while a material actionable idea or coverage
+`loop unknown --campaign "$C" add --text "..." [--inside-claim]`. `loop next` prints the next action without doing it, and
+`loop coverage` lists what the scope covers and which cases could widen it. Continue while a material actionable idea or coverage
 gap has a useful next investigation inside the recorded authority.
 
 ## What `step` prints
@@ -85,18 +96,23 @@ gap has a useful next investigation inside the recorded authority.
 | action | meaning | you |
 | --- | --- | --- |
 | `start`, `poll` | a step started or is still running; its finished iteration is persisted | repeat `step` |
-| `task` | the orchestrator needs an investigation it cannot run (diagnose a stall, hunt blind spots) | do it, `task done --id T --result JSON`; a task that `needs_owner` waits for `--approve` |
+| `task` | the orchestrator needs an investigation it cannot run (diagnose a stall, hunt blind spots) | do it, then `task done --id T --result JSON [--consumed JSON]`. A task that `needs_owner` is **asked about first**: tell the owner what it would do, act only after they say yes, then pass `--approve`. A `hunt` result must give every blind spot a disposition ([references/escalation.md](references/escalation.md)) |
 | `widen` | the scope converged and an allowed catalog case covers a value the scope lacks (the cheapest such case was added) | open the new scope's contract; its first iteration is a baseline sweep with no improver |
-| `stop` | `converged` or `incomplete`, with a rung, a reason and a written report | `report`, then tell the owner; an owner-gated case is released with `approve --case ID --yes-owner-approved` |
+| `blocked` (exit 1) | the owner has not ratified the boundary, readiness has not shown the start rule, or a selected case is owner-gated | do what the reason says; never route around it |
+| `stop` | `converged` or `incomplete`, with a rung, a reason and a written report | `report`, then tell the owner. The owner clears a stop they have resolved with `reopen --yes-owner-approved [--budget k=v]` and releases an owner-gated case with `approve --case ID --yes-owner-approved` |
+
+Also: `cancel --key K` abandons a running step (it becomes an invalid iteration), and `cleanup` runs the adapter's owned cleanup for
+every run that lacks positive cleanup evidence, which check C5 needs after a failed or cancelled run. Neither makes a certificate.
 
 ## Define the adapter
 
 A new subject has no adapter. Read [prompts/definer.md](prompts/definer.md): a model reads the subject and proposes the missing slots
-into a staging folder (never into the subject): per slot `found`, `proposed` or `unknown`, pinned argument lists, risks and
-`needs_owner`. Run `adapter-check` on the proposal, show the owner the execution boundary, and only after they ratify validate each
-claim by running `readiness`; a failed probe goes back to the definer with its output. Proposals and declarations are never
-evidence: only a probe that ran is. The run reviewer reports adapter gaps every iteration with
-[prompts/adapter-gap.md](prompts/adapter-gap.md).
+into a staging folder (never into the subject), as `definer-proposal.json` (per slot `found`, `proposed` or `unknown`, risks,
+`needs_owner`) and a bare `adapter.proposed.json` manifest. Run `loop adapter-check --manifest adapter.proposed.json --proposal
+definer-proposal.json` (it refuses a malformed slot, a `found` slot without evidence and a grader among the candidate paths), show the
+owner the execution boundary, and only after they ratify validate each claim by running `readiness`; a failed probe goes back to the definer with its
+output. Proposals and declarations are never evidence: only a probe that ran is. The run reviewer reports adapter gaps every
+iteration with [prompts/adapter-gap.md](prompts/adapter-gap.md).
 
 ## Rules that do not bend
 
@@ -115,9 +131,12 @@ evidence: only a probe that ran is. The run reviewer reports adapter gaps every 
 ## Honest limits (v0)
 
 Only a fake subject is tested; the ShipLoop adapter and its continuation seam are the next phase. The definer is untested on a real
-subject. This skill binds `improve`'s Until Loop runtime by a package-relative path instead of owning a copy. K = 2 quiet iterations is
-an operational default, not calibrated evidence. Guard sets for qualified comparisons and statistical policy live in the adapter, not
-here. Whether a subject's evaluator is sensitive is something only its probes can show.
+subject. This skill binds `improve`'s Until Loop runtime by a package-relative path instead of owning a copy. K = 2 quiet iterations
+is an operational default, not calibrated evidence. Guard sets for qualified comparisons and statistical policy live in the adapter,
+not here. Whether a subject's evaluator is sensitive is something only its probes can show. The script checks the evidence an
+adapter reports and cannot show that the adapter reported truthfully: the ratified boundary and the pinned adapter files are the
+trust. The budget is checked between steps, so one step can overshoot it. The Until Loop's freshness check watches the campaign
+folder, not the subject: verify and report back to back.
 
 ## References
 

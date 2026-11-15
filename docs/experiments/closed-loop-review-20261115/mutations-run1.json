@@ -1,0 +1,231 @@
+[
+  {
+    "mutation": "evidence validation off",
+    "classes": [
+      "EvidenceTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "window ignores the active scope",
+    "classes": [
+      "EvidenceTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "C5 looks only at the last run",
+    "classes": [
+      "EvidenceTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "C1 accepts resolved without evidence",
+    "classes": [
+      "CertificateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "start gates off",
+    "classes": [
+      "GateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "quiet window below one allowed",
+    "classes": [
+      "StateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "contract checks lose scope and identity",
+    "classes": [
+      "ContractTests",
+      "EvidenceTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "hunt findings ignored",
+    "classes": [
+      "EvidenceTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "failed calls not charged",
+    "classes": [
+      "QuotaTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (errors=1)"
+  },
+  {
+    "mutation": "contract workspace is the subject",
+    "classes": [
+      "ContractTests",
+      "UntilLoopTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "journal not idempotent",
+    "classes": [
+      "ResumeTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "state not validated on load",
+    "classes": [
+      "StateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "start failures never stop",
+    "classes": [
+      "QuotaTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "check ignores expected scope",
+    "classes": [
+      "EvidenceTests",
+      "CertificateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "finish_step skips validation",
+    "classes": [
+      "EvidenceTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "no-progress stop off",
+    "classes": [
+      "ResumeTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "regression stop off",
+    "classes": [
+      "ResumeTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "budget optional",
+    "classes": [
+      "StateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "pins not hashed",
+    "classes": [
+      "ManifestTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "stale build not detected",
+    "classes": [
+      "CertificateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "failed step cost dropped",
+    "classes": [
+      "QuotaTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "unknown inside claim ignored",
+    "classes": [
+      "CertificateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "stale converged stop kept",
+    "classes": [
+      "EvidenceTests"
+    ],
+    "result": "SURVIVED",
+    "tail": "OK"
+  },
+  {
+    "mutation": "owner task approval off",
+    "classes": [
+      "EscalationTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "owner gate on ratify off",
+    "classes": [
+      "ReadinessTests",
+      "EscalationTests",
+      "QuotaTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "budget never stops",
+    "classes": [
+      "QuotaTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "acceptance not checked",
+    "classes": [
+      "CertificateTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "candidate overlap allowed",
+    "classes": [
+      "ProposalTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  }
+]

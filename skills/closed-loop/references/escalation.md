@@ -6,9 +6,16 @@ certificate (`analyze` in `closed_loop.py`); the operator does not guess.
 | Mode | Signal | What happens |
 | --- | --- | --- |
 | **converged** | all seven checks pass | `step` widens (E1) or stops (E5) |
-| **blocked** | no actionable material record remains but owner-gated ones do; or the quota is used; or the same step error three times | `step` stops `incomplete` with the reasons |
+| **blocked** | no actionable material record remains but owner-gated ones do | `step` stops `incomplete` with the reasons |
 | **stalled** | actionable records (or an unexplained C3 failure) remain and the last two iterations of the scope promoted nothing | `step` hands you a `diagnose` task (E0); two completed diagnoses since the last promotion stop the campaign for the owner |
 | **active** | otherwise | `step` starts the next step |
+
+`step` also stops `incomplete` before it analyses anything when: the budget is used; the same step error occurred three times; the
+adapter failed to start the same step three times (its key is kept across retries, so a retry can never launch a second run); three
+iterations at a scope passed with no quiet pass, no promoted candidate and no finished task; or a case that met its floors before a
+promoted candidate misses them on the build it produced (a **metric regression**: halt, never auto-revert). The owner clears these
+with `reopen --yes-owner-approved [--budget ...]` after deciding what to do. `step` prints `blocked` (exit 1) rather than starting
+when the owner has not ratified the boundary, readiness has not shown the start rule, or a selected case is owner-gated.
 
 ## The ladder is a menu, chosen by the signal
 
@@ -20,11 +27,13 @@ run irrelevant catalog cases before one.
 | **E0** | a cheap probe: read the failing runs' upstream records, run the real case to the stage and stop it, or ask one advisor the stuck question | you, from a `diagnose` task | routine |
 | **E1** | add a catalog case that covers a dimension value the scope lacks: the cheapest by `cost`, then the one covering most uncovered values, then the id; owner-gated cases are skipped | the script (`widen`) | routine within the budget |
 | **E2** | a deeper instrument: attempts per arm fixed before any run (no sampling until a candidate promotes); another host or model profile is a separate baseline cell; changing a tolerance is the owner's | you and the adapter (`task add --kind deepen`) | routine within the budget |
-| **E3** | widen the critique: [the blind-spot hunter](../prompts/blind-spot-hunter.md) and one read-only advisor propose cases or probes, never changes; a panel only on disagreement | you (a `hunt` task when the catalog is fully covered) | routine |
+| **E3** | widen the critique: [the blind-spot hunter](../prompts/blind-spot-hunter.md) and one read-only advisor propose cases or probes, never changes; a panel only on disagreement | you (a `hunt` task when the catalog is fully covered). Close it with `task done --result '{"blind_spots": [{"what", "disposition": "rejected\|deferred-to-owner\|added-as-task", "reason"}]}'`: every blind spot needs a disposition, and only a **rejection with a reason** lets the campaign converge; any other leaves it `incomplete` at E3 | routine |
 | **E4** | author a new case for a named blind spot; it must `run` and be sensitive before it enters the catalog | you and the definer (`task add --kind author-case --needs-owner` when hosted, spending or one-way) | owner for hosted, spend or one-way |
 | **E5** | stop with the report: `converged` or `incomplete`, for a named scope, with options for the owner | the script | n/a |
 
-An owner-gated case is released with `approve --case ID --yes-owner-approved`; the campaign reopens and widens to it.
+An owner-gated case is released with `approve --case ID --yes-owner-approved`; the campaign reopens and widens to it. A task that
+`needs_owner` is **asked about before it is done**: tell the owner what it would do, do it only after they say yes, then
+`task done --id T --approve`. Effort a task or probe spends goes in `--consumed` so the quota sees it.
 
 ## Rules for a widened scope
 

@@ -3,15 +3,18 @@
 
 The fake subject (test/fixtures/closed-loop-fake/adapter.py) has three planted defects in three styles of case, a scripted improver
 and an idempotent step protocol, so every property here is deterministic and no model is called. The classes follow the plan
-(docs/closed-loop-plan-2026-11-15.md): manifest and execution boundary, readiness as script-proven claims, state that is never
-silently recreated, the seven-check convergence certificate with its incomplete outcome, the escalation demo (converge, widen on an
-uncovered style, find what only the new case exposes, stop on an owner-only rung), duplicate resume, aggregate quota, and an
-emitted contract that the vendored Until Loop runtime accepts, completes on the script-owned certificate and refuses to complete on
-a failing or stale check.
+(docs/closed-loop-plan-2026-11-15.md) and the Astra max review of the first build (docs/experiments/closed-loop-review-20261115/):
+manifest and execution boundary, readiness as script-proven claims, the gates that stop anything running before the owner has
+ratified the boundary, state that is never silently recreated or silently trusted, evidence that is validated before it can count,
+the seven-check convergence certificate and its incomplete outcome, the escalation demo (converge, widen on an uncovered style, find
+what only the new case exposes, stop on an owner-only rung), duplicate resume, an aggregate quota that charges failures and hangs,
+campaign isolation, and an emitted contract that the vendored Until Loop runtime accepts, completes on the script-owned certificate
+and refuses to complete on a failing or stale check.
 """
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -37,48 +40,46 @@ RUNTIME = ROOT / "skills" / "improve" / "runtime" / "until-loop" / "scripts" / "
 _spec = importlib.util.spec_from_file_location("closed_loop", SCRIPT)
 cl = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cl)
-GIT_ENV = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull}
+DEFAULT_BUDGET = "seconds=100000,turns=100000"
+START_CLAIMS = {"cases.runs:A1": {"effect": "effectful"}, "grading.scores": {"effect": "effectful"},
+                "improver.bounded": {"effect": "effectful"}}  # the three the start rule needs: most tests need nothing more
+FULL_CLAIMS = {**START_CLAIMS, "grading.sensitive:d1": {"effect": "effectful"}, "grading.calibrated:fake": {"effect": "read-only"},
+               "improver.invocable": {"effect": "effectful"}}
+SH = {"shell": True, "executable": "/bin/sh", "capture_output": True, "text": True}
 
 
-def git(*args, cwd=None):
-    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false", *args],
-                   cwd=cwd, check=True, capture_output=True, text=True, env=GIT_ENV)
+def tree_digest(folder: Path) -> dict:
+    """Relative path -> content hash of every file under folder, ignoring Git's own folder."""
+    return {path.relative_to(folder).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted(folder.rglob("*")) if path.is_file() and ".git" not in path.relative_to(folder).parts}
 
 
 class Lab:
     """A throwaway campaign: a workspace, a manifest over the fake subject, and helpers that drive the orchestrator in process."""
 
-    def __init__(self, case: unittest.TestCase, linked_worktree: bool = False, **overrides) -> None:
+    def __init__(self, case: unittest.TestCase, timeout: float = 60, **overrides) -> None:
         self.case = case
         self.tmp = Path(tempfile.mkdtemp(prefix="closed-loop-test-")).resolve()  # resolved: Until Loop refuses a /var symlink
         case.addCleanup(shutil.rmtree, self.tmp, True)
         self.ws = self.tmp / "ws"
-        if linked_worktree:
-            repo = self.tmp / "repo"
-            repo.mkdir()
-            git("init", "-q", cwd=repo)
-            (repo / "README").write_text("a subject repository\n")
-            git("add", "-A", cwd=repo)
-            git("commit", "-q", "-m", "initial", cwd=repo)
-            git("worktree", "add", "-q", "-b", "campaign", str(self.ws), cwd=repo)
-        else:
-            self.ws.mkdir()
+        self.ws.mkdir()
+        self.adapter = self.tmp / "adapter.py"  # a copy, so a test can edit the pinned adapter
+        shutil.copy(FAKE, self.adapter)
         self.campaign = self.tmp / "campaign"
+        self.work = self.tmp / "campaign.work"
         self.manifest_path = self.tmp / "manifest.json"
-        self.manifest_path.write_text(json.dumps(self.manifest(**overrides), indent=2))
+        self.manifest_path.write_text(json.dumps(self.manifest(self.adapter, timeout, **overrides), indent=2))
 
     @staticmethod
-    def manifest(**overrides) -> dict:
-        commands = {verb: [sys.executable, str(FAKE), verb] for verb in ("cases", "records", "identity", "probe")}
-        commands["step"] = [sys.executable, str(FAKE), "step"]
+    def manifest(adapter=FAKE, timeout: float = 60, **overrides) -> dict:
+        commands = {verb: [sys.executable, str(adapter), verb] for verb in ("cases", "records", "identity", "probe")}
+        commands["step"] = [sys.executable, str(adapter), "step"]
         base = {
             "contract": "closed-loop-adapter/1", "subject": {"name": "fake", "mission": ["planted defects d1 to d3"]},
-            "execution": {"cwd": ".", "env_allow": [], "capability": "writes-worktree",
-                          "cleanup": [sys.executable, str(FAKE), "cleanup"]},
+            "execution": {"cwd": ".", "env_allow": [], "capability": "writes-worktree", "timeout_seconds": timeout,
+                          "cleanup": [sys.executable, str(adapter), "cleanup"], "pin": [str(adapter)]},
             "commands": commands,
-            "claims": {"cases.runs:A1": {"effect": "effectful"}, "grading.scores": {"effect": "effectful"},
-                       "grading.sensitive:d1": {"effect": "effectful"}, "grading.calibrated:fake": {"effect": "read-only"},
-                       "improver.bounded": {"effect": "effectful"}, "improver.invocable": {"effect": "effectful"}},
+            "claims": dict(START_CLAIMS),
             "dimensions": ["style"], "quiet_window": 2, "evaluation_class": "scripted",
             "authority": {"routine": ["run cases", "investigate"], "owner_only": ["hosted cases"],
                           "owner_only_requires": ["hosted"]}}
@@ -97,9 +98,21 @@ class Lab:
         self.case.assertEqual(code, 0, f"{argv} -> {code} {err}")
         return out
 
-    def init(self, cases="A1", *extra):
-        return self.ok("init", "--manifest", self.manifest_path, "--campaign", self.campaign, "--workspace", self.ws,
-                       "--cases", cases, *extra)
+    def init(self, cases="A1", *extra, ready=True, campaign=None):
+        target = campaign or self.campaign
+        args = ["init", "--manifest", self.manifest_path, "--campaign", target, "--workspace", self.ws, "--cases", cases]
+        if "--budget" not in extra:
+            args += ["--budget", DEFAULT_BUDGET]
+        out = self.ok(*args, *extra)
+        if ready:
+            self.ready(target)
+        return out
+
+    def ready(self, campaign=None):
+        """What the owner and the operator do before anything runs: ratify the boundary, then show the start rule."""
+        target = campaign or self.campaign
+        self.ok("ratify", "--campaign", target, "--yes-owner-approved", "--note", "test boundary")
+        return self.ok("readiness", "--manifest", self.manifest_path, "--campaign", target, "--require-start")
 
     def config(self, **updates) -> None:
         path = self.ws / "fake-config.json"
@@ -113,8 +126,8 @@ class Lab:
     def write_state(self, state: dict) -> None:
         (self.campaign / "campaign.json").write_text(json.dumps(state))
 
-    def step(self):
-        return self.ok("step", "--campaign", self.campaign)
+    def step(self, campaign=None):
+        return self.ok("step", "--campaign", campaign or self.campaign)
 
     def run(self, limit=60) -> list:
         """Step until the orchestrator stops or hands the operator a task; return every action taken."""
@@ -128,9 +141,27 @@ class Lab:
     def certificate(self) -> dict:
         return self.cli("certificate", "--campaign", self.campaign)[1]
 
+    def check(self, clause: str, *extra):
+        return self.cli("check", "--campaign", self.campaign, "--clause", clause, *extra)
+
     def starts(self) -> list:
         path = self.ws / "fake-starts.log"
         return path.read_text().split() if path.is_file() else []
+
+
+CATALOG_AB = [{"id": case, "dimensions": {"a": first, "b": second}, "cost": 1, "requires": [], "hosted": False}
+              for case, first, second in (("AX", "A", "X"), ("BY", "B", "Y"), ("AY", "A", "Y"))]
+STDLIB_IMPORTS = {"__future__", "argparse", "contextlib", "datetime", "fcntl", "hashlib", "json", "math", "os", "pathlib", "posixpath",
+                  "secrets", "shlex", "subprocess", "sys", "time"}  # a new import of the orchestrator is a deliberate edit of this set
+
+
+def good_facts(cases, build_before="b0", build_after="b0") -> dict:
+    return {
+        "build_before": build_before, "build_after": build_after, "scoring": "score-1",
+        "cases": {case: {"ran": True, "floors_met": True, "baseline": "comparable"} for case in cases},
+        "review": {"valid": True, "complete": True}, "judge": {"valid": True, "complete": True}, "discoveries": [],
+        "candidate": None, "invalid": [], "cleanup": {"verified": True, "receipt": "r"},
+        "tier": {"green": True, "build": build_after}, "acceptance": None, "consumed": {"seconds": 1}}
 
 
 class ManifestTests(unittest.TestCase):
@@ -164,25 +195,58 @@ class ManifestTests(unittest.TestCase):
         good = Lab.manifest(evaluation_class="judge-only", judge_reliability={"kappa": 0.8})
         self.assertEqual(cl.validate_manifest(good), [])
 
-    def test_the_boundary_hash_follows_commands_and_authority_not_descriptive_text(self):
+    def test_the_timeout_pins_window_and_combinations_are_validated(self):
+        for field, value, expected in (("timeout", 0, "timeout_seconds"), ("pin", "adapter.py", "execution.pin"),
+                                       ("quiet_window", 0, "quiet_window"), ("quiet_window", True, "quiet_window"),
+                                       ("combinations", [["style", "nope"]], "combinations")):
+            manifest = Lab.manifest()
+            if field == "timeout":
+                manifest["execution"]["timeout_seconds"] = value
+            elif field == "pin":
+                manifest["execution"]["pin"] = value
+            else:
+                manifest[field] = value
+            self.assertTrue(any(expected in error for error in cl.validate_manifest(manifest)), (field, value))
+
+    def test_the_boundary_hash_follows_commands_authority_and_pinned_files_not_descriptive_text(self):
+        pinned = Path(tempfile.mkdtemp(prefix="closed-loop-pin-"))
+        self.addCleanup(shutil.rmtree, pinned, True)
+        (pinned / "grader.py").write_text("print('v1')\n")
         base = Lab.manifest()
-        changed = Lab.manifest()
+        base["execution"]["pin"] = [str(pinned / "grader.py")]
+        before = cl.boundary_hash(base, ROOT)
+        changed = json.loads(json.dumps(base))
         changed["commands"]["cases"] = [sys.executable, str(FAKE), "cases", "--extra"]
-        reworded = Lab.manifest()
-        reworded["subject"]["mission"] = ["something else entirely"]
-        wider = Lab.manifest()
+        wider = json.loads(json.dumps(base))
         wider["authority"]["owner_only_requires"] = []
-        self.assertNotEqual(cl.boundary_hash(base), cl.boundary_hash(changed))
-        self.assertNotEqual(cl.boundary_hash(base), cl.boundary_hash(wider))
-        self.assertEqual(cl.boundary_hash(base), cl.boundary_hash(reworded))
+        reworded = json.loads(json.dumps(base))
+        reworded["subject"]["mission"] = ["something else entirely"]
+        self.assertNotEqual(before, cl.boundary_hash(changed, ROOT))
+        self.assertNotEqual(before, cl.boundary_hash(wider, ROOT))
+        self.assertEqual(before, cl.boundary_hash(reworded, ROOT))
+        (pinned / "grader.py").write_text("print('v2')\n")  # the evaluator changed under an unchanged manifest
+        self.assertNotEqual(before, cl.boundary_hash(base, ROOT))
+        (pinned / "grader.py").unlink()
+        with self.assertRaisesRegex(cl.LoopError, "does not exist"):
+            cl.boundary_hash(base, ROOT)
 
     def test_a_manifest_changed_after_init_is_refused(self):
         lab = Lab(self)
         lab.init()
-        lab.manifest_path.write_text(json.dumps(Lab.manifest(quiet_window=3)))
+        lab.manifest_path.write_text(json.dumps(Lab.manifest(lab.adapter, quiet_window=3)))
         code, _, err = lab.cli("status", "--campaign", lab.campaign)
         self.assertEqual(code, cl.EXIT_ERROR)
-        self.assertIn("manifest changed since init", err)
+        self.assertIn("changed since init", err)
+
+    def test_a_pinned_adapter_file_changed_after_init_is_refused_even_though_the_manifest_is_not(self):
+        lab = Lab(self)
+        lab.init()
+        lab.adapter.write_text(lab.adapter.read_text() + "\n# an edit after the owner ratified the boundary\n")
+        for verb in ("status", "step", "certificate"):
+            code, _, err = lab.cli(verb, "--campaign", lab.campaign)
+            self.assertEqual(code, cl.EXIT_ERROR, verb)
+            self.assertIn("changed since init", err)
+        self.assertEqual(lab.starts(), [])
 
     def test_the_adapter_runs_in_a_controlled_environment(self):
         script = ("import json, os; print(json.dumps({'visible': os.environ.get('CL_TEST_VISIBLE'), "
@@ -194,31 +258,96 @@ class ManifestTests(unittest.TestCase):
             out = cl.call_adapter(manifest, ROOT, "identity", workspace="/somewhere")
         self.assertEqual(out, {"visible": "yes", "hidden": None, "workspace": "/somewhere"})
 
+    def test_adapter_failures_are_loud_errors_never_silently_empty(self):
+        manifest = Lab.manifest()
+        for code, expected in (("print('not json')", "printed no JSON object"), ("print('[1]')", "must print a JSON object"),
+                               ("import sys; sys.exit(3)", "exited 3"), ("raise SystemExit('boom')", "exited 1")):
+            manifest["commands"]["identity"] = [sys.executable, "-c", code]
+            with self.assertRaisesRegex(cl.LoopError, expected):
+                cl.call_adapter(manifest, ROOT, "identity")
+        manifest["commands"]["identity"] = ["/no/such/program"]
+        with self.assertRaisesRegex(cl.LoopError, "could not start"):
+            cl.call_adapter(manifest, ROOT, "identity")
+
+
+class ProposalTests(unittest.TestCase):
+    """A definer's proposal is validated by a script: its shape, its evidence, and that no grader is in the improver's candidate set."""
+
+    @staticmethod
+    def proposal(**changes) -> dict:
+        slots = {name: {"status": "proposed", "evidence": ["README.md:1"], "value": None} for name in cl.SLOT_NAMES}
+        slots["improvement"]["value"] = {"candidate_paths": ["skills/x/"], "withheld_paths": ["held/"],
+                                         "evaluator_paths": ["graders/", "adapter.json"], "verify": ["true"]}
+        base = {"contract": "closed-loop-definer/1", "slots": slots, "risks": [], "needs_owner": [], "unknowns": []}
+        base.update(changes)
+        return base
+
+    def test_a_well_formed_proposal_passes_adapter_check_and_lists_its_unknown_slots(self):
+        lab = Lab(self)
+        proposal = self.proposal()
+        proposal["slots"]["records"] = {"status": "unknown", "evidence": [], "value": None}
+        path = lab.tmp / "definer-proposal.json"
+        path.write_text(json.dumps(proposal))
+        out = lab.ok("adapter-check", "--manifest", lab.manifest_path, "--proposal", path)
+        self.assertEqual(out["proposal"], {"ok": True, "unknown_slots": ["records"]})
+
+    def test_a_grader_or_withheld_path_among_the_candidate_paths_is_refused(self):
+        for candidate in ("graders/", "graders/score.py", "adapter.json", "held/notes.md", "./graders", "skills/../graders", ".", ""):
+            proposal = self.proposal()
+            proposal["slots"]["improvement"]["value"]["candidate_paths"] = [candidate]
+            errors = cl.validate_proposal(proposal)
+            self.assertTrue(any("overlaps an evaluator or withheld path" in error for error in errors), candidate)
+        proposal = self.proposal()
+        proposal["slots"]["improvement"]["value"]["candidate_paths"] = ["skills/x/", "graders-notes/", "docs"]
+        self.assertEqual(cl.validate_proposal(proposal), [])  # a shared name prefix is not overlap
+
+    def test_a_malformed_proposal_is_refused_with_its_reasons(self):
+        self.assertTrue(cl.validate_proposal("text"))
+        self.assertTrue(cl.validate_proposal(self.proposal(contract="other/1")))
+        missing = self.proposal()
+        del missing["slots"]["steps"]
+        self.assertIn("slots must be exactly", cl.validate_proposal(missing)[0])
+        bad_status = self.proposal()
+        bad_status["slots"]["cases"]["status"] = "guessed"
+        self.assertTrue(any("slot cases needs a status" in error for error in cl.validate_proposal(bad_status)))
+        no_evidence = self.proposal()
+        no_evidence["slots"]["cases"] = {"status": "found", "evidence": [], "value": []}
+        self.assertTrue(any("found without evidence" in error for error in cl.validate_proposal(no_evidence)))
+        self.assertTrue(any("risks must be a list" in error for error in cl.validate_proposal(self.proposal(risks="none"))))
+        lab = Lab(self)
+        path = lab.tmp / "bad.json"
+        path.write_text(json.dumps(self.proposal(contract="other/1")))
+        code, _, err = lab.cli("adapter-check", "--manifest", lab.manifest_path, "--proposal", path)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("invalid definer proposal", err)
+        code, _, err = lab.cli("adapter-check", "--manifest", lab.manifest_path, "--proposal", lab.tmp / "missing.json")
+        self.assertIn("cannot read the proposal", err)
+
 
 class ReadinessTests(unittest.TestCase):
     def test_effectful_claims_are_not_probed_until_the_owner_ratifies(self):
-        lab = Lab(self)
-        lab.init()
+        lab = Lab(self, claims=FULL_CLAIMS)
+        lab.init(ready=False)
         before = lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
         self.assertFalse(before["start_ok"])
         self.assertEqual(before["claims"]["cases.runs:A1"]["state"], "declared")
         self.assertIn("not run", before["claims"]["cases.runs:A1"]["evidence"])
         self.assertEqual(before["claims"]["grading.calibrated:fake"]["state"], "unmeasured")  # read-only: probed
-        self.assertIsNotNone(before["claims"]["grading.calibrated:fake"]["evidence"] or "probed")
+        self.assertEqual(lab.starts(), [])
 
     def test_ratification_is_the_owners_act(self):
         lab = Lab(self)
-        lab.init()
+        lab.init(ready=False)
         code, _, err = lab.cli("ratify", "--campaign", lab.campaign)
         self.assertEqual(code, cl.EXIT_ERROR)
         self.assertIn("owner's decision", err)
         self.assertIsNone(lab.state()["ratification"])
         out = lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved", "--note", "boundary read")
-        self.assertEqual(out["ratified"]["boundary_sha256"], cl.boundary_hash(Lab.manifest()))
+        self.assertEqual(out["ratified"]["boundary_sha256"], cl.boundary_hash(Lab.manifest(lab.adapter), lab.tmp))
 
-    def test_after_ratification_claims_are_proven_and_say_what_they_allow(self):
-        lab = Lab(self)
-        lab.init()
+    def test_after_ratification_claims_are_proven_say_what_they_allow_and_are_recorded(self):
+        lab = Lab(self, claims=FULL_CLAIMS)
+        lab.init(ready=False)
         lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
         report = lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign, "--require-start")
         self.assertTrue(report["start_ok"])
@@ -227,12 +356,16 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual(report["claims"]["improver.invocable"]["state"], "invocable")
         allowed = " | ".join(report["allowed_claims"])
         self.assertIn("labelled 'stated, not measured'", allowed)
-        self.assertIn("no quality claim is allowed yet", allowed)  # the oracle is valid but not shown sensitive
+        self.assertIn("no quality claim is allowed yet", allowed)  # the oracle scores but is not shown sensitive
         self.assertIn("plumbing only", report["note"])
+        recorded = lab.state()["readiness"]  # persisted: the start gate, the certificate and the report read it
+        self.assertTrue(recorded["start_ok"])
+        self.assertEqual(recorded["boundary_sha256"], report["boundary_sha256"])
+        self.assertEqual(recorded["allowed_claims"], report["allowed_claims"])
 
     def test_sensitivity_and_calibration_unlock_the_claims_they_prove(self):
-        lab = Lab(self)
-        lab.init()
+        lab = Lab(self, claims=FULL_CLAIMS)
+        lab.init(ready=False)
         lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
         lab.config(sensitive={"d1": True}, calibrated={"fake": True})
         report = lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
@@ -241,8 +374,8 @@ class ReadinessTests(unittest.TestCase):
         self.assertIn("measured efficiency on profile fake", allowed)
 
     def test_an_insensitive_evaluator_scores_but_is_not_sensitive_and_a_missing_bound_blocks_the_start(self):
-        lab = Lab(self)
-        lab.init()
+        lab = Lab(self, claims=FULL_CLAIMS)
+        lab.init(ready=False)
         lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
         lab.config(bounded=False)
         code, report, _ = lab.cli("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign, "--require-start")
@@ -255,8 +388,7 @@ class ReadinessTests(unittest.TestCase):
         manifest = Lab.manifest()
         with mock.patch.object(cl, "call_adapter", return_value={"state": "magnificent"}), \
                 self.assertRaisesRegex(cl.LoopError, "allowed: declared, runs"):
-            cl.claim_states(dict(manifest, claims={"cases.runs:A1": {"effect": "read-only"}}),
-                            {"manifest_dir": ROOT, "dir": None}, None, True)
+            cl.claim_states(dict(manifest, claims={"cases.runs:A1": {"effect": "read-only"}}), ROOT, None, None, True)
 
     def test_a_manifest_without_the_three_start_claims_cannot_start(self):
         none = Lab(self, claims={})
@@ -270,13 +402,71 @@ class ReadinessTests(unittest.TestCase):
                                              "no improver.bounded claim has reached 'bounded'"])
 
 
+class GateTests(unittest.TestCase):
+    """Nothing runs before the owner has ratified the boundary, readiness has shown the start rule and every case is authorized."""
+
+    def test_nothing_starts_before_the_owner_ratifies_the_boundary(self):
+        lab = Lab(self)
+        lab.init(ready=False)
+        code, out, _ = lab.cli("step", "--campaign", lab.campaign)
+        self.assertEqual((code, out["action"]), (cl.EXIT_NOT_READY, "blocked"))
+        self.assertIn("not ratified", out["reason"])
+        self.assertEqual(lab.starts(), [])
+        self.assertEqual(lab.ok("next", "--campaign", lab.campaign)["action"], "blocked")
+
+    def test_ratification_alone_is_not_readiness(self):
+        lab = Lab(self)
+        lab.init(ready=False)
+        lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
+        code, out, _ = lab.cli("step", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_NOT_READY)
+        self.assertIn("readiness has not shown the start rule", out["reason"])
+        self.assertEqual(lab.starts(), [])
+
+    def test_readiness_that_fails_the_start_rule_blocks_the_start(self):
+        lab = Lab(self)
+        lab.init(ready=False)
+        lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
+        lab.config(bounded=False)
+        lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)  # recorded, though it does not pass
+        code, out, _ = lab.cli("step", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_NOT_READY)
+        self.assertIn("readiness has not shown the start rule", out["reason"])
+        self.assertEqual(lab.starts(), [])
+
+    def test_an_owner_gated_case_cannot_be_in_the_first_scope_without_the_owner(self):
+        lab = Lab(self)
+        code, _, err = lab.cli("init", "--manifest", lab.manifest_path, "--campaign", lab.campaign, "--workspace", lab.ws,
+                               "--cases", "C1", "--budget", DEFAULT_BUDGET)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("owner-gated cases need --approve-case", err)
+        code, _, err = lab.cli("init", "--manifest", lab.manifest_path, "--campaign", lab.campaign, "--workspace", lab.ws,
+                               "--cases", "C1", "--budget", DEFAULT_BUDGET, "--approve-case", "C1")
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("owner's decision", err)
+        self.assertFalse((lab.campaign / "campaign.json").exists())
+        lab.init("C1", "--approve-case", "C1", "--yes-owner-approved")
+        self.assertEqual(lab.step()["action"], "start")  # the owner released the hosted case, so it runs
+        self.assertEqual(len(lab.starts()), 1)
+
+    def test_a_changed_boundary_after_ratification_runs_nothing(self):
+        lab = Lab(self)
+        lab.init()
+        lab.adapter.write_text(lab.adapter.read_text() + "\n# widened\n")
+        code, _, err = lab.cli("step", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("changed since init", err)
+        self.assertEqual(lab.starts(), [])
+
+
 class StateTests(unittest.TestCase):
     def test_missing_state_is_an_error_and_is_never_recreated(self):
         lab = Lab(self)
-        code, _, err = lab.cli("status", "--campaign", lab.campaign)
-        self.assertEqual(code, cl.EXIT_ERROR)
-        self.assertIn("run init", err)
-        self.assertFalse((lab.campaign / "campaign.json").exists())
+        for verb in ("status", "step", "certificate", "report"):
+            code, _, err = lab.cli(verb, "--campaign", lab.campaign)
+            self.assertEqual(code, cl.EXIT_ERROR, verb)
+            self.assertIn("run init", err)
+        self.assertFalse(lab.campaign.exists())  # no verb but init creates a campaign folder
 
     def test_corrupt_state_is_refused_and_left_untouched(self):
         lab = Lab(self)
@@ -295,19 +485,66 @@ class StateTests(unittest.TestCase):
         self.assertEqual(code, cl.EXIT_ERROR)
         self.assertIn("is not a closed-loop-campaign/1 file", err)
 
+    def test_deeply_malformed_state_is_a_json_error_never_a_traceback(self):
+        lab = Lab(self)
+        lab.init()
+        lab.step()
+        good = lab.state()
+        breakers = {"an iteration that is not an object": lambda s: s.update(iterations=[1]),
+                    "an empty budget": lambda s: s.update(budget={}),
+                    "a negative quiet window": lambda s: s.update(quiet_window=-1),
+                    "steps as a list": lambda s: s.update(steps=[]),
+                    "a missing scope": lambda s: s.update(scope="S9"),
+                    "an iteration without cases": lambda s: s["iterations"][0].pop("cases"),
+                    "a non-numeric consumption": lambda s: s.update(consumed={"seconds": "ten"})}
+        for name, breaker in breakers.items():
+            state = json.loads(json.dumps(good))
+            breaker(state)
+            lab.write_state(state)
+            done = subprocess.run([sys.executable, str(SCRIPT), "status", "--campaign", str(lab.campaign)], capture_output=True,
+                                  text=True, check=False)
+            self.assertEqual(done.returncode, cl.EXIT_ERROR, name)
+            self.assertNotIn("Traceback", done.stderr, name)
+            self.assertIn("malformed", json.loads(done.stderr)["error"], name)
+
     def test_init_never_reinitialises_in_place_and_validates_its_inputs(self):
         lab = Lab(self)
         lab.init()
         code, _, err = lab.cli("init", "--manifest", lab.manifest_path, "--campaign", lab.campaign, "--workspace", lab.ws,
-                               "--cases", "A1")
+                               "--cases", "A1", "--budget", DEFAULT_BUDGET)
         self.assertEqual(code, cl.EXIT_ERROR)
         self.assertIn("already exists", err)
         other = Lab(self)
-        for cases, expected in (("A9", "not in the adapter's catalog"), ("", "needs at least one case")):
-            code, _, err = other.cli("init", "--manifest", other.manifest_path, "--campaign", other.campaign, "--workspace",
-                                     other.ws, "--cases", cases)
-            self.assertEqual(code, cl.EXIT_ERROR)
+        base = ["init", "--manifest", other.manifest_path, "--campaign", other.campaign, "--workspace", other.ws]
+        for extra, expected in ((["--cases", "A9", "--budget", DEFAULT_BUDGET], "not in the adapter's catalog"),
+                                (["--cases", "", "--budget", DEFAULT_BUDGET], "needs at least one case"),
+                                (["--cases", "A1"], "needs a budget"),
+                                (["--cases", "A1", "--budget", "seconds=0"], "positive amount"),
+                                (["--cases", "A1", "--budget", DEFAULT_BUDGET, "--quiet-window", "0"], "at least 1"),
+                                (["--cases", "A1", "--budget", DEFAULT_BUDGET, "--quiet-window", "-1"], "at least 1")):
+            code, _, err = other.cli(*base, *extra)
+            self.assertEqual(code, cl.EXIT_ERROR, extra)
             self.assertIn(expected, err)
+            self.assertFalse((other.campaign / "campaign.json").exists())
+
+    def test_the_campaign_folder_and_the_subject_workspace_are_kept_apart(self):
+        lab = Lab(self)
+        for campaign, workspace in ((lab.ws / "campaign", lab.ws), (lab.tmp, lab.ws), (lab.ws, lab.ws)):
+            code, _, err = lab.cli("init", "--manifest", lab.manifest_path, "--campaign", campaign, "--workspace", workspace,
+                                   "--cases", "A1", "--budget", DEFAULT_BUDGET)
+            self.assertEqual(code, cl.EXIT_ERROR, (campaign, workspace))
+            self.assertIn("separate folders", err)
+
+    def test_concurrent_initialisations_create_exactly_one_campaign(self):
+        lab = Lab(self)
+        args = [sys.executable, str(SCRIPT), "init", "--manifest", str(lab.manifest_path), "--campaign", str(lab.campaign),
+                "--workspace", str(lab.ws), "--cases", "A1", "--budget", DEFAULT_BUDGET]
+        procs = [subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
+        results = [(proc.communicate(), proc.returncode) for proc in procs]
+        self.assertEqual(sorted(code for _, code in results), [cl.EXIT_OK, cl.EXIT_ERROR])
+        loser = next(streams for streams, code in results if code == cl.EXIT_ERROR)
+        self.assertIn("already exists", loser[1])
+        self.assertEqual(lab.state()["scope"], "S0")
 
     def test_saves_are_atomic_and_leave_no_temporary_file(self):
         lab = Lab(self)
@@ -316,16 +553,228 @@ class StateTests(unittest.TestCase):
         self.assertEqual(sorted(path.name for path in lab.campaign.iterdir() if path.name.startswith("campaign.json")),
                          ["campaign.json"])
 
-    def test_queries_never_write_inside_the_workspace(self):
+    def test_bulky_files_go_beside_the_campaign_folder_never_in_it(self):
         lab = Lab(self)
         lab.init()
         lab.step()
-        before = sorted(str(path.relative_to(lab.ws)) for path in lab.ws.rglob("*"))
+        self.assertTrue((lab.work / "runs").is_dir())
+        self.assertEqual(sorted(path.name for path in lab.campaign.iterdir()),
+                         [".git", "campaign.json", "campaign.lock", "journal.md"])
+
+    def test_queries_never_write_inside_the_workspace_or_the_campaign_folder(self):
+        lab = Lab(self)
+        lab.init()
+        lab.step()
+        before = (tree_digest(lab.ws), tree_digest(lab.campaign), tree_digest(lab.work))
         for verb in ("certificate", "coverage", "status", "next"):
             lab.cli(verb, "--campaign", lab.campaign)
         for clause in cl.CLAUSES:
-            lab.cli("check", "--campaign", lab.campaign, "--clause", clause)
-        self.assertEqual(sorted(str(path.relative_to(lab.ws)) for path in lab.ws.rglob("*")), before)
+            lab.check(clause)
+        lab.cli("contract", "--campaign", lab.campaign)
+        self.assertEqual((tree_digest(lab.ws), tree_digest(lab.campaign), tree_digest(lab.work)), before)  # contents, not names
+
+
+class EvidenceTests(unittest.TestCase):
+    """Evidence is validated before it can count: malformed, partial or unrequested results never make a quiet iteration."""
+
+    def test_validate_facts_accepts_a_well_formed_report_and_rejects_every_malformed_shape(self):
+        self.assertEqual(cl.validate_facts(good_facts(["A1"]), ["A1"]), [])
+        other = {"ran": True, "floors_met": True, "baseline": "comparable"}
+        mutations = {
+            "ran as text": lambda f: f["cases"]["A1"].update(ran="true"),
+            "floors as a number": lambda f: f["cases"]["A1"].update(floors_met=1),
+            "an unknown baseline": lambda f: f["cases"]["A1"].update(baseline="maybe"),
+            "an omitted case": lambda f: f["cases"].pop("A1"),
+            "an unrequested case": lambda f: f["cases"].update(B1=other),
+            "a review without complete": lambda f: f["review"].pop("complete"),
+            "a judge valid as text": lambda f: f["judge"].update(valid="true"),
+            "a discovery without an id": lambda f: f["discoveries"].append({"material": True}),
+            "a discovery with a text flag": lambda f: f["discoveries"].append({"id": "D", "material": "yes"}),
+            "a candidate with an unknown outcome": lambda f: f.update(candidate={"id": "c", "hash": "h", "outcome": "MAYBE"}),
+            "invalid as text": lambda f: f.update(invalid="none"),
+            "a verified cleanup without a receipt": lambda f: f.update(cleanup={"verified": True}),
+            "a tier without a build": lambda f: f.update(tier={"green": True}),
+            "half an acceptance": lambda f: f.update(acceptance={"candidate": "h"}),
+            "a negative consumption": lambda f: f.update(consumed={"seconds": -1}),
+            "a boolean consumption": lambda f: f.update(consumed={"seconds": True}),
+            "a text consumption": lambda f: f.update(consumed={"seconds": "5"}),
+            "a NaN consumption": lambda f: f.update(consumed={"seconds": float("nan")}),
+            "an empty build": lambda f: f.update(build_after=""),
+            "a missing scoring identity": lambda f: f.update(scoring=None)}
+        for name, mutate in mutations.items():
+            facts = good_facts(["A1"])
+            mutate(facts)
+            self.assertTrue(cl.validate_facts(facts, ["A1"]), name)
+        self.assertTrue(cl.validate_facts("not an object", ["A1"]))
+
+    def test_a_malformed_report_from_an_adapter_is_a_failed_step_never_a_quiet_iteration(self):
+        for name, cases, config, expected in (
+                ("a boolean written as text", "A1", {"case_overrides": {"A1": {"ran": "true"}}}, "needs boolean ran"),
+                ("a scope case left out", "A1,B1", {"omit_cases": ["B1"]}, "no result for requested cases: B1"),
+                ("a case nobody asked for", "A1", {"extra_cases": ["B1"]}, "not requested: B1"),
+                ("a blank build identity", "A1", {"iteration_overrides": {"build_after": ""}}, "build_after must be non-empty")):
+            with self.subTest(name):
+                lab = Lab(self)
+                lab.init(cases)
+                lab.config(**config)
+                self.assertEqual(lab.step()["action"], "start")
+                state = lab.state()
+                record = state["iterations"][0]
+                self.assertTrue(record["failed"] and not record["quiet"])
+                self.assertIn("malformed adapter evidence", record["invalid"][0])
+                self.assertIn(expected, record["invalid"][0])
+                self.assertEqual(state["steps"][record["key"]]["status"], "failed")
+                self.assertEqual(lab.certificate()["status"], "incomplete")
+                self.assertEqual(lab.check("C7")[0], cl.EXIT_NOT_READY)
+
+    def test_an_iteration_that_ran_on_another_build_than_its_base_is_invalid(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(iteration_overrides={"build_before": "b7"})
+        lab.step()
+        record = lab.state()["iterations"][0]
+        self.assertFalse(record["quiet"])
+        self.assertTrue(any("the base was b0" in reason for reason in record["invalid"]))
+
+    def test_widening_starts_with_no_quiet_history_and_retires_the_old_contract(self):
+        lab = Lab(self)
+        lab.init("A1")
+        for _ in range(3):
+            lab.step()
+        contract = lab.ok("contract", "--campaign", lab.campaign)
+        first = contract["exit_checks"][0]["command"]
+        self.assertEqual(subprocess.run(first, check=False, **SH).returncode, cl.EXIT_OK)  # C1 holds at S0
+        self.assertEqual(lab.step()["action"], "widen")
+        cert = lab.certificate()  # S1 has not run: it cannot have converged on S0's evidence
+        self.assertEqual(cert["status"], "incomplete")
+        self.assertTrue(any(reason.startswith("C2:") and "only 0 iteration(s)" in reason for reason in cert["reasons"]))
+        self.assertTrue(any("style=beta" in reason for reason in cert["checks"]["C4"]["reasons"]))
+        stale = subprocess.run(first, check=False, **SH)  # the frozen S0 check no longer certifies whichever scope is current
+        self.assertEqual(stale.returncode, cl.EXIT_IDENTITY)
+        self.assertIn("this contract is for scope S0", json.loads(stale.stdout)["reasons"][0])
+
+    def test_a_contract_for_another_campaign_identity_is_refused(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        code, out, _ = lab.check("C1", "--expect-identity", "0" * 16)
+        self.assertEqual(code, cl.EXIT_IDENTITY)
+        self.assertIn("another campaign identity", out["reasons"][0])
+
+    def test_an_earlier_unclean_run_cannot_hide_behind_a_later_clean_one(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(iteration_overrides={"cleanup": {"verified": False}})
+        lab.step()
+        lab.config(iteration_overrides={})
+        lab.step()
+        lab.step()
+        code, out, _ = lab.check("C5")
+        self.assertEqual(code, cl.EXIT_NOT_READY)
+        self.assertTrue(any("iteration 1 has no positive cleanup evidence" in reason for reason in out["reasons"]))
+        self.assertEqual(lab.certificate()["status"], "incomplete")
+        cleaned = lab.ok("cleanup", "--campaign", lab.campaign)
+        self.assertEqual(len(cleaned["covered"]), 1)  # only the run without evidence
+        self.assertEqual(lab.certificate()["status"], "converged", lab.certificate()["reasons"])
+
+    def test_cleanup_that_is_not_verified_with_a_receipt_changes_nothing(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(iteration_overrides={"cleanup": {"verified": False}}, cleanup_unverified=True)
+        lab.step()
+        code, _, err = lab.cli("cleanup", "--campaign", lab.campaign)
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("did not report verified with a receipt", err)
+        self.assertFalse(lab.state()["iterations"][0]["cleanup"]["verified"])
+
+    def test_a_cancelled_step_is_an_invalid_iteration_that_needs_cleanup(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(poll_delay=3)
+        key = lab.step()["key"]
+        cancelled = lab.ok("cancel", "--campaign", lab.campaign, "--key", key)
+        self.assertIn("cleanup", cancelled["next"])
+        state = lab.state()
+        self.assertTrue(state["iterations"][0]["failed"])
+        self.assertEqual(state["steps"][key]["status"], "cancelled")
+        self.assertTrue(any("no positive cleanup evidence" in reason for reason in lab.check("C5")[1]["reasons"]))
+        self.assertEqual(lab.ok("cleanup", "--campaign", lab.campaign)["covered"], [key])
+        _, _, err = lab.cli("cancel", "--campaign", lab.campaign, "--key", key)
+        self.assertIn("no running step", err)
+
+    def hunt_lab(self):
+        """A one-case catalog with no defects: two quiet iterations converge it and the next step asks for a blind-spot hunt."""
+        lab = Lab(self)
+        lab.config(catalog=[{"id": "A1", "dimensions": {"style": "alpha"}, "cost": 1, "requires": [], "hosted": False}], defects={})
+        lab.init("A1")
+        actions = lab.run()
+        self.assertEqual([item["action"] for item in actions], ["start", "start", "task"])
+        return lab, actions[-1]["task"]
+
+    def test_a_hunt_result_needs_a_disposition_for_every_blind_spot(self):
+        lab, task = self.hunt_lab()
+        for result, expected in (({}, "closes with --result"),
+                                 ({"blind_spots": [{"what": "x", "disposition": "rejected"}]}, "needs a reason"),
+                                 ({"blind_spots": [{"what": "x", "disposition": "maybe"}]}, "disposition of"),
+                                 ({"blind_spots": ["x"]}, "disposition of")):
+            code, _, err = lab.cli("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--result", json.dumps(result))
+            self.assertEqual(code, cl.EXIT_ERROR, result)
+            self.assertIn(expected, err)
+        self.assertEqual(lab.step()["task"]["id"], task["id"])  # still open
+
+    def test_a_blind_spot_handed_to_the_owner_or_left_as_a_task_keeps_the_campaign_incomplete(self):
+        for disposition in ("deferred-to-owner", "added-as-task"):
+            with self.subTest(disposition):
+                lab, task = self.hunt_lab()
+                lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"],
+                       "--result", json.dumps({"blind_spots": [{"what": "the grader ignores timing", "disposition": disposition}]}))
+                stop = lab.step()
+                self.assertEqual((stop["action"], stop["status"], stop["rung"]), ("stop", "incomplete", "E3"))
+                self.assertIn("without a rejection", stop["reason"])
+                self.assertEqual(json.loads((lab.campaign / "report.json").read_text())["campaign_status"], "incomplete")
+
+    def test_only_a_rejected_blind_spot_with_a_reason_lets_the_campaign_converge_and_a_new_unknown_makes_that_stale(self):
+        lab, task = self.hunt_lab()
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--result", json.dumps(
+            {"blind_spots": [{"what": "timing", "disposition": "rejected", "reason": "the scope does not claim timing"}]}))
+        stop = lab.step()
+        self.assertEqual((stop["status"], stop["rung"]), ("converged", "E5"))
+        self.assertEqual(json.loads((lab.campaign / "report.json").read_text())["campaign_status"], "converged")
+        lab.ok("unknown", "--campaign", lab.campaign, "add", "--text", "is the oracle sensitive?", "--inside-claim")
+        stale = lab.ok("report", "--campaign", lab.campaign)  # the recorded stop is still "converged"; the report must not repeat it
+        self.assertEqual((stale["stop"]["status"], stale["campaign_status"]), ("converged", "incomplete"))
+        self.assertEqual(json.loads((lab.campaign / "report.json").read_text())["campaign_status"], "incomplete")
+        again = lab.step()  # the cached converged stop is stale: the evidence changed after it
+        self.assertEqual((again["action"], again["status"]), ("stop", "incomplete"))
+        self.assertIn("stale", again["reason"])
+        self.assertEqual(json.loads((lab.campaign / "report.json").read_text())["campaign_status"], "incomplete")
+
+    def test_a_converged_scope_is_not_a_converged_campaign_until_the_widening_ends(self):
+        lab = Lab(self)
+        lab.init("A1")
+        for _ in range(3):
+            lab.step()
+        report = lab.ok("report", "--campaign", lab.campaign)
+        self.assertEqual((report["scope_certificate"], report["campaign_status"]), ("converged", "in progress"))
+
+    def test_declared_combinations_widen_the_scope_to_the_pair_no_single_value_exposes(self):
+        lab = Lab(self, dimensions=["a", "b"], combinations=[["a", "b"]])
+        lab.config(catalog=CATALOG_AB, defects={})
+        lab.init("AX")
+        actions = lab.run()
+        widened = [item["cases"] for item in actions if item["action"] == "widen"]
+        self.assertEqual(widened, [["AX", "BY"], ["AX", "BY", "AY"]])  # AY is selected for the pair a=A&b=Y
+        self.assertEqual(actions[-1]["task"]["kind"], "hunt")
+        covers = [item["covers"] for item in actions if item["action"] == "widen"]
+        self.assertIn("a=A&b=Y", covers[-1])
+
+    def test_without_declared_combinations_the_marginal_values_are_all_that_is_tracked(self):
+        lab = Lab(self, dimensions=["a", "b"])
+        lab.config(catalog=CATALOG_AB, defects={})
+        lab.init("AX")
+        actions = lab.run()
+        self.assertEqual([item["cases"] for item in actions if item["action"] == "widen"], [["AX", "BY"]])
+        self.assertEqual(lab.ok("coverage", "--campaign", lab.campaign)["not_covered"], {})  # AY adds no value: the gap combinations close
 
 
 class CertificateTests(unittest.TestCase):
@@ -350,10 +799,19 @@ class CertificateTests(unittest.TestCase):
         self.assertEqual(cert["binds"]["scope"], "S0")
         self.assertEqual(cert["binds"]["build"], "b1")
         self.assertEqual(cert["binds"]["candidates"], ["h-d1-b1"])
+        self.assertEqual(cert["binds"]["campaign_identity"], lab.ok("status", "--campaign", lab.campaign)["identity"])
         iterations = lab.state()["iterations"]
         self.assertEqual([item["quiet"] for item in iterations], [False, True, True])
         self.assertEqual(iterations[0]["build_before"], "b0")
         self.assertEqual(iterations[0]["build_after"], "b1")
+
+    def test_the_certificate_carries_what_readiness_allows_it_to_claim(self):
+        lab = Lab(self)
+        self.converge_scope_zero(lab)
+        claims = lab.certificate()["claims"]
+        self.assertTrue(claims["recorded"])
+        self.assertIn("no quality claim is allowed yet", " ".join(claims["allowed"]))  # the oracle is not shown sensitive
+        self.assertIn("no quality claim is allowed yet", (lab.ok("report", "--campaign", lab.campaign) or {})["allowed_claims"][-1])
 
     def test_the_quiet_window_needs_k_iterations_on_the_current_build(self):
         lab = Lab(self)
@@ -392,15 +850,17 @@ class CertificateTests(unittest.TestCase):
         self.assertEqual(detail["adapter_backlog"], ["R-adapter"])
         self.assertEqual(detail["outside_scope"], ["R-elsewhere"])
 
-    def test_a_dropped_record_resolves_only_with_evidence_and_a_promoted_one_only_when_verified(self):
+    def test_a_record_resolves_only_with_a_known_status_and_evidence_and_an_unknown_status_fails_closed(self):
         lab = Lab(self)
         self.converge_scope_zero(lab)
         for status, evidence, blocks in (("dropped", None, True), ("dropped", "the prediction was refuted", False),
-                                         ("promoted", "predicted effect seen", True), ("verified", None, False)):
+                                         ("promoted", "predicted effect seen", True), ("verified", None, True),
+                                         ("verified", "   ", True), ("verified", "checked on build b1", False),
+                                         ("refuted", "the effect did not appear", False), ("wontfix", "the owner said so", True),
+                                         ("rejected", "", True)):
             lab.config(extra_records=[{"id": "R-y", "material": True, "target": "subject", "status": status,
                                        "evidence": evidence}])
-            self.assertEqual(lab.cli("check", "--campaign", lab.campaign, "--clause", "C1")[0],
-                             cl.EXIT_NOT_READY if blocks else cl.EXIT_OK, (status, evidence))
+            self.assertEqual(lab.check("C1")[0], cl.EXIT_NOT_READY if blocks else cl.EXIT_OK, (status, evidence))
 
     def test_an_invalid_review_is_not_quiet_and_delays_convergence_by_two_quiet_passes(self):
         lab = Lab(self)
@@ -411,10 +871,10 @@ class CertificateTests(unittest.TestCase):
         third = lab.state()["iterations"][2]
         self.assertFalse(third["quiet"])
         self.assertTrue(any("review was not valid" in reason for reason in third["quiet_reasons"]))
-        self.assertEqual(lab.cli("check", "--campaign", lab.campaign, "--clause", "C7")[0], cl.EXIT_NOT_READY)  # in the last two
+        self.assertEqual(lab.check("C7")[0], cl.EXIT_NOT_READY)  # in the last two
         lab.step()  # iteration 4 is quiet, but the invalid iteration 3 is still inside the last two
         self.assertEqual(lab.certificate()["status"], "incomplete")
-        self.assertEqual(lab.cli("check", "--campaign", lab.campaign, "--clause", "C2")[0], cl.EXIT_NOT_READY)
+        self.assertEqual(lab.check("C2")[0], cl.EXIT_NOT_READY)
         lab.step()  # iteration 5: the last two, 4 and 5, are quiet
         self.assertEqual(lab.certificate()["status"], "converged")
         self.assertEqual(len(lab.state()["iterations"]), 5)
@@ -425,7 +885,7 @@ class CertificateTests(unittest.TestCase):
         lab.config(invalid_review_at=[2])
         lab.step()
         lab.step()
-        code, out, _ = lab.cli("check", "--campaign", lab.campaign, "--clause", "C7")
+        code, out, _ = lab.check("C7")
         self.assertEqual(code, cl.EXIT_NOT_READY)
         self.assertTrue(any("invalid or incomplete evidence" in reason for reason in out["reasons"]))
 
@@ -435,7 +895,7 @@ class CertificateTests(unittest.TestCase):
         lab.config(baseline={"A1": "none"})
         for _ in range(3):
             lab.step()
-        code, out, _ = lab.cli("check", "--campaign", lab.campaign, "--clause", "C3")
+        code, out, _ = lab.check("C3")
         self.assertEqual(code, cl.EXIT_NOT_READY)
         self.assertTrue(any("no comparable baseline" in reason for reason in out["reasons"]))
         self.assertEqual(lab.certificate()["status"], "incomplete")  # unknown blocks: the scope cannot converge on it
@@ -446,7 +906,7 @@ class CertificateTests(unittest.TestCase):
         state = lab.state()
         del state["scopes"][0]["not_covered"]["style=gamma"]
         lab.write_state(state)
-        code, out, _ = lab.cli("check", "--campaign", lab.campaign, "--clause", "C4")
+        code, out, _ = lab.check("C4")
         self.assertEqual(code, cl.EXIT_NOT_READY)
         self.assertTrue(any("style=gamma is neither covered nor listed" in reason for reason in out["reasons"]))
 
@@ -460,11 +920,11 @@ class CertificateTests(unittest.TestCase):
             original = state["iterations"][-1][field]
             state["iterations"][-1][field] = value
             lab.write_state(state)
-            out = lab.cli("check", "--campaign", lab.campaign, "--clause", "C5")[1]
+            out = lab.check("C5")[1]
             self.assertTrue(any(expect in reason for reason in out["reasons"]), out["reasons"])
             state["iterations"][-1][field] = original
             lab.write_state(state)
-        self.assertEqual(lab.cli("check", "--campaign", lab.campaign, "--clause", "C5")[0], cl.EXIT_OK)
+        self.assertEqual(lab.check("C5")[0], cl.EXIT_OK)
 
     def test_a_promoted_candidate_without_acceptance_for_it_keeps_the_scope_incomplete(self):
         lab = Lab(self)
@@ -472,23 +932,22 @@ class CertificateTests(unittest.TestCase):
         lab.config(no_acceptance=True)
         for _ in range(3):
             lab.step()
-        code, out, _ = lab.cli("check", "--campaign", lab.campaign, "--clause", "C6")
+        code, out, _ = lab.check("C6")
         self.assertEqual(code, cl.EXIT_NOT_READY)
         self.assertTrue(any("without acceptance evidence" in reason for reason in out["reasons"]))
         lab.config(no_acceptance=False)
         state = lab.state()
         state["iterations"][0]["acceptance"] = {"candidate": "some-other-hash", "evidence": "x"}  # names a different candidate
         lab.write_state(state)
-        self.assertEqual(lab.cli("check", "--campaign", lab.campaign, "--clause", "C6")[0], cl.EXIT_NOT_READY)
+        self.assertEqual(lab.check("C6")[0], cl.EXIT_NOT_READY)
 
     def test_with_nothing_promoted_the_certificate_says_there_is_no_candidate(self):
         lab = Lab(self)
-        lab.init()
-        lab.config(extra_records=[])
         (lab.ws / "subject-state.json").write_text(json.dumps({"version": 1, "fixed": ["d1"], "known": ["d1"]}))
+        lab.init()
         for _ in range(2):
             lab.step()
-        out = lab.cli("check", "--campaign", lab.campaign, "--clause", "C6")[1]
+        out = lab.check("C6")[1]
         self.assertTrue(out["pass"])
         self.assertEqual(out["detail"]["note"], "no candidate")
 
@@ -498,7 +957,7 @@ class CertificateTests(unittest.TestCase):
         lab.ok("unknown", "--campaign", lab.campaign, "add", "--text", "noise on the other driver is unmeasured")
         self.assertEqual(lab.certificate()["status"], "converged")  # outside the claim: listed, not blocking
         lab.ok("unknown", "--campaign", lab.campaign, "add", "--text", "is the oracle sensitive to d1?", "--inside-claim")
-        code, out, _ = lab.cli("check", "--campaign", lab.campaign, "--clause", "C7")
+        code, out, _ = lab.check("C7")
         self.assertEqual(code, cl.EXIT_NOT_READY)
         self.assertTrue(any("an unknown lies inside the scope's claim" in reason for reason in out["reasons"]))
         lab.ok("unknown", "--campaign", lab.campaign, "resolve", "--index", "1")
@@ -519,7 +978,7 @@ class CertificateTests(unittest.TestCase):
         self.assertEqual(cert["status"], "incomplete")
         self.assertTrue(any(reason.startswith("C2: stale") for reason in cert["reasons"]))
         self.assertTrue(any(reason.startswith("C3: stale") for reason in cert["reasons"]))
-        self.assertEqual(lab.cli("next", "--campaign", lab.campaign)[1]["action"], "start")  # it re-evaluates, it does not stop
+        self.assertEqual(lab.ok("next", "--campaign", lab.campaign)["action"], "start")  # it re-evaluates, it does not stop
         lab.step()
         lab.step()
         self.assertEqual(lab.certificate()["status"], "converged")
@@ -534,9 +993,9 @@ class CertificateTests(unittest.TestCase):
     def test_a_check_prints_the_identity_of_the_script_and_refuses_a_changed_one(self):
         lab = Lab(self)
         self.converge_scope_zero(lab)
-        code, out, _ = lab.cli("check", "--campaign", lab.campaign, "--clause", "C1", "--expect-sha", cl.script_sha())
+        code, out, _ = lab.check("C1", "--expect-sha", cl.script_sha())
         self.assertEqual((code, out["script_sha256"]), (cl.EXIT_OK, cl.script_sha()))
-        code, out, _ = lab.cli("check", "--campaign", lab.campaign, "--clause", "C1", "--expect-sha", "0" * 64)
+        code, out, _ = lab.check("C1", "--expect-sha", "0" * 64)
         self.assertEqual(code, cl.EXIT_IDENTITY)
         self.assertIn("check script changed", out["reasons"][0])
         done = subprocess.run([sys.executable, str(SCRIPT), "check", "--campaign", str(lab.campaign), "--clause", "C1",
@@ -600,7 +1059,7 @@ class EscalationTests(unittest.TestCase):
         task = actions[-1]["task"]
         self.assertEqual(task["kind"], "hunt")
         self.assertIn("blind-spot hunter", task["text"])
-        lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--result", json.dumps({"proposed": []}))
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--result", json.dumps({"blind_spots": []}))
         final = lab.step()
         self.assertEqual((final["action"], final["status"], final["rung"]), ("stop", "converged", "E5"))
         self.assertIn("not a claim that no material problem remains", final["reason"])
@@ -666,6 +1125,27 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(len(lab.starts()), 1)  # the adapter recognised the key and launched nothing
         self.assertEqual(lab.state()["steps"][key]["status"], "running")
 
+    def test_a_crash_before_the_journal_is_saved_cannot_duplicate_its_line(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.step()
+        camp = cl.Campaign(lab.campaign)
+        cl.journal(camp, camp.state["iterations"][0])  # the same iteration journalled again, as a recovery would
+        cl.journal(camp, camp.state["iterations"][0])
+        self.assertEqual(len((lab.campaign / "journal.md").read_text().splitlines()), 1)
+
+    def test_a_subject_changed_while_the_owner_reviewed_the_boundary_is_adopted_not_flagged_invalid(self):
+        lab = Lab(self)
+        lab.init("A1")  # the campaign saw build b0
+        (lab.ws / "subject-state.json").write_text(json.dumps({"version": 5, "fixed": ["d1"], "known": ["d1"]}))
+        self.assertEqual(lab.ok("next", "--campaign", lab.campaign)["base"], "b5")  # the live build, not the one init saw
+        lab.step()
+        state = lab.state()
+        record = state["iterations"][0]
+        self.assertEqual((record["build_before"], record["invalid"], record["quiet"]), ("b5", [], True))
+        self.assertTrue(any(event["event"] == "subject-changed-outside" and (event["expected"], event["found"]) == ("b0", "b5")
+                            for event in state["events"]))
+
     def test_a_failed_step_is_an_invalid_iteration_and_the_same_error_three_times_stops(self):
         lab = Lab(self)
         lab.init("A1")
@@ -685,6 +1165,28 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual((stop["action"], stop["status"]), ("stop", "incomplete"))
         self.assertIn("same step error three times", stop["reason"])
 
+    def test_three_iterations_without_progress_stop_the_campaign_for_the_owner(self):
+        lab = Lab(self)
+        (lab.ws / "subject-state.json").write_text(json.dumps({"version": 1, "fixed": ["d1"], "known": ["d1"]}))
+        lab.init("A1")
+        lab.config(invalid_review_at=[1, 2, 3])  # nothing to fix, and no review is ever valid
+        actions = lab.run()
+        self.assertEqual([item["action"] for item in actions], ["start", "start", "start", "stop"])
+        self.assertIn("3 iterations without progress", actions[-1]["reason"])
+
+    def test_a_metric_regression_stops_until_the_owner_reopens_the_campaign(self):
+        lab = Lab(self)
+        (lab.ws / "subject-state.json").write_text(json.dumps({"version": 1, "fixed": ["d1"], "known": ["d1"]}))
+        lab.init("A1,B1")
+        lab.config(regress={"case": "A1", "from_version": 2})  # the fix for d2 breaks A1
+        actions = lab.run()
+        self.assertEqual([item["action"] for item in actions], ["start", "start", "stop"])
+        self.assertIn("metric regression: A1 met its floors before candidate C-d2", actions[-1]["reason"])
+        _, _, err = lab.cli("reopen", "--campaign", lab.campaign)
+        self.assertIn("owner's decision", err)
+        lab.ok("reopen", "--campaign", lab.campaign, "--yes-owner-approved", "--note", "the owner reviewed the regression")
+        self.assertIn(lab.ok("next", "--campaign", lab.campaign)["action"], ("start", "task"))  # not the same stop again
+
 
 class QuotaTests(unittest.TestCase):
     def test_an_exhausted_budget_ends_the_scope_incomplete_never_converged(self):
@@ -694,6 +1196,7 @@ class QuotaTests(unittest.TestCase):
         self.assertEqual([item["action"] for item in actions], ["start", "start", "start", "stop"])
         self.assertEqual((actions[-1]["status"], actions[-1]["reason"]), ("incomplete", "budget used: seconds"))
         self.assertEqual(json.loads((lab.campaign / "report.json").read_text())["campaign_status"], "incomplete")
+        self.assertIn("budget exhausted: seconds", (lab.campaign / "report.md").read_text())
 
     def test_widening_does_not_renew_the_quota(self):
         lab = Lab(self)
@@ -707,24 +1210,119 @@ class QuotaTests(unittest.TestCase):
 
     def test_budgets_are_parsed_strictly(self):
         self.assertEqual(cl.parse_budget("seconds=3600,turns=400"), {"seconds": 3600, "turns": 400})
-        for bad in ("seconds", "seconds=abc", "seconds=0", "=5"):
+        for bad in ("seconds", "seconds=abc", "seconds=0", "=5", "seconds=nan", "seconds=inf", "seconds=-4"):
             with self.assertRaises(cl.LoopError):
                 cl.parse_budget(bad)
 
+    def test_a_failed_step_still_costs_what_it_reported(self):
+        lab = Lab(self)
+        lab.init("A1")
+        lab.config(poll_delay=1, fail_poll={"error": "the adapter crashed", "consumed": {"seconds": 7, "turns": 2}})
+        lab.step()
+        out = lab.step()
+        self.assertEqual((out["status"], out["error"]), ("failed", "the adapter crashed"))
+        state = lab.state()
+        self.assertEqual(state["consumed"], {"seconds": 7, "turns": 2})
+        self.assertEqual(state["iterations"][0]["consumed"], {"seconds": 7, "turns": 2})
+
+    def test_probes_and_tasks_are_charged_to_the_budget_too(self):
+        lab = Lab(self)
+        lab.init("A1", ready=False)
+        lab.config(probe_consumed={"seconds": 7})
+        lab.ok("ratify", "--campaign", lab.campaign, "--yes-owner-approved")
+        lab.ok("readiness", "--manifest", lab.manifest_path, "--campaign", lab.campaign)
+        self.assertEqual(lab.state()["consumed"], {"seconds": 21})  # three claims, 7 seconds each
+        task = lab.ok("task", "--campaign", lab.campaign, "add", "--kind", "diagnose", "--text", "look at the failing run")["task"]
+        _, _, err = lab.cli("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--consumed", '{"seconds": -3}')
+        self.assertIn("non-negative", err)
+        lab.ok("task", "--campaign", lab.campaign, "done", "--id", task["id"], "--consumed", '{"seconds": 40}')
+        self.assertEqual(lab.state()["consumed"], {"seconds": 61})
+
+    def test_a_stop_is_recorded_and_reported_even_when_the_adapter_can_no_longer_be_queried(self):
+        lab = Lab(self)
+        lab.init("A1", "--budget", "seconds=5")
+        lab.step()  # ten seconds used against a budget of five
+        lab.config(crash={"records": True})
+        stop = lab.ok("step", "--campaign", lab.campaign)
+        self.assertEqual((stop["action"], stop["status"]), ("stop", "incomplete"))
+        self.assertEqual(lab.state()["stop"]["reason"], "budget used: seconds")
+        report = json.loads((lab.campaign / "report.json").read_text())
+        self.assertEqual((report["scope_certificate"], report["campaign_status"]), ("unavailable", "incomplete"))
+        self.assertTrue(any("could not be queried" in reason for reason in report["reasons"]))
+
+    def test_the_owner_can_raise_a_spent_budget_but_never_below_what_is_used(self):
+        lab = Lab(self)
+        lab.init("A1", "--budget", "seconds=25")
+        lab.run()
+        self.assertEqual(lab.state()["stop"]["reason"], "budget used: seconds")
+        _, _, err = lab.cli("reopen", "--campaign", lab.campaign, "--budget", "seconds=1000")
+        self.assertIn("owner's decision", err)
+        _, _, err = lab.cli("reopen", "--campaign", lab.campaign, "--yes-owner-approved", "--budget", "seconds=20")
+        self.assertIn("must exceed what is already consumed", err)
+        lab.ok("reopen", "--campaign", lab.campaign, "--yes-owner-approved", "--budget", "seconds=1000")
+        self.assertIn(lab.ok("next", "--campaign", lab.campaign)["action"], ("start", "widen"))
+
+    def test_a_hanging_adapter_times_out_and_its_time_is_charged_and_the_lock_is_released(self):
+        lab = Lab(self, timeout=2)
+        lab.init("A1")
+        lab.config(hang={"step": 30})
+        code, _, err = lab.cli("step", "--campaign", lab.campaign)  # the call is killed at the manifest's timeout
+        self.assertEqual(code, cl.EXIT_ERROR)
+        self.assertIn("did not finish within 2 s", err)
+        state = lab.state()
+        self.assertEqual(state["iterations"], [])  # the key did not move: a retry cannot launch a second run
+        self.assertEqual([len(errors) for errors in state["start_failures"].values()], [1])
+        self.assertGreaterEqual(state["consumed"]["seconds"], 1.9)  # the wall time of the failed call
+        self.assertEqual(lab.ok("status", "--campaign", lab.campaign)["iterations"], 0)  # and the campaign is usable again
+
+    def test_a_start_that_fails_three_times_with_one_error_ends_the_campaign_for_the_owner(self):
+        lab = Lab(self)
+        lab.init("A1")
+        key = lab.ok("next", "--campaign", lab.campaign)["key"]
+        lab.config(crash={"step": True})
+        for _ in range(2):
+            code, _, err = lab.cli("step", "--campaign", lab.campaign)
+            self.assertEqual((code, "exited 1" in err), (cl.EXIT_ERROR, True))
+            self.assertEqual(lab.ok("next", "--campaign", lab.campaign)["key"], key)  # the same key every time
+        lab.cli("step", "--campaign", lab.campaign)
+        stop = lab.ok("step", "--campaign", lab.campaign)
+        self.assertEqual((stop["action"], stop["status"]), ("stop", "incomplete"))
+        self.assertIn(f"failed to start step {key} three times", stop["reason"])
+        self.assertEqual(lab.starts(), [])  # the crashing adapter never launched anything
+
+
+class IsolationTests(unittest.TestCase):
+    def test_two_campaigns_created_together_on_one_workspace_never_share_a_step_key(self):
+        lab = Lab(self)
+        second = lab.tmp / "campaign2"
+        lab.init("A1")
+        lab.init("B1", campaign=second)
+        first_id, second_id = lab.state()["id"], json.loads((second / "campaign.json").read_text())["id"]
+        self.assertNotEqual(first_id, second_id)
+        lab.step()
+        lab.step(second)
+        keys = lab.starts()
+        self.assertEqual(len(keys), 2)  # the adapter, which is idempotent on the key, launched both
+        self.assertNotEqual(keys[0], keys[1])
+        self.assertTrue(keys[0].startswith(first_id) and keys[1].startswith(second_id))
+
 
 class ContractTests(unittest.TestCase):
-    def test_the_scope_contract_has_script_owned_checks_and_no_native_streak(self):
+    def test_the_scope_contract_has_script_owned_checks_bound_to_scope_and_identity_and_no_native_streak(self):
         lab = Lab(self)
         lab.init("A1")
         out_file = lab.tmp / "contract.json"
-        contract = lab.ok("contract", "--campaign", lab.campaign, "--kind", "scope", "--out", out_file)
+        contract = lab.ok("contract", "--campaign", lab.campaign, "--out", out_file)
         self.assertEqual(json.loads(out_file.read_text()), contract)
         self.assertEqual(contract["required_trivial_reviews"], 0)  # one counter: the script-owned quiet window
-        self.assertEqual(contract["workspace"], str(lab.ws))
+        self.assertEqual(contract["workspace"], str(lab.campaign))  # the folder the checks' evidence lives in
         self.assertEqual([item["id"] for item in contract["exit_checks"]], list(cl.CLAUSES))
+        identity = lab.ok("status", "--campaign", lab.campaign)["identity"]
         for item in contract["exit_checks"]:
             self.assertEqual(item["clause"], cl.CLAUSE_TEXT[item["id"]])
             self.assertIn(f"--expect-sha {cl.script_sha()}", item["command"])
+            self.assertIn("--expect-scope S0", item["command"])
+            self.assertIn(f"--expect-identity {identity}", item["command"])
             self.assertIn(item["id"], item["command"])
             self.assertEqual(subprocess.run(["/bin/sh", "-n", "-c", item["command"]], check=False).returncode, 0)
         for text in cl.CLAUSE_TEXT.values():
@@ -735,38 +1333,37 @@ class ContractTests(unittest.TestCase):
             self.assertTrue(Path(resource["locator"]).is_absolute())
         self.assertIn("not convergence", contract["context"]["authority"])
 
-    def test_the_readiness_contract_checks_the_start_rule(self):
+    def test_there_is_no_readiness_contract_because_exit_checks_only_read_recorded_evidence(self):
         lab = Lab(self)
         lab.init("A1")
-        contract = lab.ok("contract", "--campaign", lab.campaign, "--kind", "readiness")
-        self.assertEqual([item["id"] for item in contract["exit_checks"]], ["R-START"])
-        self.assertIn("--require-start", contract["exit_checks"][0]["command"])
-        self.assertEqual(contract["required_trivial_reviews"], 0)
+        self.assertEqual([item["id"] for item in lab.ok("contract", "--campaign", lab.campaign)["exit_checks"]], list(cl.CLAUSES))
+        self.assertFalse(any("readiness" in item["command"] for item in lab.ok("contract", "--campaign", lab.campaign)["exit_checks"]))
 
     def test_the_contract_names_the_current_scope_after_a_widening(self):
         lab = Lab(self)
         lab.init("A1")
         lab.run()
-        contract = lab.ok("contract", "--campaign", lab.campaign, "--kind", "scope")
+        contract = lab.ok("contract", "--campaign", lab.campaign)
         self.assertIn("Scope S1", contract["exit_condition"])
         self.assertIn("A1, B1", contract["context"]["scope"])
         self.assertIn("style=gamma", contract["context"]["scope"])
+        self.assertIn("--expect-scope S1", contract["exit_checks"][0]["command"])
 
 
 class UntilLoopTests(unittest.TestCase):
-    """The emitted contract against the real runtime, in a linked git worktree, isolated mode, durable directory and receipt."""
+    """The emitted contract against the real runtime: isolated mode, a durable directory and receipt kept beside the campaign."""
 
     def setUp(self):
-        self.lab = Lab(self, linked_worktree=True)
+        self.lab = Lab(self)
         self.lab.init("A1")
-        contract = self.lab.tmp / "contract.json"
-        self.lab.ok("contract", "--campaign", self.lab.campaign, "--kind", "scope", "--out", contract)
+        self.contract = self.lab.tmp / "contract.json"
+        self.lab.ok("contract", "--campaign", self.lab.campaign, "--out", self.contract)
         self.durable = self.lab.tmp / "until"
         self.durable.mkdir()
         self.receipt = self.lab.tmp / "receipt.json"
         started = subprocess.run([sys.executable, str(RUNTIME), "start", "--isolated", "--directory", str(self.durable),
-                                  "--receipt", str(self.receipt)], input=contract.read_text(), capture_output=True, text=True,
-                                 check=False)
+                                  "--receipt", str(self.receipt)], input=self.contract.read_text(), capture_output=True,
+                                 text=True, check=False)
         self.assertEqual(started.returncode, 0, started.stderr)
         self.packet = json.loads(started.stdout)
 
@@ -821,22 +1418,48 @@ class UntilLoopTests(unittest.TestCase):
         self.assertIn("no verify run is recorded", finished.stdout + finished.stderr)
         self.assertNotEqual((reply or {}).get("status"), "complete")
 
-    def test_a_workspace_change_after_the_verify_run_is_refused(self):
+    def test_a_change_to_the_campaign_after_the_verify_run_is_refused(self):
         for _ in range(3):
             self.lab.step()
         self.assertEqual(self.lab.certificate()["status"], "converged")
         self.verify()
-        (self.lab.ws / "late-edit.txt").write_text("a change after the checks ran\n")
+        (self.lab.campaign / "late-edit.txt").write_text("a change after the checks ran\n")
         finished, reply = self.done("satisfied", True)
         self.assertIn("workspace changed after the recorded verify run", finished.stdout + finished.stderr)
+        self.assertNotEqual((reply or {}).get("status"), "complete")
+
+    def test_a_state_change_made_through_the_sanctioned_verbs_after_a_green_verify_cannot_be_reported_satisfied(self):
+        """Astra's reproduction: green verification, then `unknown add --inside-claim`, then the old satisfied report."""
+        for _ in range(3):
+            self.lab.step()
+        verified = self.verify()
+        self.assertNotIn("exit=1", verified.stdout)
+        self.assertEqual(self.lab.certificate()["status"], "converged")
+        self.lab.ok("unknown", "--campaign", self.lab.campaign, "add", "--text", "is the oracle sensitive?", "--inside-claim")
+        self.assertEqual(self.lab.certificate()["status"], "incomplete")
+        finished, reply = self.done("satisfied", True)
+        self.assertIn("workspace changed after the recorded verify run", finished.stdout + finished.stderr)
+        self.assertNotEqual((reply or {}).get("status"), "complete")
+        self.verify()  # even a fresh verify cannot pass: C7 now fails
+        _, reply = self.done("satisfied", True)
+        self.assertEqual(reply["status"], "active")
+        self.assertIn("C7", [item["id"] for item in reply["last_check_results"] if not item["passed"]])
+
+    def test_a_contract_frozen_at_one_scope_cannot_complete_another(self):
+        for _ in range(3):
+            self.lab.step()
+        self.assertEqual(self.lab.step()["action"], "widen")
+        verified = self.verify()
+        self.assertIn(f"exit={cl.EXIT_IDENTITY}", verified.stdout)
+        _, reply = self.done("satisfied", True)
         self.assertNotEqual((reply or {}).get("status"), "complete")
 
     def test_a_changed_check_script_fails_its_frozen_check(self):
         for _ in range(3):
             self.lab.step()
-        contract = json.loads((self.lab.tmp / "contract.json").read_text())
+        contract = json.loads(self.contract.read_text())
         stale = contract["exit_checks"][0]["command"].replace(cl.script_sha(), "0" * 64)
-        ran = subprocess.run(stale, shell=True, executable="/bin/sh", capture_output=True, text=True, check=False)
+        ran = subprocess.run(stale, check=False, **SH)
         self.assertEqual(ran.returncode, cl.EXIT_IDENTITY)
 
 
@@ -891,7 +1514,48 @@ class CardTests(unittest.TestCase):
         modules = {name.split(".")[0] for node in ast.walk(ast.parse(SCRIPT.read_text()))
                    for name in ([alias.name for alias in node.names] if isinstance(node, ast.Import)
                                 else [node.module or ""] if isinstance(node, ast.ImportFrom) else [])}
-        self.assertLessEqual(modules - {""}, set(sys.stdlib_module_names))
+        self.assertLessEqual(modules - {""}, STDLIB_IMPORTS)  # a new import is a deliberate edit of this list
+
+    def test_the_orchestrator_parses_under_the_python_3_9_floor(self):
+        import ast
+        ast.parse(SCRIPT.read_text(), feature_version=(3, 9))
+        ast.parse(FAKE.read_text(), feature_version=(3, 9))
+
+    def binding_block(self) -> str:
+        import re
+        blocks = [block for block in re.findall(r"```sh\n(.*?)```", self.card, re.DOTALL) if "loop() {" in block]
+        self.assertEqual(len(blocks), 1, "the card has exactly one binding block that defines loop()")
+        return blocks[0]
+
+    def test_the_card_binds_its_scripts_as_functions_that_work_in_bash_and_zsh_with_a_space_in_the_path(self):
+        self.assertNotIn('LOOP="python3', self.card)  # a scalar command is split by bash and not split by zsh
+        block = self.binding_block()
+        home = Path(tempfile.mkdtemp(prefix="closed loop card "))
+        self.addCleanup(shutil.rmtree, home, True)
+        script = home / "closed_loop.py"
+        shutil.copy(SCRIPT, script)
+        lab = Lab(self)
+        bound = block.replace("/path/to/skills/closed-loop/scripts/closed_loop.py", str(script))
+        self.assertNotEqual(bound, block, "the card's binding block names the script path to substitute")
+        shells = [name for name in ("bash", "zsh") if shutil.which(name)]
+        self.assertTrue(shells)
+        for shell in shells:
+            done = subprocess.run([shell, "-c", bound + f'\nloop adapter-check --manifest "{lab.manifest_path}"\n'],
+                                  capture_output=True, text=True, check=False)
+            self.assertEqual(done.returncode, 0, (shell, done.stderr))
+            self.assertTrue(json.loads(done.stdout)["ok"], shell)
+
+    def test_the_definer_prompt_writes_a_proposal_and_a_bare_manifest_that_adapter_check_reads(self):
+        definer = (SKILL / "prompts" / "definer.md").read_text()
+        self.assertIn("adapter.proposed.json", definer)
+        self.assertIn("definer-proposal.json", definer)
+        self.assertIn("adapter-check --manifest adapter.proposed.json --proposal definer-proposal.json", definer)
+
+    def test_the_references_state_the_limits_the_script_enforces(self):
+        schema = (SKILL / "references" / "adapter-schema.md").read_text()
+        for word in ("timeout_seconds", "pin", "combinations", "cleanup"):
+            self.assertIn(word, schema)
+        self.assertIn("overshoot", self.card + self.docs)  # the budget is checked between steps, not inside one
 
 
 if __name__ == "__main__":

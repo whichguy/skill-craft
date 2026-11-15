@@ -1,0 +1,110 @@
+{
+  "negative_k_invalid_review": {
+    "certificate": {
+      "binds": {
+        "build": "b1",
+        "campaign_identity": "9806449e49cee461",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "checks": {
+        "C1": {
+          "detail": {
+            "actionable": [],
+            "adapter_backlog": [],
+            "blocking": [],
+            "outside_scope": [],
+            "owner_gated": []
+          },
+          "id": "C1",
+          "pass": true,
+          "reasons": []
+        },
+        "C2": {
+          "detail": {
+            "k": -1,
+            "window": [
+              1
+            ]
+          },
+          "id": "C2",
+          "pass": true,
+          "reasons": []
+        },
+        "C3": {
+          "detail": {},
+          "id": "C3",
+          "pass": true,
+          "reasons": []
+        },
+        "C4": {
+          "detail": {
+            "not_covered": {
+              "style=beta": "outside this scope: a widening candidate",
+              "style=gamma": "outside this scope: a widening candidate"
+            }
+          },
+          "id": "C4",
+          "pass": true,
+          "reasons": []
+        },
+        "C5": {
+          "detail": {},
+          "id": "C5",
+          "pass": true,
+          "reasons": []
+        },
+        "C6": {
+          "detail": {
+            "note": "no candidate",
+            "promoted": []
+          },
+          "id": "C6",
+          "pass": true,
+          "reasons": []
+        },
+        "C7": {
+          "detail": {},
+          "id": "C7",
+          "pass": true,
+          "reasons": []
+        }
+      },
+      "reasons": [],
+      "status": "converged"
+    },
+    "quiet": false
+  },
+  "missing_identity": {
+    "certificate": "converged",
+    "binds": {
+      "build": null,
+      "campaign_identity": "9806449e49cee461",
+      "candidates": [],
+      "scope": "S0",
+      "scoring": null
+    }
+  },
+  "unhandled_hunt_then_stale_stop": {
+    "after_hunt_stop": "converged",
+    "new_unknown_scope": "incomplete",
+    "reported_campaign": "converged"
+  },
+  "missing_combinations": {
+    "cases": [
+      "AX",
+      "BY"
+    ],
+    "not_covered": {},
+    "owner_gated": [],
+    "scope": "S0",
+    "values": [
+      "profile=X",
+      "profile=Y",
+      "style=A",
+      "style=B"
+    ],
+    "widening_candidates": []
+  }
+}
