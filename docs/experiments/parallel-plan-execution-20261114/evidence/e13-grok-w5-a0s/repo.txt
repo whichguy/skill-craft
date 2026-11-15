@@ -1,0 +1,22 @@
+$ git log --all --graph --oneline --decorate
+* d5f9547 (HEAD -> main) base: empty package and the test helper
+
+$ git ls-files
+.gitignore
+check.py
+pkg/__init__.py
+tests/__init__.py
+
+$ git status --short
+ M pkg/__init__.py
+?? pkg/m1.py
+?? pkg/m2.py
+?? pkg/m3.py
+?? pkg/m4.py
+?? tests/test_m1.py
+?? tests/test_m2.py
+?? tests/test_m3.py
+?? tests/test_m4.py
+
+$ git branch -a
+* main

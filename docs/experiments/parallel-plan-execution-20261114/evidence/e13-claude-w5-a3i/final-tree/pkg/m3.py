@@ -1,0 +1,10 @@
+def merge_intervals(intervals):
+    """Merge integer intervals sharing at least one point; input is not modified."""
+    result = []
+    for start, end in sorted(intervals, key=lambda p: (p[0], p[1])):
+        if result and start <= result[-1][1]:
+            if end > result[-1][1]:
+                result[-1][1] = end
+        else:
+            result.append([start, end])
+    return result

@@ -1,0 +1,294 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 133.845,
+ "first_start_ts": 1794703614.886,
+ "last_end_ts": 1794703748.731,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 4,
+ "independent_pairs": 6,
+ "pairs_overlapped": 6,
+ "pairs": [
+  {
+   "pair": [
+    "W1",
+    "W2"
+   ],
+   "overlap_s": 48.479,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W1",
+    "W3"
+   ],
+   "overlap_s": 48.479,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W1",
+    "W4"
+   ],
+   "overlap_s": 48.479,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W2",
+    "W3"
+   ],
+   "overlap_s": 61.032,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W2",
+    "W4"
+   ],
+   "overlap_s": 60.98,
+   "frac_of_shorter": 0.999
+  },
+  {
+   "pair": [
+    "W3",
+    "W4"
+   ],
+   "overlap_s": 64.795,
+   "frac_of_shorter": 0.998
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 30.0,
+ "settled_steps": 5,
+ "settled_all": true,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=93f53fd81689",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "W5": 22.017
+ },
+ "dispatch_latency_mean_s": 22.017,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "W1": "done",
+  "W2": "done",
+  "W3": "done",
+  "W4": "done",
+  "W5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": null,
+ "write": {
+  "mode": "shared",
+  "oracle": {
+   "hidden": {
+    "m1": {
+     "cases": 12,
+     "passed": 12,
+     "error": null
+    },
+    "m2": {
+     "cases": 14,
+     "passed": 14,
+     "error": null
+    },
+    "m3": {
+     "cases": 10,
+     "passed": 10,
+     "error": null
+    },
+    "m4": {
+     "cases": 13,
+     "passed": 13,
+     "error": null
+    }
+   },
+   "hidden_ok": {
+    "m1": true,
+    "m2": true,
+    "m3": true,
+    "m4": true
+   },
+   "exports": {
+    "rle": true,
+    "roman_to_int": true,
+    "merge_intervals": true,
+    "balanced": true
+   },
+   "export_error": null,
+   "tests": {
+    "m1": {
+     "tests": 8,
+     "passed": 8
+    },
+    "m2": {
+     "tests": 8,
+     "passed": 8
+    },
+    "m3": {
+     "tests": 8,
+     "passed": 8
+    },
+    "m4": {
+     "tests": 10,
+     "passed": 10
+    },
+    "all": {
+     "tests": 34,
+     "passed": 34
+    }
+   },
+   "answers_ok": {
+    "W1": true,
+    "W2": true,
+    "W3": true,
+    "W4": true,
+    "W5": true
+   },
+   "suite_passes": true,
+   "valid": true
+  },
+  "workspace_s": 0,
+  "commit_s": 0,
+  "merge_s": 0,
+  "script_s": 0,
+  "workspaces": 5,
+  "merges": 0,
+  "conflicts": 0,
+  "conflict_paths": [],
+  "retries": 0,
+  "scope_notes": {},
+  "merge_latency_s": {},
+  "refused_empty": 0,
+  "refused_missing": 0
+ },
+ "mechanism": {
+  "kind": "native-agents",
+  "spawns": 5,
+  "run_calls": 5,
+  "run_calls_by_actor": {
+   "agent:fc4d85": 1,
+   "agent:aeff17": 1,
+   "agent:c92391": 1,
+   "agent:62a193": 1,
+   "agent:bfaaee": 1
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "grok logs/unified.jsonl",
+  "agents": 5,
+  "peak": 4,
+  "kinds": [
+   "general-purpose"
+  ],
+  "depths": [],
+  "background": [],
+  "intervals_s": [
+   {
+    "actor": "agent:aeff17",
+    "start": -2.79,
+    "end": 62.76,
+    "tokens": null
+   },
+   {
+    "actor": "agent:62a193",
+    "start": -2.77,
+    "end": 50.62,
+    "tokens": null
+   },
+   {
+    "actor": "agent:fc4d85",
+    "start": -2.76,
+    "end": 72.0,
+    "tokens": null
+   },
+   {
+    "actor": "agent:c92391",
+    "start": -2.76,
+    "end": 74.63,
+    "tokens": null
+   },
+   {
+    "actor": "agent:bfaaee",
+    "start": 86.51,
+    "end": 136.03,
+    "tokens": null
+   }
+  ]
+ },
+ "tokens": {
+  "source": "grok.usage",
+  "input": 158722,
+  "output": 17229,
+  "cache_read": 540672,
+  "cost_usd": 0.691154,
+  "peak_parent_input": null,
+  "children_included": true,
+  "parent_input_all": null,
+  "children_input_all": null,
+  "input_all": 699394,
+  "output_all": 17229,
+  "reasoning": null
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 180.4,
+  "last_activity_tail_s": 0.61,
+  "tail_from_last_end_s": 15.152,
+  "tail_from_final_report_s": 0.61,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 31.427,
+  "launch_to_last_end_s": 165.272,
+  "launch_to_verified_s": 175.044,
+  "launch_to_exit_s": 180.424
+ },
+ "valid": true,
+ "identity": {
+  "host": "grok",
+  "version": "grok 1.0.77 (50ca579fa996)",
+  "model": "grok-4.6",
+  "effort": "xhigh",
+  "plan": "overlap5",
+  "arm": "A3",
+  "variant": "N",
+  "workspace": "shared",
+  "loadavg": [
+   7.34,
+   6.47,
+   5.87
+  ],
+  "enabled_features": []
+ }
+}

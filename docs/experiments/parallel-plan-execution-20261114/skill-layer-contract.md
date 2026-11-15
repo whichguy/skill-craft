@@ -91,12 +91,14 @@ number per host and version:
   The token curve with many more calls a task is a model (R4), not a measurement.
 - A recorded ShipLoop step iteration has a median of 154 s (F11), far above every break-even; but 90% of recorded plans have no independent pair (F8), so the gate that matters most in practice is width, not task length.
 
-## 7. Merge and isolation (what is not measured)
+## 7. Merge and isolation (measured on a toy package, E13)
 
-The study ran read-only work. For writes the repository already has the machinery (Ask Agent's helper-managed worktrees and delivery, `references/git-integration.md`, `workspace-operations.md`) and the
-rule from E0: only tasks with disjoint declared paths run together, and a dependent integration task runs the combined checks after the barrier. No trial measured the cost of worktree preparation, delivery or
-conflict handling, so this contract gives no time or token figure for it and the layer must not claim one. A write fixture (disjoint edits in a shared checkout; the same with isolated worktrees and a merge;
-one overlapping edit that conflicts) is the next measurement before a write fan-out is enabled.
+The repository already has the machinery for writes (Ask Agent's helper-managed worktrees and delivery, `references/git-integration.md`, `workspace-operations.md`); E13 priced the shape with a minimal kit (a git worktree per attempt, a scripted merge in completion order, abort and retry on a conflict) on a four-module Python package with a hidden oracle, at 30 s tasks:
+
+- **Cost.** Isolation plus scripted merging took about 1 s of the kit's own time (five workspaces, five commits, five merges) and added 0 to 11 s to the whole run against a shared checkout (-0.1 s, +6.2 s, +10.6 s; inside the same-condition spread), with equal model calls and input tokens within 6% (F39). The fan-out's win survived writing code: the whole run was 0.50, 0.72 and 0.86 times one context's (F40). All fifteen registered write trials passed the oracle.
+- **Rule that held.** Run write tasks together only when their declared paths are disjoint, give each attempt its own worktree from main's current head, merge completed branches into main in completion order before offering any dependent (a dependent starts only from merged work), commit on completion and refuse an empty change, record any file outside the declared paths without refusing it, and treat a conflicting merge as: abort, log the paths, offer the task again from the updated main with a note saying why, run its verification again. Where it was exercised (Claude, Grok) it worked: one conflict, one retry, a valid tree, at a cost of about one task round plus a few seconds (+54.2 s, +60.5 s; F41). A task whose attempts are used up fails with the conflict as the reason and its dependents are blocked (calibrated, not seen live).
+- **What failed or was not exercised.** P50 missed as registered: on Codex the three slots ran the second registering task after the first had merged, so the undeclared shared file never conflicted (F42). A shared checkout survived three concurrent appends without a loss, but it has no scope check and no conflict detection, and the fixture's integration task would have repaired a lost import (F43): shared is not evidence that concurrent writes to one file are safe.
+- **Not measured.** Large files and repositories (git's cost grows with them), semantic conflicts that a textual merge accepts (the oracle and the suite catch those; no trial produced one), more than four workers, ShipLoop's own commit stage and clean-checkout identity (F15), and unattended recovery of a lost worker (what the retired chain bought).
 
 ## 8. Qualification: when a binding may be used
 
@@ -113,5 +115,5 @@ change; record the version (the repository's existing notes qualify Claude Code 
 - **C. Only the detection and the bindings table go into Ask Agent as machine-readable data; ShipLoop calls Ask Agent directly and keeps its own per-step lifecycle.** Smallest change; gives ShipLoop
   harness independence for its existing native delegations (for example the per-step review) but not for concurrent steps.
 
-A recommendation, and its limits, are in the journal's closing entry once E11 and E12 are scored. None of the three removes the open owner decision that decides whether concurrent ShipLoop steps are wanted at
+A recommendation, and its limits, are in the journal's closing entry (R5, with E13's update in R6). None of the three removes the open owner decision that decides whether concurrent ShipLoop steps are wanted at
 all (F15, the per-step lifecycle); inside one stage (bounded investigations and reviews), the contract applies as written.

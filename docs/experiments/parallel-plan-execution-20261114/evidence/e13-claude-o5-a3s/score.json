@@ -1,0 +1,298 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 91.996,
+ "first_start_ts": 1794703210.086,
+ "last_end_ts": 1794703302.082,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 4,
+ "independent_pairs": 6,
+ "pairs_overlapped": 6,
+ "pairs": [
+  {
+   "pair": [
+    "W1",
+    "W2"
+   ],
+   "overlap_s": 42.555,
+   "frac_of_shorter": 0.996
+  },
+  {
+   "pair": [
+    "W1",
+    "W3"
+   ],
+   "overlap_s": 42.727,
+   "frac_of_shorter": 0.999
+  },
+  {
+   "pair": [
+    "W1",
+    "W4"
+   ],
+   "overlap_s": 41.782,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W2",
+    "W3"
+   ],
+   "overlap_s": 42.71,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W2",
+    "W4"
+   ],
+   "overlap_s": 41.782,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W3",
+    "W4"
+   ],
+   "overlap_s": 41.782,
+   "frac_of_shorter": 1.0
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 30.0,
+ "settled_steps": 5,
+ "settled_all": true,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=60f4dd04015a",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "W5": 8.6
+ },
+ "dispatch_latency_mean_s": 8.6,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "W1": "done",
+  "W2": "done",
+  "W3": "done",
+  "W4": "done",
+  "W5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": null,
+ "write": {
+  "mode": "shared",
+  "oracle": {
+   "hidden": {
+    "m1": {
+     "cases": 12,
+     "passed": 12,
+     "error": null
+    },
+    "m2": {
+     "cases": 14,
+     "passed": 14,
+     "error": null
+    },
+    "m3": {
+     "cases": 10,
+     "passed": 10,
+     "error": null
+    },
+    "m4": {
+     "cases": 13,
+     "passed": 13,
+     "error": null
+    }
+   },
+   "hidden_ok": {
+    "m1": true,
+    "m2": true,
+    "m3": true,
+    "m4": true
+   },
+   "exports": {
+    "rle": true,
+    "roman_to_int": true,
+    "merge_intervals": true,
+    "balanced": true
+   },
+   "export_error": null,
+   "tests": {
+    "m1": {
+     "tests": 8,
+     "passed": 8
+    },
+    "m2": {
+     "tests": 8,
+     "passed": 8
+    },
+    "m3": {
+     "tests": 10,
+     "passed": 10
+    },
+    "m4": {
+     "tests": 11,
+     "passed": 11
+    },
+    "all": {
+     "tests": 37,
+     "passed": 37
+    }
+   },
+   "answers_ok": {
+    "W1": true,
+    "W2": true,
+    "W3": true,
+    "W4": true,
+    "W5": true
+   },
+   "suite_passes": true,
+   "valid": true
+  },
+  "workspace_s": 0,
+  "commit_s": 0,
+  "merge_s": 0,
+  "script_s": 0,
+  "workspaces": 5,
+  "merges": 0,
+  "conflicts": 0,
+  "conflict_paths": [],
+  "retries": 0,
+  "scope_notes": {},
+  "merge_latency_s": {},
+  "refused_empty": 0,
+  "refused_missing": 0
+ },
+ "mechanism": {
+  "kind": "native-agents",
+  "spawns": 5,
+  "run_calls": 5,
+  "run_calls_by_actor": {
+   "agent:8mJ5UV": 1,
+   "agent:BQEHbb": 1,
+   "agent:MHuk21": 1,
+   "agent:sJKVRv": 1,
+   "agent:W3C5ks": 1
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "claude stream (system task events)",
+  "agents": 5,
+  "peak": 4,
+  "kinds": [
+   "general-purpose"
+  ],
+  "depths": [
+   1
+  ],
+  "background": [
+   true
+  ],
+  "intervals_s": [
+   {
+    "actor": "agent:8mJ5UV",
+    "start": -1.89,
+    "end": 44.53,
+    "tokens": 29691
+   },
+   {
+    "actor": "agent:MHuk21",
+    "start": -1.88,
+    "end": 45.47,
+    "tokens": 29428
+   },
+   {
+    "actor": "agent:BQEHbb",
+    "start": -1.88,
+    "end": 45.85,
+    "tokens": 29508
+   },
+   {
+    "actor": "agent:sJKVRv",
+    "start": -1.88,
+    "end": 44.62,
+    "tokens": 29255
+   },
+   {
+    "actor": "agent:W3C5ks",
+    "start": 49.73,
+    "end": 94.11,
+    "tokens": 28946
+   }
+  ]
+ },
+ "tokens": {
+  "source": "claude.result",
+  "input": 18,
+  "output": 2713,
+  "cache_read": 341426,
+  "cost_usd": 0.4345189,
+  "peak_parent_input": 44826,
+  "children_included": false,
+  "parent_input_all": 362046,
+  "children_input_all": 740261,
+  "input_all": 1102307,
+  "output_all": 12827,
+  "cache_create": 20602
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 113.3,
+  "last_activity_tail_s": 0.227,
+  "tail_from_last_end_s": 9.385,
+  "tail_from_final_report_s": 1.655,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 11.964,
+  "launch_to_last_end_s": 103.96,
+  "launch_to_verified_s": 110.475,
+  "launch_to_exit_s": 113.345
+ },
+ "valid": true,
+ "identity": {
+  "host": "claude",
+  "version": "2.1.325 (Claude Code)",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "plan": "overlap5",
+  "arm": "A3",
+  "variant": "N",
+  "workspace": "shared",
+  "loadavg": [
+   5.17,
+   5.48,
+   5.41
+  ],
+  "enabled_features": []
+ }
+}

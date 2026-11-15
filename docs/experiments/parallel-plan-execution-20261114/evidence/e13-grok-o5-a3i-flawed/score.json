@@ -1,0 +1,321 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 167.923,
+ "first_start_ts": 1794703403.751,
+ "last_end_ts": 1794703571.674,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 3,
+ "independent_pairs": 6,
+ "pairs_overlapped": 3,
+ "pairs": [
+  {
+   "pair": [
+    "W1",
+    "W2"
+   ],
+   "overlap_s": 52.885,
+   "frac_of_shorter": 0.998
+  },
+  {
+   "pair": [
+    "W1",
+    "W3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "W1",
+    "W4"
+   ],
+   "overlap_s": 52.782,
+   "frac_of_shorter": 0.996
+  },
+  {
+   "pair": [
+    "W2",
+    "W3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "W2",
+    "W4"
+   ],
+   "overlap_s": 54.706,
+   "frac_of_shorter": 1.0
+  },
+  {
+   "pair": [
+    "W3",
+    "W4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  }
+ ],
+ "refused": 1,
+ "refused_by_category": {
+  "duplicate": 1
+ },
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 30.0,
+ "settled_steps": 5,
+ "settled_all": true,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=19341f74b9b7",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "W5": 13.209
+ },
+ "dispatch_latency_mean_s": 13.209,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "W1": "done",
+  "W2": "done",
+  "W3": "done",
+  "W4": "done",
+  "W5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": null,
+ "write": {
+  "mode": "isolated",
+  "oracle": {
+   "hidden": {
+    "m1": {
+     "cases": 12,
+     "passed": 12,
+     "error": null
+    },
+    "m2": {
+     "cases": 14,
+     "passed": 14,
+     "error": null
+    },
+    "m3": {
+     "cases": 10,
+     "passed": 10,
+     "error": null
+    },
+    "m4": {
+     "cases": 13,
+     "passed": 13,
+     "error": null
+    }
+   },
+   "hidden_ok": {
+    "m1": true,
+    "m2": true,
+    "m3": true,
+    "m4": true
+   },
+   "exports": {
+    "rle": true,
+    "roman_to_int": true,
+    "merge_intervals": true,
+    "balanced": true
+   },
+   "export_error": null,
+   "tests": {
+    "m1": {
+     "tests": 7,
+     "passed": 7
+    },
+    "m2": {
+     "tests": 10,
+     "passed": 10
+    },
+    "m3": {
+     "tests": 11,
+     "passed": 11
+    },
+    "m4": {
+     "tests": 10,
+     "passed": 10
+    },
+    "all": {
+     "tests": 38,
+     "passed": 38
+    }
+   },
+   "answers_ok": {
+    "W1": true,
+    "W2": true,
+    "W3": true,
+    "W4": true,
+    "W5": true
+   },
+   "suite_passes": true,
+   "valid": true
+  },
+  "workspace_s": 0.342,
+  "commit_s": 0.369,
+  "merge_s": 0.226,
+  "script_s": 0.937,
+  "workspaces": 6,
+  "merges": 5,
+  "conflicts": 1,
+  "conflict_paths": [
+   "pkg/__init__.py"
+  ],
+  "retries": 1,
+  "scope_notes": {
+   "W4#1": [
+    "pkg/__init__.py"
+   ],
+   "W3#1": [
+    "pkg/__init__.py"
+   ],
+   "W3#2": [
+    "pkg/__init__.py"
+   ]
+  },
+  "merge_latency_s": {
+   "W1#1": 11.79,
+   "W4#1": 9.91,
+   "W2#1": 4.92,
+   "W3#2": 4.13,
+   "W5#1": 3.82
+  },
+  "refused_empty": 0,
+  "refused_missing": 0
+ },
+ "mechanism": {
+  "kind": "native-agents",
+  "spawns": 6,
+  "run_calls": 6,
+  "run_calls_by_actor": {
+   "agent:c680d1": 1,
+   "agent:2a32ce": 1,
+   "agent:6b52a2": 1,
+   "agent:37dbc1": 1,
+   "agent:386545": 1,
+   "agent:a64054": 1
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "grok logs/unified.jsonl",
+  "agents": 6,
+  "peak": 4,
+  "kinds": [
+   "general-purpose"
+  ],
+  "depths": [],
+  "background": [],
+  "intervals_s": [
+   {
+    "actor": "agent:37dbc1",
+    "start": -2.76,
+    "end": 56.64,
+    "tokens": null
+   },
+   {
+    "actor": "agent:6b52a2",
+    "start": -2.76,
+    "end": 62.04,
+    "tokens": null
+   },
+   {
+    "actor": "agent:2a32ce",
+    "start": -2.75,
+    "end": 55.11,
+    "tokens": null
+   },
+   {
+    "actor": "agent:c680d1",
+    "start": -2.75,
+    "end": 61.21,
+    "tokens": null
+   },
+   {
+    "actor": "agent:386545",
+    "start": 70.9,
+    "end": 107.53,
+    "tokens": null
+   },
+   {
+    "actor": "agent:a64054",
+    "start": 116.44,
+    "end": 169.49,
+    "tokens": null
+   }
+  ]
+ },
+ "tokens": {
+  "source": "grok.usage",
+  "input": 172144,
+  "output": 21395,
+  "cache_read": 712960,
+  "cost_usd": 0.829138,
+  "peak_parent_input": null,
+  "children_included": true,
+  "parent_input_all": null,
+  "children_input_all": null,
+  "input_all": 885104,
+  "output_all": 21395,
+  "reasoning": null
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 211.6,
+  "last_activity_tail_s": 0.66,
+  "tail_from_last_end_s": 11.201,
+  "tail_from_final_report_s": 0.66,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 32.493,
+  "launch_to_last_end_s": 200.416,
+  "launch_to_verified_s": 208.349,
+  "launch_to_exit_s": 211.617
+ },
+ "valid": true,
+ "identity": {
+  "host": "grok",
+  "version": "grok 1.0.77 (50ca579fa996)",
+  "model": "grok-4.6",
+  "effort": "xhigh",
+  "plan": "overlap5",
+  "arm": "A3",
+  "variant": "N",
+  "workspace": "isolated",
+  "loadavg": [
+   7.05,
+   5.89,
+   5.56
+  ],
+  "enabled_features": []
+ }
+}

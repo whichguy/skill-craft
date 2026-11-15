@@ -79,7 +79,7 @@ def q3(text: str) -> int:
 
 def q4(text: str) -> int:
     times = [r["t"] for r in _parse(text) if r["user"] == "u03"]
-    return max(b - a for a, b in zip(times, times[1:]))
+    return max(b - a for a, b in zip(times, times[1:], strict=False))
 
 
 def _build(rng: random.Random, lines: int, *, fail_rate: float, plant) -> str:

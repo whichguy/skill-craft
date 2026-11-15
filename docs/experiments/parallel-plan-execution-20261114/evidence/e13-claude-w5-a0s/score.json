@@ -1,0 +1,257 @@
+{
+ "steps": 5,
+ "started": 5,
+ "ended": 5,
+ "makespan_s": 204.45,
+ "first_start_ts": 1794702770.635,
+ "last_end_ts": 1794702975.085,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 1,
+ "independent_pairs": 6,
+ "pairs_overlapped": 0,
+ "pairs": [
+  {
+   "pair": [
+    "W1",
+    "W2"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "W1",
+    "W3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "W1",
+    "W4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "W2",
+    "W3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "W2",
+    "W4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "W3",
+    "W4"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 30.0,
+ "settled_steps": 5,
+ "settled_all": true,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=5 chain=5fa3d34476a1",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {
+  "W5": 0.087
+ },
+ "dispatch_latency_mean_s": 0.087,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "W1": "done",
+  "W2": "done",
+  "W3": "done",
+  "W4": "done",
+  "W5": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": null,
+ "write": {
+  "mode": "shared",
+  "oracle": {
+   "hidden": {
+    "m1": {
+     "cases": 12,
+     "passed": 12,
+     "error": null
+    },
+    "m2": {
+     "cases": 14,
+     "passed": 14,
+     "error": null
+    },
+    "m3": {
+     "cases": 10,
+     "passed": 10,
+     "error": null
+    },
+    "m4": {
+     "cases": 13,
+     "passed": 13,
+     "error": null
+    }
+   },
+   "hidden_ok": {
+    "m1": true,
+    "m2": true,
+    "m3": true,
+    "m4": true
+   },
+   "exports": {
+    "rle": true,
+    "roman_to_int": true,
+    "merge_intervals": true,
+    "balanced": true
+   },
+   "export_error": null,
+   "tests": {
+    "m1": {
+     "tests": 7,
+     "passed": 7
+    },
+    "m2": {
+     "tests": 7,
+     "passed": 7
+    },
+    "m3": {
+     "tests": 9,
+     "passed": 9
+    },
+    "m4": {
+     "tests": 10,
+     "passed": 10
+    },
+    "all": {
+     "tests": 33,
+     "passed": 33
+    }
+   },
+   "answers_ok": {
+    "W1": true,
+    "W2": true,
+    "W3": true,
+    "W4": true,
+    "W5": true
+   },
+   "suite_passes": true,
+   "valid": true
+  },
+  "workspace_s": 0,
+  "commit_s": 0,
+  "merge_s": 0,
+  "script_s": 0,
+  "workspaces": 5,
+  "merges": 0,
+  "conflicts": 0,
+  "conflict_paths": [],
+  "retries": 0,
+  "scope_notes": {},
+  "merge_latency_s": {},
+  "refused_empty": 0,
+  "refused_missing": 0
+ },
+ "mechanism": {
+  "kind": "parent-executed",
+  "spawns": 0,
+  "run_calls": 5,
+  "run_calls_by_actor": {
+   "parent": 5
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "claude stream (system task events)",
+  "agents": 0,
+  "peak": 0,
+  "kinds": [],
+  "depths": [],
+  "background": [],
+  "intervals_s": []
+ },
+ "tokens": {
+  "source": "claude.result",
+  "input": 46,
+  "output": 7798,
+  "cache_read": 962214,
+  "cost_usd": 0.2788413999999999,
+  "peak_parent_input": 50361,
+  "children_included": false,
+  "parent_input_all": 988397,
+  "children_input_all": 0,
+  "input_all": 988397,
+  "output_all": 7798,
+  "cache_create": 26137
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 214.9,
+  "last_activity_tail_s": 0.223,
+  "tail_from_last_end_s": 5.592,
+  "tail_from_final_report_s": 1.754,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": 4.88,
+  "launch_to_last_end_s": 209.33,
+  "launch_to_verified_s": 211.287,
+  "launch_to_exit_s": 214.922
+ },
+ "valid": true,
+ "identity": {
+  "host": "claude",
+  "version": "2.1.325 (Claude Code)",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "plan": "write5",
+  "arm": "A0",
+  "variant": "N",
+  "workspace": "shared",
+  "loadavg": [
+   5.54,
+   5.67,
+   5.35
+  ],
+  "enabled_features": []
+ }
+}

@@ -1,0 +1,93 @@
+{
+ "schema": "ppe-plan/v1",
+ "name": "overlap5",
+ "description": "write5 where two tasks (W3 and W4) also register themselves in pkg/__init__.py, a shared file the plan did not declare (README Amendment A10)",
+ "fixture": "write",
+ "expected_verdict": "OK",
+ "steps": [
+  {
+   "id": "W1",
+   "task": "Work only inside the workspace {ws}: a small Python package (a git checkout; every path below is relative to it; do not touch any other directory and do not run git). Implement `rle(s)` in `pkg/m1.py`. s is a string of letters; every maximal run of equal characters becomes that character followed by the length of the run in decimal, even when the length is 1: rle(\"\") == \"\", rle(\"aaabccdd\") == \"a3b1c2d2\", rle(\"abc\") == \"a1b1c1\", rle(\"zzzzzzzzzzzz\") == \"z12\". Also write `tests/test_m1.py` (unittest; import with `from pkg.m1 import rle`) with at least five tests of your own, covering typical, boundary and edge cases. Run your tests with `python3 {ws}/check.py m1`: it prints `TESTS n PASSED m`; fix your code until every test passes. Report as the integer answer the number n of tests in `tests/test_m1.py`. Change only `pkg/m1.py` and `tests/test_m1.py`.",
+   "deps": [],
+   "criteria": [
+    "C-W1"
+   ],
+   "proof": "test -s out/W1.json",
+   "paths": [
+    "pkg/m1.py",
+    "tests/test_m1.py"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "W2",
+   "task": "Work only inside the workspace {ws}: a small Python package (a git checkout; every path below is relative to it; do not touch any other directory and do not run git). Implement `roman_to_int(s)` in `pkg/m2.py`. s is a valid Roman numeral for an integer from 1 to 3999 in standard subtractive form (I, V, X, L, C, D, M; IV, IX, XL, XC, CD, CM); return the integer: roman_to_int(\"III\") == 3, roman_to_int(\"LVIII\") == 58, roman_to_int(\"MCMXCIV\") == 1994. Also write `tests/test_m2.py` (unittest; import with `from pkg.m2 import roman_to_int`) with at least five tests of your own, covering typical, boundary and edge cases. Run your tests with `python3 {ws}/check.py m2`: it prints `TESTS n PASSED m`; fix your code until every test passes. Report as the integer answer the number n of tests in `tests/test_m2.py`. Change only `pkg/m2.py` and `tests/test_m2.py`.",
+   "deps": [],
+   "criteria": [
+    "C-W2"
+   ],
+   "proof": "test -s out/W2.json",
+   "paths": [
+    "pkg/m2.py",
+    "tests/test_m2.py"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "W3",
+   "task": "Work only inside the workspace {ws}: a small Python package (a git checkout; every path below is relative to it; do not touch any other directory and do not run git). Implement `merge_intervals(intervals)` in `pkg/m3.py`. intervals is a list of [start, end] pairs of integers with start <= end, in any order. Return a new list of [start, end] lists in which intervals that share at least one integer point are merged (so [1, 4] and [4, 5] merge, while [1, 2] and [3, 4] do not), sorted by start. The input list must not be modified: merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]]) == [[1, 6], [8, 10], [15, 18]], merge_intervals([]) == []. Also write `tests/test_m3.py` (unittest; import with `from pkg.m3 import merge_intervals`) with at least five tests of your own, covering typical, boundary and edge cases. Run your tests with `python3 {ws}/check.py m3`: it prints `TESTS n PASSED m`; fix your code until every test passes. Report as the integer answer the number n of tests in `tests/test_m3.py`. Also register your function in the package: add the line `from .m3 import merge_intervals` at the end of `pkg/__init__.py`, keeping the lines already there. That is the only change you make outside your two files.",
+   "deps": [],
+   "criteria": [
+    "C-W3"
+   ],
+   "proof": "test -s out/W3.json",
+   "paths": [
+    "pkg/m3.py",
+    "tests/test_m3.py"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "W4",
+   "task": "Work only inside the workspace {ws}: a small Python package (a git checkout; every path below is relative to it; do not touch any other directory and do not run git). Implement `balanced(s)` in `pkg/m4.py`. Return True when the brackets ()[]{} in s are balanced and properly nested, ignoring every other character, and False otherwise: balanced(\"\") is True, balanced(\"a(b[c]{d})\") is True, balanced(\"(]\") is False, balanced(\"(()\") is False, balanced(\"())(\") is False. Also write `tests/test_m4.py` (unittest; import with `from pkg.m4 import balanced`) with at least five tests of your own, covering typical, boundary and edge cases. Run your tests with `python3 {ws}/check.py m4`: it prints `TESTS n PASSED m`; fix your code until every test passes. Report as the integer answer the number n of tests in `tests/test_m4.py`. Also register your function in the package: add the line `from .m4 import balanced` at the end of `pkg/__init__.py`, keeping the lines already there. That is the only change you make outside your two files.",
+   "deps": [],
+   "criteria": [
+    "C-W4"
+   ],
+   "proof": "test -s out/W4.json",
+   "paths": [
+    "pkg/m4.py",
+    "tests/test_m4.py"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "W5",
+   "task": "Work only inside the workspace {ws}: a small Python package with four modules written by colleagues (`pkg/m1.py` rle, `pkg/m2.py` roman_to_int, `pkg/m3.py` merge_intervals, `pkg/m4.py` balanced, each with tests under `tests/`) (a git checkout; every path below is relative to it; do not touch any other directory and do not run git). Make `pkg/__init__.py` export all four functions, so that `from pkg import rle, roman_to_int, merge_intervals, balanced` works: after its docstring it must contain one import line per module (`from .m1 import rle`, `from .m2 import roman_to_int`, `from .m3 import merge_intervals`, `from .m4 import balanced`); keep any of these lines that is already there and do not duplicate it. Then run the whole suite with `python3 {ws}/check.py all`: it prints `TESTS n PASSED m`. Do not edit your colleagues' modules or tests. If the suite does not pass, report the number n anyway and name the failing test in your method. Report as the integer answer the number n of tests the whole suite contains. Change only `pkg/__init__.py`.",
+   "deps": [
+    "W1",
+    "W2",
+    "W3",
+    "W4"
+   ],
+   "criteria": [
+    "C-W5"
+   ],
+   "proof": "test -s out/W5.json",
+   "paths": [
+    "pkg/__init__.py"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  }
+ ]
+}

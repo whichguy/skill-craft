@@ -1,0 +1,50 @@
+$ git log --all --graph --oneline --decorate
+*   7f6bb94 (HEAD -> main) merge W5
+|\  
+| * 31c45ce (w-W5-1) W5 attempt 1
+|/  
+*   d911805 merge W3
+|\  
+| * 797de77 (w-W3-2) W3 attempt 2
+|/  
+*   54dcc7f merge W2
+|\  
+| * ac033fe (w-W2-1) W2 attempt 1
+* |   9b3e9c7 merge W4
+|\ \  
+| * | 6e35a06 (w-W4-1) W4 attempt 1
+| |/  
+* |   292e03b merge W1
+|\ \  
+| |/  
+|/|   
+| * 6fcfd25 (w-W1-1) W1 attempt 1
+|/  
+| * 95d5a07 (w-W3-1) W3 attempt 1
+|/  
+* 66f5f86 base: empty package and the test helper
+
+$ git ls-files
+.gitignore
+check.py
+pkg/__init__.py
+pkg/m1.py
+pkg/m2.py
+pkg/m3.py
+pkg/m4.py
+tests/__init__.py
+tests/test_m1.py
+tests/test_m2.py
+tests/test_m3.py
+tests/test_m4.py
+
+$ git status --short
+
+$ git branch -a
+* main
++ w-W1-1
++ w-W2-1
++ w-W3-1
++ w-W3-2
++ w-W4-1
++ w-W5-1

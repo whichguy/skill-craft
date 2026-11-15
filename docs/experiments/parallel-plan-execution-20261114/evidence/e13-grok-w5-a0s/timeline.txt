@@ -1,0 +1,331 @@
+trial   e13-grok-w5-a0s
+host    grok grok 1.0.77 (50ca579fa996) grok-4.6 xhigh
+plan    write5  arm A0  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   2.654  H  parent        text     -            I'll
++   2.666  H  parent        text     -            start
++   2.680  H  parent        text     -            by
++   2.693  H  parent        text     -            checking
++   2.708  H  parent        text     -            which
++   2.721  H  parent        text     -            DAG
++   2.733  H  parent        text     -            tasks
++   2.747  H  parent        text     -            are
++   2.771  H  parent        text     -            ready
++   2.796  H  parent        text     -            ,
++   2.817  H  parent        text     -            then
++   2.842  H  parent        text     -            work
++   2.864  H  parent        text     -            through
++   2.890  H  parent        text     -            them
++   2.915  H  parent        text     -            one
++   2.934  H  parent        text     -            at
++   2.959  H  parent        text     -            a
++   2.988  H  parent        text     -            time
++   3.004  H  parent        text     -            .
++   3.851  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++   4.008  L  ledger        ready    -            {"result":{"ready":["W1","W2","W3","W4"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,
++   4.013  H  parent        result   -            
++   5.748  H  parent        text     -            W
++   5.748  H  parent        text     -            1
++   5.748  H  parent        text     -            through
++   5.748  H  parent        text     -            W
++   5.749  H  parent        text     -            4
++   5.749  H  parent        text     -            are
++   5.749  H  parent        text     -            ready
++   5.749  H  parent        text     -            ;
++   5.749  H  parent        text     -            I'll
++   5.824  H  parent        text     -            begin
++   5.824  H  parent        text     -            W
++   5.824  H  parent        text     -            1
++   5.824  H  parent        text     -            first
++   5.824  H  parent        text     -            .
++   7.042  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++   7.168  L  ledger        start    W1           
++   7.169  L  ledger        workspace W1           {"seconds":0.0}
++   7.176  H  parent        result   -            
++   9.758  H  parent        text     -            I'll
++   9.758  H  parent        text     -            inspect
++   9.758  H  parent        text     -            the
++   9.758  H  parent        text     -            repo
++   9.758  H  parent        text     -            layout
++   9.758  H  parent        text     -            and
++   9.758  H  parent        text     -            existing
++   9.758  H  parent        text     -            `
++   9.758  H  parent        text     -            r
++   9.767  H  parent        text     -            le
++   9.782  H  parent        text     -            `
++   9.800  H  parent        text     -            files
++   9.818  H  parent        text     -            before
++   9.836  H  parent        text     -            implementing
++   9.851  H  parent        text     -            W
++   9.868  H  parent        text     -            1
++   9.886  H  parent        text     -            .
++  11.323  H  parent        call     list_dir     list_dir {"target_directory": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  11.323  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tria
++  11.324  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tria
++  11.328  H  parent        result   -            
++  11.331  H  parent        result   -            
++  11.332  H  parent        result   -            
++  13.183  H  parent        call     read_file    read_file {"target_file": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tria
++  13.184  H  parent        result   -            
++  14.412  H  parent        text     -            I'll
++  14.412  H  parent        text     -            add
++  14.412  H  parent        text     -            `
++  14.412  H  parent        text     -            r
++  14.412  H  parent        text     -            le
++  14.421  H  parent        text     -            `
++  14.439  H  parent        text     -            and
++  14.453  H  parent        text     -            at
++  14.470  H  parent        text     -            least
++  14.489  H  parent        text     -            five
++  14.499  H  parent        text     -            unit
++  14.517  H  parent        text     -            tests
++  14.536  H  parent        text     -            covering
++  14.552  H  parent        text     -            typical
++  14.564  H  parent        text     -            ,
++  14.579  H  parent        text     -            boundary
++  14.593  H  parent        text     -            ,
++  14.611  H  parent        text     -            and
++  14.630  H  parent        text     -            edge
++  14.640  H  parent        text     -            cases
++  14.659  H  parent        text     -            .
++  18.006  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++  18.006  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++  18.030  H  parent        result   -            
++  18.033  H  parent        result   -            
++  19.692  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  19.792  H  parent        result   -            
++  21.155  H  parent        text     -            Tests
++  21.155  H  parent        text     -            passed
++  21.156  H  parent        text     -            (
++  21.156  H  parent        text     -            7
++  21.156  H  parent        text     -            /
++  21.156  H  parent        text     -            7
++  21.156  H  parent        text     -            ).
++  21.182  H  parent        text     -            Next
++  21.199  H  parent        text     -            I’ll
++  21.216  H  parent        text     -            run
++  21.238  H  parent        text     -            the
++  21.251  H  parent        text     -            required
++  21.270  H  parent        text     -            
++  21.287  H  parent        text     -            30
++  21.304  H  parent        text     -            -
++  21.328  H  parent        text     -            second
++  21.341  H  parent        text     -            settle
++  21.361  H  parent        text     -            for
++  21.377  H  parent        text     -            W
++  21.396  H  parent        text     -            1
++  21.412  H  parent        text     -            .
++  22.348  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  22.466  L  ledger        settle   W1           {"seconds":30.0}
++  52.472  L  ledger        settled  W1           {"seconds":30.0}
++  52.477  H  parent        result   -            
++  55.060  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  55.177  L  ledger        commit   W1           {"seconds":0.0}
++  55.178  L  ledger        end      W1           {"sha":"3cbead3649e9b87f95b29f51b20bddf90bfcd134a40f988c7f281866af37b3fe","result":{"answer":7,"method":"implemented rle and counted 7 unittest method
++  55.184  H  parent        result   -            
++  56.452  H  parent        text     -            W
++  56.452  H  parent        text     -            1
++  56.452  H  parent        text     -            is
++  56.452  H  parent        text     -            recorded
++  56.452  H  parent        text     -            .
++  56.452  H  parent        text     -            Checking
++  56.452  H  parent        text     -            which
++  56.452  H  parent        text     -            tasks
++  56.452  H  parent        text     -            are
++  56.452  H  parent        text     -            ready
++  56.563  H  parent        text     -            next
++  56.687  H  parent        text     -            .
++  57.150  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  57.272  L  ledger        ready    -            {"result":{"ready":["W2","W3","W4"],"deferred":[],"claimed":[],"running":[],"done":["W1"],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,"
++  57.277  H  parent        result   -            
++  60.661  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  60.791  L  ledger        start    W2           
++  60.792  L  ledger        workspace W2           {"seconds":0.0}
++  60.797  H  parent        result   -            
++  62.107  H  parent        text     -            I'll
++  62.107  H  parent        text     -            implement
++  62.107  H  parent        text     -            `
++  62.107  H  parent        text     -            roman
++  62.107  H  parent        text     -            _
++  62.107  H  parent        text     -            to
++  62.107  H  parent        text     -            _
++  62.107  H  parent        text     -            int
++  62.107  H  parent        text     -            `
++  62.107  H  parent        text     -            and
++  62.117  H  parent        text     -            its
++  62.117  H  parent        text     -            tests
++  62.117  H  parent        text     -            ,
++  62.117  H  parent        text     -            then
++  62.118  H  parent        text     -            run
++  62.118  H  parent        text     -            check
++  62.134  H  parent        text     -            .py
++  62.134  H  parent        text     -            .
++  66.160  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++  66.161  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++  66.175  H  parent        result   -            
++  66.178  H  parent        result   -            
++  67.950  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  68.070  H  parent        result   -            
++  71.363  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++  71.484  L  ledger        settle   W2           {"seconds":30.0}
++ 101.490  L  ledger        settled  W2           {"seconds":30.0}
++ 101.495  H  parent        result   -            
++ 103.904  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 104.019  L  ledger        commit   W2           {"seconds":0.0}
++ 104.019  L  ledger        end      W2           {"sha":"0346c0d356205983df27d290bbebe82461967c6a287be8bf93c83d970eb778bc","result":{"answer":7,"method":"implemented roman_to_int and counted 7 unitte
++ 104.024  H  parent        result   -            
++ 106.488  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 106.605  L  ledger        ready    -            {"result":{"ready":["W3","W4"],"deferred":[],"claimed":[],"running":[],"done":["W1","W2"],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,"
++ 106.611  H  parent        result   -            
++ 108.706  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 108.816  L  ledger        start    W3           
++ 108.816  L  ledger        workspace W3           {"seconds":0.0}
++ 108.821  H  parent        result   -            
++ 110.615  H  parent        text     -            I'll
++ 110.615  H  parent        text     -            implement
++ 110.615  H  parent        text     -            `
++ 110.615  H  parent        text     -            merge
++ 110.615  H  parent        text     -            _
++ 110.615  H  parent        text     -            intervals
++ 110.615  H  parent        text     -            `
++ 110.616  H  parent        text     -            without
++ 110.632  H  parent        text     -            mutating
++ 110.649  H  parent        text     -            the
++ 110.649  H  parent        text     -            input
++ 110.748  H  parent        text     -            ,
++ 110.748  H  parent        text     -            then
++ 110.748  H  parent        text     -            add
++ 110.748  H  parent        text     -            tests
++ 110.748  H  parent        text     -            .
++ 114.914  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++ 114.915  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++ 114.931  H  parent        result   -            
++ 114.935  H  parent        result   -            
++ 116.454  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 116.549  H  parent        result   -            
++ 119.862  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 119.974  L  ledger        settle   W3           {"seconds":30.0}
++ 149.979  L  ledger        settled  W3           {"seconds":30.0}
++ 149.984  H  parent        result   -            
++ 152.329  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 152.443  L  ledger        commit   W3           {"seconds":0.0}
++ 152.443  L  ledger        end      W3           {"sha":"db736e1ad4daac73fb39d302aadb1f2b10eb3fe201abad7be718e7f4c41e607e","result":{"answer":7,"method":"implemented merge_intervals and counted 7 uni
++ 152.448  H  parent        result   -            
++ 154.374  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 154.499  L  ledger        ready    -            {"result":{"ready":["W4"],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3"],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,"
++ 154.504  H  parent        result   -            
++ 156.895  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 157.017  L  ledger        start    W4           
++ 157.018  L  ledger        workspace W4           {"seconds":0.0}
++ 157.023  H  parent        result   -            
++ 163.018  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++ 163.020  H  parent        call     write        write {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials
++ 163.033  H  parent        result   -            
++ 163.036  H  parent        result   -            
++ 164.802  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 164.899  H  parent        result   -            
++ 167.059  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 167.177  L  ledger        settle   W4           {"seconds":30.0}
++ 197.182  L  ledger        settled  W4           {"seconds":30.0}
++ 197.188  H  parent        result   -            
++ 199.411  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 199.522  L  ledger        commit   W4           {"seconds":0.0}
++ 199.523  L  ledger        end      W4           {"sha":"c822b4336d1231047924d9c325be140405f26dafe10109658506b914b5316e69","result":{"answer":7,"method":"implemented balanced and counted 7 unittest m
++ 199.528  H  parent        result   -            
++ 201.381  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 201.497  L  ledger        ready    -            {"result":{"ready":["W5"],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3","W4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++ 201.502  H  parent        result   -            
++ 203.430  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 203.595  L  ledger        start    W5           
++ 203.596  L  ledger        workspace W5           {"seconds":0.0}
++ 203.604  H  parent        result   -            
++ 205.503  H  parent        call     search_repla search_replace {"file_path": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-t
++ 205.516  H  parent        result   -            
++ 206.873  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 207.000  H  parent        result   -            
++ 209.436  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 209.569  L  ledger        settle   W5           {"seconds":30.0}
++ 239.575  L  ledger        settled  W5           {"seconds":30.0}
++ 239.580  H  parent        result   -            
++ 241.965  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 242.090  L  ledger        commit   W5           {"seconds":0.0}
++ 242.091  L  ledger        end      W5           {"sha":"7bf51860e3bb85dc25ddd2b9717ec2a547e0a2f4b6d2fbacdafd5c0a6b1a07fe","result":{"answer":28,"method":"exported four functions from pkg and counted
++ 242.098  H  parent        result   -            
++ 244.307  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 244.453  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3","W4","W5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++ 244.460  H  parent        result   -            
++ 247.502  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 247.503  H  parent        call     run_terminal run_terminal_command python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tr
++ 247.637  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=6682f43a7fd0"}
++ 247.643  H  parent        result   -            
++ 247.654  H  parent        result   -            
++ 249.443  H  parent        text     -            All
++ 249.443  H  parent        text     -            five
++ 249.443  H  parent        text     -            steps
++ 249.443  H  parent        text     -            finished
++ 249.443  H  parent        text     -            .
++ 249.443  H  parent        text     -            W
++ 249.444  H  parent        text     -            1
++ 249.469  H  parent        text     -            –
++ 249.488  H  parent        text     -            W
++ 249.516  H  parent        text     -            4
++ 249.533  H  parent        text     -            each
++ 249.554  H  parent        text     -            added
++ 249.576  H  parent        text     -            a
++ 249.599  H  parent        text     -            module
++ 249.622  H  parent        text     -            plus
++ 249.625  H  parent        text     -            
++ 249.682  H  parent        text     -            7
++ 249.682  H  parent        text     -            tests
++ 249.682  H  parent        text     -            ;
++ 249.682  H  parent        text     -            W
++ 249.682  H  parent        text     -            5
++ 249.692  H  parent        text     -            exported
++ 249.703  H  parent        text     -            those
++ 249.713  H  parent        text     -            functions
++ 249.723  H  parent        text     -            and
++ 249.736  H  parent        text     -            the
++ 249.748  H  parent        text     -            full
++ 249.756  H  parent        text     -            suite
++ 249.769  H  parent        text     -            ran
++ 249.769  H  parent        text     -            
++ 249.769  H  parent        text     -            28
++ 249.769  H  parent        text     -            tests
++ 249.769  H  parent        text     -            .
++ 249.769  H  parent        text     -            FINAL
++ 249.769  H  parent        text     -            {"
++ 249.769  H  parent        text     -            done
++ 249.769  H  parent        text     -            ":
++ 249.769  H  parent        text     -            ["
++ 249.772  H  parent        text     -            W
++ 249.772  H  parent        text     -            1
++ 249.772  H  parent        text     -            ","
++ 249.772  H  parent        text     -            W
++ 249.772  H  parent        text     -            2
++ 249.772  H  parent        text     -            ","
++ 249.772  H  parent        text     -            W
++ 249.772  H  parent        text     -            3
++ 249.772  H  parent        text     -            ","
++ 249.772  H  parent        text     -            W
++ 249.772  H  parent        text     -            4
++ 249.772  H  parent        text     -            ","
++ 249.772  H  parent        text     -            W
++ 249.772  H  parent        text     -            5
++ 249.772  H  parent        text     -            "],
++ 249.772  H  parent        text     -            "
++ 249.772  H  parent        text     -            failed
++ 249.772  H  parent        text     -            ":
++ 249.772  H  parent        text     -            [],
++ 249.772  H  parent        text     -            "
++ 249.772  H  parent        text     -            not
++ 249.773  H  parent        text     -            _
++ 249.773  H  parent        text     -            run
++ 249.773  H  parent        text     -            ":
++ 249.773  H  parent        text     -            [],
++ 249.773  H  parent        text     -            "
++ 249.773  H  parent        text     -            answer
++ 249.773  H  parent        text     -            ":
++ 249.773  H  parent        text     -            28
++ 249.773  H  parent        text     -            }
