@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-14
 
+### skill-craft 2.38.0
+
+- Skills: ask-agent 0.11.0
+
+### ask-agent 0.11.0
+
+- A session now names its own host before its first native launch: `scripts/ask_agent_host.py` reads exact environment variable names, innermost host first, and prints that host's measured binding from `references/host-bindings.json` (tool names, spawn arguments, the concurrency the host allows, the wait timeout); a host with no measured binding is reported as `unknown`. Codex's section now says it allows four concurrent agents including the parent (launch at most three workers) and to wait with the lifecycle's two-minute observation timeout instead of short polls.
+
 ### skill-craft 2.37.4
 
 - Skills: shiploop 1.34.3
