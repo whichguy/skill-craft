@@ -76,7 +76,7 @@ class GrokPreemptTest(unittest.TestCase):
         sessions = [json.loads(line) for line in PROBES.read_text().splitlines()]
         exact = [s for s in sessions if s["prompt_kind"] == "exact" and not s["allow"] and not s["preempt_hook"]
                  and not s["batch"].startswith("trace") and s["build"] == grok_preempt.CALIBRATED_BUILD]
-        self.assertGreaterEqual(len(exact), 81)
+        self.assertGreaterEqual(len(exact), 85)
         for session in exact:
             command = (session["ran"] or [session["asked"]])[0].replace("{ROOT}", "/probe/root")
             refused = session["decision"] == "cancelled" and session["wait_ms"] <= 50

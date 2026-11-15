@@ -53,7 +53,7 @@ fixed.
 - Two live runs, or a finished run beside a live one, stay `ambiguous` even when one is newer; the 2026-10-16 audit control
   requires it.
 
-## Grok's headless refusals end sessions: a pre-classifier write check in Auto-review, measured over 267 Grok runs; the owner chose the hook and the resume note, both built (2026-11-15) — status: firm for the cause (Grok 1.0.77), the rate and the fix's unit and live checks; interim for its effect on a whole delivery
+## Grok's headless refusals end sessions: a pre-classifier write check in Auto-review, measured over 267 Grok runs; the owner chose the hook and the resume note, both built (2026-11-15) — status: firm for the cause (Grok 1.0.77), the rate, the fix's unit and live checks and one short real delivery (4 refusals turned into in-turn denials, no session lost); interim for the size of the effect on long deliveries
 
 **What was seen.** The planning-points probe (E24, 909adf228e00254d293ddfcd76b8011ef296fd6c) had 28 refused shell commands in
 four Grok 1.0.77 deliveries, each ending a host session as `cancelled`, and pp-3 was lost at release-plan. The same category
@@ -126,6 +126,20 @@ double quotes" (an empty substitution, also in an unquoted here-document), "63 o
 tasks), "because the resume prompt does not say why" (a co-occurrence, not a measured cause), "1.0.46 had none" (none was
 observed) and "measures the session and time effect" (it records them; a saving needs a comparison).
 
+**A short real delivery (the same day; the owner's choice, "Short real run first").** `hello`, seeded at step-plan,
+through run.py on Grok 1.0.77 (grok-4.6 at xhigh, skill-craft 2.40.0 and ShipLoop 1.36.0 from the marketplace, the hook as
+pushed in 4426c14db9d303fbc9ff625299fff610fe05bd69, so the pre-review copy;
+`~/e2e-runs-refusal-probe/20261115/hello-seeded-hook-1`): PASS in one session with no resume, 112 minutes, $31.93, 201
+shell calls, no Grok refusal. The hook denied 4 calls in the turn: a step-plan scratch probe with `"$PROBE"` targets and
+a `cd` into it, then the model's first rewrite, which kept the `"$PROBE"` targets, and two `python3 -c "…```shiploop-state…"`
+checks (carry-forward, handoff). Each time the model's next command came in the same turn: its second rewrite was a
+Python script with a literal path, and after the other two it moved on. Replayed without the hook, laid out like the run
+(batch `replay-hello-1077`, $0.10), Grok refused all 4 in 0 to 1 ms and each ended its session, so each, as written,
+would have cost a session. The reworked rule flags the same 4 of the 201 calls. No earlier Grok 1.0.77 `hello` delivery
+exists to compare time or cost with. This run vouches for the harness's hook, not for a ShipLoop change, so it is
+recorded here and not in test/shiploop_e2e/LEARNINGS.md, whose latest touch the release preflight reads as an E2E round
+covering every earlier ShipLoop commit.
+
 **Evidence.** docs/experiments/grok-headless-refusals-20261115/ (analyze.py, summarize.py, probe.py, export_probes.py,
 record_payload.py; evidence/summary.md, summary.json, refusals.jsonl, probes.jsonl, payloads.jsonl; the prototype
 preempt_hook.py is in ded345978767587e07c6fffe60aa3f7e785c668b). Probe sessions under `~/e2e-runs-refusal-probe/20261115/`, outside the
@@ -134,8 +148,9 @@ repository.
 **Open edges.**
 - ~~No change is built.~~ Superseded the same day: the owner chose the hook and the resume note, and both are built.
   They change what the harness measures in Grok runs that meet a refusal (fewer sessions, `preempted_tool_calls`), so a
-  Grok run before 2026-11-15 and one after differ there; no E2E round has measured the effect on a whole delivery yet
-  (a verification delivery was stopped at 5 minutes by the owner's call; see above).
+  Grok run before 2026-11-15 and one after differ there. One short seeded delivery has run with the hook (above: 4
+  denials, no session lost); the size of the effect on a long delivery is not measured yet (the `ticket-due-times`
+  verification was stopped at 5 minutes by the owner's call), and the next Grok E2E round records it.
 - slice.py (the planning-slice experiments) installs neither the keepalive nor this hook, so a slice still loses its
   session to a refusal; adding the hook there would change those experiments' comparability and was left out.
 - The floor is build-specific: no floor refusal was observed on 1.0.46, and 1.0.70 refused more (12 of its 15 refusals outside the three shapes hold
