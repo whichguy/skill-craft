@@ -1,0 +1,33 @@
+diff --git a/test/shiploop-test-counts.test.py b/test/shiploop-test-counts.test.py
+index 22f8d608..4c6e8ae6 100644
+--- a/test/shiploop-test-counts.test.py
++++ b/test/shiploop-test-counts.test.py
+@@ -248,8 +248,8 @@ class JudgeTests(unittest.TestCase):
+         self.assertEqual((mixed["status"], mixed["counts"]["ran"], mixed["counts"]["failed"]), ("red", 1, 1))
+         self.assertEqual((clean["status"], clean["counts"]["ran"], clean["counts"]["failed"]),
+                          ("passes-on-base", 1, 0))
+-        for row, earlier in ((dict(row, suite="regression"), False), (row, True)):
+-            verdict = test_loop._judge_base(row, 0, output, [], [], [], earlier_step=earlier)
++        for base_row, earlier in ((dict(row, suite="regression"), False), (row, True)):
++            verdict = test_loop._judge_base(base_row, 0, output, [], [], [], earlier_step=earlier)
+             self.assertEqual((verdict["status"], verdict["counts"]["ran"], verdict["counts"]["failed"]),
+                              ("counted", 1, 1))
+         row = {"command": "wrapped-test", "suite": "focused", "ids": ["missing"]}
+diff --git a/test/shiploop-test-loop.test.py b/test/shiploop-test-loop.test.py
+index dcbbebe8..d67140ef 100644
+--- a/test/shiploop-test-loop.test.py
++++ b/test/shiploop-test-loop.test.py
+@@ -2847,10 +2847,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+                 before = (self.run_dir / "state.md").read_bytes()
+                 answer_key = shiploop_check.answer_key
+ 
+-                def checked_key(*args, **kwargs):
+-                    current = answer_key(*args, **kwargs)
++                def checked_key(*args, bound_answer_key=answer_key, bound_answer=answer, **kwargs):
++                    current = bound_answer_key(*args, **kwargs)
+                     self.assertEqual({k: v for k, v in current.items() if k != "test_schema"},
+-                                     {k: v for k, v in answer["key"].items() if k != "test_schema"})
++                                     {k: v for k, v in bound_answer["key"].items() if k != "test_schema"})
+                     self.assertEqual(current["test_schema"], "shiploop-test-loop/v2")
+                     return current
+ 

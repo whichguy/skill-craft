@@ -1,0 +1,35 @@
+{
+  "before_findings": 66,
+  "after_findings": 63,
+  "removed": [
+    [
+      "/Users/dadleet/src/skill-craft-r08-integrated-20261115/test/shiploop-test-counts.test.py",
+      "B020",
+      "Loop control variable `row` overrides iterable it iterates",
+      251,
+      13,
+      251,
+      16
+    ],
+    [
+      "/Users/dadleet/src/skill-craft-r08-integrated-20261115/test/shiploop-test-loop.test.py",
+      "B023",
+      "Function definition does not bind loop variable `answer_key`",
+      2851,
+      31,
+      2851,
+      41
+    ],
+    [
+      "/Users/dadleet/src/skill-craft-r08-integrated-20261115/test/shiploop-test-loop.test.py",
+      "B023",
+      "Function definition does not bind loop variable `answer`",
+      2853,
+      56,
+      2853,
+      62
+    ]
+  ],
+  "added": [],
+  "unrelated_findings_unchanged": true
+}

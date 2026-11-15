@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+    "log",
+    "-3",
+    "--format=fuller",
+    "--",
+    "test/shiploop-test-counts.test.py",
+    "test/shiploop-test-loop.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+  "exit": 0,
+  "duration_seconds": 0.031427666001036414,
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/relevant-history.stdout",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/relevant-history.stderr"
+}

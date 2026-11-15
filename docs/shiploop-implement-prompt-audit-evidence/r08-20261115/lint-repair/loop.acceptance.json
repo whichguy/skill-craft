@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "command": [
+    "python3",
+    "-B",
+    "test/shiploop-test-loop.test.py",
+    "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts"
+  ],
+  "exit_code": 0,
+  "unittest_totals": [
+    1
+  ],
+  "original_receipt": "loop.json"
+}

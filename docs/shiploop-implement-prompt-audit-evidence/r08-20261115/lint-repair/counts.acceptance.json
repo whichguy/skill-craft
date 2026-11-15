@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "command": [
+    "python3",
+    "-B",
+    "test/shiploop-test-counts.test.py"
+  ],
+  "exit_code": 0,
+  "unittest_totals": [
+    71
+  ],
+  "original_receipt": "counts.json"
+}

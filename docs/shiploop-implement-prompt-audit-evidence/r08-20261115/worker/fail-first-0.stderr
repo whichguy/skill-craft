@@ -1,0 +1,246 @@
+test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) ... 
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 passed, 1 error', code=0) ... FAIL
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 passed, 1 error', code=1) ... FAIL
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 failed, 2 passed, 2 errors', code=0) ... FAIL
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 failed, 2 passed, 2 errors', code=1) ... FAIL
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 error', code=0) ... FAIL
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 error', code=1) ... FAIL
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='2 errors', code=0) ... FAIL
+  test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='2 errors', code=1) ... FAIL
+test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) ... 
+  test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) (suite='focused') ... FAIL
+  test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) (suite='regression') ... FAIL
+  test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) (suite='check') ... FAIL
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 passed, 1 error', code=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (1, 0) != (1, 1)
+
+First differing element 1:
+0
+1
+
+- (1, 0)
+?     ^
+
++ (1, 1)
+?     ^
+ : ==== 1 passed, 1 error in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 passed, 1 error', code=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (1, 0) != (1, 1)
+
+First differing element 1:
+0
+1
+
+- (1, 0)
+?     ^
+
++ (1, 1)
+?     ^
+ : ==== 1 passed, 1 error in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 failed, 2 passed, 2 errors', code=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (3, 1) != (3, 3)
+
+First differing element 1:
+1
+3
+
+- (3, 1)
+?     ^
+
++ (3, 3)
+?     ^
+ : ==== 1 failed, 2 passed, 2 errors in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 failed, 2 passed, 2 errors', code=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (3, 1) != (3, 3)
+
+First differing element 1:
+1
+3
+
+- (3, 1)
+?     ^
+
++ (3, 3)
+?     ^
+ : ==== 1 failed, 2 passed, 2 errors in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 error', code=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (0, 0) != (0, 1)
+
+First differing element 1:
+0
+1
+
+- (0, 0)
+?     ^
+
++ (0, 1)
+?     ^
+ : ==== 1 error in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='1 error', code=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (0, 0) != (0, 1)
+
+First differing element 1:
+0
+1
+
+- (0, 0)
+?     ^
+
++ (0, 1)
+?     ^
+ : ==== 1 error in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='2 errors', code=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (0, 0) != (0, 2)
+
+First differing element 1:
+0
+2
+
+- (0, 0)
+?     ^
+
++ (0, 2)
+?     ^
+ : ==== 2 errors in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) (summary='2 errors', code=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 120, in test_pytest_summary_errors_fail_without_certifying_tests_ran
+    self.assertRan("==== " + summary + " in 0.01s ====\n", ran, failed, code)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 111, in assertRan
+    self.assertEqual((result["ran"], result["failed"]), (ran, failed), output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (0, 0) != (0, 2)
+
+First differing element 1:
+0
+2
+
+- (0, 0)
+?     ^
+
++ (0, 2)
+?     ^
+ : ==== 2 errors in 0.01s ====
+
+
+======================================================================
+FAIL: test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) (suite='focused')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 239, in test_pytest_error_judgement_preserves_gate_precedence
+    self.assertEqual(self.status(row, 0, output), "failed")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'passed' != 'failed'
+- passed
++ failed
+
+
+======================================================================
+FAIL: test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) (suite='regression')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 239, in test_pytest_error_judgement_preserves_gate_precedence
+    self.assertEqual(self.status(row, 0, output), "failed")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'passed' != 'failed'
+- passed
++ failed
+
+
+======================================================================
+FAIL: test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) (suite='check')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-counts.test.py", line 239, in test_pytest_error_judgement_preserves_gate_precedence
+    self.assertEqual(self.status(row, 0, output), "failed")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'passed' != 'failed'
+- passed
++ failed
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.010s
+
+FAILED (failures=11)

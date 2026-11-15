@@ -1,0 +1,12 @@
+{
+  "command": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r08-20261115",
+    "status",
+    "--short"
+  ],
+  "exit_code": 0,
+  "stdout": " M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_test_counts.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-test-counts.test.py\n M test/shiploop-test-loop.test.py\n?? changes/shiploop/\n",
+  "stderr": ""
+}

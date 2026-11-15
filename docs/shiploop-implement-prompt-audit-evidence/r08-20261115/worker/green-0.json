@@ -1,0 +1,11 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "test/shiploop-test-counts.test.py",
+    "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+    "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence",
+    "-v"
+  ],
+  "exit_code": 0
+}

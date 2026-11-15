@@ -1,0 +1,18 @@
+.........................................................ShipLoop committed step W1/S1 as 9430caa2613a.
+........ShipLoop committed step W1/S1 as cb85cb521c3e.
+ShipLoop recorded step W1/S2's base (cb85cb521c3e): the call that entered the step stopped before it did.
+..................................ShipLoop committed step W1/S1 as 3a60159d5de7.
+.......ShipLoop committed step W1/S1 as 27a4205722c5.
+......ShipLoop committed step W1/S1 as bd5d1fee77a5.
+...........ShipLoop committed step W1/S1 as a597a273f5bb.
+.....ShipLoop committed step W1/S1 as a8efb59f6681.
+...ShipLoop committed step W1/S1 as b394a234bd6c.
+ShipLoop recorded step W1/S2's base (b394a234bd6c): the call that entered the step stopped before it did.
+.ShipLoop committed step W1/S1 as bb6ed9e03837.
+ShipLoop recorded step W1/S2's base (bb6ed9e03837): the call that entered the step stopped before it did.
+......ShipLoop committed step W1/S1 as 82a03aba77f8.
+.........................................................................
+----------------------------------------------------------------------
+Ran 211 tests in 1950.686s
+
+OK

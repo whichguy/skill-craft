@@ -1,0 +1,12 @@
+test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) ... ok
+test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) ... ok
+test_mixed_pytest_error_refuses_actual_step_proof (__main__.TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof) ... ok
+test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) ... ok
+test_historical_v1_without_judgement_still_sets_the_floor (__main__.CountFloorTests.test_historical_v1_without_judgement_still_sets_the_floor) ... ok
+test_current_candidate_judgement_reuses_without_whole_answer (__main__.TestLoopTests.test_current_candidate_judgement_reuses_without_whole_answer) ... ok
+test_current_proof_judgement_reuses_check_then_numbered_receipt (__main__.TestLoopTests.test_current_proof_judgement_reuses_check_then_numbered_receipt) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 75.117s
+
+OK

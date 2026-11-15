@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "source_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+  "recommendations": 22,
+  "considerations": 8,
+  "craft_rules": 14,
+  "acceptance_references": 52,
+  "verified_anchors": 173,
+  "verified_files": 40,
+  "verified_local_links": 216,
+  "new_methods": 9,
+  "affected_full_suites": 9,
+  "additional_selected_method_executions": 121,
+  "full_suite_tests": 1811,
+  "scope": "Document, source and retained receipt consistency; no new runtime execution",
+  "visual_render_checked": false
+}

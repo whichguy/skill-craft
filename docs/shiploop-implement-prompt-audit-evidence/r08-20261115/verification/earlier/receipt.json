@@ -1,0 +1,237 @@
+{
+  "status": "PASS",
+  "scope": "Revised parent selection; not original ten-check acceptance",
+  "repo": "/Users/dadleet/src/skill-craft-r08-20261115",
+  "head": "7add548509256e78c8b571ef852d209959b60a24",
+  "base": "b23cde17d878f06eed290faa13ae038abdbff258",
+  "source_stable": true,
+  "tracked_fingerprinted_files": 5595,
+  "status_before": "",
+  "status_after": "",
+  "results": [
+    {
+      "index": 1,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:32:59.279914+00:00",
+      "elapsed_seconds": 0.48,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        71
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/01.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/01.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 71 tests in 0.122s\n\nOK",
+      "unittest_summary": [
+        "Ran 71 tests in 0.122s\n\nOK"
+      ]
+    },
+    {
+      "index": 2,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:32:59.280879+00:00",
+      "elapsed_seconds": 1951.703,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        211
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/02.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/02.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 211 tests in 1950.686s\n\nOK",
+      "unittest_summary": [
+        "Ran 211 tests in 1950.686s\n\nOK"
+      ]
+    },
+    {
+      "index": 3,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-fidelity.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:35:33.807254+00:00",
+      "elapsed_seconds": 37.242,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        149
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/03.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/03.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 149 tests in 35.870s\n\nOK",
+      "unittest_summary": [
+        "Ran 149 tests in 35.870s\n\nOK"
+      ]
+    },
+    {
+      "index": 4,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-analysis.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:36:44.707784+00:00",
+      "elapsed_seconds": 223.199,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        299
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/04.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/04.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 299 tests in 222.071s\n\nOK",
+      "unittest_summary": [
+        "Ran 299 tests in 222.071s\n\nOK"
+      ]
+    },
+    {
+      "index": 5,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-delta.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:40:34.759889+00:00",
+      "elapsed_seconds": 24.963,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        90
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/05.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/05.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 90 tests in 23.812s\n\nOK",
+      "unittest_summary": [
+        "Ran 90 tests in 23.812s\n\nOK"
+      ]
+    },
+    {
+      "index": 6,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-handoff.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:41:47.750600+00:00",
+      "elapsed_seconds": 366.405,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        170
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/06.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/06.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 170 tests in 365.588s\n\nOK",
+      "unittest_summary": [
+        "Ran 170 tests in 365.588s\n\nOK"
+      ]
+    },
+    {
+      "index": 7,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-run-review.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:48:05.563785+00:00",
+      "elapsed_seconds": 607.251,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        688
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/07.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/07.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 688 tests in 604.204s\n\nOK",
+      "unittest_summary": [
+        "Ran 688 tests in 604.204s\n\nOK"
+      ]
+    },
+    {
+      "index": 8,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-domain-words.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:58:22.179736+00:00",
+      "elapsed_seconds": 8.475,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        5
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/08.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/08.stderr.log",
+      "error": null,
+      "terminal_excerpt": "Ran 5 tests in 8.293s\n\nOK",
+      "unittest_summary": [
+        "Ran 5 tests in 8.293s\n\nOK"
+      ]
+    }
+  ],
+  "unittest_total": 1683,
+  "final_evidence_suite_indices": [
+    1,
+    2,
+    6,
+    8
+  ],
+  "final_evidence_unittest_total": 457,
+  "retained_reporting_results_superseded_by_new_integration": [
+    3,
+    4,
+    5,
+    7
+  ],
+  "omitted_checks": [
+    {
+      "index": 9,
+      "command": "python3 -B scripts/check-release-boundary.py --base b23cde17d878f06eed290faa13ae038abdbff258",
+      "status": "SUPERSEDED",
+      "reason": "Parent revised selection; runs on integrated 5a3c91dc snapshot"
+    },
+    {
+      "index": 10,
+      "command": "ruff check --select E9,F,B skills/shiploop/scripts/shiploop_check.py skills/shiploop/scripts/shiploop_test_counts.py skills/shiploop/scripts/shiploop_test_loop.py test/shiploop-test-counts.test.py test/shiploop-test-loop.test.py test/shiploop-e2e-analysis.test.py test/shiploop-e2e-delta.test.py test/shiploop-e2e-fidelity.test.py test/shiploop-handoff.test.py test/shiploop_e2e/fidelity.py",
+      "status": "SUPERSEDED",
+      "reason": "Parent revised selection; runs on integrated 5a3c91dc snapshot"
+    }
+  ],
+  "pending_checks": [],
+  "retries": 0,
+  "max_concurrency": 2,
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "monitoring_interruption": "Parent reported tool-side Bad Request; existing runner processes remained alive. No command restarted. This is separate from test outcomes.",
+  "process_cleanup": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/process-cleanup.log",
+  "source_before": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/source-before.json",
+  "source_after": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/source-after.json",
+  "limits": "40-minute original execution deadline; all suites completed before deadline; no source edits, installs, live service calls or repairs were performed."
+}

@@ -1,0 +1,135 @@
+{
+  "status": "PASS",
+  "repo": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+  "head": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+  "initial_clean": true,
+  "changed_files": [
+    "test/shiploop-test-counts.test.py",
+    "test/shiploop-test-loop.test.py"
+  ],
+  "changes": [
+    {
+      "file": "test/shiploop-test-counts.test.py",
+      "lines": [
+        251,
+        252
+      ],
+      "change": "Rename loop target and its use to base_row."
+    },
+    {
+      "file": "test/shiploop-test-loop.test.py",
+      "lines": [
+        2850,
+        2851,
+        2853
+      ],
+      "change": "Bind answer_key and answer as keyword-only defaults; use bound names."
+    }
+  ],
+  "source_stable_during_checks": true,
+  "source_identity_files": [
+    "initial-source.json",
+    "before-checks-source.json",
+    "counts-before-source.json",
+    "counts-after-source.json",
+    "loop-before-source.json",
+    "loop-after-source.json",
+    "after-checks-source.json",
+    "final-source.json"
+  ],
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit": 0,
+      "duration_seconds": 0.47454012500020326,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/counts.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/counts.stderr",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "expected_count": 71,
+      "observed_count": 71,
+      "source_stable": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit": 0,
+      "duration_seconds": 26.230144624998502,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/loop.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/loop.stderr",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "SHIPLOOP_PROGRESS": "off"
+      },
+      "expected_count": 1,
+      "observed_count": 1,
+      "source_stable": true
+    }
+  ],
+  "ruff": {
+    "before_findings": 66,
+    "after_findings": 63,
+    "removed": [
+      [
+        "/Users/dadleet/src/skill-craft-r08-integrated-20261115/test/shiploop-test-counts.test.py",
+        "B020",
+        "Loop control variable `row` overrides iterable it iterates",
+        251,
+        13,
+        251,
+        16
+      ],
+      [
+        "/Users/dadleet/src/skill-craft-r08-integrated-20261115/test/shiploop-test-loop.test.py",
+        "B023",
+        "Function definition does not bind loop variable `answer_key`",
+        2851,
+        31,
+        2851,
+        41
+      ],
+      [
+        "/Users/dadleet/src/skill-craft-r08-integrated-20261115/test/shiploop-test-loop.test.py",
+        "B023",
+        "Function definition does not bind loop variable `answer`",
+        2853,
+        56,
+        2853,
+        62
+      ]
+    ],
+    "added": [],
+    "unrelated_findings_unchanged": true
+  },
+  "diff_check": {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+    "exit": 0,
+    "duration_seconds": 0.0851518750005198,
+    "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/diff-check.stdout",
+    "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/diff-check.stderr"
+  },
+  "patch_review": "patch-review.md",
+  "patch": "patch.stdout",
+  "history": "relevant-history.stdout",
+  "retries": 0,
+  "commits_created": 0
+}

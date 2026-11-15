@@ -1,0 +1,43 @@
+{
+  "status": "FAIL",
+  "raw_current": 987,
+  "raw_base": 984,
+  "new": 3,
+  "removed": 0,
+  "unchanged": 984,
+  "new_findings": [
+    {
+      "path": "test/shiploop-test-counts.test.py",
+      "code": "B020",
+      "message": "Loop control variable `row` overrides iterable it iterates",
+      "source_line": "        for row, earlier in ((dict(row, suite=\"regression\"), False), (row, True)):",
+      "count": 1
+    },
+    {
+      "path": "test/shiploop-test-loop.test.py",
+      "code": "B023",
+      "message": "Function definition does not bind loop variable `answer_key`",
+      "source_line": "                    current = answer_key(*args, **kwargs)",
+      "count": 1
+    },
+    {
+      "path": "test/shiploop-test-loop.test.py",
+      "code": "B023",
+      "message": "Function definition does not bind loop variable `answer`",
+      "source_line": "                                     {k: v for k, v in answer[\"key\"].items() if k != \"test_schema\"})",
+      "count": 1
+    }
+  ],
+  "removed_findings": [],
+  "no_added_findings": false,
+  "raw_reports": [
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/04.stdout.log",
+      "sha256": "db6d62faa256e40fd00d72660d83241fb55e4d5ab5d717b03211cde0d33d9d5d"
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/05.stdout.log",
+      "sha256": "12a8ef0dcf64eb4b4d6d838653d4457f0aa8a35425f5885c383eca18e06dc13c"
+    }
+  ]
+}

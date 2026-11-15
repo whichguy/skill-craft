@@ -1,0 +1,827 @@
+[
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/plan-review-events.jsonl",
+    "sha256": "d49828fc01c1d96d82afe39c5f632098b9b7317f8f293cb75b8533191eec00b5",
+    "bytes": 249928
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/worker-events.jsonl",
+    "sha256": "bd0f6e5c24379f45038534422b241b5823b84103320c55430b91cdf462fdbac0",
+    "bytes": 407427
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-review-events.jsonl",
+    "sha256": "128942e5897905f2ff8ed92f8ef050ae95194e28013751a2d989cefc846db71a",
+    "bytes": 351644
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/worker-events.jsonl",
+    "sha256": "bc3a02088716410413099165704ae726a96b0df246dd6836f52448461acb5eba",
+    "bytes": 49759
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/review-v2/final-review-events.jsonl",
+    "sha256": "c0eb3d88efb7ea4170fe0dd738ffdf87ac8a003c0121b0ce9bda331fa7e2ba45",
+    "bytes": 287139
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/post-rebase/worker-events.jsonl",
+    "sha256": "b8e22cafa1fbc42b360be74d9b50fa215011bc1ab876668f0b0b05008ad75c3e",
+    "bytes": 139747
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker-events.jsonl",
+    "sha256": "7ca6f77b18919ad59a63ebb5787eedb0744b13f9bdf4ee5a9c51db088c05249b",
+    "bytes": 454085
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/source-before.json",
+    "sha256": "aeadfb5f780e009aced8a75a44ac50d8c65d42ddf6259f3bf49c1386eb3b465f",
+    "bytes": 922484
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/source-after.json",
+    "sha256": "ab47594d40abcbfd9fdfcc7a3108060cb793266d399a35837ff4e9045b495045",
+    "bytes": 922484
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/source-before.json",
+    "sha256": "8036142ee568718f7eb12a3e3c127953a59f84175a1c9d6e96ad60518975c273",
+    "bytes": 922338
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/source-after.json",
+    "sha256": "e62eaea680bb46de1def1ac05d10e257bc512ed1d8cbe6889e024efaca9b761c",
+    "bytes": 922338
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/initial-source.json",
+    "sha256": "c9872c9f92f3161e36ba6cd3433cbaa00e04763cad2ebaf5cc08043feebde252",
+    "bytes": 1978934
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/counts-after-source.json",
+    "sha256": "38d5f455c0cd1ecd1a1def27b03927f4117e55a8b51f16d2ecdf7c8055009aeb",
+    "bytes": 1979008
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/loop-after-source.json",
+    "sha256": "38d5f455c0cd1ecd1a1def27b03927f4117e55a8b51f16d2ecdf7c8055009aeb",
+    "bytes": 1979008
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/final-source.json",
+    "sha256": "38d5f455c0cd1ecd1a1def27b03927f4117e55a8b51f16d2ecdf7c8055009aeb",
+    "bytes": 1979008
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/loop-before-source.json",
+    "sha256": "38d5f455c0cd1ecd1a1def27b03927f4117e55a8b51f16d2ecdf7c8055009aeb",
+    "bytes": 1979008
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/before-checks-source.json",
+    "sha256": "38d5f455c0cd1ecd1a1def27b03927f4117e55a8b51f16d2ecdf7c8055009aeb",
+    "bytes": 1979008
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/after-checks-source.json",
+    "sha256": "38d5f455c0cd1ecd1a1def27b03927f4117e55a8b51f16d2ecdf7c8055009aeb",
+    "bytes": 1979008
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/counts-before-source.json",
+    "sha256": "38d5f455c0cd1ecd1a1def27b03927f4117e55a8b51f16d2ecdf7c8055009aeb",
+    "bytes": 1979008
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/source-before.json",
+    "sha256": "e4b8a6c9d2cf86327cedf234f4b9e03f58e1fa414d6e5cba69ad7c3d04774763",
+    "bytes": 922484
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/source-after.json",
+    "sha256": "a181b7960ae713f92a0c4c9886b6103a1e5fa225abd1172d284aabf1d950b863",
+    "bytes": 922484
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/worker/fail-first-source.json",
+    "sha256": "c641dcb1a1855b1b676285ca8cf29c6ea3436649d3f92a1995df1d1e8b1d67a0",
+    "bytes": 591
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/worker/final-source.json",
+    "sha256": "2a7d01b60be9809ca90162dd1c466dd6c5b86bff18138121154ab151b8ad7222",
+    "bytes": 982
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/source-before.json",
+    "sha256": "aa1c2eb33fc872a293f22a3a421733cfc15b7c6f343433e6e3110adbd80ab188",
+    "bytes": 921937
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/source-after.json",
+    "sha256": "8382d2e9851d7d4218107ca9c7d4bda4f80b8cf0994e1832ce1043f18dc82d18",
+    "bytes": 921937
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/validation/source-post.json",
+    "sha256": "677185632e9a55bc6f8151167e49c9ed5aaf49f5665c70733cc791e3088f767f",
+    "bytes": 921428
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/validation/source-pre.json",
+    "sha256": "531e8deff25f3685b42e851865bf5e2f205e92215666f839493435e7a0ba9823",
+    "bytes": 921428
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/source-before.json",
+    "sha256": "37f78a3109a5e3cc037941612f87c034e25a1f393cde5c7b27e887c06672afb7",
+    "bytes": 922048
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/source-after.json",
+    "sha256": "a4a62537abd0459539a82ceb0d60213a12ca9fe81fa3fab930b95bfb663112bd",
+    "bytes": 922048
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/post-rebase/worker/post-source.json",
+    "sha256": "0942653b826a3b18c5f09595eb24bc3dbdfaec908bbbd487f7e5f7164f7864d4",
+    "bytes": 1977703
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/post-rebase/worker/pre-source.json",
+    "sha256": "0942653b826a3b18c5f09595eb24bc3dbdfaec908bbbd487f7e5f7164f7864d4",
+    "bytes": 1977703
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/source-identity.json",
+    "sha256": "44bdad075251a0df3f44febd31aa404533f5145b51748fefa3dc673f9eb750b1",
+    "bytes": 11083
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/source-map.json",
+    "sha256": "6d88ff1f1c3e6d75b489bf58f67daf38c5affd8d5e0e5d41719959c86536bb80",
+    "bytes": 423452
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/worker/fail-first-source.json",
+    "sha256": "c641dcb1a1855b1b676285ca8cf29c6ea3436649d3f92a1995df1d1e8b1d67a0",
+    "bytes": 591
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/worker/final-source.json",
+    "sha256": "2a7d01b60be9809ca90162dd1c466dd6c5b86bff18138121154ab151b8ad7222",
+    "bytes": 982
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/green-fixtures-01/before.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/red-01/before.json",
+    "sha256": "0ad995387acbc97867096941c318a30bcca8d690b2d71a798389a84596a80c20",
+    "bytes": 1572
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/green-01/before.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/roll-forward/green-fixtures-01/before.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/roll-forward/red-01/before.json",
+    "sha256": "0ad995387acbc97867096941c318a30bcca8d690b2d71a798389a84596a80c20",
+    "bytes": 1572
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/roll-forward/green-01/before.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/green-fixtures-01/after.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/red-01/after.json",
+    "sha256": "520faed1c8d4af5022d4e7211f4e625fef286a80d8ddd57556e94572e04a245b",
+    "bytes": 1535
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/green-01/after.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/roll-forward/green-fixtures-01/after.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/roll-forward/red-01/after.json",
+    "sha256": "520faed1c8d4af5022d4e7211f4e625fef286a80d8ddd57556e94572e04a245b",
+    "bytes": 1535
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/roll-forward/green-01/after.json",
+    "sha256": "a832cd7424c703468df399f304831d3a4b4a990d307b19f0384a936a3cfa13a9",
+    "bytes": 1756
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/05.stdout.log",
+    "sha256": "12a8ef0dcf64eb4b4d6d838653d4457f0aa8a35425f5885c383eca18e06dc13c",
+    "bytes": 554743
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/02.stdout.log",
+    "sha256": "65671a7fca99626a2b3240e068565e697e0853ff675a8f6b293296b74d86236c",
+    "bytes": 27
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/01.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/04.stdout.log",
+    "sha256": "db6d62faa256e40fd00d72660d83241fb55e4d5ab5d717b03211cde0d33d9d5d",
+    "bytes": 480610
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/03.stdout.log",
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "bytes": 19
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/06.stdout.log",
+    "sha256": "2c627bb18dea737c32b7a47e312a8c7cc8854e4598244a4e090c5ba68906c584",
+    "bytes": 1573
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/02.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/01.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/04.stdout.log",
+    "sha256": "65671a7fca99626a2b3240e068565e697e0853ff675a8f6b293296b74d86236c",
+    "bytes": 27
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/03.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/02.stdout.log",
+    "sha256": "4bbae935f387f7a232e27c88fb27f4a3c0e272e669648a0e02486816e3c770eb",
+    "bytes": 870
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/01.stdout.log",
+    "sha256": "5f9659c0b612b1a32974849f7bce668b8e0662f51af5b52e02ee1f45af3a5b18",
+    "bytes": 478975
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/05.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/08.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/07.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/02.stdout.log",
+    "sha256": "9417ebed48857010b3ea346487b4716179613c74709a13b2c90cd01b2b0c2229",
+    "bytes": 8160
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/01.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/04.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/03.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/06.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/05.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/08.stdout.log",
+    "sha256": "65671a7fca99626a2b3240e068565e697e0853ff675a8f6b293296b74d86236c",
+    "bytes": 27
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/07.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/02.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/01.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/04.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/09.stdout.log",
+    "sha256": "a3271cef0ea59fc07b2ef79760d6f5bbb013f86bbe7eaadc9ac3259b63f7d459",
+    "bytes": 485638
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/03.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/06.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/004-shiploop-no-model-launch.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/002-ci-policy.stdout.log",
+    "sha256": "6e5a320aa6269e5208be3a08e8ff71e7d535228b6ff7887ad90e19c57cae216b",
+    "bytes": 294
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/001-test-groups.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/003-skill-frontmatter.stdout.log",
+    "sha256": "dd3008ac2be111b5dec9a912da80af2c322f68eb5d331c3fcd61f31ee0d07104",
+    "bytes": 102
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/lint/02.stdout.log",
+    "sha256": "4bbae935f387f7a232e27c88fb27f4a3c0e272e669648a0e02486816e3c770eb",
+    "bytes": 870
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/05.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/08.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/07.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/02.stdout.log",
+    "sha256": "9417ebed48857010b3ea346487b4716179613c74709a13b2c90cd01b2b0c2229",
+    "bytes": 8160
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/01.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/04.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/03.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/06.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/02.stdout.log",
+    "sha256": "65671a7fca99626a2b3240e068565e697e0853ff675a8f6b293296b74d86236c",
+    "bytes": 27
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/01.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/03.stdout.log",
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "bytes": 19
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/06.stdout.log",
+    "sha256": "2c627bb18dea737c32b7a47e312a8c7cc8854e4598244a4e090c5ba68906c584",
+    "bytes": 1573
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/05.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/08.stdout.log",
+    "sha256": "65671a7fca99626a2b3240e068565e697e0853ff675a8f6b293296b74d86236c",
+    "bytes": 27
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/07.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/02.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/01.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/04.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/03.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/06.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/01.stderr.log",
+    "sha256": "5cb8540a08b0c9ce5a9d2d2a389a51e959ca56ab9778148ab0b37bc5b5ecc5d4",
+    "bytes": 109
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/04.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/03.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/06.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/05.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/02.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/01.stderr.log",
+    "sha256": "24adda79e21044fef19cdc7f0606a9cd7770fc9a99c705a8622ee923c13bce5d",
+    "bytes": 100
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/04.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/03.stderr.log",
+    "sha256": "74eb9cb7c11e8565a580a1929b0e276406180193042da804ba71cece70d877ac",
+    "bytes": 103
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/02.stderr.log",
+    "sha256": "aab7c7d83b1c4132a2715dc66914dc66100762d4c73f6b20c3d481a996b1a8b3",
+    "bytes": 115
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/01.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/02.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/01.stderr.log",
+    "sha256": "9dd84076ad764167c848c29981f3dafc5b4f64c02480eff5bebaed6753c54e52",
+    "bytes": 170
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/04.stderr.log",
+    "sha256": "20bbe7e37b3f2d9596d5417c31c8abb55dc616ba306af110e667a1c859353cae",
+    "bytes": 401
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/03.stderr.log",
+    "sha256": "061341d282145342502bd886d577cd47f58dd3dbf5c689c5b56ef03f27a94731",
+    "bytes": 250
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/06.stderr.log",
+    "sha256": "3460445f7697e68f9bf65918787d90251dddb62e95d5baf9e028c1ae1457b606",
+    "bytes": 272
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/08.stderr.log",
+    "sha256": "712f8b814c2132130b85f27a5f458260cf278aba31c0d5f625bd2ce39f06ab09",
+    "bytes": 103
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/05.stderr.log",
+    "sha256": "e87f02149061b6f7edc869e0287a17d47d574ef31771a75a6db6816c768dbd2f",
+    "bytes": 190
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/07.stderr.log",
+    "sha256": "a11df44b8f498d0bab946a151b47e725bd9f0c31affc090b11768260ba0a2dbf",
+    "bytes": 790
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/02.stderr.log",
+    "sha256": "0460021fa473112cf5ca5d294ce77805db325bef9d18d95b89993f5c44d19b0d",
+    "bytes": 1102
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/01.stderr.log",
+    "sha256": "0043bc96c47fc8c5002887112615da24af6a625c6a687a614467fc753f515c41",
+    "bytes": 250
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/09.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/04.stderr.log",
+    "sha256": "bc2904b828cc9efd695a3b6ffff8bc309ae1be3abc863844e65e92bb23c5515f",
+    "bytes": 790
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/03.stderr.log",
+    "sha256": "7af860e849511098c20b4e122f1434501e0c68d1db3a0064cd35471818df5bae",
+    "bytes": 190
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/06.stderr.log",
+    "sha256": "24adda79e21044fef19cdc7f0606a9cd7770fc9a99c705a8622ee923c13bce5d",
+    "bytes": 100
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/08.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/05.stderr.log",
+    "sha256": "cfb58c975c3989326b49273b883d58e3df9677f7d317b00743ea5accf197c78d",
+    "bytes": 230
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/07.stderr.log",
+    "sha256": "cfb507ffe4a03668bfa1b8d093f9ed7bcf06e58697c78dd2d91b49f2f15b13b4",
+    "bytes": 115
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/02.stderr.log",
+    "sha256": "d7569e7e787c92ef76a0aa9a18ad1663aa958d0346c4c6ccd244baa05402243a",
+    "bytes": 401
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/003-skill-frontmatter.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/004-shiploop-no-model-launch.stderr.log",
+    "sha256": "a652d56735be3fb8964a1beeba7e708a9f2a32a20049396e6eac849cb07650cd",
+    "bytes": 110
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/002-ci-policy.stderr.log",
+    "sha256": "89c7ba67e4dc2ae57f3fcb8569b794ce61ac6623d492d755d5d12631161226f8",
+    "bytes": 114
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/quick/logs/001-test-groups.stderr.log",
+    "sha256": "b4e889a072405897fadfc5a9e15c3c0ed9914e0b8438a6c3ebc10a5efb77536a",
+    "bytes": 165
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/lint/01.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/lint/02.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/01.stderr.log",
+    "sha256": "9dd84076ad764167c848c29981f3dafc5b4f64c02480eff5bebaed6753c54e52",
+    "bytes": 170
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/04.stderr.log",
+    "sha256": "20bbe7e37b3f2d9596d5417c31c8abb55dc616ba306af110e667a1c859353cae",
+    "bytes": 401
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/03.stderr.log",
+    "sha256": "061341d282145342502bd886d577cd47f58dd3dbf5c689c5b56ef03f27a94731",
+    "bytes": 250
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/06.stderr.log",
+    "sha256": "3460445f7697e68f9bf65918787d90251dddb62e95d5baf9e028c1ae1457b606",
+    "bytes": 272
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/08.stderr.log",
+    "sha256": "712f8b814c2132130b85f27a5f458260cf278aba31c0d5f625bd2ce39f06ab09",
+    "bytes": 103
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/05.stderr.log",
+    "sha256": "e87f02149061b6f7edc869e0287a17d47d574ef31771a75a6db6816c768dbd2f",
+    "bytes": 190
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/07.stderr.log",
+    "sha256": "a11df44b8f498d0bab946a151b47e725bd9f0c31affc090b11768260ba0a2dbf",
+    "bytes": 790
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/earlier/02.stderr.log",
+    "sha256": "0460021fa473112cf5ca5d294ce77805db325bef9d18d95b89993f5c44d19b0d",
+    "bytes": 1102
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/01.stderr.log",
+    "sha256": "5cb8540a08b0c9ce5a9d2d2a389a51e959ca56ab9778148ab0b37bc5b5ecc5d4",
+    "bytes": 109
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/04.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/03.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/06.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/05.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/integration/02.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/01.stderr.log",
+    "sha256": "0043bc96c47fc8c5002887112615da24af6a625c6a687a614467fc753f515c41",
+    "bytes": 250
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/09.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/04.stderr.log",
+    "sha256": "bc2904b828cc9efd695a3b6ffff8bc309ae1be3abc863844e65e92bb23c5515f",
+    "bytes": 790
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/03.stderr.log",
+    "sha256": "7af860e849511098c20b4e122f1434501e0c68d1db3a0064cd35471818df5bae",
+    "bytes": 190
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/06.stderr.log",
+    "sha256": "24adda79e21044fef19cdc7f0606a9cd7770fc9a99c705a8622ee923c13bce5d",
+    "bytes": 100
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/08.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/05.stderr.log",
+    "sha256": "cfb58c975c3989326b49273b883d58e3df9677f7d317b00743ea5accf197c78d",
+    "bytes": 230
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/07.stderr.log",
+    "sha256": "cfb507ffe4a03668bfa1b8d093f9ed7bcf06e58697c78dd2d91b49f2f15b13b4",
+    "bytes": 115
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/verification/current/02.stderr.log",
+    "sha256": "d7569e7e787c92ef76a0aa9a18ad1663aa958d0346c4c6ccd244baa05402243a",
+    "bytes": 401
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/ruff-before.json",
+    "sha256": "dba1b7dd405c8fff24aa77a70fd897341b511bdc62e3101d036ea2093d2de689",
+    "bytes": 588
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/ruff-comparison.json",
+    "sha256": "24251c5dbc79771d1e579173270e2a2280d55677c2632ef7ca3b6a2897f16025",
+    "bytes": 828
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/ruff-after.json",
+    "sha256": "fff4a103624fd8be13d333ecb42e3b23616df45a5cad8d4c3f365563cfc7d7bf",
+    "bytes": 586
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/lint-repair/ruff-before.json",
+    "sha256": "dba1b7dd405c8fff24aa77a70fd897341b511bdc62e3101d036ea2093d2de689",
+    "bytes": 588
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/lint-repair/ruff-comparison.json",
+    "sha256": "24251c5dbc79771d1e579173270e2a2280d55677c2632ef7ca3b6a2897f16025",
+    "bytes": 828
+  },
+  {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/before-latest-release-docs/r08-20261115/lint-repair/ruff-after.json",
+    "sha256": "fff4a103624fd8be13d333ecb42e3b23616df45a5cad8d4c3f365563cfc7d7bf",
+    "bytes": 586
+  }
+]

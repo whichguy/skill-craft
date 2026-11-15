@@ -1,0 +1,41 @@
+{
+  "status": "INCOMPLETE",
+  "reason": "Cancelled at parent request: candidate superseded",
+  "head": "b16de3c82bca456ce0a15c0c120d1935b81c50f0",
+  "source_identity_matches": true,
+  "tracked_files_hashed": 5590,
+  "selected": 28,
+  "completed": 4,
+  "totals": [
+    {
+      "suite": "test-groups",
+      "status": "passed",
+      "unittest_totals": [
+        65
+      ]
+    },
+    {
+      "suite": "ci-policy",
+      "status": "passed",
+      "unittest_totals": [
+        14
+      ]
+    },
+    {
+      "suite": "skill-frontmatter",
+      "status": "passed",
+      "unittest_totals": null
+    },
+    {
+      "suite": "shiploop-no-model-launch",
+      "status": "passed",
+      "unittest_totals": [
+        10
+      ]
+    }
+  ],
+  "quick_terminal_exit": -15,
+  "release_boundary": "NOT RUN per cancellation instruction",
+  "surviving_recorded_pids": [],
+  "elapsed_seconds": 718.4605447919994
+}

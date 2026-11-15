@@ -1,0 +1,49 @@
+[
+  {
+    "name": "counts",
+    "command": [
+      "python3",
+      "test/shiploop-test-counts.test.py",
+      "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+      "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+    "started": "2026-11-15T16:22:30.239434+00:00",
+    "seconds": 0.18483495799955563,
+    "exit_code": 0,
+    "outcome": "PASS"
+  },
+  {
+    "name": "reuse",
+    "command": [
+      "python3",
+      "test/shiploop-test-loop.test.py",
+      "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+      "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+      "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+      "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+      "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+      "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+    "started": "2026-11-15T16:22:30.424926+00:00",
+    "seconds": 72.55085045900069,
+    "exit_code": 0,
+    "outcome": "PASS"
+  },
+  {
+    "name": "fidelity",
+    "command": [
+      "python3",
+      "test/shiploop-e2e-fidelity.test.py",
+      "ValidationTest.test_current_v2_emitted_evidence_is_readable",
+      "ValidationTest.test_a_counted_row_that_ran_zero_tests_is_listed_not_passed",
+      "ValidationTest.test_a_record_of_another_schema_or_that_cannot_be_read_is_not_read_and_is_counted_apart"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+    "started": "2026-11-15T16:23:42.976942+00:00",
+    "seconds": 0.6948296250002386,
+    "exit_code": 0,
+    "outcome": "PASS"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "head": "2a6514d6219a60bea080b4114f3e3433eec0f774",
+  "source_sha256": {
+    "skills/shiploop/scripts/shiploop_test_counts.py": "23aa625e4138a65bea9fc6f5415835a9a6ba895291c5099a80b8c5114ba6b0aa",
+    "skills/shiploop/scripts/shiploop_test_loop.py": "39781eb77ef0d40ab291475a6251472c7c343c3c19a282c726022484609a53ac",
+    "skills/shiploop/scripts/shiploop_check.py": "f370a56c12d2958471ded2a522cb7ed5cd65d35cb704f22f35309ef7101e995d",
+    "test/shiploop-test-counts.test.py": "389bc74c4a93e27110e80b0e541858ce9850e456984bf643564107f23a1480f3",
+    "test/shiploop-test-loop.test.py": "859f31f8b938b8ecf9a4ece450ef23d6ec68a17ff1735e3a9fe211d1c1ef0e5c",
+    "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md": "58066fb34f786aac0ffd928d9049a31160955a35ddac00e788fa35cfb5a5a715"
+  },
+  "note": "Only new targeted regression methods executed. Production edit after corrected fail-first; line wrapping only during green run. Full suites and quick bank reserved for parent."
+}

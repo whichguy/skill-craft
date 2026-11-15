@@ -1,0 +1,99 @@
+test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) ... 
+  test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) (marker=None) ... FAIL
+  test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) (marker=0) ... FAIL
+test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) ... 
+  test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) (marker=None) ... FAIL
+  test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) (marker=0) ... FAIL
+test_mixed_pytest_error_refuses_actual_step_proof (__main__.TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof) ... FAIL
+test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) ... 
+  test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=False, marker=None) ... FAIL
+  test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=False, marker=0) ... FAIL
+  test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=True, marker=None) ... FAIL
+  test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=True, marker=0) ... FAIL
+test_historical_v1_without_judgement_still_sets_the_floor (__main__.CountFloorTests.test_historical_v1_without_judgement_still_sets_the_floor) ... ok
+
+======================================================================
+FAIL: test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) (marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2794, in test_stale_candidate_judgement_reruns_on_the_same_tree
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) (marker=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2794, in test_stale_candidate_judgement_reruns_on_the_same_tree
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) (marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2846, in test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) (marker=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2846, in test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_mixed_pytest_error_refuses_actual_step_proof (__main__.TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3062, in test_mixed_pytest_error_refuses_actual_step_proof
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=False, marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3093, in test_stale_proof_judgement_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=False, marker=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3093, in test_stale_proof_judgement_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=True, marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3093, in test_stale_proof_judgement_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) (numbered=True, marker=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3093, in test_stale_proof_judgement_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+----------------------------------------------------------------------
+Ran 5 tests in 105.599s
+
+FAILED (failures=9)

@@ -1,0 +1,201 @@
+{
+  "status": "FAIL",
+  "head": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+  "base": "ba1586571579cd8170c925e29428be126cd02851",
+  "source_stable": true,
+  "tracked_fingerprinted_files": 5600,
+  "results": [
+    {
+      "index": 1,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-hosts.test.py",
+        "GrokPreemptTest"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        10
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/01.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/01.stderr.log",
+      "elapsed_seconds": 1.761,
+      "error": null,
+      "expected_nonzero": false
+    },
+    {
+      "index": 2,
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "ba1586571579cd8170c925e29428be126cd02851"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/02.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/02.stderr.log",
+      "elapsed_seconds": 1.086,
+      "error": null,
+      "expected_nonzero": false
+    },
+    {
+      "index": 3,
+      "command": [
+        "ruff",
+        "check",
+        "--isolated",
+        "--select",
+        "E9,F,B",
+        "skills/shiploop/scripts/shiploop_check.py",
+        "skills/shiploop/scripts/shiploop_test_counts.py",
+        "skills/shiploop/scripts/shiploop_test_loop.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/03.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/03.stderr.log",
+      "elapsed_seconds": 0.078,
+      "error": null,
+      "expected_nonzero": false
+    },
+    {
+      "index": 4,
+      "command": [
+        "ruff",
+        "check",
+        "--isolated",
+        "--select",
+        "E9,F,B",
+        "--output-format",
+        "json",
+        "skills/shiploop/scripts/shiploop_check.py",
+        "skills/shiploop/scripts/shiploop_test_counts.py",
+        "skills/shiploop/scripts/shiploop_test_loop.py",
+        "test/shiploop-e2e-analysis.test.py",
+        "test/shiploop-e2e-delta.test.py",
+        "test/shiploop-e2e-fidelity.test.py",
+        "test/shiploop-handoff.test.py",
+        "test/shiploop-test-counts.test.py",
+        "test/shiploop-test-loop.test.py",
+        "test/shiploop_e2e/fidelity.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 1,
+      "status": "FAIL",
+      "unittest_totals": [],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/04.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/04.stderr.log",
+      "elapsed_seconds": 0.094,
+      "error": null,
+      "expected_nonzero": true
+    },
+    {
+      "index": 5,
+      "command": [
+        "ruff",
+        "check",
+        "--isolated",
+        "--select",
+        "E9,F,B",
+        "--output-format",
+        "json",
+        "skills/shiploop/scripts/shiploop_check.py",
+        "skills/shiploop/scripts/shiploop_test_counts.py",
+        "skills/shiploop/scripts/shiploop_test_loop.py",
+        "test/shiploop-e2e-analysis.test.py",
+        "test/shiploop-e2e-delta.test.py",
+        "test/shiploop-e2e-fidelity.test.py",
+        "test/shiploop-handoff.test.py",
+        "test/shiploop-test-counts.test.py",
+        "test/shiploop-test-loop.test.py",
+        "test/shiploop_e2e/fidelity.py"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/base-files",
+      "exit_code": 1,
+      "status": "FAIL",
+      "unittest_totals": [],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/05.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/05.stderr.log",
+      "elapsed_seconds": 0.051,
+      "error": null,
+      "expected_nonzero": true
+    },
+    {
+      "index": 6,
+      "command": [
+        "python3",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/compare_checks.py",
+        "compare"
+      ],
+      "exit_code": 1,
+      "status": "FAIL",
+      "unittest_totals": [],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/06.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/06.stderr.log",
+      "elapsed_seconds": 1.355
+    }
+  ],
+  "comparison": {
+    "status": "FAIL",
+    "raw_current": 987,
+    "raw_base": 984,
+    "new": 3,
+    "removed": 0,
+    "unchanged": 984,
+    "new_findings": [
+      {
+        "path": "test/shiploop-test-counts.test.py",
+        "code": "B020",
+        "message": "Loop control variable `row` overrides iterable it iterates",
+        "source_line": "        for row, earlier in ((dict(row, suite=\"regression\"), False), (row, True)):",
+        "count": 1
+      },
+      {
+        "path": "test/shiploop-test-loop.test.py",
+        "code": "B023",
+        "message": "Function definition does not bind loop variable `answer_key`",
+        "source_line": "                    current = answer_key(*args, **kwargs)",
+        "count": 1
+      },
+      {
+        "path": "test/shiploop-test-loop.test.py",
+        "code": "B023",
+        "message": "Function definition does not bind loop variable `answer`",
+        "source_line": "                                     {k: v for k, v in answer[\"key\"].items() if k != \"test_schema\"})",
+        "count": 1
+      }
+    ],
+    "removed_findings": [],
+    "no_added_findings": false,
+    "raw_reports": [
+      {
+        "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/04.stdout.log",
+        "sha256": "db6d62faa256e40fd00d72660d83241fb55e4d5ab5d717b03211cde0d33d9d5d"
+      },
+      {
+        "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/05.stdout.log",
+        "sha256": "12a8ef0dcf64eb4b4d6d838653d4457f0aa8a35425f5885c383eca18e06dc13c"
+      }
+    ]
+  },
+  "retries": 0,
+  "pending_checks": [],
+  "process_cleanup": "All launched subprocesses returned terminal results; none remain owned by this runner.",
+  "limits": "8 minute deadline; no repairs or source mutations; raw Ruff scans retain their actual exit1 FAIL outcomes, while acceptance is the no-added-finding comparison.",
+  "observations": {
+    "baseline_dynamic_globals": "test/shiploop-e2e-analysis.test.py:11-13 imports shiploop-e2e-support and injects its namespace using globals().update. Both scans contain the same 973 F821 findings in this fixture. This explains most baseline findings, but does not explain the three added B020/B023 findings.",
+    "new_finding_locations": [
+      "test/shiploop-test-counts.test.py:251 B020",
+      "test/shiploop-test-loop.test.py:2851 B023 answer_key",
+      "test/shiploop-test-loop.test.py:2853 B023 answer"
+    ]
+  }
+}

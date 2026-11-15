@@ -1,0 +1,16 @@
+test_the_trials_native_output_is_counted_where_it_was_refused_as_uncounted (__main__.TapCountRouteTests.test_the_trials_native_output_is_counted_where_it_was_refused_as_uncounted) ... ok
+test_the_accepted_count_becomes_the_floor_and_eight_is_refused_by_the_floor_alone (__main__.TapCountRouteTests.test_the_accepted_count_becomes_the_floor_and_eight_is_refused_by_the_floor_alone)
+``min_tests`` is 3, so only the floor the first counted run set can refuse a rerun of 8 points. ... ok
+test_a_base_run_count_seeds_the_floor (__main__.TapCountRouteTests.test_a_base_run_count_seeds_the_floor) ... ok
+test_a_stream_longer_than_the_kept_tail_is_counted_whole (__main__.TapCountRouteTests.test_a_stream_longer_than_the_kept_tail_is_counted_whole) ... ok
+test_failures_and_an_empty_plan_are_refused_at_exit_zero (__main__.TapCountRouteTests.test_failures_and_an_empty_plan_are_refused_at_exit_zero) ... ok
+test_a_check_judges_the_stream_as_a_counted_run_does (__main__.TapCountRouteTests.test_a_check_judges_the_stream_as_a_counted_run_does) ... ok
+test_complete_after_a_passing_check_takes_the_checks_counted_run (__main__.TapCountRouteTests.test_complete_after_a_passing_check_takes_the_checks_counted_run) ... ok
+test_a_v1_check_reruns_and_is_refused_by_the_current_tap_count (__main__.TapCountRouteTests.test_a_v1_check_reruns_and_is_refused_by_the_current_tap_count)
+A v1 pass on the same tree reruns under v2; nine fresh TAP points cannot satisfy min_tests=40. ... ok
+test_a_step_proof_is_judged_from_its_stream (__main__.TapCountRouteTests.test_a_step_proof_is_judged_from_its_stream) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 2.300s
+
+OK

@@ -1,0 +1,24 @@
+2026-11-15T17:14:46.119999Z  WARN codex_skills::interface: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-11-15T17:14:46.121307Z  WARN codex_skills::interface: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-11-15T17:14:46.904094Z  WARN codex_skills::interface: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-11-15T17:14:46.904147Z  WARN codex_skills::interface: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-11-15T17:14:47.846711Z ERROR codex_api::endpoint::responses_websocket: failed to connect to Responses WebSocket stage=Unknown
+2026-11-15T17:14:47.846852Z  WARN codex_core::client: falling back to HTTP
+2026-11-15T17:15:03.761932Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="browser" marketplace="openai-bundled"
+2026-11-15T17:15:03.762020Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="chrome" marketplace="openai-bundled"
+2026-11-15T17:15:03.762034Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="codex-app-tools" marketplace="openai-bundled"
+2026-11-15T17:15:03.762044Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="computer-history" marketplace="openai-bundled"
+2026-11-15T17:15:03.762055Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="computer-use" marketplace="openai-bundled"
+2026-11-15T17:15:03.762065Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="documents" marketplace="openai-primary-runtime"
+2026-11-15T17:15:03.762072Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="pdf" marketplace="openai-primary-runtime"
+2026-11-15T17:15:03.762079Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="presentations" marketplace="openai-primary-runtime"
+2026-11-15T17:15:03.762086Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="shiploop" marketplace="skill-craft-market"
+2026-11-15T17:15:04.191225Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="spreadsheets" marketplace="openai-primary-runtime"
+2026-11-15T17:15:04.191264Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="template-creator" marketplace="openai-primary-runtime"
+2026-11-15T17:15:04.191278Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="unified-computer-use" marketplace="openai-bundled"
+2026-11-15T17:15:04.191288Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="until-loop" marketplace="until-loop-local"
+2026-11-15T17:15:05.540884Z  WARN codex_core_plugins::loader: configured non-curated plugin no longer exists in discovered marketplaces during cache refresh plugin="visualize" marketplace="openai-bundled"
+2026-11-15T17:15:05.730483Z  WARN codex_skills::interface: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-11-15T17:15:05.730543Z  WARN codex_skills::interface: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-11-15T17:16:29.106328Z  WARN codex_skills::interface: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-11-15T17:16:29.106405Z  WARN codex_skills::interface: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/

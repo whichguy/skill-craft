@@ -1,0 +1,28 @@
+FE.
+======================================================================
+ERROR: test_a_counted_row_that_ran_zero_tests_is_listed_not_passed (__main__.ValidationTest.test_a_counted_row_that_ran_zero_tests_is_listed_not_passed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-e2e-fidelity.test.py", line 882, in test_a_counted_row_that_ran_zero_tests_is_listed_not_passed
+    self.assertEqual(validation["by_suite"]["focused"]["zero_ran"], 1)
+                     ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'focused'
+
+======================================================================
+FAIL: test_current_v2_emitted_evidence_is_readable (__main__.ValidationTest.test_current_v2_emitted_evidence_is_readable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-e2e-fidelity.test.py", line 866, in test_current_v2_emitted_evidence_is_readable
+    self.assertEqual(record["schema"], "shiploop-test-loop/v2")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'shiploop-test-loop/v1' != 'shiploop-test-loop/v2'
+- shiploop-test-loop/v1
+?                     ^
++ shiploop-test-loop/v2
+?                     ^
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.054s
+
+FAILED (failures=1, errors=1)

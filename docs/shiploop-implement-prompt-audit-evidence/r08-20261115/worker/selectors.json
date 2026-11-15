@@ -1,0 +1,15 @@
+[
+  [
+    "test/shiploop-test-counts.test.py",
+    "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+    "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+  ],
+  [
+    "test/shiploop-test-loop.test.py",
+    "TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree",
+    "TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts",
+    "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+    "TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts",
+    "CountFloorTests.test_historical_v1_without_judgement_still_sets_the_floor"
+  ]
+]

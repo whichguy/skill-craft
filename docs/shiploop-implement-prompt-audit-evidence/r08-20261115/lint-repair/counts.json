@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-test-counts.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+  "exit": 0,
+  "duration_seconds": 0.47454012500020326,
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/counts.stdout",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-repair/counts.stderr",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "expected_count": 71,
+  "observed_count": 71,
+  "source_stable": true
+}

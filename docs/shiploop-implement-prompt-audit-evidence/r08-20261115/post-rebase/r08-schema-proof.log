@@ -1,0 +1,11 @@
+test_stale_candidate_schema_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree) ... ok
+test_current_candidate_schema_reuses_without_whole_answer (__main__.TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer) ... ok
+test_stale_whole_answer_schema_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts) ... ok
+test_mixed_pytest_error_refuses_actual_step_proof (__main__.TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof) ... ok
+test_stale_proof_schema_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts) ... ok
+test_current_proof_schema_reuses_check_then_numbered_receipt (__main__.TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 74.196s
+
+OK

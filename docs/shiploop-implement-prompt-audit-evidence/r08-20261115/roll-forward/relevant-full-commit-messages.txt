@@ -1,0 +1,473 @@
+commit b16de3c82bca456ce0a15c0c120d1935b81c50f0
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    fix(shiploop): reject pytest errors and invalidate obsolete passed receipts
+    
+    Owner-authorized R08 implementation
+    
+    The owner approved implementing R08 first, with regression tests for mixed
+    pass/error results and stale receipt reuse, keeping the solution generic and
+    simple. This candidate changes three existing runtime files, two existing test
+    modules and one patch note. No prompt text, product-specific rules, loop limits,
+    external-state freshness policy or release output changes.
+    
+    Why this change and which earlier decisions hold
+    
+    The re-anchored audit 2a6514d6219a60bea080b4114f3e3433eec0f774 reproduced exit zero
+    plus '1 passed, 1 error' passing at the shared judge, and obsolete passed
+    candidate/Proof receipts being reused on an unchanged tree. The pytest reader
+    already recognized the error token but omitted it from both tallies.
+    
+    Read full relevant messages before editing. 5fb2978401b12278839670a9e1024a478989518e
+    made reporter-recognized failures authoritative over a masked zero exit.
+    b446994cfbf3ad40c08cfa4ed6b926213175623e applied that decision to the no-ID base
+    judge. a3b2f975487ebb7ede6987628c4a931941f9b057 adopted D5 reuse to avoid redundant
+    commands while reapplying count floors. 5086baf688a611172003e0fac4417dba06bb4e0c
+    added the whole-answer shortcut and deliberately retained lower-level reuse.
+    Preserve all four decisions: fix incorrect verdicts without removing valid reuse
+    or historical floor evidence.
+    
+    Implementation and compatibility decision
+    
+    The pytest reader adds singular/plural summary errors to failed only, after the
+    existing ran calculation. A setup/collection error cannot establish another
+    executed test or inflate its count floor. Existing judge refusal precedence is
+    unchanged, including no-tests, minimum count and missing ID controls.
+    
+    One JUDGEMENT_VERSION constant and script-written judgement_version marker bind
+    candidate/Proof reuse and the whole-answer key. Missing or older markers cause
+    current command execution; compatible passes still reuse with provenance.
+    Both check and numbered Proof receipts are covered. No saved history is erased,
+    no run-state migration is needed, and no truncated output tail is rejudged.
+    
+    A fresh read-only gpt-6-astra/high review confirmed the affected reuse paths,
+    count semantics and acceptance matrix. Parent adopted that advice but changed
+    its proposed receipt-schema bump: test/shiploop_e2e/fidelity.py explicitly reads
+    shiploop-test-loop/v1, so a v2 format label would make unchanged-format evidence
+    unread by an existing consumer. Keep SCHEMA v1 and use one judgment marker;
+    no new version registry or module. Actual requested launch controls and the
+    successful review exit are retained; server-served identity is not claimed.
+    
+    Fail-first evidence and current candidate checks
+    
+    The Sol 6.1 medium worker first added regressions while all three production
+    files matched 2a6514d6219a60bea080b4114f3e3433eec0f774 byte for byte. The corrected
+    red runs produced 20 assertion failures and zero fixture errors over seven
+    methods; the historical floor control passed. An earlier whole-answer fixture
+    reset error is retained separately and is not counted as defect evidence.
+    
+    After the fix, all nine new methods passed: two parser/judge methods plus seven
+    callback/reuse/floor methods. Cases cover singular/plural errors, exit 0 and 1,
+    unchanged executed counts, passing FAILED titles, refused mixed output in three
+    suite kinds and the actual step-Proof callback, old/missing markers on candidate
+    and check/numbered Proof receipts, a whole-answer legacy yes with unchanged
+    package/tree/draft/state, unchanged acceptance state after refusal, preserved
+    historical files/floors, and current compatible lower-level reuse. Existing
+    whole-answer no-rerun controls remain for the broader suite. git diff --check
+    passed. The established quick bank and independent final diff review are still
+    pending; this candidate remains on its isolated branch until those complete.
+    
+    Evidence location
+    
+    /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/
+    contains worker/outcomes.json, raw red/green stdout/stderr, fail-first source
+    hashes, final source hashes, launch controls, plan advice and parent decision.
+    The plan/evidence update will retain those results after broader verification.
+    
+    Limits
+    
+    This fixes the deterministic R08 defects; it does not establish external target
+    freshness (R21), reinterpret retry-to-pass output, migrate historical acceptance,
+    or certify live delivery. A future judge/count semantic change must bump the
+    single judgment version. No live model delivery, platform deployment, release,
+    full repository suite or new CI is claimed by this candidate commit.
+    
+    No-E2E-Round: scoped deterministic verdict and receipt-compatibility fix with fail-first callback regressions; no prompt, host or live-delivery change.
+    Co-Authored-By: Codex <noreply@openai.com>
+
+commit 5fb2978401b12278839670a9e1024a478989518e
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    fix(shiploop): the test-stage judge no longer trusts exit 0 over a reporter-recognised failure
+    
+    R08/T37: a wrapper or build step that swallows a runner's nonzero exit while the
+    output still shows a failed test (count()'s failed tally, or a listed ID's own
+    outcome) was being judged "passed". judge() now checks both signals and reports
+    "failed" instead, for both check and focused/regression commands.
+    
+    A quality review of the fix (7 independent angles + verification) found that
+    _explain() had no branch for this new failed-at-exit-0 case and fell through to
+    the bare "exit 0" fallback -- read as success and dropping the runner's tally.
+    Added a scoped branch for it without touching the pre-existing "exit N" wording
+    pinned by other tests for genuinely nonzero exits.
+    
+    The same review also surfaced two related issues left open as follow-ups,
+    not fixed here to keep this change small:
+    - _judge_base() (~line 1699) has the identical masking bug in its own
+      no-ids code path, untouched by this diff.
+    - Making count()/outcomes() authoritative for status (rather than merely
+      informational) means a wrapper with internal retry-to-pass (flaky test
+      retried and ultimately passing) could now be misjudged "failed", since
+      _jest()/_vitest() sum "failed" across every summary block and
+      outcomes()'s fail-wins rule can't distinguish a retry from a double print
+      of one real failure.
+    
+    Reproduces docs/shiploop-implement-prompt-audit-evidence/probe-judge-zero-exit.py.
+    Full shiploop-test-loop suite: 172/172 passed (165 existing + 7 new).
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
+commit b446994cfbf3ad40c08cfa4ed6b926213175623e
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    fix(shiploop): _judge_base's no-ids path has the same exit-zero masking bug judge() had
+    
+    Follow-up to 5fb29784. The quality review of that fix found the identical bug in
+    _judge_base() (the base-run judge): a focused command with no ids whose wrapper
+    swallows a nonzero exit, despite the output showing a real failure, was reported
+    "passes-on-base" using only `code == 0` -- the same tally it already computed
+    (`counts.count`) and stores in verdict["counts"] was never consulted.
+    
+    A masked failure here is the inverse harm from judge()'s: a test that genuinely
+    fails on the base (good -- it discriminates the change) gets told by
+    _explain_base that it "exited 0 on the item's base: no test failed without this
+    item's change", which is backwards. The fix mirrors judge()'s masked_failure
+    check using the tally alone (no ids exist on this path, so there is no per-ID
+    outcome to consult). No _explain_base change is needed: the fix only shifts
+    more cases into the already-correct, already-unexplained "red" (accepted)
+    status; it does not create a new reachable status the way the _explain() gap
+    did for judge().
+    
+    Verified the new tests fail against the pre-fix code and pass with it. Full
+    shiploop-test-loop suite: 175/175 passed.
+    
+    The other review finding left open (jest/vitest's failed-count summed across
+    every output block, and outcomes()'s fail-wins rule, both now authoritative via
+    masked_failure and able to misjudge a wrapper that retries a flaky test to a
+    genuine pass) still needs a change to shared count()/outcomes() semantics used
+    by many other callers -- a bigger, separate change, not addressed here.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
+commit a3b2f975487ebb7ede6987628c4a931941f9b057
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    fix(shiploop): run each recorded command once; complete takes a passing check-only run (U9)
+    
+    The packet review of the chess run (F10) found the same org suite run three or four times per
+    stage at verify. Two causes, both fixed in shiploop_test_loop.py:
+    
+    - normalise_commands folds rows that record the same command string (_fold), until nothing
+      folds: same suite, or a focused row plus a regression row whose IDs are all focused IDs. The
+      one row keeps the first place, the union of IDs and criteria and the larger min_tests; a
+      regression row folded into a focused one leaves regression: true (new COMMAND_KEYS key, focused
+      rows only), which default_suite_drift reads so the system-test drift check still runs it as the
+      default suite, and _listing prints "(also recorded as regression)". A check and a counted row,
+      a regression row with IDs of its own, and rows differing in host_dependent stay apart.
+    - verify (owner decision D5): a check-only run in the repository records its command list and
+      the working trees it started on and left (_tree, lint.snapshot_tree); a counted run takes a
+      passed check-only record of the same stage, item and command list when the tree is one of them
+      (_reused), re-applies today's floors (a run the floor refuses is run again, never refused on
+      reused evidence) and writes reused: {path, created_at, tree}. loop_run prints a Gates line;
+      reuse_note gives the check-only print (navigator dispatch, complete path) its sentence.
+      release-verify, the test stage's base run and the mutation check still run at complete.
+    
+    Key learnings:
+    - D-1 / DX-2 (docs/experiments/packet-review-2026-10-17/D-verify.json): rows 7-9 of the chess
+      step plan were byte-identical to rows 1-3 (focused vs regression, same IDs and minimum); the
+      replay of pkt-review/in/17-step-plan.result.md folds 10 rows to 7 and the listing the test and
+      verify packets print from 5,360 to 4,204 characters (-1,156; reviewer estimate 1,245).
+    - D-11(b): after the passing check-only the real complete reran all 10 commands (about 104 s of
+      org time); it now runs none on an unchanged tree and command list.
+    - A fold must be a fixed point: validate re-normalises every accepted result and requires
+      equality, and one pass is not idempotent (regression A,B; focused A; focused B).
+    - Reused evidence needs the floor applied at reuse time: at the test stage the base run that
+      sets the floor runs after the check-only.
+    
+    Evidence:
+    - New tests: test-loop (recorded twice runs once; complete takes the check-only run and says
+      which; a one-byte edit or another command list reruns; the test stage takes the candidate run
+      held to the new base floor; a run below that floor is rerun) and test-counts (fold, apart and
+      canonical, drift on a folded row).
+    - Fail-first: source reverted -> 3 of 6 test-loop tests fail and the command-list subtest
+      errors, 3 of 3 test-counts tests fail; the guard tests (they pass on the old code, which always
+      reran) each fail against a mutant: tree not compared, command list not compared, a reused run
+      below the floor taken, drift skipping a folded row, one fold pass only.
+    - Suites once after the last edit: test-loop 148 OK, test-counts 46 OK, confirmation 5 OK,
+      callback-contract 72 OK, loops 51 OK, navigator-contract 110 OK, reference 8 OK,
+      reference-routing 4 OK, packet-obligations 15 OK; after the final tidy of the check-only print,
+      the three test-loop tests that read it, OK.
+    - Render (packets.py --offline node-fix-bug 83/96, render_diff.py --unit U9): every stage +0
+      printed and +0 whole. Journal row: docs/experiments/packet-review-2026-10-17/rows/u9-reruns.md.
+    
+    Related commits: 03c5edbc (owner decisions D1-D5, D5 approves the reuse), e818909c (packet
+    review and plan, F10/U9), 603a709c (step-scoped checks; step_checks reads check rows, which fold
+    only with check rows).
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 5086baf688a611172003e0fac4417dba06bb4e0c
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    feat(shiploop): one evaluator for the check and complete; complete takes the check's matching yes
+    
+    Phase B of the owed-outcome design, parts 1 and 2 (docs/shiploop-check-phases-bc-plan-2026-10-28.md, approved by the
+    owner 2026-10-28: "Approve as recommended"). The verb rename follows in the next commit.
+    
+    Learning: the dry run and complete disagreed in two ways, each now pinned by a test that fails on 070d752e.
+    - F15 (owed-outcome journal): the dry run's candidate run was held to floors from the latest counted base record, so a
+      run of 2 tests passed the dry run and complete's own base run (3 tests) then refused it. The check now makes the real
+      base run (tests/<action>-base-check.md, never counted) and floor_detail(check=True) holds its candidate to that run.
+      test_the_check_and_complete_agree_on_the_floor_the_base_run_sets replaces the test that pinned the disagreement.
+    - P9 (plan; arm B owed 1, run/trace.jsonl): a dry run at test-spec passed and complete refused 15 s later with
+      "test-spec accepts only done, blocked, send-back", a rule loops.check_terminal held and the dry run skipped. It is now
+      loops.check_outcome, asked by both. test_the_check_refuses_an_outcome_the_stage_does_not_allow.
+    
+    What changed:
+    - shiploop_navigator._evaluate: the gate sequence dispatch ran for complete, called by both (count False for the check).
+    - shiploop_check (new): the answer record RUN/checks/<action>.md, its key (revision, package version, loop contract,
+      draft bytes, working tree, item base, the counted runs the floors read, lint option) and matching_yes.
+    - complete takes a matching yes whole: no gate runs again, and test_loop.take_check writes the check's base, candidate,
+      mutation and Proof records as the next counted ones, each naming the check record. Any change to the key runs every
+      gate (test_each_change_to_what_the_gates_read_makes_complete_run_them_again: tree, draft, counted run, revision).
+    - test_loop.reuse_note's sentence is replaced by the answer's; test_loop._reused stays for a draft-only change.
+    
+    Tests: the two fail-first tests, the two new ones and every check, reuse, floor and Proof test in shiploop-test-loop
+    (40 OK). With part 1 alone, shiploop-loops 60, shiploop-navigator-contract 134, shiploop-callback-contract 87 and
+    shiploop-handoff 123 passed; the full re-run of part 2 was stopped on a machine at load 45 and runs with the rename.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 41f0b5ce999057352bd1f1f0ef5c5b196189ee6b
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    fix(shiploop): fix forward holds on the Improve import, an omitted case list, the cumulative floor and a done step without criteria
+    
+    An independent adversarial review (gpt-6.1-sol, effort high, read-only, no fallback;
+    docs/experiments/step-boundary-replan-20261112/sol-review.md, brief beside it) of 636a02e2, be98fb8e and 34937ec7 found
+    one P1 and three P2s. I verified each against the code before changing it; each now has a test that fails first.
+    
+    P1 — a review could reopen a done step. The amended plan is always reviewed (_first_item_review: an item with a
+    send-back). The Improve import runs its own gate list in dispatch, which lacked _check_fix_forward, and finish_improve
+    accepted a final result that dropped the marks. _StepLists.plan then reset, so the run resumed at S1 (Sol: "resumed
+    cursor= S1 built= 0"). Fix: finish_improve runs _check_fix_forward on the canonical final result. It sits beside its
+    existing work_items invariant, on every route that imports a result: the CLI import calls it, and so do the graph
+    simulations. The first attempt added the call to dispatch's list; it was moved so one place covers both routes.
+    
+    P2 — omitted test_cases skipped the frozen-case check. normalise_test_cases(None) raised, and the gate returned
+    "refused elsewhere". Omission is legal when no focused command lists an ID, so a test spec could drop TC-1 by leaving
+    the list out. Fix: an omitted list is compared as empty; a malformed supplied list still goes to the shape gate.
+    
+    P2 — the cumulative floor lost the done steps' counts. test_loop.accepted_counts read only the actions after the newest
+    step plan, so at the resumed step the earlier-steps floor of b55909179b89bfc63bba67d4cdbb833c700df147 fell to nothing.
+    In isolation (current navigator, old accepted_counts) it gave {} where it should give {'sh spans.sh': 1}. Fix: it also
+    reads the kept per-step actions from planning_revision.step_actions that precede the plan. A plan that marks none
+    still starts the count again.
+    
+    P2 — a done step without criteria blocked an amendment that gains criteria. _check_step_sizing asks every step for
+    criteria once the plan lists any, and the frozen row cannot gain one. Fix: a step marked done is not asked again;
+    _fix_forward_refusal compares it with its accepted row.
+    
+    Sol also checked, finding no defect: the cursors, commit attribution, REPEAT_LINE, and the focused-search refusal on
+    pipelines (runner output piped to grep, cd-prefixed runners, a runner then rg: all search_only False; cd then rg alone
+    is a search).
+    
+    Tests (shiploop-step-edges, 15 of 15 OK):
+    - test_a_review_of_the_amendment_may_not_reopen_a_done_step (Sol's P1 history);
+    - test_a_done_step_without_criteria_stays_valid_when_the_amendment_gains_one;
+    - test_after_an_amendment_the_done_steps_counts_and_cases_still_bind (omitted cases, then accepted_counts with and
+      without earlier_steps).
+    Fail-first on 34937ec7 (3 of 15 failed), and the floor alone as above: sol-fixes-failfirst.txt.
+    
+    Before these fixes, the clean quick tier on 34937ec7 passed 46 of 46 suites (485 s, --changed-from 7ceaecf4). It runs
+    again on this tree before the live round. ruff F/E9: only the two existing F841 findings.
+
+commit 9ce5f8a37ce22cdd1fff27a0e5860630e35811e9
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    fix(e2e): recognize positively recorded automatic validation
+    
+    Observed false positive and correction
+    
+    The baseline's three validate-existing actions were accepted by ShipLoop itself
+    when every expectation matched. The producer advances without emitting a model
+    packet or requesting a loop-terminal receipt. The fidelity reader treated those
+    stages like model-completed stages and reported three missing loop receipts.
+    
+    Correct the earlier interpretation in
+    57afe99d28c6a1f965d29853f09850828561557b and
+    e871a973aaad6e4501347303b50a7afaff97436f: those three warnings are false
+    positives, not missing obligations. Append the correction to LEARNINGS.md and
+    preserve the historical metrics and messages. The baseline's document rerun
+    receipt is still missing; its normal document action does not use this route.
+    
+    Small reader change
+    
+    Extend the existing engine-built trace projection with accepted_steps on each
+    completion and a list of all completion attempts, including check-only, held
+    and crashed calls. Preserve the old completes[].accepted exit-code semantics
+    used by gate counters. Do not add an engine record format or fork its parser.
+    
+    Waive only the loop kind for a done validate-existing action when a covered
+    trace positively records another nonempty action's successful, non-check,
+    unheld and uncrashed complete command accepting that exact action/stage/item
+    as done. A target packet or its own completion attempt disqualifies the route.
+    The current-schema expectation receipt must match the action and work item,
+    contain results, and mark every result with literal matches:true. An expected
+    broken check may exit nonzero and still match; universal exit 0 is not required.
+    
+    Keep declared needs intact and expose waived:[loop]; remove only that kind
+    from lacks. Summary text or absent packet files alone cannot supply positive
+    proof. Missing, malformed or partial trace/expectation evidence stays
+    conservative; other requirements and unknown future run kinds stay unchanged.
+    This recognizes the proved completion-transition route, not every conceivable
+    automatic route. It is apparatus interpretation, not a new product exception.
+    
+    Actual verification
+    
+    Fail-first regressions reproduce the missing waiver and absent trace projection.
+    One initial missing-receipt assertion was corrected to keep expectation itself
+    missing; the intermediate failure and correction are retained. Final focused
+    checks pass 7 fidelity cases and 1 trace projection case, including expected
+    broken checks and empty parent-action rejection.
+    
+    Fresh native test-runner execution passes the complete fidelity suite (148
+    tests, 15.179s), trace-reader suite (27, 6.022s), and Run Review consumer suite
+    (688, 76.457s), with actual exit 0 for each. The adjacent narrative writer also
+    passes its 38 parsing/discovery/qualification tests. All 901 tests completed
+    once, no retry or skipped required check. Ruff F/E9 and diff checks pass.
+    Pre/post HEAD, the five expected dirty paths and all hashes were stable.
+    A separate read-only review-skeptic found no actionable issue in the exact
+    four-file reader/test diff. These checks prove the changed reading and consumer
+    compatibility; they do not establish overall fidelity or product quality.
+    
+    Read-only real-baseline interpretation using the installed 2.33 stage catalog
+    recognizes exactly three automatic validations, leaves only document in the
+    missing-receipt list, recognizes all eight separate step-proof receipts and
+    leaves unmapped_runs empty. Original metrics, result, state, trace, expectation
+    and proof files retain matching bytes, sizes and mtimes. No old run was regraded.
+    
+    Final source hashes:
+    fidelity.py 3c295425ca5404ef9189a450c4498e45f66d7fb68abf1bc800e8b1aa09b28597
+    run_trace.py fddc9e14d1a84a589e9e9153ea732c352bb31bb4079d6139e060d2584e8a5e50
+    fidelity tests 5d1e68eceb0f40715bfdbce543004ae3349b46e5b1d669c6cd2eb1cbdb11801c
+    trace tests 3609cd0bb6d4f0ce997fe3ab7b06f705b0aff4a02214bcd9c52659ed57792e6a
+    
+    History informing the decision
+    
+    d738804388a68a100a2dc9b4b0bba246fa44df22 introduced the automatic
+    validate-existing route and explicitly says all-matching checks are recorded
+    without a packet. That producer contract resolves the warning's meaning.
+    c0bcf83dedc759a15ed924d3966bb8392422eeca requires a shared journal reader
+    and excludes held/crashed commands from refusal semantics. Reuse that reader
+    and do not alter established completion counters here.
+    89526a387b88d40c2a5c015ede3056516052c74a requires each declared run's own
+    record. Preserve it for actual model completions and all other requirements;
+    do not let an arbitrary expectation receipt stand in for an absent loop.
+    57afe99d28c6a1f965d29853f09850828561557b keeps step-proof separate from
+    verify; this correction leaves that successful repair intact.
+    
+    Evidence root: /Users/dadleet/.codex/visualizations/2026/11/05/
+    01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/.
+    fidelity-auto-validation/ holds fail-first, focused checks, source fingerprints,
+    review and baseline-01-interpretation.json. closeout-verification/ holds the full
+    affected checks and terminal receipt. The second raw chess run has completed
+    on frozen apparatus e871 and marketplace 2.33; its fresh review and this newer
+    reader interpretation are separate from its immutable saved result. Another
+    session has published 2.34 meanwhile; neither chess run qualifies that release.
+    
+    No-Change-Note: repository E2E readers, tests and learning correction only
+    No-E2E-Round: apparatus interpretation with immutable real-run proof; no product change
+    Co-Authored-By: Codex <noreply@openai.com>
+
+commit 57afe99d28c6a1f965d29853f09850828561557b
+Author: Jim Wiese <dadleet@BigDog.local>
+Commit: Jim Wiese <dadleet@BigDog.local>
+
+    fix(e2e): recognize the implement step's separate proof receipt
+    
+    Observed defect and decision
+    
+    The completed raw Salesforce chess baseline-01 contains eight script-owned
+    tests/<action>-step-proof1.md receipts. Its installed stage table declares
+    step-proof at implement completion. The E2E fidelity reader knows neither that
+    run kind nor that filename, so its original saved metric lists step-proof as
+    unmapped and leaves implement's declared record requirements unknown.
+    
+    Add step-proof as a distinct record kind and discover its numbered receipts for
+    the current action. Do not map it to verify: the ordinary test rerun and the
+    implement step's Proof are separate obligations. Include the new kind in the
+    existing script-evidence classification and record inventory. Keep unknown
+    future kinds unmeasured. This is receipt discovery, not a new proof-success
+    verdict or an interpretation of failed command output. The existing record
+    presence semantics and test-count reader are unchanged.
+    
+    Measured validation
+    
+    Three new behavioral regressions cover a present step-proof receipt, an absent
+    receipt, and an ordinary verify receipt that cannot stand in for step-proof.
+    Before the fix these fail, along with the expanded record-inventory assertion:
+    141 tests, four failures. After the reader fix a separate display assertion
+    exposed the new step-proof 0 column on a historical fixture; update that expected
+    inventory and retain the intermediate failure. Final fidelity suite: 141 tests,
+    22.019 seconds, exit 0. Ruff F/E9 and diff whitespace checks pass.
+    
+    The established Run Review consumer suite then passes 688 tests in 98.517
+    seconds, exit 0, with stable pre/post source HEAD, two-file status and hashes.
+    It accepts the new record kind without a schema or template change. No tests
+    were skipped and no consumer retry was needed. The source hashes are
+    fidelity.py bd9d7f1fb4c821a4da92073d93e6a7c2f36e5c50dfc26c1c7d2509bb66361f29
+    and its test 168fa67b6061cdec4008fcc452c5cbf849cd5b848e0711cf069c391ca3ddec6b.
+    
+    A separate read-only interpretation of the real baseline, using the installed
+    source's own stage catalog, discovers all eight proof records and changes
+    unmapped_runs from [step-proof] to []. The four other missing-record warnings
+    are unchanged: three validate-existing visits and one document visit. They
+    remain unproven; this repair neither erases them nor calls the run fidelity-pass.
+    The original metrics, result, engine state and eight proof receipts retain the
+    same bytes, sizes and mtimes. The new reading is saved externally rather than
+    regrading the immutable run. Unknown Salesforce structured test counts and open
+    interactive acceptance entries also remain separate limitations.
+    
+    History informing the fix
+    
+    89526a387b88d40c2a5c015ede3056516052c74a established that every declared
+    completion run needs its own record kind. Its earlier bug let any available
+    record stand in for another missing check. Preserve that decision with a
+    distinct step-proof kind and a regression that rejects substitution by verify.
+    
+    12151c49783a262595c83ff0ec92e0222379dfd3 introduced the per-step Proof and
+    explicitly records RUN/tests/<action>-step-proof<n>.md, bound to action, step,
+    command and candidate trees. The producer and current stage table, rather than
+    an older journal's verify-pattern description, identify the receipt to read.
+    
+    76b4ea6ed48afd3d2bc7da5038b8371eb411540b keeps missing or not-restated deferred
+    acceptance distinct from a pass. This change leaves end-state and promotion
+    semantics intact. A working chess product and more complete receipt discovery
+    still do not qualify a generic ShipLoop improvement.
+    
+    Evidence and scope
+    
+    Evidence root: /Users/dadleet/.codex/visualizations/2026/11/05/
+    01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/.
+    fidelity-step-proof/ retains fail-first, intermediate display failure, final
+    test/lint logs, source hashes, diff and baseline-01-interpretation.json;
+    fidelity-consumer-verification/ retains consumer execution and stable identities.
+    
+    The source parent is f97f2a074976f451bc9d34378d6198598c9ef9ae, whose separate
+    owner-directed reviewer clarification assesses code/comment/error/tombstone
+    sufficiency. This unit changes only the fidelity reader and its regressions.
+    No product, package, default, new gate or original evidence changed. Record the
+    completed baseline's independent review and judge, verify exact CI, and rerun
+    raw published chess with this repaired apparatus. No release is needed here.
+    
+    No-Change-Note: repository E2E receipt reader and tests only
+    No-E2E-Round: apparatus repair with immutable real-run interpretation; live campaign continues
+    Co-Authored-By: Codex <noreply@openai.com>

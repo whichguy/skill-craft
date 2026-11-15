@@ -1,0 +1,110 @@
+{
+  "status": "PASS",
+  "head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+  "base": "59d8dc3ed4eb70bc096a95e54e4e1ce49da0e4e3",
+  "source_stable": true,
+  "tracked_fingerprinted_files": 5599,
+  "status_before": "",
+  "status_after": "",
+  "results": [
+    {
+      "index": 1,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py",
+        "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+        "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        2
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/01.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/01.stderr.log",
+      "elapsed_seconds": 0.463,
+      "error": null,
+      "unittest_summary": [
+        "Ran 2 tests in 0.003s\n\nOK"
+      ]
+    },
+    {
+      "index": 2,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+        "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+        "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt",
+        "TapCountRouteTests"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        15
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/02.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/02.stderr.log",
+      "elapsed_seconds": 91.477,
+      "error": null,
+      "unittest_summary": [
+        "Ran 15 tests in 90.562s\n\nOK"
+      ]
+    },
+    {
+      "index": 3,
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-domain-words.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [
+        5
+      ],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/03.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/03.stderr.log",
+      "elapsed_seconds": 3.13,
+      "error": null,
+      "unittest_summary": [
+        "Ran 5 tests in 2.987s\n\nOK"
+      ]
+    },
+    {
+      "index": 4,
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "59d8dc3ed4eb70bc096a95e54e4e1ce49da0e4e3"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_totals": [],
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/04.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/04.stderr.log",
+      "elapsed_seconds": 1.252,
+      "error": null,
+      "unittest_summary": []
+    }
+  ],
+  "unittest_total": 22,
+  "expected_unittest_total": 22,
+  "source_before": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/source-before.json",
+  "source_after": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/source-after.json",
+  "retries": 0,
+  "pending_checks": [],
+  "process_cleanup": "All launched subprocesses completed and were reaped.",
+  "limits": "6-minute execution deadline, at most 2 concurrent checks, no repairs or source edits. No other suite or lint rerun."
+}

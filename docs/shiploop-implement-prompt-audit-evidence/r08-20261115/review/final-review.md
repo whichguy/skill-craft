@@ -1,0 +1,10 @@
+**Approved for R08 scope.** I reviewed the complete 11-file diff from `b23cde17` to `7add5485` and confirmed the candidate checkout is clean. No correctness blockers or required changes found.
+
+- Pytest errors increase `failed` without inflating `ran`; existing refusal precedence and floor behavior remain intact. [Parser](/Users/dadleet/src/skill-craft-r08-20261115/skills/shiploop/scripts/shiploop_test_counts.py:65)
+- Stale reuse is blocked across the [whole-answer key](/Users/dadleet/src/skill-craft-r08-20261115/skills/shiploop/scripts/shiploop_check.py:61), [candidate receipt](/Users/dadleet/src/skill-craft-r08-20261115/skills/shiploop/scripts/shiploop_test_loop.py:1406), and [check/numbered Proof receipts](/Users/dadleet/src/skill-craft-r08-20261115/skills/shiploop/scripts/shiploop_test_loop.py:1663). Current v2 reuse remains supported.
+- Fidelity’s historical v1/current v2 reading is confined to reporting; it introduces no execution fallback or archive rewriting. The regression reads an actual v2 producer record. [Reader](/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop_e2e/fidelity.py:500), [producer-to-reader regression](/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-e2e-fidelity.test.py:854)
+- The rebased TAP regression correctly requires literal v1 evidence to rerun and refuse nine actual points against `min_tests=40`. [Regression](/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py:4068)
+
+The direct base-judge controls close the prior coverage gap. No additional coverage is required for this approval.
+
+Limitations: static review plus retained evidence inspection only; I ran no tests, advisors, subagents, or live operations. The retained post-rebase logs show 17 selected passes, not the parent’s current full-suite results. This approval does not establish release readiness, overall app delivery, R21 freshness, or resistance to forged records.

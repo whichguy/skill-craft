@@ -1,0 +1,289 @@
+{
+  "source_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+  "snapshots": {
+    "earlier": {
+      "head_before": "7add548509256e78c8b571ef852d209959b60a24",
+      "head_after": "7add548509256e78c8b571ef852d209959b60a24",
+      "status_before": "",
+      "status_after": "",
+      "hashes_unchanged": true,
+      "tracked_source_files": 5595,
+      "tracked_inventory_sha256": "fdd7756950a781d9583a08509880afdddfc48040bbfe28f9885264e1bd8a58de"
+    },
+    "current": {
+      "head_before": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "head_after": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "status_before": "",
+      "status_after": "",
+      "hashes_unchanged": true,
+      "tracked_source_files": 5596,
+      "tracked_inventory_sha256": "56b05724629c3ffdc9a382bc8da24bbd0f9af280f4b5efbb00498f7cc4dc297b"
+    },
+    "integration": {
+      "head_before": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+      "head_after": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+      "status_before": "",
+      "status_after": "",
+      "hashes_unchanged": true,
+      "tracked_source_files": 5600,
+      "tracked_inventory_sha256": "b29adc98da2b5ea245b374beeadabe882404603ba7295be2a778981cf36c63f0"
+    },
+    "lint": {
+      "head_before": "73868c33a9c0ba4fd2bd8aa60433ea9d5c49e6a1",
+      "head_after": "73868c33a9c0ba4fd2bd8aa60433ea9d5c49e6a1",
+      "status_before": "",
+      "status_after": "",
+      "hashes_unchanged": true,
+      "tracked_source_files": 5600,
+      "tracked_inventory_sha256": "07f0ed48a2aac5f9c9e3b34d740b867a2b0596dccff8fa8dfc9fd8e0376684a0"
+    },
+    "release": {
+      "head_before": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+      "head_after": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+      "status_before": "",
+      "status_after": "",
+      "hashes_unchanged": true,
+      "tracked_source_files": 5599,
+      "tracked_inventory_sha256": "b851a3b8a4f9e50e9849bb962f0f0b575767ab0cd21d72a89de87d968a225ba0"
+    }
+  },
+  "invariance": {
+    "earlier_head": "7add548509256e78c8b571ef852d209959b60a24",
+    "current_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+    "latest_tested_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+    "main_base": "59d8dc3ed4eb70bc096a95e54e4e1ce49da0e4e3",
+    "runtime_scripts_tree": "ff3a8c1a58c27950f2c26414080c6760eb7619d4",
+    "final_release_skills_changes": [
+      "skills/shiploop/README.md",
+      "skills/shiploop/SKILL.md",
+      "skills/shiploop/references/house-style.md"
+    ],
+    "r08_changed_paths": [
+      "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md",
+      "skills/shiploop/scripts/shiploop_check.py",
+      "skills/shiploop/scripts/shiploop_test_counts.py",
+      "skills/shiploop/scripts/shiploop_test_loop.py",
+      "test/shiploop-e2e-analysis.test.py",
+      "test/shiploop-e2e-delta.test.py",
+      "test/shiploop-e2e-fidelity.test.py",
+      "test/shiploop-handoff.test.py",
+      "test/shiploop-test-counts.test.py",
+      "test/shiploop-test-loop.test.py",
+      "test/shiploop_e2e/fidelity.py"
+    ],
+    "core_paths": [
+      "test/shiploop-test-counts.test.py",
+      "test/shiploop-test-loop.test.py",
+      "test/shiploop-handoff.test.py",
+      "test/shiploop-domain-words.test.py",
+      "test/domain-words.json",
+      "test/shiploop_inner_fixture.py",
+      "test/shiploop_loop_support.py",
+      "test/shiploop_knowledge_support.py",
+      "test/shiploop_packet_view.py",
+      "test/shiploop_improve_route.py",
+      "test/state_home.py"
+    ],
+    "unchanged_files": [
+      {
+        "path": "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md",
+        "sha256": "f7816c05a6a55e6f5e40d623a26116e58b7d13c81041432e1cb75a633806ccbc"
+      },
+      {
+        "path": "skills/shiploop/scripts/shiploop_check.py",
+        "sha256": "7de0d6e0a08d2a553a9c59816983e2976270031ed70a5612c5ac03398e69c9dc"
+      },
+      {
+        "path": "skills/shiploop/scripts/shiploop_test_counts.py",
+        "sha256": "a9948df106b24f30b3433529fec6a54baa714f93df8e15fe99a5284c44426bbd"
+      },
+      {
+        "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+        "sha256": "ed9f45d82d683d895e36dff1c623004224dc34e43a62fea9007c140d85af5ab1"
+      },
+      {
+        "path": "test/domain-words.json",
+        "sha256": "697394bbf0931c2e58a96acb06a1b5214374ff828fba1fe674bb418d8e926d13"
+      },
+      {
+        "path": "test/shiploop-domain-words.test.py",
+        "sha256": "39bf23613e923015b90aabb1cf1ea0bb5c0f55812dee17b9dbd577f768c9ea68"
+      },
+      {
+        "path": "test/shiploop-e2e-analysis.test.py",
+        "sha256": "462deb9ae8c2fb2bcec623e18f1b88557bb990fb21bad0a2abcae9fedd07eca5"
+      },
+      {
+        "path": "test/shiploop-e2e-delta.test.py",
+        "sha256": "a43213ad608f62e170092b69879481f724afa4eb56d45e47405b07f859691f14"
+      },
+      {
+        "path": "test/shiploop-e2e-fidelity.test.py",
+        "sha256": "358794fdfbeade1cf2f1bbf400a5b742712a0d183e04efb78453c633151ff674"
+      },
+      {
+        "path": "test/shiploop-handoff.test.py",
+        "sha256": "87d3980e278696076886f047673384ccfa033963e6fcd98210ffdf304d0f9540"
+      },
+      {
+        "path": "test/shiploop_e2e/fidelity.py",
+        "sha256": "cc6389693628ac10b258b97895800a0b7102c9c36ac4a7971b2120faa4e7594e"
+      },
+      {
+        "path": "test/shiploop_improve_route.py",
+        "sha256": "0ea1b544c1ff26ac4247f6c2ddfe37ed0a51137a66b322c5f83ad81141c39cba"
+      },
+      {
+        "path": "test/shiploop_inner_fixture.py",
+        "sha256": "f84ca5d017aebd6a9812335088212ee541ca9c3217751b39c7ce8266772d4660"
+      },
+      {
+        "path": "test/shiploop_knowledge_support.py",
+        "sha256": "3cc2eaa54dfdd4d01fddac0e00f42563f8885cf40cb8ecca3ce543efc644b940"
+      },
+      {
+        "path": "test/shiploop_loop_support.py",
+        "sha256": "32497a47c66c66e4054e5f3fae4eb44ca6b6cafbada94f95e93ef461f5d45822"
+      },
+      {
+        "path": "test/shiploop_packet_view.py",
+        "sha256": "d4f725035982df094af8814bbb1a71b65016e6baa7352d9e1d3fdd36cc31dab3"
+      },
+      {
+        "path": "test/state_home.py",
+        "sha256": "c2cf96a2ae4d51eac9c055786ff16662419e38f9810fb4d0d08a55864e8b7b49"
+      }
+    ],
+    "test_repairs": [
+      "test/shiploop-test-counts.test.py",
+      "test/shiploop-test-loop.test.py"
+    ],
+    "lint_verified_files": [
+      {
+        "path": "skills/shiploop/scripts/shiploop_check.py",
+        "sha256": "7de0d6e0a08d2a553a9c59816983e2976270031ed70a5612c5ac03398e69c9dc"
+      },
+      {
+        "path": "skills/shiploop/scripts/shiploop_test_counts.py",
+        "sha256": "a9948df106b24f30b3433529fec6a54baa714f93df8e15fe99a5284c44426bbd"
+      },
+      {
+        "path": "skills/shiploop/scripts/shiploop_test_loop.py",
+        "sha256": "ed9f45d82d683d895e36dff1c623004224dc34e43a62fea9007c140d85af5ab1"
+      },
+      {
+        "path": "test/shiploop-e2e-analysis.test.py",
+        "sha256": "462deb9ae8c2fb2bcec623e18f1b88557bb990fb21bad0a2abcae9fedd07eca5"
+      },
+      {
+        "path": "test/shiploop-e2e-delta.test.py",
+        "sha256": "a43213ad608f62e170092b69879481f724afa4eb56d45e47405b07f859691f14"
+      },
+      {
+        "path": "test/shiploop-e2e-fidelity.test.py",
+        "sha256": "358794fdfbeade1cf2f1bbf400a5b742712a0d183e04efb78453c633151ff674"
+      },
+      {
+        "path": "test/shiploop-handoff.test.py",
+        "sha256": "87d3980e278696076886f047673384ccfa033963e6fcd98210ffdf304d0f9540"
+      },
+      {
+        "path": "test/shiploop-test-counts.test.py",
+        "sha256": "d97a4cb825b01269a4ccec7707d2ae9ff94b5ff937b542c1fdea0bc06fb0b906"
+      },
+      {
+        "path": "test/shiploop-test-loop.test.py",
+        "sha256": "352fcc36cfe15488db0ae5c1a6e6ab5600c1c43bba7306055e08470080ae8629"
+      },
+      {
+        "path": "test/shiploop_e2e/fidelity.py",
+        "sha256": "cc6389693628ac10b258b97895800a0b7102c9c36ac4a7971b2120faa4e7594e"
+      }
+    ],
+    "test_repair_diff": "diff --git a/test/shiploop-test-counts.test.py b/test/shiploop-test-counts.test.py\nindex 22f8d608..4c6e8ae6 100644\n--- a/test/shiploop-test-counts.test.py\n+++ b/test/shiploop-test-counts.test.py\n@@ -248,8 +248,8 @@ class JudgeTests(unittest.TestCase):\n         self.assertEqual((mixed[\"status\"], mixed[\"counts\"][\"ran\"], mixed[\"counts\"][\"failed\"]), (\"red\", 1, 1))\n         self.assertEqual((clean[\"status\"], clean[\"counts\"][\"ran\"], clean[\"counts\"][\"failed\"]),\n                          (\"passes-on-base\", 1, 0))\n-        for row, earlier in ((dict(row, suite=\"regression\"), False), (row, True)):\n-            verdict = test_loop._judge_base(row, 0, output, [], [], [], earlier_step=earlier)\n+        for base_row, earlier in ((dict(row, suite=\"regression\"), False), (row, True)):\n+            verdict = test_loop._judge_base(base_row, 0, output, [], [], [], earlier_step=earlier)\n             self.assertEqual((verdict[\"status\"], verdict[\"counts\"][\"ran\"], verdict[\"counts\"][\"failed\"]),\n                              (\"counted\", 1, 1))\n         row = {\"command\": \"wrapped-test\", \"suite\": \"focused\", \"ids\": [\"missing\"]}\ndiff --git a/test/shiploop-test-loop.test.py b/test/shiploop-test-loop.test.py\nindex dcbbebe8..d67140ef 100644\n--- a/test/shiploop-test-loop.test.py\n+++ b/test/shiploop-test-loop.test.py\n@@ -2847,10 +2847,10 @@ with socket.create_connection((\"127.0.0.1\", int(port))) as peer:\n                 before = (self.run_dir / \"state.md\").read_bytes()\n                 answer_key = shiploop_check.answer_key\n \n-                def checked_key(*args, **kwargs):\n-                    current = answer_key(*args, **kwargs)\n+                def checked_key(*args, bound_answer_key=answer_key, bound_answer=answer, **kwargs):\n+                    current = bound_answer_key(*args, **kwargs)\n                     self.assertEqual({k: v for k, v in current.items() if k != \"test_schema\"},\n-                                     {k: v for k, v in answer[\"key\"].items() if k != \"test_schema\"})\n+                                     {k: v for k, v in bound_answer[\"key\"].items() if k != \"test_schema\"})\n                     self.assertEqual(current[\"test_schema\"], \"shiploop-test-loop/v2\")\n                     return current\n \n",
+    "intervening_changes": [
+      ".agents/plugins/marketplace.json",
+      ".claude-plugin/marketplace.json",
+      ".github/workflows/ci.yml",
+      ".grok-plugin/marketplace.json",
+      "CHANGELOG.md",
+      "README.md",
+      "catalog/skill-craft-plugin.json",
+      "docs/ARCHITECTURE.md",
+      "docs/distribution.md",
+      "docs/experiments/grok-chat-full-run-review-20261114/README.md",
+      "docs/experiments/grok-chat-full-run-review-20261114/phase2-design.md",
+      "docs/experiments/grok-headless-refusals-20261115/README.md",
+      "docs/experiments/grok-headless-refusals-20261115/analyze.py",
+      "docs/experiments/grok-headless-refusals-20261115/evidence/probes.jsonl",
+      "docs/experiments/grok-headless-refusals-20261115/export_probes.py",
+      "docs/experiments/grok-headless-refusals-20261115/preempt_hook.py",
+      "docs/experiments/grok-headless-refusals-20261115/probe.py",
+      "docs/experiments/house-style-records-20261115/README.md",
+      "docs/experiments/house-style-records-20261115/evidence/base-samples.json",
+      "docs/experiments/house-style-records-20261115/evidence/capture-hs-1/captured.txt",
+      "docs/experiments/house-style-records-20261115/evidence/capture-hs-1/environment.md",
+      "docs/experiments/house-style-records-20261115/evidence/capture-hs-2/captured.txt",
+      "docs/experiments/house-style-records-20261115/evidence/capture-hs-2/environment.md",
+      "docs/experiments/house-style-records-20261115/evidence/capture-hs-3/captured.txt",
+      "docs/experiments/house-style-records-20261115/evidence/capture-hs-3/environment.md",
+      "docs/experiments/parallel-plan-execution-20261114/README.md",
+      "docs/experiments/parallel-plan-execution-20261114/plan-dependencies-20261115/README.md",
+      "docs/experiments/parallel-plan-execution-20261114/plan-dependencies-20261115/research-claude-code.md",
+      "docs/experiments/parallel-plan-execution-20261114/plan-dependencies-20261115/research-codex-openai-github.md",
+      "docs/experiments/parallel-plan-execution-20261114/plan-dependencies-20261115/research-literature.md",
+      "docs/experiments/parallel-plan-execution-20261114/plan-dependencies-20261115/research-orchestrators.md",
+      "docs/experiments/parallel-plan-execution-20261114/plan-dependencies-20261115/research-shiploop.md",
+      "docs/shiploop-e2e-harness-journal.md",
+      "docs/shiploop-parallel-execution-journal.md",
+      "docs/shiploop-portability-audit-journal.md",
+      "docs/shiploop-question-driven-planning-journal.md",
+      "plugins/skill-craft/.claude-plugin/plugin.json",
+      "plugins/skill-craft/.codex-plugin/plugin.json",
+      "plugins/skill-craft/.cursor-plugin/plugin.json",
+      "plugins/skill-craft/README.md",
+      "plugins/skill-craft/skills/shiploop/README.md",
+      "plugins/skill-craft/skills/shiploop/SKILL.md",
+      "plugins/skill-craft/skills/shiploop/references/house-style.md",
+      "skills/shiploop/README.md",
+      "skills/shiploop/SKILL.md",
+      "skills/shiploop/references/house-style.md",
+      "test/README.md",
+      "test/ci-policy.test.py",
+      "test/ci-summary.test.py",
+      "test/ci_node_stable.cjs",
+      "test/ci_policy.py",
+      "test/ci_summary.py",
+      "test/run_suites.py",
+      "test/shiploop-e2e-hosts.test.py",
+      "test/shiploop-e2e-support.py",
+      "test/shiploop-test-counts.test.py",
+      "test/shiploop-test-loop.test.py",
+      "test/shiploop_e2e/README.md",
+      "test/shiploop_e2e/SPEC.md",
+      "test/shiploop_e2e/grok_preempt.py",
+      "test/shiploop_e2e/hosts.py",
+      "test/shiploop_e2e/run.py",
+      "test/suite_catalog.py",
+      "test/test-groups.test.py"
+    ],
+    "scope": "Unchanged production runtime; two test-only variable-binding repairs have separate passing execution and source evidence"
+  },
+  "test_repair": {
+    "base_head": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+    "worktree_status": " M test/shiploop-test-counts.test.py\n M test/shiploop-test-loop.test.py\n",
+    "hashes_unchanged": true,
+    "tracked_source_files": 12403,
+    "final_files": [
+      {
+        "path": "test/shiploop-test-counts.test.py",
+        "sha256": "d97a4cb825b01269a4ccec7707d2ae9ff94b5ff937b542c1fdea0bc06fb0b906"
+      },
+      {
+        "path": "test/shiploop-test-loop.test.py",
+        "sha256": "352fcc36cfe15488db0ae5c1a6e6ab5600c1c43bba7306055e08470080ae8629"
+      }
+    ],
+    "inventory_sha256": "3b5051ea14b46afecfbed93086fbe9b6f24c94b881173012e50e3cb8e0a7202f"
+  }
+}

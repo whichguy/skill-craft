@@ -1,0 +1,19 @@
+{
+  "index": 8,
+  "command": [
+    "python3",
+    "-B",
+    "test/shiploop-domain-words.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+  "started": "2026-11-15T16:58:22.179736+00:00",
+  "elapsed_seconds": 8.475,
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_totals": [
+    5
+  ],
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/08.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/final-verification/08.stderr.log",
+  "error": null
+}

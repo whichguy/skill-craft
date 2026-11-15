@@ -1,0 +1,21 @@
+{
+  "source_head": "2a6514d6219a60bea080b4114f3e3433eec0f774",
+  "scope": "R08 mixed pytest errors and obsolete verdict reuse only",
+  "advice": "plan-review.md",
+  "adopted": [
+    "Errors contribute to failed but not ran; preserve judge precedence and historical floors.",
+    "Gate candidate and both check/numbered Proof reuse, and whole-answer key.",
+    "Rerun incompatible receipts rather than rejudge truncated tails.",
+    "Use actual completion fixtures and current compatible reuse controls."
+  ],
+  "adjusted": {
+    "advisor_proposal": "Bump test_loop.SCHEMA to v2 and bind it in reuse/key.",
+    "parent_decision": "Keep receipt format v1; one shared judgement-version marker controls reuse and answer compatibility.",
+    "concrete_reason": "test/shiploop_e2e/fidelity.py:36 and :505 accepts only shiploop-test-loop/v1. A format bump would make new verify evidence unread there, though the format has not changed."
+  },
+  "not_in_scope": [
+    "R21 external fixture/target/authority freshness",
+    "other reporters or retry-to-pass aggregation",
+    "new prompt text, fields supplied by models, loop limits, release or deployment"
+  ]
+}

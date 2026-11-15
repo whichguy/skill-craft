@@ -1,0 +1,217 @@
+commit bf13280b14f6b8793371b2f164d19fe7ed959b12
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 08:31:18 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 09:09:08 2026 -0800
+
+    test(shiploop): reconcile TAP upgrade reuse with R08 roll-forward
+    
+    Rebased only this session's R08 branch onto
+    b23cde17d878f06eed290faa13ae038abdbff258 without conflicts, including the
+    TAP-reader release 5057c18ab901927ce0026f58a741ff8239de6c5e. Preserve the
+    pre-rebase b16de3c8/632563d4 history on
+    codex/r08-before-tap-rebase-20261115 so its frozen evidence stays reachable.
+    
+    Read full messages for 92b55c8033c3e4f38aa137db47df05c4a8796a37 and
+    44bb06a1dca281edee3856a1c6b9d9d05f193763, including their retained limits,
+    replay evidence and the two learning-only review commits. The TAP test
+    deliberately pinned reuse of an earlier reader's null-count pass but seeded
+    test_loop.SCHEMA. Under the owner-authorized v2 policy this would falsely
+    label a legacy receipt current.
+    
+    The fixture now explicitly seeds v1 on the same action/command/tree. It
+    observes a real rerun, nine freshly counted TAP points, refusal at min_tests
+    40, a v2 refused record with no reused provenance, and byte-identical old
+    receipt. The existing same-current-schema TAP reuse control remains. Frozen
+    TAP replay results and historical journals remain untouched.
+    
+    Also restore the four producer dicts to their compact pre-marker layout and
+    remove one leftover blank line. No new runtime behavior beyond the prior
+    roll-forward commit e4631e1a4481cd8a1387dd898bed9972c5f1cfa7.
+    
+    A fresh explicitly controlled Sol 6.1 medium worker passed all 17 selected
+    methods on the integrated source: nine TAP route controls, two R08
+    counts/judge methods, and six R08 schema/Proof methods. Actual durations
+    2.789, 0.255 and 74.767 seconds, each exit 0. Pre/post hashes of all 12,394
+    tracked files were identical. Final affected full suites and independent
+    Astra/high review follow on this committed candidate; no final acceptance
+    or live delivery is implied by the focused run.
+    
+    Evidence:
+    /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/post-rebase/worker/handoff.json
+    and adjacent raw logs, source fingerprints, launch controls and worker result.
+    The parent owns the plan update and final integrated validation.
+    
+    No-E2E-Round: mechanical runtime formatting and a real-command regression reconciling the new main TAP fixture with the owner-authorized receipt schema; no prompt, host or live-delivery behavior added.
+    Co-Authored-By: Codex <noreply@openai.com>
+
+commit 933d7ce7314dc9f53c29de3b42b30b75239d02d0
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 08:26:27 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 09:09:08 2026 -0800
+
+    refactor(shiploop): use one current receipt format for R08
+    
+    Owner-directed roll-forward simplification
+    
+    The owner clarified that no backward-compatible execution format is needed:
+    "Any formats, just roll forward. Keep it in a simple format." Replace the
+    unmerged b16de3c82bca456ce0a15c0c120d1935b81c50f0 candidate's separate
+    JUDGEMENT_VERSION/judgement_version with the existing schema, now
+    shiploop-test-loop/v2. This is an explicit change of direction from the
+    parent's earlier v1-preservation choice, not evidence that compatibility
+    was required.
+    
+    Candidate and both check/numbered Proof reuse require the current SCHEMA.
+    Whole-answer keys bind test_schema to that same constant. Existing producers
+    already write the schema. Missing/v1 receipt schemas or whole-answer keys
+    cause current execution; there is no migration, conversion or rejudgment of
+    stored output tails. Current v2 passes still reuse. The pytest error tally fix
+    from the preceding commit remains: errors fail the run without inflating ran.
+    
+    The fidelity report reader recognizes emitted v2 records beside the archived
+    v1 records it already measured. This is counts/presence reporting, not an
+    execution acceptance fallback. No frozen run artifact is rewritten or
+    regraded, and no adapter is added. Active synthetic fixtures use v2; the
+    historical Run Review excerpt stays v1. Remove the newly introduced
+    historical-v1 floor promise/test; existing floor readers and checks remain.
+    
+    Evidence and review follow-through
+    
+    A fresh Sol 6.1 medium worker used explicit shiploop profile and model/effort
+    controls. All 18 selected methods pass, with stable source hashes across both
+    green runs. They cover the eight parser/judge/reuse R08 methods, the new
+    actual-v2-producer-to-fidelity check, existing unknown-format/zero-count
+    reporting controls, analysis/delta/handoff consumers and release reporting.
+    The no-ID base judge now has direct mixed-error and clean-pass controls,
+    closing the prior Astra review's nonblocking suggestion. Regression and
+    earlier-step base rows remain counted, with error counts excluded from ran.
+    The whole-answer test explicitly verifies all non-test_schema key fields
+    remain equal.
+    
+    The roll-forward red run is retained with an incomplete overall identity:
+    an unselected historical Run Review fixture was restored during execution.
+    Selected runtime/test files were stable; do not call that snapshot fully
+    stable. Both final green snapshots are stable. The original pre-fix red
+    evidence (20 assertion failures, zero fixture errors after correcting its
+    fixture) remains unchanged and separately revision-pinned.
+    
+    The earlier 28-suite quick run was cancelled on the owner's design change:
+    four suites completed successfully, no observed failure, source HEAD/status
+    and 5,590 hashes unchanged. Its result is INCOMPLETE/superseded, not final
+    acceptance. It was stopped after 718.46 seconds, and no recorded process
+    survived. Final integrated verification and independent review are pending.
+    
+    Relevant decisions and next integration
+    
+    Read full relevant messages, including 57afe99d28c6a1f965d29853f09850828561557b
+    and 9ce5f8a37ce22cdd1fff27a0e5860630e35811e9: report receipt discovery accurately
+    and keep original evidence frozen. Earlier masked-failure and reuse decisions
+    cited in b16de3c remain, with the owner's current-format boundary.
+    
+    Main advanced during this work with 92b55c8033c3e4f38aa137db47df05c4a8796a37
+    and 44bb06a1dca281edee3856a1c6b9d9d05f193763 (TAP reader), plus
+    830a38f26b9b44b4f74781a2030dc017d0cc82ee (measurement reader). Their full
+    messages and review/learning commits were read. Integrate that release before
+    final acceptance; its old-reader reuse fixture needs the newly authorized
+    v1-to-v2 refusal expectation. Do not alter the frozen TAP replay findings.
+    
+    Evidence:
+    /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/handoff.json
+    with exact method IDs, commands, hashes and raw red/green directories.
+    The original root retains the superseded run, launch controls and reviews.
+    No deployment, release, live run, prompt or loop-limit change is claimed.
+    
+    No-E2E-Round: owner-directed receipt-format simplification with focused callback and producer-to-reader regressions; final integrated local checks remain pending.
+    Co-Authored-By: Codex <noreply@openai.com>
+
+commit 36b57feb4cd0f24be00e6326db692a6bb4f6cf2a
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 08:00:26 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 09:09:08 2026 -0800
+
+    fix(shiploop): reject pytest errors and invalidate obsolete passed receipts
+    
+    Owner-authorized R08 implementation
+    
+    The owner approved implementing R08 first, with regression tests for mixed
+    pass/error results and stale receipt reuse, keeping the solution generic and
+    simple. This candidate changes three existing runtime files, two existing test
+    modules and one patch note. No prompt text, product-specific rules, loop limits,
+    external-state freshness policy or release output changes.
+    
+    Why this change and which earlier decisions hold
+    
+    The re-anchored audit 2a6514d6219a60bea080b4114f3e3433eec0f774 reproduced exit zero
+    plus '1 passed, 1 error' passing at the shared judge, and obsolete passed
+    candidate/Proof receipts being reused on an unchanged tree. The pytest reader
+    already recognized the error token but omitted it from both tallies.
+    
+    Read full relevant messages before editing. 5fb2978401b12278839670a9e1024a478989518e
+    made reporter-recognized failures authoritative over a masked zero exit.
+    b446994cfbf3ad40c08cfa4ed6b926213175623e applied that decision to the no-ID base
+    judge. a3b2f975487ebb7ede6987628c4a931941f9b057 adopted D5 reuse to avoid redundant
+    commands while reapplying count floors. 5086baf688a611172003e0fac4417dba06bb4e0c
+    added the whole-answer shortcut and deliberately retained lower-level reuse.
+    Preserve all four decisions: fix incorrect verdicts without removing valid reuse
+    or historical floor evidence.
+    
+    Implementation and compatibility decision
+    
+    The pytest reader adds singular/plural summary errors to failed only, after the
+    existing ran calculation. A setup/collection error cannot establish another
+    executed test or inflate its count floor. Existing judge refusal precedence is
+    unchanged, including no-tests, minimum count and missing ID controls.
+    
+    One JUDGEMENT_VERSION constant and script-written judgement_version marker bind
+    candidate/Proof reuse and the whole-answer key. Missing or older markers cause
+    current command execution; compatible passes still reuse with provenance.
+    Both check and numbered Proof receipts are covered. No saved history is erased,
+    no run-state migration is needed, and no truncated output tail is rejudged.
+    
+    A fresh read-only gpt-6-astra/high review confirmed the affected reuse paths,
+    count semantics and acceptance matrix. Parent adopted that advice but changed
+    its proposed receipt-schema bump: test/shiploop_e2e/fidelity.py explicitly reads
+    shiploop-test-loop/v1, so a v2 format label would make unchanged-format evidence
+    unread by an existing consumer. Keep SCHEMA v1 and use one judgment marker;
+    no new version registry or module. Actual requested launch controls and the
+    successful review exit are retained; server-served identity is not claimed.
+    
+    Fail-first evidence and current candidate checks
+    
+    The Sol 6.1 medium worker first added regressions while all three production
+    files matched 2a6514d6219a60bea080b4114f3e3433eec0f774 byte for byte. The corrected
+    red runs produced 20 assertion failures and zero fixture errors over seven
+    methods; the historical floor control passed. An earlier whole-answer fixture
+    reset error is retained separately and is not counted as defect evidence.
+    
+    After the fix, all nine new methods passed: two parser/judge methods plus seven
+    callback/reuse/floor methods. Cases cover singular/plural errors, exit 0 and 1,
+    unchanged executed counts, passing FAILED titles, refused mixed output in three
+    suite kinds and the actual step-Proof callback, old/missing markers on candidate
+    and check/numbered Proof receipts, a whole-answer legacy yes with unchanged
+    package/tree/draft/state, unchanged acceptance state after refusal, preserved
+    historical files/floors, and current compatible lower-level reuse. Existing
+    whole-answer no-rerun controls remain for the broader suite. git diff --check
+    passed. The established quick bank and independent final diff review are still
+    pending; this candidate remains on its isolated branch until those complete.
+    
+    Evidence location
+    
+    /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/
+    contains worker/outcomes.json, raw red/green stdout/stderr, fail-first source
+    hashes, final source hashes, launch controls, plan advice and parent decision.
+    The plan/evidence update will retain those results after broader verification.
+    
+    Limits
+    
+    This fixes the deterministic R08 defects; it does not establish external target
+    freshness (R21), reinterpret retry-to-pass output, migrate historical acceptance,
+    or certify live delivery. A future judge/count semantic change must bump the
+    single judgment version. No live model delivery, platform deployment, release,
+    full repository suite or new CI is claimed by this candidate commit.
+    
+    No-E2E-Round: scoped deterministic verdict and receipt-compatibility fix with fail-first callback regressions; no prompt, host or live-delivery change.
+    Co-Authored-By: Codex <noreply@openai.com>

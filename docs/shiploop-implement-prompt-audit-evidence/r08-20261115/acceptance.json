@@ -1,0 +1,354 @@
+{
+  "status": "PASS",
+  "source_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+  "suites": [
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        71
+      ],
+      "seconds": 0.48,
+      "source_head": "7add548509256e78c8b571ef852d209959b60a24",
+      "receipt": "verification/earlier/01.json",
+      "stdout": "verification/earlier/01.stdout.log",
+      "stderr": "verification/earlier/01.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        211
+      ],
+      "seconds": 1951.703,
+      "source_head": "7add548509256e78c8b571ef852d209959b60a24",
+      "receipt": "verification/earlier/02.json",
+      "stdout": "verification/earlier/02.stdout.log",
+      "stderr": "verification/earlier/02.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-handoff.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        170
+      ],
+      "seconds": 366.405,
+      "source_head": "7add548509256e78c8b571ef852d209959b60a24",
+      "receipt": "verification/earlier/06.json",
+      "stdout": "verification/earlier/06.stdout.log",
+      "stderr": "verification/earlier/06.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-domain-words.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        5
+      ],
+      "seconds": 8.475,
+      "source_head": "7add548509256e78c8b571ef852d209959b60a24",
+      "receipt": "verification/earlier/08.json",
+      "stdout": "verification/earlier/08.stdout.log",
+      "stderr": "verification/earlier/08.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-fidelity.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        149
+      ],
+      "seconds": 97.377,
+      "source_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "receipt": "verification/current/01.json",
+      "stdout": "verification/current/01.stdout.log",
+      "stderr": "verification/current/01.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-analysis.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        299
+      ],
+      "seconds": 369.083,
+      "source_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "receipt": "verification/current/02.json",
+      "stdout": "verification/current/02.stdout.log",
+      "stderr": "verification/current/02.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-delta.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        90
+      ],
+      "seconds": 48.325,
+      "source_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "receipt": "verification/current/03.json",
+      "stdout": "verification/current/03.stdout.log",
+      "stderr": "verification/current/03.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-run-review.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        688
+      ],
+      "seconds": 215.229,
+      "source_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "receipt": "verification/current/04.json",
+      "stdout": "verification/current/04.stdout.log",
+      "stderr": "verification/current/04.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-hosts.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        128
+      ],
+      "seconds": 198.243,
+      "source_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "receipt": "verification/current/05.json",
+      "stdout": "verification/current/05.stdout.log",
+      "stderr": "verification/current/05.stderr.log"
+    }
+  ],
+  "selected_checks": [
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py",
+        "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+        "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+      ],
+      "exit_code": 0,
+      "tests": [
+        2
+      ],
+      "seconds": 0.339,
+      "source_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "receipt": "verification/current/06.json",
+      "stdout": "verification/current/06.stdout.log",
+      "stderr": "verification/current/06.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+        "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+        "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt",
+        "TapCountRouteTests"
+      ],
+      "exit_code": 0,
+      "tests": [
+        15
+      ],
+      "seconds": 92.023,
+      "source_head": "5a3c91dce4ddf20916d71c135bdd00c174fe6a3f",
+      "receipt": "verification/current/07.json",
+      "stdout": "verification/current/07.stdout.log",
+      "stderr": "verification/current/07.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-hosts.test.py",
+        "GrokPreemptTest"
+      ],
+      "exit_code": 0,
+      "tests": [
+        10
+      ],
+      "seconds": 1.761,
+      "source_head": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+      "receipt": "verification/integration/01.json",
+      "stdout": "verification/integration/01.stdout.log",
+      "stderr": "verification/integration/01.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py",
+        "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+        "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+      ],
+      "exit_code": 0,
+      "tests": [
+        2
+      ],
+      "seconds": 0.463,
+      "source_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+      "receipt": "verification/release/01.json",
+      "stdout": "verification/release/01.stdout.log",
+      "stderr": "verification/release/01.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+        "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+        "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt",
+        "TapCountRouteTests"
+      ],
+      "exit_code": 0,
+      "tests": [
+        15
+      ],
+      "seconds": 91.477,
+      "source_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+      "receipt": "verification/release/02.json",
+      "stdout": "verification/release/02.stdout.log",
+      "stderr": "verification/release/02.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-domain-words.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        5
+      ],
+      "seconds": 3.13,
+      "source_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+      "receipt": "verification/release/03.json",
+      "stdout": "verification/release/03.stdout.log",
+      "stderr": "verification/release/03.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py"
+      ],
+      "exit_code": 0,
+      "tests": [
+        71
+      ],
+      "seconds": 0.47454012500020326,
+      "source_head": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+      "source_worktree": "test-repair patch recorded in source-identity.json",
+      "receipt": "lint-repair/counts.acceptance.json",
+      "stdout": "lint-repair/counts.stdout",
+      "stderr": "lint-repair/counts.stderr"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts"
+      ],
+      "exit_code": 0,
+      "tests": [
+        1
+      ],
+      "seconds": 26.230144624998502,
+      "source_head": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+      "source_worktree": "test-repair patch recorded in source-identity.json",
+      "receipt": "lint-repair/loop.acceptance.json",
+      "stdout": "lint-repair/loop.stdout",
+      "stderr": "lint-repair/loop.stderr"
+    }
+  ],
+  "independent_checks": [
+    {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "59d8dc3ed4eb70bc096a95e54e4e1ce49da0e4e3"
+      ],
+      "exit_code": 0,
+      "tests": [],
+      "seconds": 1.252,
+      "source_head": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+      "receipt": "verification/release/04.json",
+      "stdout": "verification/release/04.stdout.log",
+      "stderr": "verification/release/04.stderr.log"
+    },
+    {
+      "command": [
+        "ruff",
+        "check",
+        "--isolated",
+        "--select",
+        "E9,F,B",
+        "skills/shiploop/scripts/shiploop_check.py",
+        "skills/shiploop/scripts/shiploop_test_counts.py",
+        "skills/shiploop/scripts/shiploop_test_loop.py"
+      ],
+      "exit_code": 0,
+      "tests": [],
+      "seconds": 0.078,
+      "source_head": "bf13280b14f6b8793371b2f164d19fe7ed959b12",
+      "receipt": "verification/integration/03.json",
+      "stdout": "verification/integration/03.stdout.log",
+      "stderr": "verification/integration/03.stderr.log"
+    },
+    {
+      "command": [
+        "python3",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/compare_results.py"
+      ],
+      "exit_code": 0,
+      "tests": [],
+      "seconds": 1.658,
+      "source_head": "73868c33a9c0ba4fd2bd8aa60433ea9d5c49e6a1",
+      "receipt": "verification/lint/02.json",
+      "stdout": "verification/lint/02.stdout.log",
+      "stderr": "verification/lint/02.stderr.log"
+    }
+  ],
+  "unchanged_source_test_retries": 0,
+  "scope": "Nine unique affected full suites across explicitly pinned snapshots, 17 selected core methods, 10 integration fixture controls and 72 post-repair and 22 final-release test executions, plus release-boundary/runtime lint/differential lint; no full repository, live delivery or release claim"
+}

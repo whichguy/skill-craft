@@ -1,0 +1,57 @@
+[
+  {
+    "name": "analysis",
+    "command": [
+      "python3",
+      "test/shiploop-e2e-analysis.test.py",
+      "MetricsTest.test_a_verify_record_that_lists_its_request_counts_only_what_ran"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+    "started": "2026-11-15T16:23:58.275152+00:00",
+    "seconds": 0.5846748329995535,
+    "exit_code": 0,
+    "outcome": "PASS"
+  },
+  {
+    "name": "delta",
+    "command": [
+      "python3",
+      "test/shiploop-e2e-delta.test.py",
+      "RegressionTest.test_matched_rows_preserve_plan_and_receipt_provenance",
+      "RegressionTest.test_reused_counted_receipts_are_observations_not_new_executions"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+    "started": "2026-11-15T16:23:58.860321+00:00",
+    "seconds": 0.71620245899976,
+    "exit_code": 0,
+    "outcome": "PASS"
+  },
+  {
+    "name": "handoff",
+    "command": [
+      "python3",
+      "test/shiploop-handoff.test.py",
+      "PrimaryGateTests.test_a_primary_outcome_needs_a_test_shiploop_saw_pass_in_a_case_for_its_requirement"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+    "started": "2026-11-15T16:23:59.576911+00:00",
+    "seconds": 0.6506927079999514,
+    "exit_code": 0,
+    "outcome": "PASS"
+  },
+  {
+    "name": "release-reporting",
+    "command": [
+      "python3",
+      "test/shiploop-e2e-fidelity.test.py",
+      "ValidationTest.test_a_failed_or_unknown_release_verify_record_is_shown_with_passed_false_or_null",
+      "ValidationTest.test_the_release_verify_record_is_the_latest_by_created_at_then_by_number_never_by_file_name",
+      "ValidationTest.test_an_observed_block_with_no_where_is_no_release_verify_record"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+    "started": "2026-11-15T16:24:00.227965+00:00",
+    "seconds": 0.7149996250000186,
+    "exit_code": 0,
+    "outcome": "PASS"
+  }
+]

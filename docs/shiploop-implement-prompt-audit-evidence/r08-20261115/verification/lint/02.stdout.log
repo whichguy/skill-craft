@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "raw_current": 984,
+  "raw_base": 984,
+  "new": 0,
+  "removed": 0,
+  "unchanged": 984,
+  "no_added_findings": true,
+  "new_findings": [],
+  "removed_findings": [],
+  "raw_reports": [
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/01.stdout.log",
+      "sha256": "5f9659c0b612b1a32974849f7bce668b8e0662f51af5b52e02ee1f45af3a5b18"
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/05.stdout.log",
+      "sha256": "12a8ef0dcf64eb4b4d6d838653d4457f0aa8a35425f5885c383eca18e06dc13c"
+    }
+  ],
+  "normalized_report": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/lint-verification/normalized-findings.json"
+}

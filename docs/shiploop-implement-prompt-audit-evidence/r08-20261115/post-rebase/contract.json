@@ -1,0 +1,8 @@
+{
+  "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+  "deadline_seconds": 900,
+  "retry": "none; stop on failure",
+  "source_edits_during_execution": false,
+  "expected_methods": 17,
+  "generated_outputs": "ignored Python bytecode caches only; test fixtures use temporary directories"
+}

@@ -1,0 +1,17 @@
+{
+  "head": "b16de3c82bca456ce0a15c0c120d1935b81c50f0",
+  "status": " M changes/shiploop/r08-pytest-errors-and-receipt-judgement.md\n M skills/shiploop/scripts/shiploop_check.py\n M skills/shiploop/scripts/shiploop_test_loop.py\n M test/shiploop-e2e-analysis.test.py\n M test/shiploop-e2e-delta.test.py\n M test/shiploop-e2e-fidelity.test.py\n M test/shiploop-handoff.test.py\n M test/shiploop-test-counts.test.py\n M test/shiploop-test-loop.test.py\n M test/shiploop_e2e/fidelity.py\n",
+  "sha256": {
+    "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md": "f7816c05a6a55e6f5e40d623a26116e58b7d13c81041432e1cb75a633806ccbc",
+    "skills/shiploop/scripts/shiploop_check.py": "7de0d6e0a08d2a553a9c59816983e2976270031ed70a5612c5ac03398e69c9dc",
+    "skills/shiploop/scripts/shiploop_test_counts.py": "23aa625e4138a65bea9fc6f5415835a9a6ba895291c5099a80b8c5114ba6b0aa",
+    "skills/shiploop/scripts/shiploop_test_loop.py": "5daf9be97d3f733a636b1dc23299be072c9c62cf33d04dd56072a336852d67db",
+    "test/shiploop-e2e-analysis.test.py": "d1dcfc9f997cd0462729625eca6b9c60f40491809b0fede0c8af34ddc60f26ae",
+    "test/shiploop-e2e-delta.test.py": "a43213ad608f62e170092b69879481f724afa4eb56d45e47405b07f859691f14",
+    "test/shiploop-e2e-fidelity.test.py": "358794fdfbeade1cf2f1bbf400a5b742712a0d183e04efb78453c633151ff674",
+    "test/shiploop-handoff.test.py": "87d3980e278696076886f047673384ccfa033963e6fcd98210ffdf304d0f9540",
+    "test/shiploop-test-counts.test.py": "ca2c03ee139f8d11bd59e953471501998c32fb7c69e658450f24c96117b2450a",
+    "test/shiploop-test-loop.test.py": "4a9f52d8fb2632bef8c5e0579cf8caa532e8e83acf18bb33d81199e27fbe6d41",
+    "test/shiploop_e2e/fidelity.py": "cc6389693628ac10b258b97895800a0b7102c9c36ac4a7971b2120faa4e7594e"
+  }
+}

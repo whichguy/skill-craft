@@ -1,0 +1,17 @@
+{
+  "head": "2a6514d6219a60bea080b4114f3e3433eec0f774",
+  "source": {
+    "skills/shiploop/scripts/shiploop_test_counts.py": {
+      "sha256": "37fd7ae6a460219e1cd96e8f6e1675b8748946be85308152cdfb95e3bf97472b",
+      "matches_head": true
+    },
+    "skills/shiploop/scripts/shiploop_test_loop.py": {
+      "sha256": "c12c5075c4180afb10af148b09a36b75272c7fbf15e145d8424d2585226baa65",
+      "matches_head": true
+    },
+    "skills/shiploop/scripts/shiploop_check.py": {
+      "sha256": "819f77c02acbc0c4eedfd553cf6a88f3a355146f9e316a3158bf4ce925996a30",
+      "matches_head": true
+    }
+  }
+}

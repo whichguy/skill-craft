@@ -1,0 +1,12 @@
+{
+  "command": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r08-20261115",
+    "diff",
+    "--check"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

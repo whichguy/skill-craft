@@ -1,0 +1,105 @@
+FFFEE.FFFFF
+======================================================================
+ERROR: test_stale_whole_answer_schema_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts) (marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2837, in test_stale_whole_answer_schema_reruns_stale_subordinate_receipts
+    self.assertEqual(answer["key"]["test_schema"], "shiploop-test-loop/v2")
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'test_schema'
+
+======================================================================
+ERROR: test_stale_whole_answer_schema_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts) (marker='shiploop-test-loop/v1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2837, in test_stale_whole_answer_schema_reruns_stale_subordinate_receipts
+    self.assertEqual(answer["key"]["test_schema"], "shiploop-test-loop/v2")
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'test_schema'
+
+======================================================================
+FAIL: test_stale_candidate_schema_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree) (marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2794, in test_stale_candidate_schema_reruns_on_the_same_tree
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_candidate_schema_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree) (marker='shiploop-test-loop/v1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2794, in test_stale_candidate_schema_reruns_on_the_same_tree
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_current_candidate_schema_reuses_without_whole_answer (__main__.TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 2813, in test_current_candidate_schema_reuses_without_whole_answer
+    self.assertEqual(record["schema"], "shiploop-test-loop/v2")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'shiploop-test-loop/v1' != 'shiploop-test-loop/v2'
+- shiploop-test-loop/v1
+?                     ^
++ shiploop-test-loop/v2
+?                     ^
+
+
+======================================================================
+FAIL: test_stale_proof_schema_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts) (numbered=False, marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3107, in test_stale_proof_schema_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_proof_schema_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts) (numbered=False, marker='shiploop-test-loop/v1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3107, in test_stale_proof_schema_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_proof_schema_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts) (numbered=True, marker=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3107, in test_stale_proof_schema_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_stale_proof_schema_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts) (numbered=True, marker='shiploop-test-loop/v1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3107, in test_stale_proof_schema_reruns_check_and_numbered_receipts
+    with self.assertRaises(nav.NavigatorError) as caught:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: NavigatorError not raised
+
+======================================================================
+FAIL: test_current_proof_schema_reuses_check_then_numbered_receipt (__main__.TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r08-20261115/test/shiploop-test-loop.test.py", line 3134, in test_current_proof_schema_reuses_check_then_numbered_receipt
+    self.assertEqual(record["schema"], "shiploop-test-loop/v2")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'shiploop-test-loop/v1' != 'shiploop-test-loop/v2'
+- shiploop-test-loop/v1
+?                     ^
++ shiploop-test-loop/v2
+?                     ^
+
+
+----------------------------------------------------------------------
+Ran 6 tests in 91.726s
+
+FAILED (failures=8, errors=2)

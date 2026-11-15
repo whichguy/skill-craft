@@ -1,0 +1,28 @@
+{
+  "index": 2,
+  "command": [
+    "python3",
+    "-B",
+    "test/shiploop-test-loop.test.py",
+    "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+    "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+    "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+    "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+    "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+    "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt",
+    "TapCountRouteTests"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_totals": [
+    15
+  ],
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/02.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/release-integration-verification/02.stderr.log",
+  "elapsed_seconds": 91.477,
+  "error": null,
+  "unittest_summary": [
+    "Ran 15 tests in 90.562s\n\nOK"
+  ]
+}

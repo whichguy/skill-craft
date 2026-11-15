@@ -1,0 +1,17 @@
+{
+  "index": 8,
+  "command": [
+    "python3",
+    "-B",
+    "scripts/check-release-boundary.py",
+    "--base",
+    "0eb91fc0bc1860ee158c822d62b81e65c3099a18"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_totals": [],
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/08.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/08.stderr.log",
+  "elapsed_seconds": 0.887
+}

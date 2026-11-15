@@ -1,0 +1,397 @@
+diff --git a/changes/shiploop/r08-pytest-errors-and-receipt-judgement.md b/changes/shiploop/r08-pytest-errors-and-receipt-judgement.md
+index e178c52d..d9ff9276 100644
+--- a/changes/shiploop/r08-pytest-errors-and-receipt-judgement.md
++++ b/changes/shiploop/r08-pytest-errors-and-receipt-judgement.md
+@@ -1,4 +1,4 @@
+ ---
+ bump: patch
+ ---
+-Count pytest summary errors as failures without treating setup or collection errors as tests that ran. Candidate checks, step Proof receipts, and whole check answers now bind reuse to the current judgment version, so older passes rerun their commands under current judging while historical v1 counts and floors remain readable.
++Count pytest summary errors as failures without treating setup or collection errors as tests that ran. Emit shiploop-test-loop/v2 receipts and require that schema for candidate and step Proof reuse. Whole check answers bind test_schema to the same format, so missing or v1 formats rerun commands rather than migrate or rejudge old receipts. The fidelity report reader recognizes v2 alongside archived v1 evidence; reporting does not authorize runtime reuse.
+diff --git a/skills/shiploop/scripts/shiploop_check.py b/skills/shiploop/scripts/shiploop_check.py
+index 00964e48..49c4c562 100644
+--- a/skills/shiploop/scripts/shiploop_check.py
++++ b/skills/shiploop/scripts/shiploop_check.py
+@@ -58,7 +58,7 @@ def answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str
+     return {
+         "revision": state.get("revision"),
+         "version": reference.package_version(),
+-        "judgement_version": test_loop.JUDGEMENT_VERSION,
++        "test_schema": test_loop.SCHEMA,
+         "contract": contract,
+         "draft": draft_sha,
+         "tree": test_loop.working_tree(root, Path(str(state["repo"]))) or None,
+diff --git a/skills/shiploop/scripts/shiploop_test_loop.py b/skills/shiploop/scripts/shiploop_test_loop.py
+index f77b3de9..cfa3bf51 100644
+--- a/skills/shiploop/scripts/shiploop_test_loop.py
++++ b/skills/shiploop/scripts/shiploop_test_loop.py
+@@ -94,10 +94,7 @@ UNAVAILABLE = ("timeout", "error")
+ COMMAND_TIMEOUT_SECONDS = 600.0
+ # Display: the end of one command's output a test record keeps; the cut says the command (in the same row) shows the rest.
+ TAIL_CHARS = 6000
+-SCHEMA = "shiploop-test-loop/v1"
+-# Bump when judge/count semantics change, so old passes rerun rather than rejudge
+-# stored output tails. Historical records remain readable for counts and floors.
+-JUDGEMENT_VERSION = 1
++SCHEMA = "shiploop-test-loop/v2"
+ BASE_SCHEMA = "shiploop-test-base/v1"
+ # Result fields of the test stage, validated by ``check_result_fields``.
+ RED_NA = "red_na"
+@@ -1407,7 +1404,7 @@ def _reused(root: Path, action: str, stage: str, work_item: str, commands: Seque
+     except (OSError, store.StorageError):
+         return None
+     if not (isinstance(record, Mapping) and record.get("passed") is True
+-            and record.get("judgement_version") == JUDGEMENT_VERSION and record.get("stage") == stage
++            and record.get("schema") == SCHEMA and record.get("stage") == stage
+             and record.get("work_item") == work_item and record.get("commands") == list(commands)
+             and record.get("trees")):
+         return None
+@@ -1484,7 +1481,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
+     reused = _reused(root, action, stage, work_item, commands, repo, held) if count and observed is None else None
+     if reused is not None:
+         record = {
+-            "schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION,
++            "schema": SCHEMA,
+             "action": action, "stage": stage, "work_item": work_item,
+             "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "cwd": str(cwd), "passed": True, "disposition": "passed", "runs": reused[0],
+@@ -1524,7 +1521,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
+         runs += default_suite_drift(state, commands, run_one)
+     disposition = _disposition(runs, PASSING)
+     record = {
+-        "schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION,
++        "schema": SCHEMA,
+         "action": action, "stage": stage, "work_item": work_item,
+         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+         "cwd": str(cwd), "passed": disposition == "passed", "disposition": disposition,
+@@ -1666,7 +1663,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
+     tree = _tree(root, repo)
+     number = _count(root, action, step_proof_path) + 1
+     matched = next(((relative, record) for relative, record in reversed(_proof_records(root, action))
+-                    if record.get("passed") is True and record.get("judgement_version") == JUDGEMENT_VERSION
++                    if record.get("passed") is True and record.get("schema") == SCHEMA
+                     and record.get("step") == step_id
+                     and record.get("command") == row["command"] and tree and tree in (record.get("trees") or ())),
+                    None) if count else None
+@@ -1676,7 +1673,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
+                 + str(matched[1].get("created_at")) + " (" + matched[0] + "): the candidate is unchanged")
+         if phase != "complete":
+             return {}, "", [line]
+-        record = {"schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION, "kind": "step-proof",
++        record = {"schema": SCHEMA, "kind": "step-proof",
+                   "action": action, "stage": STEP_PROOF_STAGES[0],
+                   "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
+                   "created_at": created, "cwd": str(repo), "passed": True, "disposition": "passed",
+@@ -1691,7 +1688,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
+     if "status" not in run:
+         run.update(judge(row, run["exit"], output))
+     disposition = _disposition([run], PASSING)
+-    record = {"schema": SCHEMA, "judgement_version": JUDGEMENT_VERSION, "kind": "step-proof",
++    record = {"schema": SCHEMA, "kind": "step-proof",
+               "action": action, "stage": STEP_PROOF_STAGES[0],
+               "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
+               "created_at": created, "cwd": str(repo), "passed": disposition == "passed", "disposition": disposition,
+diff --git a/test/shiploop-e2e-analysis.test.py b/test/shiploop-e2e-analysis.test.py
+index 900aa0f2..30d947e6 100644
+--- a/test/shiploop-e2e-analysis.test.py
++++ b/test/shiploop-e2e-analysis.test.py
+@@ -2337,7 +2337,7 @@ class MetricsTest(unittest.TestCase):
+             tests = Path(tmp) / "run" / "tests"
+             tests.mkdir(parents=True)
+             (tests / "nav-1-verify1.md").write_text(json.dumps({
+-                "schema": "shiploop-test-loop/v1", "passed": True,
++                "schema": "shiploop-test-loop/v2", "passed": True,
+                 "commands": [{"command": "a", "suite": "focused"}, {"command": "b", "suite": "regression"}],
+                 "runs": [{"command": "a", "suite": "focused", "exit": 0}, {"command": "b", "suite": "regression", "exit": 0}],
+             }))
+diff --git a/test/shiploop-e2e-delta.test.py b/test/shiploop-e2e-delta.test.py
+index aee517dd..2e86a828 100644
+--- a/test/shiploop-e2e-delta.test.py
++++ b/test/shiploop-e2e-delta.test.py
+@@ -580,7 +580,7 @@ class RegressionTest(unittest.TestCase):
+         (self.root / "state.md").write_text("```shiploop-state\n" + json.dumps(self.state) + "\n```\n")
+ 
+     def record(self, name="v1", **fields):
+-        record = {"schema": "shiploop-test-loop/v1", "action": "a1", "work_item": "W1", "stage": "test",
++        record = {"schema": "shiploop-test-loop/v2", "action": "a1", "work_item": "W1", "stage": "test",
+                   "attempt": 1, "trees": ["before", "after"], "runs": [
+                       {"command": "node --test", "suite": "regression", "status": "passed", "counts": {"ran": 7, "passed": 7},
+                        "stdout": "PRIVATE OUTPUT", "stderr": "PRIVATE ERROR"}], **fields}
+diff --git a/test/shiploop-e2e-fidelity.test.py b/test/shiploop-e2e-fidelity.test.py
+index 57b2f316..e154698d 100644
+--- a/test/shiploop-e2e-fidelity.test.py
++++ b/test/shiploop-e2e-fidelity.test.py
+@@ -851,12 +851,30 @@ class ValidationTest(unittest.TestCase):
+         self.assertEqual(validation["tests_ran_unmeasured"], 0)
+         self.assertNotIn("validation.counts", replay("r1-battleship-sonnet")["block"]["unmeasured"])
+ 
++    def test_current_v2_emitted_evidence_is_readable(self):
++        import shiploop_test_loop as test_loop
++        with tempfile.TemporaryDirectory() as tmp:
++            run_dir = Path(tmp) / "run"
++            run_dir.mkdir()
++            writes, refusal = test_loop.verify(
++                run_dir, {"repo": tmp}, "", "nav-current", "document",
++                commands=[{"command": "printf '1 passed in 0.01s\\n'", "suite": "focused"}])
++            self.assertEqual(refusal, "")
++            for relative, text in writes.items():
++                store.atomic_write_text(run_dir / relative, text)
++            record = store.read_record(run_dir / test_loop.verify_path("nav-current", 1))
++            self.assertEqual(record["schema"], "shiploop-test-loop/v2")
++            validation = self.fidelity.validation(run_dir)
++            self.assertEqual((validation["records"], validation["unread"], validation["runs"]), (1, 0, 1))
++            self.assertEqual(validation["schemas"], ["shiploop-test-loop/v2"])
++            self.assertEqual(validation["by_suite"]["focused"]["counted"], 1)
++
+     def test_a_counted_row_that_ran_zero_tests_is_listed_not_passed(self):
+         tmp = tempfile.TemporaryDirectory()
+         self.addCleanup(tmp.cleanup)
+         run_dir = Path(tmp.name) / "run"
+         (run_dir / "tests").mkdir(parents=True)
+-        record = {"action": "nav-1", "stage": "test-green", "schema": "shiploop-test-loop/v1", "passed": True,
++        record = {"action": "nav-1", "stage": "test-green", "schema": "shiploop-test-loop/v2", "passed": True,
+                   "runs": [{"command": "node --test", "suite": "focused", "counts": {"ran": 0, "failed": 0}, "status": "passed"},
+                            {"command": "node --test x", "suite": "focused", "counts": {"ran": 3, "failed": 0}, "status": "passed"}]}
+         (run_dir / "tests" / "nav-1-verify1.md").write_text("```shiploop-state\n" + json.dumps(record) + "\n```\n")
+@@ -870,7 +888,7 @@ class ValidationTest(unittest.TestCase):
+         run_dir = Path(tmp.name) / "run"
+         (run_dir / "tests").mkdir(parents=True)
+         (run_dir / "tests" / "nav-1-verify1.md").write_text("```shiploop-state\n" + json.dumps(
+-            {"schema": "shiploop-test-loop/v2", "runs": [{"command": "x", "suite": "focused", "counts": None}]}) + "\n```\n")
++            {"schema": "shiploop-test-loop/unknown", "runs": [{"command": "x", "suite": "focused", "counts": None}]}) + "\n```\n")
+         (run_dir / "tests" / "nav-2-verify1.md").write_text("no fence here\n")
+         validation = self.fidelity.validation(run_dir)
+         self.assertEqual((validation["records"], validation["unread"], validation["runs"]), (2, 2, 0))
+@@ -878,7 +896,7 @@ class ValidationTest(unittest.TestCase):
+         self.assertIn("not read", block["unmeasured"]["validation.unread"])
+ 
+     def release_record(self, run_dir: Path, number: int, created_at: str | None, passed, where="returned-result", observed=True):
+-        record = {"schema": "shiploop-test-loop/v1", "action": "nav-rel", "stage": "release-verify", "passed": passed,
++        record = {"schema": "shiploop-test-loop/v2", "action": "nav-rel", "stage": "release-verify", "passed": passed,
+                   "runs": [{"command": "node --test", "suite": "check", "counts": None, "status": "passed" if passed else "failed"}]}
+         if created_at:
+             record["created_at"] = created_at
+diff --git a/test/shiploop-handoff.test.py b/test/shiploop-handoff.test.py
+index 97e86caf..1c664ea7 100644
+--- a/test/shiploop-handoff.test.py
++++ b/test/shiploop-handoff.test.py
+@@ -1477,7 +1477,7 @@ class PrimaryGateTests(RepoCase):
+ 
+     @staticmethod
+     def record(*, passed: bool = True, status: str = "passed", ids: tuple = ("TC-1", "TC-2")) -> dict:
+-        return {"schema": "shiploop-test-loop/v1", "action": "t1", "stage": "test", "work_item": "W1",
++        return {"schema": "shiploop-test-loop/v2", "action": "t1", "stage": "test", "work_item": "W1",
+                 "passed": passed, "disposition": "passed" if passed else "failed",
+                 "runs": [{"command": "npm test", "suite": "focused", "ids": list(ids), "status": status,
+                           "ids_missing": []}]}
+diff --git a/test/shiploop-test-counts.test.py b/test/shiploop-test-counts.test.py
+index ccd5973d..da9c76cf 100644
+--- a/test/shiploop-test-counts.test.py
++++ b/test/shiploop-test-counts.test.py
+@@ -241,6 +241,16 @@ class JudgeTests(unittest.TestCase):
+                 self.assertEqual(self.status(row, 0, "1 error in 0.01s\n"), "no-tests")
+                 if suite != "check":
+                     self.assertEqual(self.status(dict(row, min_tests=2), 0, output), "too-few-tests")
++        row = {"command": "wrapped-test", "suite": "focused"}
++        mixed = test_loop._judge_base(row, 0, output, [], [], [])
++        clean = test_loop._judge_base(row, 0, output.replace(", 1 error", ""), [], [], [])
++        self.assertEqual((mixed["status"], mixed["counts"]["ran"], mixed["counts"]["failed"]), ("red", 1, 1))
++        self.assertEqual((clean["status"], clean["counts"]["ran"], clean["counts"]["failed"]),
++                         ("passes-on-base", 1, 0))
++        for row, earlier in ((dict(row, suite="regression"), False), (row, True)):
++            verdict = test_loop._judge_base(row, 0, output, [], [], [], earlier_step=earlier)
++            self.assertEqual((verdict["status"], verdict["counts"]["ran"], verdict["counts"]["failed"]),
++                             ("counted", 1, 1))
+         row = {"command": "wrapped-test", "suite": "focused", "ids": ["missing"]}
+         self.assertEqual(self.status(row, 0, output), "ids-missing")
+ 
+diff --git a/test/shiploop-test-loop.test.py b/test/shiploop-test-loop.test.py
+index 789a1e25..3d1a8f7e 100644
+--- a/test/shiploop-test-loop.test.py
++++ b/test/shiploop-test-loop.test.py
+@@ -2769,21 +2769,21 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+     PYTEST_ERROR = b"test_values.py::test_value[TC-1] PASSED\n1 passed, 1 error in 0.01s\n"
+ 
+     @staticmethod
+-    def old_judgement(record: dict, marker) -> None:
++    def old_schema(record: dict, marker) -> None:
+         if marker is None:
+-            record.pop("judgement_version", None)
++            record.pop("schema", None)
+         else:
+-            record["judgement_version"] = marker
++            record["schema"] = marker
+ 
+-    def test_stale_candidate_judgement_reruns_on_the_same_tree(self):
+-        for marker in (None, 0):
++    def test_stale_candidate_schema_reruns_on_the_same_tree(self):
++        for marker in (None, "shiploop-test-loop/v1"):
+             with self.subTest(marker=marker):
+                 self.restart()
+                 (self.repo / "a.py").write_text("x = 1\n")
+                 action, done, _ = self.document_checked()
+                 path = self.run_dir / test_loop.check_path(action)
+                 record = store.read_record(path)
+-                self.old_judgement(record, marker)
++                self.old_schema(record, marker)
+                 path.write_text(store.dumps(record, "Legacy candidate check"))
+                 original = path.read_bytes()
+                 # Remove only the whole-answer shortcut, to isolate lower-level reuse.
+@@ -2799,10 +2799,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+                 self.assertEqual(path.read_bytes(), original)
+                 fresh = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+                 self.assertFalse(fresh["passed"])
+-                self.assertEqual(fresh["judgement_version"], test_loop.JUDGEMENT_VERSION)
++                self.assertEqual(fresh["schema"], "shiploop-test-loop/v2")
+                 self.assertNotIn("reused", fresh)
+ 
+-    def test_current_candidate_judgement_reuses_without_whole_answer(self):
++    def test_current_candidate_schema_reuses_without_whole_answer(self):
+         action, done, _ = self.document_checked()
+         (self.run_dir / shiploop_check.answer_path(action)).unlink()
+         with mock.patch.object(test_loop.lint, "run_argv") as runner:
+@@ -2810,10 +2810,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+         runner.assert_not_called()
+         record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+         self.assertEqual(record["reused"]["path"], test_loop.check_path(action))
+-        self.assertEqual(record["judgement_version"], test_loop.JUDGEMENT_VERSION)
++        self.assertEqual(record["schema"], "shiploop-test-loop/v2")
+ 
+-    def test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts(self):
+-        for marker in (None, 0):
++    def test_stale_whole_answer_schema_reruns_stale_subordinate_receipts(self):
++        for marker in (None, "shiploop-test-loop/v1"):
+             with self.subTest(marker=marker):
+                 self.restart()
+                 (self.repo / "a.py").write_text("x = 1\n")
+@@ -2834,14 +2834,28 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+                 answer_path = self.run_dir / shiploop_check.answer_path(action)
+                 answer = store.read_record(answer_path)
+                 self.assertEqual(answer["answer"], "yes")
+-                self.old_judgement(answer["key"], marker)
++                self.assertEqual(answer["key"].get("test_schema"), "shiploop-test-loop/v2")
++                if marker is None:
++                    answer["key"].pop("test_schema")
++                else:
++                    answer["key"]["test_schema"] = marker
+                 answer_path.write_text(store.dumps(answer, "Legacy whole answer"))
+                 path = self.run_dir / test_loop.check_path(action)
+                 record = store.read_record(path)
+-                self.old_judgement(record, marker)
++                self.old_schema(record, marker)
+                 path.write_text(store.dumps(record, "Legacy candidate check"))
+                 before = (self.run_dir / "state.md").read_bytes()
+-                with mock.patch.object(test_loop.lint, "run_argv", return_value=(
++                answer_key = shiploop_check.answer_key
++
++                def checked_key(*args, **kwargs):
++                    current = answer_key(*args, **kwargs)
++                    self.assertEqual({k: v for k, v in current.items() if k != "test_schema"},
++                                     {k: v for k, v in answer["key"].items() if k != "test_schema"})
++                    self.assertEqual(current["test_schema"], "shiploop-test-loop/v2")
++                    return current
++
++                with mock.patch.object(shiploop_check, "answer_key", side_effect=checked_key), \
++                     mock.patch.object(test_loop.lint, "run_argv", return_value=(
+                         "ok", 0, self.PYTEST_ERROR, b"")) as runner:
+                     with self.assertRaises(nav.NavigatorError) as caught:
+                         self.dispatch(done)
+@@ -3066,9 +3080,9 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+         runner.assert_called_once()
+         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+ 
+-    def test_stale_proof_judgement_reruns_check_and_numbered_receipts(self):
++    def test_stale_proof_schema_reruns_check_and_numbered_receipts(self):
+         for numbered in (False, True):
+-            for marker in (None, 0):
++            for marker in (None, "shiploop-test-loop/v1"):
+                 with self.subTest(numbered=numbered, marker=marker):
+                     self.restart()
+                     self.start()
+@@ -3079,7 +3093,7 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+                     (self.run_dir / shiploop_check.answer_path(action)).unlink()
+                     check_path = self.run_dir / test_loop.step_proof_check_path(action)
+                     record = store.read_record(check_path)
+-                    self.old_judgement(record, marker)
++                    self.old_schema(record, marker)
+                     path = self.run_dir / (test_loop.step_proof_path(action, 1) if numbered
+                                            else test_loop.step_proof_check_path(action))
+                     if numbered:
+@@ -3099,10 +3113,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+                     fresh = store.read_record(self.run_dir / test_loop.step_proof_path(
+                         action, 2 if numbered else 1))
+                     self.assertFalse(fresh["passed"])
+-                    self.assertEqual(fresh["judgement_version"], test_loop.JUDGEMENT_VERSION)
++                    self.assertEqual(fresh["schema"], "shiploop-test-loop/v2")
+                     self.assertNotIn("reused", fresh)
+ 
+-    def test_current_proof_judgement_reuses_check_then_numbered_receipt(self):
++    def test_current_proof_schema_reuses_check_then_numbered_receipt(self):
+         self.start()
+         self.drive_to("implement", step_plan=self.proof_plan(self.PROOF))
+         action = self.action()
+@@ -3117,7 +3131,7 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
+                 with self.assertRaises(nav.NavigatorError):
+                     self.complete(DONE, loop=False)
+                 record = store.read_record(self.run_dir / test_loop.step_proof_path(action, number))
+-                self.assertEqual(record["judgement_version"], test_loop.JUDGEMENT_VERSION)
++                self.assertEqual(record["schema"], "shiploop-test-loop/v2")
+                 self.assertEqual(record["reused"]["path"], test_loop.step_proof_check_path(action)
+                                  if number == 1 else test_loop.step_proof_path(action, 1))
+         runner.assert_not_called()
+@@ -3769,14 +3783,6 @@ class CountFloorTests(unittest.TestCase):
+     def record(self, action: str, number: int = 1) -> dict:
+         return store.read_record(self.root / test_loop.verify_path(action, number))
+ 
+-    def test_historical_v1_without_judgement_still_sets_the_floor(self):
+-        self.assertEqual(self.run_stage("A1", "test", 5), "")
+-        path = self.root / test_loop.verify_path("A1", 1)
+-        record = store.read_record(path)
+-        record.pop("judgement_version", None)
+-        self.assertEqual(record["schema"], "shiploop-test-loop/v1")
+-        path.write_text(store.dumps(record, "Historical v1"))
+-        self.assertIn("at least 5", self.run_stage("A2", "document", 4))
+ 
+     def test_the_highest_accepted_count_is_the_floor_and_both_numbers_are_in_the_refusal(self):
+         self.assertEqual(self.run_stage("A1", "test", 5), "")
+diff --git a/test/shiploop_e2e/fidelity.py b/test/shiploop_e2e/fidelity.py
+index 374a4c1f..eb1ef649 100644
+--- a/test/shiploop_e2e/fidelity.py
++++ b/test/shiploop_e2e/fidelity.py
+@@ -33,7 +33,8 @@ SCHEMA = "shiploop-e2e-fidelity/v1"
+ # Files the engine keeps beside a run (shiploop_workspace.MANIFEST, RETURN_PLAN, RETURN_RECEIPT): script-owned, and named in a
+ # command that has changed directory first, so they are matched by their name.
+ WORKSPACE_FILES = ("return-plan.md", "return-receipt.md", "workspace.md")
+-VERIFY_SCHEMA = "shiploop-test-loop/v1"
++# Reporting reads archived v1 receipts and current v2 receipts; this does not authorize runtime reuse.
++VERIFY_SCHEMAS = ("shiploop-test-loop/v1", "shiploop-test-loop/v2")
+ # The suites whose rows are tests: a row with no count does not show that a test ran. A check row is judged by its exit code.
+ TEST_SUITES = ("focused", "regression")
+ RECORD_KINDS = ("verify", "step-proof", "lint", "loop", "expectation", "backchain", "improve")
+@@ -56,7 +57,7 @@ TRACE_REFUSAL_LIMITS = ("read from ShipLoop's run trace: every command that name
+ EDIT_LIMITS = ("a list to confirm: no hit is not proof (an edit by interpreter code such as a python3 heredoc, a shell apply_patch or git "
+                "apply, a kill by numeric pid or by port, and a relative path after cd other than the three workspace files, matched by "
+                "name, are not seen) and a hit can be quoted text read as a command (a quoted > word reads as a redirect)")
+-UNREAD_REASON = ("a verify record that is not shiploop-test-loop/v1 or cannot be read as JSON is not read, so its rows are in no "
++UNREAD_REASON = ("a verify record that is neither shiploop-test-loop/v1 nor v2 or cannot be read as JSON is not read, so its rows are in no "
+                  "count below")
+ COUNTS_REASON = ("a focused or regression row whose counts are null does not show that a test ran (S-9: a check that ran nothing "
+                  "is not a pass), so those rows are unmeasured, not passed")
+@@ -502,7 +503,7 @@ def _verify_record(path: Path) -> dict | None:
+         record = json.loads(found.group("json")) if found else None
+     except ValueError:
+         return None
+-    return record if isinstance(record, dict) and record.get("schema") == VERIFY_SCHEMA and isinstance(record.get("runs"), list) else None
++    return record if isinstance(record, dict) and record.get("schema") in VERIFY_SCHEMAS and isinstance(record.get("runs"), list) else None
+ 
+ 
+ def validation(run_dir: Path | None) -> dict:
+@@ -511,7 +512,7 @@ def validation(run_dir: Path | None) -> dict:
+     ``tests_ran_unmeasured`` is the focused and regression rows whose counts are null; ``zero_ran`` (per suite) the rows that counted
+     a test and ran none, null for a suite with no counted row. ``accepted_ran`` is null when no row carries the key. ``release_verify``
+     is the latest record (by created_at, then by record number) that observed a ``where``, with the record's own ``passed``: the
+-    engine writes ``observed`` before it decides ``passed``. ``unread`` is the records that are not shiploop-test-loop/v1 or not JSON:
++    engine writes ``observed`` before it decides ``passed``. ``unread`` is the records that are neither shiploop-test-loop/v1 nor v2 or not JSON:
+     their rows are in no count. ``gates_not_exercised`` is the base-run and mutation-check records that say skipped
+     (``gates_not_exercised`` below). The regex reader metrics.verifications stays what baselines use; build compares the two and a test
+     pins that both agree on the saved runs."""

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "tap-route",
+    "command": "python3 test/shiploop-test-loop.test.py -v TapCountRouteTests.test_the_trials_native_output_is_counted_where_it_was_refused_as_uncounted TapCountRouteTests.test_the_accepted_count_becomes_the_floor_and_eight_is_refused_by_the_floor_alone TapCountRouteTests.test_a_base_run_count_seeds_the_floor TapCountRouteTests.test_a_stream_longer_than_the_kept_tail_is_counted_whole TapCountRouteTests.test_failures_and_an_empty_plan_are_refused_at_exit_zero TapCountRouteTests.test_a_check_judges_the_stream_as_a_counted_run_does TapCountRouteTests.test_complete_after_a_passing_check_takes_the_checks_counted_run TapCountRouteTests.test_a_v1_check_reruns_and_is_refused_by_the_current_tap_count TapCountRouteTests.test_a_step_proof_is_judged_from_its_stream",
+    "expected_methods": 9,
+    "exit": 0,
+    "result": "PASS",
+    "elapsed_seconds": 2.789,
+    "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/post-rebase/worker/tap-route.log"
+  },
+  {
+    "name": "r08-counts-judge",
+    "command": "python3 test/shiploop-test-counts.test.py -v CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran JudgeTests.test_pytest_error_judgement_preserves_gate_precedence",
+    "expected_methods": 2,
+    "exit": 0,
+    "result": "PASS",
+    "elapsed_seconds": 0.255,
+    "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/post-rebase/worker/r08-counts-judge.log"
+  },
+  {
+    "name": "r08-schema-proof",
+    "command": "python3 test/shiploop-test-loop.test.py -v TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt",
+    "expected_methods": 6,
+    "exit": 0,
+    "result": "PASS",
+    "elapsed_seconds": 74.767,
+    "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/post-rebase/worker/r08-schema-proof.log"
+  }
+]

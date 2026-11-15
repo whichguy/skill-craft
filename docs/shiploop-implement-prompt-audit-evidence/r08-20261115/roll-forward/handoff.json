@@ -1,0 +1,269 @@
+{
+  "head": "b16de3c82bca456ce0a15c0c120d1935b81c50f0",
+  "changed_paths": [
+    "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md",
+    "skills/shiploop/scripts/shiploop_check.py",
+    "skills/shiploop/scripts/shiploop_test_loop.py",
+    "test/shiploop-e2e-analysis.test.py",
+    "test/shiploop-e2e-delta.test.py",
+    "test/shiploop-e2e-fidelity.test.py",
+    "test/shiploop-handoff.test.py",
+    "test/shiploop-test-counts.test.py",
+    "test/shiploop-test-loop.test.py",
+    "test/shiploop_e2e/fidelity.py"
+  ],
+  "source_sha256": {
+    "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md": "f7816c05a6a55e6f5e40d623a26116e58b7d13c81041432e1cb75a633806ccbc",
+    "skills/shiploop/scripts/shiploop_check.py": "7de0d6e0a08d2a553a9c59816983e2976270031ed70a5612c5ac03398e69c9dc",
+    "skills/shiploop/scripts/shiploop_test_loop.py": "5daf9be97d3f733a636b1dc23299be072c9c62cf33d04dd56072a336852d67db",
+    "test/shiploop-e2e-analysis.test.py": "d1dcfc9f997cd0462729625eca6b9c60f40491809b0fede0c8af34ddc60f26ae",
+    "test/shiploop-e2e-delta.test.py": "a43213ad608f62e170092b69879481f724afa4eb56d45e47405b07f859691f14",
+    "test/shiploop-e2e-fidelity.test.py": "358794fdfbeade1cf2f1bbf400a5b742712a0d183e04efb78453c633151ff674",
+    "test/shiploop-handoff.test.py": "87d3980e278696076886f047673384ccfa033963e6fcd98210ffdf304d0f9540",
+    "test/shiploop-test-counts.test.py": "ca2c03ee139f8d11bd59e953471501998c32fb7c69e658450f24c96117b2450a",
+    "test/shiploop-test-loop.test.py": "4a9f52d8fb2632bef8c5e0579cf8caa532e8e83acf18bb33d81199e27fbe6d41",
+    "test/shiploop_e2e/fidelity.py": "cc6389693628ac10b258b97895800a0b7102c9c36ac4a7971b2120faa4e7594e",
+    "skills/shiploop/scripts/shiploop_test_counts.py": "23aa625e4138a65bea9fc6f5415835a9a6ba895291c5099a80b8c5114ba6b0aa"
+  },
+  "selected": [
+    {
+      "file": "test/shiploop-test-counts.test.py",
+      "method_ids": [
+        "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+        "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+      ],
+      "command": [
+        "python3",
+        "test/shiploop-test-counts.test.py",
+        "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+        "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+      ]
+    },
+    {
+      "file": "test/shiploop-test-loop.test.py",
+      "method_ids": [
+        "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+        "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+        "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt"
+      ],
+      "command": [
+        "python3",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+        "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+        "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt"
+      ]
+    },
+    {
+      "file": "test/shiploop-e2e-fidelity.test.py",
+      "method_ids": [
+        "ValidationTest.test_current_v2_emitted_evidence_is_readable",
+        "ValidationTest.test_a_counted_row_that_ran_zero_tests_is_listed_not_passed",
+        "ValidationTest.test_a_record_of_another_schema_or_that_cannot_be_read_is_not_read_and_is_counted_apart"
+      ],
+      "command": [
+        "python3",
+        "test/shiploop-e2e-fidelity.test.py",
+        "ValidationTest.test_current_v2_emitted_evidence_is_readable",
+        "ValidationTest.test_a_counted_row_that_ran_zero_tests_is_listed_not_passed",
+        "ValidationTest.test_a_record_of_another_schema_or_that_cannot_be_read_is_not_read_and_is_counted_apart"
+      ]
+    },
+    {
+      "file": "test/shiploop-e2e-analysis.test.py",
+      "method_ids": [
+        "MetricsTest.test_a_verify_record_that_lists_its_request_counts_only_what_ran"
+      ],
+      "command": [
+        "python3",
+        "test/shiploop-e2e-analysis.test.py",
+        "MetricsTest.test_a_verify_record_that_lists_its_request_counts_only_what_ran"
+      ]
+    },
+    {
+      "file": "test/shiploop-e2e-delta.test.py",
+      "method_ids": [
+        "RegressionTest.test_matched_rows_preserve_plan_and_receipt_provenance",
+        "RegressionTest.test_reused_counted_receipts_are_observations_not_new_executions"
+      ],
+      "command": [
+        "python3",
+        "test/shiploop-e2e-delta.test.py",
+        "RegressionTest.test_matched_rows_preserve_plan_and_receipt_provenance",
+        "RegressionTest.test_reused_counted_receipts_are_observations_not_new_executions"
+      ]
+    },
+    {
+      "file": "test/shiploop-handoff.test.py",
+      "method_ids": [
+        "PrimaryGateTests.test_a_primary_outcome_needs_a_test_shiploop_saw_pass_in_a_case_for_its_requirement"
+      ],
+      "command": [
+        "python3",
+        "test/shiploop-handoff.test.py",
+        "PrimaryGateTests.test_a_primary_outcome_needs_a_test_shiploop_saw_pass_in_a_case_for_its_requirement"
+      ]
+    },
+    {
+      "file": "test/shiploop-e2e-fidelity.test.py",
+      "method_ids": [
+        "ValidationTest.test_a_failed_or_unknown_release_verify_record_is_shown_with_passed_false_or_null",
+        "ValidationTest.test_the_release_verify_record_is_the_latest_by_created_at_then_by_number_never_by_file_name",
+        "ValidationTest.test_an_observed_block_with_no_where_is_no_release_verify_record"
+      ],
+      "command": [
+        "python3",
+        "test/shiploop-e2e-fidelity.test.py",
+        "ValidationTest.test_a_failed_or_unknown_release_verify_record_is_shown_with_passed_false_or_null",
+        "ValidationTest.test_the_release_verify_record_is_the_latest_by_created_at_then_by_number_never_by_file_name",
+        "ValidationTest.test_an_observed_block_with_no_where_is_no_release_verify_record"
+      ]
+    }
+  ],
+  "passed_methods": 18,
+  "green_source_stable": {
+    "green-01": true,
+    "green-fixtures-01": true
+  },
+  "outcomes": [
+    {
+      "name": "counts",
+      "command": [
+        "python3",
+        "test/shiploop-test-counts.test.py",
+        "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+        "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:22:30.239434+00:00",
+      "seconds": 0.18483495799955563,
+      "exit_code": 0,
+      "outcome": "PASS"
+    },
+    {
+      "name": "reuse",
+      "command": [
+        "python3",
+        "test/shiploop-test-loop.test.py",
+        "TestLoopTests.test_stale_candidate_schema_reruns_on_the_same_tree",
+        "TestLoopTests.test_current_candidate_schema_reuses_without_whole_answer",
+        "TestLoopTests.test_stale_whole_answer_schema_reruns_stale_subordinate_receipts",
+        "TestLoopTests.test_mixed_pytest_error_refuses_actual_step_proof",
+        "TestLoopTests.test_stale_proof_schema_reruns_check_and_numbered_receipts",
+        "TestLoopTests.test_current_proof_schema_reuses_check_then_numbered_receipt"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:22:30.424926+00:00",
+      "seconds": 72.55085045900069,
+      "exit_code": 0,
+      "outcome": "PASS"
+    },
+    {
+      "name": "fidelity",
+      "command": [
+        "python3",
+        "test/shiploop-e2e-fidelity.test.py",
+        "ValidationTest.test_current_v2_emitted_evidence_is_readable",
+        "ValidationTest.test_a_counted_row_that_ran_zero_tests_is_listed_not_passed",
+        "ValidationTest.test_a_record_of_another_schema_or_that_cannot_be_read_is_not_read_and_is_counted_apart"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:23:42.976942+00:00",
+      "seconds": 0.6948296250002386,
+      "exit_code": 0,
+      "outcome": "PASS"
+    },
+    {
+      "name": "analysis",
+      "command": [
+        "python3",
+        "test/shiploop-e2e-analysis.test.py",
+        "MetricsTest.test_a_verify_record_that_lists_its_request_counts_only_what_ran"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:23:58.275152+00:00",
+      "seconds": 0.5846748329995535,
+      "exit_code": 0,
+      "outcome": "PASS"
+    },
+    {
+      "name": "delta",
+      "command": [
+        "python3",
+        "test/shiploop-e2e-delta.test.py",
+        "RegressionTest.test_matched_rows_preserve_plan_and_receipt_provenance",
+        "RegressionTest.test_reused_counted_receipts_are_observations_not_new_executions"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:23:58.860321+00:00",
+      "seconds": 0.71620245899976,
+      "exit_code": 0,
+      "outcome": "PASS"
+    },
+    {
+      "name": "handoff",
+      "command": [
+        "python3",
+        "test/shiploop-handoff.test.py",
+        "PrimaryGateTests.test_a_primary_outcome_needs_a_test_shiploop_saw_pass_in_a_case_for_its_requirement"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:23:59.576911+00:00",
+      "seconds": 0.6506927079999514,
+      "exit_code": 0,
+      "outcome": "PASS"
+    },
+    {
+      "name": "release-reporting",
+      "command": [
+        "python3",
+        "test/shiploop-e2e-fidelity.test.py",
+        "ValidationTest.test_a_failed_or_unknown_release_verify_record_is_shown_with_passed_false_or_null",
+        "ValidationTest.test_the_release_verify_record_is_the_latest_by_created_at_then_by_number_never_by_file_name",
+        "ValidationTest.test_an_observed_block_with_no_where_is_no_release_verify_record"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r08-20261115",
+      "started": "2026-11-15T16:24:00.227965+00:00",
+      "seconds": 0.7149996250000186,
+      "exit_code": 0,
+      "outcome": "PASS"
+    }
+  ],
+  "raw_evidence_directories": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/red-01",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/green-01",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/roll-forward/worker/green-fixtures-01"
+  ],
+  "diff_check": {
+    "command": [
+      "git",
+      "-C",
+      "/Users/dadleet/src/skill-craft-r08-20261115",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0
+  },
+  "historical_reporting_scope": "Only fidelity._verify_record broadens its existing schema whitelist from v1 to (v1,v2). Counts/presence reporting only; no acceptance fallback, migration, rejudging, historical adapter, or frozen dataset edits. Historical Run Review excerpt remains v1. Runtime candidate and check/numbered Proof reuse require exactly SCHEMA v2; whole-answer keys require matching test_schema. Existing floor/count readers unchanged.",
+  "consumers_read": [
+    "shiploop_test_loop: observation, record discovery, accepted_counts, action_counts, floor_detail, take_check, _reused, loop_run, _proof_records, step_proof",
+    "shiploop_check: answer_key and matching_yes",
+    "shiploop_primary: _passed_ids",
+    "shiploop_navigator: latest test-run presentation",
+    "shiploop_context_index: test_paths",
+    "shiploop-run-review/scripts/export.py: _verify_by_action",
+    "shiploop_e2e/metrics.py: verifications",
+    "shiploop_e2e/delta.py: regression_block receipt projection",
+    "shiploop_e2e/fidelity.py: record discovery, _verify_record, validation"
+  ],
+  "issues": [
+    "red-01 full snapshot identity is INCOMPLETE: an unselected historical Run Review excerpt was restored from temporary v2 to original v1 while tests ran. Selected runtime/test files were stable; raw observed failures retained. See red-01-diagnosis.json. Both green runs have fully stable recorded fingerprints."
+  ],
+  "constraints": "No commits, new agents/advisors, integration/deployment/release, full bank, model/default or loop-limit changes. Parent owns final verification/publication. Original pre-roll-forward evidence not modified."
+}

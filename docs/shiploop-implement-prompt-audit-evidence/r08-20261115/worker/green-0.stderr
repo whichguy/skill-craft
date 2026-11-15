@@ -1,0 +1,7 @@
+test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) ... ok
+test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.002s
+
+OK

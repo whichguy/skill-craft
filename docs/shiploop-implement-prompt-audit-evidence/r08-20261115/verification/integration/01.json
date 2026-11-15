@@ -1,0 +1,20 @@
+{
+  "index": 1,
+  "command": [
+    "python3",
+    "-B",
+    "test/shiploop-e2e-hosts.test.py",
+    "GrokPreemptTest"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_totals": [
+    10
+  ],
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/01.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/main-docs-verification/01.stderr.log",
+  "elapsed_seconds": 1.761,
+  "error": null,
+  "expected_nonzero": false
+}

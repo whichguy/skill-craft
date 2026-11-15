@@ -1,0 +1,19 @@
+{
+  "index": 6,
+  "command": [
+    "python3",
+    "-B",
+    "test/shiploop-test-counts.test.py",
+    "CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran",
+    "JudgeTests.test_pytest_error_judgement_preserves_gate_precedence"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r08-integrated-20261115",
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_totals": [
+    2
+  ],
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/06.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r08-20261115/integrated-verification/06.stderr.log",
+  "elapsed_seconds": 0.339
+}

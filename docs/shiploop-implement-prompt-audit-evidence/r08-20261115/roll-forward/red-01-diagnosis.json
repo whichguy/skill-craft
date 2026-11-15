@@ -1,0 +1,8 @@
+{
+  "diagnosis": "Existing marker-only runtime reuses missing/v1-schema receipts, emits v1, and does not emit test_schema. Fidelity only reads v1. Counts controls pass; missing new dictionary keys cause expected errors, not evidence of fixture setup failure. Green run follows diagnosed schema-gate changes, not a blind retry.",
+  "identity_drift": [
+    "test/shiploop-run-review.test.py"
+  ],
+  "identity_drift_explanation": "The unused Run Review historical excerpt was restored to its original v1 during red execution; that module was not imported or selected. Treat red-01 as INCOMPLETE for full snapshot stability; selected test/runtime hashes were stable. Retain raw observed failures separately from this identity qualification.",
+  "original_evidence": "Prior R08 red/green evidence outside roll-forward/worker remains untouched."
+}
