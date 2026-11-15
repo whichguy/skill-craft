@@ -941,6 +941,35 @@ def make_1_21_loop(out: Path, action: str = "plan", receipt: dict | None = None,
     return loop
 
 
+def make_0_7_run(out: Path, action: str = "plan", cycles=((False, "trivial"),), check_at: float | None = 79,
+                 contract_at: float | None = 40) -> Path:
+    """run/backchain/<action id>/run as Backchain 0.7.0 leaves it when the packet names that directory for `prepare`:
+    run.json, loop/contract.json and loop/receipt.json, one cycles/NN/ per recorded cycle, evidence.json; and beside it,
+    in run/backchain/<action id>/, the `shiploop backchain-check` receipt of the final candidate."""
+    home = run_dir_of(out) / "backchain" / IDS[action]
+    run = home / "run"
+    write_json(run / "run.json", {"schema": "backchain-run/v1", "binding_id": "bc-1", "passes": "one"}, at=30)
+    if contract_at is not None:
+        write_json(run / "loop" / "contract.json", {"required_trivial_reviews": 0}, at=contract_at)
+    entries = []
+    for number, (changed, classification) in enumerate(cycles, 1):
+        folder = run / "cycles" / f"{number:02d}"
+        write_json(folder / "review.json", {"change_class": "material" if changed else "none"}, at=40 + 40 * number - 1)
+        write_json(folder / "report.json", {"classification": classification}, at=40 + 40 * number)
+        entries.append({"cycle": number, "callback": number, "classification": classification, "changed": changed,
+                        "plan": {"path": "/elsewhere/plan.json", "sha256": FINAL_DIGEST}})
+    final = {"status": "complete", "progress": {"action_number": len(cycles), "trivial_streak": 1,
+                                                "required_trivial_reviews": 0},
+             "last_report": {"classification": cycles[-1][1], "exit_assessment": "satisfied"}}
+    write_json(run / "loop" / "receipt.json", final, at=40 + 40 * len(cycles) + 1)
+    write_json(run / "evidence.json", {"schema": "backchain-evidence/v1", "cycles": entries, "planning_gaps": []},
+               at=40 + 40 * len(cycles) + 1)
+    if check_at is not None:
+        write_json(home / f"check-{FINAL_DIGEST[:12]}.json", {"schema": "shiploop-backchain-check/v1",
+                   "candidate_sha256": FINAL_DIGEST, "ok": True, "completion": "complete"}, at=check_at)
+    return run
+
+
 class BackchainLoopRecordsTest(unittest.TestCase):
     """R16: the exporter reads the loops 1.21.0 keeps under run/backchain/<action>/ and records, without enforcing
     anything, the run's backchain_passes option and whether the last check receipt is for the loop's final candidate."""
@@ -987,6 +1016,35 @@ class BackchainLoopRecordsTest(unittest.TestCase):
         line = next(x for x in facts if x.startswith("- Backchain loops:"))
         self.assertIn("plan 1 passes, complete, stage 60 min, candidate match yes", line)
         self.assertNotIn("none found", line)
+
+    def test_a_backchain_0_7_planning_run_under_its_action_is_one_loop_with_its_cycles(self):
+        """Round 10 (W1): Backchain 0.7.0 keeps a planning run in the directory the packet names for `prepare`,
+        run/backchain/<action>/run, with loop/receipt.json and evidence.json instead of until-loop-receipt.json. The
+        exporter found no loop there and, because the action directory also held a check receipt, filed the stage as
+        "graph check only"."""
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        set_state(out, backchain_passes="one")
+        make_0_7_run(out, cycles=((True, "non-trivial"),))
+        loops, facts = self.export(out)
+        self.assertEqual(list(loops), [self.PLAN])
+        doc, f = loops[self.PLAN], self.facts_of(loops[self.PLAN])
+        self.assertNotIn("graphCheckOnly", doc)
+        self.assertEqual((doc["loop"], f["Passes"], f["Final status"]), ("plan", "1", "complete"))
+        self.assertEqual(f["Receipt"], f"backchain/{IDS['plan']}/run/loop/receipt.json")
+        self.assertEqual([(s["label"], s["min"]) for s in doc["segments"]],
+                         [("Before the loop", 5), ("Pass 1", 40), ("After the loop", 15)])
+        one = doc["segments"][1]
+        self.assertEqual((one["pass"], one["change"]), (1, "changed"))
+        self.assertIn("non-trivial", one["note"])
+        self.assertIs(doc["candidateMatch"], True)
+        self.assertIn("plan 1 passes, complete", next(x for x in facts if x.startswith("- Backchain loops:")))
+        # two cycles: a repair, then a trivial review
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        make_0_7_run(out, cycles=((True, "non-trivial"), (False, "trivial")))
+        two = self.export(out)[0][self.PLAN]
+        self.assertEqual(self.facts_of(two)["Passes"], "2")
+        self.assertEqual([(s.get("pass"), s.get("change")) for s in two["segments"] if "pass" in s],
+                         [(1, "changed"), (2, "none")])
 
     def test_the_run_option_is_recorded_as_written_and_not_recorded_when_the_key_is_absent(self):
         for written, shown in (("one", "one"), ("converge", "converge"), ("none", "none"), ("maybe", "maybe"),

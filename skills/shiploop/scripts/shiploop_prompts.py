@@ -2004,8 +2004,10 @@ BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
 # Run-level Backchain passes option (state key ``backchain_passes``): how many review passes the
 # Backchain planning child may take.  ``one`` (the default for new runs) is one review/fix/check cycle,
-# ``converge`` is two consecutive trivial reviews, ``none`` offers no whole loop at plan.  The CLI, the
-# state and SPEC S-10's carve-out name the same three.
+# ``converge`` is Backchain's default gate, completing at the first trivial review (owner decision D-D, 2026-11-01:
+# the converge marker never reached a printed packet after Backchain 0.7.0, so converge already ran that gate, and
+# 0 of 18 confirming reviews changed anything), ``none`` offers no whole loop at plan.  The CLI, the state and SPEC
+# S-10's carve-out name the same three.
 BACKCHAIN_PASSES_MODES = ("one", "converge", "none")
 DEFAULT_BACKCHAIN_PASSES = "one"
 
@@ -2025,7 +2027,7 @@ def offers_whole_backchain_loop(stage: str, backchain_passes: str) -> bool:
     return stage in BACKCHAIN_NATIVE_CALLS and backchain_passes != "none"
 
 
-# The resource the read-only audit needs (the `backchain-caller/v1` contract); the other six serve a whole loop.
+# The resource the read-only audit needs (the `backchain-caller/v1` contract); the other seven serve a whole loop.
 BACKCHAIN_AUDIT_RESOURCE = "Backchain backchain-caller/v1 resource"
 
 
@@ -2054,6 +2056,8 @@ def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
             "Backchain prompts/convergence-review.prompt.md",
             "backchain/prompts/convergence-review.prompt.md",
         ),
+        # Backchain 0.7.0's toolkit: the child's prepare, freeze, record, verify and finish (Round 10, W1)
+        ("Backchain scripts/backchain.py", "backchain/scripts/backchain.py"),
         ("Until Loop ADAPTER.md", "improve/runtime/until-loop/ADAPTER.md"),
         (
             "Until Loop references/runtime-ephemeral.md",
@@ -2122,18 +2126,17 @@ caller section (the packet's "Loop resources" line reports them)."""
 _BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle: put the line
 `Backchain passes: one` beside the binding marker in the child request, as Backchain's
 convergence reference defines it."""
-# Mode converge: Backchain's default stopped being two reviews (2026-11-01), so a converge run's repair/revise child
-# names its gate with the converge marker line, as the plan packet does.
-_BACKCHAIN_AUDIT_CONVERGE = """ A repair/revise child runs the two-review gate: put the line
-`Backchain passes: converge` beside the binding marker in the child request, as Backchain's
-convergence reference defines it."""
+# Mode converge (owner decision D-D, 2026-11-01): Backchain's default gate, so the child request carries no marker line.
+_BACKCHAIN_AUDIT_CONVERGE = """ A repair/revise child runs Backchain's default gate and completes at
+its first trivial review: put no `Backchain passes:` line in the child request."""
 _BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
 at `plan`."""
 # Mode none, at every stage: the run requests no whole loop, so the audit text says that in its place.  `one` is
 # the only marker value Backchain's convergence reference defines, so the text does not print `none` as one.
 _BACKCHAIN_AUDIT_WHOLE_NONE = """ No whole `plan`/`draft` is requested in this run."""
-_BACKCHAIN_AUDIT_TAIL = """ A MISSING loop resource blocks repair/revise; no other install
-substitutes. A forbidden revision, nonterminal child or unresolved finding stays
+_BACKCHAIN_AUDIT_TAIL = """ Start the child with `prepare --run` the printed Backchain planning
+run directory, then `freeze`, which writes its start contract. A MISSING loop resource blocks
+repair/revise; no other install substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
 _BACKCHAIN_IMPROVE_OWNER = """\
@@ -2148,16 +2151,18 @@ A protected or out-of-scope change follows the existing blocked or recovery rout
 """
 
 
-# The plan-stage gate sentence in `converge` mode: the runtime's own two-review gate, as it was printed before the
-# Backchain passes option existed, now named by its marker line because Backchain's default is one trivial review.
+# The plan-stage gate sentence in `converge` mode (owner decision D-D, 2026-11-01): Backchain's default gate, which
+# completes at the first trivial review; the child request carries no marker line and freeze writes the contract.
 _BACKCHAIN_PLAN_GATE_CONVERGE = """\
-Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
-two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
-terminal transition; Backchain and ShipLoop do not copy that runtime or create another
-controller. Put the line `Backchain passes: converge` beside the binding marker in the
-child request, as Backchain's convergence reference defines it.
+Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
+transition; Backchain and ShipLoop do not copy that runtime or create another controller.
+Put no `Backchain passes:` line in the child request: the child runs Backchain's default
+gate and completes at its first trivial review. Start it with `prepare --run` the printed
+Backchain planning run directory (no `--passes`), then `freeze`, which writes its start
+contract (never you).
 """
-# In `one` mode the host writes the gate itself, so the packet prints the gate and the exit condition to copy.
+# In `one` mode the packet prints the gate and the exit condition Backchain's `freeze` writes for the marker line
+# (Backchain 0.7.0 writes the child's start contract; before it, the host copied them into a hand-written one).
 # Owner decision 2026-10-04 (docs/shiploop-fast-planning-plan-2026-10-04.md, "Backchain single pass: mechanism").
 # The vendored Until Loop completes at gate 0 on the first report that assesses the exit as satisfied, so the exit
 # text is what makes one cycle enough: under the two-review exit text Luna (skill-craft 1.16.1) reported
@@ -2166,26 +2171,27 @@ child request, as Backchain's convergence reference defines it.
 _BACKCHAIN_PLAN_GATE_ONE = """\
 Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
 transition; Backchain and ShipLoop do not copy that runtime or create another controller.
-Backchain passes: one. Write the child's start contract with `required_trivial_reviews: 0` and this
-exit condition verbatim, appending only case-specific clauses: One complete dependency
+Backchain passes: one. Put the line `Backchain passes: one` beside the binding marker in the
+child request; start the child with `prepare --passes one --run` the printed Backchain
+planning run directory, then `freeze`, which writes its start contract (never you) with
+`required_trivial_reviews: 0` and this exit condition: One complete dependency
 review/fix/check cycle has run; every finding of that cycle is repaired within the edit
 bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's
 Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is
 cited; final candidate-specific domain evidence is saved. A pass that completes that cycle
 reports `exit_assessment: satisfied` even when it repaired the candidate; Until Loop then
-completes the child and no second review runs. Put the line `Backchain passes: one` beside the
-binding marker in the child request.
+completes the child and no second review runs.
 """
 
 
-# Printed with the one-pass gate only: its "Write the child's start contract ... verbatim" reads as an order, and the
-# `converge` gate text has no such sentence.  Says what the script enforces (nothing refuses a plan without the child)
+# Printed with the one-pass gate only (it once followed "Write the child's start contract ... verbatim", which read as
+# an order; the converge gate never had that sentence).  Says what the script enforces (nothing refuses a plan without the child)
 # and what it cannot see; the dependency audit is the planning guide's duty either way.
 _BACKCHAIN_PLAN_CHOICE = """\
 The `plan`/`draft` request is your choice: nothing refuses a plan without it, and ShipLoop
 cannot see whether the child ran. The planning guide's dependency audit is not optional on
 either route. Say in this result's `summary` which route you took and why. The start
-contract below applies only if you request the child. The printed `backchain-check` reads
+commands below apply only if you request the child. The printed `backchain-check` reads
 a candidate graph in Backchain's plan schema (Backchain SKILL.md, "Plan document shape"),
 not a prose plan.
 """
@@ -2255,11 +2261,16 @@ Request a Backchain `review` / `audit` only for a material prerequisite ambiguit
     edit bounds:
     - it needs every loop resource on the Loop resources line; a MISSING one blocks it, and no other install
       substitutes;
-{marker}    - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
+{marker}    - start the child with `prepare --run` the printed Backchain planning run directory, then `freeze`, which writes
+      its start contract (never you);
+    - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
       done.
     Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
     `evidence_refs`. The only call route is `source-aware-native`.{whole}"""
 _BACKCHAIN_ITEM_MARKER = "    - put the line `Backchain passes: one` beside the binding marker in the child request;\n"
+# Mode converge (owner decision D-D, 2026-11-01): Backchain's default gate; the request carries no marker line.
+_BACKCHAIN_ITEM_DEFAULT_GATE = ("    - put no `Backchain passes:` line in the child request: it runs Backchain's default "
+                                "gate and completes\n      at its first trivial review;\n")
 _BACKCHAIN_ITEM_PLAN = """\
 Run the dependency audit of the Backchain planning guide on every route. You may also request one Backchain
     `plan` / `draft` through `source-aware-native`, the only call route.{choice} If you request it:
@@ -2280,17 +2291,21 @@ Run the dependency audit of the Backchain planning guide on every route. You may
 _BACKCHAIN_PLAN_CHOICE_ITEM = (" Nothing refuses a plan without it and ShipLoop cannot see whether the child ran, "
                                "so say in `summary` which route you took and why.")
 _BACKCHAIN_GATE_ONE_ITEM = """Until Loop owns the callback handle, progress, the review gate,
-      recovery and the terminal transition; copy none of it. Write the child's start contract with
-      `required_trivial_reviews: 0` and this exit condition verbatim, appending only case-specific clauses: One
-      complete dependency review/fix/check cycle has run; every finding of that cycle is repaired within the edit
-      bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's Outcomes rule; the
-      printed `backchain-check` is ok on the final candidate and its receipt is cited; final candidate-specific
-      domain evidence is saved. A pass that completes that cycle reports `exit_assessment: satisfied` even when it
-      repaired the candidate, and no second review runs. Put the line `Backchain passes: one` beside the binding
-      marker in the child request;"""
-_BACKCHAIN_GATE_CONVERGE_ITEM = """Until Loop owns the callback handle, progress, its
-      `required_trivial_reviews: 2` gate for two consecutive distinct complete trivial/no-change dependency reviews,
-      recovery and the terminal transition; copy none of that runtime and create no other controller;"""
+      recovery and the terminal transition; copy none of it. Put the line `Backchain passes: one` beside the binding
+      marker in the child request; start the child with `prepare --passes one --run` the printed Backchain planning
+      run directory, then `freeze`, which writes its start contract (never you) with `required_trivial_reviews: 0`
+      and this exit condition: One complete dependency review/fix/check cycle has run; every finding of that cycle is
+      repaired within the edit bounds; every `Confirm by` clause on a step this cycle may change meets the planning
+      guide's Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is cited;
+      final candidate-specific domain evidence is saved. A pass that completes that cycle reports `exit_assessment:
+      satisfied` even when it repaired the candidate, and no second review runs;"""
+# Mode converge (owner decision D-D, 2026-11-01): until then this item said `required_trivial_reviews: 2` without the
+# marker line, so a host ran `prepare` without `--passes` and freeze wrote Backchain's default gate anyway.
+_BACKCHAIN_GATE_CONVERGE_ITEM = """Until Loop owns the callback handle, progress, the review gate,
+      recovery and the terminal transition; copy none of it. Put no `Backchain passes:` line in the child request:
+      the child runs Backchain's default gate and completes at its first trivial review. Start it with `prepare
+      --run` the printed Backchain planning run directory (no `--passes`), then `freeze`, which writes its start
+      contract (never you);"""
 
 
 def _backchain_item(stage: str, backchain_passes: str) -> str:
@@ -2303,8 +2318,8 @@ def _backchain_item(stage: str, backchain_passes: str) -> str:
     whole = ""
     if stage == "plan":
         whole = " No whole `plan`/`draft` is requested in this run."
-    return _BACKCHAIN_ITEM_AUDIT.format(marker=_BACKCHAIN_ITEM_MARKER if _one_pass(backchain_passes) else "",
-                                        whole=whole)
+    return _BACKCHAIN_ITEM_AUDIT.format(marker=_BACKCHAIN_ITEM_MARKER if _one_pass(backchain_passes)
+                                        else _BACKCHAIN_ITEM_DEFAULT_GATE, whole=whole)
 
 
 BACKCHAIN_GUIDANCE = _backchain_guidance("plan")

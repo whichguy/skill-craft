@@ -6,16 +6,21 @@ Split from the ShipLoop skill card (`../SKILL.md`). Read at a planning stage who
 
 `--backchain-passes one|converge|none` at `init` or `workspace start` records the
 run option `backchain_passes` (default `one`): how many passes the Backchain
-planning child may take. `one` is one review/fix/check cycle, `converge` is two
-consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The `one`
-plan packet prints the gate and an exit condition, which the host copies into the child's
-start contract, and says the child is the host's choice (nothing refuses a plan without it
+planning child may take. `one` is one review/fix/check cycle, `converge` is Backchain's
+default gate, which completes at the first trivial review (owner decision, 2026-11-01: it
+was documented as two consecutive trivial reviews, but its marker line never reached a
+printed packet after Backchain 0.7.0), and `none` offers no whole Backchain loop at `plan`.
+Every packet that may start a child names Backchain's own route: `prepare --run` the printed
+Backchain planning run directory, then `freeze`, which writes the child's start contract;
+the host never writes it. The `one`
+plan packet prints the gate and the exit condition `freeze` writes for the
+`Backchain passes: one` line, and says the child is the host's choice (nothing refuses a plan without it
 and ShipLoop cannot see whether it ran) and that the result's summary names the route taken;
-the `converge` plan packet prints the two-review gate and the `Backchain passes: converge`
-marker line, and the host takes its exit condition from Backchain's convergence reference. In `none` the plan packet prints the
+the `converge` plan packet prints no marker line, and the child's exit condition is
+Backchain's default one in its convergence reference. In `none` the plan packet prints the
 read-only audit route the other Backchain stages print (the one resource it needs and the
 loop-resource status line), says no whole `plan`/`draft` is requested in this run, and
-omits the six-file Backchain and Until Loop resource block; a material finding at any stage
+omits the seven-file Backchain and Until Loop resource block; a material finding at any stage
 still allows one `repair`/`revise`, which runs one pass.
 Like `lint`, a saved run without the key is refused (start a fresh run), never
 migrated, and an `init` or `workspace start` retry cannot change it. Unlike
@@ -45,8 +50,8 @@ work, plan candidate files, source/lens context, and protected bounds to the sel
 actual Until Loop using `Backchain standalone Until Loop binding: <binding-id>`. Until
 Loop owns the temporary callback handle, progress, its review gate (the packet's printed
 gate for the run's Backchain passes option; a `repair`/`revise` packet in `one` and `none`
-points to Backchain's convergence reference for it, and in `converge` it prints the
-`Backchain passes: converge` line for the two-review gate), recovery, continuation, and
+points to Backchain's convergence reference for it, and in `converge` it prints no marker
+line, so the child runs Backchain's default gate), recovery, continuation, and
 terminal transition; ShipLoop owns
 none of those controls. Backchain
 returns only opaque actual Until Loop terminal evidence after the child reports

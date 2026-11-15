@@ -268,7 +268,7 @@ packets are rendered with. No verb changes it mid-run, a retry of `init` or
 `workspace start` cannot change it, and a saved run without it is refused with the
 fresh-run hint. `none` offers no whole `plan`/`draft` loop: the `plan` packet prints the
 audit resource and the loop-resource status line, as the other Backchain stages do, and
-not the six-file "Selected Backchain and Until Loop resources" block that `one` and
+not the seven-file "Selected Backchain and Until Loop resources" block that `one` and
 `converge` print there. See [Backchain passes option](backchain-route.md#backchain-passes-option).
 
 Every run also records its `planning_review` option (`stage` or `none`; `stage` unless

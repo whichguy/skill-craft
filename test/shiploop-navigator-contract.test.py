@@ -113,6 +113,7 @@ BACKCHAIN_RESOURCE_PATHS = (
         "Backchain prompts/convergence-review.prompt.md",
         Path("backchain/prompts/convergence-review.prompt.md"),
     ),
+    ("Backchain scripts/backchain.py", Path("backchain/scripts/backchain.py")),
     ("Until Loop ADAPTER.md", Path("improve/runtime/until-loop/ADAPTER.md")),
     (
         "Until Loop references/runtime-ephemeral.md",
@@ -1024,9 +1025,12 @@ class NavigatorContractTests(unittest.TestCase):
         # text is pinned by content per mode, never as a whole.
         self.assertIn("`required_trivial_reviews: 0`", plan)
         self.assertNotIn("two consecutive distinct complete trivial/no-change dependency reviews", plan)
+        # converge is Backchain's default gate (owner decision D-D, 2026-11-01): the first trivial review completes the
+        # child; it printed `required_trivial_reviews: 2` without the marker line freeze reads, so it already ran that gate
         converge = " ".join(prompts.prompt("plan", backchain_passes="converge").split())
-        self.assertIn("required_trivial_reviews: 2", converge)
-        self.assertIn("two consecutive distinct complete trivial/no-change dependency reviews", converge)
+        self.assertIn("completes at its first trivial review", converge)
+        self.assertNotIn("required_trivial_reviews: 2", converge)
+        self.assertNotIn("two consecutive distinct complete trivial/no-change dependency reviews", converge)
         self.assertNotIn("required_trivial_reviews: 0", converge)
         # What the plan packet points to instead of restating (the capability check, an old custom loop, the
         # no-fallback rule) is in the guide section it names; the audit stages say where a whole loop is allowed.
@@ -1172,7 +1176,7 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertEqual("Selected Backchain and Until Loop resources" in packet, whole)
                 self.assertEqual("Backchain audit resource (" in packet, not whole)
                 self.assertEqual("Loop resources for a repair or send-back request, under " in packet, not whole)
-                for label in loop_only:  # the six files only a whole loop reads
+                for label in loop_only:  # the seven files only a whole loop reads
                     self.assertEqual(f"  {label}: " in packet, whole, label)
                 self.assertEqual(self._expected_backchain_resource_block(skills_root) in packet, whole)
                 self.assertEqual("You may also request one Backchain `plan` / `draft` through `source-aware-native`"
@@ -3918,8 +3922,9 @@ class BackchainGateDocumentsTest(unittest.TestCase):
 
     @staticmethod
     def printed_exit_clauses() -> list[str]:
-        text = " ".join(prompts._backchain_guidance("plan", backchain_passes="one").split())
-        exit_text = re.search(r"verbatim, appending only case-specific clauses: (.+?)\. A pass that completes", text)
+        """The exit clauses the printed plan packet states for the one-pass marker (Backchain's freeze writes them)."""
+        text = " ".join(prompts.prompt("plan", backchain_passes="one").split())
+        exit_text = re.search(r"this exit condition: (.+?)\. A pass that completes", text)
         assert exit_text is not None, text
         return exit_text.group(1).split("; ")
 
@@ -3930,6 +3935,31 @@ class BackchainGateDocumentsTest(unittest.TestCase):
         exit_text = re.search(r"this exit condition: (.+?)\. (?:\(|A pass that completes)", text)
         assert exit_text is not None, text
         return exit_text.group(1).split("; ")
+
+    def test_the_printed_spec_and_plan_packets_start_the_child_with_backchains_commands(self) -> None:
+        """Round 10 (W1): the packets a host reads are prompt()'s, not _backchain_guidance("plan"), which the folded spec
+        and plan stages never print. They told the host to write the child's start contract by hand, though Backchain
+        0.7.0's `freeze` writes it, and in `converge` mode said `required_trivial_reviews: 2` without the marker line,
+        so `prepare` ran without `--passes` and freeze wrote Backchain's default gate. Owner decision D-D (2026-11-01):
+        converge is that default gate, the first trivial review."""
+        for stage in ("spec", "plan"):
+            for delegation in prompts.DELEGATIONS:
+                for mode in prompts.BACKCHAIN_PASSES_MODES:
+                    with self.subTest(stage=stage, delegation=delegation, mode=mode):
+                        text = " ".join(prompts.prompt(stage, delegation=delegation, backchain_passes=mode).split())
+                        for required in ("`prepare", "`freeze`", "printed Backchain planning run directory",
+                                         "writes its start contract (never you)"):
+                            self.assertIn(required, text)
+                        for stale in ("Write the child's start contract", "required_trivial_reviews: 2",
+                                      "two consecutive", "Backchain passes: converge"):
+                            self.assertNotIn(stale, text)
+                        if mode == "converge":
+                            self.assertNotIn("Backchain passes: one", text)
+                            self.assertIn("put no `Backchain passes:` line", text.replace("Put no", "put no"))
+                            self.assertIn("first trivial review", text)
+                        else:
+                            self.assertIn(self.ONE, text)
+        self.assertIn("Backchain scripts/backchain.py", dict(prompts.resolved_backchain_resources()))
 
     def test_the_references_state_the_printed_exit_condition_for_the_one_pass_marker(self) -> None:
         clauses = self.printed_exit_clauses()
@@ -3949,7 +3979,11 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                         "two consecutive distinct complete trivial/no-change dependency reviews"):
             with self.subTest(default=default):
                 self.assertIn(default, convergence)
-        self.assertIn("Backchain passes: converge", " ".join(prompts._backchain_guidance("plan", backchain_passes="converge").split()))
+        # ShipLoop's converge mode is Backchain's default gate (owner decision D-D, 2026-11-01): no marker line; the
+        # converge marker above stays Backchain's own option for a direct caller
+        converge = " ".join(prompts.prompt("plan", backchain_passes="converge").split())
+        self.assertNotIn("Backchain passes: converge", converge)
+        self.assertIn("first trivial review", converge)
 
     def test_the_confirm_by_clause_is_scoped_to_the_steps_the_cycle_may_change(self) -> None:
         """An exit clause on every step could not be met where the cycle may not repair: that finding is advisory."""
@@ -3973,7 +4007,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
         return re.split(r"(?<=\.) (?=[A-Z`])", " ".join(text.split()))
 
     def test_the_planning_guide_and_skill_scope_the_loop_text_and_the_resource_block_to_the_modes_that_print_them(self) -> None:
-        """`none` prints no whole-loop text and no six-file block, so a document saying the packet does is false."""
+        """`none` prints no whole-loop text and no seven-file block, so a document saying the packet does is false."""
         planning = (self.SHIPLOOP / "references" / "backchain-planning.md").read_text(encoding="utf-8")
         paragraphs = [" ".join(block.split()) for block in re.split(r"\n\s*\n", planning)]
         for statement in ("the full set at `plan`", 'Selected Backchain and Until Loop resources" block',

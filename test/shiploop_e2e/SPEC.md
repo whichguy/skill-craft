@@ -262,6 +262,17 @@ planning minutes; the plan loop's passes 2 to 5 each reported a non-trivial
 finding of confirmation level or wording (no edge, goal or supplier changed),
 passes 6 and 7 changed nothing, and no later packet names the plan graph.
 Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
+Amended 2026-11-15 (docs/backchain-efficiency-journal-2026-11.md, Round 10). From Backchain
+0.7.0 the child's start contract is script-written: ShipLoop's spec and plan packets name
+Backchain's `prepare --run` the printed Backchain planning run directory and then `freeze`,
+which writes the contract from the request's marker line, so open item a02 is closed for this
+loop and its contract no longer leaves S-4, S-5 and S-12 unmet. A gate-0 complete packet whose
+last report is non-trivial is accepted: `freeze` writes `required_trivial_reviews: 0` for the
+`one` marker, and Backchain's toolkit test completes a one-pass run whose cycle repaired the
+candidate. Owner decision, 2026-11-01: `--backchain-passes converge` no longer restores two
+consecutive trivial reviews; it runs Backchain's default gate, which completes at the first
+trivial review. Its marker line had not reached a printed packet since 0.7.0, so converge runs
+already ran that gate; 0 of 18 confirming reviews in two Backchain studies changed anything.
 
 Prospectively amended 2026-11-08 under the owner's explicit choice,
 "Keep the separate planning review optional," for future default runs with
