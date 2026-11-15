@@ -407,6 +407,32 @@ The seven minor findings went into one wrap-up commit:
   that carries it. The change note says so. The commit is not rewritten, because the ledger and the round commits cite
   it by hash.
 
+## Publication (2026-11-15)
+
+Decisions 1 and 5 shipped as **shiploop 1.36.0 / skill-craft 2.40.0**:
+
+- **Release commit:** `5057c18ab901927ce0026f58a741ff8239de6c5e` on main.
+- **Push:** `scripts/release-push.py` with its four checks (`sync-plugin-views.sh --check`,
+  `check-marketplace-packages.py`, `check-release-boundary.py --base`, `test/test-groups.test.py`), onto base `292f1dade64464b38f7cb846eb62c80c99f35fd3`.
+- **Before the release:**
+  - the quick tier on the merged tree (`--changed-from` pinned to main's 065dfadd) passed 89 of 90 suites in 1,248 s;
+  - the 90th, `shiploop-e2e-brownfield-tickets`, failed once, when the base's `node --test` did not end within its limit
+    at a machine load average of 61 to 76, with other sessions testing;
+  - run alone it passed: 35 tests in 514 s.
+- **Main moved three times during the release**, from other sessions' documentation, experiment and test-fixture commits.
+  - The guarded push refused once, as designed, and one more move came during a re-cut.
+  - Each time the unpublished release commit was dropped and re-cut on top of a fresh merge of main. The merges were
+    `cce96ea358b3267f51f4ed6bb3b95527d5523931`, `025bb093453ffe68edc802ad5a978553668d79ef`, `96181a9b997d4ab9e1e7c2ad0578791d1ccffb2d` and `9d0baab4939e7e36e19d433e871c38a538ad12a6`.
+  - The branch merged main instead of rebasing, because its commits are cited by hash in the review ledger and the round
+    commits.
+- **Hosts, read back rather than taken from exit codes:**
+  - Claude Code 2.39.0 → 2.40.0 (restart to apply);
+  - Codex 2.40.0 (its own auto-upgrade installed it first, and `codex plugin list` reads 2.40.0);
+  - Grok 2.39.0 → 2.40.0;
+  - Cursor not refreshed: its `whichguy` registration is pinned, so the move is a remove, an add and an Add click in its
+    app, which falls to the owner.
+- **CI:** the push run of the release commit was in progress when this was written; it is read afterwards.
+
 ## Unknowns
 
 - The page after 15:38 PST. Dollars: the host reports none. The model time between calls is inferred, not measured.
