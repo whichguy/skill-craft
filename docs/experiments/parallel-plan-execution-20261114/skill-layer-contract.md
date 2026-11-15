@@ -92,6 +92,10 @@ number per host and version:
   time per task on Claude, 3 s to 21 s on Grok and 43 s to 60 s on Codex (six cells, one trial each, one Grok cell with the opposite sign). The tasks of those cells needed 6 s to 27 s of model time, so the regime of
   minutes a task, where the fan-out should win by hundreds of seconds, is the part with no cell; the published evidence says coupled, shared-file or sequential work loses (E14, comparison-20261115/). An estimate is the caller's,
   and an unknown estimate means serial.
+  **E15 note (2026-11-15, journal F53 to F57):** in the recorded ShipLoop runs the waits one context could overlap are about 0.6% of step time (the model's own verification commands are 1.2% of step time,
+  and running a window's together would save at most 0.55%); steps are model-bound (77.5% of the window is the model's own time) and ShipLoop's own commands take 18.6% (its test stage alone 6.0%, the mutation check 3.7%).
+  So the first step of the predicate, overlap the waits, is read per project from the seconds ShipLoop already records for each command (Salesforce-tagged steps spend 5.6% in verification calls, the rest 0.9%);
+  for projects like the recorded ones it does not pay, and the time left to take is the model's own and ShipLoop's own commands, not the project's tests.
 - Tokens and cost (E12, F37; the owner's order is quality, then tokens, then time): on Claude the fan-out used 1.4 to 1.7 times A0's input tokens and 2.4 to 3.5 times its dollars at these task sizes (an extra $0.345 for 284 s saved at S = 90); on Grok 0.55 to 0.76 times the
   tokens and 0.86 to 1.38 times the dollars; on Codex about 1.6 times the tokens, and on Codex the parent's polling makes the token cost grow with the length of the wait on both arms. The layer must report the expected time saved and the token multiple before it fans out, so the opt-in is informed.
   The token curve with many more calls a task is a model (R4), not a measurement.

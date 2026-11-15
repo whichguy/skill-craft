@@ -1,0 +1,35 @@
+{
+  "before": "b84b38999d3eed1cc7b8f6a94837ffb83f29adfd",
+  "origin_main": "ded345978767587e07c6fffe60aa3f7e785c668b",
+  "untracked_before": {
+    "docs/experiments/parallel-plan-execution-20261114/a0p_table.py": "5e77fd6b28c6f5595cecb83e0790425944c991f444b7bc8db0c9ac311eb77fb7",
+    "docs/experiments/parallel-plan-execution-20261114/census/evidence/rescore.txt": "d861e5ce2bda6d3ca5aaa9738246c899112d2dee5c10a45bd3ce4a370f17cff3",
+    "docs/experiments/parallel-plan-execution-20261114/census/rescore.py": "d16f758a65244969f2db6bc8e459fbd74e8cdda83d3efac3b75a2b8cbc73a888",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/astra.md": "f157b9138b32bf67579442661a34926763772f1134f82466dc2da211f5c78895",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/brief.txt": "7b238cccf96c89a0883fc346970b16c78f3040a8e742d7763944d62f99fdc0f8",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/opus.md": "0bd49477a4a98a4e4fe1f797534032376b788a7919a795b2fb3bd93cc64aef69",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-claude-code.md": "e7f406c858bdad94ce4af97b1f178f0af57bba99d0c462274af87b1015d448a9",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-codex-copilot.md": "4b1fc709c31ed79b183eefa891831793faf863c5b3c2722ecfd4979c40543961",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-cursor-opencode-gemini-others.md": "d88e3c5ed0ad83a4a6ce757de3e3ec6cb73cca416c694a69292408724fd1eef2",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-evidence.md": "038a8e98c216094b518637abf9cbc121c3bd9f0f5aaffa57b50e8a1f412e1446",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-grok-kimi-deepseek-qwen.md": "21becb2cdb7489520d1ce23a9e8fb07d4533c755a329fbc67b881c06595db287"
+  },
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "Rebasing (1/3)\nRebasing (2/3)\nRebasing (3/3)\nSuccessfully rebased and updated refs/heads/main.\n",
+  "after": "7cc4102c4b68f654e67afb98323eab05b4b548cd",
+  "untracked_after": {
+    "docs/experiments/parallel-plan-execution-20261114/a0p_table.py": "5e77fd6b28c6f5595cecb83e0790425944c991f444b7bc8db0c9ac311eb77fb7",
+    "docs/experiments/parallel-plan-execution-20261114/census/evidence/rescore.txt": "d861e5ce2bda6d3ca5aaa9738246c899112d2dee5c10a45bd3ce4a370f17cff3",
+    "docs/experiments/parallel-plan-execution-20261114/census/rescore.py": "d16f758a65244969f2db6bc8e459fbd74e8cdda83d3efac3b75a2b8cbc73a888",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/astra.md": "f157b9138b32bf67579442661a34926763772f1134f82466dc2da211f5c78895",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/brief.txt": "7b238cccf96c89a0883fc346970b16c78f3040a8e742d7763944d62f99fdc0f8",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/opus.md": "0bd49477a4a98a4e4fe1f797534032376b788a7919a795b2fb3bd93cc64aef69",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-claude-code.md": "e7f406c858bdad94ce4af97b1f178f0af57bba99d0c462274af87b1015d448a9",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-codex-copilot.md": "4b1fc709c31ed79b183eefa891831793faf863c5b3c2722ecfd4979c40543961",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-cursor-opencode-gemini-others.md": "d88e3c5ed0ad83a4a6ce757de3e3ec6cb73cca416c694a69292408724fd1eef2",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-evidence.md": "038a8e98c216094b518637abf9cbc121c3bd9f0f5aaffa57b50e8a1f412e1446",
+    "docs/experiments/parallel-plan-execution-20261114/comparison-20261115/research-grok-kimi-deepseek-qwen.md": "21becb2cdb7489520d1ce23a9e8fb07d4533c755a329fbc67b881c06595db287"
+  },
+  "original_untracked_unchanged": true
+}

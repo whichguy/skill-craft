@@ -1,0 +1,27 @@
+windows 475; script-class calls 11,491, 19,430 s; per call mean 1.7 s, median 0.5 s, p90 4.3 s, max 363 s
+the script's own elapsed time (trace.jsonl ms, every command row in those windows): 9,959 s
+
+by ShipLoop verb named in the command (tool-call seconds; calls; mean s; the script's own seconds for the same verb)
+  check                7,966 s   1,383 calls  mean    5.8 s   script    7,021 s
+  (other)              4,133 s   5,454 calls  mean    0.8 s   script        0 s
+  complete             3,308 s   2,327 calls  mean    1.4 s   script    2,748 s
+  lint                 2,001 s   1,150 calls  mean    1.7 s   script        1 s
+  red-check            1,074 s     453 calls  mean    2.4 s   script        0 s
+  improve-pass           697 s     589 calls  mean    1.2 s   script      174 s
+  next                   208 s     105 calls  mean    2.0 s   script       14 s
+  and                     15 s      12 calls  mean    1.2 s   script        0 s
+  python                   7 s       4 calls  mean    1.8 s   script        0 s
+  knowledge                7 s       1 calls  mean    7.0 s   script        0 s
+  improve-commit           4 s       2 calls  mean    2.2 s   script        0 s
+  src                      4 s       1 calls  mean    3.5 s   script        0 s
+  cat                      3 s       3 calls  mean    1.2 s   script        0 s
+  were                     2 s       1 calls  mean    1.5 s   script        0 s
+
+by host (script-class seconds / window seconds; the script's own seconds / window seconds)
+  claude   31.9%   script's own  4.86%
+  codex    18.9%   script's own 13.02%
+  grok     15.2%   script's own  0.85%
+
+the test stage's own runs (recorded command seconds, summed over the windows): base 494 s, candidate 1,413 s, mutation 3,845 s, together 5,752 s = 5.51% of the window time
+the script's own elapsed time for `check` at the test stage: 6,253 s = 5.98% of the window time; so the recorded commands are 92% of it and the rest, 501 s (0.48% of the window time), is ShipLoop's own work around them
+running the base, candidate and mutation runs at once would save at most 1,008 s of command time (0.96% of the window time), over 475 actions that have more than one kind of run
