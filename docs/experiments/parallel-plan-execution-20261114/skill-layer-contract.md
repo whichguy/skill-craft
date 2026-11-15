@@ -114,7 +114,7 @@ change; record the version (the repository's existing notes qualify Claude Code 
   The fastest route measured; a fourth skill beside Ask Agent, In Parallel and Plan Dispatcher, with the duplication that implies.
 - **C. Only the detection and the bindings table go into Ask Agent as machine-readable data; ShipLoop calls Ask Agent directly and keeps its own per-step lifecycle.** Smallest change; gives ShipLoop
   harness independence for its existing native delegations (for example the per-step review) but not for concurrent steps.
-  *Status 2026-11-14:* drafted in `skills/ask-agent` (journal R7): a host command, a small binding file, two card sentences, Codex's slot and wait note and eleven tests; merged to main at fbfebee74d5eee4bdcb4ff93ab750bd6f3d45773 on the owner's word, not pushed, not released.
+  *Status 2026-11-14:* drafted in `skills/ask-agent` (journal R7): a host command, a small binding file, two card sentences, Codex's slot and wait note and eleven tests; merged to main at fbfebee74d5eee4bdcb4ff93ab750bd6f3d45773 and released as ask-agent 0.11.0 (skill-craft 2.38.0, 9710190f5caaafba9cd114b8f060cb5a02c691cc) on the owner's word.
 
 A recommendation, and its limits, are in the journal's closing entry (R5, with E13's update in R6). None of the three removes the open owner decision that decides whether concurrent ShipLoop steps are wanted at
 all (F15, the per-step lifecycle); inside one stage (bounded investigations and reviews), the contract applies as written.
