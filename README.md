@@ -30,7 +30,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**26 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**27 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
@@ -39,6 +39,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [ask-agent](skills/ask-agent/SKILL.md) | 0.11.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
 | [backchain](skills/backchain/SKILL.md) | 0.8.0 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete… |
 | [c-plan](skills/c-plan/SKILL.md) | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response… |
+| [closed-loop](skills/closed-loop/SKILL.md) | 0.1.0 | Use to improve a subject (a skill, a prompt set, a tool) by running it on cases, grading each run, finding fixes, trying them inside a boundary the improver cannot cross, and… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens >… |
 | [improve](skills/improve/SKILL.md) | 0.7.3 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and repeat until a pass… |
 | [improve-agent](skills/improve-agent/SKILL.md) | 0.1.3 | Use when Improve should run in a fresh native agent instead of this conversation: start one agent that runs /improve in its own context, keep useful parent work going, then… |
