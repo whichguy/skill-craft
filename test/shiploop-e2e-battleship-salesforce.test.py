@@ -355,7 +355,7 @@ class FakeOrg(unittest.TestCase):
         return [json.loads(line) for line in self.log_path.read_text().splitlines()] if self.log_path.exists() else []
 
     def run_check(self, *args: str, env: dict | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess:
-        return subprocess.run([sys.executable, "-I", str(CHECKS), *args], capture_output=True, text=True,
+        return subprocess.run([sys.executable, "-B", "-I", str(CHECKS), *args], capture_output=True, text=True,
                               env=dict(self.env, **(env or {})), cwd=str(cwd or self.work), timeout=120)
 
     def out(self, proc: subprocess.CompletedProcess) -> str:
@@ -403,6 +403,67 @@ class FakeOrg(unittest.TestCase):
 
 
 # ----------------------------------------------------------------------------------------------------------------- tests
+
+class TestIsolatedCheckBytecode(FakeOrg):
+    """The real isolated check must leave its transitive library's cache untouched."""
+
+    def assert_transitive_cache_unchanged(self, *, import_failure: bool, existing_cache: bool) -> None:
+        with tempfile.TemporaryDirectory(prefix="battleship-transitive-cache-") as folder:
+            copies = Path(folder)
+            battle = copies / "battleship_salesforce.py"
+            chess = copies / "chess_salesforce.py"
+            shutil.copyfile(CHECKS, battle)
+            shutil.copyfile(CHECKS.with_name("chess_salesforce.py"), chess)
+            if import_failure:
+                with chess.open("a") as source:
+                    source.write("\nraise RuntimeError('transitive-import-failure')\n")
+            cache_file = Path(importlib.util.cache_from_source(str(chess)))
+            cache = cache_file.parent
+            if existing_cache:
+                cache.mkdir()
+                # Invalid bytecode forces the real loader to compile the copied source.
+                cache_file.write_bytes(b"preserve-this-invalid-chess-bytecode\n")
+                (cache / "unrelated-empty-directory").mkdir()
+                (cache / "unrelated.bin").write_bytes(b"preserve-this-cache-neighbor\n")
+
+            def cache_state() -> tuple:
+                return (cache.exists(),
+                        sorted(str(path.relative_to(cache)) for path in cache.rglob("*") if path.is_dir()),
+                        {str(path.relative_to(cache)): path.read_bytes()
+                         for path in cache.rglob("*") if path.is_file()})
+
+            before = cache_state()
+            with mock.patch.object(sys.modules[__name__], "CHECKS", battle):
+                proc = self.run_check("--help")
+            # CompletedProcess.args records the actual subprocess invocation, without mocking execution.
+            self.assertEqual(proc.args[0], sys.executable)
+            self.assertIn("-I", proc.args[1:proc.args.index(str(battle))])
+            self.assertEqual(proc.args[-2:], [str(battle), "--help"])
+            if import_failure:
+                self.assertEqual(proc.returncode, 1, self.out(proc))
+                self.assertIn("RuntimeError: transitive-import-failure", proc.stderr)
+                self.assertNotIn("usage:", proc.stdout)
+            else:
+                self.assertEqual(proc.returncode, 0, self.out(proc))
+                self.assertIn("usage:", proc.stdout)
+                self.assertIn("preflight", proc.stdout)
+                self.assertNotIn("Traceback", proc.stderr)
+            self.assertEqual(self.calls(), [], "--help/import failure must not call even the fake sf")
+            self.assertEqual(cache_state(), before,
+                             "isolated check changed transitive cache directory existence or contents")
+
+    def test_help_success_preserves_absent_transitive_cache(self) -> None:
+        self.assert_transitive_cache_unchanged(import_failure=False, existing_cache=False)
+
+    def test_help_success_preserves_existing_transitive_cache(self) -> None:
+        self.assert_transitive_cache_unchanged(import_failure=False, existing_cache=True)
+
+    def test_import_failure_preserves_absent_transitive_cache(self) -> None:
+        self.assert_transitive_cache_unchanged(import_failure=True, existing_cache=False)
+
+    def test_import_failure_preserves_existing_transitive_cache(self) -> None:
+        self.assert_transitive_cache_unchanged(import_failure=True, existing_cache=True)
+
 
 class TestMirrorOfTheReference(unittest.TestCase):
     """The Python copy of the reference engine, and what the reference's own Apex tests assume of it."""
