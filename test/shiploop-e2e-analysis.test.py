@@ -2356,6 +2356,25 @@ class MetricsTest(unittest.TestCase):
             found = metrics.verifications(Path(tmp) / "run")
         self.assertEqual((found["records"], found["commands"]), (2, 0))
 
+    def test_brackets_and_quotes_inside_captured_output_neither_end_nor_extend_the_runs_array(self):
+        """P9a (2026-11-14 Grok chat trial): the scan counted every bracket, so a `]` in a deploy's captured output ended
+        the array early (9 rows read of 10, 5 of 6: 33 against the JSON reader's 35), and a `[` in a string can carry it
+        past its end into the `commands` request.  The scan now reads JSON strings as strings."""
+        records = {
+            "a ] in stdout": ({"runs": [{"command": "deploy", "stdout": "done ] [x"}, {"command": "test", "stdout": "ok"}]}, 2),
+            "a [ then the request": ({"runs": [{"command": "["}], "commands": [{"command": "requested only"}]}, 1),
+            "escaped quotes and backslashes": ({"runs": [{"command": "a", "stdout": 'say "]" \\'},
+                                                         {"command": "b", "stderr": '\\"[\\\\'}]}, 2),
+        }
+        for case, (record, rows) in records.items():
+            with self.subTest(case):
+                text = "# ShipLoop test-loop verification\n\n```shiploop-state\n" + json.dumps(record, indent=2) + "\n```\n"
+                self.assertEqual(len(metrics._RUN_ROWS(text)), rows)
+                self.assertEqual(len(metrics._RUN_ROWS(text)), len(record["runs"]), "the JSON reader's count")
+        # A string whose value is "runs" is not the field, and an array that never closes keeps its occurrence count.
+        self.assertEqual(metrics._RUN_ROWS('{"stage": "runs", "trees": [{"command": "a"}]}'), [])
+        self.assertEqual(len(metrics._RUN_ROWS('{"runs": [{"command": "a"}, {"command": "b"')), 2)
+
     def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)

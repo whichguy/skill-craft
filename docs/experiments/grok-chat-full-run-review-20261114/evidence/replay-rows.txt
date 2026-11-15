@@ -1,0 +1,14 @@
+base 17cd64b4ba18f7f85abcad9272563962c5135b85
+distinct verify records: 1869 | counted differently: 8 {'up': 8}
+    /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276
+        nav-0e5669349e494175a35e3a064be9b2a4-verify1.md 9 -> 10
+        nav-71e33b4c305a4074ba039b1bbca01547-verify1.md 5 -> 6
+    /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/.shiploop-runs/work-20261003-225401-173a04
+        nav-de3604716300426cb7be6bf2c275dbf0-verify1.md 7 -> 11
+        nav-cd494b74d8c045c69f63b7796ad2d51a-verify1.md 7 -> 11
+        nav-6f6346460f724ea8b2748b0ed3b28a18-verify1.md 7 -> 11
+        nav-c1cf6ab5c1394590ad79014dff1e30dd-verify1.md 7 -> 11
+        nav-2921adb00f1643259edfe1364db383c8-verify1.md 7 -> 11
+        nav-50c417b08c2241f7b08912574033b9f1-verify1.md 7 -> 11
+records the JSON reader reads: 1828 | the new count agrees on: 1828
+the trial: text reader 35 | JSON reader 35 | disagreement: None

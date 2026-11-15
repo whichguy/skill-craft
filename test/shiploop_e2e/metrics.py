@@ -2735,11 +2735,13 @@ def verifications(run_dir: Path | None) -> dict:
     on the base checkout passes because red is what it accepts, so ``passed`` includes it. What ran is counted, not
     what the record expected.
 
-    ``commands`` counts the ``runs`` rows -- the commands that actually executed -- not every ``"command":`` key in
+    ``commands`` counts the ``runs`` rows -- the command results each record holds -- not every ``"command":`` key in
     the file. A record that carries both a ``commands`` array (the request) and a ``runs`` array (what executed) holds
     each command twice, so counting occurrences read 374 recorded commands as 523 and made this reader disagree with
     fidelity.validation on 89 of 90 saved runs (found 2026-11-03; 149 of 374 records carry both arrays). Both readers
-    now count executed rows, which is the number this field's docstring always described.
+    now count result rows. A record with ``reused`` provenance holds a check's results copied when ``complete`` took
+    them on an unchanged tree, so its rows were executed once, by that check (whose record this reader does not read),
+    not again: ``commands`` is recorded results, not executions.
     """
     records = sorted(run_dir.rglob("*-verify*.md")) if run_dir and run_dir.is_dir() else []
     passed = commands = could_not_run = red = 0
@@ -2753,20 +2755,30 @@ def verifications(run_dir: Path | None) -> dict:
 
 
 # One executed row of a verify record: the ``runs`` array's objects. Read as text, not JSON, because this reader serves
-# baselines that must not start depending on a schema it cannot see; a record whose text it cannot section keeps its
-# occurrence count, so an unreadable record over-counts rather than silently reading 0.
+# baselines that must not start depending on a schema it cannot see; a record whose array never closes keeps its
+# occurrence count to the end of the text, so an unreadable record over-counts rather than silently reading 0. The scan
+# reads JSON strings as strings: counting every bracket once let a `]` in captured output end the array early (33 rows
+# read against the JSON reader's 35 in the 2026-11-14 Grok chat trial) and a `[` carry it past its end.
+_RUNS_FIELD = re.compile(r'"runs"\s*:\s*\[')
+
+
 def _RUN_ROWS(text: str) -> list:
     """The ``"command":`` occurrences inside a verify record's ``runs`` array ([] when it has none)."""
-    start = text.find('"runs"')
-    if start < 0:
+    found = _RUNS_FIELD.search(text)  # the field, never a string that says "runs": a quote in a string is escaped
+    if found is None:
         return []
-    depth, index = 0, text.find("[", start)
-    if index < 0:
-        return []
-    begin = index
+    begin = index = found.end() - 1
+    depth, inside = 0, False
     while index < len(text):
         char = text[index]
-        if char == "[":
+        if inside:
+            if char == "\\":
+                index += 1  # the escaped character is part of the string: `\"` does not end it, `\\` is one backslash
+            elif char == '"':
+                inside = False
+        elif char == '"':
+            inside = True
+        elif char == "[":
             depth += 1
         elif char == "]":
             depth -= 1

@@ -162,7 +162,7 @@ honestly, with evidence preserved, instead of passing on missing proof.
 | 2 | Record the four rare defects as known limits; ride the timeout-tail fix along with the next change in that file | recommended |
 | 3 | The durable-wait capability | owner's decision; not recommended now |
 | 4 | Hold cleanup after a non-pass outcome (reusing `keep_decision`'s machinery); record API headroom; add the plan's separate pre-journey readiness record | harness options, owner's tick |
-| 5 | Repair the verify-record text reader (P9a): a `]` inside captured output ends the `runs` array early | recommended (harness, effort S); reproduced. |
+| 5 | Repair the verify-record text reader (P9a): a `]` inside captured output ends the `runs` array early | recommended (harness, effort S); reproduced. **2026-11-15: approved and built** ("Decision 5 built" below) |
 | 6 | The Codex plan's P4 (feasible implementation proofs) | declined as proposed: the class was studied on 2026-11-01 and left; only the unrun whole-delivery A/B of A2b remains registered |
 
 ## Corrections after the Codex Astra plan (2026-11-14, 17:20 PST)
@@ -314,6 +314,34 @@ Status: firm for the retained inputs. How the native runner prints errors or a p
 shows is unknown; anything outside the contract stays unread. A live rerun is offered to the owner, not run: it deploys
 to their org and needs API quota.
 
+## Decision 5 built: the verify-record scan (2026-11-15)
+
+`_RUN_ROWS` in `test/shiploop_e2e/metrics.py` now finds the `"runs": [` field and scans brackets only outside JSON
+strings. An escaped character is consumed before a quote is read, so `\"` does not end a string and `\\` is one
+backslash. It stays a text reader with no JSON fallback (`9b4bc8ae7cf171ddcbdd451a3e1f84dfb029a0e0`: it serves
+baselines that must not depend on a schema). An array that never closes still counts its occurrences to the end of the
+text.
+
+The old scan erred both ways. A `]` in captured output ended the array early, which is this trial's 33 against 35. A
+`[` in a string could carry the scan past the array: Astra's record `{"runs":[{"command":"["}],"commands":[...]}` read
+2, and reads 1 now.
+
+The `verifications` docstring now says `commands` counts recorded results. A record with `reused` provenance holds a
+check's copied results, executed once by that check, whose record this reader does not read.
+
+The plan's `copied_runs` field was dropped. The Run Review projection would discard it, and subtracting it would not
+recover executions, so it had no consumer.
+
+| Evidence | Result | File |
+| --- | --- | --- |
+| The trial, read with no write | both readers 35, no disagreement (was 33 against 35) | `evidence/replay-rows.txt` |
+| Every retained verify record | 1,869 distinct records; 8 counted differently, all upward: this trial's two (9 to 10, 5 to 6) and six of the 2026-10-03 `v1161-battleship-luna` run (7 to 11 each). The JSON reader reads 1,828 of the records, and the new count agrees with it on all 1,828 | `evidence/replay-rows.txt` |
+| Tests | one new test (a `]` in stdout, a `[` before the request, escaped quotes and backslash runs, a string value `"runs"`, an unterminated array). It fails on the base function (1 != 2); the existing exact-dict pins and the eleven-run agreement test are unchanged | `test/shiploop-e2e-analysis.test.py` |
+
+The trial was neither regraded nor resumed. Its cleanup record is `ran: true, ok: false`, a regrade re-arms cleanup
+against the owner's org, and the owner's hold is in force. Stored `metrics.json` files and evidence keep the values they
+were written with; a regrade recomputes them.
+
 ## Unknowns
 
 - The page after 15:38 PST. Dollars: the host reports none. The model time between calls is inferred, not measured.
@@ -355,4 +383,6 @@ bash analysis/process_census.sh $RUN
 python3 -I analysis/replay_counts.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85 \
   --manifest evidence/replay-manifest.txt ~/e2e-runs ~/e2e-runs-sp /Users/Shared/Codex/shiploop-e2e
 python3 -I analysis/tap_fail_first.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85
+python3 -I analysis/replay_rows.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85 \
+  ~/e2e-runs ~/e2e-runs-sp /Users/Shared/Codex/shiploop-e2e
 ```
