@@ -439,6 +439,26 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
     a measure). One workload of four tiny functions; the settle is a sleep, so the 30 s stands for a test suite, not for model work; one trial per cell, so the shape is the claim; the merge is into a
     scratch main, so ShipLoop's per-step commit rules (a clean checkout identity, the commit stage, F15) are not modelled; capacity 3 on Codex; the merge happens at the next `ready` call, so a
     host that calls `ready` late merges late.
+- **A11 (2026-11-15, after E13 and before any trial of this arm): the missing control, one context that overlaps its own waits.** The owner asked for a comparison of how workers work in
+  Claude Code, Codex, Grok Build and other harnesses and for when to use them to save time, and asked Opus and Astra (Astra at max effort). Astra's review said the settle dial is a sleep and that
+  the study lacks "a single-agent baseline that overlaps independent tool operations": every arm so far forbade shell background jobs, so the one context ran its waits one after another while the
+  fan-out overlapped them. In real work a slow verification (a test run, a build) can be started in the background by one context; only the model's own reading and writing cannot be overlapped
+  inside it. E12's saving at S = 30 and 90 may therefore be the overlap of waits, which one agent can do itself, and not an effect of fresh workers. This arm separates the two.
+  - *Arm A0p (`packets/task-A0p.md`, one context, waits overlapped).* The parent does every ready task's analysis itself, one after another, then runs the slow verification commands of all
+    those tasks together as shell background jobs in one command (`&`, then `wait`), then reports each task. No sub-agents. Everything else is E12's A0: plan `analysis5`, the same seeded logs,
+    the kit, the hosts and their profiles (Claude `--effort high`, Codex Sol 6.1 medium, Grok 4.6 xhigh), S = 30. `launch.py` takes `--arm A0p` for a task plan.
+  - *Cells.* One trial per host, Grok first (the owner's rule for a basic check), then Claude and Codex side by side. Compared with the same host's S = 30 A0 and A3 cells of E12 (same fixture,
+    same day); the load average was 4 to 5 in E12 and is 7 to 17 now (other sessions' work), recorded per trial, so a difference of a few seconds is not read.
+  - *Predictions, registered before any A0p trial and scored as written.* **P54 (70%):** every A0p trial is valid (five correct answers, `verify` OK, a faithful report, exit 0).
+    **P55 (75%):** A0p's whole run is at least 35% below the same host's A0 at S = 30 (Claude at most 122 s, Grok at most 168 s, Codex at most 188 s). **P56 (60%):** A0p's whole run is within
+    15% of the same host's A3 on at least two of the three hosts (Claude 88 s to 119 s, Grok 140 s to 189 s, Codex 183 s to 247 s). **P57 (80%):** A0p's total input tokens are below A3's
+    on every host. **P58 (60%):** A0p's whole run is not longer than A3's on Claude and on Grok (the hosts whose spawn phase costs 8 s and 22 s).
+  - *Decision rules.* **R13:** if P55 and P56 hold, then for work that is mostly an external wait, one context that overlaps its waits matches the fan-out's saving, and the fan-out predicate
+    has to be stated on the model's own time per task (what one context cannot overlap), not on the whole task time; the contract's section 9 then asks the predicate first whether the waits
+    can be overlapped in one context. If P56 fails with A0p much slower than A3, the cause is read from the trial (the model did not batch, a host's shell serialised the jobs) and R13 says what failed.
+  - *Limits.* One trial per host, so the shape is the claim. The analysis tasks take the model about 5 s each, so this fixture has almost no model time to parallelise: A0p can look as good as
+    the fan-out because the fixture is wait-dominated. It does not say the fan-out has no value where the model's own time dominates; E13's writers (about 11 s of writing a task beside the 30 s
+    settle) are the only evidence there, and splitting E13's saving into overlapped waits and overlapped model time is arithmetic, not a measurement.
 
 ## Files
 
