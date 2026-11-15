@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-15
 
+### skill-craft 2.40.1
+
+- Skills: shiploop 1.36.1
+
+### shiploop 1.36.1
+
+- House-style extraction now records the records a repository requires with a change (decision records, changelog entries, version bumps): where each lives, its template and index, and which changes trigger it. Later stages then carry the rule with the work item instead of relying on a contribution file read once at discovery.
+
 ### skill-craft 2.40.0
 
 - Skills: shiploop 1.36.0
