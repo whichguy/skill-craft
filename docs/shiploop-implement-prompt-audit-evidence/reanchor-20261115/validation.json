@@ -1,0 +1,108 @@
+{
+  "status": "PASS",
+  "created_utc": "2026-11-15T15:38:20.271048+00:00",
+  "raw_evidence_directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115",
+  "reviews": [
+    {
+      "scope": "acceptance",
+      "requested_model": "gpt-6-astra",
+      "requested_effort": "high",
+      "profile": "shiploop-judge",
+      "read_only": true,
+      "observed_exit_code": 0,
+      "model_fallback": false,
+      "reviewed_revision": "64d5e3c1df1a69676996ae0489b138fe16f723a4",
+      "files": [
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/acceptance-brief.txt",
+          "bytes": 2435,
+          "sha256": "b270b2028342b6ccaa128dbef553e19bc307206885025763788ab54d034a32c2"
+        },
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/acceptance-events.jsonl",
+          "bytes": 834020,
+          "sha256": "7ca5ef83fb98ff8e2c9abbd6ba8713d848fbffcf6dfaa5ab11030ec71057d4d9"
+        },
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/acceptance-stderr.txt",
+          "bytes": 3477,
+          "sha256": "e15b4d58f7dffd5c44fd248a44dba523fe4f9ef9860620397b94c24dceb8f27e"
+        },
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/acceptance-review.json",
+          "bytes": 46047,
+          "sha256": "e6ed9f4f1c59340a970e7bd711075cfefa82fd218cd22a3f63bfbbaee7109e61"
+        }
+      ],
+      "review_json_note": "parent adjudication may extend the extracted response; the events retain the original response"
+    },
+    {
+      "scope": "lifecycle",
+      "requested_model": "gpt-6-astra",
+      "requested_effort": "high",
+      "profile": "shiploop-judge",
+      "read_only": true,
+      "observed_exit_code": 0,
+      "model_fallback": false,
+      "reviewed_revision": "64d5e3c1df1a69676996ae0489b138fe16f723a4",
+      "files": [
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/lifecycle-brief.txt",
+          "bytes": 2462,
+          "sha256": "d22e0d8681a8903b0b191c794acd61ca1869c0d498b9954cce6bc163701dc2d7"
+        },
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/lifecycle-events.jsonl",
+          "bytes": 763107,
+          "sha256": "07376cc322580ea16ee9d4860dc2d37cfeb7cd60c04aa62963eb45b71513df97"
+        },
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/lifecycle-stderr.txt",
+          "bytes": 3210,
+          "sha256": "623333e734f5e89504c05c5e5a4476b5fda9c68fa400e6cce849f1bbddf461db"
+        },
+        {
+          "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/reanchor-20261115/lifecycle-review.json",
+          "bytes": 46768,
+          "sha256": "e6ef1aa9177100325c6bd424ebdfe77b4ea760a8b8c0f640b840d720e98fcc8b"
+        }
+      ],
+      "review_json_note": "parent adjudication may extend the extracted response; the events retain the original response"
+    }
+  ],
+  "limits": [
+    "Read-only source/history review; no new runtime implementation",
+    "Requested model/effort launch controls are recorded; served-model identity was not independently verified",
+    "No full callback qualification, full suite, CI, installed-host or live service run",
+    "Markdown visual rendering not inspected"
+  ],
+  "document_validation": {
+    "result": "PASS",
+    "source_head": "065dfadd1221ba43a3976e959e1acac50d7b770c",
+    "execution_revision": "64d5e3c1df1a69676996ae0489b138fe16f723a4",
+    "recommendations": 22,
+    "schedule": 1,
+    "considerations": 8,
+    "craft_rules": 14,
+    "acceptance_references": 52,
+    "verified_anchors": 147,
+    "verified_files": 35,
+    "verified_local_links": 179,
+    "verified_decision_commits": 73,
+    "selected_tests": 97,
+    "unchanged_execution_trees": {
+      "skills": "24e925c6fbbf4414074893513a9ae88ed20e2c5f",
+      "test": "820e325a223ce704567e70bb2b5f12aef4bb0c9d"
+    },
+    "work_characters": [
+      364,
+      161
+    ],
+    "visual_render_checked": false,
+    "scope": "Document/source consistency and retained receipts; no additional runtime or live acceptance"
+  },
+  "main_precommit": "065dfadd1221ba43a3976e959e1acac50d7b770c",
+  "origin_precommit": "065dfadd1221ba43a3976e959e1acac50d7b770c",
+  "second_rebase": "second-rebase.json",
+  "third_refresh": "third-refresh.json"
+}

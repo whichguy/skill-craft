@@ -1,6 +1,8 @@
 # ShipLoop Improve: what it found, and a proposed sharper schedule (2026-10-25)
 
-Status: **reviewed by the advisors panel; awaiting the owner's go.** Nothing here is built yet. The panel revised
+Historical proposal: see the [current implementation dispositions and code anchors](shiploop-implement-step-fix-plan-2026-10-17.md#improve-scheduling-proposal-current-disposition). Several proposals landed and later scheduling changes superseded others; the status below describes publication day.
+
+Status on 2026-10-25: **reviewed by the advisors panel; awaiting the owner's go.** Nothing here is built yet. The panel revised
 P1-P5. Read "Panel outcome" at the end before the proposals: it supersedes them where they differ.
 
 ## Why

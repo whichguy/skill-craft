@@ -1,0 +1,129 @@
+{
+  "revision": "64d5e3c1df1a69676996ae0489b138fe16f723a4",
+  "scope": "direct committed helpers; no full callback, external target, live model or release acceptance",
+  "cases": [
+    {
+      "scenario": "masked_failed",
+      "suite": "focused",
+      "exit": 0,
+      "output": "test_value.py::test_value[CASE-1] FAILED\n=== 1 failed in 0.01s ===\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 1,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "failed"
+      }
+    },
+    {
+      "scenario": "masked_failed",
+      "suite": "check",
+      "exit": 0,
+      "output": "test_value.py::test_value[CASE-1] FAILED\n=== 1 failed in 0.01s ===\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 1,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "failed"
+      }
+    },
+    {
+      "scenario": "mixed_pass_error",
+      "suite": "focused",
+      "exit": 0,
+      "output": "test_value.py::test_value[CASE-1] PASSED\n=== 1 passed, 1 error in 0.01s ===\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    },
+    {
+      "scenario": "mixed_pass_error",
+      "suite": "check",
+      "exit": 0,
+      "output": "test_value.py::test_value[CASE-1] PASSED\n=== 1 passed, 1 error in 0.01s ===\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    },
+    {
+      "scenario": "passing_FAILED_title",
+      "suite": "focused",
+      "exit": 0,
+      "output": "test_value.py::test_FAILED_value[CASE-1] PASSED\n=== 1 passed in 0.01s ===\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    },
+    {
+      "scenario": "passing_FAILED_title",
+      "suite": "check",
+      "exit": 0,
+      "output": "test_value.py::test_FAILED_value[CASE-1] PASSED\n=== 1 passed in 0.01s ===\n",
+      "verdict": {
+        "counts": {
+          "ran": 1,
+          "failed": 0,
+          "runners": [
+            "pytest"
+          ]
+        },
+        "ids_missing": [],
+        "status": "passed"
+      }
+    }
+  ],
+  "candidate_old_verdict": {
+    "reused": true,
+    "status": "passed",
+    "stub": "only product-tree lookup"
+  },
+  "step_old_verdict": {
+    "reused": true,
+    "refusal": "",
+    "stubs": "product-tree lookup and accepted-step selector; stored proof receipt is real"
+  },
+  "whole_answer": {
+    "matching_key_reused": true,
+    "changed_package_version_reused": false,
+    "limit": "tests key comparison only; external-state identity inspected separately in source"
+  },
+  "full_packet": {
+    "input_characters": 132026,
+    "whole_body_preserved": true
+  },
+  "loop_start_has_directory": false,
+  "work_template_characters": 364
+}

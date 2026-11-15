@@ -1,0 +1,100 @@
+{
+  "result": "PASS",
+  "expected_head": "64d5e3c1df1a69676996ae0489b138fe16f723a4",
+  "pre": {
+    "head": "64d5e3c1df1a69676996ae0489b138fe16f723a4",
+    "status": "",
+    "inventory_sha256": "d035556f93970655b928926e5ef94034653539b37106392fb8ab938044045ddc",
+    "tracked_file_count": 5590,
+    "utc": "2026-11-15T15:17:20.701906+00:00"
+  },
+  "post": {
+    "head": "64d5e3c1df1a69676996ae0489b138fe16f723a4",
+    "status": "",
+    "inventory_sha256": "d035556f93970655b928926e5ef94034653539b37106392fb8ab938044045ddc",
+    "tracked_file_count": 5590,
+    "utc": "2026-11-15T15:17:25.648452+00:00"
+  },
+  "source_unchanged": true,
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-counts.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-prompt-reanchor-20261115",
+      "stdout": "checks/01-stdout.txt",
+      "stderr": "checks/01-stderr.txt",
+      "started_utc": "2026-11-15T15:17:20.702371+00:00",
+      "exit_code": 0,
+      "observed_unittest_totals": [
+        49
+      ],
+      "result": "PASS",
+      "duration_seconds": 0.138
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-test-loop.test.py",
+        "MaskedZeroExitFailureTests"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-prompt-reanchor-20261115",
+      "stdout": "checks/02-stdout.txt",
+      "stderr": "checks/02-stderr.txt",
+      "started_utc": "2026-11-15T15:17:20.840539+00:00",
+      "exit_code": 0,
+      "observed_unittest_totals": [
+        9
+      ],
+      "result": "PASS",
+      "duration_seconds": 0.29
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-packet-bounds.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-prompt-reanchor-20261115",
+      "stdout": "checks/03-stdout.txt",
+      "stderr": "checks/03-stderr.txt",
+      "started_utc": "2026-11-15T15:17:21.130657+00:00",
+      "exit_code": 0,
+      "observed_unittest_totals": [
+        21
+      ],
+      "result": "PASS",
+      "duration_seconds": 1.892
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-loops.test.py",
+        "ContractTests",
+        "WorkTextTests"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-prompt-reanchor-20261115",
+      "stdout": "checks/04-stdout.txt",
+      "stderr": "checks/04-stderr.txt",
+      "started_utc": "2026-11-15T15:17:23.023003+00:00",
+      "exit_code": 0,
+      "observed_unittest_totals": [
+        18
+      ],
+      "result": "PASS",
+      "duration_seconds": 2.384
+    }
+  ],
+  "pending_commands": [],
+  "duration_seconds": 5.778,
+  "permitted_outputs": [
+    "evidence directory",
+    "system temporary test fixtures"
+  ],
+  "retries": 0,
+  "scope": "Selected focused checks only; not full release or live behavior qualification."
+}
