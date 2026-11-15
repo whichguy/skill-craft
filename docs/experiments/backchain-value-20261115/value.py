@@ -327,7 +327,11 @@ def final_record(arm: str, path: Path) -> dict:
         source = record.get('convergence') if isinstance(record.get('convergence'), dict) else record
         gaps = record.get('planning_gaps', source.get('planning_gaps'))
         blockers = record.get('execution_blockers', source.get('execution_blockers'))
-        status = {'converged': 'complete', 'incomplete': 'incomplete'}.get(value.get('status'), 'no status')
+        status = {'converged': 'complete', 'incomplete': 'incomplete'}.get(value.get('status'))
+        if status is None:  # pilot 2: a subject may copy finish's {plan, convergence} without its top-level status
+            receipt = source.get('terminal_receipt') if isinstance(source.get('terminal_receipt'), dict) else {}
+            status = ('no status' if not receipt else 'complete'
+                      if receipt.get('status') == 'complete' and gaps == [] else 'incomplete')
     else:
         gaps, blockers = value.get('planning_gaps'), value.get('execution_blockers')
         status = value.get('status') if value.get('status') in ('complete', 'incomplete') else 'no status'
@@ -453,7 +457,7 @@ def ask_opus(prompt: str, out: Path) -> str:
     value, _ = json.JSONDecoder().raw_decode(text[text.index('{'):])
     if value.get('error'):
         raise RuntimeError(f"ask opus error: {value['error']}")
-    return value.get('text') or ''
+    return value.get('text') or '', {key: value.get(key) for key in ('model_used', 'effort', 'fallback')}
 
 
 def grade_one(campaign: Campaign, case: dict, summary: dict, number: int) -> dict:
@@ -466,11 +470,12 @@ def grade_one(campaign: Campaign, case: dict, summary: dict, number: int) -> dic
     criteria = packet['criteria']
     problems = []
     for tries in range(1, GRADE_RETRIES + 1):
-        text = ask_opus(grade_prompt(packet), campaign.grades / f'p{number}' / 'replies' / f"{summary['label']}-{tries}")
+        text, grader = ask_opus(grade_prompt(packet), campaign.grades / f'p{number}' / 'replies' / f"{summary['label']}-{tries}")
         rows, problems = C.parse_grades(text, criteria)
         if rows is not None:
-            rows = C.apply_quote_check(rows, C.evidence_haystacks(packet))
-            record = {'label': summary['label'], 'pass': number, 'tries': tries, 'rows': rows}
+            rows, lowered = C.apply_quote_check(rows, C.evidence_haystacks(packet))  # returns (rows, lowered ids)
+            record = {'label': summary['label'], 'pass': number, 'tries': tries, 'rows': rows, 'quote_lowered': lowered,
+                      'grader': grader}
             C.save(target, record)
             return record
     record = {'label': summary['label'], 'pass': number, 'tries': GRADE_RETRIES, 'rows': None, 'problems': problems}
@@ -620,6 +625,12 @@ def self_check() -> None:
         assert final_record('backchain', p)['status'] == 'incomplete'
         C.save(p, {'status': 'complete', 'planning_gaps': [], 'execution_blockers': []})
         assert final_record('none', p) == {'status': 'complete', 'planning_gaps': [], 'execution_blockers': []}
+        C.save(p, {'plan': {}, 'convergence': {'terminal_receipt': {'status': 'complete'}, 'planning_gaps': [],
+                                               'execution_blockers': []}})
+        assert final_record('backchain', p)['status'] == 'complete'
+        C.save(p, {'plan': {}, 'convergence': {'terminal_receipt': {'status': 'stopped'}, 'planning_gaps': ['gap'],
+                                               'execution_blockers': []}})
+        assert final_record('backchain', p)['status'] == 'incomplete'
     case = next(c for c in cases if c['draft'] is not None)
     plan = dict(case['draft'], parallel_groups=[['S1']])
     packet = grade_packet(case, plan, {'status': 'complete', 'planning_gaps': [], 'execution_blockers': []})
@@ -632,6 +643,8 @@ def self_check() -> None:
         assert word not in fmt.lower(), ('plan-format.md names', word)
     assert all(prompt_for(case, arm).count(WORKSPACE_ONLY) == 1 for case in cases for arm in ARMS)
     assert not os.access(workspace_root(), os.R_OK), 'the workspace root is listable'
+    workspace_root().chmod(0o700)  # the check's own workspaces are gone; leave no unlistable root behind
+    shutil.rmtree(workspace_root())
     print('self-check: ok')
 
 

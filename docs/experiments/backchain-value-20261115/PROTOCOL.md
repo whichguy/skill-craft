@@ -137,3 +137,16 @@ All three are fixed before the study is frozen, and a second pilot checks the fi
     6 until packaged (the 2026-11 cohort's amendment A1).
 
 Nothing else changes: question, arms, models, cases, criteria, grading, analysis and reading stand as above.
+
+### A4, implementation fixes found by pilot 2 and a one-attempt grader probe (no design change)
+
+- The cohort's `apply_quote_check` returns `(rows, lowered)`. The runner now unpacks it and records the lowered
+  criteria.
+- Each grade record keeps the grader's reported `model_used`, `effort` and `fallback`.
+- A Backchain-arm subject may copy `finish`'s `{plan, convergence}` into `artifacts/result.json` without its
+  top-level `status` (pilot 2, Sol). The status is then derived from the record: complete only when the terminal
+  receipt is `complete` and no planning gap remains, otherwise incomplete.
+- The self-check removes its own unlistable workspace root.
+
+Pilot 2 (6 attempts under A1-A3) had no contamination. All three no-skill plans were structurally valid and
+complete, and no permission refusal occurred. The study is frozen once more after A4, before its first attempt.
