@@ -1,0 +1,3339 @@
+{
+ "attempts": [
+  {
+   "arm": "backchain",
+   "case": "billing-late-fee",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 38382,
+    "processed_tokens": 1903545,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 1738880,
+     "input_tokens": 126283,
+     "output_tokens": 38382,
+     "reasoning_tokens": 28700,
+     "total_tokens": 1903545
+    },
+    "wall_seconds": 529.8
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 7,
+    "total": 7
+   },
+   "label": "billing-late-fee--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 529.8,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-3bhx4aky"
+  },
+  {
+   "arm": "backchain",
+   "case": "billing-late-fee",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 9828,
+    "processed_tokens": 1739455,
+    "usage": {
+     "cache_read_input_tokens": 1643392,
+     "input_tokens": 1729627,
+     "output_tokens": 9828,
+     "reasoning_tokens": 813
+    },
+    "wall_seconds": 239.5
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-module",
+     "test-run-reaches-fixture"
+    ],
+    "passed": 3,
+    "total": 7
+   },
+   "label": "billing-late-fee--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 239.5,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-gpt6lzy3"
+  },
+  {
+   "arm": "backchain",
+   "case": "billing-late-fee",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 27270,
+    "processed_tokens": 1386493,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 89779,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 89779,
+     "cache_read_input_tokens": 1269402,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 42,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 1369,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 1369,
+       "cache_read_input_tokens": 99780,
+       "input_tokens": 2,
+       "output_tokens": 1024,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 27270,
+     "output_tokens_details": {
+      "thinking_tokens": 10091
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 213.7
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "fixture-built-from-csv",
+     "test-run-reaches-module",
+     "test-run-reaches-fixture",
+     "plan-complete"
+    ],
+    "passed": 3,
+    "total": 7
+   },
+   "label": "billing-late-fee--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 213.7,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-8xx832nw"
+  },
+  {
+   "arm": "none",
+   "case": "billing-late-fee",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 20211,
+    "processed_tokens": 192926,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 107776,
+     "input_tokens": 64939,
+     "output_tokens": 20211,
+     "reasoning_tokens": 15909,
+     "total_tokens": 192926
+    },
+    "wall_seconds": 257.2
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-fixture"
+    ],
+    "passed": 4,
+    "total": 7
+   },
+   "label": "billing-late-fee--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 257.2,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-gq7t0lbz"
+  },
+  {
+   "arm": "none",
+   "case": "billing-late-fee",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 2712,
+    "processed_tokens": 131648,
+    "usage": {
+     "cache_read_input_tokens": 116992,
+     "input_tokens": 128936,
+     "output_tokens": 2712,
+     "reasoning_tokens": 366
+    },
+    "wall_seconds": 82.6
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-fixture"
+    ],
+    "passed": 4,
+    "total": 7
+   },
+   "label": "billing-late-fee--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 82.6,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-kv9co1vd"
+  },
+  {
+   "arm": "none",
+   "case": "billing-late-fee",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 7139,
+    "processed_tokens": 121663,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 18649,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 18649,
+     "cache_read_input_tokens": 95865,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 10,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 6126,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 6126,
+       "cache_read_input_tokens": 23893,
+       "input_tokens": 2,
+       "output_tokens": 722,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 7139,
+     "output_tokens_details": {
+      "thinking_tokens": 1912
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 48.9
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-module",
+     "test-run-reaches-fixture"
+    ],
+    "passed": 3,
+    "total": 7
+   },
+   "label": "billing-late-fee--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 48.9,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-p1lxrden"
+  },
+  {
+   "arm": "backchain",
+   "case": "bounded-source-edge-repair",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 25620,
+    "processed_tokens": 2632496,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 2478976,
+     "input_tokens": 127900,
+     "output_tokens": 25620,
+     "reasoning_tokens": 17812,
+     "total_tokens": 2632496
+    },
+    "wall_seconds": 317.0
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "bounded-source-edge-repair--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 317.0,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-ltnhca5j"
+  },
+  {
+   "arm": "backchain",
+   "case": "bounded-source-edge-repair",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 3922,
+    "processed_tokens": 711919,
+    "usage": {
+     "cache_read_input_tokens": 647680,
+     "input_tokens": 707997,
+     "output_tokens": 3922,
+     "reasoning_tokens": 161
+    },
+    "wall_seconds": 126.8
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "bounded-source-edge-repair--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 126.8,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-36ig4j_d"
+  },
+  {
+   "arm": "backchain",
+   "case": "bounded-source-edge-repair",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 9488,
+    "processed_tokens": 1133930,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 68125,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 68125,
+     "cache_read_input_tokens": 1056279,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 38,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 851,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 851,
+       "cache_read_input_tokens": 78644,
+       "input_tokens": 2,
+       "output_tokens": 582,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 9488,
+     "output_tokens_details": {
+      "thinking_tokens": 1088
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 84.1
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "bounded-source-edge-repair--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 84.1,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-f3q47w_f"
+  },
+  {
+   "arm": "none",
+   "case": "bounded-source-edge-repair",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 6022,
+    "processed_tokens": 158626,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 98304,
+     "input_tokens": 54300,
+     "output_tokens": 6022,
+     "reasoning_tokens": 4379,
+     "total_tokens": 158626
+    },
+    "wall_seconds": 71.4
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "bounded-source-edge-repair--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 71.4,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-wziaqmun"
+  },
+  {
+   "arm": "none",
+   "case": "bounded-source-edge-repair",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 829,
+    "processed_tokens": 73215,
+    "usage": {
+     "cache_read_input_tokens": 65152,
+     "input_tokens": 72386,
+     "output_tokens": 829,
+     "reasoning_tokens": 32
+    },
+    "wall_seconds": 30.5
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "bounded-source-edge-repair--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 30.5,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-gshear6l"
+  },
+  {
+   "arm": "none",
+   "case": "bounded-source-edge-repair",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 1257,
+    "processed_tokens": 90488,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 12984,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 12984,
+     "cache_read_input_tokens": 76239,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 8,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 846,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 846,
+       "cache_read_input_tokens": 23508,
+       "input_tokens": 2,
+       "output_tokens": 424,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 1257,
+     "output_tokens_details": {
+      "thinking_tokens": 350
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 13.0
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "bounded-source-edge-repair--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 13.0,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-10fexv35"
+  },
+  {
+   "arm": "backchain",
+   "case": "independent-inspection-scopes",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 28930,
+    "processed_tokens": 2427544,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 2265984,
+     "input_tokens": 132630,
+     "output_tokens": 28930,
+     "reasoning_tokens": 19173,
+     "total_tokens": 2427544
+    },
+    "wall_seconds": 376.4
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "independent-inspection-scopes--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 376.4,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-7ky68b57"
+  },
+  {
+   "arm": "backchain",
+   "case": "independent-inspection-scopes",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 5258,
+    "processed_tokens": 774882,
+    "usage": {
+     "cache_read_input_tokens": 710144,
+     "input_tokens": 769624,
+     "output_tokens": 5258,
+     "reasoning_tokens": 680
+    },
+    "wall_seconds": 159.5
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "independent-inspection-scopes--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 159.5,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-0c9nfjs5"
+  },
+  {
+   "arm": "backchain",
+   "case": "independent-inspection-scopes",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 12350,
+    "processed_tokens": 997976,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 66621,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 66621,
+     "cache_read_input_tokens": 918969,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 36,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 2318,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 2318,
+       "cache_read_input_tokens": 75673,
+       "input_tokens": 2,
+       "output_tokens": 619,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 12350,
+     "output_tokens_details": {
+      "thinking_tokens": 4200
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 107.3
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "independent-inspection-scopes--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 107.3,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "Whether 'custom label' is the intended canonical name for Custom Label (no alias exists) is not established; recorded as residual-risk unresolved on S2."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-41f7cutt"
+  },
+  {
+   "arm": "none",
+   "case": "independent-inspection-scopes",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 14192,
+    "processed_tokens": 98872,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 61184,
+     "input_tokens": 23496,
+     "output_tokens": 14192,
+     "reasoning_tokens": 11827,
+     "total_tokens": 98872
+    },
+    "wall_seconds": 173.1
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "independent-inspection-scopes--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 173.1,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-0m0sbzkt"
+  },
+  {
+   "arm": "none",
+   "case": "independent-inspection-scopes",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 1898,
+    "processed_tokens": 68109,
+    "usage": {
+     "cache_read_input_tokens": 60800,
+     "input_tokens": 66211,
+     "output_tokens": 1898,
+     "reasoning_tokens": 218
+    },
+    "wall_seconds": 49.2
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "independent-inspection-scopes--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 49.2,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-t2dc7kre"
+  },
+  {
+   "arm": "none",
+   "case": "independent-inspection-scopes",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 3874,
+    "processed_tokens": 110989,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 13586,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 13586,
+     "cache_read_input_tokens": 93519,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 10,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 2846,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 2846,
+       "cache_read_input_tokens": 22110,
+       "input_tokens": 2,
+       "output_tokens": 495,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 3874,
+     "output_tokens_details": {
+      "thinking_tokens": 577
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 28.5
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "independent-inspection-scopes--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 28.5,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "invalid",
+    "json": true,
+    "present": true,
+    "structure_ok": false
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-ytvzcmka"
+  },
+  {
+   "arm": "backchain",
+   "case": "known-external-approval-blocker",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 31639,
+    "processed_tokens": 2479218,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 2206976,
+     "input_tokens": 240603,
+     "output_tokens": 31639,
+     "reasoning_tokens": 23880,
+     "total_tokens": 2479218
+    },
+    "wall_seconds": 439.3
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "known-external-approval-blocker--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 439.3,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "independent release steward approval of the exact local-widget 3.2.0 package SHA after local manifest checks pass, recorded in the handoff (S3 publication consumer; approval is absent from the request and fixture and cannot be produced by repository work)"
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-nyqg78sr"
+  },
+  {
+   "arm": "backchain",
+   "case": "known-external-approval-blocker",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 7428,
+    "processed_tokens": 954895,
+    "usage": {
+     "cache_read_input_tokens": 863616,
+     "input_tokens": 947467,
+     "output_tokens": 7428,
+     "reasoning_tokens": 882
+    },
+    "wall_seconds": 241.0
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "known-external-approval-blocker--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 241.0,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "S4 publication consumer: independent release steward approval of exact package SHA after local manifest checks pass is absent. Future execution remains blocked until the independent external steward supplies an authentic approval decision recorded in the handoff for the unchanged SHA. This is not a blocker to completing the planning review; execution is not ready."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-h820mki1"
+  },
+  {
+   "arm": "backchain",
+   "case": "known-external-approval-blocker",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 13001,
+    "processed_tokens": 1048368,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 73667,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 73667,
+     "cache_read_input_tokens": 961666,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 34,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 684,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 684,
+       "cache_read_input_tokens": 84353,
+       "input_tokens": 2,
+       "output_tokens": 792,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 13001,
+     "output_tokens_details": {
+      "thinking_tokens": 4385
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 118.1
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "known-external-approval-blocker--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 118.1,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "Independent release steward approval of the exact package SHA is not present and must be obtained after local manifest checks pass; publication (S6) cannot run until it is recorded in the handoff.",
+     "Packaging mechanism and exact package SHA definition are not specified in the fixture.",
+     "Publication destination and mechanism are not specified in the fixture."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-4uqmv0kk"
+  },
+  {
+   "arm": "none",
+   "case": "known-external-approval-blocker",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 22116,
+    "processed_tokens": 151716,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 96128,
+     "input_tokens": 33472,
+     "output_tokens": 22116,
+     "reasoning_tokens": 18940,
+     "total_tokens": 151716
+    },
+    "wall_seconds": 251.2
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "known-external-approval-blocker--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 251.2,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "independent release steward approval of the exact package SHA after local manifest checks pass, with the steward's decision recorded in the handoff"
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-qf84mirp"
+  },
+  {
+   "arm": "none",
+   "case": "known-external-approval-blocker",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 3883,
+    "processed_tokens": 73968,
+    "usage": {
+     "cache_read_input_tokens": 64640,
+     "input_tokens": 70085,
+     "output_tokens": 3883,
+     "reasoning_tokens": 516
+    },
+    "wall_seconds": 88.8
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "known-external-approval-blocker--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 88.8,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     {
+      "need": "The independent release steward has approved the exact candidate package SHA after its local manifest checks passed, and that decision is recorded in the handoff before publication.",
+      "reason": "No approval is supplied. It must come from the independent steward during future execution; planning and local checks cannot supply it. Publication remains blocked, and execution is not ready.",
+      "step": "S6"
+     }
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-7vy5xxae"
+  },
+  {
+   "arm": "none",
+   "case": "known-external-approval-blocker",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 6139,
+    "processed_tokens": 94803,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 15986,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 15986,
+     "cache_read_input_tokens": 72670,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 8,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 5465,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 5465,
+       "cache_read_input_tokens": 21891,
+       "input_tokens": 2,
+       "output_tokens": 575,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 6139,
+     "output_tokens_details": {
+      "thinking_tokens": 1802
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 45.5
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "known-external-approval-blocker--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 45.5,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "Approval from the independent release steward (outside this repository) of the exact package SHA is absent. The release policy requires it after the local manifest check passes and before publication. It is recorded as an unresolved need on S7, the publication step, and the plan does not claim it.",
+     "No publication target or procedure is defined in the fixture, so S7's publication cannot be confirmed or run until one is supplied.",
+     "Packaging and the local manifest check are modeled as future steps. None has been run, and the plan makes no claim that they passed."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-kdgz1i6z"
+  },
+  {
+   "arm": "backchain",
+   "case": "legacy-draft-discovers-mapping",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 27670,
+    "processed_tokens": 1687366,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 1534208,
+     "input_tokens": 125488,
+     "output_tokens": 27670,
+     "reasoning_tokens": 20584,
+     "total_tokens": 1687366
+    },
+    "wall_seconds": 352.3
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "legacy-draft-discovers-mapping--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 352.3,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-5323vbqk"
+  },
+  {
+   "arm": "backchain",
+   "case": "legacy-draft-discovers-mapping",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 5059,
+    "processed_tokens": 767549,
+    "usage": {
+     "cache_read_input_tokens": 698752,
+     "input_tokens": 762490,
+     "output_tokens": 5059,
+     "reasoning_tokens": 395
+    },
+    "wall_seconds": 169.7
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "legacy-draft-discovers-mapping--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 169.7,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-o2hrd_v1"
+  },
+  {
+   "arm": "backchain",
+   "case": "legacy-draft-discovers-mapping",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 10113,
+    "processed_tokens": 852240,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 69477,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 69477,
+     "cache_read_input_tokens": 772622,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 28,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 556,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 556,
+       "cache_read_input_tokens": 80291,
+       "input_tokens": 2,
+       "output_tokens": 783,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 10113,
+     "output_tokens_details": {
+      "thinking_tokens": 2654
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 90.9
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "legacy-draft-discovers-mapping--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 90.9,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "Value-normalization rules for item_code and label are undefined in the fixture (residual-risk on S2)."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-uvr77ei0"
+  },
+  {
+   "arm": "none",
+   "case": "legacy-draft-discovers-mapping",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 11226,
+    "processed_tokens": 149526,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 114944,
+     "input_tokens": 23356,
+     "output_tokens": 11226,
+     "reasoning_tokens": 8721,
+     "total_tokens": 149526
+    },
+    "wall_seconds": 128.3
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "legacy-draft-discovers-mapping--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 128.3,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-r93qciau"
+  },
+  {
+   "arm": "none",
+   "case": "legacy-draft-discovers-mapping",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 3369,
+    "processed_tokens": 112019,
+    "usage": {
+     "cache_read_input_tokens": 92672,
+     "input_tokens": 108650,
+     "output_tokens": 3369,
+     "reasoning_tokens": 581
+    },
+    "wall_seconds": 96.2
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "legacy-draft-discovers-mapping--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 96.2,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-31dc6nyf"
+  },
+  {
+   "arm": "none",
+   "case": "legacy-draft-discovers-mapping",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 3695,
+    "processed_tokens": 114164,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 14120,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 14120,
+     "cache_read_input_tokens": 96339,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 10,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 2883,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 2883,
+       "cache_read_input_tokens": 22607,
+       "input_tokens": 2,
+       "output_tokens": 600,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 3695,
+     "output_tokens_details": {
+      "thinking_tokens": 1470
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 30.8
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "legacy-draft-discovers-mapping--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 30.8,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-87id_i2c"
+  },
+  {
+   "arm": "backchain",
+   "case": "library-reminders",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 39764,
+    "processed_tokens": 1936476,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 1773696,
+     "input_tokens": 123016,
+     "output_tokens": 39764,
+     "reasoning_tokens": 29721,
+     "total_tokens": 1936476
+    },
+    "wall_seconds": 536.0
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 10,
+    "total": 10
+   },
+   "label": "library-reminders--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 536.0,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-1k35ue5d"
+  },
+  {
+   "arm": "backchain",
+   "case": "library-reminders",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 8244,
+    "processed_tokens": 1342812,
+    "usage": {
+     "cache_read_input_tokens": 1256704,
+     "input_tokens": 1334568,
+     "output_tokens": 8244,
+     "reasoning_tokens": 1647
+    },
+    "wall_seconds": 258.3
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 10,
+    "total": 10
+   },
+   "label": "library-reminders--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 258.3,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-r1724u1m"
+  },
+  {
+   "arm": "backchain",
+   "case": "library-reminders",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 10870,
+    "processed_tokens": 1011190,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 69187,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 69187,
+     "cache_read_input_tokens": 931099,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 34,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 474,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 474,
+       "cache_read_input_tokens": 80083,
+       "input_tokens": 2,
+       "output_tokens": 714,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 10870,
+     "output_tokens_details": {
+      "thinking_tokens": 2703
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 94.9
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "plan-complete"
+    ],
+    "passed": 9,
+    "total": 10
+   },
+   "label": "library-reminders--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 94.9,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "branch-mailer interface and send-failure semantics are outside this repository",
+     "concurrent due_reminders callers are not evidenced"
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-ugszjwr5"
+  },
+  {
+   "arm": "none",
+   "case": "library-reminders",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 23624,
+    "processed_tokens": 219750,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 158208,
+     "input_tokens": 37918,
+     "output_tokens": 23624,
+     "reasoning_tokens": 19692,
+     "total_tokens": 219750
+    },
+    "wall_seconds": 303.7
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 10,
+    "total": 10
+   },
+   "label": "library-reminders--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 303.7,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-sylonvt7"
+  },
+  {
+   "arm": "none",
+   "case": "library-reminders",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 3075,
+    "processed_tokens": 121187,
+    "usage": {
+     "cache_read_input_tokens": 109440,
+     "input_tokens": 118112,
+     "output_tokens": 3075,
+     "reasoning_tokens": 268
+    },
+    "wall_seconds": 83.8
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 10,
+    "total": 10
+   },
+   "label": "library-reminders--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 83.8,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-rmcsh0n6"
+  },
+  {
+   "arm": "none",
+   "case": "library-reminders",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 4633,
+    "processed_tokens": 100815,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 17680,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 17680,
+     "cache_read_input_tokens": 78494,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 8,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 3768,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 3768,
+       "cache_read_input_tokens": 25282,
+       "input_tokens": 2,
+       "output_tokens": 850,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 4633,
+     "output_tokens_details": {
+      "thinking_tokens": 2073
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 33.8
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "plan-complete"
+    ],
+    "passed": 9,
+    "total": 10
+   },
+   "label": "library-reminders--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 33.8,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "Changes to branch-mailer, which is outside this repository, must be made and approved by its owners to consume the selection",
+     "Marking at selection time means a mailer send failure after selection would not be retried; the owners must accept this or define a rollback, and concurrent callers are not guarded beyond the reminder_sent_at check"
+    ],
+    "planning_gaps": [
+     "The contract by which branch-mailer asks this service for loans to remind (entry point, transport, response shape) is not specified in the repository or request; the plan only delivers app/reminders.py due_reminders and cannot expose it to the mailer"
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-369uvk29"
+  },
+  {
+   "arm": "backchain",
+   "case": "missing-normative-redaction-source",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 34574,
+    "processed_tokens": 3387522,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 3136896,
+     "input_tokens": 216052,
+     "output_tokens": 34574,
+     "reasoning_tokens": 23422,
+     "total_tokens": 3387522
+    },
+    "wall_seconds": 493.6
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "missing-normative-redaction-source--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 493.6,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [
+     "Applicable normative source SRC-POLICY at fixture/specs/diagnostic-redaction-policy.md is missing; the governing redaction rules cannot be inspected and must not be guessed"
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-3qaud_rp"
+  },
+  {
+   "arm": "backchain",
+   "case": "missing-normative-redaction-source",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 4867,
+    "processed_tokens": 1165506,
+    "usage": {
+     "cache_read_input_tokens": 1084160,
+     "input_tokens": 1160639,
+     "output_tokens": 4867,
+     "reasoning_tokens": 348
+    },
+    "wall_seconds": 143.5
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "missing-normative-redaction-source--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 143.5,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [
+     "SRC-POLICY: fixture/specs/diagnostic-redaction-policy.md is missing. Its current normative redaction rules cannot be inspected, and no authoritative supersession is available; S1 cannot be specified or confirmed without guessing."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-18dgwv2o"
+  },
+  {
+   "arm": "backchain",
+   "case": "missing-normative-redaction-source",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 17284,
+    "processed_tokens": 990078,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 78737,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 78737,
+     "cache_read_input_tokens": 894027,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 30,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 1125,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 1125,
+       "cache_read_input_tokens": 88982,
+       "input_tokens": 2,
+       "output_tokens": 870,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 17284,
+     "output_tokens_details": {
+      "thinking_tokens": 6534
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 147.8
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "missing-normative-redaction-source--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 147.8,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [
+     "Missing normative source fixture/specs/diagnostic-redaction-policy.md: the redaction field/pattern list cannot be derived."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-hzractn0"
+  },
+  {
+   "arm": "none",
+   "case": "missing-normative-redaction-source",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 10265,
+    "processed_tokens": 192484,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 160512,
+     "input_tokens": 21707,
+     "output_tokens": 10265,
+     "reasoning_tokens": 7677,
+     "total_tokens": 192484
+    },
+    "wall_seconds": 131.2
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "missing-normative-redaction-source--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 131.2,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [
+     "SRC-POLICY (authority: normative) cannot be inspected. locator: fixture/specs/diagnostic-redaction-policy.md. resolved_locator: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-nxdhy2_k/fixture/specs/diagnostic-redaction-policy.md. The fixture has no specs/ directory. README.md names this file as the sole current authority and forbids inferring the field list from older examples. Without that source the required redaction fields and patterns are unknown and must not be guessed, so the redactor update cannot be planned."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-nxdhy2_k"
+  },
+  {
+   "arm": "none",
+   "case": "missing-normative-redaction-source",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 1601,
+    "processed_tokens": 87921,
+    "usage": {
+     "cache_read_input_tokens": 69504,
+     "input_tokens": 86320,
+     "output_tokens": 1601,
+     "reasoning_tokens": 220
+    },
+    "wall_seconds": 46.0
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "missing-normative-redaction-source--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 46.0,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [
+     "SRC-POLICY is missing at fixture/specs/diagnostic-redaction-policy.md (workspace-relative). Its governing rules cannot be inspected and its currentness and revision are unknown. The current normative text and evidence of currentness are required before redaction behavior or concrete validation can be planned; the descriptive README, implementation, and test stub cannot substitute for that authority."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-s6rrjf1s"
+  },
+  {
+   "arm": "none",
+   "case": "missing-normative-redaction-source",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 3404,
+    "processed_tokens": 91402,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 14024,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 14024,
+     "cache_read_input_tokens": 73966,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 8,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 2905,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 2905,
+       "cache_read_input_tokens": 22489,
+       "input_tokens": 2,
+       "output_tokens": 469,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 3404,
+     "output_tokens_details": {
+      "thinking_tokens": 387
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 27.8
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "missing-normative-redaction-source--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 27.8,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "The policy owner must supply the current policy file (with revision) before S2-S5 can run; S1 models this prerequisite but cannot satisfy it now.",
+     "Product edits (S3, S4) and test execution (S5) are outside this planning-only task and need later authorization."
+    ],
+    "planning_gaps": [
+     "Missing normative source: fixture/specs/diagnostic-redaction-policy.md (SRC-POLICY, referenced by fixture/README.md as specs/diagnostic-redaction-policy.md) is absent; its revision and currentness are unknown. Without it the redacted fields and patterns cannot be determined, and they must not be guessed or inferred from older examples."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-midchlfm"
+  },
+  {
+   "arm": "backchain",
+   "case": "orders-cancel-rpc",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 49060,
+    "processed_tokens": 3531402,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 3227264,
+     "input_tokens": 255078,
+     "output_tokens": 49060,
+     "reasoning_tokens": 36348,
+     "total_tokens": 3531402
+    },
+    "wall_seconds": 751.4
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ],
+    "passed": 8,
+    "total": 10
+   },
+   "label": "orders-cancel-rpc--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 751.4,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-9och_raj"
+  },
+  {
+   "arm": "backchain",
+   "case": "orders-cancel-rpc",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 9350,
+    "processed_tokens": 1022730,
+    "usage": {
+     "cache_read_input_tokens": 934784,
+     "input_tokens": 1013380,
+     "output_tokens": 9350,
+     "reasoning_tokens": 2125
+    },
+    "wall_seconds": 270.8
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ],
+    "passed": 8,
+    "total": 10
+   },
+   "label": "orders-cancel-rpc--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 270.8,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [
+     "S2 requires an independently deliverable store/docs split to avoid making S3 and S4 wait on unused documentation. Legacy elaboration forbids moving inherited work, narrowing S2 or converting it to a discovered-step verification join; no authorized repair exists in this run.",
+     "The exact protected S3 confirmation checks build/vet only and does not establish its full cancellation behavior. The request forbids changing that inherited confirm entry; later D1/S4 verification does not repair this per-produce confirmation gap."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-8pvdu8kh"
+  },
+  {
+   "arm": "backchain",
+   "case": "orders-cancel-rpc",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 15325,
+    "processed_tokens": 1331791,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 78347,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 78347,
+     "cache_read_input_tokens": 1238079,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 40,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 787,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 787,
+       "cache_read_input_tokens": 88930,
+       "input_tokens": 2,
+       "output_tokens": 1348,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 15325,
+     "output_tokens_details": {
+      "thinking_tokens": 6109
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 128.9
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ],
+    "passed": 8,
+    "total": 10
+   },
+   "label": "orders-cancel-rpc--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 128.9,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-5ft7bc4r"
+  },
+  {
+   "arm": "none",
+   "case": "orders-cancel-rpc",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 36758,
+    "processed_tokens": 754617,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 633856,
+     "input_tokens": 84003,
+     "output_tokens": 36758,
+     "reasoning_tokens": 28397,
+     "total_tokens": 754617
+    },
+    "wall_seconds": 479.0
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ],
+    "passed": 8,
+    "total": 10
+   },
+   "label": "orders-cancel-rpc--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 479.0,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-hwwzudne"
+  },
+  {
+   "arm": "none",
+   "case": "orders-cancel-rpc",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 4689,
+    "processed_tokens": 157150,
+    "usage": {
+     "cache_read_input_tokens": 126976,
+     "input_tokens": 152461,
+     "output_tokens": 4689,
+     "reasoning_tokens": 970
+    },
+    "wall_seconds": 114.5
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 10,
+    "total": 10
+   },
+   "label": "orders-cancel-rpc--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 114.5,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "Product implementation, generation, tests and local-stack acceptance checks remain future execution work; this task authorizes planning only. D4 models the prerequisite development tools, dependencies, container images and running fresh local stack; their runtime availability has not been exercised."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-qm72yc_d"
+  },
+  {
+   "arm": "none",
+   "case": "orders-cancel-rpc",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 4809,
+    "processed_tokens": 107428,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 20922,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 20922,
+     "cache_read_input_tokens": 81689,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 8,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 3889,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 3889,
+       "cache_read_input_tokens": 28403,
+       "input_tokens": 2,
+       "output_tokens": 795,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 4809,
+     "output_tokens_details": {
+      "thinking_tokens": 1940
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 34.7
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ],
+    "passed": 8,
+    "total": 10
+   },
+   "label": "orders-cancel-rpc--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 34.7,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "Executing S4/S5 needs the development container's buf, protoc-gen-go(-grpc), Docker and grpcurl; S5 needs docker compose up --build running locally",
+     "gen/orders/v1 currently holds only orders_grpc.pb.go (no message-type file); D2 regenerating via make proto must produce it, since go build depends on it"
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-0zi8nmfa"
+  },
+  {
+   "arm": "backchain",
+   "case": "revenue-export-lineage",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 30061,
+    "processed_tokens": 2816042,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 2657536,
+     "input_tokens": 128445,
+     "output_tokens": 30061,
+     "reasoning_tokens": 16037,
+     "total_tokens": 2816042
+    },
+    "wall_seconds": 353.3
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 7,
+    "total": 7
+   },
+   "label": "revenue-export-lineage--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 353.3,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-xrck3h4a"
+  },
+  {
+   "arm": "backchain",
+   "case": "revenue-export-lineage",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 5683,
+    "processed_tokens": 1046304,
+    "usage": {
+     "cache_read_input_tokens": 970624,
+     "input_tokens": 1040621,
+     "output_tokens": 5683,
+     "reasoning_tokens": 558
+    },
+    "wall_seconds": 159.0
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 7,
+    "total": 7
+   },
+   "label": "revenue-export-lineage--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 159.0,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [
+     "S3.confirm[0] does not confirm refund-netting arithmetic; original request forbids changing any confirmation.",
+     "S4.confirm[0] lacks explicit projected column/value criteria; original request forbids changing any confirmation."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-7s9ppwdt"
+  },
+  {
+   "arm": "backchain",
+   "case": "revenue-export-lineage",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 11506,
+    "processed_tokens": 1318248,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 75316,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 75316,
+     "cache_read_input_tokens": 1231386,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 40,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 562,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 562,
+       "cache_read_input_tokens": 86124,
+       "input_tokens": 2,
+       "output_tokens": 626,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 11506,
+     "output_tokens_details": {
+      "thinking_tokens": 2138
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 96.6
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 7,
+    "total": 7
+   },
+   "label": "revenue-export-lineage--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 96.6,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-epg7d7mf"
+  },
+  {
+   "arm": "none",
+   "case": "revenue-export-lineage",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 9325,
+    "processed_tokens": 183731,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 149504,
+     "input_tokens": 24902,
+     "output_tokens": 9325,
+     "reasoning_tokens": 5700,
+     "total_tokens": 183731
+    },
+    "wall_seconds": 93.1
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 7,
+    "total": 7
+   },
+   "label": "revenue-export-lineage--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 93.1,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-yj7vx1ru"
+  },
+  {
+   "arm": "none",
+   "case": "revenue-export-lineage",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 1276,
+    "processed_tokens": 95980,
+    "usage": {
+     "cache_read_input_tokens": 84864,
+     "input_tokens": 94704,
+     "output_tokens": 1276,
+     "reasoning_tokens": 46
+    },
+    "wall_seconds": 37.5
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 7,
+    "total": 7
+   },
+   "label": "revenue-export-lineage--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 37.5,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-gtbtkfd6"
+  },
+  {
+   "arm": "none",
+   "case": "revenue-export-lineage",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 1262,
+    "processed_tokens": 98873,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 16150,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 16150,
+     "cache_read_input_tokens": 81453,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 8,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 825,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 825,
+       "cache_read_input_tokens": 26695,
+       "input_tokens": 2,
+       "output_tokens": 433,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 1262,
+     "output_tokens_details": {
+      "thinking_tokens": 232
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 10.7
+   },
+   "infrastructure_failure": false,
+   "keys": {
+    "failed": [],
+    "passed": 7,
+    "total": 7
+   },
+   "label": "revenue-export-lineage--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 10.7,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-5w_bjdgj"
+  },
+  {
+   "arm": "backchain",
+   "case": "stale-build-receipt-identity",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 36615,
+    "processed_tokens": 2776125,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 2606336,
+     "input_tokens": 133174,
+     "output_tokens": 36615,
+     "reasoning_tokens": 24881,
+     "total_tokens": 2776125
+    },
+    "wall_seconds": 479.7
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "stale-build-receipt-identity--backchain--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 479.7,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-w3gbxiwv"
+  },
+  {
+   "arm": "backchain",
+   "case": "stale-build-receipt-identity",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 7759,
+    "processed_tokens": 1149918,
+    "usage": {
+     "cache_read_input_tokens": 1065600,
+     "input_tokens": 1142159,
+     "output_tokens": 7759,
+     "reasoning_tokens": 1835
+    },
+    "wall_seconds": 244.2
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "stale-build-receipt-identity--backchain--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 244.2,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "Future execution requires an actually available permitted local Node v22.12.0 executable; availability was not inspected or asserted during this planning-only run. S1 must stop without issuing preparation if unavailable. Product implementation/build execution is outside current authorization."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-rpntil_b"
+  },
+  {
+   "arm": "backchain",
+   "case": "stale-build-receipt-identity",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 13005,
+    "processed_tokens": 816274,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 76824,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 76824,
+     "cache_read_input_tokens": 726417,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 28,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 1553,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 1553,
+       "cache_read_input_tokens": 86641,
+       "input_tokens": 2,
+       "output_tokens": 746,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 13005,
+     "output_tokens_details": {
+      "thinking_tokens": 4245
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 102.7
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "stale-build-receipt-identity--backchain--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 102.7,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": true,
+   "result": {
+    "execution_blockers": [
+     "Local Node runtime version is not verified here; Node 22.12.0 must be available (S3).",
+     "No local preparation-receipt writer is present in the fixture (S4).",
+     "No index writer or output location is present in the fixture; buildIndex only returns records (S7)."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-334dn6rl"
+  },
+  {
+   "arm": "none",
+   "case": "stale-build-receipt-identity",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 18583,
+    "processed_tokens": 145130,
+    "usage": {
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 98176,
+     "input_tokens": 28371,
+     "output_tokens": 18583,
+     "reasoning_tokens": 13705,
+     "total_tokens": 145130
+    },
+    "wall_seconds": 223.0
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "stale-build-receipt-identity--none--grok",
+   "meta": {
+    "effort": "xhigh",
+    "elapsed_seconds": 223.0,
+    "host": "grok",
+    "model": "grok-4.6",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "grok",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-lbaeqkut"
+  },
+  {
+   "arm": "none",
+   "case": "stale-build-receipt-identity",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 4085,
+    "processed_tokens": 95300,
+    "usage": {
+     "cache_read_input_tokens": 76544,
+     "input_tokens": 91215,
+     "output_tokens": 4085,
+     "reasoning_tokens": 396
+    },
+    "wall_seconds": 98.8
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "stale-build-receipt-identity--none--sol",
+   "meta": {
+    "effort": "medium",
+    "elapsed_seconds": 98.8,
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sol",
+   "plan": {
+    "completion": "complete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "Execution requires a locally available Node 22.12.0 executable. Availability has not been verified during planning; S1 must establish it without network access before preparation or building.",
+     "The existing receipt is stale and cannot authorize an index write. S2 must produce a fresh local receipt matching catalog-north, catalog-builder-r5, node-22.12.0, and snapshot-2026-10-14 before S3 writes the index."
+    ],
+    "planning_gaps": [],
+    "status": "complete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-pbll28eo"
+  },
+  {
+   "arm": "none",
+   "case": "stale-build-receipt-identity",
+   "contaminated": false,
+   "cost": {
+    "output_tokens": 6620,
+    "processed_tokens": 96438,
+    "usage": {
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 16623,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "cache_creation_input_tokens": 16623,
+     "cache_read_input_tokens": 73187,
+     "fallback_credit": null,
+     "inference_geo": "global",
+     "input_tokens": 8,
+     "iterations": [
+      {
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 5558,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_creation_input_tokens": 5558,
+       "cache_read_input_tokens": 22435,
+       "input_tokens": 2,
+       "output_tokens": 642,
+       "type": "message"
+      }
+     ],
+     "output_tokens": 6620,
+     "output_tokens_details": {
+      "thinking_tokens": 1166
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "service_tier": "standard",
+     "speed": "standard"
+    },
+    "wall_seconds": 42.3
+   },
+   "infrastructure_failure": false,
+   "keys": null,
+   "label": "stale-build-receipt-identity--none--sonnet",
+   "meta": {
+    "effort": "high",
+    "elapsed_seconds": 42.3,
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "returncode": 0,
+    "status": "exited"
+   },
+   "model": "sonnet",
+   "plan": {
+    "completion": "incomplete",
+    "json": true,
+    "present": true,
+    "structure_ok": true
+   },
+   "ran_toolkit": false,
+   "result": {
+    "execution_blockers": [
+     "The existing receipt is stale (source r4 vs r5, runtime node-20.18.0 vs 22.12.0, dataset snapshot-2026-09-30 vs snapshot-2026-10-14; only the target matches) and cannot authorize the build; a fresh receipt must be issued before any index write.",
+     "The actual installed local runtime must be verified as node 22.12.0; only the package.json engines declaration was inspected, not the installed runtime.",
+     "Whoever issues the new receipt must approve it at execution time."
+    ],
+    "planning_gaps": [
+     "No procedure, tool or authority for issuing a local preparation receipt is documented in the workspace, so the prerequisite (a fresh receipt matching catalog-north / catalog-builder-r5 / node 22.12.0 / snapshot-2026-10-14) cannot be fully planned.",
+     "The index output location and the invocation that writes the index are not defined in the workspace (buildIndex only returns records), so the write step and its output check target cannot be specified concretely."
+    ],
+    "status": "incomplete"
+   },
+   "schema": "backchain-value-attempt/v1",
+   "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-6w6n49a3/backchain-cohort-wfrcp9qo"
+  }
+ ],
+ "frozen_at": "2026-11-15T13:09:52-0800",
+ "schema": "backchain-value-attempts/v1",
+ "skill_craft_commit": "b0285785374570c88f534480cf361778030018ac"
+}

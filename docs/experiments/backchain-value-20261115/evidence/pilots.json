@@ -1,0 +1,659 @@
+{
+ "note": "harness pilots, not analysed (PROTOCOL.md)",
+ "pilots": {
+  "pilot-1": [
+   {
+    "arm": "backchain",
+    "case": "stale-build-receipt-identity",
+    "cost": {
+     "output_tokens": 32204,
+     "processed_tokens": 2127068,
+     "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 1969792,
+      "input_tokens": 125072,
+      "output_tokens": 32204,
+      "reasoning_tokens": 22054,
+      "total_tokens": 2127068
+     },
+     "wall_seconds": 418.6
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--backchain--grok",
+    "meta": {
+     "effort": "xhigh",
+     "elapsed_seconds": 418.6,
+     "host": "grok",
+     "model": "grok-4.6",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "grok",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": true,
+    "result": {
+     "execution_blockers": [],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/backchain-cohort-ph3ath8d"
+   },
+   {
+    "arm": "backchain",
+    "case": "stale-build-receipt-identity",
+    "cost": {
+     "output_tokens": 5461,
+     "processed_tokens": 725037,
+     "usage": {
+      "cache_read_input_tokens": 659712,
+      "input_tokens": 719576,
+      "output_tokens": 5461,
+      "reasoning_tokens": 716
+     },
+     "wall_seconds": 161.5
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--backchain--sol",
+    "meta": {
+     "effort": "medium",
+     "elapsed_seconds": 161.5,
+     "host": "codex",
+     "model": "gpt-6.1-sol",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sol",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": true,
+    "result": {
+     "execution_blockers": [
+      "Local Node 22.12.0 availability is unverified; S1 must establish it before preparation or writing, and execution stops if unavailable without downloading a runtime."
+     ],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/backchain-cohort-rrmgezor"
+   },
+   {
+    "arm": "backchain",
+    "case": "stale-build-receipt-identity",
+    "cost": {
+     "output_tokens": 17085,
+     "processed_tokens": 1157024,
+     "usage": {
+      "cache_creation": {
+       "ephemeral_1h_input_tokens": 77622,
+       "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 77622,
+      "cache_read_input_tokens": 1062279,
+      "fallback_credit": null,
+      "inference_geo": "global",
+      "input_tokens": 38,
+      "iterations": [
+       {
+        "cache_creation": {
+         "ephemeral_1h_input_tokens": 461,
+         "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 461,
+        "cache_read_input_tokens": 88531,
+        "input_tokens": 2,
+        "output_tokens": 787,
+        "type": "message"
+       }
+      ],
+      "output_tokens": 17085,
+      "output_tokens_details": {
+       "thinking_tokens": 6653
+      },
+      "server_tool_use": {
+       "web_fetch_requests": 0,
+       "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+     },
+     "wall_seconds": 140.4
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--backchain--sonnet",
+    "meta": {
+     "effort": "high",
+     "elapsed_seconds": 140.4,
+     "host": "claude",
+     "model": "claude-sonnet-5-5",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sonnet",
+    "plan": {
+     "completion": "incomplete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": true,
+    "result": {
+     "execution_blockers": [
+      "S3: no inspected source identifies the receipt-producing procedure, command or output path.",
+      "S2: installed Node version not evidenced (node not run in planning); provisioning 22.12.0 may be needed.",
+      "S5: no index writer, output path or format is evidenced; buildIndex only returns records.",
+      "S6: records carry no target field, so how the index identifies catalog-north must be fixed before the output check can be bound."
+     ],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/backchain-cohort-x69ub0jk"
+   },
+   {
+    "arm": "none",
+    "case": "stale-build-receipt-identity",
+    "cost": {
+     "output_tokens": 30698,
+     "processed_tokens": 1576337,
+     "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 1415168,
+      "input_tokens": 130471,
+      "output_tokens": 30698,
+      "reasoning_tokens": 21614,
+      "total_tokens": 1576337
+     },
+     "wall_seconds": 409.2
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--none--grok",
+    "meta": {
+     "effort": "xhigh",
+     "elapsed_seconds": 409.2,
+     "host": "grok",
+     "model": "grok-4.6",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "grok",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": true,
+    "result": {
+     "execution_blockers": "no final record",
+     "planning_gaps": "no final record",
+     "status": "no final record"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/backchain-cohort-t3qijdg1"
+   },
+   {
+    "arm": "none",
+    "case": "stale-build-receipt-identity",
+    "cost": {
+     "output_tokens": 3974,
+     "processed_tokens": 111230,
+     "usage": {
+      "cache_read_input_tokens": 92672,
+      "input_tokens": 107256,
+      "output_tokens": 3974,
+      "reasoning_tokens": 364
+     },
+     "wall_seconds": 93.6
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--none--sol",
+    "meta": {
+     "effort": "medium",
+     "elapsed_seconds": 93.6,
+     "host": "codex",
+     "model": "gpt-6.1-sol",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sol",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": false,
+    "result": {
+     "execution_blockers": [
+      "Product execution is deferred by the planning-only request; no preparation receipt or index has been generated.",
+      "S1 requires a locally available Node 22.12.0 executable; availability is unverified, and network installation is prohibited.",
+      "The existing receipt is stale on source revision, runtime, and dataset revision. S2 must establish a fresh exact-match preparation receipt before S4 can write an index."
+     ],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/backchain-cohort-_gqq791n"
+   },
+   {
+    "arm": "none",
+    "case": "stale-build-receipt-identity",
+    "cost": {
+     "output_tokens": 5244,
+     "processed_tokens": 92582,
+     "usage": {
+      "cache_creation": {
+       "ephemeral_1h_input_tokens": 15098,
+       "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 15098,
+      "cache_read_input_tokens": 72232,
+      "fallback_credit": null,
+      "inference_geo": "global",
+      "input_tokens": 8,
+      "iterations": [
+       {
+        "cache_creation": {
+         "ephemeral_1h_input_tokens": 4541,
+         "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 4541,
+        "cache_read_input_tokens": 21927,
+        "input_tokens": 2,
+        "output_tokens": 654,
+        "type": "message"
+       }
+      ],
+      "output_tokens": 5244,
+      "output_tokens_details": {
+       "thinking_tokens": 1037
+      },
+      "server_tool_use": {
+       "web_fetch_requests": 0,
+       "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+     },
+     "wall_seconds": 38.7
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--none--sonnet",
+    "meta": {
+     "effort": "high",
+     "elapsed_seconds": 38.7,
+     "host": "claude",
+     "model": "claude-sonnet-5-5",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sonnet",
+    "plan": {
+     "completion": "invalid",
+     "json": true,
+     "present": true,
+     "structure_ok": false
+    },
+    "ran_toolkit": false,
+    "result": {
+     "execution_blockers": [
+      "Existing receipt is stale (source r4 vs r5, node-20.18.0 vs 22.12.0, snapshot-2026-09-30 vs snapshot-2026-10-14) and cannot authorize the build; a new receipt must exist before any write.",
+      "Local availability of node 22.12.0 is unverified; the receipt cannot truthfully claim it until confirmed.",
+      "Owner approval to issue the new receipt and to run the build is required."
+     ],
+     "planning_gaps": [
+      "No documented procedure or authority for issuing the fresh local preparation receipt (fixture only contains the stale r4 receipt and a policy requiring a match).",
+      "No specified index output path/format or writer: src/build-index.mjs returns records without writing, so where the index is written and how the output check reads it is undefined."
+     ],
+     "status": "incomplete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/backchain-cohort-zpq300t_"
+   }
+  ],
+  "pilot-2": [
+   {
+    "arm": "backchain",
+    "case": "stale-build-receipt-identity",
+    "contaminated": false,
+    "cost": {
+     "output_tokens": 31576,
+     "processed_tokens": 2606956,
+     "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 2445440,
+      "input_tokens": 129940,
+      "output_tokens": 31576,
+      "reasoning_tokens": 23854,
+      "total_tokens": 2606956
+     },
+     "wall_seconds": 441.7
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--backchain--grok",
+    "meta": {
+     "effort": "xhigh",
+     "elapsed_seconds": 441.7,
+     "host": "grok",
+     "model": "grok-4.6",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "grok",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": true,
+    "result": {
+     "execution_blockers": [],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-jh5nbz8w/backchain-cohort-js9vuolu"
+   },
+   {
+    "arm": "backchain",
+    "case": "stale-build-receipt-identity",
+    "contaminated": false,
+    "cost": {
+     "output_tokens": 9263,
+     "processed_tokens": 1215331,
+     "usage": {
+      "cache_read_input_tokens": 1134720,
+      "input_tokens": 1206068,
+      "output_tokens": 9263,
+      "reasoning_tokens": 2356
+     },
+     "wall_seconds": 270.4
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--backchain--sol",
+    "meta": {
+     "effort": "medium",
+     "elapsed_seconds": 270.4,
+     "host": "codex",
+     "model": "gpt-6.1-sol",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sol",
+    "plan": {
+     "completion": "incomplete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": true,
+    "result": {
+     "execution_blockers": [
+      "S2 has no evidenced authorized offline workspace-local Node 22.12.0 executable. Future execution must stop until one is supplied or established within scope. Planning is complete with this honest residual risk; no executable was searched outside the workspace and no product/preparation/build was run."
+     ],
+     "planning_gaps": [],
+     "status": "no status"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-jh5nbz8w/backchain-cohort-3eas4gsj"
+   },
+   {
+    "arm": "backchain",
+    "case": "stale-build-receipt-identity",
+    "contaminated": false,
+    "cost": {
+     "output_tokens": 16838,
+     "processed_tokens": 1416453,
+     "usage": {
+      "cache_creation": {
+       "ephemeral_1h_input_tokens": 76127,
+       "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 76127,
+      "cache_read_input_tokens": 1323442,
+      "fallback_credit": null,
+      "inference_geo": "global",
+      "input_tokens": 46,
+      "iterations": [
+       {
+        "cache_creation": {
+         "ephemeral_1h_input_tokens": 421,
+         "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 421,
+        "cache_read_input_tokens": 87076,
+        "input_tokens": 2,
+        "output_tokens": 855,
+        "type": "message"
+       }
+      ],
+      "output_tokens": 16838,
+      "output_tokens_details": {
+       "thinking_tokens": 4606
+      },
+      "server_tool_use": {
+       "web_fetch_requests": 0,
+       "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+     },
+     "wall_seconds": 144.8
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--backchain--sonnet",
+    "meta": {
+     "effort": "high",
+     "elapsed_seconds": 144.8,
+     "host": "claude",
+     "model": "claude-sonnet-5-5",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sonnet",
+    "plan": {
+     "completion": "incomplete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": true,
+    "result": {
+     "execution_blockers": [
+      "No preparation procedure for a fresh receipt exists in the inspected workspace (S4).",
+      "Index output location, writer and target-bearing format are undefined (S6, S7)."
+     ],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-jh5nbz8w/backchain-cohort-kjzb4leu"
+   },
+   {
+    "arm": "none",
+    "case": "stale-build-receipt-identity",
+    "contaminated": false,
+    "cost": {
+     "output_tokens": 14358,
+     "processed_tokens": 132621,
+     "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 50304,
+      "input_tokens": 67959,
+      "output_tokens": 14358,
+      "reasoning_tokens": 10792,
+      "total_tokens": 132621
+     },
+     "wall_seconds": 176.0
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--none--grok",
+    "meta": {
+     "effort": "xhigh",
+     "elapsed_seconds": 176.0,
+     "host": "grok",
+     "model": "grok-4.6",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "grok",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": false,
+    "result": {
+     "execution_blockers": [],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-jh5nbz8w/backchain-cohort-gi54_y15"
+   },
+   {
+    "arm": "none",
+    "case": "stale-build-receipt-identity",
+    "contaminated": false,
+    "cost": {
+     "output_tokens": 4026,
+     "processed_tokens": 94981,
+     "usage": {
+      "cache_read_input_tokens": 76416,
+      "input_tokens": 90955,
+      "output_tokens": 4026,
+      "reasoning_tokens": 320
+     },
+     "wall_seconds": 92.1
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--none--sol",
+    "meta": {
+     "effort": "medium",
+     "elapsed_seconds": 92.1,
+     "host": "codex",
+     "model": "gpt-6.1-sol",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sol",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": false,
+    "result": {
+     "execution_blockers": [
+      "S1 must establish availability of a local Node 22.12.0 runtime before preparation can succeed; this planning session has not checked runtime availability and authorizes no network download.",
+      "S2 must establish a fresh local preparation receipt matching catalog-north, catalog-builder-r5, node-22.12.0, and snapshot-2026-10-14 before S3 writes the index. The existing fixture receipt is stale and cannot authorize the write."
+     ],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-jh5nbz8w/backchain-cohort-80ak7aht"
+   },
+   {
+    "arm": "none",
+    "case": "stale-build-receipt-identity",
+    "contaminated": false,
+    "cost": {
+     "output_tokens": 4409,
+     "processed_tokens": 90743,
+     "usage": {
+      "cache_creation": {
+       "ephemeral_1h_input_tokens": 14217,
+       "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 14217,
+      "cache_read_input_tokens": 72109,
+      "fallback_credit": null,
+      "inference_geo": "global",
+      "input_tokens": 8,
+      "iterations": [
+       {
+        "cache_creation": {
+         "ephemeral_1h_input_tokens": 3683,
+         "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 3683,
+        "cache_read_input_tokens": 21904,
+        "input_tokens": 2,
+        "output_tokens": 701,
+        "type": "message"
+       }
+      ],
+      "output_tokens": 4409,
+      "output_tokens_details": {
+       "thinking_tokens": 1188
+      },
+      "server_tool_use": {
+       "web_fetch_requests": 0,
+       "web_search_requests": 0
+      },
+      "service_tier": "standard",
+      "speed": "standard"
+     },
+     "wall_seconds": 32.2
+    },
+    "infrastructure_failure": false,
+    "keys": null,
+    "label": "stale-build-receipt-identity--none--sonnet",
+    "meta": {
+     "effort": "high",
+     "elapsed_seconds": 32.2,
+     "host": "claude",
+     "model": "claude-sonnet-5-5",
+     "returncode": 0,
+     "status": "exited"
+    },
+    "model": "sonnet",
+    "plan": {
+     "completion": "complete",
+     "json": true,
+     "present": true,
+     "structure_ok": true
+    },
+    "ran_toolkit": false,
+    "result": {
+     "execution_blockers": [
+      "The existing receipt (catalog-builder-r4, node-20.18.0, snapshot-2026-09-30) is stale against r5, node 22.12.0 and snapshot-2026-10-14, so it cannot authorize the build; a fresh preparation receipt must be produced first.",
+      "The workspace defines no procedure or owner for producing the preparation receipt; whoever executes must supply one or approve it before the index is written.",
+      "The installed runtime has not been inspected (nothing outside the workspace was read or run); it must be node 22.12.0 at execution time for the new receipt to be valid.",
+      "src/build-index.mjs only returns records and defines no index output path, so the write location and output check mechanism must be fixed at execution time; no build was run and no other target is touched."
+     ],
+     "planning_gaps": [],
+     "status": "complete"
+    },
+    "schema": "backchain-value-attempt/v1",
+    "workspace": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/value-ws-jh5nbz8w/backchain-cohort-a8h9dpgu"
+   }
+  ]
+ },
+ "schema": "backchain-value-pilots/v1"
+}
