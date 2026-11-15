@@ -53,7 +53,7 @@ fixed.
 - Two live runs, or a finished run beside a live one, stay `ambiguous` even when one is newer; the 2026-10-16 audit control
   requires it.
 
-## Grok's headless refusals end sessions: a pre-classifier write check in Auto-review, measured over 267 Grok runs; a fix awaits the owner (2026-11-15) — status: firm for the cause (Grok 1.0.77) and the rate; interim for the options
+## Grok's headless refusals end sessions: a pre-classifier write check in Auto-review, measured over 267 Grok runs; the owner chose the hook and the resume note, both built (2026-11-15) — status: firm for the cause (Grok 1.0.77), the rate and the fix's unit and live checks; interim for its effect on a whole delivery
 
 **What was seen.** The planning-points probe (E24, 909adf228e00254d293ddfcd76b8011ef296fd6c) had 28 refused shell commands in
 four Grok 1.0.77 deliveries, each ending a host session as `cancelled`, and pp-3 was lost at release-plan. The same category
@@ -85,13 +85,29 @@ harness's profile that denies the three shapes with the rewrite, so the model re
 2 of 2 in-turn recoveries on a task, 0 of 2 without it; the shapes flag 28 of 28 recorded 1.0.77 refusals and 0 of 2,155
 allowed calls), plus a resume prompt that names a refusal for whatever the hook misses.
 
-**Evidence.** docs/experiments/grok-headless-refusals-20261115/ (analyze.py, summarize.py, probe.py, export_probes.py,
-preempt_hook.py; evidence/summary.md, summary.json, refusals.jsonl, probes.jsonl). Probe sessions under
-`~/e2e-runs-refusal-probe/20261115/`, outside the repository.
+**Fix (owner's choice, the same day: "Hook + resume note").** `test/shiploop_e2e/grok_preempt.py` holds the rule, the
+hook and its installer; `GrokHost.preempt_install` puts it in each Grok run's throwaway profile before the session, as a
+PreToolUse hook on `run_terminal_command`, and run.py records `preempt` in result.json and `preempted_tool_calls` in the
+baseline row. When a Grok session still ends on a refusal, the resume prompt names the refused command and the rewrite.
+While building it, more probes corrected the rule: `rm`, `mv`, `touch` and `ln` targets are floored like `mkdir`'s, while
+`tar -C`, `rsync` and a variable in a `cp` source are not (the first version had listed `tar -C`). The rule agrees with
+all 60 exact-command probes and still flags 28 of 28 recorded 1.0.77 refusals and 0 of 2,155 allowed calls. Live, with
+the real install on Grok 1.0.77, the matcher fires, the three shapes are denied in the turn (3 of 3), and the `"$VAR"`
+task recovers in the same turn (2 of 2). Hermetic tests in test/shiploop-e2e-hosts.test.py (GrokPreemptTest and two
+GrokResumeTest cases with a new `refused` fake-Grok mode); SPEC "A Grok refusal the harness can foresee is made in the
+turn" and "A resume says when Grok's check ended the session".
+
+**Evidence.** docs/experiments/grok-headless-refusals-20261115/ (analyze.py, summarize.py, probe.py, export_probes.py;
+evidence/summary.md, summary.json, refusals.jsonl, probes.jsonl; the prototype preempt_hook.py is in
+ded345978767587e07c6fffe60aa3f7e785c668b). Probe sessions under `~/e2e-runs-refusal-probe/20261115/`, outside the
+repository.
 
 **Open edges.**
-- No change is built. Anything that changes the Grok host's permission handling or the resume prompt changes what the
-  harness measures in Grok runs that meet a refusal, so it waits for the owner.
+- ~~No change is built.~~ Superseded the same day: the owner chose the hook and the resume note, and both are built.
+  They change what the harness measures in Grok runs that meet a refusal (fewer sessions, `preempted_tool_calls`), so a
+  Grok run before 2026-11-15 and one after differ there; no E2E round has measured the effect on a whole delivery yet.
+- slice.py (the planning-slice experiments) installs neither the keepalive nor this hook, so a slice still loses its
+  session to a refusal; adding the hook there would change those experiments' comparability and was left out.
 - The floor is build-specific: 1.0.46 had none, 1.0.70 refused more (12 of its 15 refusals outside the three shapes hold
   ```` ``` ```` in single quotes or a quoted here-document). Any hook needs a per-build pin.
 - The Claude host also runs `--permission-mode auto`; its refusals are not measured (a Grok-only signal, 1a35bc50).

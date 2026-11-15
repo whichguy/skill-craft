@@ -36,8 +36,19 @@ def main() -> int:
             ended = next((s for s in store if s.get("type") == "turn_ended"), None)
             hook_deny = any("Hook denied" in (u.get("text") or "") for u in row.get("updates") or [])
             verdicts = [VERDICT.search(d).groups() for d in row.get("debug") or [] if VERDICT.search(d)]
+            # The Grok build that answered: the session profile's own log names it ("ver") on most of its lines.
+            builds = set()
+            for log in results.parent.glob(f"{row['case']}-{row['mode']}-{row['attempt']}*/home/.grok/logs/unified.jsonl"):
+                for entry in log.read_text(errors="replace").splitlines():
+                    try:
+                        version = json.loads(entry).get("ver")
+                    except ValueError:
+                        continue
+                    if version:
+                        builds.add(version)
             rows.append({
                 "batch": batch, "case": row["case"], "attempt": row["attempt"], "mode": row["mode"],
+                "build": ",".join(sorted(b for b in builds if b)) or None,
                 "model": row["model"], "effort": row["effort"], "allow": row.get("allow") or [],
                 "preempt_hook": row.get("preempt_hook", False), "prompt_kind": row.get("prompt_kind", "exact"),
                 "asked": redact(row["asked"]), "ran": [redact(c or "") for c in row.get("ran") or []],

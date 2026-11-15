@@ -1,7 +1,9 @@
 # Grok's headless refusals in ShipLoop E2E runs (2026-11-15)
 
-Status: **firm** for the cause on Grok 1.0.77 and for the measured rate; **interim** for the options, which no run has
-tested end to end. No E2E default, case, baseline or ShipLoop file changed. The owner decides which fix, if any, is built.
+Status: **firm** for the cause on Grok 1.0.77 and for the measured rate; the owner chose options E and D the same day
+and both are built ([Decision and fix](#decision-and-fix-2026-11-15)); **interim** for their effect on a whole delivery,
+which no E2E round has measured yet. The first version of this page (ded345978767587e07c6fffe60aa3f7e785c668b) said no
+fix was built; that line is superseded.
 
 ## The question
 
@@ -20,13 +22,16 @@ commands, how often it happens across the recorded Grok runs, and what would fix
   headless run cannot ask for approval`, marks the call `User cancelled the execution`, and ends the turn as `cancelled`
   (`permission_cancelled`). Grok skips the `Stop` hook for a cancelled turn, so ShipLoop's keepalive hook never sees it, and
   `run.py`'s resume loop starts the session again.
-- **Trigger** (probed on 1.0.77, 63 single-command Grok sessions). The floor fires on three shapes, deterministically,
-  in 0 to 13 ms, without the classifier:
-  1. a file-writing program (`mkdir`, `cp`, `mv`, `rm`, `tee`, `touch`, `tar -C`, ...) whose target holds a shell expansion:
-     `mkdir -p "$COPY"`, `cp a "$X/"`, `tee "$X/t.txt"`, `mkdir -p "${TMPDIR:-/tmp}/x"`, even when the variable was set to
-     a literal path a line earlier;
+- **Trigger** (probed on 1.0.77, 81 Grok sessions in all). The floor fires on three shapes, deterministically, in 0 to
+  13 ms, without the classifier:
+  1. a write target that holds a shell expansion, where the target is every operand of `mkdir`, `touch` or `rm`, the
+     destination of `cp`, `mv` or `ln`, or a file of `tee`: `mkdir -p "$COPY"`, `rm -rf "$X"`, `cp a "$X/"`,
+     `tee "$X/t.txt"`, `mkdir -p "${TMPDIR:-/tmp}/x"`, `mkdir -p "$(dirname …)"`, even when the variable was set to a
+     literal path a line earlier. (Corrected later the same day: the first version listed `tar -C` among these programs.
+     The batches `writers-1077` and `writers2-1077` found `tar -x -C "$X"`, `tar -czf "$X/a.tgz"` and `rsync … "$X/"`
+     allowed by the classifier, and a variable in a `cp` source only allowed too.)
   2. a relative write after a `cd` to a folder other than the session's own: `cd WT && mkdir -p fixtures`,
-     `cd WT && git show … > fixtures.txt`, `(cd WT && mkdir -p x)`;
+     `cd WT && git show … > fixtures.txt`, `(cd WT && mkdir -p x)`, `cd WT && cp README.md copy.md`, `cd WT && rm -f x`;
   3. two adjacent backticks inside a double-quoted word, an empty command substitution: ```` python3 -c "… r'```x\n(.*)\n```' …" ````,
      which is how the model reads ShipLoop's ```` ```shiploop-state ```` blocks in one-liners.
 
@@ -81,10 +86,15 @@ commands, how often it happens across the recorded Grok runs, and what would fix
    one exact command, 56 ran it character for character and 3 added or dropped only a final newline; the other 4 sessions
    gave the model a small task. Batches: `replay-1077` (eight refused commands from pp-1 to pp-4, their run root swapped),
    `pairs-1077` and `pairs2-1077` (minimal pairs, one feature changed at a time), `allow-1077` and `allowall-1077` (allow
-   rules), `hook-1077` and `task-1077`/`task-hook-1077` (the prototype hook), `trace-1077` (a log-level attempt). Model
-   `grok-4.6` at `low`: the permission decision is not the model's. The 63 sessions cost $1.39.
-5. **Check the rule against the record.** `analyze.floor_shapes` encodes the three shapes. It agrees with all 47 exact-command
-   probes, and on the recorded runs it flags every 1.0.77 refusal (28 of 28) and no allowed 1.0.77 call (0 of 2,155).
+   rules), `hook-1077` and `task-1077`/`task-hook-1077` (the prototype hook of
+   ded345978767587e07c6fffe60aa3f7e785c668b), `trace-1077` (a log-level attempt), then, while building the fix,
+   `writers-1077` and `writers2-1077` (each writing program with a variable or a post-`cd` target) and `live-hook-1077`
+   and `live-task-hook-1077` (the harness's own installed hook). Model `grok-4.6` at `low`: the permission decision is not
+   the model's. The 81 sessions cost $2.00, and every one was answered by Grok 1.0.77 (each profile's log names its build).
+5. **Check the rule against the record.** The rule is code in one place, `test/shiploop_e2e/grok_preempt.floor_shapes`,
+   which the harness's hook applies and `analyze.py` imports. It agrees with all 60 exact-command probes, and on the
+   recorded runs it flags every 1.0.77 refusal (28 of 28) and no allowed 1.0.77 call (0 of 2,155). The first version's own
+   copy of the rule (in analyze.py) flagged the same calls; it was replaced by the import.
 6. **Summarize** ([summarize.py](summarize.py)) and export the probe sessions ([export_probes.py](export_probes.py)) into
    [evidence/](evidence/). Paths are written with `~`; nothing from the probes' debug logs is kept except the classifier
    verdict lines, because those logs also hold the account's sign-in response.
@@ -95,7 +105,9 @@ commands, how often it happens across the recorded Grok runs, and what would fix
 |---|---|---|
 | `COPY=…` then `mkdir -p "$COPY"` | refused, turn cancelled | 0 ms |
 | `X=…` then `cp a "$X/"`; `X=…` then `echo hi \| tee "$X/t.txt"` | refused | 0 ms |
-| `mkdir -p "${TMPDIR:-/tmp}/x"` | refused | 0 ms |
+| `mkdir -p "${TMPDIR:-/tmp}/x"`; `mkdir -p "$(dirname …)"` | refused | 0 ms |
+| `X=…` then `rm -rf "$X"`, `mv a "$X/m.md"`, `touch "$X/t.txt"`, `ln -s a "$X/l.md"`, `cp a "$X"` | refused | 0 to 6 ms |
+| `cd WT && cp README.md copy.md`; `cd WT && rm -f copy.md`; `cd WT && touch t.txt` | refused | 0 to 1 ms |
 | `cd WT && mkdir -p fixtures`; `cd WT && git show HEAD:README.md > fixtures.txt`; `(cd WT && mkdir -p x)` | refused | 0 to 1 ms |
 | ```` python3 -c "… r'```x\n(.*?)\n```' …" ```` (backticks in double quotes) | refused | 0 ms |
 | the eight refused commands of pp-1 to pp-4, replayed in fresh sessions | refused (8 of 8) | 0 to 9 ms |
@@ -105,6 +117,7 @@ commands, how often it happens across the recorded Grok runs, and what would fix
 | `X=…` then `cat "$X/a.md"`, `git -C "$WT" status`, `echo "$COPY"`, `node --version > "$X/out.txt"`, `cat > "$X/a.txt" <<'EOF'` | classifier, allowed | 2.2 to 3.4 s |
 | the backtick command with `~~~` instead, or in single quotes; `` echo "a `date` b" ``; `echo HEAD $(git … rev-parse HEAD)` | classifier, allowed | 2.2 to 3.8 s |
 | `python3 <run>/scratch/probe.py` (a script file run as one command) | classifier, allowed | 3.9 s |
+| `X=…` then `rsync -a <dir>/ "$X/"`, `tar -czf "$X/a.tgz" …`, `git -C WT archive HEAD \| tar -x -C "$X"`, `cp "$X/a.md" <literal path>` | classifier, allowed | 3.3 to 7.1 s |
 
 Earlier builds differed. 1.0.46 (runs from 2026-10-05 to 10-09) had no floor: 20 calls of these shapes were all allowed, and
 its 3 refusals were classifier timeouts and escalations. 1.0.70 (runs from 2026-10-24 to 11-01) refused more: the three shapes
@@ -148,7 +161,7 @@ Auto-review off gives these up.
 | **B.** Allow rules (`--allow`, a case's `platform.host_allow`) | None: the floor defers every allow rule, even `Bash(*)` (6 of 6 refused). | None | It looks like a fix and is not one. |
 | **C.** A ShipLoop packet rule for scratch and check scripts, as F10 of the 2026-10-18 Battleship analysis proposed (118d6f7d2c1394a11f1d06aaea006193e3a5369d; never built) | Partial: depends on the model following it in long contexts, untested. | Changes ShipLoop on every host. Needs an E2E round, and every later baseline on every host differs. | A Grok 1.0.77 detail in every packet on every host. A product change, outside this apparatus task. |
 | **D.** `run.py`'s resume prompt says that the last command was refused by Grok's check, quotes its head, and gives the rewrite | Does not prevent a refusal. It targets the repeats: 88 of 176 refusals were followed by another within 10 calls, and each of pp-3's seven later sessions repeated the shape. | Small: only resumes that follow a refusal change. | Each first refusal still costs a session (median 10.9 s plus a context re-read). |
-| **E.** A Grok `PreToolUse` hook in the profile the harness builds, beside the keepalive hooks, that denies the three shapes with the rewrite ([prototype](preempt_hook.py)) | Turns a session-ending refusal into a refusal the model reads in the same turn. Probes: 3 of 3 shapes completed instead of cancelling; a task that invites a `"$VAR"` write recovered in the same turn 2 of 2 times, rewriting to literal paths, against 0 of 2 without the hook. On the record, the shapes flag 28 of 28 refusals and 0 of 2,155 allowed calls on 1.0.77. | Moderate. Auto-review and its classifier stay, so quality evidence stays comparable. Session counts and time fall in runs that met refusals. | Calibrated on 1.0.77: a new build can move the floor (1.0.70's was broader), so the hook needs a pin, like the adapter's verb pin. A false flag costs the model one rewrite, not a session; a missed shape costs what it costs today. It denies only what Grok would refuse; it does not rewrite or approve anything. |
+| **E.** A Grok `PreToolUse` hook in the profile the harness builds, beside the keepalive hooks, that denies the three shapes with the rewrite (built: [grok_preempt.py](../../../test/shiploop_e2e/grok_preempt.py)) | Turns a session-ending refusal into a refusal the model reads in the same turn. Probes: 3 of 3 shapes completed instead of cancelling; a task that invites a `"$VAR"` write recovered in the same turn 2 of 2 times, rewriting to literal paths, against 0 of 2 without the hook. On the record, the shapes flag 28 of 28 refusals and 0 of 2,155 allowed calls on 1.0.77. | Moderate. Auto-review and its classifier stay, so quality evidence stays comparable. Session counts and time fall in runs that met refusals. | Calibrated on 1.0.77: a new build can move the floor (1.0.70's was broader), so the hook needs a pin, like the adapter's verb pin. A false flag costs the model one rewrite, not a session; a missed shape costs what it costs today. It denies only what Grok would refuse; it does not rewrite or approve anything. |
 
 Rejected outright: rewriting a floored command into a script file inside the hook (`updatedInput`). Grok would then review a
 command that hides what the floor exists to see; if the owner wants the check off, option A says so openly.
@@ -156,7 +169,29 @@ command that hides what the floor exists to see; if the owner wants the check of
 **Recommendation: E with D.** E removes the session losses of the three known shapes on the current build. D covers what E
 cannot: classifier timeouts (12 recorded, none on 1.0.77), escalations, and any shape a new build adds. Both stay inside the
 E2E apparatus; neither changes ShipLoop, the subject model or the permission mode. Building them needs the owner's go,
-because they change what the harness measures in Grok runs that meet a refusal.
+because they change what the harness measures in Grok runs that meet a refusal. The owner gave it the same day; see
+[Decision and fix](#decision-and-fix-2026-11-15).
+
+## Decision and fix (2026-11-15)
+
+The owner chose E with D ("Hook + resume note"), and both are built in the E2E harness. No ShipLoop file, host permission
+mode, subject model or baseline row changed.
+
+- **E, the hook.** `test/shiploop_e2e/grok_preempt.py` is the rule, the hook and its installer. `GrokHost.preempt_install`
+  copies the module into the run's throwaway profile (`home/.grok/hooks/refusal-preempt.py`) and registers it as a
+  PreToolUse hook with the matcher `run_terminal_command`, before each Grok session; a profile that has it keeps it, so a
+  resumed run keeps the hook it started with, and a regrade only reads it. Each denial is logged in the run's state
+  folder. `result.json` records `preempt` (installed, kept, the script's sha256, `calibrated_on`, and the denials), and
+  the baseline row `preempted_tool_calls`. Claude and Codex get no hook.
+- **D, the resume note.** When the last Grok session ended on a refused shell call, run.py's resume prompt (the resume
+  loop's, and `--resume-run`'s opening) adds a note: the refused command's first 200 characters, not to run it again as
+  written, and the hook's rewrite.
+- **Live check** (Grok 1.0.77, the real install): the matcher fires; the three refused shapes were denied and each turn
+  completed (3 of 3, batch `live-hook-1077`); the task that invites a `"$VAR"` write recovered in the same turn 2 of 2
+  times, each with one logged denial and the copied file in place (`live-task-hook-1077`).
+- **Pin.** `grok_preempt.CALIBRATED_BUILD` is 1.0.77. A hermetic test checks the rule against every exact-command probe
+  in [evidence/probes.jsonl](evidence/probes.jsonl) and that each was answered by that build. When Grok updates, rerun
+  `probe.py`'s cases on the new build, export them, and move the constant only when the test passes again.
 
 ## Unknowns
 
@@ -172,11 +207,13 @@ because they change what the harness measures in Grok runs that meet a refusal.
 
 ## Files
 
-- [analyze.py](analyze.py): pairs every Grok shell call with Grok's decision; `floor_shapes`, the probe-derived rule.
+- [analyze.py](analyze.py): pairs every Grok shell call with Grok's decision; its shapes come from the harness's rule.
 - [summarize.py](summarize.py): the rate tables and the compact evidence.
-- [probe.py](probe.py): one-command Grok sessions through `hosts.GrokHost`; options for allow rules and the hook.
-- [preempt_hook.py](preempt_hook.py): the prototype `PreToolUse` hook (probe only; nothing installs it).
-- [export_probes.py](export_probes.py): the probe sessions into `evidence/probes.jsonl`, redacted.
+- [probe.py](probe.py): one-command Grok sessions through `hosts.GrokHost`; options for allow rules and the harness's hook.
+- [export_probes.py](export_probes.py): the probe sessions into `evidence/probes.jsonl`, redacted, with the build that answered.
+- The hook itself is [test/shiploop_e2e/grok_preempt.py](../../../test/shiploop_e2e/grok_preempt.py). The prototype this
+  page first linked (`preempt_hook.py`) is in ded345978767587e07c6fffe60aa3f7e785c668b and was removed when the harness
+  module replaced it.
 - [evidence/](evidence/): `summary.md`, `summary.json`, `refusals.jsonl`, `probes.jsonl`.
 
 To reproduce: `python3 -I analyze.py OUT` over `~/e2e-runs*` (about 50 s), then `python3 -I summarize.py OUT evidence`.

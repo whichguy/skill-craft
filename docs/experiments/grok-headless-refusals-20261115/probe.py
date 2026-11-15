@@ -65,7 +65,9 @@ def main() -> int:
     parser.add_argument("--rust-log", help="RUST_LOG for the session's debug file")
     parser.add_argument("--allow", action="append", default=[], help="a Grok --allow rule for every session")
     parser.add_argument("--preempt-hook", action="store_true",
-                        help="install preempt_hook.py as a global PreToolUse hook in each session's profile")
+                        help="install the harness's PreToolUse hook (hosts.GrokHost.preempt_install) in each profile; "
+                             "the batches hook-1077 and task-hook-1077 ran the prototype committed in "
+                             "ded345978767587e07c6fffe60aa3f7e785c668b instead")
     parser.add_argument("--prompt", choices=("exact", "task"), default="exact",
                         help="exact: run the command as given; task: the case text is a task for the model to do")
     args = parser.parse_args()
@@ -88,11 +90,7 @@ def main() -> int:
                 "{WORK}", paths["WORK"]).replace("{ROOT}", paths["ROOT"])
             env = host.env(case_dir / "home")
             if args.preempt_hook:
-                hooks = case_dir / "home" / ".grok" / "hooks"
-                hooks.mkdir(parents=True, exist_ok=True)
-                hook = Path(__file__).resolve().parent / "preempt_hook.py"
-                (hooks / "refusal-preempt.json").write_text(json.dumps({"hooks": {"PreToolUse": [{"hooks": [
-                    {"type": "command", "command": f"python3 {hook}", "timeout": 10}]}]}}))
+                host.preempt_install(env)  # the harness's own hook and registration (test/shiploop_e2e/grok_preempt.py)
             if args.rust_log:
                 env["RUST_LOG"] = args.rust_log
             prompt = PROMPT.format(command=command) if args.prompt == "exact" else command

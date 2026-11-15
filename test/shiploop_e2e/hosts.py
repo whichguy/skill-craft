@@ -28,6 +28,7 @@ import urllib.error
 import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import grok_preempt  # noqa: E402  (the PreToolUse hook a Grok profile gets, beside the keepalive)
 import listeners  # noqa: E402  (the one group kill)
 import runrecord  # noqa: E402  (the one set of host-build reasons)
 
@@ -259,6 +260,9 @@ class Host:
     resumable = False                 # resume a session that ended while the run is active
     keepalive = False                 # install ShipLoop's keepalive hooks before the session
     marketplace = False               # installs from the published marketplace itself
+    # A shell call the host's permission check refuses ends the session (Grok headless, --permission-mode auto), so the
+    # prompt that resumes it says so (run.refusal_note).
+    refusal_ends_session = False
 
     def env(self, home: Path, git_config: Path | None = None) -> dict:
         return dict(os.environ, GIT_TERMINAL_PROMPT="0", NO_COLOR="1")
@@ -266,6 +270,15 @@ class Host:
     def keepalive_install(self, env: dict, plugin_dir: Path) -> dict | None:
         """The keepalive block the run records: the hooks this host has before the session starts, or None for a host with none."""
         return grok_keepalive(env, plugin_dir) if self.keepalive else None
+
+    def preempt_install(self, env: dict) -> dict | None:
+        """The preempt block the run records: the hook that refuses in the turn a call the host's permission check would
+        refuse by ending the session (grok_preempt), installed before the session starts, or None for a host with none."""
+        return None
+
+    def preempt_record(self, env: dict) -> dict | None:
+        """The preempt block of a run that starts no host (a regrade): the hook its profile already holds, read only."""
+        return None
 
     def invoke(self, skill: str, prompt: str) -> str:
         return f"/{skill} {prompt}"
@@ -303,7 +316,14 @@ class Host:
 
 class GrokHost(Host):
     name, model, effort, skill = "grok", GROK_DEFAULT_MODEL, GROK_DEFAULT_EFFORT, "shiploop"
-    resumable = keepalive = marketplace = True
+    resumable = keepalive = marketplace = refusal_ends_session = True
+
+    def preempt_install(self, env):
+        """grok_preempt's hook in the run's throwaway profile (GROK_CONFIG_DIR), never in the user's own ~/.grok."""
+        return grok_preempt.install(Path(env["GROK_CONFIG_DIR"]))
+
+    def preempt_record(self, env):
+        return grok_preempt.installed(Path(env["GROK_CONFIG_DIR"]))
 
     def __init__(self, binary: str = "grok"):
         self.binary = binary

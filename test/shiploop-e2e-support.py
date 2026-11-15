@@ -229,6 +229,18 @@ for chunk in ("Ship", "ped."):
     print(json.dumps({{"type": "text", "data": chunk}}))
 leak_a_listener()
 mode = os.environ.get("FAKE_MODE")
+# A block of its own before the mode chain, whose first line other suites anchor their modes on (test-environment).
+if mode == "refused" and resumed:
+    mode = "resume"  # the resumed session finishes the same run, as resume's does
+elif mode == "refused":
+    # Grok's headless permission check refuses a shell call, which ends the session (grok_preempt's module docstring).
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "release-plan", "revision": 40}})
+    print(json.dumps({{"type": "tool_call", "toolCallId": "call-refused-1", "toolName": "run_terminal_command",
+                      "rawInput": {{"command": 'COPY="/r/run/scratch/rv-copy"\\nmkdir -p "$COPY"'}}}}))
+    print(json.dumps({{"type": "tool_call_update", "toolCallId": "call-refused-1", "status": "failed", "content": [
+        {{"type": "content", "content": {{"type": "text",
+                                        "text": "User cancelled the execution for tool `run_terminal_command`"}}}}]}}))
 if mode == "done" or (mode == "resume" and resumed):
     import shutil
     shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run

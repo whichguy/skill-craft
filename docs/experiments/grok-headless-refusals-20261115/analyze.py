@@ -12,7 +12,8 @@ Shell calls are paired by order (the n-th ``run_terminal_command`` decision with
 pairing is kept only when both counts match and every decision ``cancelled`` falls on a call the stream marks cancelled; a
 run that fails either test is reported as unpaired and contributes only its cancelled-call commands from the stream.
 
-The stage at a refusal is the ShipLoop stage in progress at the decision's time: the first history entry of the run's
+Each call's ``floor_shapes`` come from the harness's own rule (test/shiploop_e2e/grok_preempt.py), the one the E2E
+hook applies. The stage at a refusal is the ShipLoop stage in progress at the decision's time: the first history entry of the run's
 ``state.md`` whose accept time (``timeline.json``) is at or after it, else the stage the run was at when it stopped.
 
 Usage: analyze.py OUT_DIR [RUN_ROOT ...]   (default roots: ~/e2e-runs*). Writes OUT_DIR/calls.jsonl (one row per shell
@@ -30,6 +31,9 @@ import sys
 import urllib.parse
 from collections import Counter
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "test" / "shiploop_e2e"))
+from grok_preempt import floor_shapes  # noqa: E402  (the harness's one implementation of the rule the probes found)
 
 SKIP = ("/fixtures/", "-source/", "/test/", "/home/", "/work/", "/delivery/", "/export/", "/review-export/")
 CANCEL_TEXT = "User cancelled the execution for tool `run_terminal_command`"
@@ -133,135 +137,6 @@ def stage_at(history: list[tuple[float, str]], final: str | None, moment: float)
 
 
 ASSIGN = re.compile(r"^\s*[A-Za-z_][A-Za-z0-9_]*=")
-WRITERS = ("mkdir", "cp", "mv", "tee", "touch", "rm", "ln", "rsync", "install")
-
-
-def segments(command: str) -> list[str]:
-    """The simple commands of ``command``: split on unquoted newlines, &&, ||, ;, | and on ( ) { } grouping."""
-    parts, current, quote, i = [], [], None, 0
-    while i < len(command):
-        ch = command[i]
-        if quote:
-            current.append(ch)
-            if ch == "\\" and quote == '"' and i + 1 < len(command):
-                current.append(command[i + 1])
-                i += 1
-            elif ch == quote:
-                quote = None
-        elif ch in "'\"":
-            quote = ch
-            current.append(ch)
-        elif ch == "\\" and i + 1 < len(command):
-            current.append(command[i:i + 2])
-            i += 1
-        elif ch in "\n;|&(){}":
-            parts.append("".join(current))
-            current = []
-        else:
-            current.append(ch)
-        i += 1
-    parts.append("".join(current))
-    return [part.strip() for part in parts if part.strip()]
-
-
-HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
-
-
-def split_heredocs(command: str) -> tuple[str, list[str]]:
-    """(the command without its here-document bodies, the bodies of unquoted here-documents). A quoted body
-    (<<'EOF') is literal text to the shell; an unquoted one expands like a double-quoted word."""
-    lines, kept, expanding, i = command.split("\n"), [], [], 0
-    while i < len(lines):
-        line = lines[i]
-        kept.append(line)
-        tags = HEREDOC.findall(line)
-        i += 1
-        for quote, tag in tags:
-            body = []
-            while i < len(lines) and lines[i].strip() != tag:
-                body.append(lines[i])
-                i += 1
-            i += 1  # the closing tag
-            if not quote:
-                expanding.append("\n".join(body))
-    return "\n".join(kept), expanding
-
-
-def unquoted_redirect_targets(segment: str) -> list[str]:
-    """Targets of the > and >> redirects written outside quotes (2>&1 and >&2 are not file targets)."""
-    targets, quote, i = [], None, 0
-    while i < len(segment):
-        ch = segment[i]
-        if quote:
-            if ch == quote:
-                quote = None
-        elif ch in "'\"":
-            quote = ch
-        elif ch == ">" and (i == 0 or segment[i - 1] not in "=<-"):
-            j = i + 1
-            if j < len(segment) and segment[j] == ">":
-                j += 1
-            if j < len(segment) and segment[j] == "&":
-                i = j + 1
-                continue
-            rest = segment[j:].lstrip()
-            match = re.match(r"\"[^\"]*\"|'[^']*'|[^\s;&|)]+", rest)
-            if match:
-                targets.append(match.group(0))
-            i = j
-            continue
-        i += 1
-    return targets
-
-
-def backtick_in_double_quotes(command: str) -> bool:
-    """Two adjacent unescaped backticks inside a double-quoted word: an empty command substitution, as a ``` fence in a
-    Python regex makes. The probes found Grok 1.0.77 refusing that and allowing a backtick pair around a real command
-    ("a `date` b")."""
-    quote = None
-    for index, ch in enumerate(command):
-        if quote == "'":
-            if ch == "'":
-                quote = None
-        elif quote == '"':
-            if ch == '"' and command[index - 1] != "\\":
-                quote = None
-            elif ch == "`" and command[index - 1] != "\\" and command[index + 1:index + 2] == "`":
-                return True
-        elif ch in "'\"":
-            quote = ch
-    return False
-
-
-def floor_shapes(command: str, cwd: str | None) -> list[str]:
-    """The shapes the 2026-11-15 probes showed Grok 1.0.77's auto mode refuses before its classifier, in a headless run:
-    a file-writing program whose target holds a shell expansion (var-write), a relative write after a cd to a folder
-    other than the session's own (cd-relative-write), and a backtick inside a double-quoted word (backtick-in-dq).
-    A heuristic over the command text: it reads quotes and separators, not the whole shell grammar."""
-    shapes, moved = set(), False
-    command, expanding_bodies = split_heredocs(command)
-    for segment in segments(command):
-        words = segment.split()
-        while words and ASSIGN.match(words[0]):
-            words = words[1:]  # leading VAR=value assignments
-        if not words:
-            continue
-        program = words[0].rsplit("/", 1)[-1]
-        if program in ("cd", "pushd"):
-            target = " ".join(words[1:]).strip("'\"")
-            moved = moved or not (cwd and target.rstrip("/") == cwd.rstrip("/"))
-            continue
-        arguments = [w for w in words[1:] if not w.startswith("-")]
-        if program in WRITERS or (program == "tar" and "-C" in words):
-            if any("$" in w for w in arguments):
-                shapes.add("var-write")
-            elif moved and any(not w.strip("'\"").startswith("/") for w in arguments):
-                shapes.add("cd-relative-write")
-        if moved and any(not t.strip("'\"").startswith(("/", "$")) for t in unquoted_redirect_targets(segment)):
-            shapes.add("cd-relative-write")
-    if backtick_in_double_quotes(command) or any("``" in body for body in expanding_bodies):
-        shapes.add("backtick-in-dq")
-    return sorted(shapes)
 
 
 def features(command: str) -> dict:
