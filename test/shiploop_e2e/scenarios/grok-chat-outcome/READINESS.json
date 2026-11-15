@@ -4,7 +4,7 @@
   "selectable": false,
   "packaged": false,
   "preparation": "PREPARED",
-  "preparation_review": "Independent source review passed for the exact prompt and outcome-review bytes. Parent finalized preparation metadata after JSON, local-link and source-hygiene checks; prompt and outcome-review document renders were inspected separately. This is not evaluator qualification or app acceptance.",
+  "preparation_review": "Initial packet independently reviewed at commit 71fa298e44db73f6afa46217377ba0ea850de916. Subsequent owner-directed Grok Bot behavior, intentions and visual-reference clarification was parent-reviewed against official sources and checked for JSON, links and source hygiene; it has no renewed independent model review or application acceptance. Initial document renders apply to the initial revision only. This is not evaluator qualification.",
   "live_launch": "BLOCKED",
   "evaluator": "UNQUALIFIED",
   "product_acceptance": "NOT_RUN",

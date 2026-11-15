@@ -2,10 +2,11 @@
 
 Evaluate the delivered customer experience, not conformity to a preferred implementation. This prototype has not been launched; acceptance is **NOT_RUN** and the evaluator remains **UNQUALIFIED**. No app results are claimed.
 
-Before launch, inspect the entire builder-visible input, including environment seeds and helper tools. Do not feed the old fixed checks, UI labels, APIs or tool schemas into that environment. Freeze the exact attempt and literal brief. Bind subsequent observations to exact source, deployment, canonical org and user; a changed candidate needs observations bound to that candidate.
+Before launch, inspect the entire builder-visible input, including environment seeds and helper tools. Do not feed the old fixed checks, UI labels, APIs or tool schemas into that environment. Freeze the exact attempt and literal brief, and retain the public Grok Bot reference material and screenshots used for that attempt. Bind subsequent observations to exact source, deployment, canonical org and user; a changed candidate needs observations bound to that candidate. Grok Bot is a behavior and visual reference within the authorized Salesforce scope; its unrelated capabilities do not expand that scope.
 
 | Customer journey | Outcome to assess through independent observation |
 | --- | --- |
+| Grok Bot behavior and look and feel | Compare actual user journeys and rendered screens with the retained official reference: persistent collaboration, natural follow-up and steering, recognizable bots and presence, roster navigation, reading and composition, and contextual results and approvals. Assess whether the experience faithfully carries over Grok Bot's intentions and design language within the case's scope. |
 | First use and setup | A new user can understand prerequisites, complete permitted setup, and recover from missing or incorrect configuration without exposing secrets. Observe the actual rendered flow and relevant provider behavior. |
 | Natural read and follow-up | The user asks about permitted synthetic records, receives a useful grounded answer, and follows up without re-explaining context. Compare rendered conversation, actual provider use and independently read records; examine access boundaries. |
 | Proposed, rejected and confirmed writes | The user sees exact create and update proposals, rejects some and confirms others. Independent record readback establishes only confirmed intended changes occurred; cancellation, repeat and reload do not introduce unintended writes. |
