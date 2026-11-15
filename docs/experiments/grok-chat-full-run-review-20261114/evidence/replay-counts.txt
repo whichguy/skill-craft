@@ -1,0 +1,16 @@
+base 17cd64b4ba18f7f85abcad9272563962c5135b85 against 17cd64b4ba18f7f85abcad9272563962c5135b85 plus its working tree
+run directories: 429 | excluded as copies: 1608
+records: 5371 {'baseN': 448, 'check': 1523, 'check-only': 312, 'mutationN': 446, 'proof-check': 121, 'proof-check-only': 196, 'proofN': 656, 'verifyN': 1669}
+rows: 8925 | unique count inputs: 4434 | unique judged rows: 7246 | records with no runs: 877 | rows with cut output: 653
+positive control (the trial's Security row): None -> {'ran': 9, 'failed': 0, 'runners': ['tap']}
+(a) old count not None and changed: 0 | registered exception (TAP at exit 5): 0
+(b) newly counted inputs: 75 {('tap',): 75} in 5 run directories
+    6 /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/run
+    1 /Users/dadleet/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification/runs/control-battleship/battleship-shiploop-run
+    27 /Users/dadleet/e2e-runs/20261017/salesforce-chess-int-802e29/.shiploop-runs/work-20261017-204618-70708c/run
+    25 /Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run
+    16 /Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0/run
+(c) verdict changes (form, old, new): {('check', 'uncounted', 'passed'): 1, ('check-only', 'passed-uncounted', 'passed'): 4, ('verifyN', 'passed-uncounted', 'passed'): 4}
+    verdict held, now counted (form, verdict): {('baseN (approximate)', 'counted'): 2, ('check', 'passed'): 10, ('check-only', 'passed'): 37, ('verifyN', 'passed'): 47}
+(e) floor histories: 32 command series | with a later count below an earlier one: 0
+positive control flips: True

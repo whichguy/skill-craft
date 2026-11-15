@@ -158,11 +158,11 @@ honestly, with evidence preserved, instead of passing on missing proof.
 
 | # | Decision | Status |
 | --- | --- | --- |
-| 1 | Add the generic TAP count reader, with the real `security-tests8.tap` and malformed controls, and a replay over the retained check records that shows no earlier count changes | recommended; awaits the owner's tick |
+| 1 | Add the generic TAP count reader, with the real `security-tests8.tap` and malformed controls, and a replay over the retained check records that shows no earlier count changes | recommended; awaits the owner's tick. **2026-11-15: approved and built** ("Decision 1 built" below) |
 | 2 | Record the four rare defects as known limits; ride the timeout-tail fix along with the next change in that file | recommended |
 | 3 | The durable-wait capability | owner's decision; not recommended now |
 | 4 | Hold cleanup after a non-pass outcome (reusing `keep_decision`'s machinery); record API headroom; add the plan's separate pre-journey readiness record | harness options, owner's tick |
-| 5 | Repair the verify-record text reader (P9a): a `]` inside captured output ends the `runs` array early | recommended (harness, effort S); reproduced |
+| 5 | Repair the verify-record text reader (P9a): a `]` inside captured output ends the `runs` array early | recommended (harness, effort S); reproduced. |
 | 6 | The Codex plan's P4 (feasible implementation proofs) | declined as proposed: the class was studied on 2026-11-01 and left; only the unrun whole-delivery A/B of A2b remains registered |
 
 ## Corrections after the Codex Astra plan (2026-11-14, 17:20 PST)
@@ -256,6 +256,64 @@ Each full message was read before this review was written down.
   (each step proven by its own command), and `docs/experiments/step-plan-round2-20261101/README.md`. Preserved: this review
   proposes no step-plan wording change for that class.
 
+## Decision 1 built: the TAP count reader (2026-11-15)
+
+The owner approved the implementation plan, which Astra (`gpt-6-astra`, max effort, read-only) reviewed first. Its
+verdict was "ship with the listed fixes; Phase 2 is not ready", and each of its factual claims was checked against the
+code, the TAP 14 specification and the retained runs before it was folded in. The hold, headroom and readiness items
+(decision 4) stay gated on the owner's tick, with the corrected hold design listed in the plan.
+
+**What the reader reads** (`_tap` in `skills/shiploop/scripts/shiploop_test_counts.py`):
+
+- one flat TAP stream with exactly one `1..N` plan, placed before every test point or after them all;
+- exactly N top-level points, numbered 1..N in order;
+- a point whose TAP 14 directive is SKIP or TODO did not run, and its `not ok` is no failure. The directive starts at the
+  first unescaped `#` after whitespace, takes any suffix (`# skipped`) and any case, and `\#` belongs to the title;
+- YAML diagnostic blocks, comments, blank lines, `TAP version` and CRLF are skipped;
+- `1..0` reads as zero tests;
+- numberless or out-of-order points, nested subtests, a second plan or a mid-stream one, a point count the plan does not
+  declare, and a column-0 `Bail out!` are not read (`None`, as before).
+
+**Order and identity.** TAP is tried only when no runner's own summary matched, pytest's included, and before
+pytest's exit-status-5 guess. `named` and `outcomes` judge a TAP point line by the same directive rule, so a count and
+the IDs it shows agree. Every other runner's lines keep their skip marks.
+
+| Evidence | Result | File |
+| --- | --- | --- |
+| The trial's real outputs, neutralized | `1..9` reads 9/0, `1..36` 36/0, `1..19` 19/3, all by `tap`; the wrapper's output reads 38/2 by `node` alone | `test/fixtures/shiploop-tap/` |
+| New tests | 19 counter tests and 9 route tests through `test_loop.verify` and `step_proof` (floor, kept tail, check reuse, base floor, the pinned upgrade case). 25 of the 28 fail on the base reader; the 3 that pass on both are controls for behaviour that must not move | `evidence/tap-fail-first.txt` |
+| Replay of every retained run | 429 run directories (1,608 copies excluded), 5,371 records, 8,925 rows, 4,434 unique count inputs; 877 records hold no runs and 653 rows have cut output. The positive control flips (the trial's Security row, `None` to 9). (a) no earlier count changed, and the registered exit-5 exception never occurs. (b) 75 inputs newly counted, all native TAP, in 5 run directories (this trial, one battleship control, three chess runs). (c) no verdict tightened: check `uncounted` to `passed` 1 (this trial's refusal); check-only and verify `passed-uncounted` to `passed` 4 each; 96 rows keep their verdict and now carry a count. (e) 32 newly counted command series, none with a later count below an earlier one, so no floor binds that did not before | `evidence/replay-counts.txt`, manifest `evidence/replay-manifest.txt` |
+
+The planning prototype, run before the reader was written, gave the same (a), (b) and (e). Its (c) counted a judged row once across record forms, so it read 4 `passed-uncounted` to `passed` and 68 rows now counted, where the committed replay keeps each form (a check-only record and the verify record that copied it) and includes base rows: 4 + 4 and 96. The rows are the same, and nothing tightened in either count.
+
+**Behaviour that moves.**
+
+- A TAP command's accepted count becomes the count floor for later runs of it.
+- A focused row with ids and `min_tests` is now held to that minimum (the trial's controller row ran 36 against 8).
+- A `check` row that prints TAP is refused on `1..0`, or on `not ok` points at exit 0.
+- A base run of a focused row with no ids reads `red` on TAP failures at exit 0.
+- Harness evidence may be a TAP stream.
+
+**Known limits, pinned by tests.**
+
+- A point whose title starts with a duration still reads as a Go package line.
+- A stream on stderr is read like any runner's summary there.
+- A YAML diagnostic that names an ID shows it.
+- A check passed under the earlier reader and completed on an unchanged tree is reused as recorded for that one
+  completion.
+
+**Not done, with the reason.**
+
+- The registration-time readability check: measure the 9 retained send-backs' minutes first.
+- The timeout-tail ride-along: `shiploop_test_loop.py` is unchanged.
+
+`c700eb29aae866050bb6d83ab858de33f921e460`'s exit item ("one real `--result-format tap` output read by `outcomes`") is
+now met by `apex-pass-36.tap`. The counting gap was a separate one, and this change closes it.
+
+Status: firm for the retained inputs. How the native runner prints errors or a partial run that no retained record
+shows is unknown; anything outside the contract stays unread. A live rerun is offered to the owner, not run: it deploys
+to their org and needs API quota.
+
 ## Unknowns
 
 - The page after 15:38 PST. Dollars: the host reports none. The model time between calls is inferred, not measured.
@@ -293,4 +351,8 @@ python3 -I analysis/big_outputs.py $RUN
 python3 -I analysis/review_continuity.py $RUN/platform/grok-chat-quality
 python3 -I analysis/process_output_sizes.py
 bash analysis/process_census.sh $RUN
+# Decision 1 (2026-11-15), from a checkout of the change; BASE is the commit before it:
+python3 -I analysis/replay_counts.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85 \
+  --manifest evidence/replay-manifest.txt ~/e2e-runs ~/e2e-runs-sp /Users/Shared/Codex/shiploop-e2e
+python3 -I analysis/tap_fail_first.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85
 ```

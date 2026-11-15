@@ -1,0 +1,4 @@
+new tests run against the reader of 17cd64b4ba18f7f85abcad9272563962c5135b85
+TapStreamTests: 14 ran, 12 fail or error on the base reader; pass on both: ['test_a_stream_whose_plan_and_points_disagree_is_not_read', 'test_go_reads_no_native_point_as_a_package_line']
+TapJudgeTests: 5 ran, 4 fail or error on the base reader; pass on both: ['test_an_unread_stream_keeps_the_old_policy']
+TapCountRouteTests: 9 ran, 9 fail or error on the base reader; pass on both: none
