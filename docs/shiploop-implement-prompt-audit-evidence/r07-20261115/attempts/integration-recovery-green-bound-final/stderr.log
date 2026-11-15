@@ -1,0 +1,21 @@
+F
+======================================================================
+FAIL: test_entry_card_split_holds_its_ledger_and_bounds (__main__.PackageIntegrityTests.test_entry_card_split_holds_its_ledger_and_bounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-package-integrity.test.py", line 199, in test_entry_card_split_holds_its_ledger_and_bounds
+    self.assertEqual(card_split_problems(PACKAGE, json.loads(CARD_LEDGER.read_text(encoding="utf-8"))), [])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['test-loop.md: 8201 bytes > 8192'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'test-loop.md: 8201 bytes > 8192'
+
+- ['test-loop.md: 8201 bytes > 8192']
++ []
+
+----------------------------------------------------------------------
+Ran 1 test in 0.007s
+
+FAILED (failures=1)

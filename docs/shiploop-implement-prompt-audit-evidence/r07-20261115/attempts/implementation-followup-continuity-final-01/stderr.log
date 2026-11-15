@@ -1,0 +1,17 @@
+...........F.
+======================================================================
+FAIL: test_r07_settlement_rejection_table (__main__.R07ContinuityTests.test_r07_settlement_rejection_table) [missing file]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py", line 2193, in test_r07_settlement_rejection_table
+    self.r07_refusal(run, head, {**good, **patch}, reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py", line 2065, in r07_refusal
+    self.assertIn(reason, reply)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'evidence_refs cite files that do not exist' not found in "ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.\nRead the current packet with next; the rejected request did not advance the graph.\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.\n"
+
+----------------------------------------------------------------------
+Ran 13 tests in 132.807s
+
+FAILED (failures=1)

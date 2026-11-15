@@ -1,0 +1,49 @@
+{
+  "id": "shiploop-callback-contract-r07",
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-callback-contract.test.py",
+    "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+    "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+    "R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete",
+    "R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+    "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+    "R07ContinuityTests.test_r07_first_empty_unchanged_deferral_and_pending_handoff",
+    "R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+    "R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics",
+    "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+    "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence",
+    "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+    "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+    "R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+    "R07ContinuityTests.test_r07_settlement_rejection_table",
+    "R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-integration-verify-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-callback-contract-r07-xdg-state",
+    "unset": [
+      "UNTIL_LOOP_STATE_DIR",
+      "SHIPLOOP_KEEPALIVE_HOME"
+    ]
+  },
+  "started_at": "2026-11-15T21:47:35.784197+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-callback-contract-r07.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-callback-contract-r07.stderr.log",
+  "pid": 91365,
+  "exit_code": 0,
+  "unittest_terminal_runs": [
+    {
+      "tests": 15,
+      "seconds": 81.644
+    }
+  ],
+  "test_count": 15,
+  "private_xdg_leftovers": [],
+  "status": "PASS",
+  "finished_at": "2026-11-15T21:48:57.836686+00:00",
+  "duration_seconds": 82.052
+}

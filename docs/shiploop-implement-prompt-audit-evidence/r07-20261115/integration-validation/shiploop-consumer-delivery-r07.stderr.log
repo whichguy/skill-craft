@@ -1,0 +1,9 @@
+test_r07_authorized_scope_correction_keeps_existing_route (__main__.ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route)
+Correction references are host claims; this qualifies the existing route, not their truth. ... ok
+test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation (__main__.ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation)
+Real apply/import gates; synthetic Improve receipts, no product or model review claim. ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.462s
+
+OK

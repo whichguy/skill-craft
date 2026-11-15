@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-callback-contract.test.py",
+    "R07ContinuityTests"
+  ],
+  "returncode": 1,
+  "elapsed_seconds": 143.00071179200313,
+  "counts": [
+    "11"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

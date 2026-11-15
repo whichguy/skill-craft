@@ -1,0 +1,36 @@
+{
+  "id": "shiploop-consumer-delivery-r07",
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-consumer-delivery.test.py",
+    "ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route",
+    "ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-integration-verify-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-consumer-delivery-r07-xdg-state",
+    "unset": [
+      "UNTIL_LOOP_STATE_DIR",
+      "SHIPLOOP_KEEPALIVE_HOME"
+    ]
+  },
+  "started_at": "2026-11-15T21:47:49.966233+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-consumer-delivery-r07.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-consumer-delivery-r07.stderr.log",
+  "pid": 96078,
+  "exit_code": 0,
+  "unittest_terminal_runs": [
+    {
+      "tests": 2,
+      "seconds": 0.462
+    }
+  ],
+  "test_count": 2,
+  "private_xdg_leftovers": [],
+  "status": "PASS",
+  "finished_at": "2026-11-15T21:47:50.817692+00:00",
+  "duration_seconds": 0.851
+}

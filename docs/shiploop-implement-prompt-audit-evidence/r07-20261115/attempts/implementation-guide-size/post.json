@@ -1,0 +1,11 @@
+{
+  "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+  "status": " M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_unverified.py\n M test/shiploop-callback-contract.test.py\n M test/shiploop-consumer-delivery.test.py\n?? changes/shiploop/r07-outcome-continuity.md\n",
+  "sha256": {
+    "skills/shiploop/scripts/shiploop_unverified.py": "df5ae671e9f2e8c56ddebae12b6020b784dd83254051f7cf6edf750eef50c219",
+    "skills/shiploop/scripts/shiploop_navigator.py": "2d1a7722a8e69582e974ea1e7bd2c8fd16d8a20a45afa4f365327ced544aeabc",
+    "test/shiploop-callback-contract.test.py": "64efc9b520ca96387700f266916d3f847597a053fe301ce2eca1c254476dd5a6",
+    "test/shiploop-consumer-delivery.test.py": "7f27778a480bf4e1777ba7e46dc424e67b7cb60d1802673353ba31b530412f3c",
+    "changes/shiploop/r07-outcome-continuity.md": "ba9613078f3e24ca36524407ecabd835e2a0ccdaf8923feced11104edbd2a711"
+  }
+}

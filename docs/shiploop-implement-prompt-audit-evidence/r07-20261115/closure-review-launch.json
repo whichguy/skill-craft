@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "codex",
+    "exec",
+    "--profile",
+    "shiploop-judge",
+    "--model",
+    "gpt-6-astra",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--sandbox",
+    "read-only",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r07-20261115",
+    "--json",
+    "-o",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/closure-review.md",
+    "-"
+  ],
+  "started_utc": "2026-11-15T21:22:23.531651+00:00"
+}

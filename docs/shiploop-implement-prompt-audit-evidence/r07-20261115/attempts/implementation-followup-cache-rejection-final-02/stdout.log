@@ -1,0 +1,110 @@
+R07 cached yes completion: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: []; extra: [('R-1', 'unknown')]. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: []; extra: [('R-1', 'unknown')]. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[2] duplicates a settled requirement/outcome identity
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[2] duplicates a settled requirement/outcome identity
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0] overlaps a pending requirement/outcome identity
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0] overlaps a pending requirement/outcome identity
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. unverified[1] duplicates a pending requirement/outcome identity
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: unverified[1] duplicates a pending requirement/outcome identity
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].basis must be observed or user-correction
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].basis must be observed or user-correction
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. evidence_refs cite files that do not exist: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-callback-contract-u92ustun/absent. Write the file or remove the reference.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: evidence_refs cite files that do not exist: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-callback-contract-u92ustun/absent. Write the file or remove the reference.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs[0] starts with UNKNOWN_ROOT/, which is not a root ShipLoop defines (GUIDES, KNOWLEDGE, RUN, WORKTREE); write the absolute path
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs[0] starts with UNKNOWN_ROOT/, which is not a root ShipLoop defines (GUIDES, KNOWLEDGE, RUN, WORKTREE); write the absolute path
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. a done release-check result restates unverified alongside settled, the list product-acceptance left: record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: a done release-check result restates unverified alongside settled, the list product-acceptance left: record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 accepted: {"stage": "release", "status": "active", "current_list": ["nav-9984b23c2b024354a54e011cf6c04759", "release-check", []]}

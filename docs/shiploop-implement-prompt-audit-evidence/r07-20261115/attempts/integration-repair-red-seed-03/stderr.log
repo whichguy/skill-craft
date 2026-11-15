@@ -1,0 +1,31 @@
+FF
+======================================================================
+FAIL: test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file (__main__.EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 525, in test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file
+    self._r07_settled_seed_import(remove_observation=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 502, in _r07_settled_seed_import
+    self.assertEqual(identity(), original_identity)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'adm[1243 chars]n': '7d62e01e8f6cb564595cf215ab1df6c9f4f2b7196[1037 chars]05'}} != {'adm[1243 chars]n': '1d15ab95e95909609a320ee4bf29188f5fa261873[515 chars]7a'}}
+Diff is 3007 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_r07_seed_import_accepts_unchanged_settlement_evidence (__main__.EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 528, in test_r07_seed_import_accepts_unchanged_settlement_evidence
+    self._r07_settled_seed_import(remove_observation=False)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 502, in _r07_settled_seed_import
+    self.assertEqual(identity(), original_identity)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'adm[1243 chars]n': '100d2633c8f8976c44859c1ce48f911e55aebfabc[1037 chars]05'}} != {'adm[1243 chars]n': '6394142761a362957d9715d2e8fc02224f641436b[515 chars]47'}}
+Diff is 3007 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 2 tests in 9.631s
+
+FAILED (failures=2)

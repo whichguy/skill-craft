@@ -1,0 +1,26 @@
+F
+======================================================================
+FAIL: test_import_cannot_drop_pending_without_settlement (__main__.ImportSettlementProbe.test_import_cannot_drop_pending_without_settlement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-improve-probe.py", line 11, in test_import_cannot_drop_pending_without_settlement
+    self._start_parent_at_stage('release-plan',[str(self.product_contract)],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        predecessor_extra={'product-acceptance':{'unverified':[row]}},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        producer_extra={'unverified':[row]})
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 285, in _start_parent_at_stage
+    completed = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 138, in invoke
+    self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ShipLoop navigator: a done release-plan result must record consumer_entry: {"how": "<how a person reaches the result>", "sources": ["<repository files that create that entry>"]}. A deployed component with no navigation entry (for example a component marked usable in a tab when no tab lists it) is not reachable; plan the entry as source files.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+
+----------------------------------------------------------------------
+Ran 1 test in 4.634s
+
+FAILED (failures=1)

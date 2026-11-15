@@ -1,0 +1,332 @@
+{
+  "status": "SCOPED_REPAIR_VERIFIED_UNCOMMITTED",
+  "checkout": "/Users/dadleet/src/skill-craft-r07-20261115",
+  "final_source": {
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_navigator.py": "68abe28de2382c1f68326409eb4c81d82f0bceea941417392bf505f8104aa259",
+      "skills/shiploop/references/test-loop.md": "b4472d3fc9af70a0d6aa7e52bfeb37bf1b557063527c4666528d91073fb1367e",
+      "test/shiploop-actual-improve-cli.test.py": "9ba15b039bb99046d062d058e9c722a77e9c495a2f1cc9a2fea7f18472db21e9",
+      "test/shiploop-guidance.test.py": "063947833af7d69300975bf90b31febe1b31a0db804412790d52f73c9e6b5bc2",
+      "test/shiploop-e2e-analysis.test.py": "5fab91d609c6ca49cf23e47b2907c6d66c0e04c39cc2cc3f7ddc102f61dd822e",
+      "test/shiploop_e2e/metrics.py": "4c91dd45480dd30c7674a5823e7ae32277824ba1d3333dd422f09d4767e75fb8",
+      "changes/shiploop/r07-outcome-continuity.md": "9d86df4d750e4b0c0a821353a84b33ac8dd3674750942aa1ef0e490b67403cc9"
+    }
+  },
+  "seed_reproduction": {
+    "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/red-seed/receipt.json",
+    "runtime_matches_fea": true,
+    "red": {
+      "returncode": 0,
+      "accepted_state_unchanged": false,
+      "pending_after": [],
+      "local_identity_unchanged": true
+    },
+    "result": "1 valid assertion failure, 0 errors; unchanged-file positive control passed",
+    "green": {
+      "returncode": 2,
+      "accepted_state_unchanged": true,
+      "pending_after": [
+        {
+          "due_stage": "release-plan",
+          "lower_layer_check": "synthetic prior test",
+          "outcome": "reader displays totals",
+          "owner": "user",
+          "reason": "no reader",
+          "requirement": "R-1",
+          "settle": "reader opens export"
+        }
+      ],
+      "local_identity_unchanged": true
+    },
+    "green_error": "ShipLoop navigator: evidence_refs cite files that do not exist: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-8i_gj9_m/observation.txt. Write the file or remove the reference.\nRead the current packet with next; the rejected request did not advance the graph.\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.",
+    "fixture": "Existing non-Git product fixture. Finish actual ephemeral child and prepare no-final-result receipt first; snapshot accepted parent with active_improve plus real admission key/product hashes; unlink only self.base/observation.txt; compare identity immediately before import. Restored-file import then succeeds."
+  },
+  "changes": {
+    "generic_admission": "Two-line runtime replacement: existing _check_submitted_evidence validates effective seed or explicit final result before existing continuity and other gates; no gate reordering or refactor.",
+    "guidance": "Existing wording assertion updated; compact reference covers explicit four-field settlement, observed/user-correction attribution, revised acceptance, due routing and host-claim limits.",
+    "apparatus": "Narrow unverified_restate signatures extended for actual generated settlement/restatement errors; historical signatures and unrelated classes retained. Existing generated-refusal test extended with nine representative faulty results, not typed refusal messages.",
+    "reference_bytes": 8189,
+    "unchanged_reference_bound": 8192
+  },
+  "selected_verification": {
+    "green-seed-final": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-seed-final/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "4",
+          "29.842"
+        ]
+      ],
+      "elapsed_seconds": 30.602314957999624,
+      "source_stable": true
+    },
+    "green-guidance-final-02": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-guidance-final-02/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "3",
+          "0.001"
+        ]
+      ],
+      "elapsed_seconds": 0.8254986249994545,
+      "source_stable": true
+    },
+    "green-bound-final-02": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-bound-final-02/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "1",
+          "0.008"
+        ]
+      ],
+      "elapsed_seconds": 0.14920150000034482,
+      "source_stable": true
+    },
+    "green-generated-final": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-generated-final/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "5",
+          "0.092"
+        ]
+      ],
+      "elapsed_seconds": 1.429368582997995,
+      "source_stable": true
+    }
+  },
+  "selected_method_count": 13,
+  "static": {
+    "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/static-final/result.json",
+    "baseline": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "diagnostic_counts": {
+      "baseline": 1186,
+      "candidate": 1185
+    },
+    "added_findings": [],
+    "ruff_raw_exit": "1 on both baseline and candidate; pre-existing findings remain",
+    "diff_check_exit_code": 0,
+    "source_stable": true
+  },
+  "all_current_attempts": {
+    "green-bound": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-bound/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "1",
+          "0.007"
+        ]
+      ],
+      "elapsed_seconds": 0.17142225000134204,
+      "source_stable": true
+    },
+    "green-bound-final": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-bound-final/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "1",
+          "0.007"
+        ]
+      ],
+      "elapsed_seconds": 0.17057033400124055,
+      "source_stable": true
+    },
+    "green-bound-final-02": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-bound-final-02/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "1",
+          "0.008"
+        ]
+      ],
+      "elapsed_seconds": 0.14920150000034482,
+      "source_stable": true
+    },
+    "green-generated-final": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-generated-final/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "5",
+          "0.092"
+        ]
+      ],
+      "elapsed_seconds": 1.429368582997995,
+      "source_stable": true
+    },
+    "green-guidance": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-guidance/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "3",
+          "0.010"
+        ]
+      ],
+      "elapsed_seconds": 0.7340353330000653,
+      "source_stable": true
+    },
+    "green-guidance-final": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-guidance-final/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "3",
+          "0.002"
+        ]
+      ],
+      "elapsed_seconds": 0.7272005830018315,
+      "source_stable": true
+    },
+    "green-guidance-final-02": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-guidance-final-02/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "3",
+          "0.001"
+        ]
+      ],
+      "elapsed_seconds": 0.8254986249994545,
+      "source_stable": true
+    },
+    "green-metrics": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-metrics/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "2",
+          "0.007"
+        ]
+      ],
+      "elapsed_seconds": 1.0888637080024637,
+      "source_stable": true
+    },
+    "green-seed": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-seed/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "4",
+          "18.410"
+        ]
+      ],
+      "elapsed_seconds": 18.877861083001335,
+      "source_stable": true
+    },
+    "green-seed-final": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-seed-final/receipt.json",
+      "exit_code": 0,
+      "counts": [
+        [
+          "4",
+          "29.842"
+        ]
+      ],
+      "elapsed_seconds": 30.602314957999624,
+      "source_stable": true
+    },
+    "red-seed": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/red-seed/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "2",
+          "8.397"
+        ]
+      ],
+      "elapsed_seconds": 8.834394666999287,
+      "source_stable": true
+    }
+  },
+  "failed_attempt_explanations": {
+    "red-seed": "Valid defect reproduction on unchanged runtime.",
+    "green-bound": "8270 > 8192; reference draft over bound.",
+    "green-guidance-final": "Compaction stopped at a local assertion (8201 > 8192) before updating the paired wording assertion; subsequent shell commands still ran and failed. Raw logs retained.",
+    "green-bound-final": "8201 > 8192; reference draft over bound.",
+    "static": "One added PLW1510 warning: subprocess.run lacked explicit check. Added check=False; final seed rerun and final Ruff comparison pass.",
+    "intermediate_drafts": "Byte measurements 8422 and 8314 were edit-time measurements, not verification passes. Final reference 8189."
+  },
+  "prior_attempts_preserved": [
+    {
+      "attempt": "red-guidance",
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-repair/red-guidance/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "3",
+          "0.002"
+        ]
+      ],
+      "classification": "valid pre-existing guidance/metrics compatibility failure",
+      "receipt_sha256": "f89a19f9bc31604f4629d4fb74fa294ea5a67ff2ba62c70ea05f02e10c4ff6a8"
+    },
+    {
+      "attempt": "red-metrics-existing",
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-repair/red-metrics-existing/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "1",
+          "0.002"
+        ]
+      ],
+      "classification": "valid pre-existing guidance/metrics compatibility failure",
+      "receipt_sha256": "95cd4146557ab36fb3d63450644a67cfce212d784051e4cd9cf31094444e01c0"
+    },
+    {
+      "attempt": "red-seed",
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-repair/red-seed/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "2",
+          "7.063"
+        ]
+      ],
+      "classification": "fixture error: non-Git fixture queried with git",
+      "receipt_sha256": "2add0c7e13cfadb3bc2553125b36656f70691d541aaa16e01151843c40593968"
+    },
+    {
+      "attempt": "red-seed-02",
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-repair/red-seed-02/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "2",
+          "8.835"
+        ]
+      ],
+      "classification": "fixture identity assertions invalidate this bank as the reviewed seed-import reproduction",
+      "receipt_sha256": "2f509a7385d5c0d38b3c10308684d7e5ce367b39e907e9377122b1fabbbc5d59"
+    },
+    {
+      "attempt": "red-seed-03",
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-repair/red-seed-03/receipt.json",
+      "exit_code": 1,
+      "counts": [
+        [
+          "2",
+          "9.631"
+        ]
+      ],
+      "classification": "fixture identity assertions invalidate this bank as the reviewed seed-import reproduction",
+      "receipt_sha256": "ad410d3b20e04f9f0691519cb0df2e8773e3ffe5fdf338259921b37e22741490"
+    }
+  ],
+  "source_stability": "Each test/static receipt records exact argv, environment isolation, UTC times, elapsed seconds, logs and pre/post owned-file SHA256 plus HEAD. No owned source edits during any run. Tests completed before subsequent edits. Earlier passing seed run predates final check=False/comment-only test edit; final four-method rerun covers that edit. Guidance tests predate only that seed-test change; their selected source remains identical.",
+  "constraints": "No staging, commit, delegation, advisors/model calls, plan changes, verification checkout writes, full suites or live services. Parent docs stayed independently dirty and were not edited by this recovery. Original integration-repair attempts remain in place.",
+  "limitations": [
+    "Synthetic declarations and actual local callbacks establish mechanical admission and reporting only.",
+    "Does not authenticate observations, evidence truth/currency/adequacy, user correction authority, complete initial capture, live host behavior or delivery quality.",
+    "Parent full-suite validation, independent review, integration and release are pending.",
+    "No provider-served model attestation is claimed; no new model session was launched."
+  ]
+}

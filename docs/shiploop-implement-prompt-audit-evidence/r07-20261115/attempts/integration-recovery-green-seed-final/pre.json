@@ -1,0 +1,12 @@
+{
+  "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+  "sha256": {
+    "skills/shiploop/scripts/shiploop_navigator.py": "68abe28de2382c1f68326409eb4c81d82f0bceea941417392bf505f8104aa259",
+    "skills/shiploop/references/test-loop.md": "b4472d3fc9af70a0d6aa7e52bfeb37bf1b557063527c4666528d91073fb1367e",
+    "test/shiploop-actual-improve-cli.test.py": "9ba15b039bb99046d062d058e9c722a77e9c495a2f1cc9a2fea7f18472db21e9",
+    "test/shiploop-guidance.test.py": "063947833af7d69300975bf90b31febe1b31a0db804412790d52f73c9e6b5bc2",
+    "test/shiploop-e2e-analysis.test.py": "5fab91d609c6ca49cf23e47b2907c6d66c0e04c39cc2cc3f7ddc102f61dd822e",
+    "test/shiploop_e2e/metrics.py": "4c91dd45480dd30c7674a5823e7ae32277824ba1d3333dd422f09d4767e75fb8",
+    "changes/shiploop/r07-outcome-continuity.md": "9d86df4d750e4b0c0a821353a84b33ac8dd3674750942aa1ef0e490b67403cc9"
+  }
+}

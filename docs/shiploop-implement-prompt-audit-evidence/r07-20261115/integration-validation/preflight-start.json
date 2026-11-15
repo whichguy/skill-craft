@@ -1,0 +1,7 @@
+{
+  "epoch": 1794779068.377813,
+  "timestamp": "2026-11-15T21:44:28.377816+00:00",
+  "deadline_seconds": 3600,
+  "max_concurrency": 3,
+  "retry_policy": "none"
+}

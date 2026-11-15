@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+  "recommendations": 22,
+  "considerations": 8,
+  "craft_rules": 14,
+  "acceptance_references": 52,
+  "anchors": 202,
+  "files": 43,
+  "local_links": 220,
+  "new_regression_methods": 20,
+  "visual_render_checked": false,
+  "scope": "Source and retained evidence consistency; no runtime test execution"
+}

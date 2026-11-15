@@ -1,0 +1,29 @@
+{
+  "id": "check-release-boundary",
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/check-release-boundary.py",
+    "--base",
+    "781d5eca4b82dd3b9783147271f8281bfbc2e9a8"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-final-verify-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation/check-release-boundary-xdg-state",
+    "unset": [
+      "UNTIL_LOOP_STATE_DIR",
+      "SHIPLOOP_KEEPALIVE_HOME"
+    ]
+  },
+  "started_at": "2026-11-15T21:41:57.566415+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation/check-release-boundary.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation/check-release-boundary.stderr.log",
+  "pid": 99168,
+  "exit_code": 0,
+  "private_xdg_leftovers": [],
+  "status": "PASS",
+  "finished_at": "2026-11-15T21:42:12.352098+00:00",
+  "duration_seconds": 14.785
+}

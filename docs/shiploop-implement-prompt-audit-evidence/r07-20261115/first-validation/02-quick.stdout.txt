@@ -1,0 +1,286 @@
+==> [core] test-groups
+OK   test-groups
+==> [core] ci-policy
+diff --git a/code.py b/code.py
+index e79c5e8..21fb1ec 100644
+--- a/code.py
++++ b/code.py
+@@ -1 +1 @@
+-initial
++changed
+\ No newline at end of file
+diff --git a/code.py b/code.py
+index 21fb1ec..e79c5e8 100644
+--- a/code.py
++++ b/code.py
+@@ -1 +1 @@
+-changed
+\ No newline at end of file
++initial
+OK   ci-policy
+==> [core] skill-frontmatter
+skill-frontmatter.test.js: PASS 26 skills (name/version/license/platforms/kind; skill-interop extras)
+OK   skill-frontmatter
+==> [shiploop] shiploop-no-model-launch
+OK   shiploop-no-model-launch
+==> [shiploop] shiploop-navigator-contract
+OK   shiploop-navigator-contract
+==> [shiploop] shiploop-navigator-v4
+ShipLoop knowledge: returned the knowledge commit with the earlier work (working-tree-return).
+OK   shiploop-navigator-v4
+==> [shiploop] shiploop-stopped-improve
+OK   shiploop-stopped-improve
+==> [shiploop] shiploop-actual-improve-cli
+OK   shiploop-actual-improve-cli
+==> [shiploop] shiploop-packet-bounds
+OK   shiploop-packet-bounds
+==> [shiploop] shiploop-packet-completeness
+OK   shiploop-packet-completeness
+==> [shiploop] shiploop-step-packets
+OK   shiploop-step-packets
+==> [shiploop] shiploop-packet-recut
+OK   shiploop-packet-recut
+==> [shiploop] shiploop-head-order
+OK   shiploop-head-order
+==> [shiploop] shiploop-reference
+OK   shiploop-reference
+==> [shiploop] shiploop-guidance
+==> [shiploop] shiploop-navigator-dry-run
+OK   shiploop-navigator-dry-run
+==> [shiploop] shiploop-status-display
+OK   shiploop-status-display
+==> [shiploop] shiploop-narrative
+OK   shiploop-narrative
+==> [shiploop] shiploop-stage-spec
+OK   shiploop-stage-spec
+==> [shiploop] shiploop-consumer-delivery
+OK   shiploop-consumer-delivery
+==> [shiploop] shiploop-consumer-delivery-cli
+OK   shiploop-consumer-delivery-cli
+==> [shiploop] shiploop-delegation
+OK   shiploop-delegation
+==> [shiploop] shiploop-lint
+OK   shiploop-lint
+==> [shiploop] shiploop-quality
+OK   shiploop-quality
+==> [shiploop] shiploop-seed-seam
+OK   shiploop-seed-seam
+==> [shiploop] shiploop-backchain-check
+OK   shiploop-backchain-check
+==> [shiploop] shiploop-handoff
+OK   shiploop-handoff
+==> [shiploop] shiploop-store
+OK   shiploop-store
+==> [shiploop] shiploop-privacy
+OK   shiploop-privacy
+==> [shiploop] shiploop-reference-routing
+OK   shiploop-reference-routing
+==> [shiploop] shiploop-domain-words
+OK   shiploop-domain-words
+==> [shiploop] shiploop-retired-terms
+OK   shiploop-retired-terms
+==> [shiploop] shiploop-keepalive
+OK   shiploop-keepalive
+==> [shiploop] shiploop-planning-handoff
+OK   shiploop-planning-handoff
+==> [shiploop] shiploop-package-integrity
+OK   shiploop-package-integrity
+==> [shiploop] shiploop-e2e-analysis
+==> [shiploop] shiploop-e2e-hosts
+OK   shiploop-e2e-hosts
+==> [shiploop] shiploop-e2e-resources
+OK   shiploop-e2e-resources
+==> [shiploop] shiploop-packet-obligations
+OK   shiploop-packet-obligations
+==> [shiploop] shiploop-callback-contract
+R07 cached yes completion: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 accepted: {"stage": "release", "status": "active", "current_list": ["nav-02dc8e9917554d9da47913265c54f454", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release-verify", "status": "active", "current_list": ["nav-02dc8e9917554d9da47913265c54f454", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "operations", "status": "active", "current_list": ["nav-02dc8e9917554d9da47913265c54f454", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "handoff", "status": "active", "current_list": ["nav-02dc8e9917554d9da47913265c54f454", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "done", "status": "done", "current_list": ["nav-b5f22308bfef495e9868263e7a5412e6", "handoff", []]}
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-4a28bd28491143a386785f732e4e476d", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "inner-loop", "status": "active", "current_list": ["nav-4a28bd28491143a386785f732e4e476d", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-ea671c966fad410c8b6f92d454d766dd", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-480d514dd3284a349643e05d02591fe7", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "inner-loop", "status": "active", "current_list": ["nav-480d514dd3284a349643e05d02591fe7", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-981ee2a192ad444abdf89f3913e8a454", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-c23ebdaaed81468b80f7e8a947c247f6", "product-acceptance", []]}
+R07 accepted: {"stage": "release", "status": "active", "current_list": ["nav-058c519bcd1245f680e76691e6e7f5d4", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release-verify", "status": "active", "current_list": ["nav-058c519bcd1245f680e76691e6e7f5d4", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "operations", "status": "active", "current_list": ["nav-058c519bcd1245f680e76691e6e7f5d4", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "handoff", "status": "active", "current_list": ["nav-058c519bcd1245f680e76691e6e7f5d4", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "done", "status": "done", "current_list": ["nav-311cd7e75aac446cbf62373ceae54bb5", "handoff", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release", "status": "active", "current_list": ["nav-6aed765c8a6743748c77f607b18b3f52", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "inner-loop", "status": "active", "current_list": ["nav-6aed765c8a6743748c77f607b18b3f52", "release-check", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: []; extra: [('R-1', 'the reader opens the exported report')]. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: []; extra: [('R-1', 'the reader opens the exported report')]. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-da4d48a45d9f4db4baf6811eb8bb6c0e", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "release", "status": "active", "current_list": ["nav-0d7258d5f8cc4a0d858a70b95300be23", "release-check", []]}
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-2e30f73908994e36aadaff6d94c745c1", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "inner-loop", "status": "active", "current_list": ["nav-2e30f73908994e36aadaff6d94c745c1", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 accepted: {"stage": "release-plan", "status": "active", "current_list": ["nav-e4ac8ceea904408cb1d5aee3d4155150", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 accepted: {"stage": "inner-loop", "status": "active", "current_list": ["nav-e4ac8ceea904408cb1d5aee3d4155150", "product-acceptance", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled is allowed only on a done product-acceptance or later result
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled is allowed only on a done product-acceptance or later result
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. a add-work result does not carry settled: those fields belong to a done result. Delete it from the result and run the same callback again, keeping outcome, summary, headline and evidence_refs and work_items
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: a add-work result does not carry settled: those fields belong to a done result. Delete it from the result and run the same callback again, keeping outcome, summary, headline and evidence_refs and work_items
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader displays the expected totals'), ('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: []; extra: [('R-1', 'unknown')]. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: []; extra: [('R-1', 'unknown')]. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[2] duplicates a settled requirement/outcome identity
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[2] duplicates a settled requirement/outcome identity
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0] overlaps a pending requirement/outcome identity
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0] overlaps a pending requirement/outcome identity
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. unverified[1] duplicates a pending requirement/outcome identity
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: unverified[1] duplicates a pending requirement/outcome identity
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', 'the reader opens the exported report')]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].basis must be observed or user-correction
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].basis must be observed or user-correction
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0] needs exactly requirement, outcome, basis, evidence_refs
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs must be a nonempty list of nonblank text without template placeholders
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. evidence_refs cite files that do not exist: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-callback-contract-o7dze01b/absent. Write the file or remove the reference.
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: evidence_refs cite files that do not exist: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-callback-contract-o7dze01b/absent. Write the file or remove the reference.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. settled[0].evidence_refs[0] starts with UNKNOWN_ROOT/, which is not a root ShipLoop defines (GUIDES, KNOWLEDGE, RUN, WORKTREE); write the absolute path
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: settled[0].evidence_refs[0] starts with UNKNOWN_ROOT/, which is not a root ShipLoop defines (GUIDES, KNOWLEDGE, RUN, WORKTREE); write the absolute path
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 targeted refusal: ShipLoop check: the check says no. a done release-check result restates unverified alongside settled, the list product-acceptance left: record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: a done release-check result restates unverified alongside settled, the list product-acceptance left: record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 accepted: {"stage": "release", "status": "active", "current_list": ["nav-f16bcbbbdb49463f9dc97c8fdb23ed11", "release-check", []]}
+R07 targeted refusal: ShipLoop check: the check says no. unverified drops an outcome off-stage: only an entry whose previous due_stage equals release-plan may be removed here; record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open
+Nothing was accepted or counted. Fix the cause and run the check again in this turn.
+
+R07 targeted refusal: ShipLoop navigator: unverified drops an outcome off-stage: only an entry whose previous due_stage equals release-plan may be removed here; record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+R07 accepted: {"stage": "release-check", "status": "active", "current_list": ["nav-4b42d9a5afa242a7a8746da385a8d47b", "release-plan", [{"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader opens the exported report", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}, {"due_stage": "handoff", "lower_layer_check": "TC-1", "outcome": "the reader displays the expected totals", "owner": "the user", "reason": "this host has no copy of that reader", "requirement": "R-1", "settle": "open the exported file in the reader and report what shows"}]]}
+OK   shiploop-callback-contract
+==> [e2e-apparatus] shiploop-mock-replay
+{"schema": "shiploop-e2e-apparatus-check/1", "suite": "mock", "modules": ["test_behavior_capture", "test_dag_replay", "test_protocol_compat", "test_recovery_isolation", "test_trace_corpus"], "model_calls": 0, "tests": 39, "failures": 0, "errors": 0, "skipped": 0, "expected_failures": 0, "duration_seconds": 14.568219291999412, "status": "passed", "harness": {"root": "/Users/dadleet/src/skill-craft-r07-verify-20261115/skills/shiploop-e2e-audit/harness", "package_root": "/Users/dadleet/src/skill-craft-r07-verify-20261115/skills/shiploop-e2e-audit", "source_checkout": "/Users/dadleet/src/skill-craft-r07-verify-20261115"}, "selected_subject": {"root": "/Users/dadleet/src/skill-craft-r07-verify-20261115/skills/shiploop", "package_sha256": "45783024a93aa7536bd7433b779cac3dc526ff293fc7c0da3ef36637b473d032", "file_count": 123, "selection": "explicit", "default_selection": "source-sibling", "dag_replay_selected": true}, "limitations": "Fixture apparatus evidence only; does not establish generated application or hosted behavior."}
+OK   shiploop-mock-replay
+receipt: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/validation/quick/receipt.json
+run-all.sh: 41 suites in 1744.5 s wall (--jobs 4); slowest: shiploop-navigator-contract 821.0 s, shiploop-actual-improve-cli 805.6 s, shiploop-callback-contract 776.8 s

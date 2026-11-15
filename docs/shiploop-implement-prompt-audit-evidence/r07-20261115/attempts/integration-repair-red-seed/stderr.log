@@ -1,0 +1,55 @@
+fatal: not a git repository (or any of the parent directories): .git
+Efatal: not a git repository (or any of the parent directories): .git
+E
+======================================================================
+ERROR: test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file (__main__.EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 520, in test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file
+    self._r07_settled_seed_import(remove_observation=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 490, in _r07_settled_seed_import
+    original_identity = identity()
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 486, in identity
+    return [subprocess.check_output(["git", "-C", str(self.repo), *args],
+            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                   env=self.environment, text=True)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py", line 587, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py", line 692, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command ['git', '-C', '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-5q95_w58/repo', 'rev-parse', 'HEAD'] returned non-zero exit status 128.
+
+======================================================================
+ERROR: test_r07_seed_import_accepts_unchanged_settlement_evidence (__main__.EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 523, in test_r07_seed_import_accepts_unchanged_settlement_evidence
+    self._r07_settled_seed_import(remove_observation=False)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 490, in _r07_settled_seed_import
+    original_identity = identity()
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-actual-improve-cli.test.py", line 486, in identity
+    return [subprocess.check_output(["git", "-C", str(self.repo), *args],
+            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                   env=self.environment, text=True)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py", line 587, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py", line 692, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command ['git', '-C', '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-pgf_yeon/repo', 'rev-parse', 'HEAD'] returned non-zero exit status 128.
+
+----------------------------------------------------------------------
+Ran 2 tests in 7.063s
+
+FAILED (errors=2)

@@ -1,0 +1,9 @@
+{
+  "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+  "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+  "sha256": {
+    "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+    "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+    "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+  }
+}

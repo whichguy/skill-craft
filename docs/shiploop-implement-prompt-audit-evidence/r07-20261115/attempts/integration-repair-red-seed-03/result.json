@@ -1,0 +1,55 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-actual-improve-cli.test.py",
+    "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file",
+    "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-repair/red-seed-03/state-home",
+    "SHIPLOOP_KEEPALIVE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-repair/red-seed-03/keepalive"
+  },
+  "before": {
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+      "skills/shiploop/references/test-loop.md": "1bf425bacee802c2babd20ad1f4a808ea9b1b4cc84f055065e65263c7ba3114a",
+      "test/shiploop-actual-improve-cli.test.py": "204972ef81b938d76d9a802370b65f1c8943ddaf85103c6d866da36bd52f8368",
+      "test/shiploop-guidance.test.py": "3b9964b329a3045c77941117993d5e182d6463f43ae9bab6352f4c4fa491f041",
+      "test/shiploop-e2e-analysis.test.py": "462deb9ae8c2fb2bcec623e18f1b88557bb990fb21bad0a2abcae9fedd07eca5",
+      "test/shiploop_e2e/metrics.py": "7d743e7a57a1c81ec41e92e5a5b29599b23b66245b1499bdc4e0151787874e2d",
+      "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+    }
+  },
+  "started_at": "2026-11-15T20:57:57.046982+00:00",
+  "exit_code": 1,
+  "elapsed_seconds": 10.154648624997208,
+  "finished_at": "2026-11-15T20:58:07.202445+00:00",
+  "after": {
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+      "skills/shiploop/references/test-loop.md": "1bf425bacee802c2babd20ad1f4a808ea9b1b4cc84f055065e65263c7ba3114a",
+      "test/shiploop-actual-improve-cli.test.py": "204972ef81b938d76d9a802370b65f1c8943ddaf85103c6d866da36bd52f8368",
+      "test/shiploop-guidance.test.py": "3b9964b329a3045c77941117993d5e182d6463f43ae9bab6352f4c4fa491f041",
+      "test/shiploop-e2e-analysis.test.py": "462deb9ae8c2fb2bcec623e18f1b88557bb990fb21bad0a2abcae9fedd07eca5",
+      "test/shiploop_e2e/metrics.py": "7d743e7a57a1c81ec41e92e5a5b29599b23b66245b1499bdc4e0151787874e2d",
+      "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+    }
+  },
+  "source_stable": true,
+  "test_counts": [
+    [
+      "2",
+      "9.631"
+    ]
+  ],
+  "log_sha256": {
+    "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr.log": "52746e4e2fbf3501049100ceb8c9fe86b22d74c299543d903e77375d013f2229"
+  }
+}

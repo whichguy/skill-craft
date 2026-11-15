@@ -1,0 +1,43 @@
+{
+  "id": "check-scoped-whitespace",
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r07-final-verify-20261115",
+    "diff",
+    "--check",
+    "781d5eca4b82dd3b9783147271f8281bfbc2e9a8..HEAD",
+    "--",
+    "changes/shiploop/r07-outcome-continuity.md",
+    "skills/shiploop/references/test-loop.md",
+    "skills/shiploop/scripts/shiploop_navigator.py",
+    "skills/shiploop/scripts/shiploop_prompts.py",
+    "skills/shiploop/scripts/shiploop_stage_spec.py",
+    "skills/shiploop/scripts/shiploop_unverified.py",
+    "test/shiploop-actual-improve-cli.test.py",
+    "test/shiploop-callback-contract.test.py",
+    "test/shiploop-consumer-delivery.test.py",
+    "test/shiploop-e2e-analysis.test.py",
+    "test/shiploop-guidance.test.py",
+    "test/shiploop_e2e/metrics.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-final-verify-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation/check-scoped-whitespace-xdg-state",
+    "unset": [
+      "UNTIL_LOOP_STATE_DIR",
+      "SHIPLOOP_KEEPALIVE_HOME"
+    ]
+  },
+  "started_at": "2026-11-15T21:42:12.352519+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation/check-scoped-whitespace.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation/check-scoped-whitespace.stderr.log",
+  "pid": 6639,
+  "exit_code": 0,
+  "private_xdg_leftovers": [],
+  "status": "PASS",
+  "finished_at": "2026-11-15T21:42:12.380068+00:00",
+  "duration_seconds": 0.028
+}

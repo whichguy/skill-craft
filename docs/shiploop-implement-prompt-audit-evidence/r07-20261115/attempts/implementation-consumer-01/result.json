@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-consumer-delivery.test.py",
+    "ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation",
+    "ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 1.9679137079983775,
+  "counts": [
+    "2"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

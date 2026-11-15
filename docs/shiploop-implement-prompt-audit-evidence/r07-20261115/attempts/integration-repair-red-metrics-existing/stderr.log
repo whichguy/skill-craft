@@ -1,0 +1,20 @@
+F
+======================================================================
+FAIL: test_the_restate_and_small_pass_refusals_classify_under_their_gates (__main__.GateCountsTest.test_the_restate_and_small_pass_refusals_classify_under_their_gates)
+The unverified restatement's refusals and the Improve convergence gate's, built by their gates, never typed.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-e2e-analysis.test.py", line 2545, in test_the_restate_and_small_pass_refusals_classify_under_their_gates
+    self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "unverified_restate",
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     str(caught.exception))
+                     ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unverified_restate'
+- other
++ unverified_restate
+ : a done release-check result restates unverified alongside settled, the list product-acceptance left: record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)

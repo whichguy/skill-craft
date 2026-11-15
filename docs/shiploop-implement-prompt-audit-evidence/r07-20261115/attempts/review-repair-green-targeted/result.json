@@ -1,0 +1,48 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "test/shiploop-callback-contract.test.py",
+    "-v",
+    "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+    "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+    "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence",
+    "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+    "R07ContinuityTests.test_r07_settlement_rejection_table",
+    "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+    "R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+    "R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+    "R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-20261115",
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 149.2076458329975,
+  "method_count_requested": 9,
+  "summary_lines": [
+    "Ran 9 tests in 148.347s",
+    "OK"
+  ],
+  "before": {
+    "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+    "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+      "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+      "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+    }
+  },
+  "after": {
+    "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+    "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+      "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+      "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+    }
+  },
+  "head_stable": true,
+  "owned_files_stable": true
+}

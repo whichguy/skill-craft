@@ -1,0 +1,7 @@
+{
+  "original_marker": "final-validation/terminal-summary.json",
+  "original_marker_result": "ENOENT",
+  "corrected_marker": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation/handoff.json",
+  "authorization": "Parent explicitly corrected marker to handoff.json; source and selection unchanged",
+  "observed_marker_sha256": "e473d57c9f29eeb2a9028e51f3317b162273381687b98299a508a8857a61173e"
+}

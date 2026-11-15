@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-11-15T21:44:30.471731+00:00",
+  "head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+  "tracked_count": 13001,
+  "fingerprint": "8109903dcd02ed55157667595c6d376df31083d5e415228917419aea1f4edcc2",
+  "ordinary_status": "",
+  "ignored_inclusive_status": "",
+  "parent_file_hashes": {
+    "changes/shiploop/r07-outcome-continuity.md": true,
+    "skills/shiploop/references/test-loop.md": true,
+    "skills/shiploop/scripts/shiploop_navigator.py": true,
+    "skills/shiploop/scripts/shiploop_prompts.py": true,
+    "skills/shiploop/scripts/shiploop_stage_spec.py": true,
+    "skills/shiploop/scripts/shiploop_unverified.py": true,
+    "test/shiploop-actual-improve-cli.test.py": true,
+    "test/shiploop-callback-contract.test.py": true,
+    "test/shiploop-consumer-delivery.test.py": true,
+    "test/shiploop-e2e-analysis.test.py": true,
+    "test/shiploop-guidance.test.py": true,
+    "test/shiploop_e2e/metrics.py": true
+  }
+}

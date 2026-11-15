@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-head-order.test.py",
+    "PrintedPacketTests.test_producer_prints_are_complete_at_both_install_lengths",
+    "PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 5.9332086670001445,
+  "counts": [
+    "2"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

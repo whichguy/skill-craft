@@ -1,0 +1,22 @@
+[
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_first_empty_unchanged_deferral_and_pending_handoff",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_settlement_rejection_table",
+  "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement",
+  "test/shiploop-consumer-delivery.test.py:ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route",
+  "test/shiploop-consumer-delivery.test.py:ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation",
+  "test/shiploop-actual-improve-cli.test.py:EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+  "test/shiploop-actual-improve-cli.test.py:EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence",
+  "test/shiploop-actual-improve-cli.test.py:EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file"
+]

@@ -1,0 +1,757 @@
+{
+  "prior_source": "cc9df6d2c9413a586147392f10149f138905e935",
+  "current_source": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+  "changes": [
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_check_step_sizing",
+      "old_start": 3108,
+      "old_end": 3149,
+      "new_start": 3112,
+      "new_end": 3153,
+      "excerpt_changed": false,
+      "prior_claim": "Proof/criteria coverage and optional path constraints"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_normalise_steps",
+      "old_start": 2708,
+      "old_end": 2726,
+      "new_start": 2712,
+      "new_end": 2730,
+      "excerpt_changed": false,
+      "prior_claim": "Optional paths and stale no-reader comment"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "step_block and _step_block_shown",
+      "old_start": 7741,
+      "old_end": 7799,
+      "new_start": 7748,
+      "new_end": 7806,
+      "excerpt_changed": false,
+      "prior_claim": "Shared step assignment and field locators"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "printed_text",
+      "old_start": 2130,
+      "old_end": 2138,
+      "new_start": 2134,
+      "new_end": 2142,
+      "excerpt_changed": false,
+      "prior_claim": "Normal emission has no length cutoff"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_step_proof_gate",
+      "old_start": 5009,
+      "old_end": 5036,
+      "new_start": 5017,
+      "new_end": 5044,
+      "excerpt_changed": false,
+      "prior_claim": "Implement Proof gate"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_improve_change_gate",
+      "old_start": 5184,
+      "old_end": 5210,
+      "new_start": 5192,
+      "new_end": 5218,
+      "excerpt_changed": false,
+      "prior_claim": "Current review import reruns step tests, not old lifecycle"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "old_start": 2604,
+      "old_end": 2639,
+      "new_start": 2605,
+      "new_end": 2640,
+      "excerpt_changed": false,
+      "prior_claim": "After-edit criterion and test evidence"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_prompt_parts",
+      "old_start": 2490,
+      "old_end": 2504,
+      "new_start": 2491,
+      "new_end": 2505,
+      "excerpt_changed": false,
+      "prior_claim": "Rubric selection at implementation"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_improve_focus",
+      "old_start": 8202,
+      "old_end": 8214,
+      "new_start": 8209,
+      "new_end": 8221,
+      "excerpt_changed": false,
+      "prior_claim": "The real selector separates planning and final review: planning returns PLANNING_REVIEW_FOCUS; carry-forward returns END_REVIEW_FOCUS_HEAD plus CODE_CRAFT."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "END_REVIEW_FOCUS_HEAD",
+      "old_start": 2567,
+      "old_end": 2580,
+      "new_start": 2568,
+      "new_end": 2581,
+      "excerpt_changed": false,
+      "prior_claim": "Final focus traces public entry points and reviews mutant dispositions; it does not include PROCEDURE_WALK. Excerpt: \"trace each new or changed public entry point with a valid, a boundary and an invalid input\"."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES['release-verify']",
+      "old_start": 1840,
+      "old_end": 1874,
+      "new_start": 1841,
+      "new_end": 1875,
+      "excerpt_changed": false,
+      "prior_claim": "Invalid consumer plans require send-back; person replies close only answered cases; material setup changes invalidate observations. Excerpts: \"a consumer check that cannot observe the clause it names, is a send-back\" and \"recheck only the cases it answers\"."
+    },
+    {
+      "path": "test/shiploop-handoff.test.py",
+      "symbol": "TestLayerGateTests.test_prepare_harness_evidence_must_show_a_test_ran",
+      "old_start": 1263,
+      "old_end": 1283,
+      "new_start": 1277,
+      "new_end": 1297,
+      "excerpt_changed": false,
+      "prior_claim": "Regression pairs a refused probe page and zero-test output with an accepted ANSI-colored one-test Jest summary."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_unverified.py",
+      "symbol": "check_restated",
+      "old_start": 122,
+      "old_end": 149,
+      "new_start": 134,
+      "new_end": 186,
+      "excerpt_changed": true,
+      "prior_claim": "Requires restatement and rejects dropping entries due elsewhere. The dropped filter explicitly excludes entries whose due_stage equals the current stage; it does not verify summary evidence before that deletion."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_frozen_case_refusal",
+      "old_start": 3061,
+      "old_end": 3094,
+      "new_start": 3065,
+      "new_end": 3098,
+      "excerpt_changed": false,
+      "prior_claim": "An omitted test_cases list is compared as empty, and each completed-step case must remain identical. Excerpt: \"test case ... is due at a done step ... and stays exactly as accepted\"."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check/complete branch",
+      "old_start": 10340,
+      "old_end": 10356,
+      "new_start": 10355,
+      "new_end": 10381,
+      "excerpt_changed": true,
+      "prior_claim": "R21 now gates matching_yes with checkout eligibility. Eligible matching current-format yes records still call take_check; otherwise _evaluate runs."
+    },
+    {
+      "path": "test/shiploop-handoff.test.py",
+      "symbol": "test_a_primary_outcome_needs_a_test_shiploop_saw_pass_in_a_case_for_its_requirement",
+      "old_start": 1512,
+      "old_end": 1532,
+      "new_start": 1526,
+      "new_end": 1546,
+      "excerpt_changed": false,
+      "prior_claim": "Executable regression or compatibility control for the R08 acceptance conditions."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_fix_forward_refusal",
+      "old_start": 3022,
+      "old_end": 3057,
+      "new_start": 3026,
+      "new_end": 3061,
+      "excerpt_changed": false,
+      "prior_claim": "Enforces exact preserved rows, remaining work, case ownership and criterion definitions: 'a fix to what it built is a new step with new criterion IDs'."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_frozen_case_refusal",
+      "old_start": 3074,
+      "old_end": 3093,
+      "new_start": 3078,
+      "new_end": 3097,
+      "excerpt_changed": false,
+      "prior_claim": "Omitted cases are compared as empty; changed or newly assigned completed-step cases are refused: 'stays exactly as accepted'."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "finish_improve",
+      "old_start": 4492,
+      "old_end": 4499,
+      "new_start": 4500,
+      "new_end": 4507,
+      "excerpt_changed": false,
+      "prior_claim": "Canonical reviewed results pass the same invariant: '_check_fix_forward(state, child[\"stage\"], result)'."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check and matching yes",
+      "old_start": 10322,
+      "old_end": 10359,
+      "new_start": 10337,
+      "new_end": 10384,
+      "excerpt_changed": true,
+      "prior_claim": "Shape check and accepted-answer reuse, now restricted by R21 to eligible checkout checks."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "printed_text",
+      "old_start": 2130,
+      "old_end": 2138,
+      "new_start": 2134,
+      "new_end": 2142,
+      "excerpt_changed": false,
+      "prior_claim": "Full output"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "write_field_files",
+      "old_start": 3789,
+      "old_end": 3800,
+      "new_start": 3797,
+      "new_end": 3808,
+      "excerpt_changed": false,
+      "prior_claim": "Field files written before their locators are emitted"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "look_back_lines",
+      "old_start": 3468,
+      "old_end": 3490,
+      "new_start": 3472,
+      "new_end": 3494,
+      "excerpt_changed": false,
+      "prior_claim": "Relevant implementation history with full-message locators"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "old_start": 2585,
+      "old_end": 2642,
+      "new_start": 2586,
+      "new_end": 2643,
+      "excerpt_changed": false,
+      "prior_claim": "Current per-step review after code/tests/docs"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "improve_opening_text",
+      "old_start": 9861,
+      "old_end": 9869,
+      "new_start": 9874,
+      "new_end": 9882,
+      "excerpt_changed": false,
+      "prior_claim": "The generated opening still contains '. No push, deploy, install or credential access.' beside references to recorded test commands."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "improve_start_contract",
+      "old_start": 9245,
+      "old_end": 9250,
+      "new_start": 9258,
+      "new_end": 9263,
+      "excerpt_changed": false,
+      "prior_claim": "The contract carries 'sections[\"Authority\"]' and separately prohibits push or merge."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "release_guard construction",
+      "old_start": 2859,
+      "old_end": 2872,
+      "new_start": 2860,
+      "new_end": 2873,
+      "excerpt_changed": false,
+      "prior_claim": "Stage-scoped Improve 'does not execute or replay a release effect'; release operations require their own recorded grant and checks."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[release-plan]",
+      "old_start": 1772,
+      "old_end": 1778,
+      "new_start": 1773,
+      "new_end": 1779,
+      "excerpt_changed": false,
+      "prior_claim": "Still says 'release-check runs it once before the real deploy to prove it tells them apart'."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[release-check]",
+      "old_start": 1797,
+      "old_end": 1807,
+      "new_start": 1798,
+      "new_end": 1808,
+      "excerpt_changed": false,
+      "prior_claim": "Records current candidate identity, but also says 'save its \"not there yet\" output'."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "DUTIES[release-plan]",
+      "old_start": 1758,
+      "old_end": 1764,
+      "new_start": 1759,
+      "new_end": 1765,
+      "excerpt_changed": false,
+      "prior_claim": "Authority remains separate: 'Keep source return, artifact publication, deployment, promotion and consumer verification as separate steps'; a plan performs no external operation."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "keep_refusal / keep_decision",
+      "old_start": 2502,
+      "old_end": 2545,
+      "new_start": 2530,
+      "new_end": 2573,
+      "excerpt_changed": false,
+      "prior_claim": "Distinguishes finished retention from KEPT_UNFINISHED; stopped, invalid and failed-cleanup cases remain blockers."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "committed_facts",
+      "old_start": 1614,
+      "old_end": 1629,
+      "new_start": 1642,
+      "new_end": 1657,
+      "excerpt_changed": false,
+      "prior_claim": "Requires changed HEAD, files in HEAD and no uncommitted product paths: 'files > 0 and not knowledge[\"uncommitted\"]'."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "aggregate verdict construction",
+      "old_start": 4782,
+      "old_end": 4788,
+      "new_start": 4813,
+      "new_end": 4819,
+      "excerpt_changed": false,
+      "prior_claim": "Separately includes process, ShipLoop, committed, case-check, cleanup and '!kept_unfinished' verdicts."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "termination_facts",
+      "old_start": 3595,
+      "old_end": 3612,
+      "new_start": 3623,
+      "new_end": 3640,
+      "excerpt_changed": false,
+      "prior_claim": "A regrade retains prior termination or reports NOT_OBSERVED; fresh sessions retain their own stop reasons."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "write_cleanup_record",
+      "old_start": 2419,
+      "old_end": 2438,
+      "new_start": 2447,
+      "new_end": 2466,
+      "excerpt_changed": false,
+      "prior_claim": "Publishes a closed, fsynced temporary record through 'os.replace', preserving complete old/new JSON visibility."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_review_pass_archives",
+      "old_start": 9738,
+      "old_end": 9760,
+      "new_start": 9751,
+      "new_end": 9773,
+      "excerpt_changed": false,
+      "prior_claim": "Archives every review-N.md and available pass-N.json, not only the final trivial streak."
+    },
+    {
+      "path": "test/shiploop_e2e/metrics.py",
+      "symbol": "improve_reviews",
+      "old_start": 1142,
+      "old_end": 1151,
+      "new_start": 1147,
+      "new_end": 1156,
+      "excerpt_changed": false,
+      "prior_claim": "Uses archived review records only when worktree review folders are unavailable; errors remain unmeasured."
+    },
+    {
+      "path": "test/shiploop_e2e/grok_preempt.py",
+      "symbol": "floor_shapes",
+      "old_start": 218,
+      "old_end": 243,
+      "new_start": 400,
+      "new_end": 427,
+      "excerpt_changed": true,
+      "prior_claim": "Classifies the calibrated command shapes; this is host-specific apparatus.",
+      "rejected_automatic_span": [
+        430,
+        444
+      ],
+      "manual_verification": "AST function boundary and current body inspected"
+    },
+    {
+      "path": "test/shiploop_e2e/grok_preempt.py",
+      "symbol": "install",
+      "old_start": 304,
+      "old_end": 319,
+      "new_start": 517,
+      "new_end": 533,
+      "excerpt_changed": true,
+      "prior_claim": "Registers the deny hook in the supplied throwaway Grok profile; existing profiles keep their recorded hook."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "refusal_note",
+      "old_start": 1146,
+      "old_end": 1154,
+      "new_start": 1164,
+      "new_end": 1182,
+      "excerpt_changed": true,
+      "prior_claim": "Adds the refusal-specific rewrite only for a host whose permission refusal ends the session."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "calibrated_build_matches",
+      "old_start": 1157,
+      "old_end": 1162,
+      "new_start": 1185,
+      "new_end": 1190,
+      "excerpt_changed": true,
+      "prior_claim": "Records whether the observed host build matches the probed hook build."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "main installs or reads the hook",
+      "old_start": 4392,
+      "old_end": 4395,
+      "new_start": 4420,
+      "new_end": 4426,
+      "excerpt_changed": true,
+      "prior_claim": "The live harness control path consumes the hook/notice; source wiring is verified independently of live-host outcome claims."
+    },
+    {
+      "path": "test/shiploop_e2e/run.py",
+      "symbol": "main resumes with a refusal note",
+      "old_start": 4627,
+      "old_end": 4630,
+      "new_start": 4658,
+      "new_end": 4661,
+      "excerpt_changed": true,
+      "prior_claim": "The live harness control path consumes the hook/notice; source wiring is verified independently of live-host outcome claims."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_start_improve",
+      "old_start": 9934,
+      "old_end": 9943,
+      "new_start": 9947,
+      "new_end": 9956,
+      "excerpt_changed": false,
+      "prior_claim": "Improve already creates root/until-loop and launches with '--directory', str(state_dir), '--receipt', str(receipt)."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "callback rendering",
+      "old_start": 7982,
+      "old_end": 7986,
+      "new_start": 7989,
+      "new_end": 7993,
+      "excerpt_changed": false,
+      "prior_claim": "The callback reads RUN/inbox/<action>.md by default and prints no --result flag."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check/complete",
+      "old_start": 10315,
+      "old_end": 10365,
+      "new_start": 10330,
+      "new_end": 10390,
+      "excerpt_changed": true,
+      "prior_claim": "Complete checks the terminal receipt; active check evaluates gates and canonical shape without accepting. Matching yes reuse now additionally requires R21 checkout eligibility."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "platform_cards and _platform_testing_lines",
+      "old_start": 6203,
+      "old_end": 6230,
+      "new_start": 6215,
+      "new_end": 6242,
+      "excerpt_changed": false,
+      "prior_claim": "Declared platform test guidance"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check/complete reuse selection",
+      "old_start": 10324,
+      "old_end": 10367,
+      "new_start": 10339,
+      "new_end": 10392,
+      "excerpt_changed": true,
+      "prior_claim": "Eligibility precedes matching_yes/take_check; external checks print the fresh-execution callback instruction."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_improve_pass",
+      "old_start": 9664,
+      "old_end": 9673,
+      "new_start": 9677,
+      "new_end": 9686,
+      "excerpt_changed": false,
+      "prior_claim": "Computes result_changed and edited; the exact unknown rule is 'None if pass_changed is None and result_changed is None else False'."
+    },
+    {
+      "path": "test/shiploop_e2e/metrics.py",
+      "symbol": "_improve_review_records",
+      "old_start": 1211,
+      "old_end": 1224,
+      "new_start": 1216,
+      "new_end": 1229,
+      "excerpt_changed": false,
+      "prior_claim": "Reads edited with tree-only fallback, exposes edited_basis, and calculates review_seconds from bind mtime."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "symbol": "PLANNING_REVIEW_MODES / reviewed_stages",
+      "old_start": 696,
+      "old_end": 709,
+      "new_start": 697,
+      "new_end": 710,
+      "excerpt_changed": false,
+      "prior_claim": "Default is stage; none subtracts exactly spec, test-strategy, plan and step-plan."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "END_REVIEW_FOCUS_HEAD",
+      "old_start": 2571,
+      "old_end": 2578,
+      "new_start": 2572,
+      "new_end": 2579,
+      "excerpt_changed": false,
+      "prior_claim": "End review checks dispositions made untrue by later edits and kills claimed without runs."
+    }
+  ],
+  "floor_shapes_manual_correction": "AST-verified current function starts at 400; automatic line-diff result 430 was rejected.",
+  "new_r07_anchors": 16,
+  "preceding_source": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+  "post_release_refresh": [
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "step_block and _step_block_shown",
+      "old_start": 7748,
+      "old_end": 7806,
+      "new_start": 7751,
+      "new_end": 7809,
+      "excerpt_changed": false,
+      "prior_claim": "Shared step assignment and field locators"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "old_start": 2605,
+      "old_end": 2640,
+      "new_start": 2627,
+      "new_end": 2662,
+      "excerpt_changed": false,
+      "prior_claim": "After-edit criterion and test evidence"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_prompt_parts",
+      "old_start": 2491,
+      "old_end": 2505,
+      "new_start": 2513,
+      "new_end": 2527,
+      "excerpt_changed": false,
+      "prior_claim": "Rubric selection at implementation"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_improve_focus",
+      "old_start": 8209,
+      "old_end": 8221,
+      "new_start": 8212,
+      "new_end": 8224,
+      "excerpt_changed": false,
+      "prior_claim": "The real selector separates planning and final review: planning returns PLANNING_REVIEW_FOCUS; carry-forward returns END_REVIEW_FOCUS_HEAD plus CODE_CRAFT."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "END_REVIEW_FOCUS_HEAD",
+      "old_start": 2568,
+      "old_end": 2581,
+      "new_start": 2590,
+      "new_end": 2603,
+      "excerpt_changed": false,
+      "prior_claim": "Final focus traces public entry points and reviews mutant dispositions; it does not include PROCEDURE_WALK. Excerpt: \"trace each new or changed public entry point with a valid, a boundary and an invalid input\"."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "expand_result_roots",
+      "old_start": 9134,
+      "old_end": 9166,
+      "new_start": 9137,
+      "new_end": 9169,
+      "excerpt_changed": false,
+      "prior_claim": "Root expansion includes nested settled evidence references before admission and storage."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_unverified_rule",
+      "old_start": 7549,
+      "old_end": 7560,
+      "new_start": 7552,
+      "new_end": 7563,
+      "excerpt_changed": false,
+      "prior_claim": "Actionable packets state exact settlement attribution and legitimate early/due-stage exits."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "Improve import admission",
+      "old_start": 10202,
+      "old_end": 10210,
+      "new_start": 10205,
+      "new_end": 10213,
+      "excerpt_changed": false,
+      "prior_claim": "Final-result or seed import applies continuity admission before accepting the reviewed result."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "cached current admission",
+      "old_start": 10360,
+      "old_end": 10378,
+      "new_start": 10363,
+      "new_end": 10381,
+      "excerpt_changed": false,
+      "prior_claim": "Before taking a cached yes, evidence existence and continuity are checked in evaluator order; either refusal records a current no answer."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check/complete branch",
+      "old_start": 10355,
+      "old_end": 10381,
+      "new_start": 10358,
+      "new_end": 10384,
+      "excerpt_changed": false,
+      "prior_claim": "R21 now gates matching_yes with checkout eligibility. Eligible matching current-format yes records still call take_check; otherwise _evaluate runs."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check and matching yes",
+      "old_start": 10337,
+      "old_end": 10384,
+      "new_start": 10340,
+      "new_end": 10387,
+      "excerpt_changed": false,
+      "prior_claim": "Shape check and accepted-answer reuse, now restricted by R21 to eligible checkout checks."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "old_start": 2586,
+      "old_end": 2643,
+      "new_start": 2608,
+      "new_end": 2665,
+      "excerpt_changed": false,
+      "prior_claim": "Current per-step review after code/tests/docs"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "improve_opening_text",
+      "old_start": 9874,
+      "old_end": 9882,
+      "new_start": 9877,
+      "new_end": 9885,
+      "excerpt_changed": false,
+      "prior_claim": "The generated opening still contains '. No push, deploy, install or credential access.' beside references to recorded test commands."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "improve_start_contract",
+      "old_start": 9258,
+      "old_end": 9263,
+      "new_start": 9261,
+      "new_end": 9266,
+      "excerpt_changed": false,
+      "prior_claim": "The contract carries 'sections[\"Authority\"]' and separately prohibits push or merge."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "release_guard construction",
+      "old_start": 2860,
+      "old_end": 2873,
+      "new_start": 2882,
+      "new_end": 2895,
+      "excerpt_changed": false,
+      "prior_claim": "Stage-scoped Improve 'does not execute or replay a release effect'; release operations require their own recorded grant and checks."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_review_pass_archives",
+      "old_start": 9751,
+      "old_end": 9773,
+      "new_start": 9754,
+      "new_end": 9776,
+      "excerpt_changed": false,
+      "prior_claim": "Archives every review-N.md and available pass-N.json, not only the final trivial streak."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_start_improve",
+      "old_start": 9947,
+      "old_end": 9956,
+      "new_start": 9950,
+      "new_end": 9959,
+      "excerpt_changed": false,
+      "prior_claim": "Improve already creates root/until-loop and launches with '--directory', str(state_dir), '--receipt', str(receipt)."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "callback rendering",
+      "old_start": 7989,
+      "old_end": 7993,
+      "new_start": 7992,
+      "new_end": 7996,
+      "excerpt_changed": false,
+      "prior_claim": "The callback reads RUN/inbox/<action>.md by default and prints no --result flag."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check/complete",
+      "old_start": 10330,
+      "old_end": 10390,
+      "new_start": 10333,
+      "new_end": 10393,
+      "excerpt_changed": false,
+      "prior_claim": "Complete checks the terminal receipt; active check evaluates gates and canonical shape without accepting. Matching yes reuse now additionally requires R21 checkout eligibility."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "dispatch check/complete reuse selection",
+      "old_start": 10339,
+      "old_end": 10392,
+      "new_start": 10342,
+      "new_end": 10395,
+      "excerpt_changed": false,
+      "prior_claim": "Eligibility precedes matching_yes/take_check; external checks print the fresh-execution callback instruction."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "symbol": "_improve_pass",
+      "old_start": 9677,
+      "old_end": 9686,
+      "new_start": 9680,
+      "new_end": 9689,
+      "excerpt_changed": false,
+      "prior_claim": "Computes result_changed and edited; the exact unknown rule is 'None if pass_changed is None and result_changed is None else False'."
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "END_REVIEW_FOCUS_HEAD",
+      "old_start": 2572,
+      "old_end": 2579,
+      "new_start": 2594,
+      "new_end": 2601,
+      "excerpt_changed": false,
+      "prior_claim": "End review checks dispositions made untrue by later edits and kills claimed without runs."
+    }
+  ],
+  "post_release_excerpt_changes": 0
+}

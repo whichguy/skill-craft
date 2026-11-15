@@ -1,0 +1,37 @@
+{
+  "id": "shiploop-actual-improve-cli-r07",
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-actual-improve-cli.test.py",
+    "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+    "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence",
+    "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-integration-verify-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-actual-improve-cli-r07-xdg-state",
+    "unset": [
+      "UNTIL_LOOP_STATE_DIR",
+      "SHIPLOOP_KEEPALIVE_HOME"
+    ]
+  },
+  "started_at": "2026-11-15T21:47:56.088973+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-actual-improve-cli-r07.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-actual-improve-cli-r07.stderr.log",
+  "pid": 97246,
+  "exit_code": 0,
+  "unittest_terminal_runs": [
+    {
+      "tests": 3,
+      "seconds": 11.843
+    }
+  ],
+  "test_count": 3,
+  "private_xdg_leftovers": [],
+  "status": "PASS",
+  "finished_at": "2026-11-15T21:48:08.315402+00:00",
+  "duration_seconds": 12.226
+}

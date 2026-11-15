@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-actual-improve-cli.test.py",
+    "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+    "EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 12.981304458000523,
+  "counts": [
+    "2"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

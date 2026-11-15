@@ -1,0 +1,58 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-e2e-analysis.test.py",
+    "GateCountsTest.test_the_restate_and_small_pass_refusals_classify_under_their_gates",
+    "GateCountsTest.test_each_test_layer_refusal_classifies_under_its_own_gate",
+    "GateCountsTest.test_each_primary_requirement_refusal_classifies_under_its_own_gate",
+    "GateCountsTest.test_the_focused_guard_and_command_target_refusals_classify_under_their_gates",
+    "GateCountsTest.test_the_improve_regression_test_refusal_classifies_under_its_own_gate"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-generated-final/state-home",
+    "SHIPLOOP_KEEPALIVE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-recovery/green-generated-final/keepalive"
+  },
+  "before": {
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_navigator.py": "68abe28de2382c1f68326409eb4c81d82f0bceea941417392bf505f8104aa259",
+      "skills/shiploop/references/test-loop.md": "b4472d3fc9af70a0d6aa7e52bfeb37bf1b557063527c4666528d91073fb1367e",
+      "test/shiploop-actual-improve-cli.test.py": "36b8d8c31e6a09d3739c399e2cdf827a8d3490466e85db727dabd494ca1f26b4",
+      "test/shiploop-guidance.test.py": "063947833af7d69300975bf90b31febe1b31a0db804412790d52f73c9e6b5bc2",
+      "test/shiploop-e2e-analysis.test.py": "5fab91d609c6ca49cf23e47b2907c6d66c0e04c39cc2cc3f7ddc102f61dd822e",
+      "test/shiploop_e2e/metrics.py": "4c91dd45480dd30c7674a5823e7ae32277824ba1d3333dd422f09d4767e75fb8",
+      "changes/shiploop/r07-outcome-continuity.md": "9d86df4d750e4b0c0a821353a84b33ac8dd3674750942aa1ef0e490b67403cc9"
+    }
+  },
+  "started_at": "2026-11-15T21:12:36.553963+00:00",
+  "exit_code": 0,
+  "elapsed_seconds": 1.429368582997995,
+  "finished_at": "2026-11-15T21:12:37.986336+00:00",
+  "after": {
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_navigator.py": "68abe28de2382c1f68326409eb4c81d82f0bceea941417392bf505f8104aa259",
+      "skills/shiploop/references/test-loop.md": "b4472d3fc9af70a0d6aa7e52bfeb37bf1b557063527c4666528d91073fb1367e",
+      "test/shiploop-actual-improve-cli.test.py": "36b8d8c31e6a09d3739c399e2cdf827a8d3490466e85db727dabd494ca1f26b4",
+      "test/shiploop-guidance.test.py": "063947833af7d69300975bf90b31febe1b31a0db804412790d52f73c9e6b5bc2",
+      "test/shiploop-e2e-analysis.test.py": "5fab91d609c6ca49cf23e47b2907c6d66c0e04c39cc2cc3f7ddc102f61dd822e",
+      "test/shiploop_e2e/metrics.py": "4c91dd45480dd30c7674a5823e7ae32277824ba1d3333dd422f09d4767e75fb8",
+      "changes/shiploop/r07-outcome-continuity.md": "9d86df4d750e4b0c0a821353a84b33ac8dd3674750942aa1ef0e490b67403cc9"
+    }
+  },
+  "source_stable": true,
+  "test_counts": [
+    [
+      "5",
+      "0.092"
+    ]
+  ],
+  "log_sha256": {
+    "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr.log": "1c33b988a8b3d102ea731b198deb5d78db3c5a556f573fc1367d85ba03897b12"
+  }
+}

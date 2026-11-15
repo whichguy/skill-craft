@@ -1,0 +1,18 @@
+test_r07_due_deletion_without_new_observation_cannot_complete (r07_callback.R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete) ... FAIL
+
+======================================================================
+FAIL: test_r07_due_deletion_without_new_observation_cannot_complete (r07_callback.R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py", line 2103, in test_r07_due_deletion_without_new_observation_cannot_complete
+    self.r07_due_deletion(False)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py", line 2100, in r07_due_deletion
+    self.assertFalse(terminal, "Due-stage deletion with plainly unchanged partial reply reached terminal done")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : Due-stage deletion with plainly unchanged partial reply reached terminal done
+
+----------------------------------------------------------------------
+Ran 1 test in 12.022s
+
+FAILED (failures=1)

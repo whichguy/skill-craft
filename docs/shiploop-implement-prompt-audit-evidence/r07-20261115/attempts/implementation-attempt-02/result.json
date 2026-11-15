@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-callback-contract.test.py",
+    "R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+    "R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement",
+    "R07ContinuityTests.test_r07_settlement_rejection_table",
+    "UnverifiedRouteTests.test_a_due_stage_restates_the_list_and_each_refusal_names_its_way_out",
+    "UnverifiedRouteTests.test_a_restatement_reaches_the_handoff_and_the_report_names_what_it_settled",
+    "UnverifiedRouteTests.test_an_entry_due_at_a_stage_that_never_ran_is_carried_to_the_handoff"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 54.04234520799946,
+  "counts": [
+    "6"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

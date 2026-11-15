@@ -1,0 +1,159 @@
+{
+  "status": "PASS",
+  "source_sha": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+  "expected_suites": 13,
+  "selected_suites": 13,
+  "completed_suites": 13,
+  "total_unittest_executions": 1204,
+  "unique_tests": "not deduplicated across suites; total represents executions",
+  "suites": [
+    {
+      "id": "shiploop-callback-contract",
+      "status": "PASS",
+      "test_count": 117,
+      "duration_seconds": 819.374,
+      "receipt": "shiploop-callback-contract.receipt.json",
+      "stdout": "shiploop-callback-contract.stdout.log",
+      "stderr": "shiploop-callback-contract.stderr.log"
+    },
+    {
+      "id": "shiploop-actual-improve-cli",
+      "status": "PASS",
+      "test_count": 104,
+      "duration_seconds": 666.828,
+      "receipt": "shiploop-actual-improve-cli.receipt.json",
+      "stdout": "shiploop-actual-improve-cli.stdout.log",
+      "stderr": "shiploop-actual-improve-cli.stderr.log"
+    },
+    {
+      "id": "shiploop-consumer-delivery",
+      "status": "PASS",
+      "test_count": 34,
+      "duration_seconds": 6.484,
+      "receipt": "shiploop-consumer-delivery.receipt.json",
+      "stdout": "shiploop-consumer-delivery.stdout.log",
+      "stderr": "shiploop-consumer-delivery.stderr.log"
+    },
+    {
+      "id": "shiploop-consumer-delivery-cli",
+      "status": "PASS",
+      "test_count": 5,
+      "duration_seconds": 10.32,
+      "receipt": "shiploop-consumer-delivery-cli.receipt.json",
+      "stdout": "shiploop-consumer-delivery-cli.stdout.log",
+      "stderr": "shiploop-consumer-delivery-cli.stderr.log"
+    },
+    {
+      "id": "shiploop-navigator-contract",
+      "status": "PASS",
+      "test_count": 149,
+      "duration_seconds": 402.461,
+      "receipt": "shiploop-navigator-contract.receipt.json",
+      "stdout": "shiploop-navigator-contract.stdout.log",
+      "stderr": "shiploop-navigator-contract.stderr.log"
+    },
+    {
+      "id": "shiploop-guidance",
+      "status": "PASS",
+      "test_count": 87,
+      "duration_seconds": 8.189,
+      "receipt": "shiploop-guidance.receipt.json",
+      "stdout": "shiploop-guidance.stdout.log",
+      "stderr": "shiploop-guidance.stderr.log"
+    },
+    {
+      "id": "shiploop-e2e-analysis",
+      "status": "PASS",
+      "test_count": 299,
+      "duration_seconds": 113.139,
+      "receipt": "shiploop-e2e-analysis.receipt.json",
+      "stdout": "shiploop-e2e-analysis.stdout.log",
+      "stderr": "shiploop-e2e-analysis.stderr.log"
+    },
+    {
+      "id": "shiploop-head-order",
+      "status": "PASS",
+      "test_count": 36,
+      "duration_seconds": 17.086,
+      "receipt": "shiploop-head-order.receipt.json",
+      "stdout": "shiploop-head-order.stdout.log",
+      "stderr": "shiploop-head-order.stderr.log"
+    },
+    {
+      "id": "shiploop-package-integrity",
+      "status": "PASS",
+      "test_count": 11,
+      "duration_seconds": 0.592,
+      "receipt": "shiploop-package-integrity.receipt.json",
+      "stdout": "shiploop-package-integrity.stdout.log",
+      "stderr": "shiploop-package-integrity.stderr.log"
+    },
+    {
+      "id": "shiploop-handoff",
+      "status": "PASS",
+      "test_count": 170,
+      "duration_seconds": 153.969,
+      "receipt": "shiploop-handoff.receipt.json",
+      "stdout": "shiploop-handoff.stdout.log",
+      "stderr": "shiploop-handoff.stderr.log"
+    },
+    {
+      "id": "shiploop-knowledge",
+      "status": "PASS",
+      "test_count": 163,
+      "duration_seconds": 45.79,
+      "receipt": "shiploop-knowledge.receipt.json",
+      "stdout": "shiploop-knowledge.stdout.log",
+      "stderr": "shiploop-knowledge.stderr.log"
+    },
+    {
+      "id": "shiploop-rehydration",
+      "status": "PASS",
+      "test_count": 17,
+      "duration_seconds": 3.554,
+      "receipt": "shiploop-rehydration.receipt.json",
+      "stdout": "shiploop-rehydration.stdout.log",
+      "stderr": "shiploop-rehydration.stderr.log"
+    },
+    {
+      "id": "shiploop-stage-spec",
+      "status": "PASS",
+      "test_count": 12,
+      "duration_seconds": 0.477,
+      "receipt": "shiploop-stage-spec.receipt.json",
+      "stdout": "shiploop-stage-spec.stdout.log",
+      "stderr": "shiploop-stage-spec.stderr.log"
+    }
+  ],
+  "checks": [
+    {
+      "id": "check-release-boundary",
+      "status": "PASS",
+      "duration_seconds": 14.785,
+      "receipt": "check-release-boundary.receipt.json"
+    },
+    {
+      "id": "check-scoped-whitespace",
+      "status": "PASS",
+      "duration_seconds": 0.028,
+      "receipt": "check-scoped-whitespace.receipt.json"
+    }
+  ],
+  "source_stable": true,
+  "tracked_files": 12980,
+  "pre_fingerprint": "f6edab5489778fbeaa89e9f9bf2df3030b4e9a4ee297ba9cad85c5bd249e457e",
+  "post_fingerprint": "f6edab5489778fbeaa89e9f9bf2df3030b4e9a4ee297ba9cad85c5bd249e457e",
+  "pre_ordinary_and_ignored_status": "clean",
+  "post_ordinary_and_ignored_status": "clean",
+  "parent_hashes_verified": 12,
+  "unexpected_checkout_outputs": [],
+  "started_at": "2026-11-15T21:23:56.700247+00:00",
+  "finished_at": "2026-11-15T21:42:21.243086+00:00",
+  "wall_seconds": 1104.543,
+  "sum_suite_duration_seconds": 2248.263,
+  "max_concurrency": 3,
+  "attempts_per_check": 1,
+  "evidence_directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-validation",
+  "scope": "13 parent-selected full modules; scoped r07 whitespace only; no 108-suite quick-selection or full-range whitespace claim",
+  "earlier_dbd_run": "separate; unchanged and not relabeled"
+}

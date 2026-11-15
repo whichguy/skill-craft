@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-callback-contract.test.py",
+    "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+    "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+    "R07ContinuityTests.test_r07_settlement_rejection_table"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 36.0435910419983,
+  "counts": [
+    "3"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

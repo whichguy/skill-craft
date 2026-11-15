@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+  "commands": 15,
+  "full_modules": 13,
+  "test_executions": 1204,
+  "tracked_files": 12980,
+  "fingerprint": "f6edab5489778fbeaa89e9f9bf2df3030b4e9a4ee297ba9cad85c5bd249e457e",
+  "tracked_sha256_and_modes_unchanged": true,
+  "ordinary_and_ignored_status_clean": true,
+  "unexpected_outputs": [],
+  "actual_terminal_path": "final-validation/handoff.json",
+  "coordination_note": "Proposed terminal-summary.json marker did not exist; use actual completed handoff.json without changing historical results."
+}

@@ -1,0 +1,32 @@
+........F.F
+======================================================================
+FAIL: test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later (__main__.R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py", line 2252, in test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later
+    self.r07_refusal(run, head, block, "an add-work result does not carry settled")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py", line 2065, in r07_refusal
+    self.assertIn(reason, reply)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'an add-work result does not carry settled' not found in 'ShipLoop check: the check says no. a add-work result does not carry settled: those fields belong to a done result. Delete it from the result and run the same callback again, keeping outcome, summary, headline and evidence_refs and work_items\nNothing was accepted or counted. Fix the cause and run the check again in this turn.\n'
+
+======================================================================
+FAIL: test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement (__main__.R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py", line 2211, in test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement
+    self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ShipLoop navigator: Before release-plan is done, write: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-callback-contract-fqe3zip5/repo2/docs/shiploop/environment.md
+ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. The files, one per line:
+- /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-callback-contract-fqe3zip5/repo2/docs/shiploop/environment.md
+See the packet's knowledge-home lines for what each file holds.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+
+----------------------------------------------------------------------
+Ran 11 tests in 141.821s
+
+FAILED (failures=2)

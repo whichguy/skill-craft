@@ -1,0 +1,34 @@
+{
+  "id": "shiploop-package-integrity",
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-package-integrity.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-integration-verify-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off",
+    "XDG_STATE_HOME": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-package-integrity-xdg-state",
+    "unset": [
+      "UNTIL_LOOP_STATE_DIR",
+      "SHIPLOOP_KEEPALIVE_HOME"
+    ]
+  },
+  "started_at": "2026-11-15T21:47:35.783851+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-package-integrity.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/integration-validation/shiploop-package-integrity.stderr.log",
+  "pid": 91364,
+  "exit_code": 0,
+  "unittest_terminal_runs": [
+    {
+      "tests": 11,
+      "seconds": 0.503
+    }
+  ],
+  "test_count": 11,
+  "private_xdg_leftovers": [],
+  "status": "PASS",
+  "finished_at": "2026-11-15T21:47:36.367712+00:00",
+  "duration_seconds": 0.584
+}

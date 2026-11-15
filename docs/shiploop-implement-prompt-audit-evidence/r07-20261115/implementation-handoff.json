@@ -1,0 +1,649 @@
+{
+  "task": "R07 narrow Option A outcome continuity repair",
+  "status": "IMPLEMENTED_FOCUSED_CHECKS_PASS_FROZEN_PARENT_VALIDATION_PENDING",
+  "repo": "/Users/dadleet/src/skill-craft-r07-20261115",
+  "baseline": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+  "expected_baseline": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+  "evidence_root": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation",
+  "qualification_preserved": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/qualification/handoff.json",
+  "initial_fail_first_proof": "Original qualification attempt-01 and attempt-03 raw failures remain untouched; implementation/initial-tests.patch preserves the entering edited tests. No retrospective regrade.",
+  "design_advice": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/repair-advice.md",
+  "files": [
+    "skills/shiploop/scripts/shiploop_unverified.py",
+    "skills/shiploop/scripts/shiploop_navigator.py",
+    "test/shiploop-callback-contract.test.py",
+    "test/shiploop-consumer-delivery.test.py",
+    "changes/shiploop/r07-outcome-continuity.md",
+    "skills/shiploop/scripts/shiploop_prompts.py",
+    "skills/shiploop/scripts/shiploop_stage_spec.py",
+    "skills/shiploop/references/test-loop.md",
+    "test/shiploop-actual-improve-cli.test.py"
+  ],
+  "sha256": {
+    "skills/shiploop/scripts/shiploop_unverified.py": "df5ae671e9f2e8c56ddebae12b6020b784dd83254051f7cf6edf750eef50c219",
+    "skills/shiploop/scripts/shiploop_navigator.py": "a3c8ceb7da5e99ca95edb2445b79fc0e647f2a285b9ac9355cb12a9a10b7ea9b",
+    "test/shiploop-callback-contract.test.py": "e8039df05b7cb75324f61c75d7481f60b13fc7993ffca9a3025f81c9939cd635",
+    "test/shiploop-consumer-delivery.test.py": "7f27778a480bf4e1777ba7e46dc424e67b7cb60d1802673353ba31b530412f3c",
+    "changes/shiploop/r07-outcome-continuity.md": "3b24a44ff2ed6da5e203e015728d712eaec0890b492065e97e7cac1dbca98b69",
+    "skills/shiploop/scripts/shiploop_prompts.py": "1f6fd513177022ef09cb7124a85b8a64f0665449be41bdc697440a239981a612",
+    "skills/shiploop/scripts/shiploop_stage_spec.py": "5f56f4d2d53ff98465546443f50eb54fc87ec77eb4b0b3b1df1e238b58e829d8",
+    "skills/shiploop/references/test-loop.md": "1bf425bacee802c2babd20ad1f4a808ea9b1b4cc84f055065e65263c7ba3114a",
+    "test/shiploop-actual-improve-cli.test.py": "3be4e1a13d45cc07e3016e59e5e88335cbd6d12f35090bb38d90f47e8699e9a9"
+  },
+  "final_status": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_prompts.py\n M skills/shiploop/scripts/shiploop_stage_spec.py\n M skills/shiploop/scripts/shiploop_unverified.py\n M test/shiploop-actual-improve-cli.test.py\n M test/shiploop-callback-contract.test.py\n M test/shiploop-consumer-delivery.test.py\n?? changes/shiploop/r07-outcome-continuity.md\n",
+  "final_identity": "followup-final.json",
+  "patch": "followup-implementation.patch",
+  "behavior": [
+    "One optional done-result field settled, each row exactly {requirement, outcome, basis, evidence_refs}; basis observed or user-correction.",
+    "At every acceptance revisit and voluntary or required later restatement, settled keys exactly equal latest chronological prior pending keys minus submitted pending keys, using existing normalized requirement/outcome identity.",
+    "settled requires unverified alongside it. Duplicate pending identities, duplicate/unknown/extra/overlapping settlements, invalid shapes/bases/refs and missing local files refuse.",
+    "Acceptance revisit permits early required-surface observations or explicit user correction. Other stages may remove only rows whose previous due_stage equals the current stage. Delivery-contract gates remain independent.",
+    "First acceptance empty and unchanged carry require no settlement. Deferral, honestly pending terminal handoff, and reopening remain allowed.",
+    "Nested refs use existing root expansion and local absolute-file existence semantics; URLs/locators are not authenticated. Ref lists must be nonempty nonblank text without template placeholders.",
+    "Revisit templates prefill latest pending rows and settled []; first acceptance stays small. Actionable rule prints the settlement shape and legitimate exits only at relevant stages.",
+    "Report records accepted settlement action/stage, basis and refs separately from current pending rows, retains reopened pending status, and labels historical omissions without inventing dispositions.",
+    "Settlement loading remains permissive, with CLI-only submission checks; no compatibility branch, retrospective validation, new runtime file/ledger/loop, broader intent aggregation or model service."
+  ],
+  "qualification_repair_regressions": [
+    "Both revised-acceptance deletions and due-stage omission now assert check and complete refuse at that exact deletion with settled keys must exactly equal, comparing the full accepted state before/after.",
+    "Legitimate downstream deletions now include attributable settlements; positive due observation still reaches actual terminal CLI done."
+  ],
+  "runs": [
+    {
+      "name": "attempt-01",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py",
+        "R07ContinuityTests"
+      ],
+      "returncode": 1,
+      "elapsed_seconds": 143.00071179200313,
+      "counts": [
+        "11"
+      ],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "attempt-01/argv.json",
+      "stdout": "attempt-01/stdout.log",
+      "stderr": "attempt-01/stderr.log",
+      "pre": "attempt-01/pre.json",
+      "post": "attempt-01/post.json"
+    },
+    {
+      "name": "consumer-01",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-consumer-delivery.test.py",
+        "ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation",
+        "ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.9679137079983775,
+      "counts": [
+        "2"
+      ],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "consumer-01/argv.json",
+      "stdout": "consumer-01/stdout.log",
+      "stderr": "consumer-01/stderr.log",
+      "pre": "consumer-01/pre.json",
+      "post": "consumer-01/post.json"
+    },
+    {
+      "name": "attempt-02",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py",
+        "R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+        "R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement",
+        "R07ContinuityTests.test_r07_settlement_rejection_table",
+        "UnverifiedRouteTests.test_a_due_stage_restates_the_list_and_each_refusal_names_its_way_out",
+        "UnverifiedRouteTests.test_a_restatement_reaches_the_handoff_and_the_report_names_what_it_settled",
+        "UnverifiedRouteTests.test_an_entry_due_at_a_stage_that_never_ran_is_carried_to_the_handoff"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 54.04234520799946,
+      "counts": [
+        "6"
+      ],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "attempt-02/argv.json",
+      "stdout": "attempt-02/stdout.log",
+      "stderr": "attempt-02/stderr.log",
+      "pre": "attempt-02/pre.json",
+      "post": "attempt-02/post.json"
+    },
+    {
+      "name": "packet-01",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py",
+        "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+        "UnverifiedRouteTests.test_the_stage_an_entry_is_due_at_prints_the_list_and_the_handoff_prints_every_entry",
+        "UnverifiedRouteTests.test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 34.11804354099877,
+      "counts": [
+        "3"
+      ],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "packet-01/argv.json",
+      "stdout": "packet-01/stdout.log",
+      "stderr": "packet-01/stderr.log",
+      "pre": "packet-01/pre.json",
+      "post": "packet-01/post.json"
+    },
+    {
+      "name": "regressions-final",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py",
+        "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+        "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+        "R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 26.38661216699984,
+      "counts": [
+        "3"
+      ],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "regressions-final/argv.json",
+      "stdout": "regressions-final/stdout.log",
+      "stderr": "regressions-final/stderr.log",
+      "pre": "regressions-final/pre.json",
+      "post": "regressions-final/post.json"
+    },
+    {
+      "name": "guide-size",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-head-order.test.py",
+        "PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.1314086249985849,
+      "counts": [
+        "1"
+      ],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "guide-size/argv.json",
+      "stdout": "guide-size/stdout.log",
+      "stderr": "guide-size/stderr.log",
+      "pre": "guide-size/pre.json",
+      "post": "guide-size/post.json"
+    },
+    {
+      "name": "diff-check",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r07-20261115",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.5538977500000328,
+      "counts": [],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "diff-check/argv.json",
+      "stdout": "diff-check/stdout.log",
+      "stderr": "diff-check/stderr.log",
+      "pre": "diff-check/pre.json",
+      "post": "diff-check/post.json"
+    },
+    {
+      "name": "ruff-01",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/r07-ruff.py"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.067643832997419,
+      "counts": [],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "ruff-01/argv.json",
+      "stdout": "ruff-01/stdout.log",
+      "stderr": "ruff-01/stderr.log",
+      "pre": "ruff-01/pre.json",
+      "post": "ruff-01/post.json"
+    },
+    {
+      "name": "ruff-final",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/r07-ruff-final.py"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.118402457999764,
+      "counts": [],
+      "source_unchanged": true,
+      "head_unchanged": true,
+      "argv_path": "ruff-final/argv.json",
+      "stdout": "ruff-final/stdout.log",
+      "stderr": "ruff-final/stderr.log",
+      "pre": "ruff-final/pre.json",
+      "post": "ruff-final/post.json"
+    }
+  ],
+  "methods": [
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_settlement_rejection_table",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_first_empty_unchanged_deferral_and_pending_handoff",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics",
+    "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+    "test/shiploop-consumer-delivery.test.py:ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation",
+    "test/shiploop-consumer-delivery.test.py:ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route",
+    "test/shiploop-callback-contract.test.py:UnverifiedRouteTests.test_a_due_stage_restates_the_list_and_each_refusal_names_its_way_out",
+    "test/shiploop-callback-contract.test.py:UnverifiedRouteTests.test_a_restatement_reaches_the_handoff_and_the_report_names_what_it_settled",
+    "test/shiploop-callback-contract.test.py:UnverifiedRouteTests.test_an_entry_due_at_a_stage_that_never_ran_is_carried_to_the_handoff",
+    "test/shiploop-callback-contract.test.py:UnverifiedRouteTests.test_the_stage_an_entry_is_due_at_prints_the_list_and_the_handoff_prints_every_entry",
+    "test/shiploop-callback-contract.test.py:UnverifiedRouteTests.test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it",
+    "test/shiploop-head-order.test.py:PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+  ],
+  "counts": {
+    "distinct_methods": 19,
+    "total_method_executions": 26,
+    "initial_implementation_assertion_failures": 2,
+    "initial_implementation_execution_errors": 0,
+    "latest_result_each_selected_method": "PASS across recorded source snapshots",
+    "final_frozen_source_method_executions": 3,
+    "note": "Counts are unittest methods; rejection table subtests are not added as methods. Not all selected methods were rerun on the final wording-only runtime snapshot; parent owns broader final frozen-source verification.",
+    "followup_latest_pass_distinct_methods": 17
+  },
+  "failed_attempts": [
+    {
+      "name": "attempt-01",
+      "tests": 11,
+      "passed": 9,
+      "assertion_failures": 2,
+      "execution_errors": 0,
+      "details": [
+        "Done-only fixture expected an add-work but existing message says a add-work. Assertion corrected without runtime grammar change.",
+        "Voluntary carry positive fixture omitted required environment knowledge file. Added existing knowledge_support.write helper."
+      ],
+      "resolution": "attempt-02 passes both affected methods and the normalized-duplicate table; failed raw logs remain separate."
+    }
+  ],
+  "last_runtime_edit": "After attempt-02, corrected acceptance-revisit row guidance and empty-list wording, wrapped module prose, exported helper/shape names, and annotated permissive settlement copy as Any. Core comparison, routing and nested-reference logic unchanged. packet-01, regressions-final and guide-size verify selected methods on that final source.",
+  "ruff": {
+    "status": "PASS_NO_ADDED_DIAGNOSTICS",
+    "baseline_diagnostics": 128,
+    "candidate_diagnostics": 128,
+    "added": [],
+    "inherited_codes": {
+      "EXE001": 4,
+      "UP035": 1,
+      "RUF022": 2,
+      "I001": 6,
+      "PLC0414": 1,
+      "SIM102": 1,
+      "ISC004": 52,
+      "RUF059": 11,
+      "UP017": 6,
+      "BLE001": 4,
+      "F841": 2,
+      "UP031": 1,
+      "FURB167": 15,
+      "RUF100": 17,
+      "PLW1510": 2,
+      "RUF012": 3
+    },
+    "comparison": "ruff-detail-final/comparison.json",
+    "exact_per_file_argv": "ruff-detail-final/argv.json",
+    "comparison_method": "Same repo configuration and stdin filename for baseline git-show and candidate bytes; compare code/message/path multiplicities, ignoring moved line numbers."
+  },
+  "guidance": {
+    "testing-and-documentation.md": "Unchanged; existing packet rule provides matching guidance. Existing guide size contract method passed."
+  },
+  "history_read_full": [
+    "d84d30a977aa584ecc748fb34982f2bd7add21df",
+    "fdec0f6ed642165effd33be640974c9ee25c1561",
+    "300ae9b0c5db8fcdded102d0ad7622f31be509bd",
+    "85b788eaed0fd575791c4ce31e585f811517be6c"
+  ],
+  "limits": [
+    "Structural attributable closure only: references and observed/user-correction labels are host claims, not proof of outcome truth, evidence currency, required-surface support or user authority.",
+    "No full suites, independent review, live product/model/service verification, release, default adoption or integration performed. Parent owns broader frozen-source suites, independent review, plan/evidence integration and delivery.",
+    "CLI tests use real init/next/check/complete. Unrelated earlier lifecycle/Improve mechanics are seeded through existing fixture helpers and synthetic receipts; gates are not mocked.",
+    "Private state homes supplied by existing state_home.isolate helpers; all recorded commands set PYTHONDONTWRITEBYTECODE=1 and SHIPLOOP_PROGRESS=off.",
+    "Consumer tests remain exactly the entering qualification edits; their final hash matches qualification. Only generic R07 methods were rerun.",
+    "No source edits occurred during any test bank; every recorded run has matching pre/post source hashes and HEAD.",
+    "No delegation, web, remote services, model calls, generated-output edits, staging, commits, plan updates, R05 or R19 changes."
+  ],
+  "followup": {
+    "status": "IMPLEMENTED_FOCUSED_CHECKS_PASS_FROZEN_PARENT_VALIDATION_PENDING",
+    "source_identity": "followup-final.json",
+    "patch": "followup-implementation.patch",
+    "original_handoff": "followup-entering-handoff.json",
+    "same_version_cache_proof": "followup-cache-red-01: 2 methods, one assertion failure; complete advanced using actual record_answer/matching_yes with identical key and no intervening check. Valid settlement reuse passed.",
+    "cache_repair": "Recheck _check_submitted_unverified only inside the matching-yes branch, before take_check. No new key/version/schema, and valid cached yes remains reusable.",
+    "improve_inspection": "_derived_improve_receipt loads and expands final_result; standalone.complete copies it; finish_improve canonicalizes and applies it. _RESULT_KEYS and _DONE_ONLY_FIELDS include settled; canonical allows done product-acceptance and all later OUTER stages. release-plan is an Improve checkpoint. No existing continuity guard ran on that import.",
+    "improve_proof": "followup-improve-red-03: real ephemeral runtime and complete --final-result accepted deletion at release-plan (actual 0 vs expected 2) and advanced to release-check. red-01 and red-02 are fixture setup refusals, not bypass evidence. Each exact probe source is archived in its attempt directory.",
+    "improve_repair": "Import now checks unverified/settlement admission for final_result or seed before acceptance. Permanent actual-CLI regression proves specific settlement refusal, unchanged full state and successful honest-carry retry. Synthetic predecessor navigation/reviews do not establish semantic observation truth.",
+    "wording": "Minimal acceptance duty and stage done-when add explicit user correction; empty-list language in prompt/reference now means no outcome remains listed. test-loop.md is 8190 bytes <=8192. Packet producer completeness passes at both install lengths.",
+    "intermediate_failure": "followup-continuity-final-01 ran 13 methods: 12 passed, missing-file subcase failed because the initial guard placement changed uncached refusal precedence. Moved the guard into matching-cache branch; followup-cache-rejection-final-02 passes both cache methods and full rejection table, 3/3.",
+    "methods": [
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_settlement_rejection_table",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_first_empty_unchanged_deferral_and_pending_handoff",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics",
+      "test/shiploop-callback-contract.test.py:R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+      "test/shiploop-actual-improve-cli.test.py:EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+      "test/shiploop-actual-improve-cli.test.py:EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol",
+      "test/shiploop-head-order.test.py:PrintedPacketTests.test_producer_prints_are_complete_at_both_install_lengths",
+      "test/shiploop-head-order.test.py:PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+    ],
+    "runs": [
+      {
+        "name": "followup-cache-red-01",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-callback-contract.test.py",
+          "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+          "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses"
+        ],
+        "returncode": 1,
+        "elapsed_seconds": 7.8195768340010545,
+        "counts": [
+          "2"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-cache-red-01/pre.json",
+        "post": "followup-cache-red-01/post.json",
+        "stdout": "followup-cache-red-01/stdout.log",
+        "stderr": "followup-cache-red-01/stderr.log"
+      },
+      {
+        "name": "followup-cache-green-01",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-callback-contract.test.py",
+          "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+          "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 6.752491874998668,
+        "counts": [
+          "2"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-cache-green-01/pre.json",
+        "post": "followup-cache-green-01/post.json",
+        "stdout": "followup-cache-green-01/stdout.log",
+        "stderr": "followup-cache-green-01/stderr.log"
+      },
+      {
+        "name": "followup-improve-red-01",
+        "argv": [
+          "python3",
+          "-B",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-improve-probe.py"
+        ],
+        "returncode": 1,
+        "elapsed_seconds": 5.6214622920015245,
+        "counts": [
+          "1"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-improve-red-01/pre.json",
+        "post": "followup-improve-red-01/post.json",
+        "stdout": "followup-improve-red-01/stdout.log",
+        "stderr": "followup-improve-red-01/stderr.log"
+      },
+      {
+        "name": "followup-improve-red-02",
+        "argv": [
+          "python3",
+          "-B",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-improve-probe.py"
+        ],
+        "returncode": 1,
+        "elapsed_seconds": 5.5259113749998505,
+        "counts": [
+          "1"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-improve-red-02/pre.json",
+        "post": "followup-improve-red-02/post.json",
+        "stdout": "followup-improve-red-02/stdout.log",
+        "stderr": "followup-improve-red-02/stderr.log"
+      },
+      {
+        "name": "followup-improve-red-03",
+        "argv": [
+          "python3",
+          "-B",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-improve-probe.py"
+        ],
+        "returncode": 1,
+        "elapsed_seconds": 6.542872875001194,
+        "counts": [
+          "1"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-improve-red-03/pre.json",
+        "post": "followup-improve-red-03/post.json",
+        "stdout": "followup-improve-red-03/stdout.log",
+        "stderr": "followup-improve-red-03/stderr.log"
+      },
+      {
+        "name": "followup-improve-green-01",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-actual-improve-cli.test.py",
+          "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+          "EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 12.981304458000523,
+        "counts": [
+          "2"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-improve-green-01/pre.json",
+        "post": "followup-improve-green-01/post.json",
+        "stdout": "followup-improve-green-01/stdout.log",
+        "stderr": "followup-improve-green-01/stderr.log"
+      },
+      {
+        "name": "followup-continuity-final-01",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-callback-contract.test.py",
+          "R07ContinuityTests"
+        ],
+        "returncode": 1,
+        "elapsed_seconds": 133.81850829199902,
+        "counts": [
+          "13"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-continuity-final-01/pre.json",
+        "post": "followup-continuity-final-01/post.json",
+        "stdout": "followup-continuity-final-01/stdout.log",
+        "stderr": "followup-continuity-final-01/stderr.log"
+      },
+      {
+        "name": "followup-packet-final-01",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-head-order.test.py",
+          "PrintedPacketTests.test_producer_prints_are_complete_at_both_install_lengths",
+          "PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 5.9332086670001445,
+        "counts": [
+          "2"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-packet-final-01/pre.json",
+        "post": "followup-packet-final-01/post.json",
+        "stdout": "followup-packet-final-01/stdout.log",
+        "stderr": "followup-packet-final-01/stderr.log"
+      },
+      {
+        "name": "followup-improve-final-01",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-actual-improve-cli.test.py",
+          "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+          "EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 15.44389612500163,
+        "counts": [
+          "2"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-improve-final-01/pre.json",
+        "post": "followup-improve-final-01/post.json",
+        "stdout": "followup-improve-final-01/stdout.log",
+        "stderr": "followup-improve-final-01/stderr.log"
+      },
+      {
+        "name": "followup-ruff-01",
+        "argv": [
+          "python3",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-ruff.py"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 1.1641798749988084,
+        "counts": [],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-ruff-01/pre.json",
+        "post": "followup-ruff-01/post.json",
+        "stdout": "followup-ruff-01/stdout.log",
+        "stderr": "followup-ruff-01/stderr.log"
+      },
+      {
+        "name": "followup-cache-rejection-final-02",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-callback-contract.test.py",
+          "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+          "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+          "R07ContinuityTests.test_r07_settlement_rejection_table"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 36.0435910419983,
+        "counts": [
+          "3"
+        ],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-cache-rejection-final-02/pre.json",
+        "post": "followup-cache-rejection-final-02/post.json",
+        "stdout": "followup-cache-rejection-final-02/stdout.log",
+        "stderr": "followup-cache-rejection-final-02/stderr.log"
+      },
+      {
+        "name": "followup-ruff-final-02",
+        "argv": [
+          "python3",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-ruff-final.py"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 1.2492496659979224,
+        "counts": [],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-ruff-final-02/pre.json",
+        "post": "followup-ruff-final-02/post.json",
+        "stdout": "followup-ruff-final-02/stdout.log",
+        "stderr": "followup-ruff-final-02/stderr.log"
+      },
+      {
+        "name": "followup-diff-final-01",
+        "argv": [
+          "git",
+          "-C",
+          "/Users/dadleet/src/skill-craft-r07-20261115",
+          "diff",
+          "--check"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 0.37851874999978463,
+        "counts": [],
+        "source_unchanged": true,
+        "head_unchanged": true,
+        "pre": "followup-diff-final-01/pre.json",
+        "post": "followup-diff-final-01/post.json",
+        "stdout": "followup-diff-final-01/stdout.log",
+        "stderr": "followup-diff-final-01/stderr.log"
+      }
+    ],
+    "sha256": {
+      "skills/shiploop/scripts/shiploop_unverified.py": "df5ae671e9f2e8c56ddebae12b6020b784dd83254051f7cf6edf750eef50c219",
+      "skills/shiploop/scripts/shiploop_navigator.py": "a3c8ceb7da5e99ca95edb2445b79fc0e647f2a285b9ac9355cb12a9a10b7ea9b",
+      "test/shiploop-callback-contract.test.py": "e8039df05b7cb75324f61c75d7481f60b13fc7993ffca9a3025f81c9939cd635",
+      "test/shiploop-consumer-delivery.test.py": "7f27778a480bf4e1777ba7e46dc424e67b7cb60d1802673353ba31b530412f3c",
+      "changes/shiploop/r07-outcome-continuity.md": "3b24a44ff2ed6da5e203e015728d712eaec0890b492065e97e7cac1dbca98b69",
+      "skills/shiploop/scripts/shiploop_prompts.py": "1f6fd513177022ef09cb7124a85b8a64f0665449be41bdc697440a239981a612",
+      "skills/shiploop/scripts/shiploop_stage_spec.py": "5f56f4d2d53ff98465546443f50eb54fc87ec77eb4b0b3b1df1e238b58e829d8",
+      "skills/shiploop/references/test-loop.md": "1bf425bacee802c2babd20ad1f4a808ea9b1b4cc84f055065e65263c7ba3114a",
+      "test/shiploop-actual-improve-cli.test.py": "3be4e1a13d45cc07e3016e59e5e88335cbd6d12f35090bb38d90f47e8699e9a9"
+    },
+    "protected_reuse_files": {
+      "skills/shiploop/scripts/shiploop_check.py": {
+        "sha256": "d3b4fa1557f397f534a7a7d5778b12dc4449cec252a8dff9bbedf9cb1134bb57",
+        "unchanged_from_HEAD": true
+      },
+      "skills/shiploop/scripts/shiploop_test_loop.py": {
+        "sha256": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+        "unchanged_from_HEAD": true
+      }
+    },
+    "results": "17 distinct focused methods have latest PASS across recorded snapshots. On final source, the three affected dispatch/rejection methods pass. Parent still owns frozen bank and independent review; no full suites run.",
+    "ruff": "followup-ruff-detail-final/comparison.json: zero added diagnostics relative to HEAD; existing diagnostics remain. diff --check passes.",
+    "constraints": "No staging, repository commits, model calls, delegation, releases, deployments or unrelated recommendations. Earlier implementation/qualification attempts and entering edits preserved."
+  }
+}

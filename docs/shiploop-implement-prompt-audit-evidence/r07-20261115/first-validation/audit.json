@@ -1,0 +1,71 @@
+{
+  "head_unchanged": true,
+  "tracked_fingerprint_unchanged": true,
+  "ordinary_status_clean": true,
+  "generated": [],
+  "unexpected": [],
+  "expected_selected": 41,
+  "selected": 41,
+  "completed": 41,
+  "status_counts": {
+    "passed": 39,
+    "failed": 2
+  },
+  "selected_ids_match_expected": true,
+  "completed_ids_match_selected": true,
+  "all_suite_logs_present": true,
+  "failures": [
+    {
+      "id": "shiploop-guidance",
+      "returncode": 1,
+      "status": "failed",
+      "stdout_log": "logs/015-shiploop-guidance.stdout.log",
+      "stderr_log": "logs/015-shiploop-guidance.stderr.log",
+      "excerpts": [
+        "FAIL: test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints (__main__.UnverifiedWordingTests.test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/dadleet/src/skill-craft-r07-verify-20261115/test/shiploop-guidance.test.py\", line 3169, in test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints\n    self.assertIn(phrase, skill)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^\nAssertionError: '`[]` says every outcome was observed' not found in '# Test loop and confirmation Split from the ShipLoop skill card (`../SKILL.md`). Read at `step-plan`, `test-spec`, `test` and `document`, and when a test gate refuses. ## Test loop `step-plan` records the work item\\'s test command list in its result: `\"test_commands\": [{\"command\": \"<shell command>\", \"suite\": \"focused\" | \"regression\" | \"check\", \"ids\": [\"TC-9\"], \"min_tests\": 1}]` (`ids` and `min_tests` optional, and never on a `check` row). It also records `\"paths\"` (the repository-relative files or globs the item will change) and `\"steps\": [{\"id\": \"S1\", \"task\": \"...\", \"deps\": []}]`: every implementation step in order, each step\\'s actual prerequisites as earlier step IDs in `deps` (`[]` for an independent step; order alone does not imply dependency). ShipLoop refuses a done `step-plan` without any of these; an empty command list needs `test_commands_na` with the reason, and a list with no `check` row (lint, type or build) needs `check_na`. A regression command marked `\"minimum\": true` runs at every step, an unmarked one at the item\\'s last step only; a plan of two or more steps marks one or gives `minimum_na` ([what each step runs](testing-and-documentation.md#what-each-step-runs)). The `test` stage follows `implement`. Tests are written after the build phase and must assert the behaviour the test spec\\'s oracle states; ShipLoop mutates a sample of the item\\'s changed product lines and refuses each surviving mutant that no focused test kills and no `mutant_dispositions` entry explains. Inside its [Unt"
+      ]
+    },
+    {
+      "id": "shiploop-e2e-analysis",
+      "returncode": 1,
+      "status": "failed",
+      "stdout_log": "logs/036-shiploop-e2e-analysis.stdout.log",
+      "stderr_log": "logs/036-shiploop-e2e-analysis.stderr.log",
+      "excerpts": [
+        "FAIL: test_the_restate_and_small_pass_refusals_classify_under_their_gates (__main__.GateCountsTest.test_the_restate_and_small_pass_refusals_classify_under_their_gates)\nThe unverified restatement's refusals and the Improve convergence gate's, built by their gates, never typed.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/dadleet/src/skill-craft-r07-verify-20261115/test/shiploop-e2e-analysis.test.py\", line 2545, in test_the_restate_and_small_pass_refusals_classify_under_their_gates\n    self.assertEqual(metrics.refusal_gate(\"ShipLoop navigator: \" + str(caught.exception)), \"unverified_restate\",\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                     str(caught.exception))\n                     ^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'other' != 'unverified_restate'\n- other\n+ unverified_restate\n : a done release-check result restates unverified alongside settled, the list product-acceptance left: record removed rows in settled; carry pending rows, or move due_stage later; [] when none stays open\n"
+      ]
+    }
+  ],
+  "receipt_other_fields": {
+    "changed_from": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "entrypoint": "run-all",
+    "groups": [
+      "quick"
+    ],
+    "jobs": 4,
+    "runtimes": {
+      "bash": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)\nCopyright (C) 2007 Free Software Foundation, Inc.",
+      "node": "v26.12.1",
+      "python3": "Python 3.15.1"
+    },
+    "schema": "skill-craft-hermetic-receipt/1",
+    "selection": {
+      "affected": 27,
+      "deferred_policy": 1,
+      "deferred_targeted": 1,
+      "executions": 41,
+      "not_in_this_shard": 0,
+      "other_selected": 0,
+      "selected": 41,
+      "smoke": 14
+    },
+    "source": {
+      "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": [],
+      "tree": "bcd045f6339a6d5a2a6c941bcf24f27680389854"
+    },
+    "status": "failed",
+    "wall_seconds": 1744.457
+  }
+}

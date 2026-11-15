@@ -1,0 +1,297 @@
+[
+  {
+    "path": "check-release-boundary.receipt.json",
+    "sha256": "0905822b2c2e36bb888c881597e0a20e268fda323f2498d35adb5282d82b5a66",
+    "bytes": 1146
+  },
+  {
+    "path": "check-release-boundary.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "check-release-boundary.stdout.log",
+    "sha256": "65671a7fca99626a2b3240e068565e697e0853ff675a8f6b293296b74d86236c",
+    "bytes": 27
+  },
+  {
+    "path": "check-scoped-whitespace.receipt.json",
+    "sha256": "a7de3ef8aad0577a7a7cfef42955d46dcb4ce3015a5fa9f7519295f2d3903851",
+    "bytes": 1763
+  },
+  {
+    "path": "check-scoped-whitespace.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "check-scoped-whitespace.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "collector.py",
+    "sha256": "06cc643062fe15d2abf20277004752f95ffa35021ee77e56aaa6822cf5526edc",
+    "bytes": 5665
+  },
+  {
+    "path": "contract.json",
+    "sha256": "1a1fb19be867a696b4b0137eb34717b1ff0a1555eb40f621834cf60bdbac7d4f",
+    "bytes": 3197
+  },
+  {
+    "path": "handoff.json",
+    "sha256": "e473d57c9f29eeb2a9028e51f3317b162273381687b98299a508a8857a61173e",
+    "bytes": 5448
+  },
+  {
+    "path": "post-identity.json",
+    "sha256": "b46ef0b151e3fb1017e9530886c843c9200bf1955df99c1f36d8ff15fcd3d66c",
+    "bytes": 947
+  },
+  {
+    "path": "post-status-ignored.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "post-status.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "post-tracked-inventory.json",
+    "sha256": "55385d2d74e691dff14911d462730d26143c93c3212bb8664312ba4a4cd4854f",
+    "bytes": 2993862
+  },
+  {
+    "path": "pre-identity.json",
+    "sha256": "dc36194e3a8c97d0216cc875036f0c4d08c3872a14b63cf499b0e0f9c9935157",
+    "bytes": 947
+  },
+  {
+    "path": "pre-status-ignored.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "pre-status.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "pre-tracked-inventory.json",
+    "sha256": "55385d2d74e691dff14911d462730d26143c93c3212bb8664312ba4a4cd4854f",
+    "bytes": 2993862
+  },
+  {
+    "path": "run-start.json",
+    "sha256": "7350262984887229610adcdc00ede9cc76c3344013759a6d2d9837fdad1d2ef9",
+    "bytes": 162
+  },
+  {
+    "path": "shiploop-actual-improve-cli.receipt.json",
+    "sha256": "bfc026ea17c428dff937275b91b41a241937a72dd25fa4996db16cd0e590741f",
+    "bytes": 1225
+  },
+  {
+    "path": "shiploop-actual-improve-cli.stderr.log",
+    "sha256": "d3c90466fe64c85ec13f08aad9b6ea64d54bf243c3ec67c79f91c47c3cdeefc2",
+    "bytes": 206
+  },
+  {
+    "path": "shiploop-actual-improve-cli.stdout.log",
+    "sha256": "038a7979515902db246a6eb8a386967f8c5b9873cd26c2372d651bf24a0517e6",
+    "bytes": 1304
+  },
+  {
+    "path": "shiploop-callback-contract.receipt.json",
+    "sha256": "3239a230c6a13d3f6578a35968476841bcc480546452329ed479215cbdb581e5",
+    "bytes": 1220
+  },
+  {
+    "path": "shiploop-callback-contract.stderr.log",
+    "sha256": "78b28d84a0a228d3e4ea9e1845cc2174e3770beb607dbd219204203ce676bcd6",
+    "bytes": 219
+  },
+  {
+    "path": "shiploop-callback-contract.stdout.log",
+    "sha256": "afcfc73615ea36b7c661838365b791c394d6ff9fd881842e8371586c2119e16c",
+    "bytes": 49723
+  },
+  {
+    "path": "shiploop-consumer-delivery-cli.receipt.json",
+    "sha256": "5f3081a3fd60a262c775b19e123784f07ff3bbd2e59a12539dbe5567fb4dd66e",
+    "bytes": 1232
+  },
+  {
+    "path": "shiploop-consumer-delivery-cli.stderr.log",
+    "sha256": "8099b16920279cc188cba26468982bb0dd9f043ff08e6459250a3b6b704b53e1",
+    "bytes": 104
+  },
+  {
+    "path": "shiploop-consumer-delivery-cli.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-consumer-delivery.receipt.json",
+    "sha256": "04d0c2fb2c9b647d0df7d1c70db049d0e2f7011a1a62d3a4acbe1b0cb23552b2",
+    "bytes": 1214
+  },
+  {
+    "path": "shiploop-consumer-delivery.stderr.log",
+    "sha256": "6d82ed86135761890a985f561e3c5b7f20f8237e66e03261be922d402daeaea1",
+    "bytes": 7750
+  },
+  {
+    "path": "shiploop-consumer-delivery.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-e2e-analysis.receipt.json",
+    "sha256": "c156f643495bb24d9cea5b0977718e4f96334a183f12cd168dbe0c0b5d7e1be4",
+    "bytes": 1195
+  },
+  {
+    "path": "shiploop-e2e-analysis.stderr.log",
+    "sha256": "548d9e6048923f08a1c1a6a18b052b8b49294063ce40ba70c6ebf0c443eeda85",
+    "bytes": 401
+  },
+  {
+    "path": "shiploop-e2e-analysis.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-guidance.receipt.json",
+    "sha256": "7fb757713e5ef8352f0b8701b86bb46cf1dadec249b1c6a7f1303ea2cd2d40e5",
+    "bytes": 1169
+  },
+  {
+    "path": "shiploop-guidance.stderr.log",
+    "sha256": "64f2cb63e0a56e1253737ee77dcaa8f71727cceabe56a6e675153eeb2324bf3b",
+    "bytes": 19651
+  },
+  {
+    "path": "shiploop-guidance.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-handoff.receipt.json",
+    "sha256": "7a82ca2798dbf6c3e88f89ddfef1129a73463909ecd6e408803dd630f175ad4f",
+    "bytes": 1170
+  },
+  {
+    "path": "shiploop-handoff.stderr.log",
+    "sha256": "1153ec4708d3f9197489bfaf7662adf2ceae9161625a859a886cd85ba5edd7e4",
+    "bytes": 272
+  },
+  {
+    "path": "shiploop-handoff.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-head-order.receipt.json",
+    "sha256": "181200f42fd6006beded32ed3a30b2323fd02220b7bf538949c43378497bf6ba",
+    "bytes": 1180
+  },
+  {
+    "path": "shiploop-head-order.stderr.log",
+    "sha256": "6653d4b17a9d5be45996eaeae96bfe953d0fb86902c23e9ee4b84eaafa4d5ed2",
+    "bytes": 136
+  },
+  {
+    "path": "shiploop-head-order.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-knowledge.receipt.json",
+    "sha256": "47204280c3c1ff5d382c6f80a3cdf2bf86df0fdc1a7179978fc3c499f23cc6d4",
+    "bytes": 1176
+  },
+  {
+    "path": "shiploop-knowledge.stderr.log",
+    "sha256": "d80469409f42d322a97719aa692d2206fbf9733f4051b97cffda371ac5017495",
+    "bytes": 264
+  },
+  {
+    "path": "shiploop-knowledge.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-navigator-contract.receipt.json",
+    "sha256": "9f453b5e240de9ac49e502d4a1037996aa932c69d313d291f4474645a82bf96e",
+    "bytes": 1224
+  },
+  {
+    "path": "shiploop-navigator-contract.stderr.log",
+    "sha256": "d9229dfc1e71164a0421746dee17509739303ea67aaf728bf91e5f04064ba106",
+    "bytes": 33329
+  },
+  {
+    "path": "shiploop-navigator-contract.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-package-integrity.receipt.json",
+    "sha256": "c3a984cccb2f25040f31f360374bf9158d013c2b7fb32381a3b2f9dff9bade53",
+    "bytes": 1214
+  },
+  {
+    "path": "shiploop-package-integrity.stderr.log",
+    "sha256": "0430f2258f50514072d2ab68f0735a0b762702e8df10504a5de7922affc5a0d3",
+    "bytes": 110
+  },
+  {
+    "path": "shiploop-package-integrity.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-rehydration.receipt.json",
+    "sha256": "b89031d4a7b3799d5bb95b676e7a2b2dadbf6a4bd55231cae59c3980c532d0f5",
+    "bytes": 1182
+  },
+  {
+    "path": "shiploop-rehydration.stderr.log",
+    "sha256": "8b135502566cc1aa3e162acf336034f7b23587cbf0aea4b5db9a8821964efece",
+    "bytes": 116
+  },
+  {
+    "path": "shiploop-rehydration.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "shiploop-stage-spec.receipt.json",
+    "sha256": "64345a013cd57127dc6f81eb2ac14c98c10d66531429bb1be4b033cce8bfe891",
+    "bytes": 1179
+  },
+  {
+    "path": "shiploop-stage-spec.stderr.log",
+    "sha256": "f41ba27fc4f8c69d164e214d2608290c691fedd66d6c80281eb25aa7bc3a1e4d",
+    "bytes": 111
+  },
+  {
+    "path": "shiploop-stage-spec.stdout.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "terminal-receipts.jsonl",
+    "sha256": "e6617cd62b43b0f32a9b1e1260297838d632aea961a58369074004a3034d0dc7",
+    "bytes": 16797
+  },
+  {
+    "path": "test-README.md",
+    "sha256": "610d96d2dcf34d8147409633352ee4c448ff3a5e269aa4f5f736e0690ba8e7ea",
+    "bytes": 47325
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "methods": [
+    "callback.R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete"
+  ],
+  "elapsed_seconds": 12.261169375000463,
+  "testsRun": 1,
+  "failures": [
+    [
+      "test_r07_due_deletion_without_new_observation_cannot_complete (r07_callback.R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete)",
+      "Traceback (most recent call last):\n  File \"/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py\", line 2103, in test_r07_due_deletion_without_new_observation_cannot_complete\n    self.r07_due_deletion(False)\n    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^\n  File \"/Users/dadleet/src/skill-craft-r07-20261115/test/shiploop-callback-contract.test.py\", line 2100, in r07_due_deletion\n    self.assertFalse(terminal, \"Due-stage deletion with plainly unchanged partial reply reached terminal done\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false : Due-stage deletion with plainly unchanged partial reply reached terminal done\n"
+    ]
+  ],
+  "errors": [],
+  "successful": false,
+  "argv": [
+    "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/qualification/run_new.py",
+    "attempt-03",
+    "callback.R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete"
+  ],
+  "returncode": 1
+}

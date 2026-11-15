@@ -1,0 +1,257 @@
+{
+  "status": "repaired_and_targeted_checks_passed",
+  "repository": "/Users/dadleet/src/skill-craft-r07-20261115",
+  "source_head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+  "evidence_root": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/review-repair",
+  "scope": {
+    "owned_files": [
+      "skills/shiploop/scripts/shiploop_navigator.py",
+      "test/shiploop-callback-contract.test.py",
+      "changes/shiploop/r07-outcome-continuity.md"
+    ],
+    "other_changes": "Parent independently owns docs plan/evidence; status retained without treating those edits as runtime changes.",
+    "staged_or_committed": false,
+    "plan_updated": false,
+    "verification_worktree_touched": false,
+    "delegation_advisors_external_services_or_models_called": false
+  },
+  "review": {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/final-review.md",
+    "sha256": "0aacfdd4dffa44838db0df265f8232cf06120fe75f8fd6418b4b92e33869fb2b",
+    "nature": "Independent static review; findings became reproduced defects only in red-cache.",
+    "head_message_argv": [
+      "git",
+      "-C",
+      "/Users/dadleet/src/skill-craft-r07-20261115",
+      "show",
+      "-s",
+      "--format=fuller",
+      "HEAD"
+    ],
+    "head_message": "source-head-message.txt",
+    "relevant_full_history_messages_read": [
+      "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "4087731ff6ce672d635df7e479b890c2c2d66d96",
+      "a3b2f975487ebb7ede6987628c4a931941f9b057",
+      "5086baf688a611172003e0fac4417dba06bb4e0c"
+    ]
+  },
+  "reproductions": [
+    {
+      "finding": "P1 cached completion skips settlement evidence existence",
+      "method": "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+      "setup": "Real passing release-check with settlements citing RUN/observation.txt; fixture file is outside Git; delete only that nested evidence file. Assert identical key and matching_yes immediately before direct complete.",
+      "original_failure": "Missing-evidence refusal assertion failed: complete accepted and printed Gates: taken from the check. Original runtime hash equals dbd2a47 baseline.",
+      "corrected_result": "PASS: complete exits 2 specifically for the missing nested file; full accepted state unchanged; answer records no with identical key and missing-evidence reason; matching_yes returns None.",
+      "control": "Real passing check with unchanged existing RUN/observation.txt reuses the answer and accepts; PASS in red and green."
+    },
+    {
+      "finding": "P2 refused cached answer remains yes",
+      "method": "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "setup": "Existing synthetic same-version passing answer, unchanged matching key, pending outcomes removed without settlement; invoke complete directly.",
+      "original_failure": "Semantic settlement refusal and unchanged-state assertions passed; distinct new assertion then failed with answer yes != no. This is retained-answer inconsistency, not successful semantic admission.",
+      "corrected_result": "PASS: settlement refusal remains; accepted state unchanged; record answer no with same key and settlement reason; matching_yes returns None."
+    }
+  ],
+  "fix": {
+    "runtime": "Only within matching-yes branch, run existing _check_submitted_evidence with normal complete receipt/count semantics, then _check_submitted_unverified. Catch NavigatorError, use existing record_answer with taken key and yes=False/current reason, then re-raise before take_check.",
+    "preserved": "Ordinary uncached evaluator and its gate/refusal order unchanged; valid cached local reuse still proceeds to existing take_check. No key, schema, version, parser, authority service, framework or runtime file added.",
+    "fixtures": "Scenario-specific synthetic observation or user-correction statements now occupy existing evidence paths in affected R07 positive controls; the new real-check pair uses RUN/observation.txt.",
+    "change_note": "Added one factual sentence about evidence/continuity order and recording current no answer.",
+    "patch": "owned-repair.patch"
+  },
+  "original_fail_first": {
+    "result": "2 failures, 0 errors, 1 passing unchanged-reference control",
+    "method_count": 3,
+    "test_reported_seconds": 73.744,
+    "elapsed_seconds": 82.31629404200066,
+    "runtime_matches_original_head": true,
+    "metadata": "red-cache/result.json",
+    "raw_log": "red-cache/raw.log",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "test/shiploop-callback-contract.test.py",
+      "-v",
+      "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence"
+    ],
+    "before": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "a3c8ceb7da5e99ca95edb2445b79fc0e647f2a285b9ac9355cb12a9a10b7ea9b",
+        "test/shiploop-callback-contract.test.py": "59e1800c3f99c5892d4cc92570fc38bc8990a503cab55bf071e05a4e73fc3d61",
+        "changes/shiploop/r07-outcome-continuity.md": "3b24a44ff2ed6da5e203e015728d712eaec0890b492065e97e7cac1dbca98b69"
+      }
+    },
+    "after": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "a3c8ceb7da5e99ca95edb2445b79fc0e647f2a285b9ac9355cb12a9a10b7ea9b",
+        "test/shiploop-callback-contract.test.py": "59e1800c3f99c5892d4cc92570fc38bc8990a503cab55bf071e05a4e73fc3d61",
+        "changes/shiploop/r07-outcome-continuity.md": "3b24a44ff2ed6da5e203e015728d712eaec0890b492065e97e7cac1dbca98b69"
+      }
+    }
+  },
+  "corrected_bank": {
+    "result": "PASS",
+    "method_count": 9,
+    "failures": 0,
+    "errors": 0,
+    "test_reported_seconds": 148.347,
+    "elapsed_seconds": 149.2076458329975,
+    "metadata": "green-targeted/result.json",
+    "raw_log": "green-targeted/raw.log",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "test/shiploop-callback-contract.test.py",
+      "-v",
+      "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence",
+      "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+      "R07ContinuityTests.test_r07_settlement_rejection_table",
+      "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+      "R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+      "R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+      "R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics"
+    ],
+    "env": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "SHIPLOOP_PROGRESS": "off"
+    },
+    "before": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+        "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+        "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+      }
+    },
+    "after": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+        "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+        "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+      }
+    },
+    "latest_method_results": {
+      "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_settlement_rejection_table": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      },
+      "R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics": {
+        "result": "PASS",
+        "run": "green-targeted",
+        "raw_log": "green-targeted/raw.log"
+      }
+    },
+    "counting": "Counts are unittest methods; table/basis subtests are not additional methods. Existing settlement rejection-order table and relevant early observed/correction, reopening, due-stage, nested-locator controls included."
+  },
+  "static_validation": {
+    "ruff_added_diagnostics": 0,
+    "ruff_baseline_diagnostics": 117,
+    "ruff_candidate_diagnostics": 117,
+    "ruff_raw_exit_codes": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "ruff_interpretation": "Both baseline and candidate retain 117 findings under current Ruff configuration; comparison uses multiplicities of path/code/message, ignoring shifted line numbers. Not a clean-Ruff claim.",
+    "diff_check": "PASS",
+    "elapsed_seconds": 1.4897913330023584,
+    "metadata_and_exact_argv": "static/result.json",
+    "raw_logs": "static/baseline-*.stdout.json, static/candidate-*.stdout.json and corresponding stderr logs; static/diff-check.stdout.log and static/diff-check.stderr.log",
+    "before": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+        "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+        "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+      }
+    },
+    "after": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+        "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+        "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+      }
+    }
+  },
+  "source_stability": {
+    "red": true,
+    "green": true,
+    "static": true,
+    "claim": "HEAD and owned runtime/test/change-note SHA256 were fixed within each run. Honest full worktree status is retained; parent documentation is independent.",
+    "initial": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "a3c8ceb7da5e99ca95edb2445b79fc0e647f2a285b9ac9355cb12a9a10b7ea9b",
+        "test/shiploop-callback-contract.test.py": "e8039df05b7cb75324f61c75d7481f60b13fc7993ffca9a3025f81c9939cd635",
+        "changes/shiploop/r07-outcome-continuity.md": "3b24a44ff2ed6da5e203e015728d712eaec0890b492065e97e7cac1dbca98b69"
+      }
+    },
+    "final": {
+      "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+      "status": " M changes/shiploop/r07-outcome-continuity.md\n M docs/shiploop-implement-step-fix-plan-2026-10-17.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M test/shiploop-callback-contract.test.py\n?? docs/shiploop-implement-prompt-audit-evidence/r07-20261115/\n",
+      "sha256": {
+        "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+        "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+        "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c"
+      }
+    }
+  },
+  "limits": [
+    "Mechanical declared acceptance and local evidence existence only; no authenticated person action, user authority, evidence truth/currency/adequacy or real consumer behavior established.",
+    "No full suites, CI, live host/deployment, external service, model, advisor or independent post-fix review run.",
+    "Separate frozen-worktree 41-suite qualification remains independent; it was neither accessed nor changed and does not qualify this repaired snapshot.",
+    "Existing lower-level receipt reuse implementation was unchanged; no separate broad receipt suite was run beyond requested cached-answer controls.",
+    "No plan update, staging, commit, release or host refresh."
+  ]
+}

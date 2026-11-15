@@ -1,0 +1,140 @@
+test_product_acceptance_reads_every_stage_whose_open_items_it_carries_in (__main__.CarriedOpenItemTests.test_product_acceptance_reads_every_stage_whose_open_items_it_carries_in)
+N3 of the 2026-10-10 packet review: the duty named system-test-author, the row's reads did not. ... ok
+test_an_unachievable_case_is_an_open_item_outside_the_item_and_send_back_inside_it (__main__.CaseEndStateTests.test_an_unachievable_case_is_an_open_item_outside_the_item_and_send_back_inside_it)
+P-sta-2, SPEC S-14: both Grok BLOCKED runs stopped on a case the host could not run (TC-16 needed a browser), ... ok
+test_each_sentence_names_exactly_the_routes_its_stage_accepts (__main__.CaseEndStateTests.test_each_sentence_names_exactly_the_routes_its_stage_accepts)
+B2 and correctness #4/#7 of the 2026-10-10 packet review: the sentence was one text, edited by a string ... ok
+test_system_test_promises_no_done_past_a_failing_recorded_command (__main__.CaseEndStateTests.test_system_test_promises_no_done_past_a_failing_recorded_command)
+B1 of the 2026-10-10 packet review (probe_system_test.py): the system-test duty said a route that fails when ... ok
+test_the_case_end_states_are_printed_by_exactly_these_stages_from_one_function (__main__.CaseEndStateTests.test_the_case_end_states_are_printed_by_exactly_these_stages_from_one_function)
+S-12: one function builds the sentence from a stage's own row, so no stage gets another stage's text. ... ok
+test_the_stage_rows_state_the_three_end_states (__main__.CaseEndStateTests.test_the_stage_rows_state_the_three_end_states) ... ok
+test_the_system_test_author_runs_each_command_once_while_authoring (__main__.CaseEndStateTests.test_the_system_test_author_runs_each_command_once_while_authoring) ... ok
+test_handoff_reports_where_release_verify_ran_from_the_line_its_packet_carries (__main__.ConsumerCheckLocationTests.test_handoff_reports_where_release_verify_ran_from_the_line_its_packet_carries) ... ok
+test_release_plan_says_where_the_checks_will_run_and_how_to_write_them (__main__.ConsumerCheckLocationTests.test_release_plan_says_where_the_checks_will_run_and_how_to_write_them) ... ok
+test_release_verify_says_how_a_defect_is_fixed_and_what_may_touch_the_checkout (__main__.ConsumerCheckLocationTests.test_release_verify_says_how_a_defect_is_fixed_and_what_may_touch_the_checkout) ... ok
+test_the_copy_semantics_are_not_added_to_the_other_two_statements_in_that_packet (__main__.ConsumerCheckLocationTests.test_the_copy_semantics_are_not_added_to_the_other_two_statements_in_that_packet)
+GUARD (passes on the unchanged tree): said once per packet. The stage row and the duty keep only the sentence ... ok
+test_the_journal_lists_what_the_live_run_must_still_show (__main__.ConsumerCheckLocationTests.test_the_journal_lists_what_the_live_run_must_still_show)
+Hermetic fixtures prove the mechanism, not the models' habits: the journal names each live check as open. ... ok
+test_the_receipt_recount_the_journal_cites_is_in_the_repository (__main__.ConsumerCheckLocationTests.test_the_receipt_recount_the_journal_cites_is_in_the_repository) ... ok
+test_the_skill_card_and_the_workspace_lifecycle_card_say_the_same (__main__.ConsumerCheckLocationTests.test_the_skill_card_and_the_workspace_lifecycle_card_say_the_same) ... ok
+test_the_reference_and_the_glossary_say_what_the_script_refuses_and_what_it_never_does (__main__.FollowOnWordingTests.test_the_reference_and_the_glossary_say_what_the_script_refuses_and_what_it_never_does) ... ok
+test_the_row_and_the_duty_name_the_list_the_classes_and_what_a_recommendation_does (__main__.FollowOnWordingTests.test_the_row_and_the_duty_name_the_list_the_classes_and_what_a_recommendation_does) ... ok
+test_a_person_only_case_with_no_host_route_is_an_open_item_not_a_block (__main__.GuidanceTests.test_a_person_only_case_with_no_host_route_is_an_open_item_not_a_block)
+a13, SPEC S-14: system-test never routes a person-only case to blocked. ... ok
+test_a_procedure_locator_reaches_every_stage_that_consumes_its_case_or_open_item (__main__.GuidanceTests.test_a_procedure_locator_reaches_every_stage_that_consumes_its_case_or_open_item)
+W2-C (implement-step fix plan T26, T29): a procedure is carried by its locator, not copied.  The case's ... ok
+test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields (__main__.GuidanceTests.test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields)
+Exercise host-authored evidence handoff, not automatic model compliance. ... ok
+test_coding_guide_is_selective_in_cold_producer_and_improve_packets (__main__.GuidanceTests.test_coding_guide_is_selective_in_cold_producer_and_improve_packets)
+Route locators, not every card body; retain the same owner on recovery. ... ok
+test_coding_reference_links_survive_package_relocation (__main__.GuidanceTests.test_coding_reference_links_survive_package_relocation)
+A packaged selector and its cards must work outside this checkout. ... ok
+test_cold_initial_plan_preserves_state_obligations_through_improve (__main__.GuidanceTests.test_cold_initial_plan_preserves_state_obligations_through_improve) ... ok
+test_cold_lifecycle_packets_keep_clause_surface_and_due_phase (__main__.GuidanceTests.test_cold_lifecycle_packets_keep_clause_surface_and_due_phase)
+A compact requirement survives planning and due-stage reconciliation. ... ok
+test_cold_local_skill_routes_cover_early_and_late_decisions (__main__.GuidanceTests.test_cold_local_skill_routes_cover_early_and_late_decisions)
+Fresh producer and pending-child packets retain the local skill route. ... ok
+test_cold_packets_keep_the_latest_done_root_test_strategy (__main__.GuidanceTests.test_cold_packets_keep_the_latest_done_root_test_strategy)
+The accepted harness-definition locator remains reachable through later cold packets. ... ok
+test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage (__main__.GuidanceTests.test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage)
+Persisted current states retain the direct guide route at testing checkpoints. ... ok
+test_cold_release_operation_route_recovers_outer_parents_and_partial_blocker (__main__.GuidanceTests.test_cold_release_operation_route_recovers_outer_parents_and_partial_blocker)
+Synthetic records exercise recovery only; no Improve or release is run. ... ok
+test_cold_step_plan_keeps_compact_context_and_evidence_locators (__main__.GuidanceTests.test_cold_step_plan_keeps_compact_context_and_evidence_locators) ... ok
+test_connected_knowledge_discovery_route_recovers_from_relocated_package (__main__.GuidanceTests.test_connected_knowledge_discovery_route_recovers_from_relocated_package)
+Relocated packets transport the selected locator; they do not prove live access. ... ok
+test_consumer_access_is_probed_read_only_at_prepare_and_again_at_release_check (__main__.GuidanceTests.test_consumer_access_is_probed_read_only_at_prepare_and_again_at_release_check)
+Packet review 2026-10-17 (F-7, X-1) and the implement-step plan's access row: the consumer's entry route and ... ok
+test_consumer_testing_guide_survives_cold_producer_and_improve_handoffs (__main__.GuidanceTests.test_consumer_testing_guide_survives_cold_producer_and_improve_handoffs)
+The browser evidence policy remains reachable; no live browser is tested. ... ok
+test_current_item_test_decision_source_is_revised_and_item_scoped (__main__.GuidanceTests.test_current_item_test_decision_source_is_revised_and_item_scoped)
+Only the current item's latest accepted decision is retained in a packet. ... ok
+test_current_system_baseline_guide_relocates_with_recovery_cue (__main__.GuidanceTests.test_current_system_baseline_guide_relocates_with_recovery_cue)
+The portable guide retains anchors and a minimal stale/missing recovery cue. ... ok
+test_current_system_baseline_routes_survive_cold_lifecycle_and_pending_improve (__main__.GuidanceTests.test_current_system_baseline_routes_survive_cold_lifecycle_and_pending_improve)
+Cold packets preserve only the relevant locator through one synthetic run. ... ok
+test_current_system_baseline_stage_routes_are_exact_and_selective (__main__.GuidanceTests.test_current_system_baseline_stage_routes_are_exact_and_selective)
+Keep the guide's graph projection independent of the prompt catalog. ... ok
+test_discovery_evidence_handoff_route_recovers_from_relocated_package (__main__.GuidanceTests.test_discovery_evidence_handoff_route_recovers_from_relocated_package)
+A recovered producer packet preserves the selected handoff locator. ... ok
+test_discovery_investigation_route_recovers_from_relocated_package (__main__.GuidanceTests.test_discovery_investigation_route_recovers_from_relocated_package)
+Relocated packets transport the selected locator; they do not prove model use. ... ok
+test_discovery_selects_a_reopenable_baseline_and_consumers_follow_it (__main__.GuidanceTests.test_discovery_selects_a_reopenable_baseline_and_consumers_follow_it) ... ok
+test_each_current_packet_renders_its_selected_stage_references (__main__.GuidanceTests.test_each_current_packet_renders_its_selected_stage_references) ... ok
+test_house_style_stage_routes_are_exact_and_selective (__main__.GuidanceTests.test_house_style_stage_routes_are_exact_and_selective)
+Only the stages that extract, contract, build, check or retain the style get it. ... ok
+test_improve_and_source_return_guidance_keep_the_existing_boundary (__main__.GuidanceTests.test_improve_and_source_return_guidance_keep_the_existing_boundary) ... ok
+test_improve_retains_coding_and_release_capabilities_with_stage_authority (__main__.GuidanceTests.test_improve_retains_coding_and_release_capabilities_with_stage_authority) ... ok
+test_match_contract_reaches_every_stage_that_builds_or_checks_the_item (__main__.GuidanceTests.test_match_contract_reaches_every_stage_that_builds_or_checks_the_item)
+The contract lives in the step-plan result; work items take context only at plan. ... ok
+test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection (__main__.GuidanceTests.test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection)
+The generic item context keeps selections scoped to their owner. ... ok
+test_outer_test_handshake_recovers_add_work_aware_sources_cold (__main__.GuidanceTests.test_outer_test_handshake_recovers_add_work_aware_sources_cold)
+The packet routes existing records; it does not certify their contents. ... ok
+test_quality_guidance_keeps_planning_review_and_product_review_distinct (__main__.GuidanceTests.test_quality_guidance_keeps_planning_review_and_product_review_distinct) ... ok
+test_reusable_test_facilities_route_and_recover_without_new_state (__main__.GuidanceTests.test_reusable_test_facilities_route_and_recover_without_new_state)
+Facility locators are ordinary cold-context records, never execution proof. ... ok
+test_service_discovery_context_and_final_improve_handoff_are_item_scoped (__main__.GuidanceTests.test_service_discovery_context_and_final_improve_handoff_are_item_scoped)
+Carry final service decisions through one item without replaying them to the next. ... ok
+test_service_discovery_guide_sections_and_links_survive_package_relocation (__main__.GuidanceTests.test_service_discovery_guide_sections_and_links_survive_package_relocation)
+The direct guide stays portable with its stable section anchors. ... ok
+test_service_discovery_routes_survive_cold_producer_and_improve_packets (__main__.GuidanceTests.test_service_discovery_routes_survive_cold_producer_and_improve_packets)
+Current-stage routing survives recovery without replaying earlier guide refs. ... ok
+test_service_discovery_stage_routes_are_exact_and_selective (__main__.GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective)
+Keep the conditional guide's routes independent of the prompt catalog. ... ok
+test_stage_reference_catalog_is_complete_and_resolves (__main__.GuidanceTests.test_stage_reference_catalog_is_complete_and_resolves) ... ok
+test_state_assessment_is_routed_to_planning_and_its_improve_handoffs (__main__.GuidanceTests.test_state_assessment_is_routed_to_planning_and_its_improve_handoffs) ... ok
+test_synthetic_planning_fixtures_have_executable_baselines (__main__.GuidanceTests.test_synthetic_planning_fixtures_have_executable_baselines)
+Fixture health is not evidence that a model produced an adequate plan. ... ok
+test_test_strategy_done_when_keeps_requested_scope_with_no_spec_diff (__main__.GuidanceTests.test_test_strategy_done_when_keeps_requested_scope_with_no_spec_diff) ... ok
+test_test_strategy_scope_survives_an_empty_textual_diff (__main__.GuidanceTests.test_test_strategy_scope_survives_an_empty_textual_diff) ... ok
+test_the_apps_script_card_points_deployed_tests_at_the_stateful_target_route (__main__.GuidanceTests.test_the_apps_script_card_points_deployed_tests_at_the_stateful_target_route)
+Only the Salesforce card lists Remote tests: it names the shell commands that test an org. No command this ... ok
+test_the_procedure_condition_reaches_where_procedures_originate_and_every_planning_review (__main__.GuidanceTests.test_the_procedure_condition_reaches_where_procedures_originate_and_every_planning_review)
+W2-C (implement-step fix plan 4.2, T34): one procedure-validity text, in the shared review focus, reaches the ... ok
+test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_remote_test_route (__main__.GuidanceTests.test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_remote_test_route)
+An org-run Apex test: the reporter the reader can use, and why the base run leaves it out (a remote test, which ... ok
+test_the_step_plan_packet_asks_each_step_for_its_skills (__main__.GuidanceTests.test_the_step_plan_packet_asks_each_step_for_its_skills)
+skill_na and the two skill stages are gone (8-stage loop, 2026-10-10): each step names its skills. ... ok
+test_the_system_test_author_defines_check_and_says_what_focused_needs (__main__.GuidanceTests.test_the_system_test_author_defines_check_and_says_what_focused_needs)
+SPEC S-3, S-10: the stage that records system commands names the suite for a command that is not a runner. ... ok
+test_ui_ownership_and_failed_readiness_survive_to_a_blocked_step_plan (__main__.GuidanceTests.test_ui_ownership_and_failed_readiness_survive_to_a_blocked_step_plan)
+Synthetic host judgments test routing and blocking, not model quality. ... ok
+test_ui_supersession_handoff_keeps_replacement_current_after_cold_recovery (__main__.GuidanceTests.test_ui_supersession_handoff_keeps_replacement_current_after_cold_recovery)
+A reviewed plan can replace a UI premise without erasing its seed evidence. ... ok
+test_a_not_run_base_names_a_command_that_fails_before_it_prints (__main__.LiveRunGuidanceTests.test_a_not_run_base_names_a_command_that_fails_before_it_prints) ... ok
+test_each_one_line_refusal_says_how_to_join_steps (__main__.LiveRunGuidanceTests.test_each_one_line_refusal_says_how_to_join_steps) ... ok
+test_prepare_ignores_a_tools_own_state_and_the_salesforce_card_names_it (__main__.LiveRunGuidanceTests.test_prepare_ignores_a_tools_own_state_and_the_salesforce_card_names_it) ... ok
+test_research_searches_the_web_one_question_at_a_time (__main__.LiveRunGuidanceTests.test_research_searches_the_web_one_question_at_a_time) ... ok
+test_the_plan_duty_puts_scaffolding_in_the_first_item_that_builds_on_it (__main__.LiveRunGuidanceTests.test_the_plan_duty_puts_scaffolding_in_the_first_item_that_builds_on_it) ... ok
+test_the_step_plan_says_a_hand_written_check_prints_its_id_on_every_exit (__main__.LiveRunGuidanceTests.test_the_step_plan_says_a_hand_written_check_prints_its_id_on_every_exit) ... ok
+test_the_test_spec_says_an_uncovered_criterion_is_a_notice_not_a_refusal (__main__.LiveRunGuidanceTests.test_the_test_spec_says_an_uncovered_criterion_is_a_notice_not_a_refusal) ... ok
+test_each_replayed_fault_shows_at_its_step_and_its_fixed_form_holds (__main__.ProcedureFixtureTests.test_each_replayed_fault_shows_at_its_step_and_its_fixed_form_holds) ... ok
+test_the_guarded_command_exits_zero_having_run_nothing_and_the_unguarded_one_fails_honestly (__main__.ProcedureFixtureTests.test_the_guarded_command_exits_zero_having_run_nothing_and_the_unguarded_one_fails_honestly) ... ok
+test_the_review_text_that_owns_each_fault_is_in_the_planning_focus_and_the_guide (__main__.ProcedureFixtureTests.test_the_review_text_that_owns_each_fault_is_in_the_planning_focus_and_the_guide) ... ok
+test_the_six_field_gate_accepts_each_faulty_case_and_refuses_a_procedure_key (__main__.ProcedureFixtureTests.test_the_six_field_gate_accepts_each_faulty_case_and_refuses_a_procedure_key) ... ok
+test_plan_states_each_items_module_format_and_loadable_seam (__main__.SettledFactTests.test_plan_states_each_items_module_format_and_loadable_seam) ... ok
+test_system_test_author_marks_host_dependent_rows (__main__.SettledFactTests.test_system_test_author_marks_host_dependent_rows) ... ok
+test_test_strategy_keeps_host_dependent_cases_out_of_the_default_suite_command (__main__.SettledFactTests.test_test_strategy_keeps_host_dependent_cases_out_of_the_default_suite_command) ... ok
+test_test_strategy_packet_discovers_tools_from_the_host_and_repository (__main__.SettledFactTests.test_test_strategy_packet_discovers_tools_from_the_host_and_repository)
+Packet structure only: live host discovery and rendered interaction are verified separately. ... ok
+test_test_strategy_packet_prefers_devtools_conditionally_and_keeps_regressions (__main__.SettledFactTests.test_test_strategy_packet_prefers_devtools_conditionally_and_keeps_regressions)
+The preference is conditional, and does not replace a capable repository runner. ... ok
+test_test_strategy_packet_separates_runtime_session_and_target_and_limits_fallbacks (__main__.SettledFactTests.test_test_strategy_packet_separates_runtime_session_and_target_and_limits_fallbacks)
+One failed invocation stays local to that route; authorization boundaries remain binding. ... ok
+test_ui_entry_precedes_minimal_authentication_and_the_same_check_resumes (__main__.SettledFactTests.test_ui_entry_precedes_minimal_authentication_and_the_same_check_resumes)
+Auth is conditional on the actual UI response, and its success is not the UI assertion. ... ok
+test_the_improve_packet_never_calls_its_own_review_independent (__main__.UnattendedWordingTests.test_the_improve_packet_never_calls_its_own_review_independent) ... ok
+test_the_integrate_guidance_leaves_the_commit_to_shiploop_and_reviews_the_assembled_steps_on_the_ask_agent_route (__main__.UnattendedWordingTests.test_the_integrate_guidance_leaves_the_commit_to_shiploop_and_reviews_the_assembled_steps_on_the_ask_agent_route)
+Integrate folded into verify, which retired (design T §9.1 2b-4c): document's duty leaves the commit to ... ok
+test_the_prelude_rows_ask_for_a_default_or_an_open_item_and_none_for_a_person_or_a_suite_that_may_not_exist (__main__.UnattendedWordingTests.test_the_prelude_rows_ask_for_a_default_or_an_open_item_and_none_for_a_person_or_a_suite_that_may_not_exist) ... ok
+test_the_row_and_the_duty_name_the_list_and_the_three_end_states (__main__.UnverifiedWordingTests.test_the_row_and_the_duty_name_the_list_and_the_three_end_states) ... ok
+test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints (__main__.UnverifiedWordingTests.test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints) ... ok
+test_the_spec_names_its_primary_requirements_and_each_unverified_entry_its_lower_layer_check (__main__.UnverifiedWordingTests.test_the_spec_names_its_primary_requirements_and_each_unverified_entry_its_lower_layer_check) ... ok
+
+----------------------------------------------------------------------
+Ran 87 tests in 7.818s
+
+OK

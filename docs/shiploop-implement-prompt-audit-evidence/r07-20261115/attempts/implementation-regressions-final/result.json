@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-callback-contract.test.py",
+    "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+    "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+    "R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 26.38661216699984,
+  "counts": [
+    "3"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

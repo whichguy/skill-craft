@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-head-order.test.py",
+    "PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 1.1314086249985849,
+  "counts": [
+    "1"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

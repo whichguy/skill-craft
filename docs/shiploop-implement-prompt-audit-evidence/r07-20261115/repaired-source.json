@@ -1,0 +1,16 @@
+{
+  "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+  "base": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+  "worktree": "/Users/dadleet/src/skill-craft-r07-20261115",
+  "files": {
+    "changes/shiploop/r07-outcome-continuity.md": "587c9ed3da2e038d0c83253269ea65d8ddb70f2d485faa6688488a282b611d7c",
+    "skills/shiploop/references/test-loop.md": "1bf425bacee802c2babd20ad1f4a808ea9b1b4cc84f055065e65263c7ba3114a",
+    "skills/shiploop/scripts/shiploop_navigator.py": "d2be505792a16e5d6c867733e850fcf2d6d6ea03cdb15d97bf9d976f090f1c6a",
+    "skills/shiploop/scripts/shiploop_prompts.py": "1f6fd513177022ef09cb7124a85b8a64f0665449be41bdc697440a239981a612",
+    "skills/shiploop/scripts/shiploop_stage_spec.py": "5f56f4d2d53ff98465546443f50eb54fc87ec77eb4b0b3b1df1e238b58e829d8",
+    "skills/shiploop/scripts/shiploop_unverified.py": "df5ae671e9f2e8c56ddebae12b6020b784dd83254051f7cf6edf750eef50c219",
+    "test/shiploop-actual-improve-cli.test.py": "3be4e1a13d45cc07e3016e59e5e88335cbd6d12f35090bb38d90f47e8699e9a9",
+    "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+    "test/shiploop-consumer-delivery.test.py": "7f27778a480bf4e1777ba7e46dc424e67b7cb60d1802673353ba31b530412f3c"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+  "base": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+  "integrated_main": "fe0e6ca39435d502bd0b8afd3ce300ff731e5683",
+  "verification_worktree": "/Users/dadleet/src/skill-craft-r07-integration-verify-20261115",
+  "files": {
+    "changes/shiploop/r07-outcome-continuity.md": "9d86df4d750e4b0c0a821353a84b33ac8dd3674750942aa1ef0e490b67403cc9",
+    "skills/shiploop/references/test-loop.md": "b4472d3fc9af70a0d6aa7e52bfeb37bf1b557063527c4666528d91073fb1367e",
+    "skills/shiploop/scripts/shiploop_navigator.py": "b1969c478cc4248925a6978e3a2cc63db67983164b536642956d51327caf75d2",
+    "skills/shiploop/scripts/shiploop_prompts.py": "d2bf6eaf72e71f79c7a1a84ef545341f6da30d32c3d353f8f0b709b4881e8bad",
+    "skills/shiploop/scripts/shiploop_stage_spec.py": "5f56f4d2d53ff98465546443f50eb54fc87ec77eb4b0b3b1df1e238b58e829d8",
+    "skills/shiploop/scripts/shiploop_unverified.py": "df5ae671e9f2e8c56ddebae12b6020b784dd83254051f7cf6edf750eef50c219",
+    "test/shiploop-actual-improve-cli.test.py": "9ba15b039bb99046d062d058e9c722a77e9c495a2f1cc9a2fea7f18472db21e9",
+    "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+    "test/shiploop-consumer-delivery.test.py": "7f27778a480bf4e1777ba7e46dc424e67b7cb60d1802673353ba31b530412f3c",
+    "test/shiploop-e2e-analysis.test.py": "5fab91d609c6ca49cf23e47b2907c6d66c0e04c39cc2cc3f7ddc102f61dd822e",
+    "test/shiploop-guidance.test.py": "063947833af7d69300975bf90b31febe1b31a0db804412790d52f73c9e6b5bc2",
+    "test/shiploop_e2e/metrics.py": "4c91dd45480dd30c7674a5823e7ae32277824ba1d3333dd422f09d4767e75fb8"
+  }
+}

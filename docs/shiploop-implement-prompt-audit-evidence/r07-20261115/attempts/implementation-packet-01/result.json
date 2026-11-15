@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-callback-contract.test.py",
+    "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+    "UnverifiedRouteTests.test_the_stage_an_entry_is_due_at_prints_the_list_and_the_handoff_prints_every_entry",
+    "UnverifiedRouteTests.test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 34.11804354099877,
+  "counts": [
+    "3"
+  ],
+  "source_unchanged": true,
+  "head_unchanged": true
+}

@@ -1,0 +1,818 @@
+[
+  {
+    "id": "qualification-attempt-01",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/qualification/run_new.py",
+      "attempt-01"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 67.70771962500294,
+    "observed_test_counts": [
+      6
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/qualification-attempt-01/pre.json",
+    "post": "attempts/qualification-attempt-01/post.json",
+    "stdout": "attempts/qualification-attempt-01/stdout.log",
+    "stderr": "attempts/qualification-attempt-01/stderr.log",
+    "result": "attempts/qualification-attempt-01/result.json"
+  },
+  {
+    "id": "qualification-attempt-02",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/qualification/run_new.py",
+      "attempt-02",
+      "consumer.ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route",
+      "callback.R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 12.498350874997413,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/qualification-attempt-02/pre.json",
+    "post": "attempts/qualification-attempt-02/post.json",
+    "stdout": "attempts/qualification-attempt-02/stdout.log",
+    "stderr": "attempts/qualification-attempt-02/stderr.log",
+    "result": "attempts/qualification-attempt-02/result.json"
+  },
+  {
+    "id": "qualification-attempt-03",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/qualification/run_new.py",
+      "attempt-03",
+      "callback.R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 12.261169375000463,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/qualification-attempt-03/pre.json",
+    "post": "attempts/qualification-attempt-03/post.json",
+    "stdout": "attempts/qualification-attempt-03/stdout.log",
+    "stderr": "attempts/qualification-attempt-03/stderr.log",
+    "result": "attempts/qualification-attempt-03/result.json"
+  },
+  {
+    "id": "implementation-attempt-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 143.00071179200313,
+    "observed_test_counts": [
+      11
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-attempt-01/pre.json",
+    "post": "attempts/implementation-attempt-01/post.json",
+    "stdout": "attempts/implementation-attempt-01/stdout.log",
+    "stderr": "attempts/implementation-attempt-01/stderr.log",
+    "result": "attempts/implementation-attempt-01/result.json"
+  },
+  {
+    "id": "implementation-attempt-02",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+      "R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement",
+      "R07ContinuityTests.test_r07_settlement_rejection_table",
+      "UnverifiedRouteTests.test_a_due_stage_restates_the_list_and_each_refusal_names_its_way_out",
+      "UnverifiedRouteTests.test_a_restatement_reaches_the_handoff_and_the_report_names_what_it_settled",
+      "UnverifiedRouteTests.test_an_entry_due_at_a_stage_that_never_ran_is_carried_to_the_handoff"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 54.04234520799946,
+    "observed_test_counts": [
+      6
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-attempt-02/pre.json",
+    "post": "attempts/implementation-attempt-02/post.json",
+    "stdout": "attempts/implementation-attempt-02/stdout.log",
+    "stderr": "attempts/implementation-attempt-02/stderr.log",
+    "result": "attempts/implementation-attempt-02/result.json"
+  },
+  {
+    "id": "implementation-consumer-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-consumer-delivery.test.py",
+      "ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation",
+      "ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.9679137079983775,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-consumer-01/pre.json",
+    "post": "attempts/implementation-consumer-01/post.json",
+    "stdout": "attempts/implementation-consumer-01/stdout.log",
+    "stderr": "attempts/implementation-consumer-01/stderr.log",
+    "result": "attempts/implementation-consumer-01/result.json"
+  },
+  {
+    "id": "implementation-followup-cache-green-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 6.752491874998668,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-cache-green-01/pre.json",
+    "post": "attempts/implementation-followup-cache-green-01/post.json",
+    "stdout": "attempts/implementation-followup-cache-green-01/stdout.log",
+    "stderr": "attempts/implementation-followup-cache-green-01/stderr.log",
+    "result": "attempts/implementation-followup-cache-green-01/result.json"
+  },
+  {
+    "id": "implementation-followup-cache-red-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 7.8195768340010545,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-cache-red-01/pre.json",
+    "post": "attempts/implementation-followup-cache-red-01/post.json",
+    "stdout": "attempts/implementation-followup-cache-red-01/stdout.log",
+    "stderr": "attempts/implementation-followup-cache-red-01/stderr.log",
+    "result": "attempts/implementation-followup-cache-red-01/result.json"
+  },
+  {
+    "id": "implementation-followup-cache-rejection-final-02",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+      "R07ContinuityTests.test_r07_settlement_rejection_table"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 36.0435910419983,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-cache-rejection-final-02/pre.json",
+    "post": "attempts/implementation-followup-cache-rejection-final-02/post.json",
+    "stdout": "attempts/implementation-followup-cache-rejection-final-02/stdout.log",
+    "stderr": "attempts/implementation-followup-cache-rejection-final-02/stderr.log",
+    "result": "attempts/implementation-followup-cache-rejection-final-02/result.json"
+  },
+  {
+    "id": "implementation-followup-continuity-final-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 133.81850829199902,
+    "observed_test_counts": [
+      13
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-continuity-final-01/pre.json",
+    "post": "attempts/implementation-followup-continuity-final-01/post.json",
+    "stdout": "attempts/implementation-followup-continuity-final-01/stdout.log",
+    "stderr": "attempts/implementation-followup-continuity-final-01/stderr.log",
+    "result": "attempts/implementation-followup-continuity-final-01/result.json"
+  },
+  {
+    "id": "implementation-followup-improve-final-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+      "EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 15.44389612500163,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-improve-final-01/pre.json",
+    "post": "attempts/implementation-followup-improve-final-01/post.json",
+    "stdout": "attempts/implementation-followup-improve-final-01/stdout.log",
+    "stderr": "attempts/implementation-followup-improve-final-01/stderr.log",
+    "result": "attempts/implementation-followup-improve-final-01/result.json"
+  },
+  {
+    "id": "implementation-followup-improve-green-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+      "EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 12.981304458000523,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-improve-green-01/pre.json",
+    "post": "attempts/implementation-followup-improve-green-01/post.json",
+    "stdout": "attempts/implementation-followup-improve-green-01/stdout.log",
+    "stderr": "attempts/implementation-followup-improve-green-01/stderr.log",
+    "result": "attempts/implementation-followup-improve-green-01/result.json"
+  },
+  {
+    "id": "implementation-followup-improve-red-01",
+    "argv": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-improve-probe.py"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 5.6214622920015245,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-improve-red-01/pre.json",
+    "post": "attempts/implementation-followup-improve-red-01/post.json",
+    "stdout": "attempts/implementation-followup-improve-red-01/stdout.log",
+    "stderr": "attempts/implementation-followup-improve-red-01/stderr.log",
+    "result": "attempts/implementation-followup-improve-red-01/result.json"
+  },
+  {
+    "id": "implementation-followup-improve-red-02",
+    "argv": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-improve-probe.py"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 5.5259113749998505,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-improve-red-02/pre.json",
+    "post": "attempts/implementation-followup-improve-red-02/post.json",
+    "stdout": "attempts/implementation-followup-improve-red-02/stdout.log",
+    "stderr": "attempts/implementation-followup-improve-red-02/stderr.log",
+    "result": "attempts/implementation-followup-improve-red-02/result.json"
+  },
+  {
+    "id": "implementation-followup-improve-red-03",
+    "argv": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r07-20261115/implementation/followup-improve-probe.py"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 6.542872875001194,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-improve-red-03/pre.json",
+    "post": "attempts/implementation-followup-improve-red-03/post.json",
+    "stdout": "attempts/implementation-followup-improve-red-03/stdout.log",
+    "stderr": "attempts/implementation-followup-improve-red-03/stderr.log",
+    "result": "attempts/implementation-followup-improve-red-03/result.json"
+  },
+  {
+    "id": "implementation-followup-packet-final-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-head-order.test.py",
+      "PrintedPacketTests.test_producer_prints_are_complete_at_both_install_lengths",
+      "PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 5.9332086670001445,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-followup-packet-final-01/pre.json",
+    "post": "attempts/implementation-followup-packet-final-01/post.json",
+    "stdout": "attempts/implementation-followup-packet-final-01/stdout.log",
+    "stderr": "attempts/implementation-followup-packet-final-01/stderr.log",
+    "result": "attempts/implementation-followup-packet-final-01/result.json"
+  },
+  {
+    "id": "implementation-guide-size",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-head-order.test.py",
+      "PlanRecordTests.test_the_guide_holds_every_moved_obligation_and_stays_under_its_size"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.1314086249985849,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-guide-size/pre.json",
+    "post": "attempts/implementation-guide-size/post.json",
+    "stdout": "attempts/implementation-guide-size/stdout.log",
+    "stderr": "attempts/implementation-guide-size/stderr.log",
+    "result": "attempts/implementation-guide-size/result.json"
+  },
+  {
+    "id": "implementation-packet-01",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+      "UnverifiedRouteTests.test_the_stage_an_entry_is_due_at_prints_the_list_and_the_handoff_prints_every_entry",
+      "UnverifiedRouteTests.test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 34.11804354099877,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-packet-01/pre.json",
+    "post": "attempts/implementation-packet-01/post.json",
+    "stdout": "attempts/implementation-packet-01/stdout.log",
+    "stderr": "attempts/implementation-packet-01/stderr.log",
+    "result": "attempts/implementation-packet-01/result.json"
+  },
+  {
+    "id": "implementation-regressions-final",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-callback-contract.test.py",
+      "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+      "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+      "R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 26.38661216699984,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "pre": "attempts/implementation-regressions-final/pre.json",
+    "post": "attempts/implementation-regressions-final/post.json",
+    "stdout": "attempts/implementation-regressions-final/stdout.log",
+    "stderr": "attempts/implementation-regressions-final/stderr.log",
+    "result": "attempts/implementation-regressions-final/result.json"
+  },
+  {
+    "id": "review-repair-green-targeted",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "test/shiploop-callback-contract.test.py",
+      "-v",
+      "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence",
+      "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+      "R07ContinuityTests.test_r07_settlement_rejection_table",
+      "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+      "R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+      "R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+      "R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 149.2076458329975,
+    "observed_test_counts": [
+      9
+    ],
+    "source_unchanged": true,
+    "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+    "pre": "attempts/review-repair-green-targeted/pre.json",
+    "post": "attempts/review-repair-green-targeted/post.json",
+    "stdout": "attempts/review-repair-green-targeted/stdout.log",
+    "stderr": "attempts/review-repair-green-targeted/stderr.log",
+    "result": "attempts/review-repair-green-targeted/result.json"
+  },
+  {
+    "id": "review-repair-red-cache",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "test/shiploop-callback-contract.test.py",
+      "-v",
+      "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+      "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+      "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 82.31629404200066,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+    "pre": "attempts/review-repair-red-cache/pre.json",
+    "post": "attempts/review-repair-red-cache/post.json",
+    "stdout": "attempts/review-repair-red-cache/stdout.log",
+    "stderr": "attempts/review-repair-red-cache/stderr.log",
+    "result": "attempts/review-repair-red-cache/result.json"
+  },
+  {
+    "id": "integration-repair-red-guidance",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-guidance.test.py",
+      "UnverifiedWordingTests"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 0.4864117500001157,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-repair-red-guidance/pre.json",
+    "post": "attempts/integration-repair-red-guidance/post.json",
+    "stdout": "attempts/integration-repair-red-guidance/stdout.log",
+    "stderr": "attempts/integration-repair-red-guidance/stderr.log",
+    "result": "attempts/integration-repair-red-guidance/result.json"
+  },
+  {
+    "id": "integration-repair-red-metrics-existing",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-e2e-analysis.test.py",
+      "GateCountsTest.test_the_restate_and_small_pass_refusals_classify_under_their_gates"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 0.9267069589986932,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-repair-red-metrics-existing/pre.json",
+    "post": "attempts/integration-repair-red-metrics-existing/post.json",
+    "stdout": "attempts/integration-repair-red-metrics-existing/stdout.log",
+    "stderr": "attempts/integration-repair-red-metrics-existing/stderr.log",
+    "result": "attempts/integration-repair-red-metrics-existing/result.json"
+  },
+  {
+    "id": "integration-repair-red-seed",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file",
+      "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 7.556976875002874,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-repair-red-seed/pre.json",
+    "post": "attempts/integration-repair-red-seed/post.json",
+    "stdout": "attempts/integration-repair-red-seed/stdout.log",
+    "stderr": "attempts/integration-repair-red-seed/stderr.log",
+    "result": "attempts/integration-repair-red-seed/result.json"
+  },
+  {
+    "id": "integration-repair-red-seed-02",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file",
+      "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 9.324689958997624,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-repair-red-seed-02/pre.json",
+    "post": "attempts/integration-repair-red-seed-02/post.json",
+    "stdout": "attempts/integration-repair-red-seed-02/stdout.log",
+    "stderr": "attempts/integration-repair-red-seed-02/stderr.log",
+    "result": "attempts/integration-repair-red-seed-02/result.json"
+  },
+  {
+    "id": "integration-repair-red-seed-03",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file",
+      "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 10.154648624997208,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-repair-red-seed-03/pre.json",
+    "post": "attempts/integration-repair-red-seed-03/post.json",
+    "stdout": "attempts/integration-repair-red-seed-03/stdout.log",
+    "stderr": "attempts/integration-repair-red-seed-03/stderr.log",
+    "result": "attempts/integration-repair-red-seed-03/result.json"
+  },
+  {
+    "id": "integration-recovery-green-bound",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-package-integrity.test.py",
+      "PackageIntegrityTests.test_entry_card_split_holds_its_ledger_and_bounds"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 0.17142225000134204,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-bound/pre.json",
+    "post": "attempts/integration-recovery-green-bound/post.json",
+    "stdout": "attempts/integration-recovery-green-bound/stdout.log",
+    "stderr": "attempts/integration-recovery-green-bound/stderr.log",
+    "result": "attempts/integration-recovery-green-bound/result.json"
+  },
+  {
+    "id": "integration-recovery-green-bound-final",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-package-integrity.test.py",
+      "PackageIntegrityTests.test_entry_card_split_holds_its_ledger_and_bounds"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 0.17057033400124055,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-bound-final/pre.json",
+    "post": "attempts/integration-recovery-green-bound-final/post.json",
+    "stdout": "attempts/integration-recovery-green-bound-final/stdout.log",
+    "stderr": "attempts/integration-recovery-green-bound-final/stderr.log",
+    "result": "attempts/integration-recovery-green-bound-final/result.json"
+  },
+  {
+    "id": "integration-recovery-green-bound-final-02",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-package-integrity.test.py",
+      "PackageIntegrityTests.test_entry_card_split_holds_its_ledger_and_bounds"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.14920150000034482,
+    "observed_test_counts": [
+      1
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-bound-final-02/pre.json",
+    "post": "attempts/integration-recovery-green-bound-final-02/post.json",
+    "stdout": "attempts/integration-recovery-green-bound-final-02/stdout.log",
+    "stderr": "attempts/integration-recovery-green-bound-final-02/stderr.log",
+    "result": "attempts/integration-recovery-green-bound-final-02/result.json"
+  },
+  {
+    "id": "integration-recovery-green-generated-final",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-e2e-analysis.test.py",
+      "GateCountsTest.test_the_restate_and_small_pass_refusals_classify_under_their_gates",
+      "GateCountsTest.test_each_test_layer_refusal_classifies_under_its_own_gate",
+      "GateCountsTest.test_each_primary_requirement_refusal_classifies_under_its_own_gate",
+      "GateCountsTest.test_the_focused_guard_and_command_target_refusals_classify_under_their_gates",
+      "GateCountsTest.test_the_improve_regression_test_refusal_classifies_under_its_own_gate"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.429368582997995,
+    "observed_test_counts": [
+      5
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-generated-final/pre.json",
+    "post": "attempts/integration-recovery-green-generated-final/post.json",
+    "stdout": "attempts/integration-recovery-green-generated-final/stdout.log",
+    "stderr": "attempts/integration-recovery-green-generated-final/stderr.log",
+    "result": "attempts/integration-recovery-green-generated-final/result.json"
+  },
+  {
+    "id": "integration-recovery-green-guidance",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-guidance.test.py",
+      "UnverifiedWordingTests"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.7340353330000653,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-guidance/pre.json",
+    "post": "attempts/integration-recovery-green-guidance/post.json",
+    "stdout": "attempts/integration-recovery-green-guidance/stdout.log",
+    "stderr": "attempts/integration-recovery-green-guidance/stderr.log",
+    "result": "attempts/integration-recovery-green-guidance/result.json"
+  },
+  {
+    "id": "integration-recovery-green-guidance-final",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-guidance.test.py",
+      "UnverifiedWordingTests"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 0.7272005830018315,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-guidance-final/pre.json",
+    "post": "attempts/integration-recovery-green-guidance-final/post.json",
+    "stdout": "attempts/integration-recovery-green-guidance-final/stdout.log",
+    "stderr": "attempts/integration-recovery-green-guidance-final/stderr.log",
+    "result": "attempts/integration-recovery-green-guidance-final/result.json"
+  },
+  {
+    "id": "integration-recovery-green-guidance-final-02",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-guidance.test.py",
+      "UnverifiedWordingTests"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.8254986249994545,
+    "observed_test_counts": [
+      3
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-guidance-final-02/pre.json",
+    "post": "attempts/integration-recovery-green-guidance-final-02/post.json",
+    "stdout": "attempts/integration-recovery-green-guidance-final-02/stdout.log",
+    "stderr": "attempts/integration-recovery-green-guidance-final-02/stderr.log",
+    "result": "attempts/integration-recovery-green-guidance-final-02/result.json"
+  },
+  {
+    "id": "integration-recovery-green-metrics",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-e2e-analysis.test.py",
+      "GateCountsTest.test_the_restate_and_small_pass_refusals_classify_under_their_gates",
+      "GateCountsTest.test_each_test_layer_refusal_classifies_under_its_own_gate"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.0888637080024637,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-metrics/pre.json",
+    "post": "attempts/integration-recovery-green-metrics/post.json",
+    "stdout": "attempts/integration-recovery-green-metrics/stdout.log",
+    "stderr": "attempts/integration-recovery-green-metrics/stderr.log",
+    "result": "attempts/integration-recovery-green-metrics/result.json"
+  },
+  {
+    "id": "integration-recovery-green-seed",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file",
+      "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence",
+      "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+      "EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 18.877861083001335,
+    "observed_test_counts": [
+      4
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-seed/pre.json",
+    "post": "attempts/integration-recovery-green-seed/post.json",
+    "stdout": "attempts/integration-recovery-green-seed/stdout.log",
+    "stderr": "attempts/integration-recovery-green-seed/stderr.log",
+    "result": "attempts/integration-recovery-green-seed/result.json"
+  },
+  {
+    "id": "integration-recovery-green-seed-final",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file",
+      "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence",
+      "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+      "EphemeralImproveCliTests.test_a_revised_final_result_may_lead_its_evidence_paths_with_a_root_symbol"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 30.602314957999624,
+    "observed_test_counts": [
+      4
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-green-seed-final/pre.json",
+    "post": "attempts/integration-recovery-green-seed-final/post.json",
+    "stdout": "attempts/integration-recovery-green-seed-final/stdout.log",
+    "stderr": "attempts/integration-recovery-green-seed-final/stderr.log",
+    "result": "attempts/integration-recovery-green-seed-final/result.json"
+  },
+  {
+    "id": "integration-recovery-red-seed",
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop-actual-improve-cli.test.py",
+      "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file",
+      "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence"
+    ],
+    "exit_code": 1,
+    "elapsed_seconds": 8.834394666999287,
+    "observed_test_counts": [
+      2
+    ],
+    "source_unchanged": true,
+    "head": "fea2bcdbbd28559e51803aaa36b16bdc400115de",
+    "pre": "attempts/integration-recovery-red-seed/pre.json",
+    "post": "attempts/integration-recovery-red-seed/post.json",
+    "stdout": "attempts/integration-recovery-red-seed/stdout.log",
+    "stderr": "attempts/integration-recovery-red-seed/stderr.log",
+    "result": "attempts/integration-recovery-red-seed/result.json"
+  }
+]

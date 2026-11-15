@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r07-verify-20261115",
+    "diff",
+    "--check",
+    "781d5eca4b82dd3b9783147271f8281bfbc2e9a8..HEAD"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r07-verify-20261115",
+  "start": "2026-11-15T21:02:21.202267+00:00",
+  "end": "2026-11-15T21:02:21.314015+00:00",
+  "duration_seconds": 0.11176625000007334,
+  "exit_code": 0,
+  "env_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SHIPLOOP_PROGRESS": "off"
+  },
+  "env_removed": [
+    "UNTIL_LOOP_STATE_DIR",
+    "SHIPLOOP_KEEPALIVE_HOME"
+  ]
+}

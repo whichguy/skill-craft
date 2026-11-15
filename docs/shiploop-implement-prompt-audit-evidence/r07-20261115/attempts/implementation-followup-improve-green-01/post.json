@@ -1,0 +1,15 @@
+{
+  "head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+  "status": " M skills/shiploop/references/test-loop.md\n M skills/shiploop/scripts/shiploop_navigator.py\n M skills/shiploop/scripts/shiploop_prompts.py\n M skills/shiploop/scripts/shiploop_stage_spec.py\n M skills/shiploop/scripts/shiploop_unverified.py\n M test/shiploop-actual-improve-cli.test.py\n M test/shiploop-callback-contract.test.py\n M test/shiploop-consumer-delivery.test.py\n?? changes/shiploop/r07-outcome-continuity.md\n",
+  "sha256": {
+    "skills/shiploop/scripts/shiploop_unverified.py": "df5ae671e9f2e8c56ddebae12b6020b784dd83254051f7cf6edf750eef50c219",
+    "skills/shiploop/scripts/shiploop_navigator.py": "955172c4bfdc4bc841acacbceab391dc2615f6bf39bf34791b511fef389f26c2",
+    "test/shiploop-callback-contract.test.py": "e8039df05b7cb75324f61c75d7481f60b13fc7993ffca9a3025f81c9939cd635",
+    "test/shiploop-consumer-delivery.test.py": "7f27778a480bf4e1777ba7e46dc424e67b7cb60d1802673353ba31b530412f3c",
+    "changes/shiploop/r07-outcome-continuity.md": "3b24a44ff2ed6da5e203e015728d712eaec0890b492065e97e7cac1dbca98b69",
+    "skills/shiploop/scripts/shiploop_prompts.py": "1f6fd513177022ef09cb7124a85b8a64f0665449be41bdc697440a239981a612",
+    "skills/shiploop/scripts/shiploop_stage_spec.py": "ac3620ef3052f61e643cc595d644baf1345ca45ec3ab7cd5869aee7ba4d5a031",
+    "skills/shiploop/references/test-loop.md": "95094a00e5f6e6de61897fb51d3a110f794f784f58bb8f97ae315af86318b314",
+    "test/shiploop-actual-improve-cli.test.py": "3be4e1a13d45cc07e3016e59e5e88335cbd6d12f35090bb38d90f47e8699e9a9"
+  }
+}

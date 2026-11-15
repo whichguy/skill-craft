@@ -1,0 +1,908 @@
+{
+  "changed": [
+    "changes/shiploop/r07-outcome-continuity.md",
+    "skills/shiploop/references/test-loop.md",
+    "skills/shiploop/scripts/shiploop_navigator.py",
+    "skills/shiploop/scripts/shiploop_prompts.py",
+    "skills/shiploop/scripts/shiploop_stage_spec.py",
+    "skills/shiploop/scripts/shiploop_unverified.py",
+    "test/shiploop-actual-improve-cli.test.py",
+    "test/shiploop-callback-contract.test.py",
+    "test/shiploop-consumer-delivery.test.py"
+  ],
+  "changed_from": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+  "completed": [
+    {
+      "command": "python3 test/test-groups.test.py",
+      "duration_seconds": 40.561,
+      "family": "core",
+      "hermetic": true,
+      "id": "test-groups",
+      "path": "test/test-groups.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/001-test-groups.stderr.log",
+      "stdout_log": "logs/001-test-groups.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/ci-policy.test.py",
+      "duration_seconds": 29.103,
+      "family": "core",
+      "hermetic": true,
+      "id": "ci-policy",
+      "path": "test/ci-policy.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/002-ci-policy.stderr.log",
+      "stdout_log": "logs/002-ci-policy.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "node test/skill-frontmatter.test.js",
+      "duration_seconds": 0.178,
+      "family": "core",
+      "hermetic": true,
+      "id": "skill-frontmatter",
+      "path": "test/skill-frontmatter.test.js",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/003-skill-frontmatter.stderr.log",
+      "stdout_log": "logs/003-skill-frontmatter.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-no-model-launch.test.py",
+      "duration_seconds": 21.752,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-no-model-launch",
+      "path": "test/shiploop-no-model-launch.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/004-shiploop-no-model-launch.stderr.log",
+      "stdout_log": "logs/004-shiploop-no-model-launch.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-navigator-contract.test.py",
+      "duration_seconds": 820.968,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-navigator-contract",
+      "path": "test/shiploop-navigator-contract.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/005-shiploop-navigator-contract.stderr.log",
+      "stdout_log": "logs/005-shiploop-navigator-contract.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-navigator-v4.test.py",
+      "duration_seconds": 10.445,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-navigator-v4",
+      "path": "test/shiploop-navigator-v4.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/006-shiploop-navigator-v4.stderr.log",
+      "stdout_log": "logs/006-shiploop-navigator-v4.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-stopped-improve.test.py",
+      "duration_seconds": 4.371,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-stopped-improve",
+      "path": "test/shiploop-stopped-improve.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/007-shiploop-stopped-improve.stderr.log",
+      "stdout_log": "logs/007-shiploop-stopped-improve.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-actual-improve-cli.test.py",
+      "duration_seconds": 805.555,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-actual-improve-cli",
+      "path": "test/shiploop-actual-improve-cli.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/008-shiploop-actual-improve-cli.stderr.log",
+      "stdout_log": "logs/008-shiploop-actual-improve-cli.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-bounds.test.py",
+      "duration_seconds": 3.843,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-bounds",
+      "path": "test/shiploop-packet-bounds.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/009-shiploop-packet-bounds.stderr.log",
+      "stdout_log": "logs/009-shiploop-packet-bounds.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-completeness.test.py",
+      "duration_seconds": 17.31,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-completeness",
+      "path": "test/shiploop-packet-completeness.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/010-shiploop-packet-completeness.stderr.log",
+      "stdout_log": "logs/010-shiploop-packet-completeness.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-step-packets.test.py",
+      "duration_seconds": 4.938,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-step-packets",
+      "path": "test/shiploop-step-packets.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/011-shiploop-step-packets.stderr.log",
+      "stdout_log": "logs/011-shiploop-step-packets.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-recut.test.py",
+      "duration_seconds": 7.187,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-recut",
+      "path": "test/shiploop-packet-recut.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/012-shiploop-packet-recut.stderr.log",
+      "stdout_log": "logs/012-shiploop-packet-recut.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-head-order.test.py",
+      "duration_seconds": 58.125,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-head-order",
+      "path": "test/shiploop-head-order.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/013-shiploop-head-order.stderr.log",
+      "stdout_log": "logs/013-shiploop-head-order.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-reference.test.py",
+      "duration_seconds": 0.746,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-reference",
+      "path": "test/shiploop-reference.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/014-shiploop-reference.stderr.log",
+      "stdout_log": "logs/014-shiploop-reference.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-guidance.test.py",
+      "duration_seconds": 18.702,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-guidance",
+      "path": "test/shiploop-guidance.test.py",
+      "returncode": 1,
+      "status": "failed",
+      "stderr_log": "logs/015-shiploop-guidance.stderr.log",
+      "stdout_log": "logs/015-shiploop-guidance.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-navigator-dry-run.test.py",
+      "duration_seconds": 187.426,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-navigator-dry-run",
+      "path": "test/shiploop-navigator-dry-run.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/016-shiploop-navigator-dry-run.stderr.log",
+      "stdout_log": "logs/016-shiploop-navigator-dry-run.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-status-display.test.py",
+      "duration_seconds": 107.921,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-status-display",
+      "path": "test/shiploop-status-display.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/017-shiploop-status-display.stderr.log",
+      "stdout_log": "logs/017-shiploop-status-display.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-narrative.test.py",
+      "duration_seconds": 15.942,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-narrative",
+      "path": "test/shiploop-narrative.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/018-shiploop-narrative.stderr.log",
+      "stdout_log": "logs/018-shiploop-narrative.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-stage-spec.test.py",
+      "duration_seconds": 2.804,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-stage-spec",
+      "path": "test/shiploop-stage-spec.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/019-shiploop-stage-spec.stderr.log",
+      "stdout_log": "logs/019-shiploop-stage-spec.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-consumer-delivery.test.py",
+      "duration_seconds": 11.718,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-consumer-delivery",
+      "path": "test/shiploop-consumer-delivery.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/020-shiploop-consumer-delivery.stderr.log",
+      "stdout_log": "logs/020-shiploop-consumer-delivery.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-consumer-delivery-cli.test.py",
+      "duration_seconds": 7.615,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-consumer-delivery-cli",
+      "path": "test/shiploop-consumer-delivery-cli.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/021-shiploop-consumer-delivery-cli.stderr.log",
+      "stdout_log": "logs/021-shiploop-consumer-delivery-cli.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-delegation.test.py",
+      "duration_seconds": 110.14,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-delegation",
+      "path": "test/shiploop-delegation.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/022-shiploop-delegation.stderr.log",
+      "stdout_log": "logs/022-shiploop-delegation.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-lint.test.py",
+      "duration_seconds": 484.219,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-lint",
+      "path": "test/shiploop-lint.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/023-shiploop-lint.stderr.log",
+      "stdout_log": "logs/023-shiploop-lint.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-quality.test.py",
+      "duration_seconds": 68.072,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-quality",
+      "path": "test/shiploop-quality.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/024-shiploop-quality.stderr.log",
+      "stdout_log": "logs/024-shiploop-quality.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-seed-seam.test.py",
+      "duration_seconds": 107.874,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-seed-seam",
+      "path": "test/shiploop-seed-seam.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/025-shiploop-seed-seam.stderr.log",
+      "stdout_log": "logs/025-shiploop-seed-seam.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-backchain-check.test.py",
+      "duration_seconds": 32.964,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-backchain-check",
+      "path": "test/shiploop-backchain-check.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/026-shiploop-backchain-check.stderr.log",
+      "stdout_log": "logs/026-shiploop-backchain-check.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-handoff.test.py",
+      "duration_seconds": 232.989,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-handoff",
+      "path": "test/shiploop-handoff.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/027-shiploop-handoff.stderr.log",
+      "stdout_log": "logs/027-shiploop-handoff.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-store.test.py",
+      "duration_seconds": 0.218,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-store",
+      "path": "test/shiploop-store.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/028-shiploop-store.stderr.log",
+      "stdout_log": "logs/028-shiploop-store.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-privacy.test.py",
+      "duration_seconds": 0.111,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-privacy",
+      "path": "test/shiploop-privacy.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/029-shiploop-privacy.stderr.log",
+      "stdout_log": "logs/029-shiploop-privacy.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-reference-routing.test.py",
+      "duration_seconds": 2.079,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-reference-routing",
+      "path": "test/shiploop-reference-routing.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/030-shiploop-reference-routing.stderr.log",
+      "stdout_log": "logs/030-shiploop-reference-routing.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-domain-words.test.py",
+      "duration_seconds": 2.923,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-domain-words",
+      "path": "test/shiploop-domain-words.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/031-shiploop-domain-words.stderr.log",
+      "stdout_log": "logs/031-shiploop-domain-words.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-retired-terms.test.py",
+      "duration_seconds": 1.804,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-retired-terms",
+      "path": "test/shiploop-retired-terms.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/032-shiploop-retired-terms.stderr.log",
+      "stdout_log": "logs/032-shiploop-retired-terms.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-keepalive.test.py",
+      "duration_seconds": 295.64,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-keepalive",
+      "path": "test/shiploop-keepalive.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/033-shiploop-keepalive.stderr.log",
+      "stdout_log": "logs/033-shiploop-keepalive.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-planning-handoff.test.py",
+      "duration_seconds": 2.947,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-planning-handoff",
+      "path": "test/shiploop-planning-handoff.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/034-shiploop-planning-handoff.stderr.log",
+      "stdout_log": "logs/034-shiploop-planning-handoff.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-package-integrity.test.py",
+      "duration_seconds": 0.946,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-package-integrity",
+      "path": "test/shiploop-package-integrity.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/035-shiploop-package-integrity.stderr.log",
+      "stdout_log": "logs/035-shiploop-package-integrity.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-e2e-analysis.test.py",
+      "duration_seconds": 180.533,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-e2e-analysis",
+      "path": "test/shiploop-e2e-analysis.test.py",
+      "returncode": 1,
+      "status": "failed",
+      "stderr_log": "logs/036-shiploop-e2e-analysis.stderr.log",
+      "stdout_log": "logs/036-shiploop-e2e-analysis.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-e2e-hosts.test.py",
+      "duration_seconds": 137.153,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-e2e-hosts",
+      "path": "test/shiploop-e2e-hosts.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/037-shiploop-e2e-hosts.stderr.log",
+      "stdout_log": "logs/037-shiploop-e2e-hosts.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-e2e-resources.test.py",
+      "duration_seconds": 253.812,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-e2e-resources",
+      "path": "test/shiploop-e2e-resources.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/038-shiploop-e2e-resources.stderr.log",
+      "stdout_log": "logs/038-shiploop-e2e-resources.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-obligations.test.py",
+      "duration_seconds": 9.349,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-obligations",
+      "path": "test/shiploop-packet-obligations.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/039-shiploop-packet-obligations.stderr.log",
+      "stdout_log": "logs/039-shiploop-packet-obligations.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-callback-contract.test.py",
+      "duration_seconds": 776.767,
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-callback-contract",
+      "path": "test/shiploop-callback-contract.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/040-shiploop-callback-contract.stderr.log",
+      "stdout_log": "logs/040-shiploop-callback-contract.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 -B skills/shiploop-e2e-audit/harness/check_suite.py --suite mock --skill-root skills/shiploop",
+      "duration_seconds": 15.112,
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "shiploop-mock-replay",
+      "path": "skills/shiploop-e2e-audit/harness/check_suite.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/041-shiploop-mock-replay.stderr.log",
+      "stdout_log": "logs/041-shiploop-mock-replay.stdout.log",
+      "timeout_seconds": 300
+    }
+  ],
+  "entrypoint": "run-all",
+  "groups": [
+    "quick"
+  ],
+  "jobs": 4,
+  "runtimes": {
+    "bash": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)\nCopyright (C) 2007 Free Software Foundation, Inc.",
+    "node": "v26.12.1",
+    "python3": "Python 3.15.1"
+  },
+  "schema": "skill-craft-hermetic-receipt/1",
+  "selected": [
+    {
+      "command": "python3 test/test-groups.test.py",
+      "family": "core",
+      "hermetic": true,
+      "id": "test-groups",
+      "path": "test/test-groups.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/ci-policy.test.py",
+      "family": "core",
+      "hermetic": true,
+      "id": "ci-policy",
+      "path": "test/ci-policy.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "node test/skill-frontmatter.test.js",
+      "family": "core",
+      "hermetic": true,
+      "id": "skill-frontmatter",
+      "path": "test/skill-frontmatter.test.js",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-no-model-launch.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-no-model-launch",
+      "path": "test/shiploop-no-model-launch.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-navigator-contract.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-navigator-contract",
+      "path": "test/shiploop-navigator-contract.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-navigator-v4.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-navigator-v4",
+      "path": "test/shiploop-navigator-v4.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-stopped-improve.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-stopped-improve",
+      "path": "test/shiploop-stopped-improve.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-actual-improve-cli.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-actual-improve-cli",
+      "path": "test/shiploop-actual-improve-cli.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-bounds.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-bounds",
+      "path": "test/shiploop-packet-bounds.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-completeness.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-completeness",
+      "path": "test/shiploop-packet-completeness.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-step-packets.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-step-packets",
+      "path": "test/shiploop-step-packets.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-recut.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-recut",
+      "path": "test/shiploop-packet-recut.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-head-order.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-head-order",
+      "path": "test/shiploop-head-order.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-reference.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-reference",
+      "path": "test/shiploop-reference.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-guidance.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-guidance",
+      "path": "test/shiploop-guidance.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-navigator-dry-run.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-navigator-dry-run",
+      "path": "test/shiploop-navigator-dry-run.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-status-display.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-status-display",
+      "path": "test/shiploop-status-display.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-narrative.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-narrative",
+      "path": "test/shiploop-narrative.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-stage-spec.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-stage-spec",
+      "path": "test/shiploop-stage-spec.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-consumer-delivery.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-consumer-delivery",
+      "path": "test/shiploop-consumer-delivery.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-consumer-delivery-cli.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-consumer-delivery-cli",
+      "path": "test/shiploop-consumer-delivery-cli.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-delegation.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-delegation",
+      "path": "test/shiploop-delegation.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-lint.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-lint",
+      "path": "test/shiploop-lint.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-quality.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-quality",
+      "path": "test/shiploop-quality.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-seed-seam.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-seed-seam",
+      "path": "test/shiploop-seed-seam.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-backchain-check.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-backchain-check",
+      "path": "test/shiploop-backchain-check.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-handoff.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-handoff",
+      "path": "test/shiploop-handoff.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-store.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-store",
+      "path": "test/shiploop-store.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-privacy.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-privacy",
+      "path": "test/shiploop-privacy.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-reference-routing.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-reference-routing",
+      "path": "test/shiploop-reference-routing.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-domain-words.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-domain-words",
+      "path": "test/shiploop-domain-words.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-retired-terms.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-retired-terms",
+      "path": "test/shiploop-retired-terms.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-keepalive.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-keepalive",
+      "path": "test/shiploop-keepalive.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-planning-handoff.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-planning-handoff",
+      "path": "test/shiploop-planning-handoff.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-package-integrity.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-package-integrity",
+      "path": "test/shiploop-package-integrity.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-e2e-analysis.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-e2e-analysis",
+      "path": "test/shiploop-e2e-analysis.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-e2e-hosts.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-e2e-hosts",
+      "path": "test/shiploop-e2e-hosts.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-e2e-resources.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-e2e-resources",
+      "path": "test/shiploop-e2e-resources.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-packet-obligations.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-packet-obligations",
+      "path": "test/shiploop-packet-obligations.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 test/shiploop-callback-contract.test.py",
+      "family": "shiploop",
+      "hermetic": true,
+      "id": "shiploop-callback-contract",
+      "path": "test/shiploop-callback-contract.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 -B skills/shiploop-e2e-audit/harness/check_suite.py --suite mock --skill-root skills/shiploop",
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "shiploop-mock-replay",
+      "path": "skills/shiploop-e2e-audit/harness/check_suite.py",
+      "timeout_seconds": 300
+    }
+  ],
+  "selection": {
+    "affected": 27,
+    "deferred_policy": 1,
+    "deferred_targeted": 1,
+    "executions": 41,
+    "not_in_this_shard": 0,
+    "other_selected": 0,
+    "selected": 41,
+    "smoke": 14
+  },
+  "source": {
+    "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "head": "dbd2a47f3dd52fc939620e6481cc64f486630075",
+    "status": [],
+    "tree": "bcd045f6339a6d5a2a6c941bcf24f27680389854"
+  },
+  "status": "failed",
+  "wall_seconds": 1744.457
+}

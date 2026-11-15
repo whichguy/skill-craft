@@ -1,0 +1,610 @@
+{
+  "status": "PASS",
+  "recorded_utc": "2026-11-15T21:52:41.943558+00:00",
+  "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+  "integrated_main": "fe0e6ca39435d502bd0b8afd3ce300ff731e5683",
+  "scope": "Explicit continuity of recorded outcomes; references remain host declarations",
+  "qualification": {
+    "source_head": "781d5eca4b82dd3b9783147271f8281bfbc2e9a8",
+    "valid_terminal_omission_reproductions": 3,
+    "initial_errors": 0,
+    "runtime_unchanged": true
+  },
+  "new_regression_methods": 20,
+  "validation_banks": [
+    {
+      "id": "full",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "directory": "validation",
+      "status": "PASS",
+      "full_modules": 13,
+      "unittest_commands": 13,
+      "test_executions": 1204,
+      "count_basis": "executions, not deduplicated",
+      "tracked_files": 12980,
+      "fingerprint": "f6edab5489778fbeaa89e9f9bf2df3030b4e9a4ee297ba9cad85c5bd249e457e",
+      "tracked_sha256_and_modes_unchanged": true,
+      "unexpected_outputs": [],
+      "retries": 0
+    },
+    {
+      "id": "integration",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "directory": "integration-validation",
+      "status": "PASS",
+      "full_modules": 6,
+      "unittest_commands": 9,
+      "test_executions": 370,
+      "count_basis": "executions, not deduplicated",
+      "tracked_files": 13001,
+      "fingerprint": "8109903dcd02ed55157667595c6d376df31083d5e415228917419aea1f4edcc2",
+      "tracked_sha256_and_modes_unchanged": true,
+      "unexpected_outputs": [],
+      "retries": 0
+    }
+  ],
+  "checks": [
+    {
+      "bank": "full",
+      "name": "shiploop-callback-contract",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 819.374,
+      "receipt": "validation/shiploop-callback-contract.receipt.json",
+      "stdout": "validation/shiploop-callback-contract.stdout.log",
+      "stderr": "validation/shiploop-callback-contract.stderr.log",
+      "test_count": 117,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-actual-improve-cli",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-actual-improve-cli.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 666.828,
+      "receipt": "validation/shiploop-actual-improve-cli.receipt.json",
+      "stdout": "validation/shiploop-actual-improve-cli.stdout.log",
+      "stderr": "validation/shiploop-actual-improve-cli.stderr.log",
+      "test_count": 104,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-consumer-delivery",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-consumer-delivery.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 6.484,
+      "receipt": "validation/shiploop-consumer-delivery.receipt.json",
+      "stdout": "validation/shiploop-consumer-delivery.stdout.log",
+      "stderr": "validation/shiploop-consumer-delivery.stderr.log",
+      "test_count": 34,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-consumer-delivery-cli",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-consumer-delivery-cli.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 10.32,
+      "receipt": "validation/shiploop-consumer-delivery-cli.receipt.json",
+      "stdout": "validation/shiploop-consumer-delivery-cli.stdout.log",
+      "stderr": "validation/shiploop-consumer-delivery-cli.stderr.log",
+      "test_count": 5,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-navigator-contract",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-navigator-contract.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 402.461,
+      "receipt": "validation/shiploop-navigator-contract.receipt.json",
+      "stdout": "validation/shiploop-navigator-contract.stdout.log",
+      "stderr": "validation/shiploop-navigator-contract.stderr.log",
+      "test_count": 149,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-guidance",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-guidance.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 8.189,
+      "receipt": "validation/shiploop-guidance.receipt.json",
+      "stdout": "validation/shiploop-guidance.stdout.log",
+      "stderr": "validation/shiploop-guidance.stderr.log",
+      "test_count": 87,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-e2e-analysis",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-analysis.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 113.139,
+      "receipt": "validation/shiploop-e2e-analysis.receipt.json",
+      "stdout": "validation/shiploop-e2e-analysis.stdout.log",
+      "stderr": "validation/shiploop-e2e-analysis.stderr.log",
+      "test_count": 299,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-head-order",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-head-order.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 17.086,
+      "receipt": "validation/shiploop-head-order.receipt.json",
+      "stdout": "validation/shiploop-head-order.stdout.log",
+      "stderr": "validation/shiploop-head-order.stderr.log",
+      "test_count": 36,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-package-integrity",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-package-integrity.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 0.592,
+      "receipt": "validation/shiploop-package-integrity.receipt.json",
+      "stdout": "validation/shiploop-package-integrity.stdout.log",
+      "stderr": "validation/shiploop-package-integrity.stderr.log",
+      "test_count": 11,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-handoff",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-handoff.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 153.969,
+      "receipt": "validation/shiploop-handoff.receipt.json",
+      "stdout": "validation/shiploop-handoff.stdout.log",
+      "stderr": "validation/shiploop-handoff.stderr.log",
+      "test_count": 170,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-knowledge",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-knowledge.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 45.79,
+      "receipt": "validation/shiploop-knowledge.receipt.json",
+      "stdout": "validation/shiploop-knowledge.stdout.log",
+      "stderr": "validation/shiploop-knowledge.stderr.log",
+      "test_count": 163,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-rehydration",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-rehydration.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 3.554,
+      "receipt": "validation/shiploop-rehydration.receipt.json",
+      "stdout": "validation/shiploop-rehydration.stdout.log",
+      "stderr": "validation/shiploop-rehydration.stderr.log",
+      "test_count": 17,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "shiploop-stage-spec",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-stage-spec.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 0.477,
+      "receipt": "validation/shiploop-stage-spec.receipt.json",
+      "stdout": "validation/shiploop-stage-spec.stdout.log",
+      "stderr": "validation/shiploop-stage-spec.stderr.log",
+      "test_count": 12,
+      "full_module": true
+    },
+    {
+      "bank": "full",
+      "name": "check-release-boundary",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "781d5eca4b82dd3b9783147271f8281bfbc2e9a8"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "command",
+      "duration_seconds": 14.785,
+      "receipt": "validation/check-release-boundary.receipt.json",
+      "stdout": "validation/check-release-boundary.stdout.log",
+      "stderr": "validation/check-release-boundary.stderr.log",
+      "required_text": "OK"
+    },
+    {
+      "bank": "full",
+      "name": "check-scoped-whitespace",
+      "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r07-final-verify-20261115",
+        "diff",
+        "--check",
+        "781d5eca4b82dd3b9783147271f8281bfbc2e9a8..HEAD",
+        "--",
+        "changes/shiploop/r07-outcome-continuity.md",
+        "skills/shiploop/references/test-loop.md",
+        "skills/shiploop/scripts/shiploop_navigator.py",
+        "skills/shiploop/scripts/shiploop_prompts.py",
+        "skills/shiploop/scripts/shiploop_stage_spec.py",
+        "skills/shiploop/scripts/shiploop_unverified.py",
+        "test/shiploop-actual-improve-cli.test.py",
+        "test/shiploop-callback-contract.test.py",
+        "test/shiploop-consumer-delivery.test.py",
+        "test/shiploop-e2e-analysis.test.py",
+        "test/shiploop-guidance.test.py",
+        "test/shiploop_e2e/metrics.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "command",
+      "duration_seconds": 0.028,
+      "receipt": "validation/check-scoped-whitespace.receipt.json",
+      "stdout": "validation/check-scoped-whitespace.stdout.log",
+      "stderr": "validation/check-scoped-whitespace.stderr.log"
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-navigator-contract",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-navigator-contract.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 294.916,
+      "receipt": "integration-validation/shiploop-navigator-contract.receipt.json",
+      "stdout": "integration-validation/shiploop-navigator-contract.stdout.log",
+      "stderr": "integration-validation/shiploop-navigator-contract.stderr.log",
+      "test_count": 150,
+      "full_module": true
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-head-order",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-head-order.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 26.423,
+      "receipt": "integration-validation/shiploop-head-order.receipt.json",
+      "stdout": "integration-validation/shiploop-head-order.stdout.log",
+      "stderr": "integration-validation/shiploop-head-order.stderr.log",
+      "test_count": 36,
+      "full_module": true
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-guidance",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-guidance.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 13.481,
+      "receipt": "integration-validation/shiploop-guidance.receipt.json",
+      "stdout": "integration-validation/shiploop-guidance.stdout.log",
+      "stderr": "integration-validation/shiploop-guidance.stderr.log",
+      "test_count": 87,
+      "full_module": true
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-navigator-dry-run",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-navigator-dry-run.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 30.213,
+      "receipt": "integration-validation/shiploop-navigator-dry-run.receipt.json",
+      "stdout": "integration-validation/shiploop-navigator-dry-run.stdout.log",
+      "stderr": "integration-validation/shiploop-navigator-dry-run.stderr.log",
+      "test_count": 36,
+      "full_module": true
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-packet-recut",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-packet-recut.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 5.459,
+      "receipt": "integration-validation/shiploop-packet-recut.receipt.json",
+      "stdout": "integration-validation/shiploop-packet-recut.stdout.log",
+      "stderr": "integration-validation/shiploop-packet-recut.stderr.log",
+      "test_count": 30,
+      "full_module": true
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-package-integrity",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-package-integrity.test.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 0.584,
+      "receipt": "integration-validation/shiploop-package-integrity.receipt.json",
+      "stdout": "integration-validation/shiploop-package-integrity.stdout.log",
+      "stderr": "integration-validation/shiploop-package-integrity.stderr.log",
+      "test_count": 11,
+      "full_module": true
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-callback-contract-r07",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py",
+        "R07ContinuityTests.test_r07_cached_yes_cannot_bypass_missing_settlement",
+        "R07ContinuityTests.test_r07_cached_yes_with_valid_settlements_still_reuses",
+        "R07ContinuityTests.test_r07_due_deletion_without_new_observation_cannot_complete",
+        "R07ContinuityTests.test_r07_due_observation_settles_only_current_row_and_completes",
+        "R07ContinuityTests.test_r07_early_observed_and_user_correction_mixed_carry",
+        "R07ContinuityTests.test_r07_first_empty_unchanged_deferral_and_pending_handoff",
+        "R07ContinuityTests.test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen",
+        "R07ContinuityTests.test_r07_nested_reference_expansion_and_locator_semantics",
+        "R07ContinuityTests.test_r07_real_cached_yes_refuses_deleted_nested_settlement_evidence",
+        "R07ContinuityTests.test_r07_real_cached_yes_reuses_existing_nested_settlement_evidence",
+        "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes",
+        "R07ContinuityTests.test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome",
+        "R07ContinuityTests.test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later",
+        "R07ContinuityTests.test_r07_settlement_rejection_table",
+        "R07ContinuityTests.test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 82.052,
+      "receipt": "integration-validation/shiploop-callback-contract-r07.receipt.json",
+      "stdout": "integration-validation/shiploop-callback-contract-r07.stdout.log",
+      "stderr": "integration-validation/shiploop-callback-contract-r07.stderr.log",
+      "test_count": 15,
+      "full_module": false
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-consumer-delivery-r07",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-consumer-delivery.test.py",
+        "ConsumerDeliveryTests.test_r07_authorized_scope_correction_keeps_existing_route",
+        "ConsumerDeliveryTests.test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 0.851,
+      "receipt": "integration-validation/shiploop-consumer-delivery-r07.receipt.json",
+      "stdout": "integration-validation/shiploop-consumer-delivery-r07.stdout.log",
+      "stderr": "integration-validation/shiploop-consumer-delivery-r07.stderr.log",
+      "test_count": 2,
+      "full_module": false
+    },
+    {
+      "bank": "integration",
+      "name": "shiploop-actual-improve-cli-r07",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-actual-improve-cli.test.py",
+        "EphemeralImproveCliTests.test_r07_final_result_cannot_drop_pending_without_settlement",
+        "EphemeralImproveCliTests.test_r07_seed_import_accepts_unchanged_settlement_evidence",
+        "EphemeralImproveCliTests.test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "unittest-command",
+      "duration_seconds": 12.226,
+      "receipt": "integration-validation/shiploop-actual-improve-cli-r07.receipt.json",
+      "stdout": "integration-validation/shiploop-actual-improve-cli-r07.stdout.log",
+      "stderr": "integration-validation/shiploop-actual-improve-cli-r07.stderr.log",
+      "test_count": 3,
+      "full_module": false
+    },
+    {
+      "bank": "integration",
+      "name": "check-release-boundary",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "9ae4fc221e6876545be8b9a33a60eb6d6bf096db"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "command",
+      "duration_seconds": 5.595,
+      "receipt": "integration-validation/check-release-boundary.receipt.json",
+      "stdout": "integration-validation/check-release-boundary.stdout.log",
+      "stderr": "integration-validation/check-release-boundary.stderr.log",
+      "required_text": "OK"
+    },
+    {
+      "bank": "integration",
+      "name": "check-scoped-whitespace",
+      "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r07-integration-verify-20261115",
+        "diff",
+        "--check",
+        "9ae4fc221e6876545be8b9a33a60eb6d6bf096db..HEAD",
+        "--",
+        "changes/shiploop/r07-outcome-continuity.md",
+        "skills/shiploop/references/test-loop.md",
+        "skills/shiploop/scripts/shiploop_navigator.py",
+        "skills/shiploop/scripts/shiploop_prompts.py",
+        "skills/shiploop/scripts/shiploop_stage_spec.py",
+        "skills/shiploop/scripts/shiploop_unverified.py",
+        "test/shiploop-actual-improve-cli.test.py",
+        "test/shiploop-callback-contract.test.py",
+        "test/shiploop-consumer-delivery.test.py",
+        "test/shiploop-e2e-analysis.test.py",
+        "test/shiploop-guidance.test.py",
+        "test/shiploop_e2e/metrics.py"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "kind": "command",
+      "duration_seconds": 0.023,
+      "receipt": "integration-validation/check-scoped-whitespace.receipt.json",
+      "stdout": "integration-validation/check-scoped-whitespace.stdout.log",
+      "stderr": "integration-validation/check-scoped-whitespace.stderr.log"
+    }
+  ],
+  "review": {
+    "status": "APPROVE",
+    "source_head": "5d2e978614e4a100ffa04ee32e49ff054ce52dd2",
+    "path": "integration-review.md",
+    "scope": "Static merge review; no runtime execution"
+  },
+  "preceding_review": {
+    "status": "APPROVE",
+    "source_head": "9ae4fc221e6876545be8b9a33a60eb6d6bf096db",
+    "path": "closure-review.md"
+  },
+  "tracked_source_stable": true,
+  "unexpected_outputs": [],
+  "limits": [
+    "Recorded continuity does not discover initially omitted outcomes.",
+    "References do not authenticate semantic truth, freshness, surface or correction authority.",
+    "No full-repository, CI, installed-host, live-platform, deployment or publication qualification."
+  ]
+}
