@@ -1,0 +1,41 @@
+{
+ "source": "grok logs/unified.jsonl",
+ "agents": [
+  {
+   "id": "01a1e0a6-5f5f-76e0-a8fa-7072a4b5761e",
+   "actor": "agent:b5761e",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794770362.304,
+   "end": 1794770669.35,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 306909
+  },
+  {
+   "id": "01a1e0ab-2936-7d31-b7f0-209c5ea19d1d",
+   "actor": "agent:a19d1d",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794770676.093,
+   "end": 1794770945.333,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 269062
+  },
+  {
+   "id": "01a1e0af-772f-72e2-8d4a-afe291a8f881",
+   "actor": "agent:a8f881",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794770958.192,
+   "end": 1794771545.829,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 587473
+  }
+ ]
+}

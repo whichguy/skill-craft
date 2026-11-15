@@ -1,0 +1,113 @@
+{
+ "source": "grok logs/unified.jsonl",
+ "agents": [
+  {
+   "id": "01a1e076-2e7d-7133-a481-533056743a06",
+   "actor": "agent:743a06",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767204.094,
+   "end": 1794767569.862,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 365643
+  },
+  {
+   "id": "01a1e076-2e7e-70a2-9092-f3de998dc0bc",
+   "actor": "agent:8dc0bc",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767204.102,
+   "end": 1794767638.66,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 434428
+  },
+  {
+   "id": "01a1e076-2e7d-7133-a481-534d774db80d",
+   "actor": "agent:4db80d",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767204.11,
+   "end": 1794767447.754,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 243537
+  },
+  {
+   "id": "01a1e07a-4901-7a63-aac0-c647a15b9bc3",
+   "actor": "agent:5b9bc3",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767473.054,
+   "end": 1794767668.698,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 195381
+  },
+  {
+   "id": "01a1e07d-3ebf-7ae3-b152-313ddb29bb1c",
+   "actor": "agent:29bb1c",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767666.996,
+   "end": 1794767928.994,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 261884
+  },
+  {
+   "id": "01a1e07d-3ebf-7ae3-b152-312e5be7ff9c",
+   "actor": "agent:e7ff9c",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767667.005,
+   "end": 1794767861.064,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 193963
+  },
+  {
+   "id": "01a1e081-08ff-71e1-a85a-4e0aae96a234",
+   "actor": "agent:96a234",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794767915.344,
+   "end": 1794768391.781,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 476277
+  },
+  {
+   "id": "01a1e084-d4d1-7960-a7c5-c478871656c8",
+   "actor": "agent:1656c8",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794768164.117,
+   "end": 1794768407.19,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 242909
+  },
+  {
+   "id": "01a1e088-ac2e-7653-a21f-df16ac3d98b6",
+   "actor": "agent:3d98b6",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794768415.85,
+   "end": 1794768714.094,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 298054
+  }
+ ]
+}

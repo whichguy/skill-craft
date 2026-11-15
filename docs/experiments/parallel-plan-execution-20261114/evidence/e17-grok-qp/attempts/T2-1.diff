@@ -1,0 +1,452 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b3c4639..e50891a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,10 @@
+ # Changelog
+ 
++## 1.5.0 (2025-11-15)
++
++- `POST /tickets/import` creates many tickets in one request (at most 5000), all of them or none, for the move from the
++  old tracker. Each is recorded and its requester is notified as when one ticket is created.
++
+ ## 1.4.0 (2025-09-15)
+ 
+ - The operator command line, `bin/tickets.js` (`list`, `show`), and the weekly report, `scripts/weekly-report.js`.
+diff --git a/docs/api.md b/docs/api.md
+index 149f5dd..86237cd 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -64,6 +64,26 @@ The message is for people; clients branch on `code`.
+ `priority` is optional (`normal`). Answers 201 with the new ticket, whose status is `open`. The requester is notified
+ that the ticket was received.
+ 
++### Import tickets: `POST /tickets/import`
++
++For a move from another tracker. The body is a list of tickets, each as for `POST /tickets`, at most 5000 of them:
++
++```json
++{ "tickets": [
++  { "title": "VPN drops every hour", "requester": "maria@example.com", "priority": "high" },
++  { "title": "Printer jams", "requester": "li@example.com" }
++] }
++```
++
++Creates them in the given order, all of them, or none when any item is invalid: 400 `invalid`, and the message names the
++first invalid item by its index in the array (0 for the first). Answers 201 with how many were created and their ids:
++
++```json
++{ "created": 2, "ids": ["T-0001", "T-0002"] }
++```
++
++Each imported ticket is recorded and its requester is notified as when one ticket is created.
++
+ ### List tickets: `GET /tickets`
+ 
+ | Parameter | Meaning |
+diff --git a/package.json b/package.json
+index 30ad02e..d469dd7 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "helpdesk-tickets",
+-  "version": "1.4.0",
++  "version": "1.5.0",
+   "private": true,
+   "description": "The IT help desk's ticket service: an HTTP API, an audit log, requester notifications and an operator command line.",
+   "license": "UNLICENSED",
+diff --git a/src/app.js b/src/app.js
+index de7b8e0..4a22f6f 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -6,6 +6,9 @@ const { Router } = require('./router');
+ const { parseListQuery } = require('./tickets/query');
+ const validate = require('./tickets/validate');
+ 
++// Compact JSON for 5000 tickets at the field limits is about 1.6 MiB; 8 MiB allows whitespace.
++const IMPORT_MAX_BODY_BYTES = 8 * 1024 * 1024;
++
+ /**
+  * The HTTP API (docs/api.md), as a request listener for http.createServer.
+  *
+@@ -15,7 +18,8 @@ const validate = require('./tickets/validate');
+  */
+ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }) {
+   const router = new Router();
+-  const body = (req) => readJson(req, { limit: maxBodyBytes });
++  const body = (req, limit = maxBodyBytes) => readJson(req, { limit });
++  const importLimit = Math.max(maxBodyBytes, IMPORT_MAX_BODY_BYTES);
+ 
+   router.get('/health', () => ({ status: 200, body: { status: 'ok' } }));
+ 
+@@ -26,6 +30,12 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+     return { status: 201, body: store.create(input, actorOf(req)) };
+   });
+ 
++  router.post('/tickets/import', async ({ req }) => {
++    const tickets = validate.importTickets(await body(req, importLimit));
++    const ids = store.createMany(tickets, actorOf(req));
++    return { status: 201, body: { created: ids.length, ids } };
++  });
++
+   router.get('/tickets/:id', ({ params }) => ({ status: 200, body: store.get(params.id) }));
+ 
+   router.patch('/tickets/:id', async ({ req, params }) => {
+diff --git a/src/store.js b/src/store.js
+index f60ccc3..b9a7cee 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -72,18 +72,25 @@ class TicketStore {
+   // Changes
+ 
+   /** Open a new ticket; its requester is told it was received. */
+-  create({ title, priority, requester }, actor) {
+-    const at = this.now();
+-    const ticket = { id: formatId(this.nextNumber), title, priority, requester, status: 'open', created: at, updated: at };
+-    this.nextNumber += 1;
+-    this.tickets.set(ticket.id, ticket);
+-    const changes = Object.fromEntries(CREATED_FIELDS.map((field) => [field, { from: null, to: ticket[field] }]));
+-    this.audit.append({ ticket: ticket.id, action: 'ticket.created', actor, at, changes });
+-    this.notify(ticket, 'ticket.created', ticket.requester, at);
++  create(input, actor) {
++    const ticket = this.addCreated(input, actor, this.now());
+     this.save();
+     return { ...ticket };
+   }
+ 
++  /**
++   * Open many tickets in the given order, as one change: each is recorded and its requester is notified as for
++   * create, then the data file is saved once. Returns the new ids in that order.
++   */
++  createMany(inputs, actor) {
++    if (inputs.length === 0) return [];
++    const at = this.now();
++    const ids = [];
++    for (const input of inputs) ids.push(this.addCreated(input, actor, at).id);
++    this.save();
++    return ids;
++  }
++
+   /** Change a ticket's title or priority. A closed ticket no longer changes. */
+   update(id, patch, actor) {
+     const ticket = this.find(id);
+@@ -135,6 +142,17 @@ class TicketStore {
+     return this.clock.now().toISOString();
+   }
+ 
++  /** Record one new open ticket and enqueue its notification; the caller saves. */
++  addCreated({ title, priority, requester }, actor, at) {
++    const ticket = { id: formatId(this.nextNumber), title, priority, requester, status: 'open', created: at, updated: at };
++    this.nextNumber += 1;
++    this.tickets.set(ticket.id, ticket);
++    const changes = Object.fromEntries(CREATED_FIELDS.map((field) => [field, { from: null, to: ticket[field] }]));
++    this.audit.append({ ticket: ticket.id, action: 'ticket.created', actor, at, changes });
++    this.notify(ticket, 'ticket.created', ticket.requester, at);
++    return ticket;
++  }
++
+   /**
+    * Apply `changes` ({ field: { from, to } }) to `ticket` as one audited change, run `effects(at)` (the notifications
+    * the change causes) and save. When nothing changes there is no audit entry and nothing else happens.
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index cd925c4..c529524 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -10,6 +10,8 @@ const { STATUSES, isStatus } = require('./states');
+  */
+ 
+ const LIMITS = Object.freeze({ title: 200, requester: 64 });
++/** POST /tickets/import: at most this many tickets in one request. */
++const IMPORT_LIMIT = 5000;
+ // Tabs and line breaks would break the command line's tab-separated output (README.md, "Command line").
+ const CONTROL = /[\u0000-\u001f\u007f]/;
+ 
+@@ -45,6 +47,37 @@ function newTicket(body) {
+   };
+ }
+ 
++function isObject(value) {
++  return value !== null && typeof value === 'object' && !Array.isArray(value);
++}
++
++/**
++ * POST /tickets/import: { tickets: [ { title, requester, priority? }, ... ] }, at most IMPORT_LIMIT items.
++ * Each item is checked as for POST /tickets. The first invalid item is named by its index (0 for the first).
++ */
++function importTickets(body) {
++  onlyFields(body, ['tickets']);
++  if (!Array.isArray(body.tickets)) throw new InvalidError('tickets must be a list');
++  if (body.tickets.length > IMPORT_LIMIT) {
++    throw new InvalidError(`tickets must have at most ${IMPORT_LIMIT} items`);
++  }
++  return body.tickets.map((item, index) => readImportedTicket(item, index));
++}
++
++function invalidItem(index, reason) {
++  return new InvalidError(`tickets[${index}] (index ${index}) is invalid: ${reason}`);
++}
++
++function readImportedTicket(item, index) {
++  if (!isObject(item)) throw invalidItem(index, 'must be an object');
++  try {
++    return newTicket(item);
++  } catch (error) {
++    if (error instanceof InvalidError) throw invalidItem(index, error.message);
++    throw error;
++  }
++}
++
+ /** PATCH /tickets/:id: { title?, priority? }, at least one of them. */
+ function ticketPatch(body) {
+   onlyFields(body, ['title', 'priority']);
+@@ -62,4 +95,4 @@ function transition(body) {
+   return body.to;
+ }
+ 
+-module.exports = { LIMITS, newTicket, onlyFields, text, ticketPatch, transition };
++module.exports = { IMPORT_LIMIT, LIMITS, importTickets, newTicket, onlyFields, text, ticketPatch, transition };
+diff --git a/test/import.test.js b/test/import.test.js
+new file mode 100644
+index 0000000..58c4c87
+--- /dev/null
++++ b/test/import.test.js
+@@ -0,0 +1,238 @@
++'use strict';
++
++const { describe, test } = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const { InvalidError } = require('../src/errors');
++const { TicketStore } = require('../src/store');
++const { manualClock } = require('../src/clock');
++const validate = require('../src/tickets/validate');
++const { ticketBody, withService } = require('./helpers');
++
++const envelope = (response, status, code) => {
++  assert.equal(response.status, status, JSON.stringify(response.body));
++  assert.equal(response.body.error.code, code);
++  assert.equal(typeof response.body.error.message, 'string');
++};
++
++const listedIds = async (api) => (await api.get('/tickets?limit=100')).body.items.map((ticket) => ticket.id);
++
++describe('validate.importTickets', () => {
++  test('checks each item as a new ticket and keeps their order', () => {
++    assert.deepEqual(
++      validate.importTickets({
++        tickets: [
++          { title: '  VPN drops ', requester: 'li@example.com' },
++          { title: 'Printer', requester: 'maria@example.com', priority: 'high' },
++        ],
++      }),
++      [
++        { title: 'VPN drops', requester: 'li@example.com', priority: 'normal' },
++        { title: 'Printer', requester: 'maria@example.com', priority: 'high' },
++      ],
++    );
++  });
++
++  test('names the first invalid item by its index, 0 for the first', () => {
++    const invalid = (body, message) =>
++      assert.throws(() => validate.importTickets(body), (error) => error instanceof InvalidError && message.test(error.message));
++
++    invalid({ tickets: [{ requester: 'a' }, { title: 'ok', requester: 'b' }] }, /tickets\[0\].*index 0.*title must be a string/);
++    invalid(
++      { tickets: [{ title: 'a', requester: 'b' }, { title: 'ok', requester: 'c' }, { title: '', requester: 'd' }] },
++      /tickets\[2\].*index 2/,
++    );
++    invalid({ tickets: [{ title: 'a', requester: 'b' }, null] }, /tickets\[1\].*index 1.*must be an object/);
++    invalid({ tickets: 'nope' }, /tickets must be a list/);
++    invalid({ tickets: [{ title: 'a', requester: 'b' }], extra: true }, /unknown field: extra/);
++    invalid({ tickets: Array.from({ length: validate.IMPORT_LIMIT + 1 }, () => ({ title: 'a', requester: 'b' })) }, /at most 5000/);
++    assert.deepEqual(validate.importTickets({ tickets: [] }), []);
++    assert.equal(validate.importTickets({ tickets: Array.from({ length: validate.IMPORT_LIMIT }, () => ({ title: 'a', requester: 'b' })) }).length, 5000);
++  });
++});
++
++describe('TicketStore.createMany', () => {
++  test('opens tickets in order, records each and notifies each requester, and saves once', () => {
++    const clock = manualClock('2025-09-01T08:00:00.000Z');
++    let saves = 0;
++    const store = new TicketStore({
++      clock,
++      persistence: { save() { saves += 1; } },
++    });
++    const ids = store.createMany(
++      [
++        { title: 'One', requester: 'a@example.com', priority: 'low' },
++        { title: 'Two', requester: 'b@example.com', priority: 'urgent' },
++      ],
++      'dana',
++    );
++    assert.deepEqual(ids, ['T-0001', 'T-0002']);
++    assert.equal(saves, 1);
++    assert.equal(store.get('T-0001').title, 'One');
++    assert.equal(store.get('T-0002').priority, 'urgent');
++    assert.deepEqual(store.history('T-0001').map((entry) => [entry.action, entry.actor]), [['ticket.created', 'dana']]);
++    assert.deepEqual(
++      store.outboxReport().pending.map((event) => [event.type, event.to, event.ticket]),
++      [
++        ['ticket.created', 'a@example.com', 'T-0001'],
++        ['ticket.created', 'b@example.com', 'T-0002'],
++      ],
++    );
++    assert.deepEqual(store.createMany([], 'dana'), []);
++    assert.equal(saves, 1);
++  });
++});
++
++describe('POST /tickets/import', () => {
++  test('creates every ticket in order and answers 201 with the new ids', async () => {
++    await withService({}, async (api) => {
++      const { status, body } = await api.post('/tickets/import', {
++        tickets: [
++          ticketBody({ title: 'VPN drops', priority: 'high' }),
++          ticketBody({ title: 'Printer jams', requester: 'li@example.com' }),
++        ],
++      });
++      assert.equal(status, 201);
++      assert.deepEqual(body, { created: 2, ids: ['T-0001', 'T-0002'] });
++      assert.equal((await api.get('/tickets/T-0001')).body.title, 'VPN drops');
++      assert.equal((await api.get('/tickets/T-0001')).body.status, 'open');
++      assert.equal((await api.get('/tickets/T-0002')).body.requester, 'li@example.com');
++      assert.equal((await api.get('/tickets/T-0002')).body.priority, 'normal');
++    });
++  });
++
++  test('records each ticket and notifies each requester as when one ticket is created', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets/import', {
++        tickets: [
++          ticketBody({ title: 'VPN', requester: 'maria@example.com' }),
++          ticketBody({ title: 'Printer', requester: 'li@example.com' }),
++        ],
++      }, { 'X-Actor': 'sam' });
++      const first = (await api.get('/tickets/T-0001/audit')).body.items;
++      const second = (await api.get('/tickets/T-0002/audit')).body.items;
++      assert.equal(first.length, 1);
++      assert.equal(first[0].action, 'ticket.created');
++      assert.equal(first[0].actor, 'sam');
++      assert.equal(second[0].actor, 'sam');
++      const pending = (await api.get('/admin/outbox')).body.pending;
++      assert.deepEqual(pending.map((event) => [event.type, event.to, event.ticket, event.key]), [
++        ['ticket.created', 'maria@example.com', 'T-0001', 'ticket.created:T-0001'],
++        ['ticket.created', 'li@example.com', 'T-0002', 'ticket.created:T-0002'],
++      ]);
++    });
++  });
++
++  test('continues the id sequence after tickets that already exist', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      const { body } = await api.post('/tickets/import', { tickets: [ticketBody({ title: 'Second' }), ticketBody({ title: 'Third' })] });
++      assert.deepEqual(body.ids, ['T-0002', 'T-0003']);
++      assert.equal((await api.post('/tickets', ticketBody())).body.id, 'T-0004');
++    });
++  });
++
++  test('answers 400 naming the first invalid item by its index, and creates none', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody({ title: 'Already there' }));
++      const response = await api.post('/tickets/import', {
++        tickets: [
++          ticketBody({ title: 'Good' }),
++          ticketBody({ title: 'Also good' }),
++          ticketBody({ title: '' }),
++          ticketBody({ title: 'Never reached', owner: 'dana' }),
++        ],
++      });
++      envelope(response, 400, 'invalid');
++      assert.match(response.body.error.message, /tickets\[2\]/);
++      assert.match(response.body.error.message, /index 2/);
++      assert.match(response.body.error.message, /is invalid/);
++      assert.deepEqual(await listedIds(api), ['T-0001']);
++      assert.equal((await api.post('/tickets', ticketBody({ title: 'Next' }))).body.id, 'T-0002');
++    });
++  });
++
++  test('names index 0 when the first item is invalid', async () => {
++    await withService({}, async (api) => {
++      const response = await api.post('/tickets/import', { tickets: [{ requester: 'a@example.com' }] });
++      envelope(response, 400, 'invalid');
++      assert.match(response.body.error.message, /tickets\[0\]/);
++      assert.match(response.body.error.message, /index 0/);
++      assert.deepEqual(await listedIds(api), []);
++    });
++  });
++
++  test('refuses more than 5000 tickets without creating any', async () => {
++    await withService({}, async (api) => {
++      const tickets = Array.from({ length: 5001 }, (_, i) => ticketBody({ title: `T${i}` }));
++      const response = await api.post('/tickets/import', { tickets });
++      envelope(response, 400, 'invalid');
++      assert.match(response.body.error.message, /5000/);
++      assert.deepEqual(await listedIds(api), []);
++    });
++  });
++
++  test('refuses a body that is not a tickets list', async () => {
++    await withService({}, async (api) => {
++      envelope(await api.post('/tickets/import', { title: 'nope', requester: 'a@example.com' }), 400, 'invalid');
++      envelope(await api.post('/tickets/import', { tickets: { title: 'nope', requester: 'a@example.com' } }), 400, 'invalid');
++      envelope(await api.post('/tickets/import', { tickets: [ticketBody()], extra: 1 }), 400, 'invalid');
++      envelope(await api.post('/tickets/import', []), 400, 'invalid');
++      envelope(await api.post('/tickets/import', { tickets: [null] }), 400, 'invalid');
++      envelope(await api.post('/tickets/import', { tickets: [ticketBody({ owner: 'dana' })] }), 400, 'invalid');
++    });
++  });
++
++  test('an empty list creates none and answers 201', async () => {
++    await withService({}, async (api) => {
++      const { status, body } = await api.post('/tickets/import', { tickets: [] });
++      assert.equal(status, 201);
++      assert.deepEqual(body, { created: 0, ids: [] });
++    });
++  });
++
++  test('an import of 5000 tickets is answered within 10 seconds', { timeout: 15_000 }, async (t) => {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tickets-import-5k-'));
++    t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
++    await withService({ dataFile: path.join(dir, 'tickets.json') }, async (api) => {
++      const tickets = Array.from({ length: 5000 }, (_, i) => ({
++        title: `Imported ${i}`,
++        requester: `user${i}@example.com`,
++      }));
++      const started = Date.now();
++      const { status, body } = await api.post('/tickets/import', { tickets });
++      const elapsed = Date.now() - started;
++      assert.equal(status, 201, JSON.stringify(body && body.error));
++      assert.equal(body.created, 5000);
++      assert.equal(body.ids.length, 5000);
++      assert.equal(body.ids[0], 'T-0001');
++      assert.equal(body.ids[4999], 'T-5000');
++      assert.equal((await api.get('/tickets/T-0001')).body.title, 'Imported 0');
++      assert.equal((await api.get('/tickets/T-5000')).body.title, 'Imported 4999');
++      assert.ok(elapsed < 10_000, `import of 5000 took ${elapsed} ms`);
++    });
++  });
++
++  test('with a data file, imported tickets are saved together and survive a restart', async (t) => {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tickets-import-'));
++    t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
++    const dataFile = path.join(dir, 'tickets.json');
++    await withService({ dataFile }, async (api) => {
++      const { body } = await api.post('/tickets/import', {
++        tickets: [ticketBody({ title: 'One' }), ticketBody({ title: 'Two' })],
++      }, { 'X-Actor': 'dana' });
++      assert.deepEqual(body.ids, ['T-0001', 'T-0002']);
++    });
++    await withService({ dataFile }, async (api) => {
++      assert.deepEqual((await api.get('/tickets')).body.items.map((ticket) => [ticket.id, ticket.title]), [
++        ['T-0001', 'One'],
++        ['T-0002', 'Two'],
++      ]);
++      assert.equal((await api.get('/tickets/T-0001/audit')).body.items[0].actor, 'dana');
++      assert.equal((await api.get('/admin/outbox')).body.pending.length, 2);
++      assert.equal((await api.post('/tickets', ticketBody())).body.id, 'T-0003');
++    });
++  });
++});
