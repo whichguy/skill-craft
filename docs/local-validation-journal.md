@@ -534,14 +534,39 @@ that inventory exists to catch the code under test writing under the product, `.
   only, and the commit message of `111e2a27` carries the same wrong sentence], and one green run, quick or full, is weak
   evidence for a shard that passes six times in seven without the fix. It stays interim until the next full tiers (the next
   release, and the weekly Monday run) are green.
-- F22 (exploratory): four fixtures in 19 days have hit this class (`595973e7` on 2026-10-26, `9679c936` and `85a7cda7` on
+- F22 (exploratory, updated 2026-11-15): four fixtures in 19 days have hit this class (`595973e7` on 2026-10-26, `9679c936` and `85a7cda7` on
   2026-11-08, this one). 110 of the 114 test files containing the literal `"commit"` never mention `maintenance.auto` or
   `gc.auto` (a grep count, not an audit of which really run a git commit). Only fixtures that inventory or copy the tree right
-  after a commit have failed, so the rest are left alone. A runner-level setting (`GIT_CONFIG_COUNT=1`,
+  after a commit have failed, so the rest are left alone. ~~A runner-level setting (`GIT_CONFIG_COUNT=1`,
   `GIT_CONFIG_KEY_0=maintenance.auto`, `GIT_CONFIG_VALUE_0=false` in `run_suites.run_process` and the CI jobs) would end the
   class in one place (Round 4 set `PYTHONDONTWRITEBYTECODE=1` there for a similar class), but it changes the environment of every
   suite, is not run through the full tier before CI, and does not protect a standalone `python3 test/<file>`. That sets
-  direction, so it is the owner's call and is not made here.
+  direction, so it is the owner's call and is not made here.~~ [superseded 2026-11-15: the owner chose a runner-level setting,
+  and the mechanism written here cannot be used; see the update.]
+  - Update 2026-11-15. The owner answered "Yes, at the runner" to "Turn git's auto-maintenance off at the test runner for every
+    suite?". The mechanism F22 named cannot be used, and I wrote it without reading `test/run_suites.py`: `run_process` removes
+    `GIT_CONFIG_COUNT` and the first three KEY/VALUE pairs from every suite's environment on purpose (`_GIT_CONTEXT_OVERRIDES`,
+    commit `78594ebb`, 2026-11-04: a suite's Git configuration comes from its fixture, never from the shell that started it),
+    because ask-agent's workspace guard refuses them ("prepare refuses Git context environment overrides"), and ShipLoop's Git
+    helpers name them as Git context overrides too. Measured (`envroute_probe.py`, `results.txt`): with the three variables
+    reaching the suites through `run_process`, the three suites that commit protected fail 3 of 3 (`ask-agent-parallel`: 224
+    tests, failures=2 and errors=18; `agent-harness-audit` and `install-arbitrary-skill`: the refusal above), against 0 of 3 with
+    the strip (233 tests OK, OK, OK).
+  - Done instead: a CI step, `git config --global maintenance.auto false`, in the `checks` job before the suites run
+    (`.github/workflows/ci.yml`). It is a setting in the machine's own `~/.gitconfig` and not an environment variable, so neither
+    the strip nor the guards see it. Through `run_process`, over 40 fixture commits on a fresh HOME: 40 detached maintenance
+    launches without it and 0 with it (`globalconfigprobe.py`). `ci-policy`
+    `test_checks_job_turns_git_background_maintenance_off_before_it_runs_the_suites` pins the step before the suites and forbids
+    `GIT_CONFIG*` in the workflow's code; it fails on the old workflow and on 4 of 4 mutants (step removed, moved after the
+    suites, written as `GIT_CONFIG_*` variables, written twice). `test-groups` `CIGitMaintenanceTest` runs the step's own
+    command under a fresh HOME and has a child that `run_process` starts make two fixture commits: it fails on the old workflow
+    and on 5 of 5 wrong forms (key misspelled, `true`, `--local`, `--system`, `gc.auto 0` alone, which does not stop the launch)
+    and accepts the equivalent spelling of the boolean.
+  - Scope, stated plainly: CI machines only. A local `run-all.sh` is unchanged (this macOS git 2.54.0 never showed the lock, 0 of
+    300 commits, and no local failure of this kind is on record); a suite that gives itself another HOME does not read the step
+    and keeps its own flag; a standalone `python3 test/<file>` on a machine without the setting is unprotected. The per-fixture
+    flags stay (removing them would change no outcome). Nothing here has yet been seen to prevent a CI failure; F21's reasoning
+    applies, and the next full tiers are the evidence.
 - F23 (interim): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
   candidate exited before it listened on the port the harness had chosen. `checks/serve.py` picks the port with `free_port()`
   (bind to port 0, read the number, close) and starts the candidate with `PORT=<it>`, so another process can take that port in

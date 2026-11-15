@@ -75,6 +75,13 @@ jobs:
           node-version: 'latest'
           check-latest: true
           package-manager-cache: false
+      # git starts `git maintenance run --auto --detach` after a commit, and that process holds objects/maintenance.lock for a
+      # moment. A suite that inventories or copies a tree right after a fixture commit has seen the lock vanish: four fixtures
+      # between 2026-10-26 and 2026-11-14, each on a release run. Set in this machine's own ~/.gitconfig and not as GIT_CONFIG_*
+      # variables: run-all.sh strips those from every suite (78594ebb) because ask-agent's and ShipLoop's workspace guards
+      # refuse them. A fixture that gives itself another HOME does not read this and keeps its own `-c maintenance.auto=false`.
+      - name: Keep git's background maintenance out of the suites
+        run: git config --global maintenance.auto false
       - name: Hermetic group
         env:
           TEST_GROUP: ${{ matrix.group }}
