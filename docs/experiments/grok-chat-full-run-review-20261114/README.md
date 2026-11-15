@@ -161,7 +161,7 @@ honestly, with evidence preserved, instead of passing on missing proof.
 | 1 | Add the generic TAP count reader, with the real `security-tests8.tap` and malformed controls, and a replay over the retained check records that shows no earlier count changes | recommended; awaits the owner's tick. **2026-11-15: approved and built** ("Decision 1 built" below) |
 | 2 | Record the four rare defects as known limits; ride the timeout-tail fix along with the next change in that file | recommended |
 | 3 | The durable-wait capability | owner's decision; not recommended now |
-| 4 | Hold cleanup after a non-pass outcome (reusing `keep_decision`'s machinery); record API headroom; add the plan's separate pre-journey readiness record | harness options, owner's tick |
+| 4 | Hold cleanup after a non-pass outcome (reusing `keep_decision`'s machinery); record API headroom; add the plan's separate pre-journey readiness record | harness options, owner's tick. **2026-11-15: not pursued** (owner: generic ShipLoop and its generic E2E test only; see "Phase 2 design" below) |
 | 5 | Repair the verify-record text reader (P9a): a `]` inside captured output ends the `runs` array early | recommended (harness, effort S); reproduced. **2026-11-15: approved and built** ("Decision 5 built" below) |
 | 6 | The Codex plan's P4 (feasible implementation proofs) | declined as proposed: the class was studied on 2026-11-01 and left; only the unrun whole-delivery A/B of A2b remains registered |
 
@@ -444,6 +444,14 @@ Decision 4 (the hold, the API headroom record and the readiness record) is desig
 Nothing is built. The design names every harness path the hold must reach, the records that keep held, kept and cleaned
 apart, an exit status for checks that could not examine, a record-only headroom hook, and the two places the readiness record
 could go. Five decisions in it are the owner's.
+
+**Closed the same day, not pursued.** The owner: "I only care about modifying Shiploop as a generic facility or the
+end-to-end test for Shiploop as a generic facility. If we're doing something outside of that, I don't know if it's actually
+valuable because I'll end up deleting the Salesforce-specific run of Shiploop later." All three parts serve the Salesforce
+platform cases, and so does an org-lock change the owner had just agreed to; none was built. Astra's max review of the design
+(not ready, 15 material findings, not verified) is kept in [evidence/phase2-astra-review.md](evidence/phase2-astra-review.md).
+What this review shipped that is generic stays: the TAP count reader in ShipLoop (decision 1) and the verify-record scan in
+the E2E harness (decision 5).
 
 ## Unknowns
 

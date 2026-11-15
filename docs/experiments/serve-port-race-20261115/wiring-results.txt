@@ -1,0 +1,31 @@
+# wiring_probe.py, 2026-11-15, macOS (Darwin 27.2.0), Node v26.12.1, nice 10, three runs at a time; the first grade of every delivery is handed a held port.
+
+$ python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-directory RolesCalibrationTest TeamsCalibrationTest PageSizeCalibrationTest    # as shipped (REGRADES = 3)
+{"classes": ["RolesCalibrationTest", "TeamsCalibrationTest", "PageSizeCalibrationTest"], "deliveries": 41, "errors": 0, "failures": 0, "graded_more": 0, "graded_once": 4, "graded_twice": 37, "ok": true, "regrades": 3, "skipped": 0, "suite": "user-directory", "tests": 16}
+Ran 16 tests in 199.280s OK
+exit 0 in 200 s
+
+$ python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-chain CalibrationTest    # as shipped (REGRADES = 3)
+{"classes": ["CalibrationTest"], "deliveries": 22, "errors": 0, "failures": 0, "graded_more": 0, "graded_once": 11, "graded_twice": 11, "ok": true, "regrades": 3, "skipped": 0, "suite": "user-chain", "tests": 4}
+Ran 4 tests in 71.119s OK
+exit 0 in 72 s
+
+$ python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py brownfield CaseChecksTest    # as shipped (REGRADES = 3)
+{"classes": ["CaseChecksTest"], "deliveries": 3, "errors": 0, "failures": 0, "graded_more": 0, "graded_once": 1, "graded_twice": 2, "ok": true, "regrades": 3, "skipped": 0, "suite": "brownfield", "tests": 2}
+Ran 2 tests in 15.263s OK
+exit 0 in 16 s
+
+$ python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-directory RolesCalibrationTest TeamsCalibrationTest PageSizeCalibrationTest --regrades 0    # the regrade off
+{"classes": ["RolesCalibrationTest", "TeamsCalibrationTest", "PageSizeCalibrationTest"], "deliveries": 41, "errors": 0, "failures": 43, "graded_more": 0, "graded_once": 41, "graded_twice": 0, "ok": false, "regrades": 0, "skipped": 0, "suite": "user-directory", "tests": 16}
+Ran 16 tests in 103.827s FAILED (failures=43)
+exit 1 in 105 s
+
+$ python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-chain CalibrationTest --regrades 0    # the regrade off
+{"classes": ["CalibrationTest"], "deliveries": 22, "errors": 0, "failures": 17, "graded_more": 0, "graded_once": 22, "graded_twice": 0, "ok": false, "regrades": 0, "skipped": 0, "suite": "user-chain", "tests": 4}
+Ran 4 tests in 38.272s FAILED (failures=17)
+exit 1 in 39 s
+
+$ python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py brownfield CaseChecksTest --regrades 0    # the regrade off
+{"classes": ["CaseChecksTest"], "deliveries": 3, "errors": 0, "failures": 2, "graded_more": 0, "graded_once": 3, "graded_twice": 0, "ok": false, "regrades": 0, "skipped": 0, "suite": "brownfield", "tests": 2}
+Ran 2 tests in 11.773s FAILED (failures=2)
+exit 1 in 13 s

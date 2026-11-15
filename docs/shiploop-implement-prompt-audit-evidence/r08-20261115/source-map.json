@@ -2872,5 +2872,7 @@
     "292f1dade64464b38f7cb846eb62c80c99f35fd3",
     "4426c14db9d303fbc9ff625299fff610fe05bd69"
   ],
-  "parent_audit": "065dfadd1221ba43a3976e959e1acac50d7b770c"
+  "parent_audit": "065dfadd1221ba43a3976e959e1acac50d7b770c",
+  "integrated_main": "826d2fd399f84ef23fbff87345f333e9a0825156",
+  "integration": "Latest main contains unrelated calibration-test and review-documentation changes. All source-map bytes still match the verified implementation snapshot; its commits are preserved by merge."
 }

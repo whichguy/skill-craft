@@ -16,6 +16,7 @@ excerpt is `docs/experiments/git-maintenance-lock-20261114/ci-attempt2-failure-e
 | `bad_ports.py`, `macos-bad-ports.txt` | Why the same twelve port numbers failed in every run on macOS (addresses not kept). |
 | `tap/sitecustomize.py`, `run_tap.sh`, `tap-summary.txt` | A tap that counts how many times each suite starts a candidate through serve.py and how those runs ended. |
 | `lsof_shim.py` | The one lsof call serve.py makes, for the Linux container that has no lsof. Used only there. |
+| `wiring_probe.py`, `wiring-results.txt` | The follow-up (below): a suite's calibration classes run with the first grade of every delivery handed a held port, with the regrade as shipped and with `--regrades 0`. |
 
 ## What was run, and where
 
@@ -83,9 +84,9 @@ IPv4 allocator, which does not see those sockets, so this mechanism does not nee
 | --- | ---: | --- | ---: |
 | `ticket-comments` | 54 (57 with the 3 of the new route test) | `CalibrationTest.setUpClass`, 9 variants | 0 |
 | `ticket-sla` | 82 (85 with the new route test's 3) | `CalibrationTest.setUpClass`, 11 variants | 0 |
-| `user-directory` | 184 | `CalibrationBase.setUpClass`, three links | 0 |
-| `user-chain` | 39 | `CalibrationTest.setUpClass`, the chain's cases | 0 |
-| `brownfield` | 4 | `CaseChecksTest.checks` | 0 |
+| `user-directory` | 184 | `CalibrationBase.setUpClass`, three links [regraded since, later the same day: see "Follow-up"] | 0 |
+| `user-chain` | 39 | `CalibrationTest.setUpClass`, the chain's cases [regraded since: see "Follow-up"] | 0 |
+| `brownfield` | 4 | `CaseChecksTest.checks` [regraded since: see "Follow-up"] | 0 |
 | `brownfield-tickets` | 13 | grades again (`26728edd`, `8c5b4d4e`) | 0 |
 | `resources` | 57 | not a grading: tests of serve.py itself, most of whose runs are meant to fail | 0 |
 
@@ -118,6 +119,31 @@ in the history, with one early exit: 0.0026% (0.0001 to 0.015) per run, which is
   shell, so those lists are empty and `bad_ports.py`, which reads `netstat` from the shell, is the macOS evidence). An earlier 400-call control of the 5,000-a-second row (1 early exit) was not kept.
 - The tap counts come from macOS; the calls per execution are the same on CI, which runs the same code, except where a test is skipped there.
 
+## Follow-up (2026-11-15, later the same day): the regrade in the other three suites
+
+`user-directory`, `user-chain` and `brownfield` now grade a variant's own checks again, alone, until the failed set is the declared one, as the ticket pair does (journal Round 6,
+follow-up; F24 updated, F25). How many of each suite's serve.py runs are its variants' own checks, counted from the declarations (a script over `cases.json` and the reference modules, not
+the tap): `user-directory` 123 of its 184 (13, 16 and 12 variants times three checks), `user-chain` 29 of its 39 (7, 8 and 7 variants times 2, 1 and 1 checks, and a `node --test` of the
+delivery's own suite for each of the 22 variants besides), `brownfield` 3 of its 4 (three variants times one check, and two `node --test` checks each).
+
+`wiring_probe.py` shows that each suite's own grading path goes through the regrade. It loads the suite, hands the FIRST grade of every delivery's own checks a port another socket holds
+(serve.py's pin `E2E_SERVE_PORT`, by patching `run.run_checks`) and runs the named calibration classes unmodified. `wiring-results.txt` has the commands and the output (macOS, Node v26.12.1,
+nice 10, three runs at a time):
+
+| suite: classes | regrades | deliveries | graded once / twice / more | tests | failures |
+| --- | ---: | ---: | --- | ---: | ---: |
+| `user-directory`: `RolesCalibrationTest`, `TeamsCalibrationTest`, `PageSizeCalibrationTest` | 3 (shipped) | 41 | 4 / 37 / 0 | 16 | 0 |
+| the same | 0 | 41 | 41 / 0 / 0 | 16 | 43 |
+| `user-chain`: `CalibrationTest` | 3 (shipped) | 22 | 11 / 11 / 0 | 4 | 0 |
+| the same | 0 | 22 | 22 / 0 / 0 | 4 | 17 |
+| `brownfield`: `CaseChecksTest` | 3 (shipped) | 3 | 1 / 2 / 0 | 2 | 0 |
+| the same | 0 | 3 | 3 / 0 / 0 | 2 | 2 |
+
+A delivery is graded once when its first grade already is the declared one: the held port fails every check that starts a candidate through serve.py, so a base whose declared set is
+all the own checks, or a defect whose declared set holds the checks that go through serve.py, agrees at once. The first own check of a `user-chain` link is `node --test`, which does not
+start a candidate through serve.py; in `brownfield` only the third check does. "Failures" counts subtests. Not shown: the rescue of a natural collision (nothing counts regrades), and Linux.
+The hidden acceptance of these classes is graded once and is not part of the probe: it goes through `quality.serve_on_free_port` and the listener-ownership check, not through serve.py.
+
 ## Reproduce
 
 ```sh
@@ -129,6 +155,9 @@ bash docs/experiments/serve-port-race-20261115/run_matrix.sh /tmp/deliv matrix.j
 python3 -I docs/experiments/serve-port-race-20261115/rate_summary.py matrix.jsonl
 netstat -an | python3 -I docs/experiments/serve-port-race-20261115/bad_ports.py matrix-macos.jsonl
 bash docs/experiments/serve-port-race-20261115/run_tap.sh "$PWD" /tmp/tap-out               # counts serve.py runs per suite
+python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-directory RolesCalibrationTest TeamsCalibrationTest PageSizeCalibrationTest [--regrades 0]
+python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-chain CalibrationTest [--regrades 0]       # the follow-up's probe
+python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py brownfield CaseChecksTest [--regrades 0]
 python3 -I docs/experiments/serve-port-race-20261115/ci_history.py CACHE_DIR OUT.json 2026-10-31
 ```
 

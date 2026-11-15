@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "incoming_main": "826d2fd399f84ef23fbff87345f333e9a0825156",
+  "verified_source": "d6721a5020bfd36c912ac59256a1672a61d4d86c",
+  "incoming_paths": [
+    "docs/experiments/grok-chat-full-run-review-20261114/README.md",
+    "docs/experiments/grok-chat-full-run-review-20261114/evidence/phase2-astra-review.md",
+    "docs/experiments/grok-chat-full-run-review-20261114/phase2-design.md",
+    "docs/experiments/serve-port-race-20261115/README.md",
+    "docs/experiments/serve-port-race-20261115/wiring-results.txt",
+    "docs/experiments/serve-port-race-20261115/wiring_probe.py",
+    "docs/local-validation-journal.md",
+    "test/shiploop-e2e-brownfield.test.py",
+    "test/shiploop-e2e-user-chain.test.py",
+    "test/shiploop-e2e-user-directory.test.py"
+  ],
+  "overlapping_anchor_files": [],
+  "anchor_count": 173,
+  "integration": "Merge preserves tested commits; current cited bytes match the pinned source exactly."
+}

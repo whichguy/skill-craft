@@ -1,10 +1,18 @@
 # Phase 2 design: the owner review hold, the API headroom record and the readiness record (2026-11-15)
 
-Status: a design. Nothing here is built. Each part waits on the owner's tick (decision 4 in [README.md](README.md)), and
-the decisions at the end are the owner's. It answers the corrected requirements that Astra's review of the first plan set for
-Phase 2: the hold must reach host-session termination, the resume start, the resumed preflight, the final dispatch and the
-regrade; keep held, kept and cleaned apart in the records; preserve external artifacts while producers stay stopped; read a
-check that does not support its phase as unexamined; and be tested with sentinel commands through the real routes.
+**Status: not pursued (owner, 2026-11-15).** The owner, the same day: "I only care about modifying Shiploop as a generic
+facility or the end-to-end test for Shiploop as a generic facility. If we're doing something outside of that, I don't know if
+it's actually valuable because I'll end up deleting the Salesforce-specific run of Shiploop later." All three parts exist for
+the Salesforce platform cases: the hold protects a platform's deployed app, the headroom record reads an org's daily API
+allowance, and the readiness record serves the Grok chat journey. So none is built. The design and Astra's review (below)
+stay as a record in case a generic need for a hold appears. Nothing below is a decision.
+
+The text as written before that, kept unchanged: a design, nothing built, each part waiting on the owner's tick (decision 4
+in [README.md](README.md)), with the decisions at the end the owner's. It answers the corrected requirements that Astra's
+review of the first plan set for Phase 2: the hold must reach host-session termination, the resume start, the resumed
+preflight, the final dispatch and the regrade; keep held, kept and cleaned apart in the records; preserve external artifacts
+while producers stay stopped; read a check that does not support its phase as unexamined; and be tested with sentinel
+commands through the real routes.
 
 Words used here:
 
@@ -258,4 +266,30 @@ This is E2E apparatus with no ShipLoop skill file, so the commits carry `No-Chan
 
 ## Review
 
-Pending: Astra at max effort, read-only, with each claim verified against the code and the trial before it is folded in.
+Astra (gpt-6-astra, max effort, read-only) reviewed the design as committed in
+7ea06fbcb64052f6a1fead788b8cbc6e3e2a57fd. **Verdict: not ready**, with 15 material findings and 3 minor ones. Its summary:
+"The direction is sound, but the hold's enforcement boundary, release transitions, and evidence-preservation rules need
+revision before implementation." The material findings include:
+
+- the path table does not define an enforceable hold;
+- "stops nothing and names live processes" does not keep producers quiescent;
+- a release must authorize an action, not just remove a prohibition;
+- pending-record and concurrent-hold semantics are not durable enough;
+- a held record must not erase the earlier failed cleanup;
+- the activation rule differs from both "non-pass" and the unfinished keep;
+- restatement lacks missing-evidence rules;
+- `ok: false` alone does not classify truthfully across the exporter;
+- the exit-77 capture contract is unreliable under truncation;
+- the quota paths are not covered;
+- a headroom delta cannot measure a run's own use;
+- several tests cannot run on the unchanged fixture;
+- the decision list omits choices the design already made.
+
+The findings were **not verified** against the code, because the owner closed Phase 2 before that step. The full text is in
+[evidence/phase2-astra-review.md](evidence/phase2-astra-review.md). None of them names a defect in the harness as it is
+today; all concern the proposed hold.
+
+The same day the owner also chose concurrency over isolation for runs on one org. That meant scoping the org-wide platform
+lease (`lifecycle.lease_keys`, f0c244253e3ff050ef55409ea2e632d89de1a46f) and the epoch dispatch barrier
+(`epoch.target_launch_state`) back to the case's prefix. It serves only the Salesforce cases, so under the same scope
+rule it was not built either. Nothing was edited for it.
