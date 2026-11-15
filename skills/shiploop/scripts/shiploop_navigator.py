@@ -79,7 +79,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified", "follow_on",
+    "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified", "settled", "follow_on",
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
@@ -129,7 +129,7 @@ BLOCKED_RULE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers", "unverified", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
+    "red_na", "lint_waivers", "unverified", "settled", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
     "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions",
 )
@@ -1304,6 +1304,10 @@ def _canonical_result(
             result["unverified"] = unverified.canonical(value["unverified"])
         except unverified.UnverifiedError as exc:
             raise NavigatorError(str(exc)) from exc
+    if "settled" in value:
+        _need((stage in unverified.STAGES or stage in unverified.due_stages()) and outcome == "done",
+              "settled is allowed only on a done product-acceptance or later result")
+        result["settled"] = unverified.canonical_settled(value["settled"])
     if "follow_on" in value:
         # Shape only, like unverified: the exact fields, the class and the sources are checked at the CLI gates.
         _need(stage in follow_on.STAGES and outcome == "done", "follow_on is allowed only on a done handoff result")
@@ -3693,7 +3697,11 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
     if not isinstance(result, Mapping):
         return
     missing = []
-    for ref in result.get("evidence_refs") or ():
+    refs = list(result.get("evidence_refs") or ())
+    for row in result.get("settled", []) if isinstance(result.get("settled", []), list) else ():
+        if isinstance(row, Mapping) and isinstance(row.get("evidence_refs"), list):
+            refs.extend(row["evidence_refs"])
+    for ref in refs:
         if not isinstance(ref, str) or not ref.startswith("/"):
             continue
         path = Path(_EVIDENCE_SUFFIX.sub("", ref))
@@ -5533,10 +5541,14 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
              "reason": "...", "due_item": "W1"},
         ]
     if stage in unverified.STAGES:
-        result["unverified"] = [dict(unverified.TEMPLATE_ROW)]
+        latest = unverified.current_list(state)[2]
+        result["unverified"] = ([dict(unverified.TEMPLATE_ROW)] if latest is None
+                                else [dict(row) for row in latest])
+        if latest is not None:
+            result["settled"] = []
     elif unverified.must_restate(state, stage):
-        # The current list, to carry forward: drop what this stage observed, move what it could not, keep the rest.
         result["unverified"] = [dict(row) for row in unverified.current_list(state)[2] or ()]
+        result["settled"] = []
     if stage in follow_on.STAGES:
         result["follow_on"] = [dict(follow_on.TEMPLATE_ROW)]
     assessment = consumer_delivery.template_assessment(state, stage)
@@ -7538,23 +7550,14 @@ def _unverified_rule(state: Mapping[str, Any], stage: str) -> list[str]:
     """The one sentence a stage that restates ``unverified`` acts on, for the head; ``_unverified_lines`` lists the rows."""
     if state["status"] != "active" or state.get("active_improve"):
         return []
-    if stage == "handoff":
-        _action, source, entries = unverified.current_list(state)
-        if entries is None:
-            return []
-        if not entries:
-            return ["Restate `unverified` as [] in your result: no request outcome stays unverified (" + str(source)
-                    + "'s list).", ""]
-        return ["Restate `unverified` in your result from the list " + str(source) + " left (your template's unverified "
-                "holds it): drop an outcome you observed here (name the observation in summary) and copy every other "
-                "entry unchanged.", ""]
-    if stage in unverified.due_stages() and unverified.must_restate(state, stage):
-        _action, source, _entries = unverified.current_list(state)
-        return ["Restate `unverified` in your result from the list " + str(source) + " left (your template's unverified "
-                "holds it): drop an entry due: " + stage + " that you observed here (name the observation in summary), "
-                "move the due_stage of one you could not observe to a later stage, copy every other entry unchanged; [] "
-                "when none stays open.", ""]
-    return []
+    _action, source, entries = unverified.current_list(state)
+    if entries is None or not (stage == "product-acceptance" or unverified.must_restate(state, stage)):
+        return []
+    routing = ("At product-acceptance revisit an early observation or explicit user correction may settle a row. "
+               if stage == "product-acceptance" else
+               "Only rows whose previous due_stage is " + stage + " may be removed here. ")
+    return ["Restate `unverified` from " + str(source) + " (prefilled); [] when none stays open. "
+            + routing + unverified.SETTLEMENT_RULE, ""]
 
 
 def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -7580,7 +7583,7 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
         if entries:
             lines.append("The request outcomes still unverified, as " + str(source) + " left the list (ShipLoop's "
                          "report lists them too). Restate the list in your result's unverified: drop one you observed "
-                         "here (name the observation in summary) and copy every other one unchanged:")
+                         "here with a settled record and carry every other one:")
             lines.extend(_unverified_row(row) for row in entries)
         elif entries is None:
             lines.append("No unverified list is recorded for product-acceptance (unmeasured, not zero).")
@@ -7589,12 +7592,16 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                          "unverified): restate it as [].")
         lines.append("That is the request-outcome list only: open items another stage recorded are in that stage's "
                      "own result; read them before stating the limits.")
-    elif stage in unverified.due_stages() and unverified.must_restate(state, stage):
+    elif ((stage == "product-acceptance" and unverified.current_list(state)[2] is not None)
+          or (stage in unverified.due_stages() and unverified.must_restate(state, stage))):
         _action, source, entries = unverified.current_list(state)
-        lines.append("Request outcomes still unverified, as " + str(source) + " left the list. Restate the list in "
-                     "your result's unverified: drop an entry due: " + stage + " that you observed here (name the "
-                     "observation in summary), move the due_stage of one you could not observe to a later stage, and "
-                     "copy every other entry unchanged; [] when none stays open:")
+        if stage == "product-acceptance":
+            lines.append("Latest pending request outcomes, as " + str(source) + " left the list (prefilled):")
+        else:
+            lines.append("Request outcomes still unverified, as " + str(source) + " left the list. Restate the list in "
+                         "your result's unverified: drop an entry due: " + stage + " with a settled record, move "
+                         "the due_stage of one you could not observe to a later stage, and carry every other entry; "
+                         "[] when none stays open:")
         lines.extend(_unverified_row(row) for row in entries or ())
     return lines
 
@@ -9128,8 +9135,8 @@ def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core:
                         child: Path | None = None) -> Any:
     """``result`` with a leading KNOWLEDGE, RUN, WORKTREE, GUIDES (or ``child``'s CHILD) of each evidence path written as its absolute path.
 
-    The lists read are ``evidence_refs`` and each ``assumptions[].evidence`` (the only evidence fields a result has: an
-    ``unverified`` row holds exactly its seven text fields); anything else, and a result that is not a mapping, is
+    The lists read are ``evidence_refs``, ``settled[].evidence_refs`` and ``assumptions[].evidence``;
+    anything else, and a result that is not a mapping, is
     returned as it is.  Raises ``NavigatorError`` for an unknown root.  The expanded text is what the gates check and
     what the run stores.
     """
@@ -9150,6 +9157,12 @@ def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core:
         expanded["assumptions"] = [dict(row, evidence=listed(row["evidence"], f"assumptions[{number}].evidence"))
                                    if isinstance(row, Mapping) and "evidence" in row else row
                                    for number, row in enumerate(rows)]
+    rows = expanded.get("settled")
+    if isinstance(rows, list):
+        expanded["settled"] = [dict(row, evidence_refs=listed(row["evidence_refs"],
+                                  f"settled[{number}].evidence_refs"))
+                              if isinstance(row, Mapping) and "evidence_refs" in row else row
+                              for number, row in enumerate(rows)]
     return expanded
 
 
@@ -10191,6 +10204,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     final_result = receipt.get("final_result")
                     if final_result is not None:
                         _check_submitted_evidence(final_result, None)
+                    _check_submitted_unverified(
+                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -10345,6 +10360,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 taken = shiploop_check.matching_yes(
                     root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft)) if reusable else None
                 if taken is not None:
+                    # Same-version answers can predate the settlement rule. Recheck cheap admission before reuse.
+                    _check_submitted_unverified(state, cursor_stage, submitted)
                     # Nothing the gates read changed since the check said yes: take its answer, run nothing again.
                     test_loop.take_check(root, action_id, taken["records"], shiploop_check.answer_path(action_id))
                     gate_lines = (["Gates: taken from the check of " + str(taken["created_at"]) + " ("

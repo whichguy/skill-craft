@@ -275,6 +275,7 @@ class RealCliCase(unittest.TestCase):
             "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
+            "settled": [],
             "follow_on": [],
             "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
             # Intake's key-question ledger (duty 9): every catalog category once, and one routed question.
@@ -1838,7 +1839,7 @@ class UnverifiedRouteTests(RealCliCase):
                 self.assertIn(entry[field], due)
         self.assertIn("Restate the list in your result's unverified: drop an entry due: release-check", due)
         # The rule is in the printed head too (stage-prompt review, 2026-10-31: 8 of 63 first submissions refused).
-        self.assertIn("Restate `unverified` in your result from the list product-acceptance left", " ".join(head.split()))
+        self.assertIn("Restate `unverified` from product-acceptance", " ".join(head.split()))
         template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
         self.assertEqual(template["unverified"], [UNVERIFIED_ENTRY, UNVERIFIED_EARLY])
         _, head = self.at("handoff", **listed)
@@ -1876,16 +1877,19 @@ class UnverifiedRouteTests(RealCliCase):
                 good = self.fill_done(head)
                 for label, block, fragment in (
                         ("left out", {k: v for k, v in good.items() if k != "unverified"},
-                         "a done release-check result restates unverified, the list product-acceptance left"),
+                         "a done release-check result restates unverified alongside settled, the list product-acceptance left"),
                         ("an entry due later dropped", dict(good, unverified=[UNVERIFIED_EARLY]),
-                         "unverified drops R-1 (the exported file opens in the customer's reader, due at handoff)"),
+                         "settled keys must exactly equal"),
                         ("the due entry kept as it was", dict(good, unverified=[UNVERIFIED_ENTRY, UNVERIFIED_EARLY]),
                          "due at release-check, the stage now ending"),
                         ("the due entry moved earlier", dict(good, unverified=[UNVERIFIED_ENTRY, dict(
                             UNVERIFIED_EARLY, due_stage="release-plan")]), "is not a later stage; use one of release,")):
                     write_block(path, block)
                     self.assertIn(fragment, self.refused(command, run), label)
-                write_block(path, dict(good, unverified=restated))
+                settlements = ([{"requirement": UNVERIFIED_EARLY["requirement"],
+                                 "outcome": UNVERIFIED_EARLY["outcome"], "basis": "observed",
+                                 "evidence_refs": [str(self.evidence)]}] if route == "settled here" else [])
+                write_block(path, dict(good, unverified=restated, settled=settlements))
                 RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
                 self.assertEqual(self.recorded(run, action)["unverified"], restated)
                 self.assertEqual(nav.unverified.current_list(self.state(run))[1:], ("release-check", restated))
@@ -1896,20 +1900,20 @@ class UnverifiedRouteTests(RealCliCase):
         run, head = self.new_run("handoff", results=restated)
         handoff = self.full_packet(head)
         self.assertIn("The request outcomes still unverified, as release-check left the list", handoff)
-        self.assertIn("Restate `unverified` in your result from the list release-check left", " ".join(head.split()))
+        self.assertIn("Restate `unverified` from release-check", " ".join(head.split()))
         self.assertIn(UNVERIFIED_ENTRY["outcome"], handoff)
         self.assertNotIn(UNVERIFIED_EARLY["outcome"], handoff)
         report = self.cli("report", "--run-dir", str(run)).stdout
-        self.assertIn("Settled after product-acceptance (release-check restated the list without them): R-1 "
+        self.assertIn("Historical omission without a recorded settlement: R-1 "
                       + UNVERIFIED_EARLY["outcome"], report)
-        self.assertIn("by the time release-check recorded the list", report)
+        self.assertIn("Currently pending, as of release-check recorded the list", report)
         # A later stage that restates on its own is held to the same carry rule: it cannot drop a later entry.
         run, head = self.new_run("release-plan", results={"product-acceptance": {"unverified": [UNVERIFIED_ENTRY]}})
         command, path, _ = printed_callback(head)
         self.assertNotIn("Restate the list", self.full_packet(head))  # nothing is due at release-plan
         self.assertNotIn("Restate `unverified`", self.full_packet(head))
         write_block(path, dict(self.fill_done(head), unverified=[]))
-        self.assertIn("unverified drops R-1", self.refused(command, run))
+        self.assertIn("settled keys must exactly equal", self.refused(command, run))
 
     def test_an_entry_due_at_a_stage_that_never_ran_is_carried_to_the_handoff(self) -> None:
         # A stage the item left out never restates, so its entry reaches the handoff overdue; the handoff carries it.
@@ -1918,7 +1922,7 @@ class UnverifiedRouteTests(RealCliCase):
                  "accepted": {"a1": {"unverified": [overdue]}}}
         self.assertTrue(nav.unverified.must_restate(state, "handoff"))
         nav.unverified.check_restated(state, "handoff", {"outcome": "done", "unverified": [overdue]})
-        with self.assertRaisesRegex(nav.unverified.UnverifiedError, "unverified drops R-1 .*due at operations"):
+        with self.assertRaisesRegex(nav.unverified.UnverifiedError, "settled keys must exactly equal"):
             nav.unverified.check_restated(state, "handoff", {"outcome": "done", "unverified": []})
 
     def test_the_report_lists_the_outcomes_and_tells_none_listed_from_not_recorded(self) -> None:
@@ -1975,6 +1979,321 @@ class UnverifiedRouteTests(RealCliCase):
                    "summary": "A service is down.", "unverified": []}
         with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry unverified"):
             nav.apply(state, nav.current_action(state)["id"], blocked)
+
+
+class R07ContinuityTests(RealCliCase):
+    """CLI continuity controls. Earlier unrelated stages and Improve reviews are synthetic.
+
+    Acceptance, unverified, primary and delivery gates are never patched. Summary/evidence truth remains a host
+    responsibility: a passing positive control is not independent verification of what a person actually saw.
+    """
+
+    def r07_entries(self, due: str = "handoff") -> list[dict]:
+        return [dict(UNVERIFIED_ENTRY, outcome=outcome, lower_layer_check="TC-1", due_stage=due)
+                for outcome in ("the reader opens the exported report", "the reader displays the expected totals")]
+
+    def r07_submit(self, run: Path, head: str, block: dict) -> tuple[subprocess.CompletedProcess, str]:
+        command, path, _ = printed_callback(head)
+        write_block(path, block)
+        before = (run / "state.md").read_bytes()
+        checked = self.run_printed(check_command(command))
+        self.assertEqual((run / "state.md").read_bytes(), before)
+        completed = self.run_printed(command)
+        self.assertIn(checked.returncode, (0, 2), checked.stdout + checked.stderr)
+        self.assertEqual(completed.returncode, checked.returncode, completed.stdout + completed.stderr)
+        if completed.returncode:
+            self.assertEqual((run / "state.md").read_bytes(), before)
+            print("R07 earlier gate:", completed.stdout + completed.stderr, flush=True)
+            return completed, head
+        state = self.state(run)
+        if state.get("active_improve"):
+            # The review mechanics are isolated: this is explicitly a synthetic receipt, not a model review.
+            state = nav.finish_improve(state, state["active_improve"]["action_id"],
+                                       {"summary": "Synthetic R07 fixture review; no real model review."})
+            nav.save(run, state)
+        for relative, text in loops.contract_writes(run, state).items():
+            (run / relative).parent.mkdir(parents=True, exist_ok=True)
+            (run / relative).write_text(text, encoding="utf-8")
+        print("R07 accepted:", json.dumps({"stage": state["stage"], "status": state["status"],
+                                           "current_list": nav.unverified.current_list(state)}), flush=True)
+        return completed, self.cli("next", "--run-dir", str(run)).stdout
+
+    def r07_initial(self) -> tuple[Path, str, list[dict]]:
+        run, head = self.new_run("product-acceptance", results={"spec": {"primary": ["R-1"]}})
+        knowledge_support.write(self.state(run))
+        state = self.state(run)
+        action = next(r["action"] for r in state["history"] if r["stage"] == "test")
+        writes, refusal = test_loop.verify(run, state, "W1", action, "test")
+        self.assertEqual(refusal, "")
+        for relative, text in writes.items():
+            (run / relative).parent.mkdir(parents=True, exist_ok=True)
+            (run / relative).write_text(text, encoding="utf-8")
+        entries = self.r07_entries()
+        result, head = self.r07_submit(run, head, dict(self.fill_done(head), unverified=entries))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(nav.unverified.current_list(self.state(run))[2], entries)
+        return run, head, entries
+
+    def r07_terminal(self, run: Path, head: str, *, summary: str =
+                     "Person reply unchanged: the exported report opens; totals were not tried.") -> bool:
+        """Try actual callbacks all the way to done, retaining the real earlier gate on refusal."""
+        while self.state(run)["status"] != "done":
+            stage = nav.current_stage(self.state(run))
+            block = self.fill_done(head)
+            entries = nav.unverified.current_list(self.state(run))[2]
+            if nav.unverified.must_restate(self.state(run), stage):
+                # Only the first outcome has a current observation in these negative fixtures.
+                block["unverified"] = [r for r in entries if not (
+                    stage == r["due_stage"] and r["outcome"] == "the reader opens the exported report")]
+                block["settled"] = [self.r07_settlement(r) for r in entries if r not in block["unverified"]]
+            block["summary"] = summary
+            result, head = self.r07_submit(run, head, block)
+            if result.returncode:
+                return False
+        return True
+
+    def r07_settlement(self, row: dict, basis: str = "observed", **extra: object) -> dict:
+        return {"requirement": row["requirement"], "outcome": row["outcome"], "basis": basis,
+                "evidence_refs": [str(self.evidence)], **extra}
+
+    def r07_refusal(self, run: Path, head: str, block: dict, reason: str) -> None:
+        command, path, _ = printed_callback(head)
+        write_block(path, block)
+        before = self.state(run)
+        for attempted in (check_command(command), command):
+            reply = self.refused(attempted, run)
+            self.assertIn(reason, reply)
+            self.assertEqual(self.state(run), before)
+            print("R07 targeted refusal:", reply, flush=True)
+
+    def r07_revisit_head(self, run: Path, head: str) -> str:
+        result, head = self.r07_submit(run, head, dict(self.done_fields(), outcome="add-work",
+            summary="Make the unanswered totals check possible.",
+            work_items=[{"id": "W2", "title": "Enable the remaining reader check", "follows": ["R-1"]}]))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        # Seed only the unrelated corrective inner cycle; do not edit accepted records to manufacture a revision.
+        state = self.state(run)
+        self.assertEqual(state["completed_work_items"], ["W1"])
+        while nav.current_stage(state) != "product-acceptance":
+            stage, action = nav.current_stage(state), nav.current_action(state)["id"]
+            state = nav.apply(state, action, {**DONE, **RESULTS.get(stage, {})})
+            if state.get("active_improve"):
+                state = nav.finish_improve(state, action, {"summary": "Synthetic R07 review; no model review."})
+        nav.save(run, state)
+        return self.cli("next", "--run-dir", str(run)).stdout
+
+    def r07_revisit(self, keep_one: bool) -> None:
+        run, head, entries = self.r07_initial()
+        head = self.r07_revisit_head(run, head)
+        self.r07_refusal(run, head, dict(self.fill_done(head),
+            summary="Person reply unchanged: report opens; totals were not tried.",
+            unverified=entries[:1] if keep_one else []), "settled keys must exactly equal")
+        self.assertEqual(nav.unverified.current_list(self.state(run))[2], entries)
+
+    def test_r07_revisited_acceptance_cannot_erase_both_unanswered_outcomes(self) -> None:
+        self.r07_revisit(False)
+
+    def test_r07_revisited_acceptance_cannot_erase_one_unanswered_outcome(self) -> None:
+        self.r07_revisit(True)
+
+    def r07_due_deletion(self, observed: bool) -> None:
+        entries = self.r07_entries()
+        entries[1] = dict(entries[1], due_stage="release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": entries}})
+        knowledge_support.write(self.state(run))
+        summary = ("Current person observation: report opens and the reader displays the expected totals."
+                   if observed else "Person reply unchanged: report opens; totals were not tried and remain unanswered.")
+        self.evidence.write_text(summary + "\n", encoding="utf-8")
+        block = dict(self.fill_done(head), summary=summary, unverified=entries[:1])
+        if not observed:
+            self.r07_refusal(run, head, block, "settled keys must exactly equal")
+            self.assertEqual(nav.unverified.current_list(self.state(run))[2], entries)
+            return
+        block["settled"] = [self.r07_settlement(entries[1])]
+        result, head = self.r07_submit(run, head, block)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(nav.unverified.current_list(self.state(run))[2], entries[:1])
+        self.assertTrue(self.r07_terminal(run, head, summary=summary))
+
+    def test_r07_due_deletion_without_new_observation_cannot_complete(self) -> None:
+        self.r07_due_deletion(False)
+
+    def test_r07_due_observation_settles_only_current_row_and_completes(self) -> None:
+        self.r07_due_deletion(True)
+
+    def r07_seed_passing_answer(self, run: Path, head: str, block: dict) -> str:
+        command, path, _ = printed_callback(head)
+        write_block(path, block)
+        state = self.state(run)
+        stage, _, item = nav._active_cursor(state)
+        action = nav.current_action(state)["id"]
+        key = nav._answer_key(run, state, action, stage, item, path)
+        self.assertTrue(test_loop.reuse_eligible(
+            state, stage, item, test_loop.stage_commands(state, stage, item)[0]))
+        nav.shiploop_check.record_answer(run, action, stage, key, yes=True,
+            gate_lines=["Synthetic same-version pre-continuity yes; not a current gate evaluation."])
+        self.assertIsNotNone(nav.shiploop_check.matching_yes(
+            run, action, nav._answer_key(run, state, action, stage, item, path)))
+        return command
+
+    def test_r07_cached_yes_cannot_bypass_missing_settlement(self) -> None:
+        rows = self.r07_entries("release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        command = self.r07_seed_passing_answer(run, head, dict(self.fill_done(head), unverified=[]))
+        before = self.state(run)
+        # Complete directly: check would replace the historical yes with a current refusal.
+        reply = self.run_printed(command)
+        print("R07 cached yes completion:", reply.stdout + reply.stderr, flush=True)
+        self.assertIn("settled keys must exactly equal", reply.stdout + reply.stderr)
+        self.assertEqual(reply.returncode, 2)
+        self.assertEqual(self.state(run), before)
+
+    def test_r07_cached_yes_with_valid_settlements_still_reuses(self) -> None:
+        rows = self.r07_entries("release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        command = self.r07_seed_passing_answer(run, head, dict(self.fill_done(head), unverified=[],
+            settled=[self.r07_settlement(row) for row in rows]))
+        reply = self.run_printed(command)
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+        self.assertIn("Gates: taken from the check", reply.stdout)
+        self.assertEqual(nav.unverified.current_list(self.state(run))[2], [])
+
+    def test_r07_settlement_rejection_table(self) -> None:
+        rows = self.r07_entries("release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        good = dict(self.fill_done(head), unverified=[], settled=[self.r07_settlement(r) for r in rows])
+        for label, patch, reason in (
+            ("missing", {"settled": []}, "settled keys must exactly equal"),
+            ("extra", {"settled": [*good["settled"], self.r07_settlement(dict(rows[0], outcome="unknown"))]},
+             "settled keys must exactly equal"),
+            ("duplicate", {"settled": [*good["settled"], good["settled"][0]]}, "duplicates a settled"),
+            ("overlap", {"unverified": [dict(rows[0], due_stage="handoff")]}, "overlaps a pending"),
+            ("duplicate pending", {"unverified": [dict(rows[0], due_stage="handoff"),
+                dict(rows[0], outcome="  the reader   opens the exported report  ", due_stage="handoff")]},
+             "duplicates a pending"),
+            ("renamed outcome", {"unverified": [dict(rows[0], outcome="reader opens differently", due_stage="handoff")],
+                                 "settled": [self.r07_settlement(rows[1])]}, "settled keys must exactly equal"),
+            ("shape", {"settled": [dict(good["settled"][0], extra="no")]}, "needs exactly"),
+            ("basis", {"settled": [dict(good["settled"][0], basis="declined")]}, "basis must be"),
+            ("no refs", {"settled": [self.r07_settlement(rows[0], evidence_refs=[])]}, "evidence_refs must be"),
+            ("missing refs", {"settled": [{k: v for k, v in good["settled"][0].items() if k != "evidence_refs"}]},
+             "needs exactly"),
+            ("blank refs", {"settled": [self.r07_settlement(rows[0], evidence_refs=[" "])]}, "evidence_refs must be"),
+            ("placeholder", {"settled": [self.r07_settlement(rows[0], evidence_refs=["<absolute path>"])]},
+             "template placeholders"),
+            ("missing file", {"settled": [self.r07_settlement(rows[0], evidence_refs=[str(self.base / "absent")])]},
+             "evidence_refs cite files that do not exist"),
+            ("unknown root", {"settled": [self.r07_settlement(rows[0], evidence_refs=["UNKNOWN_ROOT/a"])]},
+             "not a root ShipLoop defines"),
+        ):
+            with self.subTest(label):
+                self.r07_refusal(run, head, {**good, **patch}, reason)
+        self.r07_refusal(run, head, {k: v for k, v in good.items() if k != "unverified"},
+                         "restates unverified alongside settled")
+        reply, _ = self.r07_submit(run, head, good)
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+
+    def test_r07_early_observed_and_user_correction_mixed_carry(self) -> None:
+        for basis in ("observed", "user-correction"):
+            with self.subTest(basis):
+                run, head, rows = self.r07_initial()
+                head = self.r07_revisit_head(run, head)
+                template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+                self.assertEqual(template["unverified"], rows)
+                self.assertEqual(template["settled"], [])
+                self.assertNotIn("drop an entry due: product-acceptance", full_packet_text(head))
+                self.assertIn(nav.unverified.SETTLEMENT_RULE, " ".join(full_packet_text(head).split()))
+                self.evidence.write_text("Current required reader surface observed.\n" if basis == "observed" else
+                                         "User explicitly withdrew the opening outcome.\n", encoding="utf-8")
+                reply, _ = self.r07_submit(run, head, dict(self.fill_done(head), unverified=rows[1:],
+                    settled=[self.r07_settlement(rows[0], basis)]))
+                self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+                state = self.state(run)
+                self.assertEqual(nav.unverified.current_list(state)[2], rows[1:])
+                report = "".join(nav.unverified.html_section(state))
+                action = nav.unverified.current_list(state)[0]
+                self.assertIn(action + " / product-acceptance", report)
+                self.assertIn("basis: " + basis, report)
+                self.assertIn(str(self.evidence), report)
+                self.assertNotIn("Settled after product-acceptance", report)
+
+    def test_r07_latest_list_revisit_does_not_resurrect_and_can_reopen(self) -> None:
+        rows = self.r07_entries()
+        rows[0] = dict(rows[0], due_stage="release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        reply, head = self.r07_submit(run, head, dict(self.fill_done(head), unverified=rows[1:],
+            settled=[self.r07_settlement(rows[0], "user-correction")]))
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+        head = self.r07_revisit_head(run, head)
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+        self.assertEqual(template["unverified"], rows[1:])
+        self.r07_refusal(run, head, dict(self.fill_done(head), unverified=rows[1:],
+            settled=[self.r07_settlement(rows[0])]), "settled keys must exactly equal")
+        # Reopening is an addition, with no historical settlement to reverse.
+        reopened = dict(rows[0], due_stage="handoff")
+        reply, _ = self.r07_submit(run, head, dict(self.fill_done(head), unverified=[*rows[1:], reopened]))
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+        state = self.state(run)
+        self.assertEqual(nav.unverified.current_list(state)[2], [*rows[1:], reopened])
+        report = "".join(nav.unverified.html_section(state))
+        self.assertIn("Currently pending", report)
+        self.assertIn("basis: user-correction", report)
+        self.assertIn("reopened outcomes remain pending", report)
+
+    def test_r07_voluntary_off_stage_removal_is_refused_even_with_settlement(self) -> None:
+        rows = self.r07_entries()
+        run, head = self.new_run("release-plan", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        self.r07_refusal(run, head, dict(self.fill_done(head), unverified=rows[1:],
+            settled=[self.r07_settlement(rows[0])]), "only an entry whose previous due_stage equals release-plan")
+        reply, _ = self.r07_submit(run, head, dict(self.fill_done(head), unverified=rows))
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+
+    def test_r07_first_empty_unchanged_deferral_and_pending_handoff(self) -> None:
+        run, head = self.new_run("product-acceptance")
+        self.assertNotIn("settled", store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0]))
+        reply, _ = self.r07_submit(run, head, dict(self.fill_done(head), unverified=[]))
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+        rows = self.r07_entries("release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        moved = [dict(row, due_stage="handoff") for row in rows]
+        reply, head = self.r07_submit(run, head, dict(self.fill_done(head), unverified=moved))
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+        while self.state(run)["status"] != "done":
+            block = self.fill_done(head)
+            if "unverified" in block:
+                block["unverified"] = moved
+            reply, head = self.r07_submit(run, head, block)
+            self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+        self.assertEqual(nav.unverified.current_list(self.state(run))[2], moved)
+
+    def test_r07_nested_reference_expansion_and_locator_semantics(self) -> None:
+        rows = self.r07_entries("release-check")
+        run, head = self.new_run("release-check", results={"product-acceptance": {"unverified": rows}})
+        knowledge_support.write(self.state(run))
+        path = run / "observation.txt"
+        path.write_text("Synthetic current reader observation.\n", encoding="utf-8")
+        refs = ["RUN/observation.txt:1", "https://example.test/current#observation", "user-reply:explicit-correction"]
+        reply, _ = self.r07_submit(run, head, dict(self.fill_done(head), unverified=[],
+            settled=[self.r07_settlement(row, evidence_refs=refs) for row in rows]))
+        self.assertEqual(reply.returncode, 0, reply.stdout + reply.stderr)
+        state = self.state(run)
+        accepted = state["accepted"][nav.unverified.current_list(state)[0]]
+        self.assertEqual(accepted["settled"][0]["evidence_refs"], [str(path) + ":1", *refs[1:]])
+        nav.validate(state)
+
+    def test_r07_settled_is_done_only_and_admitted_only_at_acceptance_or_later(self) -> None:
+        run, head = self.new_run("intake")
+        self.r07_refusal(run, head, dict(self.fill_done(head), settled=[]), "settled is allowed only")
+        run, head = self.new_run("product-acceptance")
+        block = dict(self.done_fields(), outcome="add-work", work_items=[{"id": "W2", "title": "Correct export"}], settled=[])
+        self.r07_refusal(run, head, block, "a add-work result does not carry settled")
+
 
 
 class PrimaryRequirementRouteTests(RealCliCase):

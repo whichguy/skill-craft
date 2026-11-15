@@ -1355,5 +1355,99 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertEqual((state["status"], navigator.awaiting(state)[1]["report"]),
                          ("blocked", "2. a drag moves the piece: yes/no"))
 
+    @staticmethod
+    def r07_contract() -> dict:
+        """Generic local export; two independent consumer outcomes, no activation."""
+        return {
+            "consumer": "CLI export reader", "target": "fixture-head", "candidate": "candidate-v1",
+            "behavior": "the reader opens the export and displays its totals",
+            "operation": "write a local export", "necessity": "not-required",
+            "basis": "The user requests local export verification only.", "exclusions": ["remote activation"],
+            "authority": {"status": "not-required", "kind": "request", "reference": "Local-only request."},
+            "obligations": [
+                {"id": ident, "consumer": "CLI export reader", "target": "fixture-head", "kind": kind,
+                 "phase": phase, "expected": expected, "required": True}
+                for ident, kind, phase, expected in (
+                    ("pre-export", "pre-update", "system-test", "the export file checks pass"),
+                    ("reader-open", "behavior", "release-verify", "the reader opens the export"),
+                    ("reader-total", "behavior", "release-verify", "the reader displays the expected totals"),
+                )],
+        }
+
+    def r07_to_person(self) -> dict:
+        state = navigator.new_state(str(self.repo), "Export a report that opens and displays totals in the reader.",
+                                    delivery_contract=True)
+        state = self.accepted_contract(state, self.r07_contract())
+        state = self.to_outer(state)
+        state = self.advance(state, "system-test", delivery_assessment=self.observation(state, "pre-export"))
+        return self.to_stage(state, "release-verify")
+
+    def test_r07_two_outcomes_survive_partial_reply_and_add_work_until_remaining_observation(self) -> None:
+        """Real apply/import gates; synthetic Improve receipts, no product or model review claim."""
+        state = self.r07_to_person()
+        wait = {"kind": "present", "steps": ["Open the exported report and inspect its totals."],
+                "report": "1. export opens: yes/no; 2. totals match: yes/no",
+                "no_default": "Only the person has this reader."}
+        partial = self.observation(state, "reader-open")
+        partial["observations"] += self.observation(state, "reader-total", status="blocked")["observations"]
+        state = self.advance(state, "release-verify", outcome="blocked", awaiting=wait,
+                             delivery_assessment=partial)
+        state = navigator.control(state, "resume", observed="1. yes; 2. not tried, I decline for now.")
+        # A legitimate add-work edge creates the revision, without rewriting any accepted record.
+        state = self.advance(state, "release-verify", outcome="add-work",
+                             work_items=[{"id": "W2", "title": "Make the remaining total check possible"}])
+        self.assertEqual(state["completed_work_items"], ["W1"])
+        for stage in CORRECTIVE_CYCLE:
+            state = self.advance(state, stage)
+        state = self.advance(state, "system-test", delivery_assessment=self.observation(state, "pre-export"))
+        state = self.to_stage(state, "release-verify")
+        projection = consumer_delivery.project(state)
+        self.assertEqual(projection["observations"]["reader-open"]["status"], "passed")
+        self.assertEqual(projection["observations"]["reader-total"]["status"], "blocked")
+        self.assertEqual([r["id"] for r in projection["contract"]["obligations"]],
+                         ["pre-export", "reader-open", "reader-total"])
+        for label, extra in (
+                ("omitted assessment", {}),
+                ("empty unverified", {"unverified": []}),
+                ("declined", {"delivery_assessment": self.observation(state, "reader-total", status="unrun")}),
+                ("lower layer only", {"summary": "File/unit checks pass; person reported only that export opens."})):
+            with self.subTest(label):
+                self.refused_at_apply(state, "required release-verify behavior obligations are not current", **extra)
+        remaining = dict(wait, steps=["Inspect the opened export's totals."], report="2. totals match: yes/no")
+        state = self.advance(state, "release-verify", outcome="blocked", awaiting=remaining)
+        self.assertEqual(navigator.awaiting(state)[1]["report"], "2. totals match: yes/no")
+        state = navigator.control(state, "resume", observed="2. yes; current export totals match the expected values.")
+        state = self.advance(state, "release-verify", delivery_assessment=self.observation(state, "reader-total"))
+        state = self.advance(state, "operations")
+        state = self.advance(state, "handoff")
+        self.assertEqual((state["stage"], state["status"]), ("done", "done"))
+
+    def test_r07_authorized_scope_correction_keeps_existing_route(self) -> None:
+        """Correction references are host claims; this qualifies the existing route, not their truth."""
+        state = self.r07_to_person()
+        corrected = self.r07_contract()
+        corrected["behavior"] = "the reader opens the export"
+        corrected["obligations"] = [r for r in corrected["obligations"] if r["id"] != "reader-total"]
+        assessment = {"kind": "contract", "contract": corrected,
+                      "supersedes": consumer_delivery.project(state)["anchor"]}
+        before = copy.deepcopy(state)
+        with self.assertRaisesRegex(navigator.NavigatorError, "correction"):
+            navigator.apply(state, navigator.current_action(state)["id"], self.result(
+                outcome="add-work", work_items=[{"id": "W2", "title": "Apply corrected export scope"}],
+                delivery_assessment=assessment))
+        self.assertEqual(state, before)
+        assessment["correction"] = {"kind": "user-decision", "reference": "User explicitly withdrew total display."}
+        state = self.advance(state, "release-verify", outcome="add-work",
+                             work_items=[{"id": "W2", "title": "Apply corrected export scope"}],
+                             delivery_assessment=assessment)
+        for stage in CORRECTIVE_CYCLE:
+            state = self.advance(state, stage)
+        state = self.advance(state, "system-test", delivery_assessment=self.observation(state, "pre-export"))
+        state = self.to_stage(state, "release-verify")
+        state = self.advance(state, "release-verify", delivery_assessment=self.observation(state, "reader-open"))
+        state = self.advance(state, "operations")
+        state = self.advance(state, "handoff")
+        self.assertEqual(state["status"], "done")
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

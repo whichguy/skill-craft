@@ -96,7 +96,7 @@ result's summary is not.
 
 A request outcome no executed check observed is neither confirmed nor hidden: a
 done `product-acceptance` lists it in `unverified` (outcome, requirement, reason,
-lower-layer check, settle, owner, due stage), and `[]` says every outcome was observed.
+lower-layer check, settle, owner, due stage), and `[]` says no outcome remains listed.
 ShipLoop refuses a missing list, an incomplete or placeholder entry, a requirement
 with no entry in the spec and a due stage that is not a later stage; it cannot judge
 that the list is complete. An outcome of a requirement the spec lists in `primary`

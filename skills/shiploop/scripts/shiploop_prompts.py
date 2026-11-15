@@ -1717,7 +1717,8 @@ preparatory commit); a mismatch there is a send-back.
    alone does not establish acceptance: an outcome whose only evidence is inspection or a deferred assumption is
    not accepted; report add-work for an executable lower-layer check, or blocked naming the missing observation.
 3. Give every request outcome one end state in `summary`: observed by an executed check; observed another way (the
-   first method could not, the new check ran and passed); or unachievable here or not yet due, listed in
+   first method could not, the new check ran and passed); explicitly user-corrected with an attributable `settled`
+   record on a revisit; or unachievable here or not yet due, listed in
    `unverified` while the run continues. Try another way to observe it before listing. Each `unverified` entry:
    `outcome`, the `requirement` (R-<n>) it maps to, named `reason`, `lower_layer_check` (the passed unit or component
    test of its logic, from the Primary requirements lines; a requirement not in `primary` may give why none exists),
@@ -1725,7 +1726,7 @@ preparatory commit); a mismatch there is a send-back.
    external effect it gates). Carry in the open items earlier stages recorded
    (system-test-author, system-test). ShipLoop's own return of the worktree to the source checkout is release's,
    checked by its receipt and release-verify's rerun: name it in `summary` for release-plan, not in `unverified`. An
-   outcome stated only in the summary has no end state; an empty list says every outcome was observed.
+   outcome stated only in the summary has no end state; an empty list says none remains listed as unverified.
 4. Keep verified product criteria apart from pending release verification: a case not yet due stays pending with
    owner and prerequisites, so release can proceed. Release readiness is not a claim that every consumer behaviour
    was observed.

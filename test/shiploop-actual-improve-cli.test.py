@@ -440,6 +440,27 @@ class ImproveCliFixture(unittest.TestCase):
         return stage, self.action, store.read_record(self.run / "state.md")
 
 class EphemeralImproveCliTests(ImproveCliFixture):
+    def test_r07_final_result_cannot_drop_pending_without_settlement(self):
+        row = {"requirement": "R-1", "outcome": "reader displays totals", "reason": "no reader",
+               "lower_layer_check": "synthetic prior test", "settle": "reader opens export",
+               "owner": "user", "due_stage": "handoff"}
+        self._start_parent_at_stage("release-plan", [str(self.product_contract)],
+            predecessor_extra={"product-acceptance": {"unverified": [row]}},
+            producer_extra={"unverified": [row], "consumer_entry": {
+                "how": "read the product contract", "sources": [str(self.product_contract.relative_to(self.repo))]},
+                "consumer_checks": [], "consumer_checks_na": "No external release check in this fixture."})
+        self.finish_ephemeral()
+        before = store.read_record(self.run / "state.md")
+        seed = before["active_improve"]["seed_result"]
+        flags, _ = self.completion_receipt(final_result=dict(seed, unverified=[]))
+        reply = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *flags, status=2)
+        self.assertIn("settled keys must exactly equal", reply.stdout + reply.stderr)
+        self.assertEqual(store.read_record(self.run / "state.md"), before)
+        # The same real import can still carry the pending outcome honestly.
+        flags, _ = self.completion_receipt(final_result=seed)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *flags)
+        self.assertEqual(navigator.unverified.current_list(store.read_record(self.run / "state.md"))[2], [row])
+
     def test_context_first_assignment_and_learning_header_survive_recovery(self):
         """Prompt obligations and real transport; semantic use is tested separately."""
         guide = ROOT / "skills/shiploop/references/improve-context.md"
