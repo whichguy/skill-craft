@@ -72,9 +72,11 @@ jobs:
           check-latest: true
       - uses: actions/setup-node@v7
         with:
-          node-version: 'latest'
+          node-version: '*'
           check-latest: true
           package-manager-cache: false
+      - name: Require stable Node runtime
+        run: node test/ci_node_stable.cjs
       # git starts `git maintenance run --auto --detach` after a commit, and that process holds objects/maintenance.lock for a
       # moment. A suite that inventories or copies a tree right after a fixture commit has seen the lock vanish: four fixtures
       # between 2026-10-26 and 2026-11-14, each on a release run. Set in this machine's own ~/.gitconfig and not as GIT_CONFIG_*
@@ -93,13 +95,23 @@ jobs:
           CLAUDE_CODE_SESSION_ID: ci-stand-in
         run: |
           set -- --group "$TEST_GROUP" --output "$RUNNER_TEMP/hermetic-$TEST_GROUP"
-          if [ "$TEST_GROUP" = quick ] && [ -n "$BASE" ]; then set -- "$@" --changed-from "$BASE"; fi
+          case "$TEST_GROUP" in
+            quick|quick-1|quick-2) test -n "$BASE"; set -- "$@" --jobs 4 --changed-from "$BASE" ;;
+          esac
           bash test/run-all.sh "$@"
       - name: Checkout unchanged
         if: ${{ always() }}
         env:
           EXPECTED_SHA: ${{ needs.plan.outputs.source_sha }}
         run: python3 -B test/ci_policy.py guard --expected-sha "$EXPECTED_SHA"
+      - name: Summarize suite evidence
+        if: ${{ always() }}
+        env:
+          EXPECTED_SHA: ${{ needs.plan.outputs.source_sha }}
+          TEST_GROUP: ${{ matrix.group }}
+          JOB_STATUS: ${{ job.status }}
+          BASE: ${{ needs.plan.outputs.base }}
+        run: python3 -B test/ci_summary.py --receipt "$RUNNER_TEMP/hermetic-$TEST_GROUP/receipt.json" --expected-sha "$EXPECTED_SHA" --group "$TEST_GROUP" --job-status "$JOB_STATUS" --base "$BASE"
       - name: Retain suite evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
@@ -111,18 +123,25 @@ jobs:
   # These local browser fixtures exercise rendered evidence and RPC correlation.
   # They need Chrome, but no Salesforce org, provider key or model session.
   browser-fixtures:
+    name: browser / ${{ matrix.fixture }}
     needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture: [delayed-setup, setup-save-boundary, turn-and-action-correlation, app-owned-controls]
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.source_sha }}
       - uses: actions/setup-node@v7
         with:
-          node-version: 'latest'
+          node-version: '*'
           check-latest: true
           package-manager-cache: false
+      - name: Require stable Node runtime
+        run: node test/ci_node_stable.cjs
       - name: Prepare browser fixture runtime
         shell: bash
         run: |
@@ -132,15 +151,13 @@ jobs:
       - name: Rendered UI evidence regressions
         shell: bash
         env:
+          FIXTURE: ${{ matrix.fixture }}
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/browser-fixture-runtime/node_modules/playwright
         run: |
           export BROWSER_EXECUTABLE_PATH="$(command -v google-chrome)"
           node --version | tee "$RUNNER_TEMP/browser-fixtures/node-version.log"
           node -e 'console.log(require(process.env.PLAYWRIGHT_MODULE_PATH + "/package.json").version)' | tee "$RUNNER_TEMP/browser-fixtures/playwright-version.log"
-          node test/fixtures/grok-chat-full-ui/delayed-setup.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/delayed-setup.log"
-          node test/fixtures/grok-chat-full-ui/setup-save-boundary.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/setup-save-boundary.log"
-          node test/fixtures/grok-chat-full-ui/turn-and-action-correlation.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/turn-and-action-correlation.log"
-          node test/fixtures/grok-chat-full-ui/app-owned-controls.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/app-owned-controls.log"
+          node "test/fixtures/grok-chat-full-ui/$FIXTURE.cjs" 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/$FIXTURE.log"
       - name: Checkout unchanged
         if: ${{ always() }}
         env:
@@ -150,7 +167,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: browser-fixtures
+          name: browser-fixtures-${{ matrix.fixture }}
           path: ${{ runner.temp }}/browser-fixtures
           if-no-files-found: error
 
@@ -170,27 +187,15 @@ jobs:
           check-latest: true
       - uses: actions/setup-node@v7
         with:
-          node-version: 'latest'
+          node-version: '*'
           check-latest: true
           package-manager-cache: false
+      - name: Require stable Node runtime
+        run: node test/ci_node_stable.cjs
       - name: Release output only in release commits
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          PUSH_BEFORE: ${{ github.event.before }}
-        run: |
-          case "$EVENT_NAME" in
-            pull_request) base="$(git rev-parse HEAD^1)" ;;
-            push) base="$PUSH_BEFORE" ;;
-            *) echo "release boundary: not checked for $EVENT_NAME"; exit 0 ;;
-          esac
-          if [ -z "$base" ] || [ "$base" = 0000000000000000000000000000000000000000 ]; then
-            echo "release boundary: no base commit to compare"; exit 0
-          fi
-          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            echo "::warning::release boundary: base $base is not in this clone; checking HEAD^1..HEAD only"
-            base="$(git rev-parse HEAD^1)"
-          fi
-          python3 -B scripts/check-release-boundary.py --base "$base"
+          EXPECTED_SHA: ${{ github.sha }}
+        run: python3 -B test/ci_policy.py boundary --expected-sha "$EXPECTED_SHA"
 
   # Keep the established aggregate name; the plan/summary states its actual tier.
   hermetic:

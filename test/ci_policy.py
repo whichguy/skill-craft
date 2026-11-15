@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import subprocess
 
@@ -19,7 +20,7 @@ ZERO_SHA = "0" * 40
 
 
 def commit_exists(root, rev):
-    if not rev or rev == ZERO_SHA:
+    if not isinstance(rev, str) or not rev or rev == ZERO_SHA or rev.startswith("-"):
         return False
     return subprocess.run(["git", "cat-file", "-e", f"{rev}^{{commit}}"], cwd=root,
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
@@ -32,13 +33,13 @@ def is_release(root, rev="HEAD"):
 
 
 def pushes_release(root, before):
-    """Whether any commit in before..HEAD (or HEAD alone) is a release commit.
+    """Whether any commit in a verified before..HEAD range is a release commit.
 
     scripts/release.py never pushes, so a release commit can reach main under
     a later ordinary commit; it still needs the full tier.
     """
-    if not commit_exists(root, before):
-        return is_release(root)
+    if not ancestor(root, before):
+        raise ValueError("release detection requires a verified ancestor base")
     revs = git(root, "rev-list", f"{before}..HEAD").split()
     return any(is_release(root, rev) for rev in revs)
 
@@ -47,35 +48,95 @@ def parent(root):
     return git(root, "rev-parse", "HEAD^1") if commit_exists(root, "HEAD^1") else ""
 
 
-def select(root, event_name, event, requested):
-    """Return (tier, reason, base).  Quick runs the suites matching base..HEAD; full ignores base.
+# Exact infrastructure paths only: ordinary runtime/protocol/state edits remain targeted.
+INFRASTRUCTURE_PATHS = frozenset({
+    ".github/workflows/ci.yml", "test/ci_policy.py", "test/ci-policy.test.py",
+    "test/suite_catalog.py", "test/test-groups.test.py", "test/run_suites.py",
+    "test/run-all.sh", "test/suite_durations.json", "test/ci_summary.py",
+    "test/ci-summary.test.py", "test/ci_node_stable.cjs",
+})
 
-    Ordinary pushes and pull requests run quick.  Release commits, an explicit
-    manual full and the weekly scheduled run (a drift canary: CI floats on the
-    latest runtimes and runner image) run the complete inventory.
-    """
+
+def ancestor(root, base, head="HEAD"):
+    return commit_exists(root, base) and subprocess.run(
+        ["git", "merge-base", "--is-ancestor", base, head], cwd=root,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
+def known_changes(root, base, reason):
+    if not base or not ancestor(root, base):
+        return "full", "change base unknown or not an ancestor; safe full run", ""
+    try:
+        changed = git(root, "diff", "--no-renames", "--name-only", base, "HEAD").splitlines()
+    except subprocess.CalledProcessError:
+        return "full", "change range unavailable; safe full run", ""
+    if INFRASTRUCTURE_PATHS.intersection(changed):
+        return "full", "CI selection/runner/catalog infrastructure changes", ""
+    return "quick", reason, base
+
+
+def select(root, event_name, event, requested):
+    """Select full whenever the complete change range cannot be established."""
     if event_name == "workflow_dispatch":
         if requested not in {"quick", "full"}:
             raise ValueError("manual CI requires an explicit quick or full tier")
-        return requested, "explicit manual selection", parent(root) if requested == "quick" else ""
+        if requested == "full":
+            return "full", "explicit manual selection", ""
+        return known_changes(root, parent(root), "explicit manual selection")
     if event_name == "schedule":
         return "full", "scheduled weekly full run", ""
-    if event_name == "push" and pushes_release(
-            root, event.get("before", "") if isinstance(event, dict) else ""):
-        return "full", "release commit", ""
     if event_name == "pull_request":
         try:
             pr = event["pull_request"]
-            base = git(root, "merge-base", pr["base"]["sha"], pr["head"]["sha"])
+            refs = [pr["base"]["sha"], pr["head"]["sha"]]
+            if not all(isinstance(ref, str) and re.fullmatch(r"[0-9a-fA-F]{40}", ref)
+                       and commit_exists(root, ref) for ref in refs):
+                return "full", "pull request base unknown; safe full run", ""
+            base = git(root, "merge-base", *refs)
         except (KeyError, TypeError, subprocess.CalledProcessError):
-            return "quick", "pull request base unknown; quick baseline only", ""
-        return "quick", "pull request changes", base
+            return "full", "pull request base unknown; safe full run", ""
+        return known_changes(root, base, "pull request changes")
     if event_name == "push":
         before = event.get("before", "") if isinstance(event, dict) else ""
-        if commit_exists(root, before):
-            return "quick", "pushed changes", before
-        return "quick", "push without a known previous commit; last commit only", parent(root)
-    return "quick", "unclassified event; last commit only", parent(root)
+        if (not isinstance(before, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", before)
+                or not ancestor(root, before)):
+            return "full", "push base unknown or not an ancestor; safe full run", ""
+        if pushes_release(root, before):
+            return "full", "release commit", ""
+        return known_changes(root, before, "pushed changes")
+    return "full", "unclassified event; safe full run", ""
+
+
+def boundary_base(root, event_name, event, expected):
+    """Validate history independently of the planner; never narrow a push range."""
+    if git(root, "rev-parse", "HEAD") != expected:
+        raise ValueError("release boundary checkout does not match candidate SHA")
+    if event_name in {"workflow_dispatch", "schedule"}:
+        return None
+    if event_name == "pull_request":
+        pr = event["pull_request"]
+        parents = git(root, "rev-list", "--parents", "-n", "1", "HEAD").split()[1:]
+        if len(parents) != 2 or parents != [pr["base"]["sha"], pr["head"]["sha"]]:
+            raise ValueError("release boundary requires the PR merge candidate and validated first parent")
+        return parents[0]
+    if event_name != "push":
+        raise ValueError("release boundary: unsupported event " + event_name)
+    if not isinstance(event, dict):
+        raise ValueError("release boundary: invalid push event; full history required")
+    base = event.get("before", "")
+    if (not isinstance(base, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", base)
+            or base == ZERO_SHA or not ancestor(root, base)):
+        raise ValueError("release boundary: push base absent, invalid, missing or not an ancestor; full history required")
+    return base
+
+
+def boundary(root, event_name, event, expected):
+    base = boundary_base(root, event_name, event, expected)
+    if base is None:
+        print("release boundary: not applicable for " + event_name)
+        return
+    subprocess.run(["python3", "-B", "scripts/check-release-boundary.py", "--base", base],
+                   cwd=root, check=True)
 
 
 def guard(root, expected):
@@ -99,7 +160,7 @@ def guard(root, expected):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("plan", "guard"))
+    parser.add_argument("command", choices=("plan", "guard", "boundary"))
     parser.add_argument("--expected-sha", required=True)
     args = parser.parse_args()
     root = Path.cwd()
@@ -109,21 +170,29 @@ def main():
             return 0
         source = git(root, "rev-parse", "HEAD")
         if source != args.expected_sha:
-            raise ValueError("planner checkout does not match the event's candidate SHA")
+            raise ValueError("checkout does not match the event's candidate SHA")
         event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+        if args.command == "boundary":
+            boundary(root, os.environ["GITHUB_EVENT_NAME"], event, args.expected_sha)
+            return 0
         tier, reason, base = select(root, os.environ["GITHUB_EVENT_NAME"], event, os.environ.get("REQUESTED_TIER", ""))
-        groups = FULL_GROUPS if tier == "full" else ["quick"]
+        from run_suites import changed_paths
+        from suite_catalog import planned_quick_groups
+        changed = changed_paths(root, base) if base else ()
+        groups = FULL_GROUPS if tier == "full" else list(planned_quick_groups(changed))
         result = {"tier": tier, "groups": groups, "source_sha": source, "base": base, "reason": reason}
         print(json.dumps(result, indent=2))
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
             for key in ("tier", "source_sha", "base"):
                 output.write(f"{key}={result[key]}\n")
             output.write("groups=" + json.dumps(groups) + "\n")
+        from ci_summary import selection_counts
+        counts = selection_counts(groups, changed, change_scope_available=bool(base))
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
             summary.write(f"### CI {tier}\n\n{reason}.\n\nCandidate: `{source}`\n\n"
-                          f"Groups: {', '.join(groups)}\n" + (f"\nChanges since: `{base}`\n" if base else ""))
+                          f"Groups: {', '.join(groups)}\n\nSelection scopes: {json.dumps(counts, sort_keys=True)}\n" + (f"\nChanges since: `{base}`\n" if base else ""))
         return 0
-    except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as exc:
+    except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError) as exc:
         parser.exit(1, f"ci-policy: {exc}\n")
 
 

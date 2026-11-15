@@ -40,7 +40,7 @@ class TestGroupTests(unittest.TestCase):
     def _copy_runner(self, root: Path) -> None:
         test = root / "test"
         test.mkdir(parents=True)
-        for name in ("suite_catalog.py", "suite_durations.json", "run_suites.py", "run-all.sh"):
+        for name in ("suite_catalog.py", "suite_durations.json", "run_suites.py", "ci_summary.py", "run-all.sh"):
             shutil.copyfile(TEST_DIR / name, test / name)
         (test / "run-all.sh").chmod(0o755)
 
@@ -135,9 +135,10 @@ class TestGroupTests(unittest.TestCase):
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
         # The test-harness skill adds one core suite (2026-11-08): its bundled behaviour suite, the packaging contract and a narrow lint.
         # The Ask Agent host command adds one core suite (2026-11-14): detection from exact variable names, and the binding data against the card and the prose.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 62)
+        # Source-bound CI receipt reporting and the fake-Node browser driver each add one core suite (2026-11-15).
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 63)
         # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
-        self.assertEqual(len(suite_catalog.SUITES), 205)
+        self.assertEqual(len(suite_catalog.SUITES), 206)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -346,16 +347,50 @@ class TestGroupTests(unittest.TestCase):
                 self.assertEqual(after, before)
                 self.assertGreaterEqual(after, set(suite_catalog._HUB_SUITE_IDS))
 
-    def test_quick_preserves_the_full_only_policy(self) -> None:
-        everything = tuple(suite.path for suite in suite_catalog.SUITES)
-        selected = suite_catalog.quick(everything)
-        self.assertTrue(selected)
-        for suite in selected:
-            self.assertNotEqual(suite.id, "shiploop-e2e-apparatus")
-            self.assertNotIn(suite.id, suite_catalog._FULL_ONLY_IDS)
-        ids = {suite.id for suite in selected}
-        self.assertFalse({name for name in ids if "shiploop-chain" in name})
-        self.assertIn("shiploop-mock-replay", ids)
+    def test_quick_direct_edits_override_only_their_own_exclusion(self) -> None:
+        baseline = {s.id for s in suite_catalog.smoke()}
+        for suite in suite_catalog.SUITES:
+            changed = [suite.path]
+            selected = {s.id for s in suite_catalog.quick(changed)}
+            old = (baseline | suite_catalog.targeted(changed)) - suite_catalog._FULL_ONLY_IDS
+            self.assertLessEqual(old, selected)
+            self.assertIn(suite.id, selected)
+            self.assertEqual(selected & suite_catalog._FULL_ONLY_IDS,
+                             {s.id for s in suite_catalog.SUITES if s.path == suite.path} & suite_catalog._FULL_ONLY_IDS)
+        for path in ("test/shiploop_e2e/run.py", "skills/shiploop/scripts/shiploop_workspace.py",
+                     "test/fixtures/quality/record.json"):
+            self.assertFalse({s.id for s in suite_catalog.quick([path])} & suite_catalog._FULL_ONLY_IDS)
+
+    def test_scoped_runner_cli_lists_the_catalog_selection(self) -> None:
+        changed = run_suites.changed_paths(ROOT, "HEAD")
+        for group in ("smoke", "affected", "quick-1", "quick-2"):
+            command = ["bash", str(ROOT / "test/run-all.sh"), "--group", group, "--list"]
+            if group != "smoke":
+                command += ["--changed-from", "HEAD"]
+            result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual([line.split("\t")[1] for line in result.stdout.splitlines()],
+                             [s.id for s in suite_catalog.select([group], changed)])
+
+    def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
+        # Frozen ded345978767587e07c6fffe60aa3f7e785c668b rows, excluding the two new CI helper suites.
+        import hashlib
+        records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
+                   for s in suite_catalog.SUITES if s.id not in {"ci-summary", "browser-fixtures"}]
+        digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
+        self.assertEqual(digest, "41716cdb7822645e569324614cc99226a57e2a675542cec965572b92c8e940eb")
+
+    def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
+        full = suite_catalog.select(["all"])
+        for changed in ([], [s.path for s in full], ["skills/shiploop/scripts/shiploop_prompts.py"]):
+            smoke = set(suite_catalog.smoke())
+            affected = set(suite_catalog.affected(changed))
+            self.assertFalse(smoke & affected)
+            self.assertEqual(smoke | affected, set(suite_catalog.quick(changed)))
+            self.assertEqual(suite_catalog.select(["smoke", "affected"], changed), suite_catalog.quick(changed))
+            self.assertEqual(suite_catalog.select(["all"], changed), full)
+            self.assertEqual(suite_catalog.select(["affected"], changed), suite_catalog.affected(changed))
+        self.assertEqual(len(suite_catalog.select(["python-floor"])), 76)
 
     def test_full_only_membership_is_explicit_and_independent_of_timings(self) -> None:
         self.assertEqual(suite_catalog._FULL_ONLY_IDS, {
@@ -431,7 +466,17 @@ class TestGroupTests(unittest.TestCase):
                                   "--changed-from", "HEAD", "--list"],
                                  cwd=ROOT, capture_output=True, text=True, check=False)
         self.assertEqual(refused.returncode, 64)
-        self.assertIn("--changed-from applies only to --group quick or prompt", refused.stderr)
+        self.assertIn("--changed-from applies only to --group quick, quick-1, quick-2, prompt or affected", refused.stderr)
+
+    def test_reporting_does_not_add_spurious_catalog_readers(self):
+        keepalive = "skills/shiploop/scripts/shiploop_keepalive.py"
+        selected = {suite.id for suite in suite_catalog.quick([keepalive])}
+        self.assertTrue({"shiploop-e2e-slice", "shiploop-loops", "shiploop-skill-calls",
+                         "shiploop-trace"} <= selected)
+        for path in (keepalive, "test/shiploop_e2e/LEARNINGS.md",
+                     "test/shiploop_e2e/baselines.jsonl", "skills/in-parallel/SKILL.md"):
+            with self.subTest(path=path):
+                self.assertNotIn("ci-summary", suite_catalog.targeted([path]))
 
     def test_changed_paths_include_uncommitted_and_untracked_work(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -452,6 +497,47 @@ class TestGroupTests(unittest.TestCase):
             (repo / "ignored.log").write_text("d\n")
             self.assertEqual(sorted(run_suites.changed_paths(repo, "HEAD")),
                              ["committed.py", "new_module.py", "staged.md"])
+
+    def test_quick_shards_preserve_exact_selection_order_and_floor(self) -> None:
+        from unittest.mock import patch
+        for changed in ((), ("docs/README.md",), ("test/shiploop_e2e/run.py",),
+                        tuple(s.path for s in suite_catalog.SUITES)):
+            with self.subTest(changed=changed):
+                quick = suite_catalog.quick(changed)
+                shards = [suite_catalog.select([g], changed) for g in ("quick-1", "quick-2")]
+                self.assertFalse(set(shards[0]) & set(shards[1]))
+                self.assertEqual(set(shards[0]) | set(shards[1]), set(quick))
+                for shard in shards:
+                    self.assertEqual(shard, tuple(s for s in quick if s in shard))
+                self.assertEqual(suite_catalog.select(["quick-1", "quick-2"], iter(changed)), quick)
+                for group in ("quick-1", "quick-2"):
+                    self.assertIn(group, run_suites.parse_args(["--group", group, "--changed-from", "HEAD"])[1])
+        self.assertEqual(suite_catalog.planned_quick_groups(["docs/README.md"]), ("quick",))
+        broad = ("test/shiploop_e2e/run.py",)
+        self.assertEqual(suite_catalog.planned_quick_groups(broad), ("quick-1", "quick-2"))
+        baseline = suite_catalog.smoke()
+        # Four-worker FIFO: four equal jobs fill one wave; the fifth extends it.
+        with patch.object(suite_catalog, "_DURATION_SECONDS", {s.path: 300 for s in baseline}):
+            self.assertEqual(suite_catalog.quick_fifo_seconds(baseline[:4]), 300)
+            self.assertEqual(suite_catalog.quick_fifo_seconds(baseline[:5]), 600)
+        for estimate, expected in ((599.9, ("quick",)), (600, ("quick",)),
+                                   (600.1, ("quick-1", "quick-2"))):
+            with patch.object(suite_catalog, "quick_fifo_seconds", return_value=estimate):
+                self.assertEqual(suite_catalog.planned_quick_groups(broad), expected)
+        with patch.object(suite_catalog, "_DURATION_SECONDS", {}):
+            self.assertEqual(suite_catalog.quick_fifo_seconds(baseline[:5]), 120)
+            self.assertEqual(suite_catalog.quick(broad), suite_catalog.select(["quick-1", "quick-2"], broad))
+        # Independent reconstruction of the old three-bin LPT partition.
+        loads, members = [0.0] * 3, [set(), set(), set()]
+        canonical = suite_catalog.SHIPLOOP_SUITES
+        for index, suite in sorted(enumerate(canonical),
+                                   key=lambda item: (-suite_catalog._DURATION_SECONDS[item[1].path], item[0])):
+            owner = min(range(3), key=lambda i: (loads[i], i))
+            members[owner].add(suite.id)
+            loads[owner] += suite_catalog._DURATION_SECONDS[suite.path]
+        old = tuple(tuple(s for s in canonical if s.id in ids) for ids in members)
+        self.assertEqual(suite_catalog.SHIPLOOP_SHARDS, old)
+        self.assertEqual(len(suite_catalog.select(["python-floor"])), 76)
 
     def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
         canonical = suite_catalog.SHIPLOOP_SUITES
@@ -1025,7 +1111,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
                      "test/fixtures/quality/ticket_adequacy_strong.test.js"):
             with self.subTest(path=path):
                 self.assertIn(ident, suite_catalog.targeted([path]))
-                self.assertNotIn(ident, {suite.id for suite in suite_catalog.quick([path])})
+                self.assertEqual(ident in {suite.id for suite in suite_catalog.quick([path])}, path == suite.path)
 
     def test_the_committed_baseline_report_selects_the_suite_that_pins_it(self) -> None:
         # runs.json is the committed output of `run.py --baseline-report`; the baseline suite pins it. Its file name selects nothing.
