@@ -65,8 +65,9 @@ flowchart TD
 
 New runs, step slices and experiment invocations default to **Grok / Grok 4.6 / extra-high (`xhigh`)** as the driver
 (owner, 2026-11-10), replacing Codex / GPT-6.1 Sol / medium as the subject (owner, 2026-11-08). Independent reviewers
-and judges default to **Codex / GPT-6 Astra / high** and remain separate fresh sessions; the improver stays
-**Codex / GPT-6.1 Sol / medium**. Only the subject moved to Grok. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
+and judges default to **Codex / GPT-6 Astra / high** and remain separate fresh sessions. The improver defaults to
+**Codex / GPT-6.1 Sol / max** (owner, 2026-11-15, replacing Sol medium); `--improver-host claude` selects
+**Claude / Sonnet 5.5 / max**, because the improver's max holds across hosts (`hosts.ROLE_EFFORT`). `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
 its `--host`, `--model` and `--effort` select the subject only. With no explicit override, existing runs resume
 their recorded identities. Continue an already registered strict epoch on its original pinned harness checkout;
 its qualification fingerprint binds the specification and launcher bytes as well as the product build.
@@ -2522,7 +2523,8 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands independently admitted material findings to an
-improver agent. Subjects default to Grok / Grok 4.6 / extra-high (`xhigh`); improvers default to Codex / GPT-6.1 Sol / medium. Reviewers and judges default to
+improver agent. Subjects default to Grok / Grok 4.6 / extra-high (`xhigh`); improvers default to Codex / GPT-6.1 Sol / max
+(`--improver-host claude` gives Claude / Sonnet 5.5 / max). Reviewers and judges default to
 Codex / GPT-6 Astra / high in separate fresh sessions. Subject flags do not silently switch the other roles.
 Use `--reviewer-*`, `--judge-*` and `--improver-*` to override their respective profiles.
 Only supported, material, implementation-eligible ShipLoop findings reach the improver. Design challenges and
@@ -2630,7 +2632,7 @@ mission without a pre-existing clause; it is retained for investigation or owner
 separate. The default Codex reviewer uses Astra high in a read-only sandbox. The judge is a separate fresh Astra high session with
 its own isolated home and read-only sandbox, bound to the exact review receipt. The purpose review also uses the judge profile.
 Only supported, material, eligible
-ShipLoop findings reach the Sol 6.1 medium improver. Harness discoveries follow a
+ShipLoop findings reach the improver (Sol 6.1 max by default). Harness discoveries follow a
 separate evaluator experiment. Older reviews remain readable diagnostics and cannot supply the new review/judge gate.
 
 `epoch.py` is a stepwise controller over the existing runner, scorer and promotion rule. `init`, `next`, `status` and

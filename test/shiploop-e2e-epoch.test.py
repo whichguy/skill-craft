@@ -97,7 +97,7 @@ class EpochTest(unittest.TestCase):
             self.assertEqual(epoch.state(self.root)["publication"], "not_performed")
         self.assertEqual((self.root / epoch.LEDGER).read_bytes(), original)
         profiles = json.loads((self.root / "roles.json").read_text())
-        self.assertEqual(profiles["improver"], {"host": "codex", "model": "gpt-6.1-sol", "effort": "medium"})
+        self.assertEqual(profiles["improver"], {"host": "codex", "model": "gpt-6.1-sol", "effort": "max"})
 
     def test_launch_retains_summary_rows_in_epoch_without_mutating_source_baseline(self):
         source_baseline = self.temp / "source-baselines.jsonl"

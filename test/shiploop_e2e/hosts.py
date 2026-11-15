@@ -57,7 +57,7 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # (Sonnet 5.5, backend "anthropic") like every other Claude caller; `--backend ollama` selects a model the local Ollama
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
 # Grok 4.6 at extra-high is the driver profile for new work (owner, 2026-11-10), replacing Codex GPT-6.1 Sol at medium
-# (owner, 2026-11-08) as the subject. The reviewer, judge and improver profiles are unchanged: they stay on Codex.
+# (owner, 2026-11-08) as the subject. The reviewer, judge and improver profiles stay on Codex (ROLE_DEFAULTS).
 RUN_DEFAULT_HOST = "grok"
 GROK_DEFAULT_MODEL = "grok-4.6"
 GROK_DEFAULT_EFFORT = "xhigh"
@@ -79,7 +79,7 @@ def resolve_role(name: str, overrides: dict | None = None) -> dict:
         if host_override not in HOSTS:
             raise ValueError(f"unknown E2E host {host_override!r}; known: {', '.join(sorted(HOSTS))}")
         resolved.update(host=host_override, model=HOST_DEFAULTS[host_override]["model"],
-                        effort=HOST_DEFAULTS[host_override]["effort"])
+                        effort=ROLE_EFFORT.get(name, HOST_DEFAULTS[host_override]["effort"]))
     for key in ("host", "model", "effort"):
         value = overrides.get(key)
         if value is not None:
@@ -610,14 +610,18 @@ class CodexTranslator:
 
 HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
-# Owner-selected profiles for new work: the driver is Grok 4.6 at extra-high (2026-11-10); reviewer, judge and improver
-# stay Codex (Astra high, and Sol medium for the improver; 2026-11-08). Recorded and explicit profiles remain authoritative.
+# Owner-selected profiles for new work: the driver is Grok 4.6 at extra-high (2026-11-10); reviewer and judge stay Codex
+# Astra high (2026-11-08). The improver is Codex GPT-6.1 Sol at max, or Claude Sonnet 5.5 at max with --improver-host
+# claude (owner, 2026-11-15, replacing Sol medium). Recorded and explicit profiles remain authoritative.
 ROLE_DEFAULTS = {
     "subject": {"host": RUN_DEFAULT_HOST, **HOST_DEFAULTS[RUN_DEFAULT_HOST]},
     "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
     "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
-    "improver": {"host": "codex", **HOST_DEFAULTS["codex"]},
+    "improver": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": "max"},
 }
+# A role whose effort holds on whichever host it moves to (an explicit effort still wins): the improver runs at max on
+# Codex and on Claude alike.
+ROLE_EFFORT = {"improver": "max"}
 
 
 def host(name: str, binary: str | None = None, backend: str | None = None) -> Host:

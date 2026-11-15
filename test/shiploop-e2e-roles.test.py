@@ -31,7 +31,7 @@ class RoleDefaultsTest(unittest.TestCase):
             "subject": {"host": "grok", "model": "grok-4.6", "effort": "xhigh"},
             "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
             "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
-            "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "medium"},
+            "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "max"},
         }
         self.assertEqual(hosts.ROLE_DEFAULTS, expected)
         for role, profile in expected.items():
@@ -43,6 +43,11 @@ class RoleDefaultsTest(unittest.TestCase):
                          {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
         self.assertEqual(hosts.resolve_role("reviewer", {"host": "claude"}),
                          {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
+        # The improver keeps max on Claude (owner, 2026-11-15): Sonnet 5.5 at max, not Claude's unset default.
+        self.assertEqual(hosts.resolve_role("improver", {"host": "claude"}),
+                         {"host": "claude", "model": "claude-sonnet-5-5", "effort": "max"})
+        self.assertEqual(hosts.resolve_role("improver", {"host": "claude", "effort": "high"}),
+                         {"host": "claude", "model": "claude-sonnet-5-5", "effort": "high"})
         self.assertEqual(hosts.resolve_role("subject", {"host": "claude", "model": "sonnet-override", "effort": "high"}),
                          {"host": "claude", "model": "sonnet-override", "effort": "high"})
         self.assertEqual(expected["subject"], {"host": hosts.RUN_DEFAULT_HOST, **hosts.HOST_DEFAULTS[hosts.RUN_DEFAULT_HOST]})
@@ -99,7 +104,7 @@ class RoleDefaultsTest(unittest.TestCase):
         self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', argv)
         self.assertIn("agents.default_subagent_reasoning_effort=medium", argv)
 
-    def test_improver_default_and_explicit_high_reach_codex_argv(self):
+    def test_improver_default_max_and_explicit_high_reach_codex_argv(self):
         agent = hosts.CodexHost("fake-codex")
         args = argparse.Namespace(case="hello", host="codex", model="subject-only", effort="low",
                                   permission_mode="auto", improve_max_turns=None, max_budget_usd=None,
@@ -115,7 +120,7 @@ class RoleDefaultsTest(unittest.TestCase):
                 mock.patch.object(hosts, "run_agent", side_effect=finish) as launch, \
                 mock.patch.object(iterate, "git", side_effect=["base", "", "", "base", "", ""]):
             root = Path(folder)
-            for override, effort in ((None, "medium"), ("high", "high")):
+            for override, effort in ((None, "max"), ("high", "high")):
                 with self.subTest(override=override):
                     args.improver_effort = override
                     iterate.improve(root, [], root / effort, args, prompt="Improve this fixture.")

@@ -29,7 +29,7 @@ Keep the product small: an internal Lightning app, membership/profile records an
 
 ## Run it
 
-Use an authenticated, explicitly authorized `de` org and a browser runtime supported by the existing harness. New subjects and later ShipLoop improvers default to GPT-6.1 Sol at medium effort. Explicit per-run choices still apply; resumed runs and frozen campaigns retain their recorded settings.
+Use an authenticated, explicitly authorized `de` org and a browser runtime supported by the existing harness. New subjects default to Grok 4.6 at extra-high and ShipLoop improvers to GPT-6.1 Sol at max (`hosts.ROLE_DEFAULTS`). Explicit per-run choices still apply; resumed runs and frozen campaigns retain their recorded settings.
 
 ```sh
 python3 -B test/shiploop_e2e/run.py \
