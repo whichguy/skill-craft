@@ -476,6 +476,28 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
     contract's predicate uses that; if they fail, the entry says which part of the arithmetic failed (waits overlapped less than assumed, the overhead depends on the task) and keeps the measured numbers.
   - *Limits.* One trial per host; the writers are four tiny functions; a single context can overlap only waits that a background job can carry (a test run, a build), not a task that needs
     the model's attention throughout; the control tells nothing about quality, which A0p and A3 are not asked to differ on here beyond validity.
+- **A13 (2026-11-15, registered before any result of it was computed): how much of a recorded ShipLoop step is waiting that one context could overlap? (offline, no model call).** The owner
+  answered "Yes, measure it" to the question that closed E14. E14 found that one context overlapping its own waits beat fresh-worker fan-out in five of six cells, but those tasks had 30 s of
+  waiting and 6 s to 27 s of model work; the question that decides how much that matters for ShipLoop is how much of a real step is waiting at all. What exists (read before registering, not
+  computed): each E2E case folder holds `flow.json`, which normalises every host's events into `call` and `result` events with a time `t` (seconds after the first event line; `timeline.jsonl` gives
+  that line's epoch time), and `trace.jsonl` gives the step windows (`census/census.py`, `windows()`). ShipLoop's own script-run checks are recorded in `tests/*-verify*.md` with `runs[].seconds`.
+  - *Measures per step window (the census's timed windows, 476 steps in 323 plans, of which those whose case folder has `flow.json` and `timeline.jsonl` are used, the coverage reported).* Tool-call time: each
+    `call` is paired with the next unmatched `result` in time order (first in, first out), its duration is the gap, clipped to the window. Classes of a call, fixed here before any result: **verify** = a shell
+    tool (`Bash`, `run_terminal_command`, `shell`, `exec_command`, `local_shell`) whose command matches `\b(test|tests|pytest|jest|vitest|mocha|unittest|lint|eslint|ruff|tsc|mypy|build|compile|install|check)\b`
+    or `npm (run|test|ci|install)`, `node --test`, `go (test|build|vet)`, `cargo `, `mvn`, `gradle`, `make`, `sf `, `sfdx`, `apex`, and does not contain `shiploop`; **script** = a shell tool whose command contains `shiploop`;
+    **inspect** = any other shell command; **file** = Read, Write, Edit and the other hosts' file tools; **other** = everything else (search, skills, delegation). The model's own time is the window minus all tool-call time.
+    The cross-check: the sum of `runs[].seconds` of the verify records created inside the window (ShipLoop's script-run checks).
+  - *Overlap upper bound.* Per window, the verify-class seconds minus the longest single verify-class call: what would be saved if all the window's verification calls ran at once (an upper bound: later calls may depend on earlier edits).
+  - *Predictions, registered before any result and scored as written.* **P64 (70%):** pooled over the windows used, verify-class time is under 10% of window time. **P65 (75%):** the median window has under 5%
+    verify-class time. **P66 (65%):** at least 90% of windows have under 30 s of verify-class time. **P67 (70%):** the model's own time (window minus all tool-call time) is over 60% of the pooled window time.
+    **P68 (60%):** if at least 10 windows contain a call naming `sf `, `sfdx` or `apex`, their pooled verify-class share is at least 3 times that of the other windows (if fewer, the entry says too few). **P69 (70%):** the overlap
+    upper bound is under 3% of the pooled window time.
+  - *Decision rule R15.* If P64 and P69 hold, "overlap the waits" is not ShipLoop's first time optimisation for projects like the recorded ones (their suites are fast); the wait term of the fan-out predicate is
+    then read per project from its measured test seconds, which ShipLoop already records, and the first optimisation is the model's own time (fewer round trips, and where independent, fan-out). If P64 fails
+    (verify-class time is 10% or more), overlapping the waits comes first. P67 says which regime steps are in: model-bound, the regime E14 could not test.
+  - *Limits.* The E2E products are small, so their suites are quick; real projects' suites differ, which is why the predicate reads the project's own seconds. FIFO pairing mis-times parallel tool calls (the sum is
+    kept, the split may not be). The model's own time includes generation, hooks and host overhead. Delegated runs show sub-agent waits as `other`. One request family can dominate (the census's family-weighted figures are
+    reported beside the pooled ones).
 
 ## Files
 
