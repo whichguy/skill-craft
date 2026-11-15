@@ -8,6 +8,7 @@
 | File | What it is |
 | --- | --- |
 | `ci-failure-excerpt.txt` | The failing test's traceback from the job log, timestamps kept. |
+| `ci-attempt2-failure-excerpt.txt` | The rerun (attempt 2) of the failed job on the same commit: the Grok-chat suite passed, and the shard failed on a different suite (`shiploop-e2e-ticket-comments`). |
 | `lockprobe.py` | After `git commit --allow-empty` returns, how often `.git/objects/maintenance.lock` is still there (fresh repo, with and without the flag). |
 | `trace2probe.py` | How many `git maintenance run --auto --quiet --detach` child launches Trace2 records over fixture-shaped commits, with and without the flag. |
 | `results.txt` | What the probes and the other local checks printed, with the commands, on git 2.54.0 (Apple Git-157). |

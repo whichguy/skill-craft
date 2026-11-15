@@ -481,7 +481,7 @@ and the private `XDG_STATE_HOME`. The tar sites are left alone: the fixtures alr
   prints each suite's output at the end, so it does not show whether they started beside the Python suites. F20
   stays interim until a quick run that selects both suites, as the 1.21.0 release's hook changes will, is also green.
 
-## Round 5 (2026-11-14): the fourth fixture to race git's auto-maintenance lock
+## Round 5 (2026-11-14): two intermittent failures in one CI shard, the fourth fixture to race git's auto-maintenance lock and a port collision
 
 **Question.** Why did `full / shiploop-2` fail on the release commit `9710190f` (run 43669277848, job 132675527691) when the
 same shard had passed on the six release commits before it?
@@ -491,6 +491,16 @@ same shard had passed on the six release commits before it?
 assertion in `QualityGateTest.public`: `Lists differ: ['work/.git/objects/maintenance.lock'] != []`. The lock was in the
 "before" inventory and absent or rewritten in the "after" one. Every other job of the run passed except `python-floor`, which
 was still running when this was read. Excerpt: `docs/experiments/git-maintenance-lock-20261114/ci-failure-excerpt.txt`.
+
+**The rerun (attempt 2, same commit and tree).** `gh run rerun 43669277848 --failed` ran the shard again (job 132681484968,
+03:11:33Z to 03:26:26Z). `shiploop-e2e-grok-chat-full-quality` passed (42 tests OK in 9.570 s), so the first failure was a race and
+not a regression. The shard failed again, on a different suite: `shiploop-e2e-ticket-comments` (17 tests in 81.274 s),
+`CalibrationTest.test_each_defect_fails_exactly_the_check_that_reads_what_it_breaks`, variant `comments-newest-first`. That test
+expects the defect to fail exactly one check and saw two: besides `basics`, the `persisted` check failed with "the candidate exited
+(rc 1) before it listened on PORT=55427" and the tail of a Node `Server.listen` stack from the candidate's `server.js`. The
+record cuts off the front of the stack, so the error's name is not in it. The pushed range changed nothing in `test/shiploop_e2e`
+but one review file and four scenario files, and the suite's own last change is `bf68e959` (2026-10-31). Excerpt:
+`docs/experiments/git-maintenance-lock-20261114/ci-attempt2-failure-excerpt.txt`.
 
 **Cause.** The test makes a fixture commit (`--allow-empty`, "empty knowledge commit") and calls `public("--prepare-only")` on
 the next line. git runs `git maintenance run --auto --quiet --detach` after a commit, and the detached process holds
@@ -516,14 +526,29 @@ that inventory exists to catch the code under test writing under the product, `.
 
 **Findings**
 - F21 (interim): git's detached auto-maintenance after a fixture commit is the cause, and the flag removes the launch (40 of 40
-  to 0 of 40). The fix has not been seen to prevent a CI failure. The race is intermittent (1 of 7 release runs of this shard),
-  the push's own run is the quick tier (it does not select this suite), and one green full tier would be weak evidence for a
-  shard that passes six times in seven without the fix. It stays interim until the next full tiers (the next release, and the
-  weekly Monday run) are green.
+  to 0 of 40). The fix has not been seen to prevent a CI failure. The race is intermittent (1 of 7 release runs of this shard, and
+  the rerun of the same commit and tree passed this suite),
+  ~~the push's own run is the quick tier (it does not select this suite)~~ [superseded 2026-11-14, the same day: for a push,
+  `test/ci_policy.py` `select()` runs the suites matching `base..HEAD`, so the quick job of the fix push (run 43671490703, job
+  132682382137) did run this suite once, 42 tests OK in 9.223 s; the claim came from reading the quick tier as a fixed baseline
+  only, and the commit message of `111e2a27` carries the same wrong sentence], and one green run, quick or full, is weak
+  evidence for a shard that passes six times in seven without the fix. It stays interim until the next full tiers (the next
+  release, and the weekly Monday run) are green.
 - F22 (exploratory): four fixtures in 19 days have hit this class (`595973e7` on 2026-10-26, `9679c936` and `85a7cda7` on
   2026-11-08, this one). 110 of the 114 test files containing the literal `"commit"` never mention `maintenance.auto` or
   `gc.auto` (a grep count, not an audit of which really run a git commit). Only fixtures that inventory or copy the tree right
   after a commit have failed, so the rest are left alone. A runner-level setting (`GIT_CONFIG_COUNT=1`,
   `GIT_CONFIG_KEY_0=maintenance.auto`, `GIT_CONFIG_VALUE_0=false` in `run_suites.run_process` and the CI jobs) would end the
-  class in one place, but it changes the environment of every suite and does not protect a standalone `python3 test/<file>`.
-  That sets direction, so it is the owner's call and is not made here.
+  class in one place (Round 4 set `PYTHONDONTWRITEBYTECODE=1` there for a similar class), but it changes the environment of every
+  suite, is not run through the full tier before CI, and does not protect a standalone `python3 test/<file>`. That sets
+  direction, so it is the owner's call and is not made here.
+- F23 (interim): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
+  candidate exited before it listened on the port the harness had chosen. `checks/serve.py` picks the port with `free_port()`
+  (bind to port 0, read the number, close) and starts the candidate with `PORT=<it>`, so another process can take that port in
+  between, and the shard runs several server-starting suites at once (`--jobs 4`). That is a reading, not an observation: the
+  record does not name the listen error, and no rate was measured. The shard passed on the six release commits before this one.
+  It is a related class to the one `26728edd` and `8c5b4d4e` measured and fixed for the `brownfield-tickets` calibration suite
+  (another project's server answering on the same port number, mended by grading again until a grade agrees), not the same
+  mechanism; `8c5b4d4e` names `ticket-comments` and `ticket-sla` as not examined and leaves the live scoring check to the owner.
+  Not fixed here: a retry in `checks/serve.py` would also reach live deliveries, which is the owner's call as in `8c5b4d4e`, and
+  one failure is not a rate.
