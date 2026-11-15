@@ -942,9 +942,10 @@ def lessons_lines(repo: Path, window: Sequence[str] = ()) -> List[str]:
 
 # --- the run baseline and the spec diff (owner decision D3, X9) -------------------------------------------------------
 
-# HEAD is retained for older readers/runs. New runs publish the complete starting working bytes first, so pre-init
-# owner edits (including untracked files) do not become changes attributed to this run. Only the HEAD pointer can be
-# repaired, from the immutable snapshot binding; starting bytes are never recaptured.
+# A run publishes the complete starting working bytes first (run-starting-knowledge.json), so pre-init owner edits
+# (including untracked files) do not become changes attributed to this run, then a HEAD pointer (run-baseline.txt) the
+# snapshot must agree with. Only the HEAD pointer can be repaired, from the immutable snapshot binding; starting bytes
+# are never recaptured. A run with a pointer and no snapshot has no spec diff: there is no HEAD-relative fallback.
 RUN_BASELINE = "run-baseline.txt"
 RUN_STARTING_KNOWLEDGE = "run-starting-knowledge.json"
 _SPEC_DIFF_FILES = (HOME + "/spec.md", HOME + "/" + ARCHITECTURE)
@@ -963,7 +964,7 @@ def _starting_bytes(path: Path) -> Optional[bytes]:
 def repair_baseline_pointer(root: Path) -> Optional[str]:
     """Repair only HEAD from an existing validated snapshot; never capture working bytes.
 
-    Caller holds the run lock. Missing snapshots leave both artifacts untouched, including legacy HEAD-only runs.
+    Caller holds the run lock. A missing snapshot leaves both artifacts untouched.
     Malformed evidence, valid conflicts and publication failures return a note rather than refusing the run.
     """
     import shiploop_store as store
@@ -993,7 +994,7 @@ def record_baseline(root: Path, state: Mapping[str, Any]) -> Optional[str]:
 
     ``init`` calls this right after it saves the new run; a failure is one note on stderr, never a refusal (``spec_diff``
     then answers None). Existing snapshots block recapture; a valid snapshot can repair a missing/malformed HEAD pointer
-    using its bound HEAD. A valid conflicting pointer is never overwritten. HEAD-only legacy baselines remain unchanged.
+    using its bound HEAD. A valid conflicting pointer is never overwritten.
     Outside a checkout nothing is written and nothing is said. Unborn checkouts retain no baseline.
     """
     import shiploop_store as store
@@ -1005,8 +1006,6 @@ def record_baseline(root: Path, state: Mapping[str, Any]) -> Optional[str]:
         return None
     if os.path.lexists(snapshot):
         return repair_baseline_pointer(root)
-    if os.path.lexists(record):
-        return None  # legacy HEAD-only runs must not acquire a newly captured snapshot
     shown = _git(repo, "rev-parse", "--verify", "-q", "HEAD^{commit}")
     head = shown.stdout.strip()
     if shown.returncode or not re.fullmatch(r"[0-9a-f]{40,64}", head):
@@ -1103,9 +1102,10 @@ def _snapshot_diff(repo: Path, snapshot: Path, baseline: str) -> Optional[str]:
 
 
 def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
-    """Uncut starting-content diff for new runs; legacy HEAD-relative diff for HEAD-only runs.
+    """The uncut diff of the living spec and architecture from their starting bytes to the working tree.
 
-    "" when unchanged; None outside Git, without a baseline, or with unreadable/partial/malformed snapshot evidence.
+    "" when unchanged; None outside Git, without a baseline, or with missing, unreadable, partial or malformed snapshot
+    evidence (a HEAD pointer alone is no baseline).
     """
     repo = Path(str(state["repo"]))
     try:
@@ -1115,12 +1115,9 @@ def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
     if not baseline or not (repo / ".git").exists():
         return None
     snapshot = Path(root) / RUN_STARTING_KNOWLEDGE
-    if os.path.lexists(snapshot):
-        if not re.fullmatch(r"[0-9a-f]{40,64}", baseline):
-            return None
-        return _snapshot_diff(repo, snapshot, baseline)
-    shown = _git(repo, "diff", "--no-color", "--no-ext-diff", baseline, "--", *_SPEC_DIFF_FILES)
-    return None if shown.returncode else shown.stdout
+    if not os.path.lexists(snapshot) or not re.fullmatch(r"[0-9a-f]{40,64}", baseline):
+        return None
+    return _snapshot_diff(repo, snapshot, baseline)
 
 
 def commit(state: Mapping[str, Any], stage: str, open_items: Sequence[Any] = ()) -> shiploop_git.Committed:

@@ -1,0 +1,89 @@
+$ git log --all --graph --oneline --decorate
+*   dd7b628 (HEAD -> main) merge T3
+|\  
+| * 3dffa0c (w-T3-1) T3 attempt 1
+|/  
+*   4a80fa7 merge T2
+|\  
+| * f53a2e5 (w-T2-1) T2 attempt 1
+|/  
+*   5833085 merge T1
+|\  
+| * 86280f9 (w-T1-1) T1 attempt 1
+|/  
+* 24e34ba base: the help-desk ticket service
+
+$ git ls-files
+.gitignore
+CHANGELOG.md
+CONTRIBUTING.md
+README.md
+bin/tickets.js
+docs/api.md
+docs/decisions/0001-record-decisions.md
+docs/decisions/0002-prefixed-sequential-ids.md
+docs/decisions/0003-offset-pagination.md
+docs/decisions/0004-error-envelope.md
+docs/decisions/0005-cursor-pagination.md
+docs/decisions/0006-notification-outbox.md
+docs/decisions/0007-append-only-audit-log.md
+docs/decisions/0008-json-data-file.md
+docs/decisions/0009-due-times.md
+docs/decisions/README.md
+docs/decisions/template.md
+docs/operations.md
+package.json
+scripts/weekly-report.js
+src/app.js
+src/audit.js
+src/backoff.js
+src/clock.js
+src/config.js
+src/errors.js
+src/format.js
+src/http.js
+src/log.js
+src/notifier.js
+src/outbox.js
+src/pagination.js
+src/persistence.js
+src/router.js
+src/server.js
+src/store.js
+src/templates.js
+src/tickets/due.js
+src/tickets/ids.js
+src/tickets/priorities.js
+src/tickets/query.js
+src/tickets/states.js
+src/tickets/validate.js
+src/worker.js
+test/api.test.js
+test/audit.test.js
+test/config.test.js
+test/due.test.js
+test/errors.test.js
+test/format.test.js
+test/helpers.js
+test/http.test.js
+test/ids.test.js
+test/import.test.js
+test/notifier.test.js
+test/outbox.test.js
+test/pagination.test.js
+test/persistence.test.js
+test/query.test.js
+test/router.test.js
+test/service.test.js
+test/states.test.js
+test/store.test.js
+test/validate.test.js
+test/worker.test.js
+
+$ git status --short
+
+$ git branch -a
+* main
++ w-T1-1
++ w-T2-1
++ w-T3-1

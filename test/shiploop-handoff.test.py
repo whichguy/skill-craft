@@ -90,6 +90,17 @@ class RepoCase(unittest.TestCase):
     def head(self) -> str:
         return git(self.repo, "rev-parse", "HEAD").strip()
 
+    def write_baseline(self, rev: str = "HEAD") -> None:
+        """The run baseline (starting-bytes snapshot, then HEAD pointer) as ``init`` would have recorded it at ``rev``."""
+        head = git(self.repo, "rev-parse", rev).strip()
+        files = {}
+        for name in knowledge._SPEC_DIFF_FILES:
+            shown = subprocess.run(["git", "-C", str(self.repo), "show", rev + ":" + name], capture_output=True)
+            files[name] = None if shown.returncode else base64.b64encode(shown.stdout).decode("ascii")
+        (self.root / knowledge.RUN_STARTING_KNOWLEDGE).write_text(
+            json.dumps({"version": 1, "head": head, "files": files}, sort_keys=True) + "\n")
+        (self.root / knowledge.RUN_BASELINE).write_text(head + "\n")
+
 
 # ---------------------------------------------------------------------------------------------------------- READS (D1)
 
@@ -473,7 +484,7 @@ class StartingKnowledgeTests(RepoCase):
         self.assertIn("deleted file mode", diff)
         self.assertIn("--- a/docs/shiploop/spec.md\n+++ /dev/null", diff)
 
-    def test_malformed_snapshot_is_unavailable_never_legacy_or_recaptured(self) -> None:
+    def test_malformed_snapshot_is_unavailable_never_recaptured(self) -> None:
         (self.root / knowledge.RUN_BASELINE).write_text(self.head() + "\n")
         self.home("spec.md", "current\n")
         for raw in (b"{", b"\xff", b"[]", b'{"version": 1, "files": {}}',
@@ -506,13 +517,16 @@ class StartingKnowledgeTests(RepoCase):
                 self.assertEqual(knowledge.spec_diff(self.root, self.state), "")
                 self.assertEqual(self.snapshot().read_bytes(), before)
 
-    def test_head_only_record_remains_legacy(self) -> None:
+    def test_a_head_only_record_has_no_spec_diff_and_no_fallback(self) -> None:
+        # A pointer without a snapshot (a run saved before snapshots existed) is not a baseline: no HEAD-relative diff,
+        # nothing recaptured by a repair, and the packet says the diff is not computed.
         (self.root / knowledge.RUN_BASELINE).write_text(self.head() + "\n")
-        spec = self.home("spec.md", "legacy working edit\n")
+        spec = self.home("spec.md", "working edit\n")
         git(self.repo, "add", "-N", "--", str(spec))
-        knowledge.record_baseline(self.root, self.state)
+        self.assertIsNone(knowledge.spec_diff(self.root, self.state))
+        self.assertIsNone(knowledge.repair_baseline_pointer(self.root))
         self.assertFalse(self.snapshot().exists())
-        self.assertIn("+legacy working edit", knowledge.spec_diff(self.root, self.state))
+        self.assertIn("evidence is unavailable", "\n".join(navigator._spec_diff_section(self.state, self.root)))
 
     def test_read_failures_are_unavailable_not_absence(self) -> None:
         self.home("spec.md", "starting\n")
@@ -2311,7 +2325,7 @@ class LongHomeCase(RepoCase):
 
     def setUp(self) -> None:
         super().setUp()
-        (self.root / knowledge.RUN_BASELINE).write_text(self.head() + "\n")  # the baseline holds no living file
+        self.write_baseline()  # the baseline holds no living file
         self.spec, self.arch = self.spec_text(), self.architecture_text()
         self.home("spec.md", self.spec)
         self.home("architecture.md", self.arch)
@@ -2407,13 +2421,13 @@ class ContentsTests(LongHomeCase):
     def _diff_of_a_new_file_lists_its_contents_once(self, stage: str) -> None:
         lines = self.block(stage)
         part = self.diff_part(lines)
-        self.assertEqual(part[0], "Spec and architecture changes since the run began (baseline " + self.head_of_base()
+        self.assertEqual(part[0], "Spec and architecture changes since the run began (baseline starting bytes; HEAD " + self.head_of_base()
                          + "), a file new since then is named with its contents, any other change printed uncut:")
-        self.assertEqual(part[1:], [
-            "KNOWLEDGE/architecture.md: new since the baseline, so its diff is the whole file, not printed here ("
-            + navigator._size(self.arch) + "; its contents are listed above)",
+        self.assertEqual(part[1:], [  # the snapshot diff names spec.md before architecture.md
             "KNOWLEDGE/spec.md: new since the baseline, so its diff is the whole file, not printed here ("
-            + navigator._size(self.spec) + "; its contents are listed above)"])
+            + navigator._size(self.spec) + "; its contents are listed above)",
+            "KNOWLEDGE/architecture.md: new since the baseline, so its diff is the whole file, not printed here ("
+            + navigator._size(self.arch) + "; its contents are listed above)"])
         self.assertLess(lines.index(navigator.READS_HEAD), lines.index(navigator.HANDOFF_HEAD))  # "above" is true
         self.assertEqual(sum(line.startswith("  | +") for line in lines), 0)
 
@@ -2433,7 +2447,7 @@ class ContentsTests(LongHomeCase):
         self.home("spec.md", self.spec.replace("Requirement number 7", "Requirement seven"))
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "edit")
-        (self.root / knowledge.RUN_BASELINE).write_text(git(self.repo, "rev-parse", "HEAD~1").strip() + "\n")
+        self.write_baseline("HEAD~1")
         part = self.diff_part(self.block("plan"))
         self.assertIn("  | -### R-7 Requirement number 7", part)
         self.assertIn("  | +### R-7 Requirement seven", part)
@@ -2544,7 +2558,7 @@ class SameBlockDuplicateTests(LongHomeCase):
         self.home("spec.md", self.spec.replace("Requirement number 7", "Requirement seven"))
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "edit")
-        (self.root / knowledge.RUN_BASELINE).write_text(git(self.repo, "rev-parse", "HEAD~1").strip() + "\n")
+        self.write_baseline("HEAD~1")
         lines = self.block("document")
         self.assertIn("- R-1:", lines)
         self.assertIn("  | ### R-1 Requirement number 1", lines)         # R-1 is printed as itself
@@ -2670,7 +2684,7 @@ def walked_blocks(route: str, home: dict, *, git_baseline: bool) -> dict:
             (work / "app.py").write_text("x = 1\n")
             git(work, "add", "-A")
             git(work, "commit", "-qm", "base")
-            (run / knowledge.RUN_BASELINE).write_text(git(work, "rev-parse", "HEAD").strip() + "\n")
+            knowledge.record_baseline(run, {"repo": str(work)})
         for name, text in home.items():
             (work / knowledge.HOME).mkdir(parents=True, exist_ok=True)
             (work / knowledge.HOME / name).write_text(text)
@@ -2724,7 +2738,7 @@ class LongKnowledgeRecordTests(RepoCase):
 
     def setUp(self) -> None:
         super().setUp()
-        (self.root / knowledge.RUN_BASELINE).write_text(self.head() + "\n")            # the baseline holds no living file
+        self.write_baseline()            # the baseline holds no living file
         spec = ["## Requirements", ""]
         for n in range(1, 31):
             spec += [f"### R-{n} Requirement number {n}", "", f"Basis: the request says the product must do thing {n} reliably.", "",
@@ -3239,7 +3253,7 @@ class ReportTests(RepoCase):
         self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "living spec")
-        (self.root / knowledge.RUN_BASELINE).write_text(git(self.repo, "rev-parse", "HEAD"), encoding="utf-8")
+        self.write_baseline()
         self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n- R-2: Fire <a> shot & see it.\n")
 
     def walk(self, fields: dict, *, until: str = "done") -> dict:
@@ -3285,7 +3299,7 @@ class ReportTests(RepoCase):
         report = navigator._render_report(state, self.root)
         baseline = (self.root / knowledge.RUN_BASELINE).read_text().strip()
         diff = self.section(report, "Spec and architecture changes")
-        self.assertIn("baseline " + baseline[:12], diff)
+        self.assertIn("baseline starting bytes; HEAD " + baseline[:12], diff)
         self.assertIn("+- R-2: Fire &lt;a&gt; shot &amp; see it.", diff)
         items = self.section(report, "Work item hand-offs")
         self.assertIn("<h3>W1 one</h3>", items)

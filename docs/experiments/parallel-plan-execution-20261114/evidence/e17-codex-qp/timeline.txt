@@ -1,0 +1,166 @@
+trial   e17-codex-qp
+host    codex codex-cli 0.169.0 gpt-6.1-sol medium
+plan    tickets3  arm A3  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   4.598  H  parent        text     -            I’ll launch the requests as the script offers them, collect each agent’s result, and run the final verification.
++   6.285  L  ledger        claim    T1           
++   6.286  L  ledger        claim    T2           
++   6.286  L  ledger        claim    T3           
++   6.286  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity
++   6.314  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp
++   6.314  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wor
++   9.643  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t1","fork_turns":"none","message":"gAAAAABq-fhGBkmrfOUMLGsMtYJTWkk5pRq25FEsoyQ0JmyhL7kOMgD3vEQeZrm6fk36bVKTYlB1vmNdpOpBXuNjt
++  13.065  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t2","fork_turns":"none","message":"gAAAAABq-fhJy2Uh4Tgrb0kqgAT1i8mqKdkdxHFtZEnzaJoOgxG_rJWbXC3uYSVAAWs0eyHtndr19aqsOTA5Esk3E
++  13.707  H  thread:f91450 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run --st
++  13.907  L  ledger        workspace T1           {"seconds":0.059}
++  13.907  L  ledger        start    T1           
++  17.414  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t3","fork_turns":"none","message":"gAAAAABq-fhNJgh_4iKjXBxYIjRt6Rct3f3kwmsqmJPWLW1l8OnFkJfAmx47zllZ2qEk4_WZ6Jz8iQ4PilSeD95EH
++  17.434  H  thread:f91450 call     shell        shell pwd && rg --files
++  17.822  H  thread:84db6c call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run --st
++  18.014  L  ledger        workspace T2           {"seconds":0.059}
++  18.015  L  ledger        start    T2           
++  19.185  H  parent        wait     wait         wait {"status": "in_progress"}
++  20.569  H  thread:84db6c call     shell        shell ls -la; cat README.md; cat package.json; cat src/server.js; rg --files src test bin
++  20.668  H  thread:f91450 call     shell        shell cat README.md src/app.js src/store.js src/tickets/validate.js src/tickets/query.js src/notifier.js src/templates.js src/outbox.js bin/ticket
++  21.094  H  thread:539db2 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run --st
++  21.271  L  ledger        workspace T3           {"seconds":0.054}
++  21.272  L  ledger        start    T3           
++  23.400  H  thread:84db6c call     shell        shell cat CONTRIBUTING.md src/app.js src/store.js src/tickets/validate.js src/http.js test/helpers.js test/api.test.js
++  23.761  H  thread:f91450 call     shell        shell cat CONTRIBUTING.md src/format.js src/templates.js src/outbox.js src/persistence.js src/router.js test/query.test.js test/store.test.js
++  25.748  H  thread:539db2 call     shell        shell pwd; rg --files
++  26.907  H  thread:f91450 call     shell        shell cat test/persistence.test.js package.json CHANGELOG.md docs/decisions/README.md
++  27.662  H  thread:84db6c call     shell        shell cat src/outbox.js src/audit.js src/persistence.js src/worker.js; cat docs/decisions/README.md; head -50 CHANGELOG.md; cat docs/api.md
++  29.074  H  thread:539db2 call     shell        shell cat package.json README.md src/config.js src/persistence.js src/store.js src/tickets/query.js src/app.js src/server.js bin/tickets.js
++  29.188  H  parent        return   wait         wait {"status": "completed"}
++  30.990  H  parent        wait     wait         wait {"status": "in_progress"}
++  32.583  H  thread:539db2 call     shell        shell cat CONTRIBUTING.md test/config.test.js test/query.test.js test/helpers.js src/format.js test/persistence.test.js docs/decisions/0008-json-d
++  40.995  H  parent        return   wait         wait {"status": "completed"}
++  41.043  H  thread:539db2 call     shell        shell cat src/clock.js test/store.test.js docs/decisions/README.md CHANGELOG.md
++  42.552  H  parent        wait     wait         wait {"status": "in_progress"}
++  45.186  H  thread:84db6c call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('src/tickets/validate.js') s=p.read_text(); marker='/** PATCH /tickets/:id:' insert='''/**
++  52.556  H  parent        return   wait         wait {"status": "completed"}
++  52.795  H  thread:f91450 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('src/store.js');s=p.read_text().replace('[ticket.id, { ...ticket }]','[ticket.id, { assigne
++  54.491  H  parent        wait     wait         wait {"status": "in_progress"}
++  64.496  H  parent        return   wait         wait {"status": "completed"}
++  66.711  H  parent        text     -            T1, T2, and T3 have been assigned to separate agents. I’m waiting for their results.
++  66.903  H  parent        wait     wait         wait {"status": "in_progress"}
++  69.722  H  thread:539db2 call     shell        shell mkdir -p test/fixtures cp src/persistence.js test/fixtures/persistence-1.4.0.txt python3 - <<'PY' from pathlib import Path p=Path('src/confi
++  78.521  H  thread:84db6c call     shell        shell cat > test/import.test.js <<'EOF' 'use strict';  const { test } = require('node:test'); const assert = require('node:assert/strict'); const
++  82.623  H  parent        return   wait         wait {"status": "completed"}
++  84.735  H  parent        wait     wait         wait {"status": "in_progress"}
++  93.310  H  thread:f91450 call     shell        shell cat > test/assignment.test.js <<'EOF' 'use strict';  const { test } = require('node:test'); const assert = require('node:assert/strict'); co
++  96.374  H  parent        return   wait         wait {"status": "completed"}
++  98.899  H  parent        text     -            T1 and T2 report that their implementations pass the tests. Both are finishing documentation before reporting through the script; T3 is still in progr
++  98.933  H  parent        wait     wait         wait {"status": "in_progress"}
++  99.497  H  thread:f91450 call     shell        shell cat docs/api.md src/tickets/states.js scripts/weekly-report.js
++  99.868  H  thread:84db6c call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('package.json'); p.write_text(p.read_text().replace('"version": "1.4.0"','"version": "1.5.0
++ 104.852  H  thread:84db6c call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run -
++ 105.023  L  ledger        commit   T2           {"seconds":0.056}
++ 105.026  L  ledger        end      T2           {"sha":"e4e25c8a128360c39d56493a900e2f477ac7fa4c430eed01fb6a9b8b30f8495d","result":{"answer":123,"method":"Implemented atomic staged bulk import with 
++ 108.388  H  parent        return   wait         wait {"status": "completed"}
++ 111.730  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp
++ 112.287  L  ledger        retest   -            {"seconds":0.532}
++ 112.288  L  ledger        landed   -            {"seconds":0.593}
++ 112.896  L  ledger        retest   T2           {"seconds":0.546}
++ 112.926  L  ledger        redtest  T2           {"seconds":0.037}
++ 112.926  L  ledger        retry    T2           {"reason":"the project's tests failed on the merged tree"}
++ 112.926  L  ledger        claim    T2           
++ 112.927  L  ledger        ready    -            {"result":{"ready":["T2"],"deferred":[],"claimed":[],"running":["T1","T3"],"done":[],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 112.932  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wor
++ 116.920  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t2_retry","fork_turns":"none","message":"gAAAAABq-fixGC3aM0k86Ba1v-n1k6WxFgLSvSJ8WSM0KgXQcNYBbkcLFtn5RSS0lE0ZfUHB3V_Ekugkmvl
++ 118.547  H  parent        wait     wait         wait {"status": "in_progress"}
++ 120.950  H  thread:4b312e call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run --st
++ 121.159  L  ledger        workspace T2           {"seconds":0.09}
++ 121.160  L  ledger        start    T2           
++ 121.666  H  thread:f91450 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('src/store.js');s=p.read_text().replace('canTransition, isFinal, nextStatuses', 'canTransit
++ 123.650  H  thread:4b312e call     shell        shell cat src/store.js src/server.js test/import.test.js package.json
++ 123.929  H  thread:539db2 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('bin/tickets.js');s=p.read_text().replace("const { systemClock }", "const { ConfigError, lo
++ 126.649  H  thread:4b312e call     shell        shell rg --files -g 'AGENTS.md' -g 'CONTRIBUTING.md'; rg '\.create\(|createTicket|importTickets' src test
++ 126.693  H  thread:f91450 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run -
++ 126.865  L  ledger        commit   T1           {"seconds":0.059}
++ 126.866  L  ledger        end      T1           {"sha":"cb8e7dd91b5c358cfd1a90f3c329287c53d41b1401ed36b23e9559132aaa3c8b","result":{"answer":123,"method":"Implemented assignment across API store per
++ 127.890  H  thread:539db2 call     shell        shell rg -n -A 25 -B 3 'not ok|fail|pass|transition' test-result.txt cat src/pagination.js src/tickets/validate.js
++ 128.509  H  parent        return   wait         wait {"status": "completed"}
++ 130.329  H  thread:4b312e call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('src/store.js') s=p.read_text().replace('staged.create(input, actor).id', 'staged.createTic
++ 131.598  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp
++ 132.159  L  ledger        retest   T1           {"seconds":0.546}
++ 132.194  L  ledger        redtest  T1           {"seconds":0.035}
++ 132.195  L  ledger        retry    T1           {"reason":"the project's tests failed on the merged tree"}
++ 132.196  L  ledger        claim    T1           
++ 132.196  L  ledger        ready    -            {"result":{"ready":["T1"],"deferred":[],"claimed":[],"running":["T2","T3"],"done":[],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 132.204  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wor
++ 134.960  H  thread:4b312e call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run -
++ 135.135  L  ledger        commit   T2           {"seconds":0.063}
++ 135.136  L  ledger        end      T2           {"sha":"a1975f77168c6963e1f3d430127db662d9d0ee53ea8beae5423e27ecd59724ea","result":{"answer":123,"method":"Updated bulk staging to call createTicket a
++ 136.621  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t1_retry","fork_turns":"none","message":"gAAAAABq-fjFy_NpwNwzL89f6-UBFip3B8okBblmoXH9VXkIN7m-rshqDkO-tqqlmjHD7SUnrv6yVOC1sEP
++ 139.619  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp
++ 140.235  L  ledger        retest   T2           {"seconds":0.606}
++ 140.236  L  ledger        merged   T2           {"seconds":0.033}
++ 140.237  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":["T1"],"running":["T3"],"done":["T2"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity":
++ 140.242  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wor
++ 140.693  H  thread:c31a39 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run --st
++ 140.909  L  ledger        workspace T1           {"seconds":0.098}
++ 140.910  L  ledger        start    T1           
++ 142.933  H  parent        text     -            The script reoffered T1 and T2 after integration conflicts, and I launched fresh agents for both. T2 is now integrated; the T1 retry and T3 are still 
++ 142.977  H  parent        wait     wait         wait {"status": "in_progress"}
++ 143.921  H  thread:c31a39 call     shell        shell sed -n '1,240p' test/assignment.test.js cat package.json sed -n '1,180p' src/store.js
++ 147.530  H  thread:c31a39 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('test/assignment.test.js') s=p.read_text().replace("store.create(ticketBody(), 'system');",
++ 151.031  H  thread:c31a39 call     shell        shell rg -n '^(<<<<<<<|=======|>>>>>>>)' . cat src/tickets/validate.js
++ 153.692  H  thread:c31a39 call     shell        shell cat CHANGELOG.md cat docs/decisions/README.md
++ 157.168  H  thread:539db2 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('test/due.test.js');s=p.read_text().replace("{ status: 'in_progress' }", "{ to: 'in_progres
++ 161.186  H  thread:c31a39 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('src/tickets/validate.js') s=p.read_text(); s=s.replace('<<<<<<< HEAD\n','').replace("modul
++ 166.611  H  thread:c31a39 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run -
++ 166.796  L  ledger        commit   T1           {"seconds":0.069}
++ 166.798  L  ledger        end      T1           {"sha":"4024efaef1a778851c2a99b67f4e2a4ea5bfba51d91130282290a272ff91ba46","result":{"answer":129,"method":"Fixed renamed store API in assignment test 
++ 168.553  H  parent        return   wait         wait {"status": "completed"}
++ 169.074  H  thread:539db2 call     shell        shell cat >> test/due.test.js <<'EOF'  test('CLI exposes due only when enabled and preserves raw report columns', (t) => {   const { main } = requ
++ 171.470  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp
++ 172.107  L  ledger        retest   T1           {"seconds":0.621}
++ 172.108  L  ledger        merged   T1           {"seconds":0.035}
++ 172.109  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":["T3"],"done":["T1","T2"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 172.115  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wor
++ 173.849  H  parent        wait     wait         wait {"status": "in_progress"}
++ 174.756  H  thread:539db2 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run -
++ 174.938  L  ledger        commit   T3           {"seconds":0.065}
++ 174.939  L  ledger        end      T3           {"sha":"66c3e7830574be3581eaeedce3fab2ba2a25d253650054562b1b09ede24eeb3e","result":{"answer":125,"method":"Implemented persisted gated due times with 
++ 179.326  H  parent        return   wait         wait {"status": "completed"}
++ 182.166  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp
++ 182.192  L  ledger        conflict T3           {"seconds":0.03}
++ 182.193  L  ledger        retry    T3           {"reason":"merge conflict in CHANGELOG.md, bin/tickets.js, docs/decisions/README.md, src/format.js, src/store.js, src/tickets/query.js"}
++ 182.193  L  ledger        claim    T3           
++ 182.193  L  ledger        ready    -            {"result":{"ready":["T3"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 182.198  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wor
++ 185.637  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"t3_retry","fork_turns":"none","message":"gAAAAABq-fj2KmFq2zBAf7id5DoRn9sB5reIWuuI8Wl_9AzchBPbzokFxzagJJkn3vYAaHb9tvi8xEXe-E7
++ 188.118  H  parent        text     -            T1 and T2 are integrated. The script reoffered T3 after an integration conflict, and a fresh agent is handling it.
++ 188.160  H  parent        wait     wait         wait {"status": "in_progress"}
++ 189.660  H  thread:e8dbd1 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run --st
++ 189.885  L  ledger        workspace T3           {"seconds":0.102}
++ 189.886  L  ledger        start    T3           
++ 192.285  H  thread:e8dbd1 call     shell        shell rg --files
++ 195.136  H  thread:e8dbd1 call     shell        shell cat CHANGELOG.md bin/tickets.js docs/decisions/README.md src/format.js src/store.js src/tickets/query.js
++ 198.021  H  thread:e8dbd1 call     shell        shell cat test/due.test.js src/persistence.js src/config.js src/app.js README.md package.json
++ 219.018  H  thread:e8dbd1 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('CHANGELOG.md');s=p.read_text();s='\n'.join(line for line in s.split('\n') if not line.star
++ 219.018  H  thread:e8dbd1 call     shell        shell npm test
++ 224.173  H  parent        return   wait         wait {"status": "completed"}
++ 225.983  H  parent        wait     wait         wait {"status": "in_progress"}
++ 235.130  H  thread:e8dbd1 call     shell        shell python3 - <<'PY' from pathlib import Path p=Path('test/due.test.js');s=p.read_text().replace("  assert.equal(original.trimEnd().split('\\t')
++ 235.130  H  thread:e8dbd1 call     shell        shell rg -n '^(<<<<<<<|=======|>>>>>>>)' .
++ 235.130  H  thread:e8dbd1 call     shell        shell npm test
++ 240.231  H  thread:e8dbd1 call     shell        shell python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/run -
++ 240.401  L  ledger        commit   T3           {"seconds":0.063}
++ 240.402  L  ledger        end      T3           {"sha":"3410a23c5840492daf43dc3d66bec73dcc0aff3f293df3c9f0c6e92c0cabac29","result":{"answer":138,"method":"Resolved all merge conflicts preserving ass
++ 242.053  H  parent        return   wait         wait {"status": "completed"}
++ 245.198  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp
++ 245.837  L  ledger        retest   T3           {"seconds":0.627}
++ 245.838  L  ledger        merged   T3           {"seconds":0.035}
++ 245.839  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":true,"capacity"
++ 245.845  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wor
++ 249.005  H  parent        text     -            All three requests are integrated. I’ll run the final verification and read T3’s recorded answer.
++ 251.420  L  ledger        verify   -            {"line":"VERIFY OK steps=3 chain=bba57d77cc6e"}
++ 251.446  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py verify --run /Users/dadleet/e17-runs-20261115/e17-codex-q
++ 251.447  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py verify --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/wo
++ 251.584  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py outcome --run /Users/dadleet/e17-runs-20261115/e17-codex-
++ 251.585  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-qp/work/dagkit.py outcome --run /Users/dadleet/e17-runs-20261115/e17-codex-qp/w
++ 253.362  H  parent        text     -            FINAL {"done":["T1","T2","T3"],"failed":[],"not_run":[],"answer":138}

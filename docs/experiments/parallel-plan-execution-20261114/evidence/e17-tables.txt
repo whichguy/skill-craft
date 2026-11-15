@@ -1,0 +1,125 @@
+E17: three real features on a real service (whole run in seconds; tokens and cost over all contexts)
+
+host   cell    whole   rnd 1  slowest  valid  compl merge confl red retry fix  kit s retest    input tok    cost  load
+claude s       330.3   315.9    159.3   True   True     0     0   0     0   0      0    n/a    2,243,994    1.10  19.8
+claude qs      541.6   510.9    232.7   True   True     3     0   0     0   0    4.7    0.9    2,352,536    1.33  41.2
+claude q0      233.7   143.7    143.6   True   True     3     2   0     2   2    4.5    0.9    3,445,796    1.66  25.9
+claude qp      314.3   161.0    161.0   True   True     3     3   0     3   3    7.2    1.3    4,436,041    1.66  10.7
+claude qr      494.5   154.4    154.3   True   True     3     4   1     5   0    4.7    0.7    6,336,271    3.12   8.9
+grok   s       818.1   805.0    335.3   True   True     0     0   0     0   0      0    n/a    4,969,706    3.28   5.4
+grok   qs    1,203.8 1,179.3    583.5   True   True     3     0   0     0   0    2.8    0.7    4,081,866    3.21   6.0
+grok   q0      810.2   560.5    560.5  False   True     3     3   0     3   3    2.8    0.5    5,263,083    4.38   4.4
+grok   qp    1,968.7 1,069.2  1,069.2   True   True     3     4   0     4   4    5.5    0.7   12,574,114     n/a  19.8
+grok   qr    1,544.9   429.7    429.6  False   True     3     5   1     6   0    4.1    0.5   12,180,174    9.32   5.5
+codex  s       406.3   378.0    195.4   True   True     0     0   0     0   0      0    n/a    1,384,317     n/a  14.9
+codex  qs      422.1   392.9    138.3  False   True     3     0   0     0   0    3.5    0.9    1,672,212     n/a  23.5
+codex  q0      282.3   170.6    160.0   True   True     3     2   0     2   2    6.4    1.4    1,985,765     n/a 118.1
+codex  qp      253.9   161.0    153.7   True   True     3     1   2     3   3    4.6    0.6    2,402,038     n/a   5.4
+codex  qr      586.5   164.4    157.4   True   True     3     3   2     5   0   18.1    1.2    4,032,141     n/a  19.8
+  (* = a child has no usage record, so the total is incomplete)
+
+The oracle: per feature the behavior checks on the final tree / on the first branch alone (interference = alone passes, final fails); the whole tree's own-tests checks;
+            I1-I5 ('.' pass, 'X' fail); the final suite; what the re-test decided on each attempted integration, judged offline against the features' behavior
+host   cell        T1       T2       T3  whole interference  I1-I5   suite  candidates (green/defective, red/behavior-ok)
+claude s         ok/-     ok/-     ok/-  ok    -             .....     177  0 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: -
+claude qs       ok/ok     ok/-     ok/-  ok    -             .....     185  3 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: {'T2': 'the first workspace did not fork the original base', 'T3': 'the first workspace did not fork the original base'}
+claude q0       ok/ok    ok/ok    ok/ok  ok    -             .....     199  3 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: -
+claude qp       ok/ok    ok/ok    ok/ok  ok    -             .....     183  3 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: -
+claude qr       ok/ok    ok/ok    ok/ok  ok    -             .....     181  4 candidates: 0 green-defective, 1 red-behavior-ok   alone-skipped: -
+grok   s         ok/-     ok/-     ok/-  ok    -             .....     163  0 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: -
+grok   qs       ok/ok     ok/-     ok/-  ok    -             .....     170  3 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: {'T2': 'the first workspace did not fork the original base', 'T3': 'the first workspace did not fork the original base'}
+grok   q0       NO/NO    ok/ok    ok/ok  ok    -             .....     170  3 candidates: 3 green-defective, 0 red-behavior-ok   alone-skipped: -
+grok   qp       ok/ok    ok/ok    ok/ok  ok    -             .....     158  3 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: -
+grok   qr       NO/ok    NO/NO    ok/ok  ok    T1            .....     176  4 candidates: 3 green-defective, 1 red-behavior-ok   alone-skipped: -
+codex  s         ok/-     ok/-     ok/-  ok    -             .....     134  0 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: -
+codex  qs       ok/ok     ok/-     ok/-  NO    -             .....     138  3 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: {'T2': 'the first workspace did not fork the original base', 'T3': 'the first workspace did not fork the original base'}
+codex  q0       ok/ok    ok/ok    ok/ok  ok    -             .....     138  3 candidates: 0 green-defective, 0 red-behavior-ok   alone-skipped: -
+codex  qp       ok/ok    ok/ok    ok/ok  ok    -             .....     138  5 candidates: 0 green-defective, 1 red-behavior-ok   alone-skipped: -
+codex  qr       ok/ok    ok/ok    ok/ok  ok    -             .....     131  5 candidates: 0 green-defective, 2 red-behavior-ok   alone-skipped: -
+
+What really overlapped (the files two tasks' first attempts both changed)
+claude qs   {'T1+T2': ['CHANGELOG.md', 'docs/api.md', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'src/app.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'docs/api.md', 'src/app.js', 'src/store.js']}
+claude q0   {'T1+T2': ['CHANGELOG.md', 'docs/api.md', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'docs/api.md', 'src/app.js', 'src/store.js']}
+claude qp   {'T1+T2': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js']}
+claude qr   {'T1+T2': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js']}
+grok   qs   {'T1+T2': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js', 'test/store.test.js', 'test/validate.test.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'bin/tickets.js', 'docs/api.md', 'package.json', 'src/app.js', 'src/format.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js', 'test/api.test.js', 'test/format.test.js', 'test/persistence.test.js', 'test/query.test.js', 'test/store.test.js'], 'T2+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/operations.md', 'package.json', 'src/app.js', 'src/store.js', 'test/store.test.js']}
+grok   q0   {'T1+T2': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js', 'test/store.test.js', 'test/validate.test.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'docs/operations.md', 'package.json', 'src/app.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js', 'test/api.test.js', 'test/persistence.test.js', 'test/query.test.js', 'test/store.test.js'], 'T2+T3': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js', 'test/store.test.js']}
+grok   qp   {'T1+T2': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'docs/operations.md', 'package.json', 'src/app.js', 'src/format.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js']}
+grok   qr   {'T1+T2': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js', 'test/store.test.js', 'test/validate.test.js'], 'T1+T3': ['CHANGELOG.md', 'docs/api.md', 'docs/operations.md', 'package.json', 'src/app.js', 'src/format.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'docs/api.md', 'package.json', 'src/app.js', 'src/store.js']}
+codex  qs   {'T1+T2': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'bin/tickets.js', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/format.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js']}
+codex  q0   {'T1+T2': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'bin/tickets.js', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/format.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js']}
+codex  qp   {'T1+T2': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'bin/tickets.js', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/format.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js']}
+codex  qr   {'T1+T2': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js', 'src/tickets/validate.js'], 'T1+T3': ['CHANGELOG.md', 'README.md', 'bin/tickets.js', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/format.js', 'src/persistence.js', 'src/store.js', 'src/tickets/query.js'], 'T2+T3': ['CHANGELOG.md', 'README.md', 'docs/api.md', 'docs/decisions/README.md', 'package.json', 'src/app.js', 'src/store.js']}
+
+Where the whole run went, in seconds (launch to first start / first round / recovery after the first round / after the last merge or end)
+host   cell    whole  to 1st start  1st round  recovery    rest   recovery as a share of the first round
+claude s         330             4        316         0      10
+claude qs        542            16        511         9       5   0.02
+claude q0        234             8        144        76       6   0.53
+claude qp        314             7        161       138       8   0.85
+claude qr        495             8        154       327       6   2.12
+grok   s         818             6        805         0       7
+grok   qs       1204            12       1179         5       7   0.00
+grok   q0        810            29        561       214       7   0.38
+grok   qp       1969            30       1069       862       7   0.81
+grok   qr       1545            29        430      1080       6   2.51
+codex  s         406            10        378         0      18
+codex  qs        422            17        393         6       7   0.01
+codex  q0        282            14        171        91       7   0.53
+codex  qp        254            14        161        71       8   0.44
+codex  qr        587            16        164       397       9   2.42
+
+Seconds per attempt, by kind (n, median, shortest to longest), all trials of a host pooled
+  claude first n=9 median 96, 64 to 161; fix n=5 median 40, 14 to 147; redo n=5 median 86, 63 to 159
+  grok   first n=9 median 430, 237 to 1069; fix n=7 median 79, 31 to 790; redo n=6 median 246, 190 to 466
+  codex  first n=9 median 113, 87 to 160; fix n=5 median 27, 14 to 67; redo n=5 median 103, 68 to 194
+
+Ratios of the whole run (both trials valid and compliant, else n/c)
+claude Qs/S 1.64   Q0/S 0.71   Q0/Qs 0.43   Qp/Q0 1.34   Qr/Qp 1.57   Qp/S 0.95   Qr/S 1.50
+grok   Qs/S 1.47   Q0/S n/c   Q0/Qs n/c   Qp/Q0 n/c   Qr/Qp n/c   Qp/S 2.41   Qr/S n/c
+codex  Qs/S n/c   Q0/S 0.69   Q0/Qs n/c   Qp/Q0 0.90   Qr/Qp 2.31   Qp/S 0.62   Qr/S 1.44
+
+R16 (does fan-out of overlapping real features through a queue pay at this scale?): Q0/S per host, under 0.9 pays, over 1.0 does not, else inconclusive
+  claude: pays, grok: n/c, codex: pays  =>  inconclusive
+R16b (does concurrency itself pay inside the same workflow?): Q0/Qs per host, the same bands
+  claude: 0.43 pays
+  grok: n/c
+  codex: n/c
+
+R17 (observed workflow differences, not isolated costs): Qp minus Q0 and Qr minus Qp, seconds and as a fraction of Q0's slowest first attempt (both trials valid and compliant, else n/c)
+  claude Qp-Q0 +81 s = +0.56 of Q0's slowest first attempt (144 s)   Qr-Qp +180 s = +1.26 of Q0's slowest first attempt (144 s)
+  grok   Qp-Q0 n/c   Qr-Qp n/c
+  codex  Qp-Q0 -28 s = -0.18 of Q0's slowest first attempt (160 s)   Qr-Qp +333 s = +2.08 of Q0's slowest first attempt (160 s)
+
+R18 (the re-test as a gate): every attempted clean integration, its green or red re-test against the features' behavior judged offline, all q trials pooled
+  42 candidates; 6 red; 7 with a feature whose behavior fails
+  sensitivity (candidates whose behavior fails that were red): 1 of 7; precision (red candidates that had a behavior defect): 1 of 6
+  green defect: grok-q0 T1 attempt 1: T1: assignee-notified   (the feature also fails on its first branch alone: T1)
+  green defect: grok-q0 T2 attempt 2: T1: assignee-notified   (the feature also fails on its first branch alone: T1)
+  green defect: grok-q0 T3 attempt 3: T1: assignee-notified   (the feature also fails on its first branch alone: T1)
+  green defect: grok-qr T2 attempt 2: T2: import-5000-in-time   (the feature also fails on its first branch alone: T2)
+  green defect: grok-qr T1 attempt 3: T1: assignee-notified, T2: import-5000-in-time   (the feature also fails on its first branch alone: T2)
+  green defect: grok-qr T3 attempt 4: T1: assignee-notified, T2: import-5000-in-time   (the feature also fails on its first branch alone: T2)
+  red the features' behavior does not explain: claude-qr T1 attempt 1
+  red the features' behavior does not explain: grok-qr T1 attempt 1
+  red the features' behavior does not explain: codex-qp T1 attempt 1
+  red the features' behavior does not explain: codex-qr T1 attempt 1
+  red the features' behavior does not explain: codex-qr T3 attempt 1
+  interaction checks failing on final trees: none
+
+Predictions (registered in README Amendment A14; scored as written; a claim about every host is settled by one valid counterexample, and a pair that is not valid and compliant is n/c)
+  P70 HELD   every q0 trial has an integration failure and a fix attempt   [claude 2 failures, 2 fix  grok 3 failures, 3 fix  codex 2 failures, 2 fix]
+  P71 HELD   no task ends in mergefail and every q0 and qp trial exits within its timeout   [claude-q0 3 merged  grok-q0 3 merged  codex-q0 3 merged  claude-qp 3 merged  grok-qp 3 merged  codex-qp 3 merged]
+  P72 not scorable   Q0/S is below 1 on all three hosts   [claude 0.71  grok n/c  codex 0.69]
+  P73 not scorable   Q0/S is below 0.75 on all three hosts   [claude 0.71  grok n/c  codex 0.69]
+  P74 HELD   on every host the median re-test is under 6 s and kit_total_s is under 90 s in every q trial   [median re-test claude 0.9 s  grok 0.6 s  codex 1.0 s; largest kit_total_s 18.1]
+  P75 MISSED   in every qp trial the first attempted integration after the landing fails (a conflict or a red re-test)   [claude merged  grok conflict  codex redtest]
+  P76 not scorable   Qp is longer than Q0 on at least two hosts and under 1.6 times Q0 on all three   [claude 1.34  grok n/c  codex 0.90]
+  P77 not scorable   Qr is longer than Qp on all three hosts   [claude 1.57  grok n/c  codex 2.31]
+  P78 HELD   Qr is at least 1.3 times Qp on at least two hosts   [claude 1.57  grok n/c  codex 2.31]
+  P79 HELD   interference is observed in at least one of the nine fan-out trials (the three clauses as registered)   [as registered: grok-q0, grok-qr; reading that charges a green defect only to a feature that passes alone: grok-qr]
+  P80 HELD   Q0's input tokens exceed S's on at least two hosts (hosts with complete totals only, valid and compliant pairs)   [claude 3,445,796 vs 2,243,994  grok n/c  codex 1,985,765 vs 1,384,317]
+  P81 MISSED   at least thirteen of the fifteen trials are valid   [12 of 15; invalid: grok-q0, grok-qr, codex-qs]
+  P82 not scorable   Qs is longer than Q0 on all three hosts (Q0/Qs below 1)   [claude 0.43  grok n/c  codex n/c]
+  P83 MISSED   Qs/S is between 0.9 and 1.5 on every host   [claude 1.64  grok 1.47  codex n/c]
+  P84 HELD   no qs trial has an integration failure   [claude 0  grok 0  codex 0]

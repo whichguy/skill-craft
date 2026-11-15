@@ -1,0 +1,416 @@
+{
+ "source": "codex rollout files",
+ "agents": [
+  {
+   "id": "01a1e065-3110-70b1-ac92-cacb5331ca87",
+   "actor": "thread:31ca87",
+   "child": true,
+   "depth": 1,
+   "nickname": "Goodall",
+   "version": "v2",
+   "start": 1794766090.772,
+   "end": 1794766216.48,
+   "tokens": {
+    "input_tokens": 410509,
+    "cached_input_tokens": 376448,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 4959,
+    "reasoning_output_tokens": 110,
+    "total_tokens": 415468
+   },
+   "calls": [
+    {
+     "t": 1794766095.106,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --step T1"
+    },
+    {
+     "t": 1794766098.157,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "ls -a; cat README.md; cat src/server.js; ls test; ls bin; cat package.json"
+    },
+    {
+     "t": 1794766101.311,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat CONTRIBUTING.md src/store.js src/app.js src/tickets/validate.js src/tickets/query.js src/templates.js src/format.js bin/tickets.js test/helpers.js test/api.test.js"
+    },
+    {
+     "t": 1794766105.036,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat src/router.js src/persistence.js src/outbox.js; cat test/query.test.js test/store.test.js"
+    },
+    {
+     "t": 1794766132.703,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('src/store.js'); s=p.read_text().replace('[ticket.id, { ...ticket }]','[ticket.id, { assignee: null, ...ticket }]'); s=s.replace(\"status: 'open', created: at\", \"status: 'open', assignee: null, created: at\")\ns=s.replace(\"  // The worker's side of the outbox\", \"\"\"  /** Assign or unassign an active ticket, notifying each new assignee through the outbox. */\n  assign(id, assignee, actor) {\n    const ticket = this.find(id);\n    if (!['open', 'in_progress'].includes(ticket.status)) {\n      throw new ConflictError(`ticket ${id} is ${ticket.status} and cannot be assigned`);\n    }\n    const changes = ticket.assignee === assignee ? {} : { assignee: { from: ticket.assignee, to: assignee } };\n    return this.apply(ticket, 'ticket.assigned', changes, actor, (at) => {\n      if (assignee !== null) {\n        this.notify(ticket, 'ticket.assigned', assignee, at, `ticket.assigned:${ticket.id}:${this.audit.size}`);\n      }\n    });\n  }\n\n  // The worker's side of the outbox\"\"\"); p.write_text(s)\np=Path('src/tickets/validate.js'); s=p.read_text().replace('requester: 64','requester: 64, assignee: 64'); s=s.replace('module.exports = {', \"\"\"/** PUT /tickets/:id/assignee: { assignee }, with null to unassign. */\nfunction assignment(body) {\n  onlyFields(body, ['assignee']);\n  return body.assignee === null ? null : text(body, 'assignee', LIMITS.assignee);\n}\n\nmodule.exports = { assignment,\"\"\"); p.write_text(s)\np=Path('src/app.js'); s=p.read_text().replace(\"  router.post('/tickets/:id/transition'\", \"\"\"  router.put('/tickets/:id/assignee', async ({ req, params }) => {\n    const assignee = validate.assignment(await body(req));\n    return { status: 200, body: store.assign(params.id, assignee, actorOf(req)) };\n  });\n\n  router.post('/tickets/:id/transition'\"\"\"); p.write_text(s)\np=Path('src/tickets/query.js'); s=p.read_text().replace(\"const { STATUSES\", \"const { text, LIMITS } = require('./validate');\\nconst { STATUSES\"); s=s.replace('  return { filters, limit:', \"\"\"  if (params.has('assignee')) {\n    const assignee = params.get('assignee');\n    filters.assignee = assignee === '' ? null : text({ assignee }, 'assignee', LIMITS.assignee);\n  }\n  return { filters, limit:\"\"\").replace('return given.some(', 'return given.every('); p.write_text(s)\np=Path('src/templates.js'); s=p.read_text().replace(\"  'ticket.resolved':\", \"\"\"  'ticket.assigned': (event) => ({\n    subject: `[${event.ticket}] Assigned to you`,\n    body: `Ticket ${event.ticket} \"${event.data.title}\" was assigned to you.`,\n  }),\n  'ticket.resolved':\"\"\"); p.write_text(s)\np=Path('src/persistence.js'); s=p.read_text().replace('    requester: ticket.requester,','    requester: ticket.requester,\\n    assignee: ticket.assignee === undefined ? null : ticket.assignee,'); s=s.replace('  if (!isPriority(ticket.priority))', \"\"\"  if (ticket.assignee !== null) {\n    text(ticket.assignee, `${where}.assignee`, fail);\n    if (ticket.assignee !== ticket.assignee.trim() || ticket.assignee.length > 64 || /[\\\\u0000-\\\\u001f\\\\u007f]/.test(ticket.assignee)) {\n      throw fail(`${where}.assignee is not an agent name`);\n    }\n  }\n  if (!isPriority(ticket.priority))\"\"\"); p.write_text(s)\np=Path('src/format.js'); s=p.read_text().replace(\"['id', 'status', 'priority', 'title']\", \"['id', 'status', 'priority', 'title', 'assignee']\").replace(\"  { title: 'UPDATED'\", \"  { title: 'ASSIGNEE', value: (ticket) => ticket.assignee ?? '-' },\\n  { title: 'UPDATED'\").replace(\"['status', 'priority', 'requester', 'created', 'updated']\", \"['status', 'priority', 'requester', 'assignee', 'created', 'updated']\"); p.write_text(s)\np=Path('bin/tickets.js'); s=p.read_text().replace(\"arg === '--priority')\", \"arg === '--priority' || arg === '--assignee')\").replace('[--priority PRIORITY] [--raw]', '[--priority PRIORITY] [--assignee AGENT] [--raw]'); p.write_text(s)\nPY"
+    },
+    {
+     "t": 1794766174.435,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat > test/assignment.test.js <<'EOF'\n'use strict';\n\nconst { test } = require('node:test');\nconst assert = require('node:assert/strict');\nconst { ticketBody, withService } = require('./helpers');\nconst { manualClock } = require('../src/clock');\nconst { TicketStore } = require('../src/store');\nconst { toDocument, fromDocument } = require('../src/persistence');\nconst { rawLine, table, details } = require('../src/format');\nconst { render } = require('../src/templates');\nconst { deliverOutbox } = require('../src/worker');\nconst { silentLogger } = require('../src/log');\n\nconst path = '/tickets/T-0001/assignee';\n\ntest('assignment is audited, unchanged assignment is a no-op, and unassignment is silent', async () => {\n  await withService({}, async (api, service) => {\n    const created = (await api.post('/tickets', ticketBody())).body;\n    assert.equal(created.assignee, null);\n    const assigned = await api.put(path, { assignee: 'Dana' }, { 'X-Actor': 'sam' });\n    assert.equal(assigned.status, 200);\n    assert.equal(assigned.body.assignee, 'Dana');\n    const history = service.store.history(created.id);\n    assert.equal(history.at(-1).actor, 'sam');\n    assert.deepEqual(history.at(-1).changes, { assignee: { from: null, to: 'Dana' } });\n    const snapshot = service.store.snapshot();\n    assert.deepEqual((await api.put(path, { assignee: 'Dana' })).body, assigned.body);\n    assert.deepEqual(service.store.snapshot(), snapshot);\n    const events = service.store.outboxReport().pending.filter((event) => event.type === 'ticket.assigned');\n    assert.equal(events.length, 1);\n    assert.equal(events[0].to, 'Dana');\n    assert.match(render(events[0]).body, /assigned to you/);\n    assert.equal((await api.put(path, { assignee: null })).body.assignee, null);\n    assert.equal(service.store.outboxReport().pending.length, 2);\n    assert.deepEqual(service.store.history(created.id).at(-1).changes, { assignee: { from: 'Dana', to: null } });\n  });\n});\n\ntest('each reassignment notifies its recipient, even with earlier assignments pending', async () => {\n  await withService({}, async (api, service) => {\n    await api.post('/tickets', ticketBody());\n    for (const assignee of ['Dana', 'Sam', 'Dana']) await api.put(path, { assignee });\n    const events = service.store.outboxReport().pending.filter((event) => event.type === 'ticket.assigned');\n    assert.deepEqual(events.map((event) => event.to), ['Dana', 'Sam', 'Dana']);\n    await deliverOutbox({ store: service.store, notifier: service.notifier, log: silentLogger })();\n    assert.equal(service.store.outboxReport().pending.length, 0);\n    assert.equal(service.store.outboxReport().sent.length, 4);\n  });\n});\n\ntest('assignment validates names, null, required and unknown fields', async () => {\n  await withService({}, async (api) => {\n    await api.post('/tickets', ticketBody());\n    for (const body of [{}, { assignee: '' }, { assignee: ' ' }, { assignee: 42 }, { assignee: false },\n      { assignee: {} }, { assignee: 'x'.repeat(65) }, { assignee: 'a\\nb' }, { assignee: 'Dana', extra: true }]) {\n      const response = await api.put(path, body);\n      assert.equal(response.status, 400, JSON.stringify(body));\n      assert.equal(response.body.error.code, 'invalid');\n    }\n    assert.equal((await api.put(path, { assignee: 'x'.repeat(64) })).status, 200);\n    assert.equal((await api.put('/tickets/T-9999/assignee', { assignee: 'Dana' })).status, 404);\n  });\n});\n\ntest('only open and in-progress tickets permit assignment or unassignment', async () => {\n  await withService({}, async (api, service) => {\n    await api.post('/tickets', ticketBody());\n    await api.post('/tickets/T-0001/transition', { to: 'in_progress' });\n    assert.equal((await api.put(path, { assignee: 'Dana' })).status, 200);\n    for (const status of ['resolved', 'closed']) {\n      await api.post('/tickets/T-0001/transition', { to: status });\n      const snapshot = service.store.snapshot();\n      for (const assignee of [null, 'Sam', 'Dana']) {\n        const response = await api.put(path, { assignee });\n        assert.equal(response.status, 409);\n        assert.equal(response.body.error.code, 'conflict');\n      }\n      assert.deepEqual(service.store.snapshot(), snapshot);\n    }\n  });\n});\n\ntest('assignee filter composes with all other filters and pagination', async () => {\n  await withService({}, async (api) => {\n    for (const priority of ['high', 'low', 'high', 'high', 'high']) await api.post('/tickets', ticketBody({ priority }));\n    for (const id of ['T-0001', 'T-0002', 'T-0003', 'T-0004']) await api.put(`/tickets/${id}/assignee`, { assignee: 'Dana' });\n    await api.post('/tickets/T-0003/transition', { to: 'in_progress' });\n    const first = (await api.get('/tickets?assignee=Dana&status=open&priority=high&limit=1')).body;\n    assert.deepEqual(first.items.map((ticket) => ticket.id), ['T-0001']);\n    const second = (await api.get(`/tickets?assignee=Dana&status=open&priority=high&limit=1&cursor=${first.next}`)).body;\n    assert.deepEqual(second.items.map((ticket) => ticket.id), ['T-0004']);\n    assert.equal(second.next, null);\n    assert.deepEqual((await api.get('/tickets?assignee=')).body.items.map((ticket) => ticket.id), ['T-0005']);\n    assert.deepEqual((await api.get('/tickets?assignee=Sam')).body.items, []);\n    assert.deepEqual((await api.get('/tickets?status=open&priority=low')).body.items.map((ticket) => ticket.id), ['T-0002']);\n  });\n});\n\ntest('persistence retains assignment and upgrades old tickets to unassigned', () => {\n  const clock = manualClock();\n  const store = new TicketStore({ clock });\n  store.create(ticketBody(), 'sam');\n  store.assign('T-0001', 'Dana', 'sam');\n  const document = toDocument(store.snapshot(), clock.now());\n  const fail = (message) => new Error(message);\n  const restored = new TicketStore({ clock, state: fromDocument(document, fail) });\n  assert.equal(restored.get('T-0001').assignee, 'Dana');\n  assert.equal(restored.outboxReport().pending.at(-1).to, 'Dana');\n  delete document.tickets[0].assignee;\n  assert.equal(fromDocument(document, fail).tickets[0].assignee, null);\n  document.tickets[0].assignee = 'x'.repeat(65);\n  assert.throws(() => fromDocument(document, fail), /assignee/);\n});\n\ntest('CLI formatting includes assignee and preserves existing raw column positions', () => {\n  const ticket = { id: 'T-0001', status: 'open', priority: 'high', title: 'Printer', requester: 'sam', assignee: 'Dana', updated: '2026-01-01T00:00:00Z' };\n  assert.deepEqual(rawLine(ticket).split('\\t'), ['T-0001', 'open', 'high', 'Printer', 'Dana']);\n  assert.match(table([ticket]), /ASSIGNEE/);\n  assert.match(table([ticket]), /Dana/);\n  assert.match(details(ticket, []), /assignee\\s+Dana/);\n});\nEOF\nnpm test > test-output.txt 2>&1\n tail -n 15 test-output.txt"
+    },
+    {
+     "t": 1794766181.481,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat src/worker.js; cat docs/decisions/index.md; cat test/persistence.test.js | head -n 60; head -n 20 CHANGELOG.md; rg 'fail|pass' test-output.txt"
+    },
+    {
+     "t": 1794766186.68,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "ls docs/decisions; cat docs/api.md | head -n 100; cat docs/decisions/README.md"
+    },
+    {
+     "t": 1794766208.094,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('test/assignment.test.js'); s=p.read_text().replace('log: silentLogger })();','log: silentLogger }).run();'); p.write_text(s)\np=Path('package.json'); s=p.read_text().replace('\"version\": \"1.4.0\"','\"version\": \"1.5.0\"'); p.write_text(s)\np=Path('CHANGELOG.md'); s=p.read_text().replace('# Changelog\\n', '# Changelog\\n\\n## 1.5.0 (2026-11-15)\\n\\n- Assign active tickets with `PUT /tickets/:id/assignee`, recording changes and notifying each new assignee.\\n- Filter listings by assignee, combining every supplied filter.\\n- Persist assignments and show them in CLI listings; append assignee to raw output.\\n'); p.write_text(s)\np=Path('README.md'); s=p.read_text().replace('title. `scripts/weekly-report.js`', 'title, assignee (empty when unassigned). `scripts/weekly-report.js`'); p.write_text(s)\np=Path('docs/api.md'); s=p.read_text().replace('  \"status\": \"open\",', '  \"status\": \"open\",\\n  \"assignee\": null,'); s=s.replace('| `status` | `open`,', '| `assignee` | assigned agent name, or null when unassigned |\\n| `status` | `open`,'); s=s.replace('| `priority` | only tickets with this priority |', '| `priority` | only tickets with this priority |\\n| `assignee` | only this agent\u2019s tickets; empty (`assignee=`) selects unassigned tickets |'); s += '\\n### Assign a ticket: `PUT /tickets/:id/assignee`\\n\\nSend `{ \"assignee\": \"Dana\" }`, or `{ \"assignee\": null }` to unassign. Names are trimmed, non-empty single-line text of at most 64 characters. Answers 200 with the ticket. Only open and in-progress tickets allow this operation; other states answer 409 `conflict`. An unchanged assignment leaves no audit entry or notification and keeps `updated`. Each new assignment records `ticket.assigned` in the audit log and enqueues a notification to the new agent. Unassignment sends no notification.\\n'; p.write_text(s)\np=Path('docs/decisions/README.md'); p.write_text(p.read_text()+'| 9 | [Ticket assignment](0009-ticket-assignment.md) | Accepted |\\n')\nPath('docs/decisions/0009-ticket-assignment.md').write_text('''# 9. Ticket assignment\n\nStatus: Accepted\n\n## Context\n\nOperators need to assign active tickets and see ownership in the API and command line.\n\n## Decision\n\nTickets carry a nullable assignee. Older data files without the field load with null, retaining data file version 1.\nAssignment uses a dedicated PUT endpoint, only for open and in-progress tickets. The store audits each actual change\nand enqueues a notification for each new assignment, with a key based on the audit sequence so repeated assignments\nare independently delivered even while earlier notifications wait. Unassignment sends no notification.\n\nAssignee is appended after the four established raw CLI columns, preserving weekly report positions. Listing filters\ncombine with AND, including the assignee filter; an empty assignee query selects null.\n\n## Consequences\n\nExisting files remain readable. Consumers of raw output can read ownership in column five while the existing report\ncontinues to use the original four columns.\n''')\nPY\nnpm test > test-output.txt 2>&1\ntail -n 10 test-output.txt"
+    },
+    {
+     "t": 1794766214.224,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rm test-output.txt"
+    },
+    {
+     "t": 1794766214.224,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --step T1 --result '{\"answer\": 124, \"method\": \"Implemented audited assignment, notifications, filtering, persistence and CLI output; npm test passed all 124 tests.\"}'"
+    }
+   ]
+  },
+  {
+   "id": "01a1e067-413b-7581-90d7-31f7f1de28c2",
+   "actor": "thread:de28c2",
+   "child": true,
+   "depth": 1,
+   "nickname": "Descartes",
+   "version": "v2",
+   "start": 1794766225.789,
+   "end": 1794766336.831,
+   "tokens": {
+    "input_tokens": 380648,
+    "cached_input_tokens": 349312,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 4223,
+    "reasoning_output_tokens": 222,
+    "total_tokens": 384871
+   },
+   "calls": [
+    {
+     "t": 1794766230.506,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --step T2"
+    },
+    {
+     "t": 1794766233.457,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "pwd; rg --files"
+    },
+    {
+     "t": 1794766237.113,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat README.md src/app.js src/store.js src/persistence.js src/audit.js src/notifier.js src/outbox.js src/http.js src/tickets/validate.js test/helpers.js"
+    },
+    {
+     "t": 1794766241.088,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat CONTRIBUTING.md src/config.js test/http.test.js test/store.test.js src/errors.js"
+    },
+    {
+     "t": 1794766261.636,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('src/tickets/validate.js')\ns=p.read_text().replace('/** PATCH /tickets/:id:', '''/** POST /tickets/import: validate every item before the store changes anything. */\nfunction ticketImport(body) {\n  onlyFields(body, ['tickets']);\n  if (!Array.isArray(body.tickets)) throw new InvalidError('tickets must be an array');\n  if (body.tickets.length > 5000) throw new InvalidError('tickets must contain at most 5000 items');\n  return body.tickets.map((item, index) => {\n    try {\n      if (item === null || typeof item !== 'object' || Array.isArray(item)) {\n        throw new InvalidError('must be a ticket object');\n      }\n      return newTicket(item);\n    } catch (error) {\n      if (!(error instanceof InvalidError)) throw error;\n      throw new InvalidError(`tickets[${index}]: ${error.message}`);\n    }\n  });\n}\n\n/** PATCH /tickets/:id:''').replace('onlyFields, text, ticketPatch', 'onlyFields, text, ticketImport, ticketPatch')\np.write_text(s)\np=Path('src/app.js');s=p.read_text();s=s.replace(\"  router.get('/tickets/:id',\", \"\"\"  router.post('/tickets/import', async ({ req }) => {\n    // Bulk requests need room for 5000 maximum-length tickets, including escaped Unicode.\n    const input = validate.ticketImport(await readJson(req, { limit: Math.max(maxBodyBytes, 16 * 1024 * 1024) }));\n    return { status: 201, body: store.importTickets(input, actorOf(req)) };\n  });\n\n  router.get('/tickets/:id',\"\"\");p.write_text(s)\np=Path('src/store.js');s=p.read_text();s=s.replace('  create({ title, priority, requester }, actor) {', '''  create(input, actor) {\n    const ticket = this.createRecord(input, actor);\n    this.save();\n    return ticket;\n  }\n\n  /** Create a validated batch in isolation and persist once before publishing it. */\n  importTickets(inputs, actor) {\n    if (inputs.length === 0) return { created: 0, ids: [] };\n    const staged = new TicketStore({ clock: this.clock, state: this.snapshot() });\n    const ids = inputs.map((input) => staged.createRecord(input, actor).id);\n    if (this.persistence) this.persistence.save(staged.snapshot());\n    this.nextNumber = staged.nextNumber;\n    this.tickets = staged.tickets;\n    this.audit = staged.audit;\n    this.outbox = staged.outbox;\n    return { created: ids.length, ids };\n  }\n\n  /** Shared creation effects; callers decide when to commit the data file. */\n  createRecord({ title, priority, requester }, actor) {''');s=s.replace(\"    this.notify(ticket, 'ticket.created', ticket.requester, at);\\n    this.save();\", \"    this.notify(ticket, 'ticket.created', ticket.requester, at);\")\np.write_text(s)\nPY"
+    },
+    {
+     "t": 1794766298.762,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat > test/import.test.js <<'EOF'\n'use strict';\n\nconst { test } = require('node:test');\nconst assert = require('node:assert/strict');\nconst fs = require('node:fs');\nconst path = require('node:path');\nconst { performance } = require('node:perf_hooks');\nconst { withService, ticketBody } = require('./helpers');\nconst { TicketStore } = require('../src/store');\nconst { manualClock } = require('../src/clock');\nconst { createPersistence } = require('../src/persistence');\n\ntest('import creates tickets in order with the usual defaults, audit and delivered notifications', async () => {\n  await withService({}, async (api, service) => {\n    await api.post('/tickets', ticketBody());\n    const result = await api.post('/tickets/import', { tickets: [\n      { title: '  First  ', requester: 'one@example.com' },\n      ticketBody({ title: 'Second', requester: 'two@example.com', priority: 'urgent' }),\n    ] }, { 'x-actor': 'migration' });\n    assert.equal(result.status, 201);\n    assert.deepEqual(result.body, { created: 2, ids: ['T-0002', 'T-0003'] });\n    assert.equal((await api.get('/tickets/T-0002')).body.title, 'First');\n    assert.equal((await api.get('/tickets/T-0002')).body.priority, 'normal');\n    assert.equal((await api.get('/tickets/T-0003')).body.priority, 'urgent');\n    for (const id of result.body.ids) {\n      const [entry] = service.store.history(id);\n      assert.equal(entry.action, 'ticket.created');\n      assert.equal(entry.actor, 'migration');\n      assert.equal(entry.changes.status.to, 'open');\n    }\n    assert.equal(service.store.outboxReport().pending.length, 3);\n    await service.worker.tick();\n    assert.deepEqual(service.notifier.delivered.map((event) => event.ticket), ['T-0001', 'T-0002', 'T-0003']);\n    assert.equal((await api.post('/tickets', ticketBody())).body.id, 'T-0004');\n  });\n});\n\ntest('first invalid index is reported and no state or ids are consumed', async () => {\n  await withService({}, async (api, service) => {\n    await api.post('/tickets', ticketBody());\n    const before = service.store.snapshot();\n    for (const bad of [null, [], 4, 'ticket', {}, ticketBody({ priority: 'wrong' }), ticketBody({ extra: true })]) {\n      const result = await api.post('/tickets/import', { tickets: [ticketBody(), bad, null] });\n      assert.equal(result.status, 400);\n      assert.equal(result.body.error.code, 'invalid');\n      assert.match(result.body.error.message, /tickets\\[1\\]/);\n      assert.deepEqual(service.store.snapshot(), before);\n    }\n    const result = await api.post('/tickets/import', { tickets: [null, ticketBody()] });\n    assert.match(result.body.error.message, /tickets\\[0\\]/);\n    assert.equal((await api.post('/tickets', ticketBody())).body.id, 'T-0002');\n  });\n});\n\ntest('import rejects malformed envelopes and batches over 5000', async () => {\n  await withService({}, async (api, service) => {\n    for (const body of [{}, { tickets: null }, { tickets: {} }, { tickets: [], extra: 1 },\n      { tickets: Array(5001).fill(ticketBody()) }, '{', '[]']) {\n      assert.equal((await api.post('/tickets/import', body)).status, 400);\n      assert.equal(service.store.snapshot().tickets.length, 0);\n    }\n  });\n});\n\ntest('empty import succeeds without changing state', async () => {\n  await withService({}, async (api, service) => {\n    const before = service.store.snapshot();\n    const result = await api.post('/tickets/import', { tickets: [] });\n    assert.equal(result.status, 201);\n    assert.deepEqual(result.body, { created: 0, ids: [] });\n    assert.deepEqual(service.store.snapshot(), before);\n  });\n});\n\ntest('invalid actor rejects import without changes', async () => {\n  await withService({}, async (api, service) => {\n    const result = await api.post('/tickets/import', { tickets: [ticketBody()] }, { 'x-actor': 'x'.repeat(65) });\n    assert.equal(result.status, 400);\n    assert.equal(service.store.snapshot().tickets.length, 0);\n  });\n});\n\ntest('5000 tickets import in under ten seconds and survive restart with audit and outbox', async () => {\n  const dir = fs.mkdtempSync(path.join(process.cwd(), '.import-test-'));\n  const dataFile = path.join(dir, 'tickets.json');\n  try {\n    await withService({ dataFile }, async (api, service) => {\n      const tickets = Array.from({ length: 5000 }, (_, index) => ticketBody({ title: `Ticket ${index}` }));\n      const start = performance.now();\n      const result = await api.post('/tickets/import', { tickets });\n      assert.equal(result.status, 201);\n      assert.ok(performance.now() - start < 10_000);\n      assert.equal(result.body.created, 5000);\n      assert.equal(result.body.ids[0], 'T-0001');\n      assert.equal(result.body.ids[4999], 'T-5000');\n      const restored = TicketStore.open({ clock: service.clock || manualClock(), persistence: createPersistence(dataFile) });\n      assert.equal(restored.snapshot().tickets.length, 5000);\n      assert.equal(restored.audit.size, 5000);\n      assert.equal(restored.outboxReport().pending.length, 5000);\n      assert.equal(restored.get('T-5000').title, 'Ticket 4999');\n      assert.equal(restored.create(ticketBody(), 'system').id, 'T-5001');\n      const saved = fs.readFileSync(dataFile, 'utf8');\n      assert.equal((await api.post('/tickets/import', { tickets: [ticketBody(), null] })).status, 400);\n      assert.equal(fs.readFileSync(dataFile, 'utf8'), saved);\n    });\n  } finally {\n    fs.rmSync(dir, { recursive: true, force: true });\n  }\n});\n\ntest('import saves once and persistence failure leaves live state untouched', () => {\n  let saves = 0;\n  let fail = false;\n  const store = new TicketStore({ clock: manualClock(), persistence: { save() {\n    saves += 1;\n    if (fail) throw new Error('disk failure');\n  } } });\n  store.importTickets([ticketBody(), ticketBody()], 'system');\n  assert.equal(saves, 1);\n  const before = store.snapshot();\n  fail = true;\n  assert.throws(() => store.importTickets([ticketBody()], 'system'), /disk failure/);\n  assert.deepEqual(store.snapshot(), before);\n});\nEOF\nnpm test"
+    },
+    {
+     "t": 1794766305.065,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat package.json CHANGELOG.md docs/decisions/README.md docs/decisions/template.md"
+    },
+    {
+     "t": 1794766323.889,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('package.json');p.write_text(p.read_text().replace('\"version\": \"1.5.0\"','\"version\": \"1.6.0\"'))\np=Path('CHANGELOG.md');p.write_text(p.read_text().replace('# Changelog\\n','# Changelog\\n\\n## 1.6.0 (2026-11-15)\\n\\n- Import up to 5000 tickets atomically with `POST /tickets/import`, preserving creation order, audit entries and requester notifications.\\n'))\np=Path('docs/api.md');p.write_text(p.read_text()+'''\\n## Import tickets\\n\\n`POST /tickets/import` takes `{ \"tickets\": [...] }`, with up to 5000 objects in the same format as\\n`POST /tickets`. An empty array succeeds. Each item uses the usual field validation, trimming and priority default.\\nOn success the response is 201 with `{ \"created\": 2, \"ids\": [\"T-0001\", \"T-0002\"] }`, in input order.\\nAn invalid item returns 400 in the usual error envelope, with the first invalid zero-based index in the message\\n(for example, `tickets[1]: title must be a string`). The entire import is rejected without consuming ids,\\nadding audit entries or enqueueing notifications. Each successful creation has its usual audit entry and requester\\nnotification, with the actor from `X-Actor`.\\n\\nThe import body limit is the greater of `MAX_BODY_BYTES` and 16 MiB, to accommodate 5000 full-size ticket objects.\\nOther routes retain `MAX_BODY_BYTES`. The batch is saved once, so imports do not rewrite the data file per ticket.\\n''')\np=Path('README.md');p.write_text(p.read_text().replace('the largest request body accepted |','the largest request body accepted (imports allow at least 16 MiB) |'))\np=Path('docs/decisions/README.md');p.write_text(p.read_text()+'| 10 | [Atomic ticket imports](0010-atomic-ticket-imports.md) | Accepted |\\n')\nPath('docs/decisions/0010-atomic-ticket-imports.md').write_text('''# 10. Atomic ticket imports\n\nDate: 2026-11-15\nStatus: Accepted\n\n## Context\n\nMigration from the old tracker needs up to 5000 tickets per request, within ten seconds. Saving the entire state\nonce per ticket would make large imports unnecessarily expensive.\n\n## Decision\n\nWe validate all items in input order before changing the store. The store stages the batch with the same creation\nlogic as individual requests, then saves once and publishes the resulting state. Each ticket retains its own audit\nentry and outbox event. Invalid items report their zero-based index. The import route accepts at least 16 MiB;\nother routes retain their configured body limit.\n\n## Consequences\n\nValidation and persistence failures leave the live store unchanged. Imports use memory for a staged copy of state\nand perform a single data-file write. Existing file formats and notification delivery remain compatible.\n''')\nPY\nnpm test > test-results.txt\ntail -n 9 test-results.txt"
+    },
+    {
+     "t": 1794766328.585,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rm test-results.txt"
+    },
+    {
+     "t": 1794766333.706,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --step T2 --result '{\"answer\": 131, \"method\": \"Implemented atomic bulk imports and added behavior tests; npm test passed all 131 tests.\"}'"
+    }
+   ]
+  },
+  {
+   "id": "01a1e069-1261-7272-8e32-673c8e2d487c",
+   "actor": "thread:2d487c",
+   "child": true,
+   "depth": 1,
+   "nickname": "Mill",
+   "version": "v2",
+   "start": 1794766344.87,
+   "end": 1794766489.991,
+   "tokens": {
+    "input_tokens": 422669,
+    "cached_input_tokens": 399616,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 5827,
+    "reasoning_output_tokens": 299,
+    "total_tokens": 428496
+   },
+   "calls": [
+    {
+     "t": 1794766349.801,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --step T3"
+    },
+    {
+     "t": 1794766352.705,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "ls -la && cat README.md && cat package.json && cat src/server.js && ls bin test"
+    },
+    {
+     "t": 1794766356.174,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat CONTRIBUTING.md src/config.js src/store.js src/persistence.js src/tickets/query.js src/app.js"
+    },
+    {
+     "t": 1794766363.392,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat test/config.test.js test/helpers.js test/persistence.test.js bin/tickets.js docs/decisions/README.md && cat test/store.test.js"
+    },
+    {
+     "t": 1794766393.946,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('src/config.js');s=p.read_text().replace(\"    logRequests: env.LOG_REQUESTS === '1',\", \"    logRequests: env.LOG_REQUESTS === '1',\\n    dueTimes: env.DUE_TIMES === 'on',\\n    responseHours: Object.freeze(Object.fromEntries(Object.entries(require('./tickets/due').DEFAULT_HOURS).map(\\n      ([priority, hours]) => [priority, wholeNumber(env, `RESPONSE_HOURS_${priority.toUpperCase()}`, hours, { min: 1, max: 876000 })],\\n    ))),\");p.write_text(s)\nPath('src/tickets/due.js').write_text(\"\"\"'use strict';\n\nconst DEFAULT_HOURS = Object.freeze({ urgent: 4, high: 24, normal: 72, low: 168 });\n\nfunction dueAt(ticket, hours = DEFAULT_HOURS) {\n  return new Date(Date.parse(ticket.created) + hours[ticket.priority] * 3600000).toISOString();\n}\n\nmodule.exports = { DEFAULT_HOURS, dueAt };\n\"\"\")\np=Path('src/store.js');s=p.read_text().replace(\"const { AuditLog }\", \"const { DEFAULT_HOURS, dueAt } = require('./tickets/due');\\nconst { AuditLog }\")\ns=s.replace('constructor({ clock, persistence = null, state = null })', 'constructor({ clock, persistence = null, state = null, dueTimes = false, responseHours = DEFAULT_HOURS })').replace('    this.clock = clock;', '    this.clock = clock;\\n    this.dueTimes = dueTimes;\\n    this.responseHours = { ...DEFAULT_HOURS, ...responseHours };')\ns=s.replace('    this.audit = new AuditLog', '    for (const ticket of this.tickets.values()) {\\n      if (ticket.due === undefined) ticket.due = dueAt(ticket, this.responseHours);\\n    }\\n    this.audit = new AuditLog',1)\ns=s.replace('static open({ clock, persistence = null }) {\\n    return new TicketStore({ clock, persistence, state: persistence ? persistence.load() : null });', '''static open({ clock, persistence = null, ...options }) {\n    const state = persistence ? persistence.load() : null;\n    const store = new TicketStore({ clock, persistence, state, ...options });\n    // Persist the additive backfill before any requests can expose due times.\n    if (state && state.tickets.some((ticket) => ticket.due === undefined)) store.save();\n    return store;''')\ns=s.replace('return { ...this.find(id) };','return this.present(this.find(id));')\ns=s.replace('    const matching = [...this.tickets.values()]\\n      .filter((ticket) => matchesFilters(ticket, filters))', '''    const { overdue, ...ordinary } = filters;\n    const now = this.clock.now().getTime();\n    const matching = [...this.tickets.values()]\n      .filter((ticket) => matchesFilters(ticket, ordinary))\n      .filter((ticket) => !this.dueTimes || !overdue ||\n        (['open', 'in_progress'].includes(ticket.status) && Date.parse(ticket.due) < now))''')\ns=s.replace('page.items.map((ticket) => ({ ...ticket }))','page.items.map((ticket) => this.present(ticket))')\ns=s.replace('new TicketStore({ clock: this.clock, state: this.snapshot() })','new TicketStore({ clock: this.clock, state: this.snapshot(), dueTimes: this.dueTimes, responseHours: this.responseHours })')\ns=s.replace('    this.nextNumber += 1;', '    ticket.due = dueAt(ticket, this.responseHours);\\n    this.nextNumber += 1;')\ns=s.replace('return { ...ticket };', 'return this.present(ticket);')\ns=s.replace('  find(id) {', '''  present(ticket) {\n    const copy = { ...ticket };\n    if (!this.dueTimes) delete copy.due;\n    return copy;\n  }\n\n  find(id) {''')\np.write_text(s)\np=Path('src/server.js');s=p.read_text().replace('TicketStore.open({ clock, persistence })','TicketStore.open({ clock, persistence, dueTimes: config.dueTimes, responseHours: config.responseHours })');p.write_text(s)\np=Path('src/persistence.js');s=p.read_text().replace('    updated: ticket.updated,','    updated: ticket.updated,\\n    ...(ticket.due === undefined ? {} : { due: ticket.due }),').replace('  time(ticket.updated, `${where}.updated`, fail);','  time(ticket.updated, `${where}.updated`, fail);\\n  if (ticket.due !== undefined) time(ticket.due, `${where}.due`, fail);');p.write_text(s)\np=Path('src/tickets/query.js');s=p.read_text().replace('function parseListQuery(params) {','function parseListQuery(params, { dueTimes = false } = {}) {').replace('  const filters = {};', '''  const filters = {};\n  if (dueTimes && params.has('overdue')) {\n    if (!['true', 'false'].includes(params.get('overdue'))) throw new InvalidError('overdue must be true or false');\n    if (params.get('overdue') === 'true') filters.overdue = true;\n  }''');p.write_text(s)\np=Path('src/app.js');s=p.read_text().replace('parseListQuery(url.searchParams)','parseListQuery(url.searchParams, { dueTimes: store.dueTimes })');p.write_text(s)\nPY"
+    },
+    {
+     "t": 1794766431.918,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat > test/due.test.js <<'EOF'\n'use strict';\n\nconst { test } = require('node:test');\nconst assert = require('node:assert/strict');\nconst fs = require('node:fs');\nconst path = require('node:path');\nconst { manualClock } = require('../src/clock');\nconst { loadConfig } = require('../src/config');\nconst { TicketStore } = require('../src/store');\nconst { createPersistence, fromDocument } = require('../src/persistence');\nconst { ticketBody, withService } = require('./helpers');\n\ntest('response hours default by priority and configuration rejects unusable hours', () => {\n  assert.deepEqual(loadConfig({}).responseHours, { urgent: 4, high: 24, normal: 72, low: 168 });\n  assert.equal(loadConfig({ DUE_TIMES: 'on', RESPONSE_HOURS_URGENT: '2' }).dueTimes, true);\n  assert.equal(loadConfig({ RESPONSE_HOURS_URGENT: '2' }).responseHours.urgent, 2);\n  for (const value of ['0', '-1', 'NaN', '1.5', '999999999']) {\n    assert.throws(() => loadConfig({ RESPONSE_HOURS_HIGH: value }), /RESPONSE_HOURS_HIGH/);\n  }\n});\n\ntest('each priority gets its creation deadline and priority updates preserve it', () => {\n  const clock = manualClock('2025-01-01T00:00:00.000Z');\n  const store = new TicketStore({ clock, dueTimes: true });\n  for (const [priority, hours] of Object.entries(loadConfig({}).responseHours)) {\n    const ticket = store.create(ticketBody({ priority }), 'test');\n    assert.equal(Date.parse(ticket.due) - Date.parse(ticket.created), hours * 3600000);\n    clock.advance(1000);\n    assert.equal(store.update(ticket.id, { priority: 'low' }, 'test').due, ticket.due);\n  }\n});\n\ntest('off preserves API responses and ignores the formerly unknown overdue query', async () => {\n  await withService({}, async (api) => {\n    const { body: ticket } = await api.post('/tickets', ticketBody());\n    assert.equal('due' in ticket, false);\n    assert.equal('due' in (await api.get(`/tickets/${ticket.id}`)).body, false);\n    const listing = await api.get('/tickets?overdue=anything');\n    assert.equal(listing.status, 200);\n    assert.equal(listing.body.items.length, 1);\n    assert.equal('due' in listing.body.items[0], false);\n  });\n});\n\ntest('overdue uses strict past time, active states, other filters and cursor pages', async () => {\n  const clock = manualClock('2025-01-01T00:00:00.000Z');\n  await withService({ clock, dueTimes: true }, async (api, service) => {\n    for (let i = 0; i < 4; i++) await api.post('/tickets', ticketBody({ priority: 'urgent' }));\n    service.store.transition('T-0002', 'in_progress', 'test');\n    service.store.transition('T-0003', 'in_progress', 'test');\n    service.store.transition('T-0003', 'resolved', 'test');\n    service.store.transition('T-0004', 'in_progress', 'test');\n    service.store.transition('T-0004', 'resolved', 'test');\n    service.store.transition('T-0004', 'closed', 'test');\n    clock.advance(4 * 3600000);\n    assert.equal((await api.get('/tickets?overdue=true')).body.items.length, 0);\n    clock.advance(1);\n    const first = (await api.get('/tickets?overdue=true&limit=1')).body;\n    assert.deepEqual(first.items.map(t => t.id), ['T-0001']);\n    assert.ok(first.items[0].due);\n    assert.deepEqual((await api.get(`/tickets?overdue=true&limit=1&cursor=${encodeURIComponent(first.next)}`)).body.items.map(t => t.id), ['T-0002']);\n    assert.deepEqual((await api.get('/tickets?overdue=true&status=in_progress')).body.items.map(t => t.id), ['T-0002']);\n    assert.equal((await api.get('/tickets?overdue=bad')).status, 400);\n    assert.equal((await api.get('/tickets?overdue=false')).body.items.length, 4);\n  });\n});\n\ntest('legacy backfill persists before exposure, survives restart and hours changes, and keeps version 1', (t) => {\n  const dir = fs.mkdtempSync(path.join(__dirname, '.due-'));\n  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));\n  const file = path.join(dir, 'tickets.json');\n  const clock = manualClock('2025-01-01T00:00:00.000Z');\n  const persistence = createPersistence(file, { clock });\n  const original = new TicketStore({ clock, persistence });\n  original.create(ticketBody({ priority: 'urgent' }), 'test');\n  original.create(ticketBody({ priority: 'low' }), 'test');\n  const legacy = JSON.parse(fs.readFileSync(file));\n  legacy.tickets.forEach(ticket => delete ticket.due);\n  fs.writeFileSync(file, JSON.stringify(legacy));\n  const prepared = TicketStore.open({ clock, persistence });\n  const document = JSON.parse(fs.readFileSync(file));\n  assert.equal(document.version, 1);\n  assert.equal(document.tickets[0].due, '2025-01-01T04:00:00.000Z');\n  assert.equal(document.tickets[1].due, '2025-01-08T00:00:00.000Z');\n  assert.equal('due' in prepared.get('T-0001'), false);\n  assert.deepEqual(document.audit, legacy.audit);\n  assert.deepEqual(document.outbox, legacy.outbox);\n  const restarted = TicketStore.open({ clock, persistence, dueTimes: true, responseHours: { urgent: 1 } });\n  assert.equal(restarted.get('T-0001').due, document.tickets[0].due);\n  assert.equal(restarted.create(ticketBody({ priority: 'urgent' }), 'test').due, '2025-01-01T01:00:00.000Z');\n  assert.equal(restarted.importTickets([ticketBody({ priority: 'urgent' })], 'test').created, 1);\n  assert.equal(restarted.get('T-0004').due, '2025-01-01T01:00:00.000Z');\n  document.tickets[0].due = 'invalid';\n  assert.throws(() => fromDocument(document, message => new Error(message)), /due is not a time/);\n});\nEOF\nnpm test > test-results.txt 2>&1\ntail -15 test-results.txt"
+    },
+    {
+     "t": 1794766436.778,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rg --files docs test | head -50 && cat src/format.js && cat CHANGELOG.md | head -30 && cat docs/decisions/template.md"
+    },
+    {
+     "t": 1794766470.187,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('bin/tickets.js');s=p.read_text().replace(\"const { systemClock }\", \"const { loadConfig } = require('../src/config');\\nconst { systemClock }\").replace('function openStore(file) {','function openStore(file, env) {').replace('return new TicketStore({ clock: systemClock, state });', 'const { dueTimes, responseHours } = loadConfig(env);\\n  return new TicketStore({ clock: systemClock, state, dueTimes, responseHours });').replace('parseListQuery(options.query)', 'parseListQuery(options.query, { dueTimes: store.dueTimes })').replace('command(openStore(options.data), options, out)', 'command(openStore(options.data, env), options, out)');p.write_text(s)\np=Path('src/format.js');s=p.read_text().replace(\"return RAW_COLUMNS.map((column) => ticket[column]).join('\\\\t');\", \"return [...RAW_COLUMNS.map((column) => ticket[column]), ...(ticket.due ? [ticket.due] : [])].join('\\\\t');\").replace(\"  const rows = tickets.map\", \"  if (tickets.some((ticket) => ticket.due) && columns === TABLE_COLUMNS) {\\n    columns = [...columns, { title: 'DUE', value: (ticket) => ticket.due ?? '-' }];\\n  }\\n  const rows = tickets.map\").replace(\"  const width = Math.max(...fields\", \"  if (ticket.due) fields.push('due');\\n  const width = Math.max(...fields\");p.write_text(s)\np=Path('package.json');p.write_text(p.read_text().replace('\"version\": \"1.6.0\"','\"version\": \"1.7.0\"'))\np=Path('README.md');s=p.read_text().replace('| `LOG_REQUESTS`', '| `DUE_TIMES` | off | `on` exposes persisted due times and enables `?overdue=true` |\\n| `RESPONSE_HOURS_URGENT` | `4` | response hours for new urgent tickets |\\n| `RESPONSE_HOURS_HIGH` | `24` | response hours for new high tickets |\\n| `RESPONSE_HOURS_NORMAL` | `72` | response hours for new normal tickets |\\n| `RESPONSE_HOURS_LOW` | `168` | response hours for new low tickets |\\n| `LOG_REQUESTS`');s += '\\nResponse hours are whole numbers from 1 to 876000. They apply at creation only; priority changes and later configuration changes do not move a deadline. With `DUE_TIMES=on`, CLI output includes due times (raw output appends a sixth column).\\n';p.write_text(s)\np=Path('docs/api.md');s=p.read_text();s+='\\nWith `DUE_TIMES=on`, all ticket responses include `due`, an ISO UTC time fixed at creation. `GET /tickets?overdue=true` selects only open and in-progress tickets strictly past that time, combined with other filters before pagination. `overdue=false` applies no additional filter; other values return 400. With the flag off, due is omitted and the overdue parameter is ignored as before.\\n';p.write_text(s)\np=Path('docs/operations.md');s=p.read_text();s+='''\n## Due-time rollout and rollback\n\nBack up DATA_FILE before deployment. Start the new release with DUE_TIMES unset. At startup it backfills missing due times from each ticket's creation time and priority, saves the whole data file atomically, and only then accepts requests. It preserves existing deadlines, audit entries and notifications. New tickets also receive persisted deadlines while the flag is off. Review the file for due values before restarting with DUE_TIMES=on. A failed backfill save prevents startup, so no unsaved deadlines are served.\n\nSet RESPONSE_HOURS_URGENT, RESPONSE_HOURS_HIGH, RESPONSE_HOURS_NORMAL and RESPONSE_HOURS_LOW before preparation to choose the response hours. Later changes affect new tickets only. Due times use elapsed hours in UTC, independent of daylight saving time.\n\nFor rollback, stop this release and start 1.4.0 on the same data file. Its version stays 1; due is an additive ticket field and existing record shapes and enums stay unchanged, so 1.4.0 can load every ticket. It ignores due and can discard it on its next save. Keep the backup if original deadlines must be restored after an old-release write; on a later upgrade, missing deadlines will be backfilled from the then-current priority and response settings. Stop the service before any manual restore and never run two writers against one data file.\n''';p.write_text(s)\np=Path('CHANGELOG.md');p.write_text(p.read_text().replace('# Changelog', '# Changelog\\n\\n## 1.7.0 (2026-11-15)\\n\\n- Persist immutable due times with configurable response hours, backfill existing tickets before serving, and gate due output and overdue filtering behind DUE_TIMES=on. Keep the version 1 data format readable by 1.4.0.'))\np=Path('docs/decisions/0011-persisted-due-times.md');p.write_text('''# 11. Persisted due times\n\nDate: 2026-11-15\nStatus: Accepted\n\n## Context\n\nResponse promises must survive priority and configuration changes, and deployments need staged activation and rollback to 1.4.0.\n\n## Decision\n\nStore due as an optional additive ticket field in the existing version 1 document. Backfill missing values and save before serving. Compute new deadlines on creation, including imports, even while public output is disabled. Expose due and overdue selection only with DUE_TIMES=on. Preserve all existing audit and outbox semantics.\n\n## Consequences\n\nOperators can prepare the file before enabling the feature. Existing deadlines are never recomputed. The old reader accepts the document but may discard additive fields when saving; operators retain a backup for deadline-preserving rollback. Overdue filtering precedes pagination and uses the injected clock.\n''')\np=Path('docs/decisions/README.md');p.write_text(p.read_text()+'\\n| 11 | [Persisted due times](0011-persisted-due-times.md) | Accepted |\\n')\nPY\nnpm test > test-results.txt 2>&1\ntail -12 test-results.txt"
+    },
+    {
+     "t": 1794766482.267,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat >> test/due.test.js <<'EOF'\n\ntest('a failed backfill save aborts opening before deadlines can be served', () => {\n  const clock = manualClock();\n  const old = new TicketStore({ clock });\n  old.create(ticketBody(), 'test');\n  const state = old.snapshot();\n  state.tickets.forEach(ticket => delete ticket.due);\n  assert.throws(() => TicketStore.open({ clock, dueTimes: true, persistence: {\n    load: () => state,\n    save: () => { throw new Error('disk full'); },\n  } }), /disk full/);\n});\n\ntest('CLI due output is gated and raw columns keep their positions', () => {\n  const { rawLine, details } = require('../src/format');\n  const clock = manualClock();\n  const enabled = new TicketStore({ clock, dueTimes: true });\n  const ticket = enabled.create(ticketBody(), 'test');\n  assert.equal(rawLine(ticket).split('\\t')[5], ticket.due);\n  assert.match(details(ticket, []), /due\\s+\\d{4}-/);\n  const disabled = new TicketStore({ clock, state: enabled.snapshot() });\n  assert.equal(rawLine(disabled.get(ticket.id)).split('\\t').length, 5);\n  assert.doesNotMatch(details(disabled.get(ticket.id), []), /\\n  due/);\n});\nEOF\nnpm test > test-results.txt 2>&1\ntail -12 test-results.txt\nrm test-results.txt"
+    },
+    {
+     "t": 1794766488.2,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --step T3 --result '{\"answer\": 138, \"method\": \"Implemented immutable persisted deadlines, configurable hours, startup backfill, gated due output and overdue filtering; npm test passes 138 tests.\"}'"
+    }
+   ]
+  }
+ ],
+ "threads": 4,
+ "parent": {
+  "id": "01a1e065-051f-7380-886a-71b7867cc2d0",
+  "actor": "parent",
+  "child": false,
+  "depth": null,
+  "nickname": null,
+  "version": null,
+  "start": 1794766080.079,
+  "end": 1794766500.59,
+  "tokens": {
+   "input_tokens": 458386,
+   "cached_input_tokens": 440704,
+   "cache_write_input_tokens": 0,
+   "output_tokens": 1489,
+   "reasoning_output_tokens": 83,
+   "total_tokens": 459875
+  },
+  "calls": [
+   {
+    "t": 1794766086.153,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794766090.48,
+    "kind": "agent_tool",
+    "name": "spawn_agent",
+    "text": "{\"task_name\":\"t1\",\"fork_turns\":\"none\",\"message\":\"gAAAAABq-fUKPmoks-4eoKZ-qaLNSSzeyAd8LvTB8LnCDDMQbDu3nMYy7QT--ZM2qPtGw1Hw6vmYoHbnxbrqUpBy5QX4o53k8cq6k-7VFAdR8Ct"
+   },
+   {
+    "t": 1794766092.425,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766104.701,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766116.565,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766128.57,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766140.284,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766152.644,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794766205.251,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766221.147,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794766225.719,
+    "kind": "agent_tool",
+    "name": "spawn_agent",
+    "text": "{\"task_name\":\"t2\",\"fork_turns\":\"none\",\"message\":\"gAAAAABq-fWRWUzwfWBVP1sM6GDNiJKJ_IPKQ-umI401q3oyJw9gYDn7guwyRwTsUlrR--2nSE6uUU1eWX4iDO_Fb7rzKHapwWW3ZWT6xC3We8m"
+   },
+   {
+    "t": 1794766228.563,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794766281.213,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766293.232,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794766339.938,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794766344.799,
+    "kind": "agent_tool",
+    "name": "spawn_agent",
+    "text": "{\"task_name\":\"t3\",\"fork_turns\":\"none\",\"message\":\"gAAAAABq-fYI_pcLTmKhkKYUZxt-D1YcEXWFJQxroVzyNt7DUvqQP9TXpgHXGc7NRewUVUGXg3Rx1JaIeE5nWnkhVfTty5n9UwPvXfFl5ftbMrf"
+   },
+   {
+    "t": 1794766346.795,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794766398.867,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766402.83,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794766454.565,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794766467.098,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794766492.692,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794766498.48,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py verify --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run"
+   },
+   {
+    "t": 1794766498.48,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/dagkit.py outcome --run /Users/dadleet/e17-runs-20261115/e17-codex-qs/work/run --step T3"
+   }
+  ]
+ }
+}
