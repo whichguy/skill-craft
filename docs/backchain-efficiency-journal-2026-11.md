@@ -403,3 +403,24 @@ Plan: release A ships the defect fixes (ShipLoop's Backchain-child packets and c
 Plan Dispatcher's exporter pointer, finish/preservation/export checks) with one live ShipLoop round. Release B ships the
 read and card cleanup and the input-only bounds once cohort B (40 runs plus a 4-run pilot and 2 targeted checks)
 adopts them under the new rule. Rubric-eval's rule and the cohort tooling land when ready.
+
+## Round 11 — release A re-scoped after two weeks, and its one live round (2026-11-15)
+
+Question (owner, 2026-11-15): "we might need to rebase and reconsider where we left off on this." The branch was rebased
+onto the 2026-11-15 origin/main. The owner chose to ship W3 (toolkit checks), W2 (Plan Dispatcher's
+exporter pointer) and a rebuilt W1 (ShipLoop's Backchain child on 0.7.0's own route) as release A, with its one live
+round. Cohort B and the rubric-eval rule (W7) are shelved; W4, W5 and W8 wait with them. Release A's commits:
+76cc10ba3f19e512ac4fed0e041aa4082f9a0006 (W3), 0ec551ccb52f9c3bb1e1624735327d9944ad441d (W2),
+3f9554a2b6820b65a3511f7c5ad3137dfa75c594 (W1) and d69438aae189e00c9cd4ab269e1bee7f0caeb11c (review round 1's two
+material findings: the one-pass item did not say `--passes one`, and the start named only part of `prepare`). Main was
+then merged in, at f896ec7a788913429a843e61b42ecfcf866d23d3.
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R11-1 | Given the rebuilt packet, a Codex Terra xhigh host ran Backchain's route itself. It ran `prepare` (`--run` the printed run directory, `--request`, `--caller`, `--binding`, `--passes one`), then `freeze`, `lenses`, `record`, `check` and `finish`, and hand-wrote no contract or receipt. `freeze` wrote gate 0. The child converged at its first review (trivial, one advisory finding) with a complete 2-step plan. R10-12's converge defect is fixed by text and hermetic tests only (D-D); no live run measures converge. | firm (n = 1, one host) | `test/shiploop_e2e/LEARNINGS.md` entry of 2026-11-15; the run's `events.jsonl` tool calls and `RUN/backchain/<action>/run/` |
+| R11-2 | Release A's exporter reads a real 0.7.0 run: one "Plan loop" document (1 pass, complete, option `one`, candidate match yes, 4 min accept to accept) and no duplicate graph-check document. | firm (n = 1) | the run's `review-export/docs/backchain/` |
+| R11-3 | The delivery passed all 5 held-out checks of `csv-report` in 1,479 s. The plan stage took 222 s with 20 tool calls; Codex reports no per-stage tokens. One run gives no comparison with earlier plan stages. | firm (n = 1); exploratory as a cost figure | `metrics.json`; `baselines.jsonl` row of 2026-11-15 |
+
+Release order from here: the LEARNINGS commit (the last commit touching `skills/shiploop/` or `changes/shiploop/`), the
+landing gate, then the push, `scripts/release.py`, CI and the host refresh. The gate passed: main's only commit since the
+tested merge is b0285785374570c88f534480cf361778030018ac, which is docs-only.
