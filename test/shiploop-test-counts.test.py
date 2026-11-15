@@ -248,8 +248,8 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual((mixed["status"], mixed["counts"]["ran"], mixed["counts"]["failed"]), ("red", 1, 1))
         self.assertEqual((clean["status"], clean["counts"]["ran"], clean["counts"]["failed"]),
                          ("passes-on-base", 1, 0))
-        for row, earlier in ((dict(row, suite="regression"), False), (row, True)):
-            verdict = test_loop._judge_base(row, 0, output, [], [], [], earlier_step=earlier)
+        for base_row, earlier in ((dict(row, suite="regression"), False), (row, True)):
+            verdict = test_loop._judge_base(base_row, 0, output, [], [], [], earlier_step=earlier)
             self.assertEqual((verdict["status"], verdict["counts"]["ran"], verdict["counts"]["failed"]),
                              ("counted", 1, 1))
         row = {"command": "wrapped-test", "suite": "focused", "ids": ["missing"]}

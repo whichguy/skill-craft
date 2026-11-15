@@ -2847,10 +2847,10 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                 before = (self.run_dir / "state.md").read_bytes()
                 answer_key = shiploop_check.answer_key
 
-                def checked_key(*args, **kwargs):
-                    current = answer_key(*args, **kwargs)
+                def checked_key(*args, bound_answer_key=answer_key, bound_answer=answer, **kwargs):
+                    current = bound_answer_key(*args, **kwargs)
                     self.assertEqual({k: v for k, v in current.items() if k != "test_schema"},
-                                     {k: v for k, v in answer["key"].items() if k != "test_schema"})
+                                     {k: v for k, v in bound_answer["key"].items() if k != "test_schema"})
                     self.assertEqual(current["test_schema"], "shiploop-test-loop/v2")
                     return current
 
