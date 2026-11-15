@@ -247,14 +247,16 @@ session that ends while the run is still active is resumed (`--max-resumes`).
 **Grok's headless refusals.** Under `--permission-mode auto`, Grok refuses a shell command whose written files it
 cannot resolve, and a headless run has nobody to approve it, so the refusal ends the session
 (`docs/experiments/grok-headless-refusals-20261115`). Before each Grok session the harness installs
-`grok_preempt.py` in the run's profile as a PreToolUse hook on the shell tool. The hook denies, with a reason the
-model reads, the three shapes Grok 1.0.77 refuses: a `mkdir`, `touch`, `rm`, `cp`, `mv`, `ln` or `tee` target that
-holds `$VAR`, `${...}` or `$(...)`; a relative write after a `cd` to another folder; and two backticks together
-inside double quotes. The turn goes on and the model rewrites the command. `result.json` records the hook as
-`preempt`, with its denials, and the baseline row as `preempted_tool_calls`. A refusal the hook does not foresee
-still ends the session; the prompt that resumes it then names the refused command and the rewrite. The hook's rule is
-calibrated on one Grok build (`grok_preempt.CALIBRATED_BUILD`): when Grok updates, rerun the experiment's
-`probe.py` cases on the new build before moving the constant.
+`grok_preempt.py` in the run's profile as a PreToolUse hook on the shell tool, for an `auto` launch only. The hook
+denies, with a reason the model reads, the three shapes its rule predicts Grok 1.0.77 refuses: a `mkdir`, `touch`,
+`rm` or `tee` operand, or a `cp`, `mv` or `ln` destination, that holds `$VAR`, `${...}` or `$(...)`; a relative write
+or write redirect after a `cd` away from the session's folder; and an empty backtick substitution inside double quotes
+or an unquoted here-document. The turn goes on, and the model can rewrite the command. Every other call gets no
+opinion; the hook never replaces a call's input. `result.json` records the hook as `preempt`, with its denials, and
+the baseline row as `preempted_tool_calls`. A refusal the hook does not foresee still ends the session; the prompt
+that resumes it then names the refused command and the rewrite. The hook's rule is calibrated on one Grok build
+(`grok_preempt.CALIBRATED_BUILD`): when Grok updates, rerun the experiment's `probe.py` cases on the new build before
+moving the constant.
 
 ### What ShipLoop did
 

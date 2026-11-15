@@ -1283,13 +1283,17 @@ target reuse; a fresh product folder is not a deployed-system reset.
   there, and the Stop hook is skipped, so the keepalive cannot hold the turn.
   Before a Grok session starts, the harness installs `grok_preempt.py` in the
   run's throwaway profile, beside the keepalive's hooks, as a PreToolUse hook on
-  the shell tool. It denies the shapes Grok's check refuses, with a reason the
-  model reads and the rewrite, so the turn goes on; it approves, rewrites and
-  delays nothing, and every other call, tool and failure of its own gets no
-  opinion. Its rule is the probed one (`CALIBRATED_BUILD`, pinned against the
-  probe sessions in `docs/experiments/grok-headless-refusals-20261115`), so a
-  new Grok build is recalibrated with those probes before the constant moves;
-  a launch on another build prints a notice and records `build_matches` false.
+  the shell tool, and only for an `auto` launch. It denies the shapes its rule
+  predicts Grok's check refuses, with a reason the model reads and the rewrite,
+  so the turn goes on. It returns a deny or no opinion and never replaces a
+  call's input: every other call, every other tool, any mode but `auto` and any
+  failure of its own get no opinion, and the registered command ends in
+  `|| true`, so a script that cannot start is not read as a deny. Its rule is
+  the probed one (`CALIBRATED_BUILD`, pinned against the probe sessions in
+  `docs/experiments/grok-headless-refusals-20261115`); outside that corpus its
+  agreement with Grok is unverified, so a new Grok build is recalibrated with
+  those probes before the constant moves, and a launch on another build prints
+  a notice and records `build_matches` false.
   `result.json` records `preempt` (installed, kept from an earlier launch, the
   script's sha256, the calibrated build, and the denials by shape), and the
   baseline row `preempted_tool_calls`, so a run with fewer sessions says why. A
@@ -1302,10 +1306,13 @@ target reuse; a fresh product folder is not a deployed-system reset.
   When the last Grok session ended on a refused shell call, the prompt that
   continues it (the resume loop's and `--resume-run`'s) adds a note after the
   resume prompt: the refused command's first 200 characters, not to run it
-  again as written, and the same rewrite the hook gives. Any other ending leaves
-  the prompt as it was. Basis: 88 of 176 refusals were followed by another
-  within 10 shell calls, because the resumed model was not told why its session
-  ended.
+  again as written, and the same rewrite the hook gives. The note reads only the
+  last launch's events (from `sessions.jsonl`), only for a Grok launch, and only
+  a tool update whose whole text is Grok's refusal, and not when that call later
+  completed or the session ended normally; any other ending leaves the prompt as
+  it was. Basis: under the old resume prompt, which did not say why the session
+  ended, 88 of 176 refusals were followed by another within 10 shell calls. The
+  note is meant to reduce those repeats; its effect is not measured.
 - **A record of the machine, of the product at stop or of the ending is not a
   verdict** (amended 2026-10-09; anchors S-12 and "Concurrency must not change a
   verdict" for `environment`, S-11 for `product_at_stop`, S-14 for

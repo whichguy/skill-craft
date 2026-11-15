@@ -94,7 +94,7 @@ Of 176 refusals in paired runs, 88 were followed by another refusal within the n
 
 - 1.0.46: flagged / not a floor refusal 20; not flagged / not a floor refusal 670
 - 1.0.62: flagged / floor refusal 5; flagged / not a floor refusal 9; not flagged / not a floor refusal 1334
-- 1.0.70: flagged / floor refusal 110; flagged / not a floor refusal 2; not flagged / floor refusal 15; not flagged / not a floor refusal 7647
+- 1.0.70: flagged / floor refusal 110; not flagged / floor refusal 15; not flagged / not a floor refusal 7649
 - 1.0.77: flagged / floor refusal 28; not flagged / not a floor refusal 2155
 
-Refusal to the next session's first tool call: median 10.9 s, 90th percentile 36.8 s, max 136.1 s (n = 166).
+Refusal to the run's next permission decision more than 0.5 s later (the resumed session's first decided call): median 10.9 s, 90th percentile 36.8 s, max 136.1 s (n = 166).

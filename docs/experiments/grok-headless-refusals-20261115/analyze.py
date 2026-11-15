@@ -16,7 +16,8 @@ Each call's ``floor_shapes`` come from the harness's own rule (test/shiploop_e2e
 hook applies. The stage at a refusal is the ShipLoop stage in progress at the decision's time: the first history entry of the run's
 ``state.md`` whose accept time (``timeline.json``) is at or after it, else the stage the run was at when it stopped.
 
-Usage: analyze.py OUT_DIR [RUN_ROOT ...]   (default roots: ~/e2e-runs*). Writes OUT_DIR/calls.jsonl (one row per shell
+Usage: analyze.py OUT_DIR [--until YYYY-MM-DD] [RUN_ROOT ...]   (default roots: ~/e2e-runs*; --until keeps the runs whose
+stream was last written on or before that day: the committed evidence uses 2026-11-14, the corpus of the diagnosis). Writes OUT_DIR/calls.jsonl (one row per shell
 call: run, decision, wait_ms, command, stage, features) and OUT_DIR/runs.json (one row per run).
 """
 
@@ -230,11 +231,18 @@ def run_info(folder: Path) -> dict:
 
 
 def main() -> int:
-    out = Path(sys.argv[1])
-    roots = sys.argv[2:] or sorted(glob.glob(os.path.expanduser("~/e2e-runs*")))
+    arguments = sys.argv[1:]
+    out = Path(arguments.pop(0))
+    until = None
+    if arguments[:1] == ["--until"]:
+        until = arguments[1]
+        arguments = arguments[2:]
+    roots = arguments or sorted(glob.glob(os.path.expanduser("~/e2e-runs*")))
     out.mkdir(parents=True, exist_ok=True)
     runs, rows = [], []
     for folder in run_folders(roots):
+        if until and dt.datetime.fromtimestamp((folder / "events.jsonl").stat().st_mtime).strftime("%Y-%m-%d") > until:
+            continue  # written after the corpus closed (a live run, or one started after the diagnosis)
         started = launches(folder)
         if not started or any(launch["host"] != "grok" for launch in started):
             continue  # not a Grok run, or a mixed-host run

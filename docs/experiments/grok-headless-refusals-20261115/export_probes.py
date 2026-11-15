@@ -6,6 +6,9 @@ Reads PROBE_ROOT/<batch>/results.jsonl (probe.py's output) and writes EVIDENCE_D
 the case, the mode, the allow rules and hook, the command (the case folder written as {ROOT}), whether the model ran it
 as asked, Grok's permission decision and wait, how the turn ended, the hook's deny if any, and the classifier verdict line.
 Nothing else from the debug log is kept: it also holds the account's sign-in response.
+It also writes EVIDENCE_DIR/payloads.jsonl from PROBE_ROOT/<batch>/<session>/payload.jsonl (record_payload.py's log,
+one row per shell call): the session folder (it names the launch's permission mode) and the event's hookEventName,
+toolName and permissionMode. The folders it recorded (cwd, workspaceRoot) are not kept.
 """
 
 from __future__ import annotations
@@ -63,7 +66,16 @@ def main() -> int:
     with open(evidence / "probes.jsonl", "w") as handle:
         for row in rows:
             handle.write(json.dumps(row) + "\n")
-    print(f"{len(rows)} probe sessions")
+    payloads = []
+    for recorded in sorted(root.glob("*/*/payload.jsonl")):
+        for line in recorded.read_text().splitlines():
+            event = json.loads(line)
+            payloads.append({"batch": recorded.parent.parent.name, "session": recorded.parent.name,
+                             **{key: event.get(key) for key in ("hookEventName", "toolName", "permissionMode")}})
+    with open(evidence / "payloads.jsonl", "w") as handle:
+        for row in payloads:
+            handle.write(json.dumps(row) + "\n")
+    print(f"{len(rows)} probe sessions, {len(payloads)} recorded hook payloads")
     for row in rows:
         print(f"{row['batch']:16} {row['case']:26} hook={int(row['preempt_hook'])} allow={len(row['allow'])} "
               f"{str(row['decision']):10} {str(row['wait_ms']):>6} ms  {row['turn']}")
