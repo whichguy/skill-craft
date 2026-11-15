@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -141,6 +142,37 @@ ARCHITECTURES = {
     ),
 }
 ENVIRONMENT = "# Environment\n\n## Runtime\nNode.js and the standard library only.\n"
+
+# serve.py gives each candidate a port with free_port() (bind to port 0, read the number, close the socket) and the candidate binds it a
+# moment later. Another process of the machine can bind that number in between: the candidate then exits before it listens (serve.py says
+# "the candidate exited (rc 1) before it listened on PORT=N", and its stderr holds `Error: listen EADDRINUSE`), or the ownership check names
+# the other listener. That failed one check of one CI run of the ticket-comments suite (docs/experiments/serve-port-race-20261115/, journal
+# F23). A collision touches one server once, so a variant whose own checks fail a different set than its defect declares is graded again,
+# alone, until a grade agrees, at most REGRADES more times, and the last grade stands. A defect read by the wrong check disagrees every time
+# and fails after REGRADES + 1 grades. The first own check of each link is the delivery's own `node --test`, which starts servers of its own
+# on ports the machine may hold too (the brownfield-tickets calibration regrades the same way, docs/experiments/brownfield-flake-20261101/),
+# so the regrade covers it as well. The variants' hidden acceptance is graded once: it goes through quality.serve_on_free_port, which starts
+# a server whose port was taken again on another port, and through the listener-ownership check. checks/serve.py itself is not changed: it
+# scores live deliveries too.
+REGRADES = 3
+
+
+def settle(grade, agrees_now, regrades: int = REGRADES):
+    """``grade()`` once, and again (alone) while ``agrees_now(result)`` is false, at most `regrades` more times: the last result stands."""
+    result = grade()
+    for _ in range(regrades):
+        if agrees_now(result):
+            break
+        result = grade()
+    return result
+
+
+def own_checks(work: Path, checks: list[str], expected: set[int]) -> tuple[set[int], list[dict]]:
+    """The positions of the own `checks` that fail on `work`, and the checks' rows, graded again until the positions are the `expected` ones."""
+    def once() -> tuple[set[int], list[dict]]:
+        rows = run.run_checks(work, checks, timeout=240)
+        return {i for i, row in enumerate(rows) if not row["pass"]}, rows
+    return settle(once, lambda graded: graded[0] == expected)
 
 
 def load_module(path: Path, name: str):
@@ -347,9 +379,10 @@ class CalibrationTest(Isolated):
             for case in CASE_NAMES:
                 for variant in BUILDERS[case].VARIANTS:
                     work = BUILDERS[case].build(cls.root / case / variant, variant)
-                    rows = run.run_checks(work, CASES[case]["checks"], timeout=240)
-                    own = {index for index, result in enumerate(rows) if not result["pass"]}
-                    note = {f"own[{index}]": f"exit {result['returncode']}: {result['output'][:400]}"
+                    own, rows = own_checks(work, CASES[case]["checks"], EXPECTED[case][variant][0])
+                    # A failure the variant's defect does not explain is told with the check's own output, all of it (run_checks keeps its
+                    # last 2000 characters), so that a candidate that exited before it listened names its error at the end of that text.
+                    note = {f"own[{index}]": f"exit {result['returncode']}: {result['output']}"
                             for index, result in enumerate(rows) if not result["pass"]}
                     block = hidden(work, cls.root / "logs" / case / variant, case)
                     if not block.get("observed"):
@@ -500,6 +533,74 @@ class ChainRunTest(Isolated):
                               env={"PRIOR_WORK": str(prior)})
         self.assertEqual([row["pass"] for row in rows], [False, True, True, True])
         self.assertIn("missing prior file README.md", rows[0]["output"])
+
+
+class SettleTest(unittest.TestCase):
+    """The regrade of a variant whose own checks failed a set its defect does not declare (no node needed)."""
+
+    @staticmethod
+    def graders(*grades):
+        calls = []
+
+        def again():
+            calls.append(len(calls))
+            return grades[len(calls) - 1]
+        return again, calls
+
+    def test_a_grade_that_agrees_is_not_graded_again(self) -> None:
+        again, calls = self.graders({1, 2})
+        self.assertEqual(settle(again, lambda grade: grade == {1, 2}), {1, 2})
+        self.assertEqual(len(calls), 1)
+
+    def test_a_collision_is_graded_again_once_and_the_agreeing_grade_stands(self) -> None:
+        again, calls = self.graders({0, 1, 2}, {1, 2}, "never read")
+        self.assertEqual(settle(again, lambda grade: grade == {1, 2}), {1, 2})
+        self.assertEqual(len(calls), 2, "grading stops at the first grade that agrees")
+
+    def test_a_defect_read_by_the_wrong_check_is_graded_every_time_and_the_last_grade_stands(self) -> None:
+        # The cost of the rule: only after REGRADES more grades does the suite say that a variant really disagrees.
+        again, calls = self.graders({1}, {2}, {3}, {4}, "never read")
+        self.assertEqual(settle(again, lambda grade: False), {4})
+        self.assertEqual(len(calls), REGRADES + 1)
+
+
+@needs_servers
+class RegradeRouteTest(Isolated):
+    """The regrade through the real serve.py: a candidate that is handed a port another socket holds fails each check that starts one."""
+
+    def holder(self) -> socket.socket:
+        """A listening socket on every address, as a candidate's own, so that the candidate's bind of the same port number fails."""
+        sock = socket.socket(socket.AF_INET6 if socket.has_ipv6 else socket.AF_INET)
+        self.addCleanup(sock.close)
+        try:
+            if sock.family == socket.AF_INET6:
+                sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            sock.bind(("::" if sock.family == socket.AF_INET6 else "0.0.0.0", 0))
+        except OSError as why:
+            self.skipTest(f"cannot hold a port on every address here: {why}")
+        sock.listen()
+        return sock
+
+    def test_a_first_grade_that_met_a_taken_port_is_graded_again_and_the_reference_passes(self) -> None:
+        work = teams.build(self.tmp / "reference", "reference")
+        holder = self.holder()
+        port = holder.getsockname()[1]
+        real, first = run.run_checks, []
+
+        def grade(folder, checks, **kwargs):
+            if not first:  # serve.py is handed the held port in every check of the first grade (its own regression's pin)
+                first.extend(real(folder, checks, env={"E2E_SERVE_PORT": str(port)}, **kwargs))
+                return first
+            holder.close()
+            return real(folder, checks, **kwargs)
+
+        with mock.patch.object(run, "run_checks", grade):
+            failed, rows = own_checks(work, CASES["user-teams"]["checks"], set())
+        # The first own check is the delivery's own node --test, which does not start a candidate through serve.py: it passes.
+        self.assertEqual([row["pass"] for row in first], [True, False, False], first)
+        self.assertTrue(all(str(port) in row["output"] for row in first if not row["pass"]), first)
+        self.assertEqual(failed, set(), [row["output"] for row in rows])
+        self.assertTrue(all(row["pass"] for row in rows))
 
 
 if __name__ == "__main__":

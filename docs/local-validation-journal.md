@@ -574,7 +574,8 @@ that inventory exists to catch the code under test writing under the product, `.
     the setting. That is one pass, and `full / shiploop-2`, which failed twice on the release run, passed with both the fixture
     flags (`111e2a27`) and the step in place, so it cannot say which of them would have prevented a failure. F22 stays interim
     until the next release's full tier and the Monday run.
-- F23 (updated 2026-11-15: the cause is firm and the rate bounded, see Round 6; mended in the two ticket suites' tests, `checks/serve.py`
+- F23 (updated 2026-11-15: the cause is firm and the rate bounded, see Round 6; mended in ~~the two ticket suites' tests~~ [superseded 2026-11-15,
+  later the same day: the tests of the five calibration suites that grade variants through serve.py, see the follow-up in Round 6], `checks/serve.py`
   left to the owner): a second, independent intermittent failure in the same shard, `shiploop-e2e-ticket-comments` in attempt 2: a
   candidate exited before it listened on the port the harness had chosen. `checks/serve.py` picks the port with `free_port()`
   (bind to port 0, read the number, close) and starts the candidate with `PORT=<it>`, so another process can take that port in
@@ -639,7 +640,7 @@ the calibration suites' tests.
   `ChainRunTest` grades a failed check once more and the hidden acceptance goes through `quality.serve_on_free_port` (`d9a92f05`). `user-directory` has
   the most serve.py runs. The other family failure in these suites, `user-directory`'s on 2026-11-05 (run 42133217612, a hidden check answered by another
   server), is the wrong-answer face of the same cause and was mended by `f1399b5b`'s ownership check; `brownfield-tickets`' of 2026-11-01 was a
-  `FileExistsError`, not a port.
+  `FileExistsError`, not a port. [2026-11-15, later the same day: "do it once" holds no longer for `user-directory`, `user-chain` and `brownfield`; see the follow-up below.]
 
 **Change** (`test/shiploop-e2e-ticket-comments.test.py`, `test/shiploop-e2e-ticket-sla.test.py`). `CalibrationTest.setUpClass` grades each variant's own
 checks again, alone, until the failed set is the one its defect declares, at most 3 more times, and the last grade stands (`settle`, `own_checks`: the rule of
@@ -653,8 +654,46 @@ suite that failed and of its sibling, which has more serve.py runs and the same 
   owner's call (`8c5b4d4e`). The question is in the report that goes with this commit; the rule it would copy is `quality.serve_on_free_port`'s (a server that exits on `EADDRINUSE` naming its own port is
   started again on another, at most three tries, `d9a92f05`).
 - A shared helper in `test/shiploop_e2e/`: it would change the evaluator digest (`boundary.evaluator_files` hashes the `*.py` at the top of that folder).
-- The other three suites (`user-directory`, `user-chain`, `brownfield`): the same change applies at the places named above; not made because the task named the ticket
-  pair and no failure with this signature is on record for them. `user-directory`'s 184 runs make it the most exposed, about 3.4 times `ticket-comments`.
+- ~~The other three suites (`user-directory`, `user-chain`, `brownfield`): the same change applies at the places named above; not made because the task named the ticket
+  pair and no failure with this signature is on record for them. `user-directory`'s 184 runs make it the most exposed, about 3.4 times `ticket-comments`.~~ [superseded
+  2026-11-15, later the same day: made in the follow-up below; the only reason for leaving them was that the first task named the ticket pair, and no failure with this
+  signature is on record for them still.]
+
+**Follow-up (2026-11-15, later the same day): the regrade in the other three suites** (`test/shiploop-e2e-user-directory.test.py`,
+`test/shiploop-e2e-user-chain.test.py`, `test/shiploop-e2e-brownfield.test.py`). The Decision above left them as the first follow-up; a second session, asked
+to apply the same test-only regrade to them, did. Nothing under `test/shiploop_e2e/` moved (the evaluator and oracle digests are the same) and `checks/serve.py`
+is untouched.
+- *Change.* Each suite carries the ticket pair's `REGRADES = 3`, `settle` and `own_checks` (copied, as the pair's own are). `user-directory`'s
+  `CalibrationBase.setUpClass` (41 variants; 123 of the suite's 184 serve.py runs are its variants' own checks, 39 + 48 + 36 by link) and `user-chain`'s
+  `CalibrationTest.setUpClass` (22 variants; 29 serve.py runs, and for each variant a `node --test` of the delivery's own suite as the first own check) grade
+  a variant's own checks again, alone, until the failed positions are `EXPECTED[...][variant][0]`, at most 3 more times, the last grade standing. `brownfield`'s
+  `CaseChecksTest.expect` (3 variants; two of the case's three checks run the base's own `node --test`) grades again until the three verdicts are the declared
+  ones (`[False, True, False]` for the base, `[True, True, True]` for the reference and the alternative: the shape of `agreed()` in brownfield-tickets, `8c5b4d4e`).
+  The failure text of each carries the checks' whole output (`run_checks` keeps the last 2000 characters) where it carried the first 300 or 400.
+- *Tests.* Each suite gets `SettleTest` (3, no node: the pair's, with the sets or flags of that suite in them) and `RegradeRouteTest` (the real serve.py: a socket on
+  every address holds a port, the first grade's checks are handed it, the second grade passes; a `user-roles`, `user-teams` and `user-listing` reference
+  delivery). The first grade fails `[False, False, False]` in `user-directory` (all three own checks start a candidate through serve.py), `[True, False, False]` in
+  `user-chain` (its first own check is the delivery's own `node --test`) and `[True, True, False]` in `brownfield` (only its third check does). Fail first: with
+  `REGRADES = 0` 3 of the 4 new tests fail in each suite (the test that a grade that agrees is not graded again passes by design); restored to 3, all four pass (3.9 s,
+  5.0 s and 8.9 s at a load average of 40).
+- *The wiring.* `docs/experiments/serve-port-race-20261115/wiring_probe.py` runs a suite's calibration classes (`user-directory`'s three, `user-chain`'s and
+  `brownfield`'s `CaseChecksTest`) with the first grade of every delivery handed a held port, so the suite's own `setUpClass` or `expect` has to regrade. As shipped the
+  classes pass: `user-directory` 16 tests (41 deliveries, 37 graded twice and 4 once: the four whose declared own set is all three checks, which the held port fails too),
+  `user-chain` 4 tests (22 deliveries, 11 twice and 11 once: those whose declared set holds the checks that go through serve.py), `brownfield` 2 tests (3 deliveries, 2 twice and the
+  base once); none was graded more than twice. With `--regrades 0` the same classes fail (43, 17 and 2 failures, subtests included, every delivery graded once). So each suite's own
+  path goes through the regrade, and a first grade that disagrees is what makes it grade again (`wiring-results.txt`).
+- *Whole suites* (macOS, the three at once at nice 10 beside `test-groups`, load average 33 to 43 from other work): `user-directory` 45 tests OK in 273.6 s (41 before
+  plus 4; one skip, the abstract base of the per-link calibrations), `user-chain` 23 OK in 103.9 s (19 plus 4), `brownfield` 31 OK in 84.8 s (27 plus 4);
+  `test-groups` 65 tests OK in 40.4 s. `ruff --select E9,F,B`: the same findings before and after (`user-directory` one B905 and `user-chain` a B905 and an F841, all at lines
+  this change did not write; `brownfield` none). `git diff --check` clean.
+- *What stays.* (1) `checks/serve.py` and the live scoring checks: the owner's open question (F23). (2) The variants' hidden acceptance (`user-directory`, `user-chain`,
+  `brownfield`'s `CalibrationTest`) is graded once: it goes through `quality.serve_on_free_port` (a server whose port was taken is started again on another, three starts)
+  and the listener-ownership check of `f1399b5b`, which is what mended the one failure of these suites on record that is of this family (`user-directory`, 2026-11-05); in
+  the CI history of 2026-10-31 to 2026-11-15 `user-directory` failed 1 of 68 executions (that one), `user-chain` 0 of 130 and `brownfield` 0 of 214. (3) `brownfield`'s
+  `ThroughMainTest` (the fake-host run's three flags, graded once: its one serve.py run is the base's HTTP check, which fails by design whatever answers, and its two `node --test`
+  checks are the wobble `8c5b4d4e` mended for brownfield-tickets, not seen for `brownfield`) and every `ChainRunTest` (a failed check is graded once more, as before).
+  (4) No counter of regrades, as in the pair: a rate that creeps up would not show, and a check that wobbles below four grades in a row is hidden too. (5) The rescue of a
+  natural collision has not been seen in these suites (with no counter it could not be): what is shown is the route with a held port.
 
 **Findings**
 - F23 (above, updated): firm for the cause (`EADDRINUSE` from a port number another socket took between `free_port()` and the candidate's bind), measured for the
@@ -662,4 +701,10 @@ suite that failed and of its sibling, which has more serve.py runs and the same 
 - F24 (firm for the inventory, exploratory for the Mac's rate): `free_port()` asks the IPv4 allocator, a Node candidate binds the IPv6 wildcard, and on macOS
   twelve port numbers that other programs held through IPv6 sockets were handed out again and again: 0.12% of serve.py runs on this Mac on this day against 0.0026% on CI. A live
   run of a link of the ticket or user chains makes 3 to 12 serve.py runs (its regression and own checks), so about 0.4 to 1.4% of live runs at this Mac's rate, if the rate holds
-  for the way live runs call serve.py (one at a time). The number will change with what other programs hold.
+  for the way live runs call serve.py (one at a time). The number will change with what other programs hold. Update 2026-11-15, later the same day: the calibration
+  exposure is closed in the tests of all five suites that grade variants through serve.py (the ticket pair, then `user-directory`, `user-chain` and `brownfield`; see the
+  follow-up above); the live exposure in the line above is unchanged, and the live scoring through serve.py stays the owner's question.
+- F25 (firm for the wiring with a held port, none for a natural collision): the three suites of the follow-up regrade through their own grading paths. With the first grade of
+  every delivery handed a held port (`docs/experiments/serve-port-race-20261115/wiring_probe.py`, `wiring-results.txt`), `user-directory`'s three calibration classes (41
+  deliveries), `user-chain`'s (22) and `brownfield`'s `CaseChecksTest` (3) pass with the regrade as shipped, and fail with it off (`--regrades 0`: 43, 17 and 2 failures, subtests
+  included). Not shown: the rescue of a natural collision (there is no counter), and Linux (the route tests and the probe were run on macOS only).

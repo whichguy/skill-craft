@@ -24,6 +24,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -90,6 +91,37 @@ needs_node = unittest.skipUnless(shutil.which("node"), "the reference delivery i
 needs_lsof = unittest.skipUnless(shutil.which("node") and shutil.which("lsof"),
                                  "the case's HTTP check runs through serve.py, which needs node and lsof")
 GIT_ENV = {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+
+# serve.py gives each candidate a port with free_port() (bind to port 0, read the number, close the socket) and the candidate binds it a
+# moment later. Another process of the machine can bind that number in between: the candidate then exits before it listens (serve.py says
+# "the candidate exited (rc 1) before it listened on PORT=N", and its stderr holds `Error: listen EADDRINUSE`), or the ownership check names
+# the other listener. That failed one check of one CI run of the ticket-comments suite (docs/experiments/serve-port-race-20261115/, journal
+# F23). A collision touches one server once, so a variant whose own checks give other verdicts than its defect declares is graded again,
+# alone, until a grade agrees, at most REGRADES more times, and the last grade stands. A variant that really disagrees fails after
+# REGRADES + 1 grades. Two of the case's three checks run the base's own node --test, which starts servers on ports the machine may hold
+# too (the brownfield-tickets calibration regrades for that, docs/experiments/brownfield-flake-20261101/), so the regrade covers them as
+# well. The held-out acceptance of CalibrationTest is graded once: it goes through quality.serve_on_free_port, which starts a server whose
+# port was taken again on another port, and through the listener-ownership check. checks/serve.py itself is not changed: it scores live
+# deliveries too.
+REGRADES = 3
+
+
+def settle(grade, agrees_now, regrades: int = REGRADES):
+    """``grade()`` once, and again (alone) while ``agrees_now(result)`` is false, at most `regrades` more times: the last result stands."""
+    result = grade()
+    for _ in range(regrades):
+        if agrees_now(result):
+            break
+        result = grade()
+    return result
+
+
+def own_checks(work: Path, expected: list[bool]) -> tuple[list[bool], list[dict]]:
+    """The verdicts of the case's own checks on `work`, and the checks' rows, graded again until the verdicts are the `expected` ones."""
+    def once() -> tuple[list[bool], list[dict]]:
+        rows = run.run_checks(work, CASE["checks"], timeout=120)
+        return [row["pass"] for row in rows], rows
+    return settle(once, lambda graded: graded[0] == expected)
 
 
 def committed(folder: Path) -> Path:
@@ -294,19 +326,93 @@ class CalibrationTest(unittest.TestCase):
 class CaseChecksTest(unittest.TestCase):
     """The case's own checks, run as the harness runs them after a delivery (run.run_checks)."""
 
-    def checks(self, variant: str) -> list[bool]:
+    def expect(self, variant: str, expected: list[bool]) -> None:
+        """The case's checks pass and fail as `expected` on a built `variant`, graded again, alone, until they do (``settle``). A grade that
+        does not agree is told with the whole output of each check that failed (run_checks keeps its last 2000 characters), so that a
+        candidate that exited before it listened names its error at the end of that text."""
         with tempfile.TemporaryDirectory() as tmp:
             delivery = committed(reference.build(Path(tmp) / variant, variant))
             with mock.patch.dict(os.environ, GIT_ENV):
-                return [row["pass"] for row in run.run_checks(delivery, CASE["checks"], timeout=120)]
+                flags, rows = own_checks(delivery, expected)
+        self.assertEqual(flags, expected, {index: f"exit {row['returncode']}: {row['output']}" for index, row in enumerate(rows) if not row["pass"]})
 
     def test_the_base_fails_the_suite_and_http_checks_and_passes_the_pristine_one(self):
-        self.assertEqual(self.checks("base"), [False, True, False])
+        self.expect("base", [False, True, False])
 
     def test_the_reference_and_the_alternative_pass_every_check(self):
         for variant in ("reference", "alternative"):
             with self.subTest(variant=variant):
-                self.assertEqual(self.checks(variant), [True, True, True])
+                self.expect(variant, [True, True, True])
+
+
+class SettleTest(unittest.TestCase):
+    """The regrade of a variant whose own checks gave other verdicts than its defect declares (no node needed)."""
+
+    @staticmethod
+    def graders(*grades):
+        calls = []
+
+        def again():
+            calls.append(len(calls))
+            return grades[len(calls) - 1]
+        return again, calls
+
+    def test_verdicts_that_agree_are_not_graded_again(self):
+        again, calls = self.graders([False, True, False])
+        self.assertEqual(settle(again, lambda grade: grade == [False, True, False]), [False, True, False])
+        self.assertEqual(len(calls), 1)
+
+    def test_a_collision_is_graded_again_once_and_the_agreeing_verdicts_stand(self):
+        again, calls = self.graders([False, False, False], [False, True, False], "never read")
+        self.assertEqual(settle(again, lambda grade: grade == [False, True, False]), [False, True, False])
+        self.assertEqual(len(calls), 2, "grading stops at the first grade that agrees")
+
+    def test_verdicts_that_never_agree_are_graded_every_time_and_the_last_grade_stands(self):
+        # The cost of the rule: only after REGRADES more grades does the suite say that a variant really disagrees.
+        again, calls = self.graders([True, True, False], [True, False, False], [False, False, False], [False, False, True], "never read")
+        self.assertEqual(settle(again, lambda grade: False), [False, False, True])
+        self.assertEqual(len(calls), REGRADES + 1)
+
+
+@needs_lsof
+class RegradeRouteTest(unittest.TestCase):
+    """The regrade through the real serve.py: a candidate that is handed a port another socket holds fails the check that starts one."""
+
+    def holder(self) -> socket.socket:
+        """A listening socket on every address, as a candidate's own, so that the candidate's bind of the same port number fails."""
+        sock = socket.socket(socket.AF_INET6 if socket.has_ipv6 else socket.AF_INET)
+        self.addCleanup(sock.close)
+        try:
+            if sock.family == socket.AF_INET6:
+                sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            sock.bind(("::" if sock.family == socket.AF_INET6 else "0.0.0.0", 0))
+        except OSError as why:
+            self.skipTest(f"cannot hold a port on every address here: {why}")
+        sock.listen()
+        return sock
+
+    def test_a_first_grade_that_met_a_taken_port_is_graded_again_and_the_reference_passes(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with mock.patch.dict(os.environ, GIT_ENV):
+            delivery = committed(reference.build(Path(tmp.name) / "reference", "reference"))
+        holder = self.holder()
+        port = holder.getsockname()[1]
+        real, first = run.run_checks, []
+
+        def grade(folder, checks, **kwargs):
+            if not first:  # serve.py is handed the held port in the first grade (its own regression's pin)
+                first.extend(real(folder, checks, env={"E2E_SERVE_PORT": str(port)}, **kwargs))
+                return first
+            holder.close()
+            return real(folder, checks, **kwargs)
+
+        with mock.patch.dict(os.environ, GIT_ENV), mock.patch.object(run, "run_checks", grade):
+            flags, rows = own_checks(delivery, [True, True, True])
+        # Only the third check starts a candidate through serve.py: the base's own tests and the pristine ones start servers of their own.
+        self.assertEqual([row["pass"] for row in first], [True, True, False], first)
+        self.assertIn(str(port), first[2]["output"])
+        self.assertEqual(flags, [True, True, True], [row["output"] for row in rows])
 
 
 class BaseStartTest(unittest.TestCase):
