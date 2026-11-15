@@ -628,14 +628,18 @@ class BackchainStageTextTests(unittest.TestCase):
                     self.assertIn(kept, flat)
         self.assertIn("Backchain graph check: ", self.packets[self.LOOP_STAGE])
 
-    def test_converge_prints_the_two_review_gate_and_none_of_the_one_pass_text(self):
+    def test_converge_prints_backchains_default_gate_and_none_of_the_one_pass_text(self):
+        # Owner decision D-D (2026-11-01): converge is Backchain's default gate, the first trivial review; the request
+        # carries no marker line and Backchain's freeze writes the contract.
         flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="converge").split())
-        self.assertIn("required_trivial_reviews: 2", flat)
-        self.assertIn("two consecutive distinct complete trivial/no-change dependency reviews", flat)
-        # Backchain's own default became the first trivial review (owner decision D1, 2026-11-01), so a converge run
-        # names its two-review gate with the converge marker line.
-        self.assertIn("Put the line `Backchain passes: converge` beside the binding marker in the child request", flat)
-        for one_pass in ("required_trivial_reviews: 0", "Backchain passes: one", "One complete dependency"):
+        for printed in ("Put no `Backchain passes:` line in the child request",
+                        "completes at its first trivial review", "Backchain SKILL.md step 1's `prepare`",
+                        "`--run` the printed Backchain planning run directory", "`--request`", "`--caller`",
+                        "`--binding`; no `--passes`", "then `freeze`", "which writes its start contract (never you)"):
+            with self.subTest(printed=printed):
+                self.assertIn(printed, flat)
+        for one_pass in ("required_trivial_reviews: 0", "Backchain passes: one", "One complete dependency",
+                         "required_trivial_reviews: 2", "two consecutive", "Backchain passes: converge"):
             with self.subTest(one_pass=one_pass):
                 self.assertNotIn(one_pass, flat)
 
@@ -644,7 +648,9 @@ class BackchainStageTextTests(unittest.TestCase):
         self.assertEqual(flat.count("`required_trivial_reviews: 0`"), 1)
         for printed in ("Backchain passes: one.",
                         "Put the line `Backchain passes: one` beside the binding marker in the child request",
-                        "this exit condition verbatim",
+                        "Backchain SKILL.md step 1's `prepare`", "`--binding`, `--passes one`), then `freeze`",
+                        "which writes its start contract (never you)",
+                        "this exit condition: One complete",
                         "One complete dependency review/fix/check cycle has run",
                         "every finding of that cycle is repaired within the edit bounds",
                         "every `Confirm by` clause on a step this cycle may change meets the planning guide's Outcomes rule",
@@ -660,7 +666,7 @@ class BackchainStageTextTests(unittest.TestCase):
 
     def test_the_stage_prompt_carries_the_text_of_the_modes_it_is_given(self):
         # the route, not the module constants: the mode the CLI records reaches the packet the host reads
-        for mode, gate in (("one", "required_trivial_reviews: 0"), ("converge", "required_trivial_reviews: 2")):
+        for mode, gate in (("one", "required_trivial_reviews: 0"), ("converge", "completes at its first trivial review")):
             with tempfile.TemporaryDirectory(prefix="backchain-mode-text-") as temporary:
                 result = subprocess.run(
                     [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run", "--scenario", "delivery",
@@ -677,11 +683,12 @@ class BackchainStageTextTests(unittest.TestCase):
                     self.assert_prints_guidance(packets[stage], stage, backchain_passes=mode)
 
     POINTER = ("A repair/revise child runs one review/fix/check cycle: put the line `Backchain passes: one` "
-               "beside the binding marker in the child request, as Backchain's convergence reference defines it")
-    # Since Backchain's default became the first trivial review (owner decision D1, 2026-11-01), a converge run's
-    # repair/revise child names its two-review gate with the converge marker line.
-    CONVERGE_POINTER = ("A repair/revise child runs the two-review gate: put the line `Backchain passes: converge` "
-                        "beside the binding marker in the child request, as Backchain's convergence reference defines it")
+               "beside the binding marker in the child request, as Backchain's convergence reference defines it, "
+               "and pass `--passes one` to `prepare`")
+    # Owner decision D-D (2026-11-01): a converge run's repair/revise child runs Backchain's default gate, so the
+    # request carries no marker line.
+    CONVERGE_POINTER = ("A repair/revise child runs Backchain's default gate and completes at its first trivial review: "
+                        "put no `Backchain passes:` line in the child request and pass no `--passes` to `prepare`")
 
     def test_audit_stages_carry_the_one_pass_pointer_in_mode_one_and_the_converge_pointer_in_converge(self):
         for stage in self.AUDIT_STAGES:
@@ -717,9 +724,9 @@ class BackchainStageTextTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertEqual(flat.count(phrase), 1)
                 self.assertEqual(packet.count(phrase), 1)  # the dry-run CLI route prints it, once
-        # It sits before the gate it qualifies, so a reader meets "optional" before "write the contract verbatim".
-        self.assertLess(flat.index(self.CHOICE[0]), flat.index("Write the child's start contract"))
-        self.assertLess(flat.index(self.CHOICE[-2]), flat.index("Write the child's start contract"))
+        # It sits before the start commands it qualifies, so a reader meets "optional" before "start the child".
+        self.assertLess(flat.index(self.CHOICE[0]), flat.index("start the child with Backchain SKILL.md step 1's"))
+        self.assertLess(flat.index(self.CHOICE[-2]), flat.index("start the child with Backchain SKILL.md step 1's"))
 
     def test_the_choice_is_said_only_where_the_one_pass_gate_is_printed(self):
         """GUARD (passes on the unchanged tree): converge is the owner choosing the heavier route and its gate text has no
@@ -734,9 +741,10 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertNotIn("nothing refuses a plan without it", flat)
 
     NONE_SENTENCE = "No whole `plan`/`draft` is requested in this run"
-    # The six resources only a whole loop reads; the seventh, the caller contract, serves the read-only audit.
+    # The seven resources only a whole loop reads; the eighth, the caller contract, serves the read-only audit.
     LOOP_ONLY_LABELS = ("Backchain SKILL.md", "Backchain references/convergence.md",
-                        "Backchain prompts/convergence-review.prompt.md", "Until Loop ADAPTER.md",
+                        "Backchain prompts/convergence-review.prompt.md", "Backchain scripts/backchain.py",
+                        "Until Loop ADAPTER.md",
                         "Until Loop references/runtime-ephemeral.md", "Until Loop scripts/until_loop_ephemeral.py")
 
     _mode_packets = {}

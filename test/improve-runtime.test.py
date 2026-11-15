@@ -134,10 +134,12 @@ class UnchangedFirstPassTests(unittest.TestCase):
 
 
 class OnePassGateTests(unittest.TestCase):
-    """The gate the plan packet prints for the Backchain child, started on the real runtime.
+    """The gate the plan packet names for the Backchain child, started on the real runtime.
 
-    The packet text, not a constant in this test, supplies the gate: a host copies the printed
-    `required_trivial_reviews` into the child's start contract, so that is the value driven here.
+    The packet text, not a constant in this test, supplies the gate: in `one` mode it prints the
+    `required_trivial_reviews` and exit condition Backchain's `freeze` writes for the marker line; in `converge` it
+    prints no marker line, so freeze writes Backchain's default gate (owner decision D-D, 2026-11-01), read here from
+    Backchain's own script.
     """
 
     def setUp(self) -> None:
@@ -151,12 +153,19 @@ class OnePassGateTests(unittest.TestCase):
 
     @staticmethod
     def printed(mode: str) -> tuple[int, str]:
-        """The gate, and the verbatim exit condition when the packet prints one, from the plan packet of `mode`."""
-        text = " ".join(prompts._backchain_guidance("plan", backchain_passes=mode).split())
+        """The gate and exit condition the printed plan packet of `mode` makes Backchain's freeze write."""
+        text = " ".join(prompts.prompt("plan", backchain_passes=mode).split())
         gates = re.findall(r"`required_trivial_reviews: (\d+)`", text)
+        if not gates:  # no marker line: freeze writes Backchain's default gate and exit condition
+            assert "Put no `Backchain passes:` line in the child request" in text, text
+            spec = importlib.util.spec_from_file_location("backchain_cli", ROOT / "skills/backchain/scripts/backchain.py")
+            cli = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(cli)
+            return cli.GATES["default"], cli.EXIT_CONDITIONS["default"]
         assert len(gates) == 1, (mode, gates)
-        exit_text = re.search(r"verbatim, appending only case-specific clauses: (.+?)\. A pass that completes", text)
-        return int(gates[0]), (exit_text.group(1) if exit_text else "Two consecutive reviews find nothing to change.")
+        exit_text = re.search(r"this exit condition: (.+?)\. A pass that completes", text)
+        assert exit_text is not None, text
+        return int(gates[0]), exit_text.group(1)
 
     def start(self, mode: str) -> dict:
         gate, exit_condition = self.printed(mode)
@@ -173,9 +182,9 @@ class OnePassGateTests(unittest.TestCase):
         report = dict(TRIVIAL, **fields)
         return runtime.done(packet["state_file"], token, report)
 
-    def test_the_one_pass_text_prints_gate_zero_and_the_converge_text_prints_two(self) -> None:
+    def test_the_one_pass_text_prints_gate_zero_and_converge_names_backchains_default_gate(self) -> None:
         self.assertEqual(self.printed("one")[0], 0)
-        self.assertEqual(self.printed("converge")[0], 2)
+        self.assertEqual(self.printed("converge")[0], 1)
 
     def test_a_repairing_first_pass_that_assesses_the_exit_satisfied_completes_after_one_action(self) -> None:
         packet = self.start("one")
@@ -210,12 +219,12 @@ class OnePassGateTests(unittest.TestCase):
                               continuation_assessment="blocked")
         self.assertEqual(stopped["status"], "stopped")
 
-    def test_the_converge_gate_printed_in_the_packet_still_needs_two_trivial_reviews(self) -> None:
+    def test_the_converge_gate_completes_at_the_first_trivial_review(self) -> None:
+        """Owner decision D-D (2026-11-01): converge is Backchain's default gate; a repairing pass is followed by one
+        fresh review, and that review's trivial result completes the child."""
         packet = self.start("converge")
         active = self.report(packet, classification="non-trivial", exit_assessment="satisfied")
         self.assertEqual(active["status"], "active")
-        active = self.report(active, classification="trivial", exit_assessment="satisfied")
-        self.assertEqual(active["status"], "active")  # one trivial review of the repaired candidate is not two
         self.assertEqual(self.report(active, classification="trivial", exit_assessment="satisfied")["status"],
                          "complete")
 

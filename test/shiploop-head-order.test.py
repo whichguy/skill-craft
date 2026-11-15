@@ -465,6 +465,7 @@ class CitationTests(unittest.TestCase):
 
     PACKET_LINES = (  # (the phrase the stage text cites a packet line by, a token of that line)
         ("printed `backchain-check`", "Backchain graph check: python3 "),
+        ("printed Backchain planning run directory", "Backchain planning run directory: "),
         ('"Loop resources" line', "Loop resources for a repair or send-back request, under "),
         ('printed "Selected Backchain and Until Loop resources" block',
          "Selected Backchain and Until Loop resources (resolved"),
