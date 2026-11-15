@@ -2,8 +2,9 @@
 
     python3 -I verify_readers.py RUN_DIR/.shiploop-runs/<id>/run
 
-``text reader`` is an exact copy of ``_RUN_ROWS`` in test/shiploop_e2e/metrics.py: it finds the ``"runs"`` array by
-counting ``[`` and ``]`` characters without knowing about JSON strings, so a ``]`` inside a command's captured output ends
+``text reader`` is a copy of ``_RUN_ROWS`` as test/shiploop_e2e/metrics.py had it before 2026-11-15, the defect this
+script reproduces (the fix is the verify-scan commit; analysis/replay_rows.py compares the two).  It finds the ``"runs"``
+array by counting ``[`` and ``]`` characters without knowing about JSON strings, so a ``]`` inside a command's captured output ends
 the array early and the rows after it are not counted.  ``json rows`` is what test/shiploop_e2e/fidelity.py reads: the
 ``runs`` list of the record's ``shiploop-state`` block.
 """

@@ -180,7 +180,8 @@ These supersede statements above and in the first commit's message. Nothing abov
   JSON reader's 35, short in exactly two (9 against 10 and 5 against 6). All six records carry reuse provenance, so the 35
   are recorded results, not executions. Found by the Codex plan (P9a, its card E22); reproduced by
   `analysis/verify_readers.py` (`evidence/verify-readers.txt`). The reader's own comment expects an unreadable record to
-  over-count; this one under-counts.
+  over-count; this one under-counts. **Superseded 2026-11-15:** this describes `_RUN_ROWS` before the fix in "Decision 5
+  built" below, which scans JSON strings as strings; the trial now reads 35 through both readers.
 - **Validation share.** 0.12% was against the interim snapshot (22,157 s); against the final 24,766 s it is 0.106%.
 - **Stream retries.** The host's `stderr.txt` shows each stream disconnect retried at once ("1/5 in" about 200 ms), and
   several fall about 16 minutes past the hour (a connection lifetime, Inferred). They are not a large part of the 225.7 min.
@@ -271,8 +272,9 @@ code, the TAP 14 specification and the retained runs before it was folded in. Th
   first unescaped `#` after whitespace, takes any suffix (`# skipped`) and any case, and `\#` belongs to the title;
 - YAML diagnostic blocks, comments, blank lines, `TAP version` and CRLF are skipped;
 - `1..0` reads as zero tests;
-- numberless or out-of-order points, nested subtests, a second plan or a mid-stream one, a point count the plan does not
-  declare, and a column-0 `Bail out!` are not read (`None`, as before).
+- numberless or out-of-order points, an indented point or plan (nested subtests, and since the wrap-up of the review
+  campaign below any other indent), a second plan or a mid-stream one, a point count the plan does not declare, and a
+  column-0 `Bail out!` are not read (`None`, as before).
 
 **Order and identity.** TAP is tried only when no runner's own summary matched, pytest's included, and before
 pytest's exit-status-5 guess. `named` and `outcomes` judge a TAP point line by the same directive rule, so a count and
@@ -290,7 +292,10 @@ The planning prototype, run before the reader was written, gave the same (a), (b
 
 - A TAP command's accepted count becomes the count floor for later runs of it.
 - A focused row with ids and `min_tests` is now held to that minimum (the trial's controller row ran 36 against 8).
-- A `check` row that prints TAP is refused on `1..0`, or on `not ok` points at exit 0.
+- A `not ok` point at exit 0 fails the run for every row kind read as TAP (the masked-failure rule): a regression row
+  without `min_tests`, a failing point that no listed ID names, and a `check` such as a linter that marks warnings
+  `not ok` while it exits 0. No retained run hits any of these.
+- `1..0` is refused as `no-tests` for every row kind (it was `uncounted` with `min_tests`, and passed without).
 - A base run of a focused row with no ids reads `red` on TAP failures at exit 0.
 - Harness evidence may be a TAP stream.
 
@@ -342,6 +347,66 @@ The trial was neither regraded nor resumed. Its cleanup record is `ran: true, ok
 against the owner's org, and the owner's hold is in force. Stored `metrics.json` files and evidence keep the values they
 were written with; a regrade recomputes them.
 
+## Review campaign on decisions 1 and 5 (2026-11-15)
+
+The approved plan's Review Coverage block ran a review-converge campaign on the change. The ledger is
+`review-converge-ledger.md` in this folder. The rounds:
+
+| Round | Reviewer | Material | Minor | Test command |
+| --- | --- | --- | --- | --- |
+| 1 | a fresh read-only Claude subagent (652 s; resumed once after a session restart) | 0 | 7, parked | not required on a first clean round; the reviewer ran all 11 named suites green |
+| 2 | Sol (`gpt-6.1-sol`, medium effort, read-only) | 0 | 0 new | PASS (terminal clean): 9 suites, 1,121 tests, exit 0 in 814 s, no artifacts left in the target paths |
+
+Two clean rounds in a row completed the campaign. The completion report is a private artifact,
+`https://claude.ai/artifact/VMtXvmfsG5eZxRYqvKwHTo`. Sol re-derived the replay from the frozen manifest with the
+same figures, and its 242 JSON string and bracket controls of its own all passed against the verify scan.
+
+The seven minor findings went into one wrap-up commit:
+
+- **The change note** now names every new refusal, so readers of the changelog can see what may now be refused:
+  - a `not ok` point at exit 0 fails any row read as TAP, a regression row without `min_tests` and a linter `check`
+    that marks warnings `not ok` included;
+  - `1..0` is `no-tests` for every row kind;
+  - a check that straddles the release keeps its recorded result.
+  The "Behaviour that moves" list above says the same.
+- **An indented point or plan of any width makes a stream unread** (`_TAP_INDENTED`, was `_TAP_NESTED` with 4-space
+  multiples only). A 2-space or tab-indented point used to be dropped silently, which undercounts: it could set a floor
+  too low or refuse a focused row with leaf IDs. Controls: points indented two spaces, and a tab-indented point.
+- **Deviation from the plan, kept and pinned.** `_skip_line` reads an indented TAP point (a node subtest) by the
+  TAP 14 directive rule too, where the plan named only column-0 points. Node's own totals honour its subtests'
+  directives, and no retained output reads differently (2,789 retained (output, ids) rows; review round 1). Test:
+  `test_an_indented_tap_point_is_judged_by_the_same_directive_rule`.
+- **Test gaps closed:**
+  - inside a YAML block, a column-0 plan, a `Bail out!` and a point are skipped up to the block's `...`;
+  - "the first `#` after whitespace decides" is now asserted through `named` too (`ok 1 TC-6 handles # of items #
+    SKIP` shows TC-6; the old `_SKIP_LINE` hid it).
+- **Two route tests substitute, as noted by the review:**
+  - The base-floor test writes a synthetic base record rather than driving a base run. The base run calls the same
+    `count`.
+  - The reuse test exercises `_reused`, which takes the check's runs, rather than `take_check`, which copies records
+    verbatim. Neither path has logic of its own for TAP.
+- **The replay method is tighter.** `analysis/replay_counts.py` was rerun against 5b48232f0dd3295b545efc509f0760d8cd26a2ba,
+  the commit before the change on this branch (the reader file is byte-identical to the one at 17cd64b4). The rerun's
+  evidence is in `evidence/replay-counts.txt`:
+  - it verifies the frozen manifest instead of overwriting it: all 429 run directories match;
+  - each floor series now holds every counted row of its command, rows the old reader counted included, since a floor
+    is the most any accepted run ran: still 0 falls in 32 series;
+  - the header names each reader by the sha256 of its source;
+  - the 24 rows whose stored output is cut and holds a TAP plan line are listed. On their stored tails, 20 read the
+    same by `node` before and after, and 4 are unread by both; a live run's judge read the whole output;
+  - every other figure is unchanged: (a) 0, (b) 75 by tap, (c) no verdict tightened, and the positive control flips.
+
+  Fail-first now covers 29 new tests: 26 fail on the base reader, and the 3 that pass on both are controls
+  (`evidence/tap-fail-first.txt`). `analysis/replay_rows.py` against the same base is unchanged: 8 records upward and
+  1,828 of 1,828 agree (`evidence/replay-rows.txt`).
+- **Stale text fixed:** the runner-table comment (mocha's tap reporter prints no `# cancelled`, so `_tap` reads it),
+  the `_SKIP_LINE` comment (a TAP point is read by its own directive), the `analysis/verify_readers.py` docstring (a copy
+  of the reader before the fix), and the Corrections bullet above, marked superseded.
+- **Correction to the reader commit's message.** It frames the reuse limit as "a check passed under 1.34.3". Release
+  1.35.0 has since shipped without this reader, so the limit covers a check passed under any release before the one
+  that carries it. The change note says so. The commit is not rewritten, because the ledger and the round commits cite
+  it by hash.
+
 ## Unknowns
 
 - The page after 15:38 PST. Dollars: the host reports none. The model time between calls is inferred, not measured.
@@ -380,9 +445,9 @@ python3 -I analysis/review_continuity.py $RUN/platform/grok-chat-quality
 python3 -I analysis/process_output_sizes.py
 bash analysis/process_census.sh $RUN
 # Decision 1 (2026-11-15), from a checkout of the change; BASE is the commit before it:
-python3 -I analysis/replay_counts.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85 \
+python3 -I analysis/replay_counts.py --repo <checkout> --base 5b48232f0dd3295b545efc509f0760d8cd26a2ba \
   --manifest evidence/replay-manifest.txt ~/e2e-runs ~/e2e-runs-sp /Users/Shared/Codex/shiploop-e2e
-python3 -I analysis/tap_fail_first.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85
-python3 -I analysis/replay_rows.py --repo <checkout> --base 17cd64b4ba18f7f85abcad9272563962c5135b85 \
+python3 -I analysis/tap_fail_first.py --repo <checkout> --base 5b48232f0dd3295b545efc509f0760d8cd26a2ba
+python3 -I analysis/replay_rows.py --repo <checkout> --base 5b48232f0dd3295b545efc509f0760d8cd26a2ba \
   ~/e2e-runs ~/e2e-runs-sp /Users/Shared/Codex/shiploop-e2e
 ```

@@ -400,6 +400,8 @@ class TapStreamTests(unittest.TestCase):
             "a point with no number": "1..1\nok - a\n",
             "a bail out": "1..3\nok 1 a\nBail out! the database is down\n",
             "a nested subtest": "1..1\n    1..2\n    ok 1 x\n    ok 2 y\nok 1 group\n",
+            "points indented two spaces": "1..1\n  ok 1 x\n  ok 2 y\n  1..2\nok 1 group\n",
+            "a tab-indented point": "1..1\n\tok 1 x\nok 1 group\n",
         }
         for case, output in cases.items():
             with self.subTest(case):
@@ -415,6 +417,9 @@ class TapStreamTests(unittest.TestCase):
         output = ("TAP version 14\r\n1..2\r\n# a comment\r\n\r\nok 1 a\r\nnot ok 2 b\r\n  ---\r\n  message: boom\r\n"
                   "    ok 9 TC-9\r\n  1..3\r\n  ...\r\n")
         self.assertRead(output, 2, 1, exit_code=1)
+        # Inside a block every line is skipped up to its `...`, a column-0 plan or bail out included: the block decides.
+        quoted = "1..1\nnot ok 1 a\n  ---\n1..3\nBail out! quoted from a log\nok 2 also quoted\n  ...\n"
+        self.assertRead(quoted, 1, 1, exit_code=1)
 
     def test_skip_and_todo_directives_follow_tap_14(self):
         """TAP 14: the directive starts at the first unescaped `#` after whitespace, SKIP or TODO with any suffix, in any
@@ -434,6 +439,18 @@ class TapStreamTests(unittest.TestCase):
         self.assertRead(output, 2, 1, exit_code=1)
         # Other runners' lines keep their own marks: a `#todo` word in a jest title is no directive.
         self.assertEqual(counts.named("✓ TC-5 renders #todoList (3 ms)\n", ["TC-5"])["shown"], ["TC-5"])
+        # The first `#` after whitespace decides: a title `#` that starts no directive hides no later `# SKIP` from the
+        # count either, and `named` agrees (before the shared rule it hid TC-6 on the word after the second `#`).
+        first = "1..1\nok 1 TC-6 handles # of items # SKIP\n"
+        self.assertRead(first, 1)
+        self.assertEqual(counts.named(first, ["TC-6"])["shown"], ["TC-6"])
+
+    def test_an_indented_tap_point_is_judged_by_the_same_directive_rule(self):
+        """`_skip_line` reads an indented point (a node subtest) by the TAP 14 rule too, where the plan named only
+        column-0 points: node's own totals honour its subtests' directives, so `named` should.  Pinned on purpose; no
+        retained output changes (2,789 retained (output, ids) rows read the same, review round 1)."""
+        self.assertEqual(counts.named("    ok 2 - TC-2 # todoLater\n", ["TC-2"])["missing"], ["TC-2"])
+        self.assertEqual(counts.named("    ok 3 - TC-3 \\# SKIP is its title\n", ["TC-3"])["shown"], ["TC-3"])
 
     def test_a_yaml_block_does_not_change_the_count_and_its_text_still_names_ids(self):
         """Pinned: `named` reads every non-skip line, a YAML diagnostic included, as it reads any runner's failure text."""

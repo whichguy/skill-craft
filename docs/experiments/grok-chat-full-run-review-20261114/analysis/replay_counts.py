@@ -23,13 +23,15 @@ Reported:
 - (b) the outputs newly counted, by reader and by run directory;
 - (c) every candidate or check row (``judge``) and base row (``_judge_base`` with no exempt, retired or added IDs: an
   approximation, labelled) whose verdict changes, plus the rows whose verdict holds but now carries a count;
-- (e) floor histories: per run directory, work item and newly counted command, the counts in record order, and any later
-  count below an earlier one, the only way a count floor can newly bind;
+- (e) floor histories: per run directory, work item and newly counted command, every counted row's count in record order
+  (rows the old reader counted included: a floor is the most any accepted run ran), and any later count below an
+  earlier one, the only way a count floor can newly bind;
 - a positive control: the 2026-11-14 trial's Security row must move from ``None`` to 9, or the replay is not trusted.
 
-Cut rows are replayed as stored and listed: a live run's judge reads the whole output, the record only its tail.  The
-manifest written to OUT_MANIFEST lists each run directory with its record count and the sha256 over its records' names
-and contents, so the inputs can be checked again.
+Cut rows are replayed as stored, and those that hold a TAP plan line are listed: a live run's judge reads the whole
+output, the record only its tail.  OUT_MANIFEST lists each run directory with its record count and the sha256 over its
+records' names and contents: written on the first run, verified on every later one, so the inputs can be checked again.
+The header names each reader by the sha256 of its source.
 """
 from __future__ import annotations
 
@@ -76,7 +78,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--base", required=True)
-    parser.add_argument("--manifest", required=True)
+    parser.add_argument("--manifest", required=True, help="the frozen input list: verified when it exists, written when not")
     parser.add_argument("roots", nargs="+")
     args = parser.parse_args()
     scripts = Path(args.repo) / "skills/shiploop/scripts"
@@ -109,6 +111,8 @@ def main() -> int:
     gained_by_run = collections.Counter()
     moved, counted_now = collections.Counter(), collections.Counter()
     series = collections.defaultdict(list)
+    newly: set = set()
+    cut_tap: list = []
     control = None
     for directory in directories:
         tests = Path(directory) / "tests"
@@ -133,7 +137,8 @@ def main() -> int:
                     continue
                 rows += 1
                 stdout, stderr, code = str(run.get("stdout") or ""), str(run.get("stderr") or ""), run.get("exit")
-                cut += stdout.startswith("[... ") or stderr.startswith("[... ")
+                is_cut = stdout.startswith("[... ") or stderr.startswith("[... ")
+                cut += is_cut
                 out = stdout + "\n" + stderr
                 key = hashlib.sha256(json.dumps([stdout, stderr, code]).encode()).hexdigest()
                 if key not in count_seen:
@@ -148,9 +153,13 @@ def main() -> int:
                         gained[tuple(after["runners"])] += 1
                         gained_by_run[directory] += 1
                 before, after = count_seen[key]
+                series_key = (directory, str(record.get("work_item")), str(run.get("command")))
+                if after is not None:  # every counted row: a floor is the most any accepted run of the command ran
+                    series[series_key].append((str(record.get("created_at")), name, after["ran"]))
                 if before is None and after is not None:
-                    series[(directory, str(record.get("work_item")), str(run.get("command")))].append(
-                        (str(record.get("created_at")), name, after["ran"]))
+                    newly.add(series_key)
+                if is_cut and re.search(r"^1\.\.\d+", out, re.M):
+                    cut_tap.append((directory, name, str(run.get("command"))[:60], before, after))
                 if TRIAL[0] in directory and name == TRIAL[1] and TRIAL[2] in str(run.get("command")):
                     control = (before, after)
                 row = {key: run[key] for key in ("command", "suite", "ids", "min_tests", "regression") if key in run}
@@ -168,17 +177,29 @@ def main() -> int:
                 elif before is None and after is not None:
                     counted_now[(form if form in JUDGED else "baseN (approximate)", now)] += 1
         manifest.append(f"{directory}\t{len(names)}\t{digest.hexdigest()}")
-    Path(args.manifest).write_text("\n".join(manifest) + "\n")
+    frozen = Path(args.manifest)
+    if frozen.is_file():
+        before_lines, now_lines = set(frozen.read_text().splitlines()), set(manifest)
+        manifest_note = ("verified: all %d run directories match the frozen list" % len(manifest)
+                         if before_lines == now_lines else
+                         "DIFFERS from the frozen list: %d missing, %d new or changed" % (len(before_lines - now_lines),
+                                                                                          len(now_lines - before_lines)))
+    else:
+        frozen.write_text("\n".join(manifest) + "\n")
+        manifest_note = "written: %d run directories" % len(manifest)
 
     falls = []
-    for (directory, item, command), seen in sorted(series.items()):
+    for (directory, item, command), seen in sorted(item for item in series.items() if item[0] in newly):
         seen.sort()
         counts = [ran for _at, _name, ran in seen]
         if any(counts[index] < max(counts[:index]) for index in range(1, len(counts))):
             falls.append((directory, item, command[:80], counts))
 
-    print("base", args.base, "against", subprocess.run(["git", "-C", args.repo, "rev-parse", "HEAD"], capture_output=True,
-                                                       text=True).stdout.strip(), "plus its working tree")
+    new_source = (scripts / "shiploop_test_counts.py").read_bytes()
+    print("base reader:", args.base + ":skills/shiploop/scripts/shiploop_test_counts.py", "sha256",
+          hashlib.sha256(old_source.encode()).hexdigest()[:16])
+    print("new reader: ", "skills/shiploop/scripts/shiploop_test_counts.py", "sha256", hashlib.sha256(new_source).hexdigest()[:16])
+    print("manifest:", manifest_note)
     print("run directories:", len(directories), "| excluded as copies:", excluded)
     print("records:", sum(forms.values()), dict(sorted(forms.items())))
     print("rows:", rows, "| unique count inputs:", len(count_seen), "| unique judged rows:", len(judged_seen),
@@ -193,7 +214,11 @@ def main() -> int:
         print("   ", number, directory)
     print("(c) verdict changes (form, old, new):", dict(sorted(moved.items())) or "none")
     print("    verdict held, now counted (form, verdict):", dict(sorted(counted_now.items())))
-    print("(e) floor histories:", len(series), "command series | with a later count below an earlier one:", len(falls))
+    print("    cut rows that hold a TAP plan line (stored tail only; the live judge read the whole output):", len(cut_tap))
+    for entry in cut_tap:
+        print("       ", entry)
+    print("(e) floor histories:", len(newly), "newly counted command series, each with every counted row of its command"
+          " | with a later count below an earlier one:", len(falls))
     for entry in falls:
         print("   ", entry)
     trusted = control is not None and control[0] is None and control[1] is not None and control[1]["ran"] == 9

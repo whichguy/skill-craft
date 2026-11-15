@@ -159,13 +159,14 @@ def _dotnet(text: str) -> Optional[Dict[str, int]]:
 
 
 # A TAP test point (``ok 3 - title``, ``not ok 4 title``) and what follows its ``ok``; the plan line ``1..N``, which may
-# carry a ``# reason``; a test point or plan indented by a multiple of four spaces, which TAP 14 makes a nested subtest; a
-# YAML diagnostic block, from an indented ``---`` to its ``...``; and TAP's ``Bail out!``, which ends the run early.
+# carry a ``# reason``; a test point or plan indented at all (TAP 14 nests a subtest four spaces in and leaves any other
+# indent outside the stream, so either way the stream is not one flat stream); a YAML diagnostic block, from an
+# indented ``---`` to its ``...``; and TAP's ``Bail out!``, which ends the run early.
 _TAP_POINT = re.compile(r"^(not )?ok\b(.*)$")
 _TAP_POINT_LINE = re.compile(r"^\s*(?:not )?ok\b(.*)$")
 _TAP_PLAN = re.compile(r"^1\.\.(\d+)(?:\s+#.*)?\s*$")
 _TAP_NUMBER = re.compile(r" (\d+)\b")
-_TAP_NESTED = re.compile(r"^(?: {4})+(?:(?:not )?ok\b|1\.\.\d+)")
+_TAP_INDENTED = re.compile(r"^\s+(?:(?:not )?ok\b|1\.\.\d+)")
 _TAP_YAML_START = re.compile(r"^\s+---\s*$")
 _TAP_YAML_END = re.compile(r"^\s+\.\.\.\s*$")
 _TAP_BAIL = re.compile(r"^bail out!", re.IGNORECASE)
@@ -199,9 +200,9 @@ def _tap(text: str) -> Optional[Dict[str, int]]:
     1..N in order, so the plan the producer declared is checked against the points it printed.  A point whose
     directive is SKIP or TODO (``_tap_directive``) did not run and its ``not ok`` is no failure.  Comments, blank lines,
     ``TAP version`` and YAML diagnostic blocks are skipped.  Any other shape is not read (``None``, the caller decides
-    what an uncounted run may prove): points with no number or out of order, nested subtests (counting only the top level
-    would undercount a stream whose tests are its leaves), a second plan or one in the middle, a point count the plan does
-    not declare, and a ``Bail out!``.  ``1..0`` reads as zero tests.
+    what an uncounted run may prove): points with no number or out of order, an indented point or plan, nested or not
+    (counting only the top level would undercount a stream whose tests are its leaves), a second plan or one in the
+    middle, a point count the plan does not declare, and a ``Bail out!``.  ``1..0`` reads as zero tests.
     """
     plans: List[Tuple[int, int]] = []
     points: List[Tuple[int, "re.Match[str]"]] = []
@@ -213,7 +214,7 @@ def _tap(text: str) -> Optional[Dict[str, int]]:
         if _TAP_YAML_START.match(line):
             in_yaml = True
             continue
-        if _TAP_BAIL.match(line) or _TAP_NESTED.match(line):
+        if _TAP_BAIL.match(line) or _TAP_INDENTED.match(line):
             return None
         plan = _TAP_PLAN.match(line)
         if plan:
@@ -241,8 +242,9 @@ def _tap(text: str) -> Optional[Dict[str, int]]:
 
 # The reader table: every runner whose summary ``count`` reads, in the order it tries them.  Then pytest, whose reader
 # also guesses from exit status 5 ("no tests collected"), and plain TAP: a declared plan checked against its points is
-# evidence, so TAP is read before that guess, but only when no runner's own summary matched (``node --test`` and
-# ``mocha`` print TAP lines beside their totals).  RUNNERS is generated from these, and the text that names the runners
+# evidence, so TAP is read before that guess, but only when no runner's own summary matched (``node --test`` prints
+# TAP lines beside its ``# tests``, ``# pass``, ``# fail`` and ``# cancelled`` totals, which its own reader counts;
+# mocha's tap reporter prints no ``# cancelled`` line, so its stream is read here).  RUNNERS is generated from these, and the text that names the runners
 # ShipLoop reads prints RUNNERS, so the list cannot drift from the code.
 READERS = (
     ("jest", _jest), ("vitest", _vitest), ("unittest", _unittest), ("mocha", _mocha),
@@ -289,8 +291,9 @@ def _plain(text: str) -> str:
 
 
 # A skipped test is marked by each runner's own syntax, never by a word in a test title: a leading skip glyph (jest
-# and vitest, node spec), mocha's pending ``- title``, a trailing ``# SKIP``/``# TODO`` (TAP, node), pytest's
-# ``SKIPPED``, unittest's ``... skipped`` and go's ``--- SKIP:``.  ``# Subtest:`` is TAP's announcement of a test,
+# and vitest, node spec), mocha's pending ``- title``, a trailing ``# SKIP``/``# TODO`` (node's spec reporter), pytest's
+# ``SKIPPED``, unittest's ``... skipped`` and go's ``--- SKIP:``.  A TAP test point is read by its own directive
+# instead (``_skip_line``, the TAP 14 rule ``_tap`` counts by).  ``# Subtest:`` is TAP's announcement of a test,
 # printed before its result line, so it shows nothing about the outcome.
 _SKIP_LINE = re.compile(
     r"^\s*[○✎﹣↓] |^\s*- |#\s*(?:SKIP|TODO)\b|\bSKIPPED\b|\.\.\. skipped\b|--- SKIP: |\[skipped\]", re.IGNORECASE)
