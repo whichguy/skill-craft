@@ -1481,8 +1481,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     reused = _reused(root, action, stage, work_item, commands, repo, held) if count and observed is None else None
     if reused is not None:
         record = {
-            "schema": SCHEMA,
-            "action": action, "stage": stage, "work_item": work_item,
+            "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
             "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "cwd": str(cwd), "passed": True, "disposition": "passed", "runs": reused[0],
             "attempt": _next_attempt(root, action), "reused": reused[1],
@@ -1521,8 +1520,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         runs += default_suite_drift(state, commands, run_one)
     disposition = _disposition(runs, PASSING)
     record = {
-        "schema": SCHEMA,
-        "action": action, "stage": stage, "work_item": work_item,
+        "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "cwd": str(cwd), "passed": disposition == "passed", "disposition": disposition,
         "runs": runs,
@@ -1673,8 +1671,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                 + str(matched[1].get("created_at")) + " (" + matched[0] + "): the candidate is unchanged")
         if phase != "complete":
             return {}, "", [line]
-        record = {"schema": SCHEMA, "kind": "step-proof",
-                  "action": action, "stage": STEP_PROOF_STAGES[0],
+        record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": STEP_PROOF_STAGES[0],
                   "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
                   "created_at": created, "cwd": str(repo), "passed": True, "disposition": "passed",
                   "runs": list(matched[1].get("runs") or ()), "trees": [tree],
@@ -1688,8 +1685,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     if "status" not in run:
         run.update(judge(row, run["exit"], output))
     disposition = _disposition([run], PASSING)
-    record = {"schema": SCHEMA, "kind": "step-proof",
-              "action": action, "stage": STEP_PROOF_STAGES[0],
+    record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": STEP_PROOF_STAGES[0],
               "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
               "created_at": created, "cwd": str(repo), "passed": disposition == "passed", "disposition": disposition,
               "runs": [run], "trees": [found_tree for found_tree in dict.fromkeys([tree, _tree(root, repo)]) if found_tree]}

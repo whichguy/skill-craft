@@ -3783,7 +3783,6 @@ class CountFloorTests(unittest.TestCase):
     def record(self, action: str, number: int = 1) -> dict:
         return store.read_record(self.root / test_loop.verify_path(action, number))
 
-
     def test_the_highest_accepted_count_is_the_floor_and_both_numbers_are_in_the_refusal(self):
         self.assertEqual(self.run_stage("A1", "test", 5), "")
         self.assertEqual(self.run_stage("A2", "document", 7), "")  # growth raises the floor
@@ -4066,24 +4065,29 @@ class TapCountRouteTests(unittest.TestCase):
         self.assertEqual(record["reused"]["path"], test_loop.check_path("A1"))
         self.assertEqual(record["runs"][0]["counts"], {"ran": 9, "failed": 0, "runners": ["tap"]})
 
-    def test_a_check_recorded_before_the_reader_is_reused_as_recorded(self):
-        """Known limit, pinned: a check that passed under the earlier reader (a focused row whose ids showed, counts
-        null) and is completed on an unchanged tree is taken as recorded.  ``_reused`` applies today's floors only to a
-        run that has counts and never re-counts the stored output, which is cut to ``TAIL_CHARS``.  A fresh run would be
-        held to ``min_tests`` here and refused."""
+    def test_a_v1_check_reruns_and_is_refused_by_the_current_tap_count(self):
+        """A v1 pass on the same tree reruns under v2; nine fresh TAP points cannot satisfy min_tests=40.
+        The stored old-reader receipt is preserved rather than rejudged from its output tail."""
         rows = [{"command": self.COMMAND, "suite": "focused", "ids": ["WidgetTest.case1"], "min_tests": 40}]
         self.use(rows)
         self.points(9)
-        store.write_record(self.root / test_loop.check_path("A1"), {
-            "schema": test_loop.SCHEMA, "action": "A1", "stage": "document", "work_item": "W1", "passed": True,
+        path = self.root / test_loop.check_path("A1")
+        store.write_record(path, {
+            "schema": "shiploop-test-loop/v1", "action": "A1", "stage": "document", "work_item": "W1", "passed": True,
             "disposition": "passed", "counted": False, "commands": rows,
             "trees": [test_loop._tree(self.root, self.repo)],
             "runs": [{**rows[0], "exit": 0, "status": "passed", "counts": None, "ids_missing": [], "stdout": "", "stderr": ""}]})
-        self.assertEqual(self.run_stage("A1", "document"), "")
+        original = path.read_bytes()
+        with mock.patch.object(test_loop.lint, "run_argv", wraps=test_loop.lint.run_argv) as runner:
+            self.assertIn("ran fewer tests than the step plan requires (at least 40)", self.run_stage("A1", "document"))
+            runner.assert_called_once()
         record = store.read_record(self.root / test_loop.verify_path("A1", 1))
-        self.assertEqual((record["reused"]["path"], record["runs"][0]["counts"]), (test_loop.check_path("A1"), None))
-        (self.repo / "a.py").write_text("x = 2\n")  # a changed tree runs the command again, held to today's reader
-        self.assertIn("ran fewer tests than the step plan requires (at least 40)", self.run_stage("A2", "document"))
+        self.assertEqual(record["schema"], "shiploop-test-loop/v2")
+        self.assertFalse(record["passed"])
+        self.assertEqual(record["runs"][0]["status"], "too-few-tests")
+        self.assertEqual(record["runs"][0]["counts"], {"ran": 9, "failed": 0, "runners": ["tap"]})
+        self.assertNotIn("reused", record)
+        self.assertEqual(path.read_bytes(), original)
 
     def test_a_step_proof_is_judged_from_its_stream(self):
         proof = ({"id": "S1"}, {"command": self.COMMAND, "suite": "check"})
