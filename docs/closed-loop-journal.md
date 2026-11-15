@@ -183,6 +183,17 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
   `test/suite_durations.json` stays 115.0 and the decision rule written in that commit stands: a CI receipt above 120 s on Linux
   forces the split-or-exception decision). 23 safeguards mutation-checked: 22 caught on the first pass, the one miss closed by the
   sharper assertion (README, "Mutation check of the new tests"). Lint and the 3.9 grammar check clean.
+- **Tier and release (2026-11-15).** Quick tier on the merged tree (`2512e16c85c83d573ed98a60b0d85565f1b7f893`, pinned
+  `--changed-from 20ec94e273fa88266c2b18a7b22cbb8a066ba6e0`): 23 suites, PASS, 282.1 s wall at `--jobs 8`; the closed-loop suite
+  inside it: 165 tests OK in 155.8 s (the slowest suites were shiploop-navigator-contract 282.0 s and shiploop-keepalive 175.7 s).
+  The same suite on the release tree: 165 tests OK in 194.1 s with other work on the machine. So one suite's wall time was 126.0,
+  155.8 and 194.1 s on one machine within the hour: the 115.0 estimate is low, the rule of `76693288` stands (a CI receipt above
+  120 s on Linux forces the split-or-exception decision), and a split is the likely answer if it does. Release cut with
+  `scripts/release.py` in a clean detached worktree: `1562e8a99fe2b1cc930d48b57176f8549db0def8` (`release: skill-craft 2.41.1,
+  closed-loop 0.1.0`, tree `4a4123185c8f66a82627bb37efe3409824086e19`), checked with `scripts/check-release-boundary.py` and the
+  closed-loop suite on the release tree, and published with `scripts/release-push.py` (expected base
+  `20ec94e273fa88266c2b18a7b22cbb8a066ba6e0`, the four release checks) as one push of the feature range and the release commit, so
+  no pending note ever sat on main. Evidence: `docs/experiments/closed-loop-review-20261115/quick-tier-merged.txt`, `release-2.41.1.txt`.
 - **Open (unknown).** No further review is planned before 0.1.0; every max review so far has said "not ready", with narrowing
   findings (Sol: six P1, then three), and the fixes of this round are verified by tests and mutation checks, not by a reviewer.
   Nothing has driven the card with a model operator on a real subject. An active file-system monitor daemon was not exercised. The

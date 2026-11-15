@@ -1,6 +1,6 @@
 # Closed-loop: a generic improvement loop with ShipLoop as its first adapter (plan, 2026-11-15)
 
-**Status: plan; Phase 1 is built and hardened (see *Phase 1 as built* below).** The owner said (2026-11-15) "I want to make progress and not worry about the past", which
+**Status: plan; Phase 1 is built, hardened and released as `closed-loop` 0.1.0 in skill-craft 2.41.1 (2026-11-15; see *Phase 1 as built* below).** The owner said (2026-11-15) "I want to make progress and not worry about the past", which
 this plan takes as the go for Phase 1, with the working choices in section 11. It supersedes sections 2 and 3 of
 [docs/shiploop-e2e-iterate-skill-plan-2026-11-15.md](shiploop-e2e-iterate-skill-plan-2026-11-15.md): the ShipLoop-only
 `shiploop-e2e-iterate` skill becomes this generic skill plus a ShipLoop adapter. That plan's facts and effectiveness list stand and
