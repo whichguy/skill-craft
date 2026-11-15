@@ -202,14 +202,31 @@ UI, at user scope on the account: `cursor-agent plugin marketplace add https://g
 `cursor-agent plugin marketplace list --format json` shows each registration's `gitRef` and `lastIndexedAt`. The CLI has no
 plugin install command; the install is the click.
 
-A registration keeps the commit it was indexed at. `cursor-agent plugin marketplace update whichguy` re-indexed it but left its
-`gitRef` where it was: on 2026-11-01 `main` had moved on from `f5fb7d6446bb461e1a771a7bc64effaabd6822d1` while the
-registration stayed there. That is how three registrations of this repository (`whichguy`, `skill-craft`,
-`whichguy-skill-craft`), indexed at commits from 2026-09-16 to 2026-09-27 and one of them still on the per-skill catalog, sat
-side by side and stale. Keep one registration per repository, named `whichguy`. To pick up a release, `marketplace remove whichguy`,
-`marketplace add` the repository again, and Add the plugin again in the app (removing a marketplace may drop what was installed
-from it); whether an installed plugin follows a newer commit by itself is not verified. Once the marketplace plugin is installed,
-move any copy under `~/.cursor/plugins/local/skill-craft` out of the way so the skills do not load twice.
+A registration holds one commit. `add` resolves the ref it is given (the default branch when none is) to the commit that
+ref names at that moment, stores that commit as `gitRef` and indexes it; `update` re-indexes the same commit and does not
+advance it. Observed on 2026-11-01 (Cursor 3.27.22, twice: `main` moved on from `f5fb7d6446bb461e1a771a7bc64effaabd6822d1` while
+the registration stayed there) and again on 2026-11-15 (Cursor 3.30.14, Cursor Agent 2026.09.23-86fc751): a registration added
+with `--git-ref main` stored `0eb91fc0bc1860ee158c822d62b81e65c3099a18`, and once `main` had reached
+`581791995824c9bce0d7ea32098f664caf67b5a7`, `update` moved `lastIndexedAt` and kept that commit. That is how three registrations
+of this repository (`whichguy`, `skill-craft`, `whichguy-skill-craft`), indexed at commits from 2026-09-16 to 2026-09-27 and one
+of them still on the per-skill catalog, sat side by side and stale.
+
+The owner's decision (2026-11-15): never pin a registration. Register the repository root on its default branch (no
+`--git-ref`, or `--git-ref main`), never a commit or a tag, and keep one registration per repository, named `whichguy`. Cursor
+still snapshots the commit, so staying on the latest release takes these steps after each release, as on 2026-11-15:
+
+1. `cursor-agent plugin marketplace remove whichguy`, then `cursor-agent plugin marketplace add https://github.com/whichguy/skill-craft`.
+2. In the app, **Uninstall** skill-craft. The install is account-wide, so Cursor's cloud agents lack the plugin until step 4.
+3. Reload the app window. Until it reloads, the app keeps the registration it loaded: the plugin page shows the old version and
+   **Add to Cursor** fails with "Plugin not found" (that error's own **Reload** button reloads the window).
+4. **Add to Cursor** with **Add for Myself**.
+5. Read back: the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/<commit>` names the new commit, and its
+   `.cursor-plugin/plugin.json` the new version.
+
+A re-registration does not move an installed plugin by itself: on 2026-11-15, 2.39.0 (cache `c2ad82f57032930ef9ca66927d711a8f8f74b868`)
+stayed installed for the minutes between the re-registration and its uninstall. Whether a window reload alone would move it is
+not tested. Once the marketplace plugin is installed, move any copy under `~/.cursor/plugins/local/skill-craft` out of the way so
+the skills do not load twice.
 
 Team-scoped marketplace import remains a Teams or Enterprise administrator action
 through **Dashboard → Settings → Plugins → Import from Repo**. A public listing
@@ -228,7 +245,7 @@ installed version back.
 | Claude Code | `claude plugin marketplace update whichguy` | `claude plugin update skill-craft@whichguy --scope user`, then restart | `claude plugin list --json` |
 | Codex | `codex plugin marketplace upgrade whichguy` | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
 | Grok | `grok plugin marketplace update whichguy` | `grok plugin update skill-craft` | `grok plugin details skill-craft` |
-| Cursor | `cursor-agent plugin marketplace update whichguy` re-indexes only | remove and add the marketplace, then Add the plugin in the app, as under [Cursor](#cursor) | `cursor-agent plugin marketplace list --format json` (`gitRef`) and the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/` |
+| Cursor | `cursor-agent plugin marketplace update whichguy` re-indexes the same commit only | remove and add the marketplace (its repository root, never a commit), Uninstall the plugin in the app, reload the window, then Add it, as under [Cursor](#cursor) | `cursor-agent plugin marketplace list --format json` (`gitRef`) and the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/` |
 
 Checked on 2026-11-09 for 2.36.0 to 2.36.1 (Claude Code 2.1.319, Codex 0.167.0,
 Grok 1.0.77, Cursor Agent 2026.09.23):

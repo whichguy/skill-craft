@@ -332,7 +332,8 @@ Read as skill-craft and stale copies, because Round 8 had just listed exactly th
 
 Left, and why:
 - Whether an installed marketplace plugin follows a newer commit by itself is not verified (no release has landed since); today a
-  refresh is a remove, an add and a click.
+  refresh is a remove, an add and a click. (2026-11-15: a re-registration did not move the installed plugin
+  within minutes; see Round 10.)
 - The app's installed count went from 32 to 31 across the change, where swapping one local copy for one marketplace plugin should
   have kept it at 32. Removing a registration may drop an installed entry; which one is not known.
 - `~/.cursor/skills/.skill-craft/receipts.jsonl`, install.sh's ledger of links that no longer exist, was left: it is a record, not
@@ -341,6 +342,24 @@ Left, and why:
   GitHub" form. After the app's screen lagged behind a screenshot, one click opened the detail page of an unrelated plugin (Amazon
   Location Service); its "Add to Cursor" button was not pressed.
 - Cursor 3.27.22 on one machine; the Team-scope route is an administrator's and was not touched.
+
+## Round 10 — Cursor on the latest release, with no pinned registration (2026-11-15)
+
+Asked by the owner, in their words: "I really don't want to pin the registration anywhere. I want to use the latest." Read as
+skill-craft's `whichguy` registration on every host. Cursor 3.30.14 with Cursor Agent 2026.09.23-86fc751, one machine.
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F27 | Only Cursor pins. Claude (`~/.claude/plugins/known_marketplaces.json`: `whichguy` is `{"source": "github", "repo": "whichguy/skill-craft"}`), Codex (`~/.codex/config.toml`: `[marketplaces.whichguy]`, a git source with no ref) and Grok (`grok plugin marketplace list`: the repository URL alone) name no ref, so each follows the default branch | firm | those files and listings |
+| F28 | F25 holds on Cursor 3.30.14. `add --git-ref main` stored `gitRef` `0eb91fc0bc1860ee158c822d62b81e65c3099a18`, the commit `main` held then. Once `main` had reached `581791995824c9bce0d7ea32098f664caf67b5a7`, `update whichguy` printed "1 plugin indexed", moved `lastIndexedAt` from 1794760969681 to 1794761676548 and kept `gitRef`. The CLI's own help calls the ref the "Branch, tag, or commit to index" and `update` a re-index | firm (third observation) | `cursor-agent plugin marketplace list --format json` before and after |
+| F29 | The app holds the registration it loaded. After the remove and add, the plugin page still read 2.39.0, and Add failed with "Plugin not found" until the window was reloaded with that error's Reload button (every chat in the sidebar read Completed first). Then the page read 2.40.0, and Add (Add for Myself) installed it: cache `0eb91fc0bc1860ee158c822d62b81e65c3099a18`, `plugin.json` version 2.40.0, in place of `c2ad82f57032930ef9ca66927d711a8f8f74b868` (2.39.0). The re-registration had not moved the installed 2.39.0 in the minutes before it was uninstalled | firm for what was seen; whether a reload alone moves an installed plugin is not tested | `~/.cursor/plugins/cache/whichguy/skill-craft/`; the app's page |
+
+Decided (owner): no registration is pinned to a commit or a tag. Cursor registers the repository root on its default branch, and,
+because it still snapshots the commit, each release's host refresh re-registers it and reinstalls the plugin, as
+docs/distribution.md "Cursor" now lists. Left: Cursor's other registrations (`claude-plugins-official`, `openai-codex`,
+`claude-craft`) sit at the commits they were added at, behind their default branches. They were not touched: the request named
+skill-craft's registration, re-adding another publisher's marketplace changes what the account offers, and moving each plugin
+installed from one takes an Uninstall and an Add.
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
