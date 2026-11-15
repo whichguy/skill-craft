@@ -266,8 +266,13 @@ task and done must be nonempty. Initial-world facts in ready require actual chec
 not just a declaration in the plan. Contracts and provenance are frozen with the
 dependency graph. Plan changes require a new run after reconciling existing work.
 
-From a Backchain checkout, `node scripts/export-execution-graph.js PLAN.json` emits the
-graph without executing it. Export requires structural validity, exact
+The sibling Backchain skill emits the graph without executing it. Its exporter is
+`../backchain/scripts/backchain.py`, relative to this skill's directory (both skills ship in
+the same plugin):
+`python3 -I -B ../backchain/scripts/backchain.py export --run DIR` exports the plan a finished
+Backchain run converged on, and refuses a run that did not converge or whose plan changed after
+`finish`; `python3 -I -B ../backchain/scripts/backchain.py export PLAN.json` exports any complete
+plan. Export requires structural validity, exact
 `completionStatus=complete` including goal_needs closure, and compatibility with
 the execution graph validator. Reserved object-key IDs and whitespace-only
 contracts fail at export rather than yielding a graph that init cannot use.
@@ -279,7 +284,7 @@ string: `<produce>. Confirm by: <by>` for execution, the same plus
 `<produce>. Confirm by: unconfirmable here — <by>`. A produce without one is
 exported unchanged. Workers treat every done item as an exit criterion and use
 its `Confirm by:` method when present (see [exit criteria](#exit-criteria)). This gate is structural; it does not prove semantic sufficiency or replace
-readiness/acceptance evidence. Do not resolve the exporter relative to this package.
+readiness/acceptance evidence. The exporter is Backchain's; this package ships none.
 Exact repeated ready/done wording is listed once; distinct supplier dependencies
 and every original input binding remain intact, even when their wording matches.
 Generic graph provenance remains arbitrary JSON. A packet exposes input_bindings
