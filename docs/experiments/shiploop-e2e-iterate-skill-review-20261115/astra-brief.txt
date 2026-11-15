@@ -1,0 +1,23 @@
+Use MAX reasoning effort. This is a deep design review; read-only, do not modify files.
+
+Context: the owner of the skill-craft repository (/Users/dadleet/src/skill-craft, ShipLoop is its SDLC delivery-harness skill under skills/shiploop) wants a named skill that runs ShipLoop's E2E self-improving loop: start a ShipLoop run, let it go through its stages, deeply inspect every stage, file and journal for effectiveness and efficiency, use higher-reasoning advisors to evaluate and find improvements, then repeat. They asked: (a) what the skill should be named, (b) what else would make the loop more effective, (c) what part could be generalized versus what is ShipLoop-specific.
+
+My draft answer is at:
+/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-ySEdzy/7ac6cc98-2d4a-4cd2-9461-300f4227431d/scratchpad/draft.md
+
+Verify its claims against the code and records, then critique it. Primary sources (read what you need):
+- test/shiploop_e2e/iterate.py, cycle.py, review.py, judge.py, boundary.py, learning_records.py, prediction.py, promotion.py, spread.py, epoch.py, hosts.py
+- test/shiploop_e2e/learning-records.jsonl (the ledger), test/shiploop_e2e/SPEC.md ("The promotion contract", "Qualified iteration"), test/shiploop_e2e/README.md
+- test/shiploop_e2e/LEARNINGS.md entry "Closed loop review: what a cycle costs" (around line 4646)
+- docs/shiploop-e2e-closed-loop-plan-2026-10-30.md (decisions D1-D4, "Where it stands")
+- docs/experiments/e2e-calibration-20261031/ (the A/A calibration result)
+- skills/shiploop-e2e-audit/SKILL.md and its bundled harness/, skills/shiploop-run-review/SKILL.md
+- AGENTS.md (repo rules: release boundary, "unaccepted candidate code stays out of main", owner decision policy)
+
+Please answer, concretely and with file/symbol citations:
+1. Factual errors or overstatements in the draft (numbers, states, what the code does or does not do).
+2. The name: is `shiploop-e2e-iterate` right? Argue for a better one if you have it, considering the repo's terminology (iteration, qualified iteration, closed loop, exploration round, campaign) and collisions (ShipLoop's own Improve stage, the improve and improve-loop skills).
+3. The effectiveness list: is the ranking right? What is missing that would most increase the loop's measured yield of real ShipLoop improvements per hour or per token? What in the list is wrong or overbuilt? Weigh the owner's own recent rules: cheapest instrument first, change only for material difference, KISS over guards, no arbitrary caps, loops unbounded unless the owner decides a limit.
+4. Generic vs specific: is the split right? Is "do not generalize now, keep the seam" right, and what exactly is the seam (an interface sketch: what a subject adapter must provide)?
+5. Anything one-way or needing the owner's decision that the draft treats as routine, or vice versa.
+Give a verdict (ready / ready with changes / not ready) and a prioritized list of changes. Keep it under ~1200 words.
