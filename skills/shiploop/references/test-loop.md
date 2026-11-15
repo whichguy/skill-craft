@@ -94,18 +94,20 @@ delivered (`consumer-check`, never your checkout), else in the work area
 needs its `_na` reason. The run records under `tests/` are the evidence; a
 result's summary is not.
 
-A request outcome no executed check observed is neither confirmed nor hidden: a
-done `product-acceptance` lists it in `unverified` (outcome, requirement, reason,
-lower-layer check, settle, owner, due stage), and `[]` says no outcome remains listed.
-ShipLoop refuses a missing list, an incomplete or placeholder entry, a requirement
-with no entry in the spec and a due stage that is not a later stage; it cannot judge
-that the list is complete. An outcome of a requirement the spec lists in `primary`
-is accepted only when its `lower_layer_check` is the ID of a test ShipLoop ran and saw
-pass in a case for that requirement; else add-work adds that test. The stage an
-entry is due at, and `handoff`, restate the current list in their own `unverified`:
-drop an entry due there once observed (the summary says how), move one not observed
-to a later stage, copy the rest; `[]` once none is open. ShipLoop refuses a missing
-restatement, a dropped later entry or a kept due one. The report shows what settled.
+Unobserved: a done `product-acceptance` lists it in `unverified`
+(outcome, requirement, reason, lower-layer check, settle, owner, due stage);
+`[]` says no outcome remains listed. Missing/incomplete/placeholder lists, unknown spec IDs or non-later due stages
+refuse. Completeness is not judged. For `primary`, `lower_layer_check` names a test ShipLoop passed for that
+requirement; else add-work adds it.
+
+Revisited acceptance, due stages and `handoff` restate the latest list.
+Each removal needs exactly one `settled`: `requirement`, `outcome`, `basis`,
+`evidence_refs`. Basis: `observed` (current required-surface observation) or
+`user-correction` (explicit user correction), with nonempty references.
+Acceptance may settle early; otherwise remove only due rows. Carry others;
+defer due rows, or carry at handoff. Missing restatements, unmatched
+settlements or kept due rows before handoff refuse. References: host claims,
+not proof of truth, currency or authority; delivery-contract gates still apply.
 
 ## Tests pass or the step stops
 

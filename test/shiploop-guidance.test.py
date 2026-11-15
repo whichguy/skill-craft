@@ -3154,18 +3154,24 @@ class UnverifiedWordingTests(unittest.TestCase):
             self.assertIn(phrase, duty)
 
     def test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints(self) -> None:
-        # S-3: the card agrees with the script. The four faults are the ones the stage's Checked-by line names.
-        skill = normalized((REFERENCES / "test-loop.md").read_text(encoding="utf-8"))  # moved from the card by U22
+        # The compact reference states admission, attribution, due routing and declaration limits.
+        skill = normalized((REFERENCES / "test-loop.md").read_text(encoding="utf-8"))
         for phrase in ("a done `product-acceptance` lists it in `unverified`",
                        "(outcome, requirement, reason, lower-layer check, settle, owner, due stage)",
-                       "`[]` says every outcome was observed",
-                       "ShipLoop refuses a missing list, an incomplete or placeholder entry, a requirement with no entry "
-                       "in the spec and a due stage that is not a later stage", "it cannot judge that the list is complete",
-                       "An outcome of a requirement the spec lists in `primary` is accepted only when its "
-                       "`lower_layer_check` is the ID of a test ShipLoop ran and saw pass in a case for that requirement; "
-                       "else add-work adds that test",
-                       "The stage an entry is due at, and `handoff`, restate the current list in their own `unverified`",
-                       "ShipLoop refuses a missing restatement, a dropped later entry or a kept due one"):
+                       "`[]` says no outcome remains listed",
+                       "Missing/incomplete/placeholder lists, unknown spec IDs or non-later due stages refuse",
+                       "Completeness is not judged",
+                       "For `primary`, `lower_layer_check` names a test ShipLoop passed for that requirement; "
+                       "else add-work adds it",
+                       "Revisited acceptance, due stages and `handoff` restate the latest list",
+                       "Each removal needs exactly one `settled`: `requirement`, `outcome`, `basis`, `evidence_refs`",
+                       "`observed` (current required-surface observation)",
+                       "`user-correction` (explicit user correction), with nonempty references",
+                       "Acceptance may settle early; otherwise remove only due rows",
+                       "defer due rows, or carry at handoff",
+                       "Missing restatements, unmatched settlements or kept due rows before handoff refuse",
+                       "References: host claims, not proof of truth, currency or authority",
+                       "delivery-contract gates still apply"):
             self.assertIn(phrase, skill)
         reference = normalized((REFERENCES / "system-tests.md").read_text(encoding="utf-8"))
         self.assertIn("listed in its `unverified` result with the stage that reports it", reference)

@@ -260,7 +260,12 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
                                          r"current entry in)"),
     # A later stage that does not carry the unverified list forward (restate-unverified, 2026-10-26: hello's
     # release-verify settled R-1 in prose only; shiploop_unverified.check_restated).
-    "unverified_restate": re.compile(r"result restates unverified, the list |unverified (?:drops|keeps) "),
+    "unverified_restate": re.compile(
+        r"result restates unverified(?: alongside settled)?, the list |unverified (?:drops|keeps) |"
+        r"unverified must be a list: record removed rows in settled; |"
+        r"settled must be a list; |settled keys must exactly equal prior pending keys minus submitted pending keys; |"
+        r"settled\[\d+\](?: needs exactly |\.(?:requirement|outcome|basis|evidence_refs) must |"
+        r" (?:duplicates a settled|overlaps a pending) requirement/outcome identity)"),
     # A non-trivial Improve pass after three small-edit passes that names no later-stage defect (Haiku 5.5 battleship,
     # 2026-10-25; shiploop_navigator.py _improve_pass).
     "improve_small_passes": re.compile(r"each changed only a few lines \("),

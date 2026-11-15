@@ -2539,7 +2539,16 @@ class GateCountsTest(unittest.TestCase):
         state = {"history": [{"action": "pa", "stage": "product-acceptance", "workitem": None, "outcome": "done"}],
                  "accepted": {"pa": {"outcome": "done", "unverified": [row, early]}}}
         done = {"outcome": "done", "summary": "s"}
-        for result in (done, dict(done, unverified=[early]), dict(done, unverified=[row, early])):
+        settlement = {"requirement": early["requirement"], "outcome": early["outcome"],
+                      "basis": "observed", "evidence_refs": ["RUN/observation.txt"]}
+        for result in (done, dict(done, unverified=[early]), dict(done, unverified=[row, early]),
+                       dict(done, unverified="invalid"), dict(done, unverified=[row], settled="invalid"),
+                       dict(done, unverified=[row], settled=[{}]),
+                       dict(done, unverified=[row], settled=[dict(settlement, basis="invalid")]),
+                       dict(done, unverified=[row], settled=[dict(settlement, evidence_refs=[])]),
+                       dict(done, unverified=[row], settled=[settlement, settlement]),
+                       dict(done, unverified=[row, early], settled=[settlement]),
+                       dict(done, unverified=[early], settled=[dict(settlement, outcome=row["outcome"])])):
             with self.subTest(result=result), self.assertRaises(unverified.UnverifiedError) as caught:
                 unverified.check_restated(state, "release-check", result)
             self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "unverified_restate",

@@ -10202,8 +10202,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     not_enforced = _skill_call_gate(core, root, state, child)
                     receipt = _derived_improve_receipt(child, args, root, state, core)
                     final_result = receipt.get("final_result")
-                    if final_result is not None:
-                        _check_submitted_evidence(final_result, None)
+                    effective_result = child["seed_result"] if final_result is None else final_result
+                    _check_submitted_evidence(effective_result, None)
                     _check_submitted_unverified(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_assumptions(

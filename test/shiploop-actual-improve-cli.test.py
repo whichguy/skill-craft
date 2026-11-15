@@ -461,6 +461,72 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *flags)
         self.assertEqual(navigator.unverified.current_list(store.read_record(self.run / "state.md"))[2], [row])
 
+    def _r07_settled_seed_import(self, remove_observation):
+        row = {"requirement": "R-1", "outcome": "reader displays totals", "reason": "no reader",
+               "lower_layer_check": "synthetic prior test", "settle": "reader opens export",
+               "owner": "user", "due_stage": "release-plan"}
+        # Absolute outside-Git evidence exercises the same expanded locator as RUN/observation.txt.
+        observation = self.base / "observation.txt"
+        contents = "Synthetic declaration: reader displays totals on the required surface.\n"
+        observation.write_text(contents, encoding="utf-8")
+        self._start_parent_at_stage("release-plan", [str(self.product_contract)],
+            predecessor_extra={"product-acceptance": {"unverified": [row]}},
+            producer_extra={"unverified": [], "settled": [{
+                "requirement": row["requirement"], "outcome": row["outcome"], "basis": "observed",
+                "evidence_refs": [str(observation)]}], "consumer_entry": {
+                "how": "read the product contract", "sources": [str(self.product_contract.relative_to(self.repo))]},
+                "consumer_checks": [], "consumer_checks_na": "No external release check in this fixture."})
+        self.finish_ephemeral()
+        flags, _ = self.completion_receipt()
+        self.assertNotIn("--final-result", flags)
+        before = store.read_record(self.run / "state.md")
+        self.assertIsNotNone(before["active_improve"])
+        self.assertEqual(navigator.unverified.current_list(before)[2], [row])
+        self.assertEqual(before["active_improve"]["seed_result"]["settled"][0]["evidence_refs"],
+                         [str(observation)])
+        self.assertFalse(observation.is_relative_to(self.repo))
+
+        def identity():
+            # This existing CLI fixture is non-Git. Bind both the real admission key and all product bytes;
+            # the run receipt separately records the source checkout HEAD and hashes.
+            return {
+                "admission_key": navigator.shiploop_check.answer_key(
+                    self.run, before, self.action, "release-plan", None, self.input, lint_option=""),
+                "product_sha256": {str(path.relative_to(self.repo)): hashlib.sha256(path.read_bytes()).hexdigest()
+                                   for path in self.repo.rglob("*") if path.is_file()},
+            }
+
+        original_identity = identity()
+        if remove_observation:
+            observation.unlink()  # Only this reference disappears; the parent Improve binding stays active.
+        self.assertEqual(identity(), original_identity)
+        if remove_observation:
+            argv = [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run),
+                    "--action", self.improve, *flags]
+            reply = subprocess.run(argv, cwd=self.base, env=self.environment, text=True,
+                                   capture_output=True, timeout=30, check=False)
+            after = store.read_record(self.run / "state.md")
+            print(json.dumps({"probe": "r07-missing-seed-evidence", "argv": argv,
+                              "returncode": reply.returncode, "stdout": reply.stdout, "stderr": reply.stderr,
+                              "accepted_state_unchanged": after == before,
+                              "pending_after": navigator.unverified.current_list(after)[2],
+                              "local_identity_unchanged": identity() == original_identity}))
+            self.assertEqual(reply.returncode, 2, reply.stdout + reply.stderr)
+            self.assertIn("evidence_refs cite files that do not exist: " + str(observation),
+                          reply.stdout + reply.stderr)
+            self.assertEqual(after, before)
+            observation.write_text(contents, encoding="utf-8")
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *flags)
+        accepted = store.read_record(self.run / "state.md")
+        self.assertIsNone(accepted["active_improve"])
+        self.assertEqual(navigator.unverified.current_list(accepted)[2], [])
+
+    def test_r07_seed_import_refuses_missing_settlement_evidence_then_accepts_restored_file(self):
+        self._r07_settled_seed_import(remove_observation=True)
+
+    def test_r07_seed_import_accepts_unchanged_settlement_evidence(self):
+        self._r07_settled_seed_import(remove_observation=False)
+
     def test_context_first_assignment_and_learning_header_survive_recovery(self):
         """Prompt obligations and real transport; semantic use is tested separately."""
         guide = ROOT / "skills/shiploop/references/improve-context.md"
