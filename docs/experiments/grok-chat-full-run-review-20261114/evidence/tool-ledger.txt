@@ -1,0 +1,7 @@
+tool calls: 766   observed tool time: 187.1 min
+
+polling stretches (>= 4 polls):
+  starts + 210 min   14 polls  spans  13.2 min
+  starts + 227 min   27 polls  spans  35.0 min
+  starts + 275 min    5 polls  spans   7.4 min
+TOTAL 46 poll calls spanning 55.6 min of wall clock

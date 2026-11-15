@@ -1,0 +1,70 @@
+ # action   stage                 min    cum outcome    calls  ctx% cmp  pktKB  impr evid
+ 1 e6966a4c intake                0.9    0.9 done           7  12.1   0   22.3     - file
+ 2 0770136f discovery             1.5    2.4 done           5  17.4   0   19.6     - file
+ 3 b07bacc2 research              0.8    3.2 done           3  21.6   0   14.9     - file
+ 4 988530c7 spec                  2.2    5.4 done          11  28.6   0   27.1  1.02 loop
+ 5 7a203b76 test-strategy         2.5    7.9 done           8  32.7   0   24.2  0.71 loop
+ 6 04471107 plan                  2.2   10.1 done           8  38.8   0   39.4  0.86 loop
+ 7 a7dd32b5 prepare               2.1   12.2 done          10  42.5   0   16.8     - file
+ 8 11fab7b9 step-plan             2.8   15.0 done          12  48.9   0   34.9  0.81 script
+ 9 1b93cab2 test-spec             0.9   15.9 done           4  51.8   0   36.7     - script
+10 764483ce validate-existing     0.0   15.9 done           -     -   0    0.0     - script
+11 e60d6265 implement            16.2   32.1 send-back     33  70.0   0   40.6     - script
+12 c87498fa step-plan             2.9   35.0 done          11  74.9   0   36.0  0.72 script
+13 6b826815 test-spec             0.7   35.7 done           4  76.1   0   38.4     - script
+14 57a63a93 validate-existing     0.0   35.7 done           -     -   0    0.0     - script
+15 051eaa2e implement            47.8   83.5 send-back    102  95.0   1   53.0     - script
+16 9ab91f44 step-plan             3.2   86.7 done          14  29.5   0   36.1  1.47 script
+17 054d7df6 test-spec             0.7   87.4 done           3  31.3   0   39.8     - script
+18 6ded88fb validate-existing     0.0   87.4 done           -     -   0    0.0     - script
+19 010279ac implement             5.7   93.1 send-back     14  34.5   0   43.8     - script
+20 6dff3c94 step-plan             2.0   95.1 done           8  37.0   0   35.9  1.06 script
+21 0e2770fa test-spec             0.6   95.7 done           2  37.7   0   39.7     - script
+22 d70a699a validate-existing     0.0   95.7 done           -     -   0    0.0     - script
+23 01148514 implement             1.5   97.2 done           6  38.6   0   43.7     - script
+24 9f4bc58d test                 52.6  149.8 send-back     77  69.4   0   43.0     - script
+25 c5829695 step-plan             3.6  153.4 done           6  72.1   0   36.3  2.12 script
+26 849074c6 test-spec             1.5  154.9 done           3  73.3   0   42.4     - script
+27 b3aed335 validate-existing     0.0  154.9 done           -     -   0    0.0     - script
+28 6201836f implement             1.9  156.8 done           4  74.1   0   47.6     - script
+29 3a979ba3 test                 34.3  191.1 send-back     23  87.9   0   46.7     - script
+30 94df99ab step-plan             5.1  196.2 done           5  90.9   0   36.4  2.75 script
+31 3bd3eed4 test-spec             1.3  197.5 done           3  92.1   0   42.7     - script
+32 c263603e validate-existing     0.0  197.5 done           -     -   0    0.0     - script
+33 f84c133e implement            12.6  210.1 done          18  95.3   1   59.9     - script
+34 83b3edfb test                 34.4  244.5 done          92  30.9   0   46.6     - script
+35 ae85c831 document             23.1  267.6 done          46  45.1   0   48.0  2.73 script
+36 4dab2225 carry-forward         2.6  270.2 done           7  50.3   0   25.4   1.6 script
+37 f6321655 system-test-author   13.6  283.8 done          25  58.6   0   27.5  1.16 loop
+38 9adf603c system-test           1.1  284.9 send-back      2  59.3   0   23.2     - file
+39 9b8db071 system-test-author   13.8  298.7 done          21  66.0   0   27.8  1.16 loop
+40 c8bd7c5e system-test          17.8  316.5 add-work      16  72.8   0   23.2     - file
+41 ae93935e step-plan            20.2  336.7 done          12  83.7   0   32.2     - script
+42 5f18b8dc test-spec             2.0  338.7 done           5  86.2   0   38.7     - script
+43 92a2ba30 validate-existing     0.0  338.7 done           -     -   0    0.0     - script
+44 4ab98eec implement             7.2  345.9 done           9  89.9   0   43.3     - script
+45 c66f13de test                 15.1  361.0 done          29  95.4   1   44.3     - script
+46 e7019dbe document              2.8  363.8 done          16  24.4   0   42.8  0.77 script
+47 188f0df3 implement             2.8  366.6 done          11  27.3   0   40.5     - script
+48 0e566934 test                 11.0  377.6 done          41  32.2   0   48.5     - script
+49 71e33b4c document              8.4  386.0 done          26  38.8   0   45.5   0.7 script
+50 51efd94e carry-forward         2.1  388.1 done           6  45.0   0   30.8  0.95 script
+51 425d74d1 system-test-author   24.7  412.8 blocked       68  50.5   0   33.7     - file
+total min: 412.8
+
+  test               visits  5   147.4 min
+  implement          visits  8    95.7 min
+  system-test-author visits  3    52.1 min
+  step-plan          visits  7    39.8 min
+  document           visits  3    34.3 min
+  system-test        visits  2    18.9 min
+  test-spec          visits  7     7.7 min
+  carry-forward      visits  2     4.7 min
+  test-strategy      visits  1     2.5 min
+  spec               visits  1     2.2 min
+  plan               visits  1     2.2 min
+  prepare            visits  1     2.1 min
+  discovery          visits  1     1.5 min
+  intake             visits  1     0.9 min
+  research           visits  1     0.8 min
+  validate-existing  visits  7     0.0 min

@@ -1,0 +1,53 @@
+ShipLoop commands recorded in the trace: 134
+total ShipLoop CLI time: 100.4 min
+  verb check        n= 50    99.6 min
+  verb complete     n= 63     0.7 min
+  verb improve-pass n= 16     0.0 min
+  verb workspace    n=  1     0.0 min
+  verb next         n=  4     0.0 min
+
+  stage test                 n= 13    39.6 min   refused/nonzero 3
+  stage implement            n= 24    24.1 min   refused/nonzero 6
+  stage document             n=  8    23.4 min   refused/nonzero 1
+  stage system-test          n=  3    12.5 min   refused/nonzero 1
+  stage test-spec            n= 15     0.5 min   refused/nonzero 0
+
+commands >= 100 s:
+  17:21:35Z check     implement             120s exit=2 action=051eaa2e
+  17:27:31Z check     implement             125s exit=0 action=051eaa2e
+  17:30:45Z check     implement             178s exit=2 action=051eaa2e
+  17:34:34Z check     implement             135s exit=2 action=051eaa2e
+  17:37:54Z check     implement             158s exit=2 action=051eaa2e
+  17:47:39Z check     implement             209s exit=2 action=010279ac
+  19:14:03Z check     test                  178s exit=2 action=3a979ba3
+  19:57:58Z check     test                  549s exit=2 action=83b3edfb
+  20:11:52Z check     test                  596s exit=2 action=83b3edfb
+  20:20:29Z check     test                  444s exit=0 action=83b3edfb
+  20:34:05Z check     document              631s exit=2 action=ae85c831
+  20:40:52Z check     document              336s exit=0 action=ae85c831
+  21:28:43Z check     system-test           752s exit=2 action=c8bd7c5e
+  22:33:36Z check     test                  484s exit=0 action=0e566934
+  22:41:16Z check     document              397s exit=0 action=71e33b4c
+
+refusals: 19 (trace line, time, verb, stage, first 300 characters of the message)
+  [ 14] 16:22:58Z complete test-strategy      test_layers gives deployed Lightning application no unit or component row. All code the run writes is tested below the e2e layer: add its unit or component row, status prerequisite when its harness is missing.
+  [ 25] 16:27:29Z complete prepare            harness_runs evidence /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/run/notes/node-ready.txt for slGrokChatApp and slGrokChatView [component] ran no test (the runner selected none). Run one test with the harness and sa
+  [ 26] 16:27:58Z complete prepare            harness_runs evidence /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/run/notes/node-ready.txt for slGrokChatApp and slGrokChatView [component] ran no test (the runner selected none). Run one test with the harness and sa
+  [ 29] 16:29:43Z check    step-plan          a test command's ids must be a nonempty list of test IDs without spaces
+  [ 42] 16:49:43Z check    step-plan          expectation E1 is works, but force-app/** does not exist on the item's lint base. A new path needs an absent expectation.
+  [ 52] 17:21:35Z check    implement          ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree: - sf project deploy start --source-dir force-app --target-or
+  [ 56] 17:30:45Z check    implement          ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree: - sf project deploy start --source-dir force-app --target-or
+  [ 57] 17:34:34Z check    implement          ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree: - sf project deploy start --source-dir force-app --target-or
+  [ 58] 17:37:54Z check    implement          ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree: - sf project deploy start --source-dir force-app --target-or
+  [ 70] 17:47:39Z check    implement          ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree: - sf project deploy start --source-dir force-app --target-or
+  [ 87] 18:46:58Z check    step-plan          test_layers[0].layer is one of unit, component, e2e
+  [100] 19:14:03Z check    test               ShipLoop test run: test is not done. ShipLoop ran the 7 listed commands from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree and 2 did not pass: - [regression] sf apex run test --class-names SLGrokChatSecurityTe
+  [103] 19:28:56Z check    step-plan          expectation E4 is works, but scripts/concurrent_confirmation.py does not exist on the item's lint base. A new path needs an absent expectation.
+  [113] 19:37:04Z check    implement          ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree: - sf project deploy start --source-dir force-app --target-or
+  [119] 19:57:58Z check    test               ShipLoop test run: test is not done. ShipLoop ran the 7 listed commands from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree and 1 did not pass: - [check] sf project deploy start --source-dir force-app --target-
+  [120] 20:11:52Z check    test               ShipLoop mutation check: test is not done. 8 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - force-app/main/default/classes/SLGrokChatAgent.cls:131:35: force-app/main/default/classes/SLGrokChatAgent.cls:131: '16000' -> '16001' - force-app/main/def
+  [124] 20:34:05Z check    document           ShipLoop test run: document is not done. ShipLoop ran the 3 listed commands from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree and 1 did not pass: - [check] sf project deploy start --source-dir force-app --tar
+  [149] 21:28:43Z check    system-test        ShipLoop test run: system-test is not done. ShipLoop ran the 9 listed commands from /Users/Shared/Codex/shiploop-e2e/salesforce-grokbot-independent-20261114T161019Z/run/.shiploop-runs/work-20261114-161603-238276/worktree and 1 did not pass: - [check] grok-chat-quality -> timed out, so it reached no
+  [152] 21:51:37Z check    step-plan          a test command must be one nonblank line; join steps with && or ; on that line (a \n written inside the JSON string is decoded to a newline before this check runs, so it fails it)
+
+packet prints: 61 first prints (1640 KB), 4 reprints (203 KB, 11% of printed text)

@@ -1,0 +1,21 @@
+# the owner's repeated-check measure (docs/experiments/closeout-one-command-20261114/analysis/dupcheck.py), run on this review's inputs
+# corpus (742 retained traces; its own population differs from the 290 runs in that README, which counted 159 pairs and 104 s)
+stage: actions | yes->check pairs | their script seconds | all check seconds | stage wall seconds
+carry-forward        175 |    0 |      0 |     36 |    4979
+document             228 |   13 |     18 |    266 |    8471
+implement            335 |    1 |      4 |    215 |   16709
+step-plan            318 |   77 |     15 |    124 |   15046
+test                 332 |   16 |     46 |   4383 |   23161
+test-spec            320 |    8 |      1 |     56 |    8983
+validate-existing     14 |    0 |      0 |      2 |     612
+total pairs 115 wasted seconds 84 of all wall 77961
+
+# this trial
+stage: actions | yes->check pairs | their script seconds | all check seconds | stage wall seconds
+carry-forward          2 |    0 |      0 |      0 |     130
+document               3 |    0 |      0 |   1404 |    1808
+implement              8 |    3 |    310 |   1443 |    5743
+step-plan              7 |    2 |      0 |      2 |    1856
+test                   5 |    1 |     61 |   2372 |    8837
+test-spec              7 |    1 |      0 |      1 |     459
+total pairs 7 wasted seconds 372 of all wall 18834

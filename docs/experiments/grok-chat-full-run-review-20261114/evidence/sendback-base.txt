@@ -1,0 +1,6 @@
+# corpus
+implement  accepted exits:   335  send-back/replan:   28 ( 8.4%)  runs with >=1: 25 of 260
+test       accepted exits:   327  send-back/replan:   17 ( 5.2%)  runs with >=1: 14 of 260
+# this trial
+implement  accepted exits:     8  send-back/replan:    3 (37.5%)  runs with >=1: 1 of 1
+test       accepted exits:     5  send-back/replan:    2 (40.0%)  runs with >=1: 1 of 1

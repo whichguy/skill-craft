@@ -1,0 +1,5 @@
+runs whose packets list `sf apex run test`: 10
+  ...with --result-format tap on some row: 1
+  ...with a [regression] row on tap: 0
+  ...with a row that is not tap: 10
+   tap run: ~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification/runs/control-battleship/battleship-sh

@@ -1,0 +1,9 @@
+traces read: 742  runs with ShipLoop commands since 2026-10-29: 376
+
+TIMEOUT ('reached no verdict about the product') refusals:
+   none in any retained run
+
+UNCOUNTED ('could not read how many tests it ran'): {'check': 2} in 2 runs
+   most common command heads: [("rg -F -n '/** Parse a string into record", 1), ("rg 'Service contract:' server.js -> exit", 1)]
+
+MUTATION refusals: 145 in 120 runs; mutants listed: 352 ; in test-looking files: 6 ( 1 runs )

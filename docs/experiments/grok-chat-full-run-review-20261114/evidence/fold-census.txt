@@ -1,0 +1,10 @@
+# corpus (retained runs since 2026-10-29)
+runs with raw command submissions: 285  submissions: 661  (unreadable by current normaliser: 0 )
+rows submitted: 1827 -> accepted: 1679  rows folded: 148  in 148 submissions / 83 runs
+NON-ADJACENT repeated 'check' rows (same command string, other rows between): 0 submissions in 0 runs
+
+# sanity check on the trial itself (must find the known case)
+runs with raw command submissions: 1  submissions: 9  (unreadable by current normaliser: 0 )
+rows submitted: 67 -> accepted: 66  rows folded: 1  in 1 submissions / 1 runs
+NON-ADJACENT repeated 'check' rows (same command string, other rows between): 1 submissions in 1 runs
+   ..loop-e2e/salesforce-grokbot-independent-20261114T161019Z/run system_commands rows [0, 7] of 10: sf project deploy start --source-dir force-app --target-org de --wait 10 --json
