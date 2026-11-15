@@ -2386,7 +2386,7 @@ class TestNoCredentialsAnywhere(FakeOrg):
     def test_a_credential_in_an_error_message_is_scrubbed_from_what_a_check_prints(self) -> None:
         # The fake never emits a real-shaped token; prove the printing path scrubs one anyway.
         token = "00D5g0000012345AAA!AQEAQabcdefghijklmnopqrstuvwxyz0123456789"
-        proc = subprocess.run([sys.executable, "-I", "-c",
+        proc = subprocess.run([sys.executable, "-B", "-I", "-c",
                                "import importlib.util,sys\n"
                                "s=importlib.util.spec_from_file_location('c', %r); m=importlib.util.module_from_spec(s); s.loader.exec_module(m)\n"
                                "m.say('boom %s accessToken\": \"abc\"')\n" % (str(CHECKS), token)],
@@ -2394,6 +2394,66 @@ class TestNoCredentialsAnywhere(FakeOrg):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertNotIn(token, proc.stdout)
         self.assertIn("[redacted]", proc.stdout)
+
+
+class TestRedactionProbeBytecode(unittest.TestCase):
+    """Exercise the existing probe, never the repository's source-loader cache."""
+
+    def probe_copy(self, *, sentinel: bool = False, import_error: bool = False) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / "chess_salesforce.py"
+            source.write_bytes(CHECKS.read_bytes())
+            if import_error:
+                with source.open("a") as stream:
+                    stream.write("\nraise RuntimeError('temporary-source-import-failure')\n")
+            cache = source.parent / "__pycache__"
+            if sentinel:
+                cache.mkdir()
+                # Use the exact loader destination: invalid bytes must neither be
+                # replaced nor removed when the source is imported without caching.
+                Path(importlib.util.cache_from_source(str(source))).write_bytes(b"preexisting-cache-sentinel")
+            before = {p.relative_to(source.parent): p.read_bytes() for p in cache.glob("*")}
+            real_run = subprocess.run
+            calls = []
+            results = []
+
+            def capture_probe(argv, **kwargs):
+                calls.append(list(argv))
+                self.assertIn("-I", argv, "retain the probe's isolated interpreter")
+                done = real_run(argv, **kwargs)
+                results.append(done)
+                return done
+
+            original = TestNoCredentialsAnywhere(
+                "test_a_credential_in_an_error_message_is_scrubbed_from_what_a_check_prints")
+            with mock.patch.dict(globals(), CHECKS=source), mock.patch.object(subprocess, "run", capture_probe):
+                if import_error:
+                    # The unchanged success assertion rejects the intentional
+                    # import exception; the real child still executes unchanged.
+                    with self.assertRaises(AssertionError):
+                        original.test_a_credential_in_an_error_message_is_scrubbed_from_what_a_check_prints()
+                else:
+                    original.test_a_credential_in_an_error_message_is_scrubbed_from_what_a_check_prints()
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(len(results), 1)
+            if import_error:
+                self.assertNotEqual(results[0].returncode, 0)
+                self.assertIn("temporary-source-import-failure", results[0].stderr)
+            after = {p.relative_to(source.parent): p.read_bytes() for p in cache.glob("*")}
+            self.assertEqual(after, before, "the actual redaction probe must not create or overwrite bytecode")
+            self.assertEqual(cache.exists(), sentinel, "the probe must not create an empty cache directory either")
+
+    def test_successful_redaction_probe_creates_no_bytecode(self) -> None:
+        self.probe_copy()
+
+    def test_successful_redaction_probe_preserves_existing_cache(self) -> None:
+        self.probe_copy(sentinel=True)
+
+    def test_import_failure_creates_no_bytecode(self) -> None:
+        self.probe_copy(import_error=True)
+
+    def test_import_failure_preserves_existing_cache(self) -> None:
+        self.probe_copy(sentinel=True, import_error=True)
 
 
 class RealOrgQuirkTest(unittest.TestCase):
