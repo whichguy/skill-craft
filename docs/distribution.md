@@ -213,20 +213,31 @@ of them still on the per-skill catalog, sat side by side and stale.
 
 The owner's decision (2026-11-15): never pin a registration. Register the repository root on its default branch (no
 `--git-ref`, or `--git-ref main`), never a commit or a tag, and keep one registration per repository, named `whichguy`. Cursor
-still snapshots the commit, so staying on the latest release takes these steps after each release, as on 2026-11-15:
+still snapshots the commit, and once the app reloads a re-registration leaves the plugin uninstalled (below), so staying on the
+latest release takes these steps after each release, as on 2026-11-15:
 
 1. `cursor-agent plugin marketplace remove whichguy`, then `cursor-agent plugin marketplace add https://github.com/whichguy/skill-craft`.
-2. In the app, **Uninstall** skill-craft. The install is account-wide, so Cursor's cloud agents lack the plugin until step 4.
-3. Reload the app window. Until it reloads, the app keeps the registration it loaded: the plugin page shows the old version and
-   **Add to Cursor** fails with "Plugin not found" (that error's own **Reload** button reloads the window).
-4. **Add to Cursor** with **Add for Myself**.
-5. Read back: the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/<commit>` names the new commit, and its
+2. Make the app read the new registration: launch it if it is closed, or reload its window (first check that every sidebar chat
+   reads Completed). Until then the app keeps the registration it loaded: the plugin page shows the old version and **Add** fails
+   with "Plugin not found" (that error's own **Reload** button reloads the window).
+3. **Customize → Browse Marketplace → Personal → Whichguy → skill-craft**. If it reads **Add**, click it once: no dialog appears,
+   and Cursor writes the account's enabled record and installs the new commit (2026-11-15: 2.41.0, the old cache folder removed
+   by Cursor). If it still reads **Added**, the running app still holds the old install (2026-11-15 morning: 2.39.0): **Uninstall**
+   it, which leaves Cursor's cloud agents without the plugin until the next Add, reload the window, then click **Add**
+   (with **Add for Myself** where the dialog appears).
+4. Read back: the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/<commit>` names the new commit, and its
    `.cursor-plugin/plugin.json` the new version.
 
-A re-registration does not move an installed plugin by itself: on 2026-11-15, 2.39.0 (cache `c2ad82f57032930ef9ca66927d711a8f8f74b868`)
-stayed installed for the minutes between the re-registration and its uninstall. Whether a window reload alone would move it is
-not tested. Once the marketplace plugin is installed, move any copy under `~/.cursor/plugins/local/skill-craft` out of the way so
-the skills do not load twice.
+Cursor also imports Claude Code's installed plugins (12 of 17 on 2026-11-15, skill-craft among them) and marks them **Imported**.
+That row is Claude Code's copy, not Cursor's: do not press its **Uninstall**, because what the button does to an imported plugin
+was not tested. With both present the Installed list shows two skill-craft rows, but the plugin loader's total did not change, so
+Cursor loads one (Round 11, F31 to F33 of [the portability journal](shiploop-portability-audit-journal.md)).
+
+A running app does not move an installed plugin by itself after a re-registration: on 2026-11-15, 2.39.0 (cache
+`c2ad82f57032930ef9ca66927d711a8f8f74b868`) stayed installed for the minutes between the re-registration and its uninstall. After
+a relaunch the plugin was no longer installed at all (Round 11, F30), so the Add was a fresh install; whether a window reload of a
+running app does the same is not tested. Once the marketplace plugin is installed, move any copy under
+`~/.cursor/plugins/local/skill-craft` out of the way so the skills do not load twice.
 
 Team-scoped marketplace import remains a Teams or Enterprise administrator action
 through **Dashboard → Settings → Plugins → Import from Repo**. A public listing
@@ -245,7 +256,7 @@ installed version back.
 | Claude Code | `claude plugin marketplace update whichguy` | `claude plugin update skill-craft@whichguy --scope user`, then restart | `claude plugin list --json` |
 | Codex | `codex plugin marketplace upgrade whichguy` | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
 | Grok | `grok plugin marketplace update whichguy` | `grok plugin update skill-craft` | `grok plugin details skill-craft` |
-| Cursor | `cursor-agent plugin marketplace update whichguy` re-indexes the same commit only | remove and add the marketplace (its repository root, never a commit), Uninstall the plugin in the app, reload the window, then Add it, as under [Cursor](#cursor) | `cursor-agent plugin marketplace list --format json` (`gitRef`) and the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/` |
+| Cursor | `cursor-agent plugin marketplace update whichguy` re-indexes the same commit only | remove and add the marketplace (its repository root, never a commit), relaunch or reload the app, then Add skill-craft (Uninstall it first only if the running app still shows the old install), as under [Cursor](#cursor) | `cursor-agent plugin marketplace list --format json` (`gitRef`) and the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/` |
 
 Checked on 2026-11-09 for 2.36.0 to 2.36.1 (Claude Code 2.1.319, Codex 0.167.0,
 Grok 1.0.77, Cursor Agent 2026.09.23):

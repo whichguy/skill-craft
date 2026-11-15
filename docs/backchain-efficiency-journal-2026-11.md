@@ -424,3 +424,39 @@ then merged in, at f896ec7a788913429a843e61b42ecfcf866d23d3.
 Release order from here: the LEARNINGS commit (the last commit touching `skills/shiploop/` or `changes/shiploop/`), the
 landing gate, then the push, `scripts/release.py`, CI and the host refresh. The gate passed: main's only commit since the
 tested merge is b0285785374570c88f534480cf361778030018ac, which is docs-only.
+
+Release A was published at fe0e6ca39435d502bd0b8afd3ce300ff731e5683 (skill-craft 2.41.0, Backchain 0.8.0, ShipLoop
+1.36.3). CI on that commit passed 13 of 13 jobs, and Claude, Codex and Grok read back 2.41.0. Cursor's registration was
+re-added at that commit; its in-app Uninstall, reload and Add steps remain the owner's.
+
+## Round 12 — Backchain against no Backchain on current models: no meaningful edge on all three (2026-11-15)
+
+Question (owner, 2026-11-15): "whether Backchain is as effective with the most recent models or it's not nearly as
+valuable", on "Grok 4.6 on extra high, GPT Sol 6.1 on medium, and Sonnet 5.5 on high". The registration came before
+any study attempt: b9393e61693d7ec42a631881ad08b10254a4ef09 (protocol), e60d3b1d1f9b3fc9c19cfe457a424d54466372e6
+(amendments A1-A3 from the harness pilot) and 44e76211107c3dd8a1fa1fc9e7516dce3d38e045 (A4).
+- Conditions: the 2026-11 cohort's 10 cases, 1 run per case, arm and model (60 attempts). Backchain 0.7.0 came from
+  b0285785374570c88f534480cf361778030018ac; the no-skill arm got the same request, inputs, caller packet and
+  [plan-format.md](experiments/backchain-value-20261115/plan-format.md).
+- Grading: blind Opus at medium effort, 2 passes per attempt.
+- Reading per model, with the owner's margin δ = 5.
+- Evidence: [RESULTS.md](experiments/backchain-value-20261115/RESULTS.md) and its `evidence/`.
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R12-1 | Backchain minus no skill: Grok 4.6 xhigh +0.7 [−0.6, +2.0], Sol 6.1 medium +0.5 [−3.4, +4.8], Sonnet 5.5 high −0.2 [−1.3, +1.1]. All three intervals lie below +5, so each reads "no meaningful edge". Sol's high end, +4.8, is the closest to δ. | firm (as registered; 10 cases per model) | `evidence/analysis.json` |
+| R12-2 | Backchain used more processed tokens in 30 of 30 pairs. Medians: Grok 2.56M vs 171k (15×), Sol 1.03M vs 96k (11×), Sonnet 1.03M vs 100k (10×). It also took 2.3-3.3× the median wall time. Most of the extra is cached input (12-21×); fresh input is 4-7× and output 2-3×. | firm | `evidence/extras.json`, `evidence/attempts.json` |
+| R12-3 | Both arms score near the ceiling (means 92-96), and 14 of the 30 pairs tie exactly. The cases were built to tell Backchain versions apart and leave current unaided models little to fix, so a large edge could not show here. | firm (descriptive) | `evidence/analysis.json` |
+| R12-4 | The no-skill arm could see the word: workspace directories were named `backchain-cohort-…` and caller packets keep `"interface": "backchain-caller/v1"`. Grok's no-skill subject reasoned about backchaining in 4 of 10 attempts, while Sol's and Sonnet's never did. No no-skill subject read a Backchain file or ran the toolkit (0 of 30 contaminated under A3). | firm (the prime's effect on scores is unmeasured) | RESULTS.md "Readings outside the registered rule" |
+| R12-5 | On orders-cancel-rpc, Sol's Backchain stop named both gaps, which D-B counts as correct, yet the grader marked `terminal-disposition` and `dependency-logic` partial in both passes (90 vs 100). Every critical miss in the study is `store-split-from-docs` on this case, and on Grok and Sonnet both arms missed it. | firm | `evidence/grades.json` |
+
+Supersedes nothing. It extends the July evidence: on July's models the unaided model already handled several cases
+well (phase0b, 2026-07-25), and on November's models it plans as well as Backchain on all 10 of these cases.
+
+Decision (routine, recorded): no change to Backchain follows from this study alone, because it measures plan quality on
+one case set and not downstream value. The results answer the owner's question as asked: on these models and cases,
+Backchain is much less valuable than its cost. Four questions stay open:
+- whether harder cases show an edge;
+- whether a Backchain plan changes what gets built;
+- whether a cheaper Backchain path (one pass, or a lighter review) keeps quality at a fraction of the cost;
+- a rerun of R12-4 without the naming prime.

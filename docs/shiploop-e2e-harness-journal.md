@@ -152,7 +152,10 @@ repository.
   denials, no session lost); the size of the effect on a long delivery is not measured yet (the `ticket-due-times`
   verification was stopped at 5 minutes by the owner's call), and the next Grok E2E round records it.
 - slice.py (the planning-slice experiments) installs neither the keepalive nor this hook, so a slice still loses its
-  session to a refusal; adding the hook there would change those experiments' comparability and was left out.
+  session to a refusal; adding the hook there would change those experiments' comparability and was left out. The
+  owner decided it the same day ("Leave slices as is"): slices keep running without the hook, so they stay comparable
+  with the earlier slices (96 of the 193 recorded refusals, in 41 of 139 slices), and a refusal still ends a slice's
+  session. Closed; reopen only on the owner's word.
 - The floor is build-specific: no floor refusal was observed on 1.0.46, and 1.0.70 refused more (12 of its 15 refusals outside the three shapes hold
   ```` ``` ```` in single quotes or a quoted here-document). Any hook needs a per-build pin.
 - The Claude host also runs `--permission-mode auto`; its refusals are not measured (a Grok-only signal, 1a35bc50).
