@@ -459,6 +459,23 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
   - *Limits.* One trial per host, so the shape is the claim. The analysis tasks take the model about 5 s each, so this fixture has almost no model time to parallelise: A0p can look as good as
     the fan-out because the fixture is wait-dominated. It does not say the fan-out has no value where the model's own time dominates; E13's writers (about 11 s of writing a task beside the 30 s
     settle) are the only evidence there, and splitting E13's saving into overlapped waits and overlapped model time is arithmetic, not a measurement.
+- **A12 (2026-11-15, after A11 was committed and before any A0p trial finished): the same control on the write fixture, where the model has real work.** A11's fixture is wait-dominated (the
+  model's own work is 6 s to 14 s a task), which favours the control. E13's write5 has more model time (10 s, 14 s and 27 s a task on Claude, Grok and Codex, from the A0 cells' task seconds minus
+  the 30 s settle). `decompose.py` splits E13's measured saving (A0 minus A3 shared) into the part from overlapping the waits, (k - rounds) settles, and the part from overlapping the model's
+  work, (k - rounds) times the model seconds, and prints what one context would take if it started the four settles together: A0 minus three settles. That is arithmetic over registered cells and
+  needs the trials to test it: Claude 124.9 s against A3's 107.8 s, Grok 160.4 s against 173.7 s, Codex 208.8 s against 245.7 s (A3 minus A0p: -17.1 s, +13.3 s, +36.9 s, so the fan-out would win
+  on Claude and lose on Grok and Codex). The implied fan-out overhead is 14 s, 56 s and 62 s here and 23 s, 37 s and 14 s in E12, so it is not a constant of the host.
+  - *Cells.* write5, shared checkout, S = 30, arm A0p (`packets/task-A0p.md`, unchanged: the kit's `begin` text says what each task is), one trial per host, one host's trials one at a time,
+    hosts side by side, Claude `--effort high`, Codex Sol 6.1 medium, Grok 4.6 xhigh. Compared with E13's write5 A0 and A3 shared cells of the same host.
+  - *Predictions, registered before any write5 A0p trial and scored as written.* **P59 (70%):** every write5 A0p trial is valid (the oracle passes, `verify` OK, a faithful report, exit 0).
+    **P60 (65%):** each write5 A0p whole run is within 15% of A0 minus three settles (Claude 106 s to 144 s, Grok 136 s to 184 s, Codex 177 s to 240 s). **P61 (60%):** on Grok and on Codex
+    A0p's whole run is shorter than A3 shared's (173.7 s, 245.7 s): one context that overlaps its waits beats the fan-out there. **P62 (55%):** on Claude A0p's whole run is longer than A3
+    shared's (107.8 s): the fan-out keeps a win where its overhead is 14 s. **P63 (80%):** A0p's total input tokens are below A3 shared's on every host.
+  - *Decision rule.* **R14:** the fan-out's saving over a context that overlaps its own waits is (k - rounds) times the model seconds per task, minus its overhead, so its break-even is stated on
+    the model's seconds per task, not the task's: overhead / (k - rounds) = 4.8 s (Claude), 18.8 s (Grok) and 30.8 s (Codex, two rounds) from E13's implied overheads. If P60 to P62 hold, the
+    contract's predicate uses that; if they fail, the entry says which part of the arithmetic failed (waits overlapped less than assumed, the overhead depends on the task) and keeps the measured numbers.
+  - *Limits.* One trial per host; the writers are four tiny functions; a single context can overlap only waits that a background job can carry (a test run, a build), not a task that needs
+    the model's attention throughout; the control tells nothing about quality, which A0p and A3 are not asked to differ on here beyond validity.
 
 ## Files
 
