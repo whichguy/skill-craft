@@ -1,0 +1,94 @@
+trial   e13-smoke-codex-a3i
+host    codex codex-cli 0.169.0 gpt-6.1-sol medium
+plan    write5  arm A3  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   5.004  H  parent        text     -            I’ll run the scheduler, launch fresh sub-agents for each claimed task, and collect their results before verifying the run.
++   8.687  L  ledger        claim    W1           
++   8.688  L  ledger        claim    W2           
++   8.688  L  ledger        claim    W3           
++   8.688  L  ledger        ready    -            {"result":{"ready":["W1","W2","W3"],"deferred":["W4"],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,"
++   8.689  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++   8.692  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++  14.079  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"w1","fork_turns":"none","message":"gAAAAABq-Px6guA2Kjp-gyRcRTk4oghtPJW4ZlT6YvI3h4i6VlhG89lwzz0XXrgo_6EjYY9WBlFX3j7xrXZmkpT3u
++  19.233  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"w2","fork_turns":"none","message":"gAAAAABq-Px_hf6jT_jHgi67KTIDeBKvA09bwhcEnIcnI5WHWvCLRTaJGdbUc1KzcBBRfzs6BHySC4Q7hwhnoTN9k
++  20.343  H  thread:2b299e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  20.467  L  ledger        start    W1           
++  20.512  L  ledger        workspace W1           {"seconds":0.044}
++  24.257  H  thread:2b299e call     shell        shell pwd && rg --files
++  24.699  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"w3","fork_turns":"none","message":"gAAAAABq-PyFlu-rZu5XnotrAlk4lmJAGsVL8WESIul8QHEoQbGUMMu9b5-FiXQhpqiTbhqltaSuTV1f8uf0CXD1-
++  26.485  H  parent        wait     wait         wait {"status": "in_progress"}
++  26.966  H  thread:9d2fc7 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  27.089  L  ledger        start    W2           
++  27.133  L  ledger        workspace W2           {"seconds":0.044}
++  30.480  H  thread:63abb5 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  30.562  H  thread:9d2fc7 call     shell        shell pwd; rg --files -g 'AGENTS.md' -g 'm2.py' -g 'test_m2.py'
++  30.602  L  ledger        start    W3           
++  30.646  L  ledger        workspace W3           {"seconds":0.043}
++  34.147  H  thread:63abb5 call     shell        shell pwd && rg --files -g 'AGENTS.md' -g 'm3.py' -g 'test_m3.py' -g 'check.py'
++  36.774  H  thread:2b299e call     shell        shell cat > pkg/m1.py <<'EOF' def rle(s):     """Encode each maximal character run with its decimal length."""     if not s:         return ""
++  43.493  H  thread:2b299e call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  43.659  L  ledger        commit   W1           {"seconds":0.052}
++  43.661  L  ledger        end      W1           {"sha":"f07241824c50d294d2082907447a30200341d6a6b44c8f1b4714df0e12c3445c","result":{"answer":7,"method":"Implemented run counting and verified seven u
++  45.392  H  parent        return   wait         wait {"status": "completed"}
++  46.803  H  thread:9d2fc7 call     shell        shell python3 - <<'PY' from pathlib import Path Path('pkg/m2.py').write_text('''def roman_to_int(s):     """Convert a valid standard Roman numeral
++  46.803  H  thread:9d2fc7 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  49.853  H  thread:63abb5 call     shell        shell python3 - <<'PY' from pathlib import Path Path('pkg/m3.py').write_text('''def merge_intervals(intervals):     """Return sorted merged copies
++  50.218  L  ledger        merged   W1           {"seconds":0.035}
++  50.219  L  ledger        claim    W4           
++  50.219  L  ledger        ready    -            {"result":{"ready":["W4"],"deferred":[],"claimed":[],"running":["W2","W3"],"done":["W1"],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,"c
++  50.219  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  50.224  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++  53.404  H  thread:9d2fc7 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  53.586  L  ledger        commit   W2           {"seconds":0.056}
++  53.587  L  ledger        end      W2           {"sha":"fe1da0b3a9a96ebf365b1910b5b0d88372b6a7eb14d67b98c5c7ca801ed5b7ff","result":{"answer":7,"method":"Implemented reverse Roman numeral scan and pa
++  56.164  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"w4","fork_turns":"none","message":"gAAAAABq-Pyk51S3Mn4S6ZQrAx0NXylj5UK9lfjjCFpGSCHAN3psvRO7QAzM4YW3K_y7rlGHRmv4KVJbrOzr1J9CE
++  56.935  H  thread:63abb5 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  57.095  L  ledger        commit   W3           {"seconds":0.048}
++  57.096  L  ledger        end      W3           {"sha":"23730c1b0cc70ec12775a195e0c628b49e1f2053b29b2f976f5b11b4def009c7","result":{"answer":7,"method":"Sorted copied intervals and merged overlaps; 
++  61.112  L  ledger        merged   W2           {"seconds":0.032}
++  61.124  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  61.145  L  ledger        merged   W3           {"seconds":0.032}
++  61.146  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":["W4"],"running":[],"done":["W1","W2","W3"],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,"
++  61.150  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++  61.806  H  thread:c52be3 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++  61.930  L  ledger        start    W4           
++  61.975  L  ledger        workspace W4           {"seconds":0.044}
++  65.079  H  thread:c52be3 call     shell        shell cat pkg/m4.py; cat tests/test_m4.py
++  65.896  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":["W4"],"done":["W1","W2","W3"],"failed":[],"blocked":[],"waiting":["W5"],"complete":false,"
++  65.922  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  65.923  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++  67.265  H  parent        wait     wait         wait {"status": "in_progress"}
++  77.023  H  thread:c52be3 call     shell        shell cat > pkg/m4.py <<'EOF' def balanced(s):     stack = []     matching = {')': '(', ']': '[', '}': '{'}     for character in s:         if cha
++  83.738  L  ledger        commit   W4           {"seconds":0.059}
++  83.740  L  ledger        end      W4           {"sha":"e36e6c80df8d989151ba6bce3935060a8a844ba14504c465cd1ba89cb9f0d8c0","result":{"answer":9,"method":"Implemented bracket stack and passed nine uni
++  86.022  H  parent        return   wait         wait {"status": "completed"}
++  90.833  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++  90.874  L  ledger        merged   W4           {"seconds":0.049}
++  90.878  L  ledger        claim    W5           
++  90.882  L  ledger        ready    -            {"result":{"ready":["W5"],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3","W4"],"failed":[],"blocked":[],"waiting":[],"complete":false,
++  90.890  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++  92.958  H  parent        text     -            W1–W4 have finished. The scheduler has released W5, and I’m launching its sub-agent now.
++  97.229  H  parent        spawn    spawn_agent  spawn_agent {"task_name":"w5","fork_turns":"none","message":"gAAAAABq-PzNfY2rwqORl_aN1vsNlW8PnTJp2fCu7-tOpEkWRXv4ZEZzMu3gX-Z2ktPMsvA8wImxgtngmiK6msHXD
++  98.831  H  parent        wait     wait         wait {"status": "in_progress"}
++ 103.214  H  thread:652648 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++ 103.396  L  ledger        start    W5           
++ 103.455  L  ledger        workspace W5           {"seconds":0.058}
++ 107.461  H  thread:652648 call     shell        shell cat pkg/__init__.py
++ 116.139  H  thread:652648 call     shell        shell python3 - <<'PY' from pathlib import Path p = Path('pkg/__init__.py') s = p.read_text() for line in ['from .m1 import rle', 'from .m2 import
++ 116.139  H  thread:652648 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++ 121.638  H  thread:652648 call     shell        shell python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-trials/e13-sm
++ 121.858  L  ledger        commit   W5           {"seconds":0.067}
++ 121.860  L  ledger        end      W5           {"sha":"2ff3ca7f53cd706fa9e9f209637c47a0cc6b391bb081fe90fce5beaf44ff9ca6","result":{"answer":30,"method":"Added four package exports and ran the whole
++ 123.481  H  parent        return   wait         wait {"status": "completed"}
++ 128.191  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 128.204  L  ledger        merged   W5           {"seconds":0.033}
++ 128.205  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["W1","W2","W3","W4","W5"],"failed":[],"blocked":[],"waiting":[],"complete":true,
++ 128.210  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 136.522  L  ledger        verify   -            {"line":"VERIFY OK steps=5 chain=b48706c9cfdb"}
++ 136.547  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 136.548  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 136.549  H  parent        call     shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe
++ 136.550  H  parent        result   shell        shell /bin/zsh -lc 'python3 /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-N8s753/664029b2-b8c1-4b45-89d1-8c7c3eff8a14/scratchpad/ppe-tri
++ 138.127  H  parent        text     -            FINAL {"done":["W1","W2","W3","W4","W5"],"failed":[],"not_run":[],"answer":30}

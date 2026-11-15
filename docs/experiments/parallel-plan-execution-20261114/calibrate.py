@@ -540,6 +540,174 @@ def task_cells() -> tuple[int, int, list]:
     return cells, off, lines
 
 
+def write_cells() -> tuple[int, int, list]:
+    """The write fixture (README Amendment A10): the kit's workspaces, merge, conflict and retry, the scorer's write measures, the oracle, the
+    launcher path with the fake host. Workers are scripted: they write the reference solutions (writefix.REFERENCE) into the workspace the kit prints."""
+    import re
+    import tempfile
+    import writefix
+    sys.path.insert(0, str(HERE))
+    lines: list = []
+    cells = off = 0
+
+    def cell(group, name, fn, want):
+        nonlocal cells, off
+        c, o = _cell(lines, group, name, fn, want)
+        cells, off = cells + c, off + o
+
+    def kit(*args):
+        done = subprocess.run([sys.executable, str(HERE / "dagkit.py"), *args], capture_output=True, text=True)
+        return done.returncode, done.stdout.strip()
+
+    def setup(tmp, plan_name, workspace):
+        work = Path(tmp) / "work"
+        work.mkdir()
+        repo = work / "repo"
+        writefix.make_repo(repo)
+        run = work / "run"
+        (work / "plan.json").write_text((HERE / "plans" / f"{plan_name}.json").read_text())
+        (Path(tmp) / "oracle").mkdir()
+        (Path(tmp) / "oracle" / "hidden_tests.py").write_text(writefix.ORACLE)
+        assert kit("init", "--plan", str(work / "plan.json"), "--run", str(run), "--repo", str(repo), "--workspace", workspace)[0] == 0
+        return run, repo
+
+    def begin(run, step):
+        rc, out = kit("begin", "--run", str(run), "--step", step)
+        found = re.search(r"Workspace \(work only inside it\): (\S+)", out)
+        return rc, out, (Path(found.group(1)) if found else None)
+
+    def write_solution(ws, step, register=False):
+        if step == "W5":
+            (ws / "pkg" / "__init__.py").write_text(writefix.SKELETON["pkg/__init__.py"] + "".join(writefix.IMPORTS.values()))
+            return
+        for rel, body in writefix.REFERENCE[step].items():
+            (ws / rel).write_text(body)
+        if register:
+            with open(ws / "pkg" / "__init__.py", "a") as handle:
+                handle.write(writefix.IMPORTS[step])
+
+    def complete(run, step):
+        answer = sum(writefix.TEST_COUNTS.values()) if step == "W5" else writefix.TEST_COUNTS[step]
+        return kit("complete", "--run", str(run), "--step", step, "--result", json.dumps({"answer": answer}))
+
+    def worker(run, step, register=False):
+        rc, _, ws = begin(run, step)
+        write_solution(ws, step, register)
+        return ws, complete(run, step)
+
+    def ready(run, *flags):
+        return json.loads(kit("ready", "--run", str(run), *flags)[1])
+
+    def events(run, *kinds):
+        return [e for e in dagkit.Run(run).events() if e["kind"] in kinds]
+
+    def full_run(tmp, plan_name, workspace, register=()):
+        run, repo = setup(tmp, plan_name, workspace)
+        ready(run, "--claim")
+        for step in ("W1", "W2", "W3", "W4"):
+            worker(run, step, register=step in register)
+        last = ready(run, "--claim")
+        while "W4" in last["ready"] and plan_name == "overlap5" and workspace == "isolated":   # the conflicting task is offered again
+            worker(run, "W4", register=True)
+            last = ready(run, "--claim")
+        worker(run, "W5")
+        ready(run)
+        return run, repo
+
+    with tempfile.TemporaryDirectory() as tmp:
+        run, repo = setup(tmp, "write5", "isolated")
+        ready(run, "--claim")
+        opened = {s: begin(run, s)[2] for s in ("W1", "W2")}
+        cell("kit: write isolated", "each task gets its own worktree on its own branch, from main", lambda: (
+            opened["W1"] != opened["W2"], all(p.is_dir() and (p / "check.py").is_file() for p in opened.values()),
+            sorted(e["detail"]["branch"] for e in events(run, "workspace"))), (True, True, ["w-W1-1", "w-W2-1"]))
+        cell("kit: write isolated", "complete refuses an empty change (category empty)", lambda: (complete(run, "W1")[0], [
+            e["detail"]["category"] for e in events(run, "refused")]), (3, ["empty"]))
+        write_solution(opened["W1"], "W1")
+        (opened["W1"] / "README.md").write_text("stray\n")
+        cell("kit: write isolated", "a change outside the declared paths is noted, not refused", lambda: (
+            complete(run, "W1")[0], events(run, "commit")[-1]["detail"]["scope_notes"]), (0, ["README.md"]))
+        write_solution(opened["W2"], "W2")
+        complete(run, "W2")
+        for s in ("W3", "W4"):
+            worker(run, s)
+        cell("kit: write isolated", "a dependent is refused while its dependencies' branches are not merged", lambda: (
+            kit("begin", "--run", str(run), "--step", "W5")[0], "not merged" in kit("begin", "--run", str(run), "--step", "W5")[1]), (3, True))
+        cell("kit: write isolated", "verify flags a completed step that was never merged", lambda: (
+            dagkit.verdict(dagkit.Run(run))[0], "completed but was never merged" in dagkit.verdict(dagkit.Run(run))[1]), ("FAIL", True))
+        merged = ready(run, "--claim")
+        cell("kit: write isolated", "ready merges every finished branch, in completion order, before it offers anything", lambda: (
+            merged["merged_now"], merged["conflicted_now"], merged["ready"]), (["W1", "W2", "W3", "W4"], [], ["W5"]))
+        worker(run, "W5")
+        cell("kit: write isolated", "the last branch merges at the next ready, which then reports complete", lambda: (
+            ready(run)["merged_now"], dagkit.verdict(dagkit.Run(run))[0]), (["W5"], "OK"))
+        rep = {**writefix.TEST_COUNTS, "W5": sum(writefix.TEST_COUNTS.values())}
+        rep["W1"] = writefix.TEST_COUNTS["W1"]
+        cell("kit: write isolated", "the final tree passes the hidden oracle", lambda: writefix.evaluate(Path(tmp) / "oracle" / "hidden_tests.py", repo, rep)["valid"], True)
+        cell("scorer: write", "merge, workspace and commit counts and the kit's own seconds", lambda: (
+            lambda w: (w["workspaces"], w["merges"], w["conflicts"], w["retries"], w["script_s"] > 0, sorted(w["scope_notes"]), len(w["merge_latency_s"])))(
+            score.write_measures(Path(tmp), dagkit.Run(run).plan(), dagkit.Run(run), dagkit.Run(run).events())), (5, 5, 0, 0, True, ["W1#1"], 5))
+    with tempfile.TemporaryDirectory() as tmp:
+        run, repo = full_run(tmp, "overlap5", "isolated", register=("W3", "W4"))
+        cell("kit: write conflict", "two tasks that both append to pkg/__init__.py conflict: one merges, the other is aborted, logged and offered again", lambda: (
+            [e["step"] for e in events(run, "conflict")], events(run, "conflict")[0]["detail"]["paths"], [(e["step"], e["detail"]["attempt"]) for e in events(run, "retry")],
+            [(e["step"], e["detail"]["attempt"]) for e in events(run, "merged")]),
+            (["W4"], ["pkg/__init__.py"], [("W4", 2)], [("W1", 1), ("W2", 1), ("W3", 1), ("W4", 2), ("W5", 1)]))
+        cell("kit: write conflict", "the retry starts from the updated main and says why", lambda: (
+            "merge_intervals" in (Path(events(run, "workspace")[-2]["detail"]["path"]) / "pkg" / "__init__.py").read_text(),
+            [e["detail"]["attempt"] for e in events(run, "workspace") if e["step"] == "W4"]), (True, [1, 2]))
+        cell("kit: write conflict", "after the retry merges, verify is OK and the tree passes the oracle", lambda: (
+            dagkit.verdict(dagkit.Run(run))[0], writefix.evaluate(Path(tmp) / "oracle" / "hidden_tests.py", repo, {**writefix.TEST_COUNTS, "W5": sum(writefix.TEST_COUNTS.values())})["valid"]), ("OK", True))
+        cell("scorer: write", "a conflict run reports one conflict, one retry, six workspaces and the shared path", lambda: (
+            lambda w: (w["conflicts"], w["retries"], w["workspaces"], w["conflict_paths"], w["oracle"]["valid"]))(
+            score.write_measures(Path(tmp), dagkit.Run(run).plan(), dagkit.Run(run), dagkit.Run(run).events())), (1, 1, 6, ["pkg/__init__.py"], True))
+    with tempfile.TemporaryDirectory() as tmp:
+        run, repo = setup(tmp, "overlap5", "isolated")
+        meta = json.loads((run / "meta.json").read_text())
+        meta["max_attempts"] = 1
+        (run / "meta.json").write_text(json.dumps(meta))
+        ready(run, "--claim")
+        for step in ("W1", "W2", "W3", "W4"):
+            worker(run, step, register=step in ("W3", "W4"))
+        ready(run, "--claim")
+        cell("kit: write conflict", "a task whose attempts are used up fails with the conflict as the reason, and its dependent is blocked", lambda: (
+            [e["detail"]["reason"] for e in events(run, "mergefail")], ready(run)["blocked"], dagkit.verdict(dagkit.Run(run))[0]),
+            (["merge conflict after 1 attempts in pkg/__init__.py"], ["W5"], "PARTIAL"))
+    with tempfile.TemporaryDirectory() as tmp:
+        run, repo = setup(tmp, "write5", "shared")
+        ready(run, "--claim")
+        rc, _, ws = begin(run, "W1")
+        cell("kit: write shared", "every task gets the repository itself, no worktree and no merge", lambda: (
+            ws == repo.resolve() or ws == repo, (Path(run).parent / "ws").exists(), "merged_now" in ready(run)), (True, False, False))
+        cell("kit: write shared", "complete refuses until the declared files exist (category missing-output)", lambda: (complete(run, "W1")[0], [
+            e["detail"]["category"] for e in events(run, "refused")]), (3, ["missing-output"]))
+        write_solution(ws, "W1")
+        cell("kit: write shared", "complete records the outcome once the declared files exist", lambda: complete(run, "W1")[0], 0)
+    with tempfile.TemporaryDirectory() as tmp:
+        run, repo = full_run(tmp, "overlap5", "shared", register=("W3", "W4"))
+        cell("kit: write shared", "a shared run of the overlap plan has no conflict machinery and verifies OK", lambda: (
+            events(run, "conflict"), dagkit.verdict(dagkit.Run(run))[0]), ([], "OK"))
+    # the launcher path with the fake host, the write fixture and both workspace modes
+    sys.path.insert(0, str(HERE))
+    import launch
+    with tempfile.TemporaryDirectory() as root:
+        for plan_name, workspace in (("write5", "shared"), ("write5", "isolated"), ("overlap5", "isolated")):
+            out = Path(root) / f"{plan_name}-{workspace}"
+
+            def run_launch():
+                import io
+                import contextlib
+                with contextlib.redirect_stdout(io.StringIO()):
+                    launch.main(["--host", "grok", "--plan", plan_name, "--arm", "A0", "--workspace", workspace, "--binary", str(HERE / "fakehost.py"), "--out", str(out), "--timeout", "120"])
+                m = json.loads((out / "score.json").read_text())
+                inv = json.loads((out / "invocation.json").read_text())
+                return (m.get("verify"), m["write"]["oracle"]["valid"], m["write"]["merges"], inv.get("workspace"), (out / "oracle" / "hidden_tests.py").is_file())
+            cell("launcher: write path", f"{plan_name} {workspace}: repository, oracle, workspaces, merges and verdict", run_launch,
+                 ("OK", True, 0 if workspace == "shared" else 5, workspace, True))
+    cell("fixture: write", "the reference solutions pass the oracle, broken ones do not (writefix --selfcheck)", lambda: (lambda: __import__("contextlib").redirect_stdout(__import__("io").StringIO()))() and writefix.selfcheck(), 0)
+    return cells, off, lines
+
+
 def identity_cells() -> tuple[int, int, list]:
     """The identity probe (README Amendment A7): whoami.py under made-up environments, and the judge on canned reports."""
     import tempfile
@@ -582,7 +750,7 @@ def identity_cells() -> tuple[int, int, list]:
 
 def main() -> int:
     total = bad = 0
-    for part in (check(CASES), view_cells(), kit_end_to_end(), qualification_cells(), task_cells(), identity_cells()):
+    for part in (check(CASES), view_cells(), kit_end_to_end(), qualification_cells(), task_cells(), identity_cells(), write_cells()):
         n, off, lines = part
         print("\n".join(lines))
         total, bad = total + n, bad + off

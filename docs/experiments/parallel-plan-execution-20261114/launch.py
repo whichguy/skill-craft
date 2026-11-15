@@ -36,6 +36,7 @@ sys.path.insert(0, str(HERE))
 import evidence  # noqa: E402
 import hosts  # noqa: E402  (the E2E harness's host adapters, used read-only)
 import score  # noqa: E402
+import writefix  # noqa: E402
 
 ARMS = ("A0", "A1", "A2", "A3", "A3s")   # a task plan (real agent work) takes A0, A3 and A3s
 PACKET_FILE = {"A3s": "A3"}   # A3s is A3 at capacity one: the matched serial control (README, Amendment A3)
@@ -48,6 +49,7 @@ def is_task_plan(plan: dict) -> bool:
 # Benign analysis commands pre-allowed for the hosts that take allow rules, so the permission classifier is not a hidden
 # variable in a task trial (Codex runs with approvals off).
 TASK_ALLOW = tuple(f"Bash({c}:*)" for c in ("python3", "grep", "awk", "sort", "uniq", "wc", "cat", "head", "tail", "cut", "sed", "ls", "tr"))
+WRITE_ALLOW = ("Edit", "Write", "Read")   # a write plan's workers write files inside the trial's work directory (README Amendment A10)
 
 
 def packet_text(arm: str, plan: dict, kit: Path, run_dir: Path, plan_path: Path, variant: str, host: str, capacity: int) -> str:
@@ -159,6 +161,8 @@ def main(argv=None) -> int:
                         help="Codex only: pass --enable NAME (README Amendment A1: multi_agent_v2 is off in the harness's "
                              "throwaway profile and on in the owner's own)")
     parser.add_argument("--settle", type=float, default=0.0, help="task plans: seconds of slow verification inside every task (the work-length dial)")
+    parser.add_argument("--workspace", choices=("shared", "isolated"), default="shared",
+                        help="write plans: every task edits the one checkout (shared) or each attempt gets its own git worktree that the script merges (isolated)")
     parser.add_argument("--seed", type=int, default=20261114, help="task plans: the seed of the generated log files")
     parser.add_argument("--lines", type=int, default=400, help="task plans: events per generated log")
     parser.add_argument("--binary", help="run this executable in place of the host's own (calibrate.py uses fakehost.py)")
@@ -177,9 +181,10 @@ def main(argv=None) -> int:
     effort = args.effort if args.effort is not None else host.effort
     if is_task_plan(plan) and args.arm not in ("A0", "A3", "A3s"):
         parser.error("a task plan runs under A0, A3 or A3s")
+    write = plan.get("fixture") == "write"
     capacity = 1 if args.arm == "A3s" else (args.capacity or len(plan["steps"]))
     packet = packet_text(args.arm, plan, kit, run_dir, work / "plan.json", args.variant, args.host, capacity)
-    allow = (f"Bash(python3 {kit}:*)",) + (TASK_ALLOW if is_task_plan(plan) else ())
+    allow = (f"Bash(python3 {kit}:*)",) + (TASK_ALLOW if is_task_plan(plan) else ()) + (WRITE_ALLOW if write else ())
 
     def build(prompt_file: Path) -> list:
         cmd = host.argv(prompt=packet, prompt_file=prompt_file, cwd=work, model=model, effort=effort, permission_mode="auto",
@@ -200,10 +205,15 @@ def main(argv=None) -> int:
     clean_env = {k: v for k, v in os.environ.items() if k != "PPE_TIME_SCALE"}   # a live trial is never scaled
     shutil.copy(HERE / "dagkit.py", kit)
     shutil.copy(plan_src, work / "plan.json")
-    subprocess.run([sys.executable, str(kit), "init", "--plan", str(work / "plan.json"), "--run", str(run_dir), "--settle", str(args.settle)],
-                   check=True, stdout=subprocess.DEVNULL, env=clean_env)
+    init = [sys.executable, str(kit), "init", "--plan", str(work / "plan.json"), "--run", str(run_dir), "--settle", str(args.settle)]
+    if write:   # the base commit every worker starts from; the hidden oracle sits beside work/, read only by the scorer
+        writefix.make_repo(work / "repo")
+        (trial / "oracle").mkdir()
+        (trial / "oracle" / "hidden_tests.py").write_text(writefix.ORACLE)
+        init += ["--repo", str(work / "repo"), "--workspace", args.workspace]
+    subprocess.run(init, check=True, stdout=subprocess.DEVNULL, env=clean_env)
     (trial / "packet.md").write_text(packet)
-    if is_task_plan(plan):   # the agents' evidence sits in work/; the oracle sits beside it, read only by the scorer
+    if is_task_plan(plan) and not write:   # the agents' evidence sits in work/; the oracle sits beside it, read only by the scorer
         files, expected = evidence.generate(args.seed, args.lines)
         (work / "evidence").mkdir()
         for name, text in files.items():
@@ -216,8 +226,9 @@ def main(argv=None) -> int:
     inv = {"host": args.host, "binary": host.binary, "version": version or why, "model": model, "effort": effort,
            "permission_mode": "auto", "allow": list(allow), "plan": args.plan, "arm": args.arm, "variant": args.variant,
            "capacity": capacity, "enabled_features": args.enable_feature, "timeout_s": args.timeout,
-           "task_plan": is_task_plan(plan), "settle_s": args.settle, "seed": args.seed if is_task_plan(plan) else None,
-           "lines": args.lines if is_task_plan(plan) else None,
+           "task_plan": is_task_plan(plan), "settle_s": args.settle, "workspace": args.workspace if write else None,
+           "seed": args.seed if is_task_plan(plan) and not write else None,
+           "lines": args.lines if is_task_plan(plan) and not write else None,
            "budget_usd": args.budget if args.host == "claude" else None,
            "argv": ["<packet.md>" if part == packet else part for part in cmd], "cwd": str(work),
            "loadavg": [round(x, 2) for x in os.getloadavg()], "kit_sha256": score.dagkit._sha(kit.read_text()),

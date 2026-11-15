@@ -17,6 +17,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import writefix  # noqa: E402
+
 
 def main(argv: list) -> int:
     if "--version" in argv:
@@ -70,16 +73,32 @@ def main(argv: list) -> int:
         return line
 
     task_mode = plan["steps"][0].get("kit", {}).get("mode") == "task"
-    oracle = json.loads((Path(run).parent.parent / "oracle.json").read_text()) if task_mode else {}
+    write = plan.get("fixture") == "write"
+    oracle = json.loads((Path(run).parent.parent / "oracle.json").read_text()) if task_mode and not write else {}
     for step in plan["steps"]:
         if task_mode:
-            shell([sys.executable, kit, "begin", "--run", run, "--step", step["id"]])
+            shell([sys.executable, kit, "ready", "--run", run])   # the A0 loop's first command; in an isolated write run it merges the finished branches
+            begun = shell([sys.executable, kit, "begin", "--run", run, "--step", step["id"]])
+            if write:   # the worker: write the reference solution into the workspace the kit printed (the plan's registering tasks append their import)
+                workspace = Path(re.search(r"Workspace \(work only inside it\): (\S+)", begun).group(1))
+                if step["id"] == "W5":
+                    (workspace / "pkg" / "__init__.py").write_text(writefix.SKELETON["pkg/__init__.py"] + "".join(writefix.IMPORTS.values()))
+                    oracle[step["id"]] = sum(writefix.TEST_COUNTS.values())
+                else:
+                    for rel, body in writefix.REFERENCE[step["id"]].items():
+                        (workspace / rel).write_text(body)
+                    if "pkg/__init__.py" in step["task"]:
+                        with open(workspace / "pkg" / "__init__.py", "a") as handle:
+                            handle.write(writefix.IMPORTS[step["id"]])
+                    oracle[step["id"]] = writefix.TEST_COUNTS[step["id"]]
             if json.loads((Path(run) / "meta.json").read_text()).get("settle"):
                 shell([sys.executable, kit, "settle", "--run", run, "--step", step["id"]])
             out.append(shell([sys.executable, kit, "complete", "--run", run, "--step", step["id"], "--result",
                               json.dumps({"answer": oracle[step["id"]], "method": "fake"})]))
         else:
             out.append(shell([sys.executable, kit, "run", "--run", run, "--step", step["id"]]))
+    if task_mode:
+        shell([sys.executable, kit, "ready", "--run", run])   # the loop's last command: merges the final branch of an isolated run
     verify = shell([sys.executable, kit, "verify", "--run", run])
     state = json.loads(subprocess.run([sys.executable, kit, "ready", "--run", run], env=env, capture_output=True, text=True).stdout)
     answer = {"answer": oracle[plan["steps"][-1]["id"]]} if task_mode else {}

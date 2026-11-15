@@ -9,9 +9,10 @@ budget for, in seconds from the launch:
   spawn      first `ready` to the last spawn (the parent deciding and issuing the spawns; A3 only)
   start      the last spawn to the first task `begin` (the host starting the children, each child reading its task; A3 only)
   work       the first `begin` to the last independent task's end (T1 to T4): the work, and for A3 its slowest member
-  join       that last end to T5's `begin` (the parent noticing, asking `ready`, spawning, the child starting)
-  integrate  T5's `begin` to its end (the dependent task; in a build plan this is where merging and combined checks sit)
-  tail       T5's end to the process's exit (verify, the final report, shutdown)
+  join       that last end to the dependent task's `begin` (T5, or W5 in a write plan): the parent noticing, asking `ready` (which merges
+             the finished branches of an isolated write run), spawning, the child starting
+  integrate  the dependent task's `begin` to its end (in a build plan this is where the combined checks sit)
+  tail       the dependent task's end to the process's exit (verify, the final report, shutdown)
 
 For A0 the parent does the tasks itself, so `spawn` and `start` are zero and `join` is the parent's gap between tasks.
 
@@ -26,6 +27,7 @@ comparing hosts, and `spawn` alone only within one host.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -37,17 +39,18 @@ DEFAULT = ["r1h-claude-a0", "r1h-claude-a3", "r1-grok-a0", "r1-grok-a3", "r1-cod
 
 
 def load(name: str) -> dict:
-    d = HERE / "evidence" / name
+    d = Path(os.environ.get("PPE_EVIDENCE", HERE / "evidence")) / name
     inv = json.loads((d / "invocation.json").read_text())
     ledger = [json.loads(line) for line in (d / "ledger.jsonl").read_text().splitlines()]
     native = json.loads((d / "native.json").read_text())
+    plan = json.loads((d / "plan.json").read_text())
     view = []
     for line in (d / "events.trimmed.jsonl").read_text().splitlines():
         try:
             view += score.normalize(inv["host"], json.loads(line))
         except ValueError:
             continue
-    return {"name": name, "inv": inv, "ledger": ledger, "native": native, "view": view}
+    return {"name": name, "inv": inv, "ledger": ledger, "native": native, "view": view, "last": plan["steps"][-1]["id"]}
 
 
 def spawn_times(t: dict) -> list:
@@ -65,7 +68,8 @@ def split(name: str) -> dict:
     end = {e["step"]: e["ts"] for e in led if e["kind"] == "end"}
     ready = [e["ts"] for e in led if e["kind"] == "ready"]
     first_begin = min(begin.values())
-    indep = [s for s in end if s != "T5"]
+    last = t["last"]
+    indep = [s for s in end if s != last]
     last_indep_end = max(end[s] for s in indep)
     sp = spawn_times(t)
     out = {"name": name, "arm": t["inv"]["arm"], "host": t["inv"]["host"], "whole": t_end - t0}
@@ -80,9 +84,9 @@ def split(name: str) -> dict:
         out["spawn"], out["start"] = 0.0, first_begin - ready[0]
         out["spawn_calls"] = len(sp)
     out["work"] = last_indep_end - first_begin
-    out["join"] = begin["T5"] - last_indep_end
-    out["integrate"] = end["T5"] - begin["T5"]
-    out["tail"] = t_end - end["T5"]
+    out["join"] = begin[last] - last_indep_end
+    out["integrate"] = end[last] - begin[last]
+    out["tail"] = t_end - end[last]
     out["task_seconds"] = {s: round(end[s] - begin[s], 1) for s in sorted(end)}
     out["agents"] = len(t["native"].get("agents", []))
     return out

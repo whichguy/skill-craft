@@ -15,6 +15,7 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 
 HERE = Path(__file__).resolve().parent
@@ -54,6 +55,16 @@ def export(trial: Path, dest_root: Path) -> Path:
     host = json.loads((trial / "invocation.json").read_text()).get("host") if (trial / "invocation.json").is_file() else None
     if host:   # the host's own account of its sub-agents (rollout calls and log lines are cut; the ids are the host's own)
         (dest / "native.json").write_text(json.dumps(score.native_agents(trial, host), indent=1, default=str) + "\n")
+    repo = trial / "work" / "repo"
+    if (repo / ".git").exists():   # a write trial: the history, the file list and the code the workers wrote (README Amendment A10)
+        git = ["git", "-C", str(repo)]
+        parts = [f"$ git {' '.join(c)}\n" + subprocess.run(git + c, capture_output=True, text=True).stdout
+                 for c in (["log", "--all", "--graph", "--oneline", "--decorate"], ["ls-files"], ["status", "--short"], ["branch", "-a"])]
+        (dest / "repo.txt").write_text("\n".join(parts))
+        for sub_dir in ("pkg", "tests"):
+            for src in (repo / sub_dir).glob("*.py"):
+                (dest / "final-tree" / sub_dir).mkdir(parents=True, exist_ok=True)
+                shutil.copy(src, dest / "final-tree" / sub_dir / src.name)
     err = trial / "stderr.txt"
     if err.is_file():
         (dest / "stderr.tail.txt").write_text(err.read_text(errors="replace")[-4096:])

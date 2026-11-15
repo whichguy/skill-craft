@@ -1,0 +1,65 @@
+{
+ "source": "grok logs/unified.jsonl",
+ "agents": [
+  {
+   "id": "01a1dc98-c192-77a3-bf45-047247a6e9ad",
+   "actor": "agent:a6e9ad",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794702361.119,
+   "end": 1794702390.652,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 29419
+  },
+  {
+   "id": "01a1dc98-c192-77a3-bf45-04633285f1ce",
+   "actor": "agent:85f1ce",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794702361.131,
+   "end": 1794702394.337,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 33123
+  },
+  {
+   "id": "01a1dc98-c192-77a3-bf45-045734e7ee76",
+   "actor": "agent:e7ee76",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794702361.135,
+   "end": 1794702385.71,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 24467
+  },
+  {
+   "id": "01a1dc98-c192-77a3-bf45-04845c3a56f9",
+   "actor": "agent:3a56f9",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794702361.147,
+   "end": 1794702389.353,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 28137
+  },
+  {
+   "id": "01a1dc99-7f50-7481-be6a-7c68ba490a7b",
+   "actor": "agent:490a7b",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794702409.636,
+   "end": 1794702424.253,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 14455
+  }
+ ]
+}

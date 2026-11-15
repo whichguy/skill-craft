@@ -1,0 +1,8 @@
+seconds from the first step start; one column = 1.58 s; █ ran, ▒ failed, ░ never ended
+W1  |██████████████                                                  |    0.0 to   23.2  ( 23.2 s)
+W2  |    ████████████████                                            |    6.6 to   33.1  ( 26.5 s)
+W3  |      █████████████████                                         |   10.1 to   36.6  ( 26.5 s)
+W4  |                          █████████████                         |   41.5 to   63.3  ( 21.8 s)
+W5  |                                                    ███████████ |   82.9 to  101.4  ( 18.5 s)
+    |^ ^               r   ^  r  r               r   ^               | r = a ready call, ^ = a sub-agent started
+     0       13      25      38      51      63      76      89      

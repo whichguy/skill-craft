@@ -26,6 +26,7 @@ import sys
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import dagkit  # noqa: E402
+import writefix  # noqa: E402
 
 FINAL_RE = re.compile(r"^FINAL (\{.*\})\s*$", re.M)
 RUN_CALL = re.compile(r"dagkit\.py\s+(?:run|begin)\b")
@@ -590,6 +591,41 @@ def render_gantt(plan: dict, events: list, view: list, width: int = 64) -> str:
 
 # ------------------------------------------------------------------ one trial and the comparison
 
+def write_measures(trial: Path, plan: dict, run: dagkit.Run, events: list) -> dict | None:
+    """A write plan (README Amendment A10): the hidden oracle's verdict on the final tree and what isolation and merging cost, from the ledger.
+
+    ``script_s`` is the kit's own time (opening workspaces, committing, merging); ``merge_latency_s`` is, per merge, the seconds from the
+    attempt's end to its merge (the merge happens at the next ``ready`` call, so the latency is the parent's turn plus the merge)."""
+    meta = run.meta()
+    if not meta.get("repo"):
+        return None
+    reported = {}
+    for s in plan["steps"]:
+        out = run.dir / "out" / f"{s['id']}.json"
+        reported[s["id"]] = json.loads(out.read_text()).get("result", {}).get("answer") if out.is_file() else None
+    oracle = trial / "oracle" / "hidden_tests.py"
+    verdict = writefix.evaluate(oracle, Path(meta["repo"]), reported) if oracle.is_file() else None
+
+    def seconds(kind):
+        return round(sum(e["detail"].get("seconds") or 0 for e in events if e["kind"] == kind), 3)
+    last_end, latency, notes = {}, {}, {}
+    for e in events:
+        if e["kind"] == "end":
+            last_end[e["step"]] = e["ts"]
+        elif e["kind"] == "merged" and e["step"] in last_end:
+            latency[f"{e['step']}#{e['detail'].get('attempt')}"] = round(e["ts"] - last_end[e["step"]], 2)
+        elif e["kind"] == "commit" and e["detail"].get("scope_notes"):
+            notes[f"{e['step']}#{e['detail'].get('attempt')}"] = e["detail"]["scope_notes"]
+    conflicts = [e for e in events if e["kind"] == "conflict"]
+    return {"mode": meta.get("workspace"), "oracle": verdict, "workspace_s": seconds("workspace"), "commit_s": seconds("commit"), "merge_s": seconds("merged") + seconds("conflict"),
+            "script_s": round(seconds("workspace") + seconds("commit") + seconds("merged") + seconds("conflict"), 3),
+            "workspaces": sum(1 for e in events if e["kind"] == "workspace"), "merges": sum(1 for e in events if e["kind"] == "merged"),
+            "conflicts": len(conflicts), "conflict_paths": sorted({p for e in conflicts for p in e["detail"].get("paths", [])}),
+            "retries": sum(1 for e in events if e["kind"] == "retry"), "scope_notes": notes, "merge_latency_s": latency,
+            "refused_empty": sum(1 for e in events if e["kind"] == "refused" and e["detail"].get("category") == "empty"),
+            "refused_missing": sum(1 for e in events if e["kind"] == "refused" and e["detail"].get("category") == "missing-output")}
+
+
 def score_trial(trial: Path) -> dict:
     trial = Path(trial)
     plan = json.loads((trial / "work" / "plan.json").read_text())
@@ -604,6 +640,7 @@ def score_trial(trial: Path) -> dict:
     m.update(fidelity(m, claim))
     ans = answers(trial, plan)
     m["answers"] = ans
+    m["write"] = write_measures(trial, plan, run, events)
     if ans is not None and claim is not None:
         m["final_answer_ok"] = claim.get("answer") == ans["expected_final"]
     # attribution: Claude's stream names the agent of every call; Codex's rollouts and Grok's log name it for theirs
@@ -629,8 +666,9 @@ def score_trial(trial: Path) -> dict:
                     "launch_to_exit_s": round(proc_end - launched, 3) if launched and proc_end else None}
     m["valid"] = bool(inv.get("status") == "exited" and not m["scaled_trial"] and m["steps_without_end"] == 0
                       and m["verify_as_expected"] and m["fidelity_ok"] and m["terminal_duplicates"] == 0
-                      and m.get("settled_all") is not False and (ans is None or ans["all_correct"]))
-    m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "loadavg", "enabled_features")}
+                      and m.get("settled_all") is not False and (ans is None or ans["all_correct"])
+                      and (m["write"] is None or bool((m["write"]["oracle"] or {}).get("valid"))))
+    m["identity"] = {k: inv.get(k) for k in ("host", "version", "model", "effort", "plan", "arm", "variant", "workspace", "loadavg", "enabled_features")}
     (trial / "score.json").write_text(json.dumps(m, indent=1, default=str) + "\n")
     (trial / "timeline.txt").write_text(render_timeline(trial, plan, events, view, inv))
     (trial / "gantt.txt").write_text(render_gantt(plan, events, view))
@@ -647,6 +685,7 @@ def summary_line(trial: Path, m: dict) -> str:
             f"refill={m['refill']} tail_end_s={p.get('tail_from_last_end_s')} tail_final_s={p.get('tail_from_final_report_s')} "
             f"agents={m['native']['agents']} agent_peak={m['native']['peak']} "
             + (f"correct={m['answers']['correct']}/{m['answers']['total']} " if m.get("answers") else "")
+            + (f"ws={i.get('workspace')} oracle={'ok' if (m['write']['oracle'] or {}).get('valid') else 'BAD'} merges={m['write']['merges']} conflicts={m['write']['conflicts']} " if m.get("write") else "")
             + f"in_all={t.get('input_all')} out_all={t.get('output_all')} cost={t.get('cost_usd')}")
 
 

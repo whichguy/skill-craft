@@ -403,10 +403,47 @@ E2 and E3 (round 1, one trial per cell, so each is about these trials, not a rat
   (capacity 3) at S = 30, compared with `e12-codex-s30-a3` (N), after the S = 0 H trial and the Codex chain, never pooled. Predictions registered before it runs: **P43 (65%):** H's parent makes at most 6 `wait_agent` calls (N: 12). **P44 (55%):** H's whole run is within
   10 s of N's 215.2 s (the same work in parallel: fewer polls change tokens, not time). Nothing else changes.
 
+- **A10 (2026-11-14, after E12 and before any registered E13 trial): the write fixture, to price merging.** The owner, asked whether to price merging next
+  with a write fixture, said "Yes, build it". Every earlier trial read files; the owner's doubt named "startup, shutdown, and merging", and merging a worker's
+  writes is the part no trial measured. The apparatus is calibrated with no model call (calibrate.py, 181 cells, 0 off; six guards mutation-checked in a copy).
+  - *Fixture (`writefix.py`, `plans/write5.json`, `plans/overlap5.json`).* A small Python package (an empty `pkg/` and `tests/` and `check.py`, which runs the unit
+    tests and prints `TESTS n PASSED m`) in a git repository. Four independent tasks write one module and its tests each (W1 `rle`, W2 `roman_to_int`, W3 `merge_intervals`,
+    W4 `balanced`; declared paths disjoint) and report how many tests their file holds; W5 (dependent) exports the four names from `pkg/__init__.py`, runs the whole suite and
+    reports the total. `overlap5` is the same plan in which W3 and W4 also append their import to `pkg/__init__.py`, a shared file the plan does not declare. A hidden oracle
+    (read only by the scorer) runs thirteen or so cases per function against the final tree, checks the four exports, and counts the tests in each file and in the suite: a task's
+    reported count must equal what the tree holds, so a lost or overwritten file shows up. A trial is valid only if all of that passes, with `verify` OK, a faithful report and exit 0.
+  - *Kit write mode (`dagkit.py init --repo --workspace shared|isolated`).* Shared: every task gets the repository itself, no merge. Isolated: `begin` opens a git worktree on its
+    own branch from main's current head; `complete` commits it, refuses an empty change (category `empty`) and records, without refusing, any file outside the task's declared paths
+    (`scope_notes`); `ready` first merges every completed branch into main in completion order, so a dependent starts only from merged work; a merge that conflicts is aborted, logged
+    and the task is offered again from the updated main with a note saying why (a retry), at most three attempts, then `mergefail`. The kit runs its own fixed git commands (no
+    model-written command runs inside it; the owner's hooks rule is about those). Events: workspace, commit, merged, conflict, retry, mergefail.
+  - *Unregistered apparatus smoke trials, run before this registration and not scored:* write5, A3, isolated, S = 0 on each host (`e13-smoke-*`): all three valid with the oracle
+    passing, five merges, no conflict, whole run 108.3 s (Grok), 47.4 s (Claude, `--effort high`) and 138.6 s (Codex, capacity 3), and the kit's own time (opening five workspaces,
+    five commits, five merges) 0.77 s, 0.67 s and 0.70 s. They showed that all three hosts can write into the workspaces under the harness's permissions and that the kit's own cost is
+    well under a second, so no prediction is registered about it. Merge latency (a task's end to its merge, the parent's turn included) was 1.2 s to 16.0 s.
+  - *Cells.* At S = 30 (the settle dial, a slow test suite), per host, one trial per cell, one trial at a time per host, hosts side by side, orders Grok A3i, A3s, A0, Oi, Os; Claude A0,
+    A3i, A3s, Os, Oi; Codex A3s, A0, A3i, Oi, Os (A0 and A3s: write5, one context or fan-out in the shared checkout; A3i: write5 fan-out, isolated; Os and Oi: overlap5 fan-out,
+    shared and isolated). Packet N as the pilot; Codex capacity 3; Claude `--effort high`. Fifteen trials. Measures: valid and its parts, the whole run and its phases (`phases.py`, the
+    dependent task is the plan's last), the kit's seconds, merges, conflicts, retries, scope notes, merge latency, model calls, tokens and cost (`merge_table.py`).
+  - *Predictions, registered before any registered trial and scored as written.* **P46 (80%):** all nine write5 trials are valid. **P47 (85%):** no write5 isolated trial
+    records a scope note (the workers stay inside their declared files). **P48 (75%):** at S = 30 A3 isolated's whole run is below A0's on all three hosts. **P49 (65%):** isolation and
+    merging add under 15 s to the whole run: A3 isolated minus A3 shared is under 15 s on every host (same-condition spread in E11 was 3 s to 11 s, so this is a loose bar). **P50 (80%):**
+    each overlap5 isolated trial logs exactly one conflict, on `pkg/__init__.py`, and one retry, and the retried task merges at attempt 2 with the final tree valid. **P51 (70%):**
+    the conflict's cost is about one task round: overlap5 isolated minus write5 isolated whole run is between 0.6 and 2.0 times that host's write5 isolated work phase. **P52 (25%):** at least
+    one overlap5 shared trial is invalid (a lost registration, a missing export or a mismatched count: the race on the undeclared file). **P53 (60%):** A3 isolated's total input tokens are
+    within 15% of A3 shared's on every host.
+  - *Decision rules.* **R10 merge price:** per host, A3 isolated minus A3 shared (whole run, tokens, calls) and the kit's seconds; if the whole-run difference is under 15 s on all three hosts,
+    isolation and scripted merging are not material at 30 s tasks. **R11 conflict price:** overlap5 isolated minus write5 isolated, in task rounds. **R12:** no product claim: the contract's section 7
+    carries the measured numbers and the rule "disjoint declared paths, a scripted merge in completion order, a retry from the updated main" only if P46 and P50 hold; otherwise it says what failed.
+  - *Stop rules and limits.* An apparatus fault (the kit crashed) is fixed and the trial rerun once, and said so; a trial that is invalid because a worker's code was wrong stays and counts (quality is
+    a measure). One workload of four tiny functions; the settle is a sleep, so the 30 s stands for a test suite, not for model work; one trial per cell, so the shape is the claim; the merge is into a
+    scratch main, so ShipLoop's per-step commit rules (a clean checkout identity, the commit stage, F15) are not modelled; capacity 3 on Codex; the merge happens at the next `ready` call, so a
+    host that calls `ready` late merges late.
+
 ## Files
 
 `README.md` (this registration), `census/` (E0: script, README, evidence, gated.py), `dagkit.py`, `plans/`, `packets/`,
 `launch.py` (one trial), `score.py` (measures, text timeline, ASCII Gantt), `calibrate.py` (the scorer, the kit and the launcher
 path against runs with known answers, run before any model call), `fakehost.py` (a stand-in host for that), `export.py`
 (compact evidence into `evidence/`), `evidence.py` (the seeded logs and the oracle for `analysis5`), `render_html.py` (the timeline page), `pilot_table.py`
-(the pilot's table from the score files), `phases.py` (the phase split), `context.py` (per-call context and the parent's model calls), `scaling_table.py` (E11 and E12 tables and predictions), `whoami.py` and `identity.py` (E10), `evidence/` (the Astra review and its question; every exported trial; the timeline pages).
+(the pilot's table from the score files), `phases.py` (the phase split), `context.py` (per-call context and the parent's model calls), `scaling_table.py` (E11 and E12 tables and predictions), `writefix.py` (the write fixture of E13), `merge_table.py` (E13's tables and predictions), `whoami.py` and `identity.py` (E10), `evidence/` (the Astra review and its question; every exported trial; the timeline pages).
