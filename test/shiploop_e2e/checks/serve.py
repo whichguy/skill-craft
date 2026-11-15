@@ -7,16 +7,24 @@ Run from the case's work directory: `python3 "$E2E_CHECKS/serve.py" [--start CMD
    process group of its own, its stderr kept;
 2. waits until the port is listening and confirms the listener is the candidate (its process group), using lsof. A
    candidate that exits first fails with its exit code and stderr; a port answered by any other process fails and names
-   it; a listener nobody can identify fails;
+   it; a listener nobody can identify fails. A port that another process took between the choice and the bind (the
+   candidate exits with EADDRINUSE naming PORT, or another process listens on PORT) is chosen again: the candidate is
+   ended and started on another free port, at most TRIES starts in all, the rule quality.serve_on_free_port has for the
+   held-out checks. Nothing else is started again: a candidate that exits for another reason, one that names another
+   port, one that never listens and a table lsof cannot read are the product's or the machine's;
 3. runs COMMAND (an argv, not a shell line) with PORT and BASE (`http://127.0.0.1:<port>`) set, and exits with its code;
-4. ends only the group it started.
+4. ends only the group it started (each start's).
 
 Why: the catalog used to start each server on a fixed port and grade whatever answered. On 2026-10-16 the audit's sibling
 probe (docs/experiments/shiploop-e2e-audit-20261016/port-probe/) passed the Battleship page check with a candidate that
 could only answer "candidate", because a sibling server held the port. A free port per check keeps siblings off it; the
-ownership check refuses a response the candidate did not serve.
+ownership check refuses a response the candidate did not serve. Choosing the port and binding it are two steps, so
+another process can take the number in between, and the check then failed for a reason that is not the product's (the
+release run of 2026-11-14; measurements in docs/experiments/serve-port-race-20261115/ and the journal's Round 6). The
+retry changes nothing the check accepts: every start must again be the only listener on its own port.
 
-E2E_SERVE_PORT pins the port (the regression uses it to put a sibling on the port first); nothing else sets it.
+E2E_SERVE_PORT pins the port (the regression uses it to put a sibling on the port first); a pinned port is tried once and
+never chosen again; nothing else sets it.
 """
 
 from __future__ import annotations
@@ -24,12 +32,14 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import re
 import shlex
 import socket
 import subprocess
 import sys
 import tempfile
 import time
+from typing import NamedTuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import listeners  # noqa: E402
@@ -37,6 +47,9 @@ import listeners  # noqa: E402
 # A ceiling for the server to start listening, the old recipes' 20 tries of 0.5 s; not a tuning value.
 READY_SECONDS = 10.0
 POLL_SECONDS = 0.1
+# At most this many candidates are started in all when the port one was handed is taken by another process: the three that
+# quality.LISTEN_TRIES allows the held-out checks.
+TRIES = 3
 
 
 def fail(reason: str) -> None:
@@ -69,24 +82,50 @@ def tail(path: Path) -> str:
         return "(stderr unreadable)"
 
 
-def wait_for_candidate(proc: subprocess.Popen, port: int, stderr: Path) -> None:
+class Problem(NamedTuple):
+    """Why a candidate is not ready, and whether another process holds the port it was handed."""
+
+    reason: str
+    taken: bool
+
+
+def port_taken(stderr: Path, port: int) -> bool:
+    """Whether the candidate's own stderr says its own port was taken: EADDRINUSE naming that port, not another one."""
+    try:
+        text = stderr.read_text(errors="replace")
+    except OSError:
+        return False
+    return "EADDRINUSE" in text and re.search(rf"[:\s]{port}\b", text) is not None
+
+
+def candidate_problem(proc: subprocess.Popen, port: int, stderr: Path) -> Problem | None:
+    """None once the port listens and every listener on it is the candidate's; else why not. `taken` is true where another
+    process holds the port: the candidate exited with EADDRINUSE naming it, or a process outside the candidate's group listens."""
     deadline = time.monotonic() + READY_SECONDS
     while time.monotonic() < deadline:
         if proc.poll() is not None:
-            fail(f"the candidate exited (rc {proc.returncode}) before it listened on PORT={port}: {tail(stderr)}")
+            return Problem(f"the candidate exited (rc {proc.returncode}) before it listened on PORT={port}: {tail(stderr)}",
+                           port_taken(stderr, port))
         try:
             pids = listening_pids(port)
         except listeners.Unobserved as why:
-            fail(f"cannot confirm who listens on port {port} ({why}), so no response is accepted")
+            return Problem(f"cannot confirm who listens on port {port} ({why}), so no response is accepted", False)
         if pids:
             candidate = {pid: in_group(pid, proc.pid) for pid in pids}
             if all(candidate.values()):
-                return
+                return None
             foreign = sorted(pid for pid, belongs in candidate.items() if not belongs)
-            fail(f"port {port} is answered by pid {', '.join(map(str, foreign))}, not by the candidate (pid {proc.pid}), "
-                 f"so its responses are refused; candidate stderr: {tail(stderr)}")
+            return Problem(f"port {port} is answered by pid {', '.join(map(str, foreign))}, not by the candidate (pid {proc.pid}), "
+                           f"so its responses are refused; candidate stderr: {tail(stderr)}", True)
         time.sleep(POLL_SECONDS)
-    fail(f"the candidate did not listen on PORT={port} within {READY_SECONDS:.0f} s: {tail(stderr)}")
+    return Problem(f"the candidate did not listen on PORT={port} within {READY_SECONDS:.0f} s: {tail(stderr)}", False)
+
+
+def wait_for_candidate(proc: subprocess.Popen, port: int, stderr: Path) -> None:
+    """Return once the candidate listens and is the port's only listener; else print the FAIL line and exit 1."""
+    problem = candidate_problem(proc, port, stderr)
+    if problem:
+        fail(problem.reason)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -98,22 +137,34 @@ def main(argv: list[str] | None = None) -> int:
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     if not command:
         p.error("no check command after --")
-    port = int(os.environ.get("E2E_SERVE_PORT") or free_port())
-    env = dict(os.environ, PORT=str(port), BASE=f"http://127.0.0.1:{port}")
+    pinned = os.environ.get("E2E_SERVE_PORT")
+    handed = []
     with tempfile.TemporaryDirectory(prefix="e2e-serve-") as scratch:
-        stderr = Path(scratch) / "server.stderr"
-        with stderr.open("w") as err:
-            proc = subprocess.Popen(shlex.split(args.start), env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                    stderr=err, start_new_session=True)
-        try:
-            wait_for_candidate(proc, port, stderr)
-            done = subprocess.run(command, env=env, stdin=subprocess.DEVNULL)
-            if done.returncode:
-                print(f"check exited {done.returncode}; candidate stderr: {tail(stderr)}")
-            return done.returncode
-        finally:
-            listeners.end_group(proc.pid)  # only the group this check started
-            proc.wait()
+        for attempt in range(1, TRIES + 1):
+            port = int(pinned or free_port())
+            handed.append(port)
+            env = dict(os.environ, PORT=str(port), BASE=f"http://127.0.0.1:{port}")
+            stderr = Path(scratch) / f"server-{attempt}.stderr"
+            with stderr.open("w") as err:
+                proc = subprocess.Popen(shlex.split(args.start), env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                        stderr=err, start_new_session=True)
+            try:
+                problem = candidate_problem(proc, port, stderr)
+                if problem is None:
+                    done = subprocess.run(command, env=env, stdin=subprocess.DEVNULL)
+                    if done.returncode:
+                        print(f"check exited {done.returncode}; candidate stderr: {tail(stderr)}")
+                    return done.returncode
+            finally:
+                listeners.end_group(proc.pid)  # only the group this check started
+                proc.wait()
+            if pinned or not problem.taken:
+                fail(problem.reason)
+            if attempt == TRIES:
+                fail(f"{problem.reason} (started {attempt} times, on ports {', '.join(map(str, handed))}; each was taken by another process)")
+            print(f"serve.py: another process took PORT={port}; starting the candidate again on another port (start {attempt + 1} of {TRIES})",
+                  file=sys.stderr)
+    return 1  # not reached: the last start returns or fails
 
 
 if __name__ == "__main__":

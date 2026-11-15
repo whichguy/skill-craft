@@ -1,0 +1,200 @@
+diff --git a/src/app.js b/src/app.js
+index de7b8e0..4ab23a0 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -23,7 +23,7 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+ 
+   router.post('/tickets', async ({ req }) => {
+     const input = validate.newTicket(await body(req));
+-    return { status: 201, body: store.create(input, actorOf(req)) };
++    return { status: 201, body: store.createTicket(input, actorOf(req)) };
+   });
+ 
+   router.get('/tickets/:id', ({ params }) => ({ status: 200, body: store.get(params.id) }));
+diff --git a/src/store.js b/src/store.js
+index f60ccc3..f7ceee2 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -72,7 +72,7 @@ class TicketStore {
+   // Changes
+ 
+   /** Open a new ticket; its requester is told it was received. */
+-  create({ title, priority, requester }, actor) {
++  createTicket({ title, priority, requester }, actor) {
+     const at = this.now();
+     const ticket = { id: formatId(this.nextNumber), title, priority, requester, status: 'open', created: at, updated: at };
+     this.nextNumber += 1;
+diff --git a/test/persistence.test.js b/test/persistence.test.js
+index 7f848d3..5f79c18 100644
+--- a/test/persistence.test.js
++++ b/test/persistence.test.js
+@@ -20,8 +20,8 @@ const fields = ({ id, title, priority, requester, status, created, updated }) =>
+ function savedStore(file) {
+   const clock = manualClock();
+   const store = TicketStore.open({ clock, persistence: createPersistence(file, { clock }) });
+-  store.create({ title: 'VPN drops', requester: 'maria@example.com', priority: 'high' }, 'dana');
+-  store.create({ title: 'Printer jams', requester: 'li@example.com', priority: 'low' }, 'dana');
++  store.createTicket({ title: 'VPN drops', requester: 'maria@example.com', priority: 'high' }, 'dana');
++  store.createTicket({ title: 'Printer jams', requester: 'li@example.com', priority: 'low' }, 'dana');
+   store.transition('T-0001', 'in_progress', 'sam');
+   store.recordDelivery(1);
+   return store;
+@@ -52,7 +52,7 @@ describe('the data file', () => {
+     assert.equal(again.history('T-0001').length, 2);
+     assert.deepEqual(again.outboxReport().sent.map((event) => event.id), [1]);
+     assert.deepEqual(again.outboxReport().pending.map((event) => event.id), [2]);
+-    assert.equal(again.create({ title: 'New', requester: 'x@example.com', priority: 'normal' }, 'dana').id, 'T-0003');
++    assert.equal(again.createTicket({ title: 'New', requester: 'x@example.com', priority: 'normal' }, 'dana').id, 'T-0003');
+   });
+ 
+   test('the file is replaced whole: no temporary file is left behind', (t) => {
+diff --git a/test/store.test.js b/test/store.test.js
+index bf9b9d7..0fad26f 100644
+--- a/test/store.test.js
++++ b/test/store.test.js
+@@ -16,8 +16,8 @@ function store() {
+ describe('create', () => {
+   test('opens tickets with sequential ids and the time of creation', () => {
+     const { store: tickets } = store();
+-    const first = tickets.create(input(), 'dana');
+-    const second = tickets.create(input({ priority: 'urgent' }), 'dana');
++    const first = tickets.createTicket(input(), 'dana');
++    const second = tickets.createTicket(input({ priority: 'urgent' }), 'dana');
+     const { id, title, priority, requester, status, created, updated } = first;
+     assert.deepEqual({ id, title, priority, requester, status, created, updated }, {
+       id: 'T-0001',
+@@ -33,7 +33,7 @@ describe('create', () => {
+ 
+   test('records the creation in the audit log, every field from null', () => {
+     const { store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     assert.deepEqual(tickets.history('T-0001'), [{
+       seq: 1,
+       ticket: 'T-0001',
+@@ -51,7 +51,7 @@ describe('create', () => {
+ 
+   test('tells the requester the ticket was received, through the outbox', () => {
+     const { store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     const [event] = tickets.outboxReport().pending;
+     assert.equal(event.type, 'ticket.created');
+     assert.equal(event.to, 'li@example.com');
+@@ -63,7 +63,7 @@ describe('create', () => {
+ describe('update', () => {
+   test('changes the fields given, records from and to, and moves updated', () => {
+     const { clock, store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     clock.advance(60_000);
+     const changed = tickets.update('T-0001', { priority: 'high', title: 'Laptop will not boot' }, 'sam');
+     assert.equal(changed.priority, 'high');
+@@ -76,7 +76,7 @@ describe('update', () => {
+ 
+   test('a change that changes nothing leaves no trace', () => {
+     const { clock, store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     clock.advance(60_000);
+     const same = tickets.update('T-0001', { priority: 'normal' }, 'sam');
+     assert.equal(same.updated, '2025-09-01T08:00:00.000Z');
+@@ -85,7 +85,7 @@ describe('update', () => {
+ 
+   test('a closed ticket no longer changes', () => {
+     const { store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     for (const to of ['in_progress', 'resolved', 'closed']) tickets.transition('T-0001', to, 'dana');
+     assert.throws(() => tickets.update('T-0001', { priority: 'low' }, 'dana'), ConflictError);
+   });
+@@ -94,7 +94,7 @@ describe('update', () => {
+ describe('transition', () => {
+   test('follows the lifecycle and records each move', () => {
+     const { store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     tickets.transition('T-0001', 'in_progress', 'sam');
+     tickets.transition('T-0001', 'resolved', 'sam');
+     tickets.transition('T-0001', 'open', 'li@example.com');
+@@ -105,7 +105,7 @@ describe('transition', () => {
+ 
+   test('a move the lifecycle does not allow is a conflict and changes nothing', () => {
+     const { store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     assert.throws(() => tickets.transition('T-0001', 'closed', 'dana'), (error) =>
+       error instanceof ConflictError && /cannot go from open to closed: it can go to in_progress/.test(error.message));
+     assert.equal(tickets.get('T-0001').status, 'open');
+@@ -114,7 +114,7 @@ describe('transition', () => {
+ 
+   test('a resolved ticket notifies its requester once while that notification waits', () => {
+     const { store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     for (const to of ['in_progress', 'resolved', 'open', 'in_progress', 'resolved']) tickets.transition('T-0001', to, 'dana');
+     const resolved = tickets.outboxReport().pending.filter((event) => event.type === 'ticket.resolved');
+     assert.equal(resolved.length, 1);
+@@ -131,7 +131,7 @@ describe('reads', () => {
+ 
+   test('a ticket read cannot be changed behind the store', () => {
+     const { store: tickets } = store();
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     tickets.get('T-0001').status = 'closed';
+     tickets.list().items[0].priority = 'low';
+     assert.deepEqual([tickets.get('T-0001').status, tickets.get('T-0001').priority], ['open', 'normal']);
+@@ -139,7 +139,7 @@ describe('reads', () => {
+ 
+   test('the list pages in id order with a single filter', () => {
+     const { store: tickets } = store();
+-    for (const priority of ['low', 'urgent', 'urgent', 'normal', 'urgent']) tickets.create(input({ priority }), 'dana');
++    for (const priority of ['low', 'urgent', 'urgent', 'normal', 'urgent']) tickets.createTicket(input({ priority }), 'dana');
+     const first = tickets.list({ filters: { priority: 'urgent' }, limit: 2 });
+     assert.deepEqual(first.items.map((ticket) => ticket.id), ['T-0002', 'T-0003']);
+     const second = tickets.list({ filters: { priority: 'urgent' }, limit: 2, after: 'T-0003' });
+@@ -149,10 +149,10 @@ describe('reads', () => {
+ 
+   test('a saved state carries on where it left off', () => {
+     const { clock, store: tickets } = store();
+-    tickets.create(input(), 'dana');
+-    tickets.create(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
++    tickets.createTicket(input(), 'dana');
+     const again = new TicketStore({ clock, state: JSON.parse(JSON.stringify(tickets.snapshot())) });
+-    assert.equal(again.create(input(), 'dana').id, 'T-0003');
++    assert.equal(again.createTicket(input(), 'dana').id, 'T-0003');
+     assert.equal(again.audit.size, 3);
+   });
+ });
+diff --git a/test/worker.test.js b/test/worker.test.js
+index 9ad3556..d32123a 100644
+--- a/test/worker.test.js
++++ b/test/worker.test.js
+@@ -34,7 +34,7 @@ const input = { title: 'Monitor flickers', requester: 'li@example.com', priority
+ describe('deliverOutbox', () => {
+   test('delivers what is due and marks it sent', () => {
+     const { store, notifier, worker } = setup();
+-    store.create(input, 'system');
++    store.createTicket(input, 'system');
+     assert.deepEqual(worker.tick(), [{ job: 'deliver-outbox', sent: 1, failed: 0, dead: 0 }]);
+     assert.equal(notifier.delivered.length, 1);
+     assert.equal(store.outboxReport().sent.length, 1);
+@@ -43,7 +43,7 @@ describe('deliverOutbox', () => {
+ 
+   test('retries a failed delivery after its backoff', () => {
+     const { clock, store, notifier, worker } = setup({ failing: 1 });
+-    store.create(input, 'system');
++    store.createTicket(input, 'system');
+     assert.equal(worker.tick()[0].failed, 1);
+     assert.equal(worker.tick()[0].sent, 0, 'not due again before the backoff');
+     clock.advance(delayFor(1));
+@@ -54,7 +54,7 @@ describe('deliverOutbox', () => {
+ 
+   test(`gives up after ${MAX_ATTEMPTS} attempts and leaves the event dead`, () => {
+     const { clock, store, worker } = setup({ failing: 99 });
+-    store.create(input, 'system');
++    store.createTicket(input, 'system');
+     for (let attempt = 1; attempt < MAX_ATTEMPTS; attempt += 1) {
+       assert.equal(worker.tick()[0].failed, 1);
+       clock.advance(delayFor(attempt));

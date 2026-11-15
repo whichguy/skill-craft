@@ -293,6 +293,203 @@ class HttpCheckBindingTest(unittest.TestCase):
             self.fail(f"the candidate {pid} the check started is still running")
 
 
+def load_serve():
+    """checks/serve.py as a module of its own, so a test can patch what it calls."""
+    spec = importlib.util.spec_from_file_location("shiploop_e2e_test_serve_retry", run.HERE / "checks" / "serve.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class CandidateProblemTest(unittest.TestCase):
+    """serve.candidate_problem: when a candidate is not ready, and which of those is a port another process holds (journal Round 6,
+    F23). Only that kind is started again; the rest is the product's or the machine's (no node or lsof needed)."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.serve = load_serve()
+
+    def problem(self, *, rc=None, stderr="", pids=(), in_group=lambda pid, leader: pid == leader, unobserved=None, ticks=(0.0, 0.0)):
+        proc = mock.Mock()
+        proc.pid, proc.returncode = 101, rc
+        proc.poll.return_value = rc
+        log = self.tmp / "server.stderr"
+        log.write_text(stderr)
+        clock = iter(ticks)
+        listing = mock.Mock(side_effect=unobserved) if unobserved else mock.Mock(return_value=set(pids))
+        with mock.patch.object(self.serve.time, "monotonic", side_effect=lambda: next(clock)), \
+                mock.patch.object(self.serve.time, "sleep"), \
+                mock.patch.object(self.serve, "listening_pids", listing), \
+                mock.patch.object(self.serve, "in_group", side_effect=in_group):
+            return self.serve.candidate_problem(proc, 49123, log)
+
+    def test_a_candidate_that_listens_alone_has_no_problem(self):
+        self.assertIsNone(self.problem(pids={101}))
+
+    def test_a_candidate_that_exits_with_eaddrinuse_naming_its_port_found_it_taken(self):
+        found = self.problem(rc=1, stderr="Error: listen EADDRINUSE: address already in use :::49123\n    at Server.listen\n")
+        self.assertTrue(found.taken, found)
+        self.assertIn("the candidate exited (rc 1)", found.reason)
+
+    def test_an_eaddrinuse_naming_another_port_is_the_products_doing(self):
+        found = self.problem(rc=1, stderr="Error: listen EADDRINUSE: address already in use :::4180\n")
+        self.assertFalse(found.taken, found)
+        self.assertFalse(self.problem(rc=1, stderr="listen EADDRINUSE 149123").taken, "49123 is not the port 149123")
+
+    def test_a_candidate_that_exits_for_another_reason_did_not_find_its_port_taken(self):
+        self.assertFalse(self.problem(rc=23, stderr="startup fixture refused\n").taken)
+        self.assertFalse(self.problem(rc=1, stderr="").taken)
+
+    def test_a_listener_outside_the_candidates_group_is_another_process_holding_the_port(self):
+        found = self.problem(pids={101, 202})
+        self.assertTrue(found.taken, found)
+        self.assertIn("answered by pid 202, not by the candidate (pid 101)", found.reason)
+        self.assertTrue(self.problem(pids={202}).taken, "another process alone on the port is the same")
+
+    def test_a_table_lsof_cannot_read_is_not_a_collision(self):
+        found = self.problem(unobserved=self.serve.listeners.Unobserved("lsof timed out"))
+        self.assertFalse(found.taken)
+        self.assertIn("cannot confirm who listens", found.reason)
+
+    def test_a_candidate_that_never_listens_is_not_a_collision(self):
+        found = self.problem(ticks=(0.0, 0.0, 99.0))
+        self.assertFalse(found.taken)
+        self.assertIn("did not listen", found.reason)
+
+
+@unittest.skipUnless(shutil.which("node") and shutil.which("lsof"), "needs node and lsof")
+class ServeRetryTest(unittest.TestCase):
+    """checks/serve.py chooses the port again when another process took it between the choice and the bind (journal Round 6, F23;
+    docs/experiments/serve-port-race-20261115/): a candidate that exits with EADDRINUSE naming its own port, or beside which
+    another process listens on that port, is started again on another free port, at most TRIES starts in all. Nothing else is,
+    and a pinned port is tried once. Every start's port is appended to starts.log by the candidate itself."""
+
+    LISTENS = "require('http').createServer((q, s) => s.end('ok')).listen(Number(process.env.PORT));\n"
+    TAKEN = "console.error('Error: listen EADDRINUSE: address already in use :::' + process.env.PORT);\nprocess.exit(1);\n"
+    OTHER = "console.error('Error: listen EADDRINUSE: address already in use :::4180');\nprocess.exit(1);\n"
+    EXITS = "process.stderr.write('startup fixture refused\\n');\nprocess.exit(23);\n"
+    STAYS = "setInterval(() => {}, 1000);\n"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.serve = load_serve()
+
+    def candidate(self, body: str) -> Path:
+        folder = self.tmp / f"candidate-{len(list(self.tmp.iterdir()))}"
+        folder.mkdir()
+        log = json.dumps(str(folder / "starts.log"))
+        (folder / "server.js").write_text(
+            f"const fs = require('fs');\nfs.appendFileSync({log}, process.env.PORT + '\\n');\n"
+            f"const starts = fs.readFileSync({log}, 'utf8').trim().split('\\n').length;\n" + body)
+        return folder
+
+    def starts(self, folder: Path) -> list:
+        return [int(line) for line in (folder / "starts.log").read_text().split()]
+
+    def serve_run(self, folder: Path, env: dict | None = None) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, str(run.HERE / "checks" / "serve.py"), "--", "true"], cwd=folder,
+                              env=dict(os.environ, **(env or {})), capture_output=True, text=True, timeout=120,
+                              stdin=subprocess.DEVNULL)
+
+    def holder(self) -> socket.socket:
+        """A listening socket on every address, as a candidate's own, so that a candidate's bind of the same number fails."""
+        sock = socket.socket(socket.AF_INET6 if socket.has_ipv6 else socket.AF_INET)
+        self.addCleanup(sock.close)
+        try:
+            if sock.family == socket.AF_INET6:
+                sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            sock.bind(("::" if sock.family == socket.AF_INET6 else "0.0.0.0", 0))
+        except OSError as why:
+            self.skipTest(f"cannot hold a port on every address here: {why}")
+        sock.listen()
+        return sock
+
+    def test_a_candidate_that_exits_eaddrinuse_naming_its_port_is_started_again_on_another_port(self):
+        work = self.candidate("if (starts === 1) {\n" + self.TAKEN + "}\n" + self.LISTENS)
+        done = self.serve_run(work)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        first, second = self.starts(work)
+        self.assertNotEqual(first, second)
+        self.assertIn(f"another process took PORT={first}; starting the candidate again on another port (start 2 of {self.serve.TRIES})",
+                      done.stderr)
+
+    def test_three_starts_are_the_most_and_the_failure_names_the_ports(self):
+        work = self.candidate(self.TAKEN)
+        done = self.serve_run(work)
+        self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+        ports = self.starts(work)
+        self.assertEqual(len(ports), self.serve.TRIES)
+        self.assertIn(f"started {self.serve.TRIES} times, on ports {', '.join(map(str, ports))}; each was taken by another process",
+                      done.stdout)
+        self.assertIn("EADDRINUSE", done.stdout, "the candidate's own error stays in the failure")
+
+    def test_an_eaddrinuse_naming_another_port_is_the_products_and_is_started_once(self):
+        work = self.candidate(self.OTHER)
+        done = self.serve_run(work)
+        self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+        self.assertEqual(len(self.starts(work)), 1)
+        self.assertIn("the candidate exited (rc 1)", done.stdout)
+        self.assertNotIn("starting the candidate again", done.stderr)
+
+    def test_a_candidate_that_exits_for_another_reason_is_started_once(self):
+        work = self.candidate(self.EXITS)
+        done = self.serve_run(work)
+        self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+        self.assertEqual(len(self.starts(work)), 1)
+        self.assertIn("the candidate exited (rc 23)", done.stdout)
+
+    def test_a_pinned_port_is_tried_once_even_when_the_candidate_finds_it_taken(self):
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        work = self.candidate(self.TAKEN)
+        done = self.serve_run(work, {"E2E_SERVE_PORT": str(port)})
+        self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+        self.assertEqual(self.starts(work), [port])
+        self.assertNotIn("starting the candidate again", done.stderr)
+
+    def test_a_listener_on_the_port_handed_out_is_a_collision_and_the_check_passes_on_another_port(self):
+        """The real thing: free_port() hands out a number another socket holds; the candidate's own bind or serve.py's
+        ownership check, whichever comes first, finds it taken; the second start is on a free one and the check passes."""
+        work = self.candidate(self.LISTENS)
+        taken = self.holder().getsockname()[1]
+        real, handed = self.serve.free_port, []
+
+        def free_port():
+            handed.append(taken if not handed else real())
+            return handed[-1]
+
+        err = io.StringIO()
+        with mock.patch.object(self.serve, "free_port", free_port), contextlib.redirect_stderr(err):
+            code = self.serve.main(["--start", f"node {shlex.quote(str(work / 'server.js'))}", "--", "true"])
+        self.assertEqual(code, 0, err.getvalue())
+        self.assertEqual(len(handed), 2)
+        self.assertEqual(handed[0], taken)
+        # The ownership check can end the first candidate before Node runs its source, so only the last start is always logged.
+        self.assertEqual(self.starts(work)[-1], handed[1])
+        self.assertIn(f"another process took PORT={taken}; starting the candidate again on another port", err.getvalue())
+
+    def test_the_candidate_of_a_start_that_is_given_up_is_ended_before_the_next_is_started(self):
+        work = self.candidate(self.STAYS)
+        pids, answers = [], iter([self.serve.Problem("another process holds the port", True), None])
+
+        def problem(proc, port, stderr):
+            pids.append(proc.pid)
+            return next(answers)
+
+        with mock.patch.object(self.serve, "candidate_problem", problem), contextlib.redirect_stderr(io.StringIO()):
+            code = self.serve.main(["--start", f"node {shlex.quote(str(work / 'server.js'))}", "--", "true"])
+        self.assertEqual(code, 0)
+        self.assertEqual(len(pids), 2)
+        for pid in pids:
+            with self.assertRaises(ProcessLookupError, msg=f"the candidate {pid} the check started is still running"):
+                os.kill(pid, 0)
+
+
 class CheckHygieneTest(unittest.TestCase):
     def test_temperature_unit_check_requires_tests_and_success(self):
         check = json.loads(run.CASES.read_text())["temperature-report"]["checks"][0]

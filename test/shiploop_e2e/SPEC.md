@@ -102,8 +102,8 @@ gain is not yet explained.
 New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The reviewer and judge
 are separate fresh sessions, even when their selected models agree. `hosts.ROLE_DEFAULTS` defines the current
 subject, reviewer, judge and improver profiles. For new work, the owner selected Grok / Grok 4.6 / extra-high (`xhigh`)
-for subjects (2026-11-10), Codex / GPT-6.1 Sol / medium for improvers, and Codex / GPT-6 Astra / high for independent
-reviewers and judges (2026-11-08).
+for subjects (2026-11-10), Codex / GPT-6.1 Sol / max for improvers (or Claude / Sonnet 5.5 / max with
+`--improver-host claude`; 2026-11-15), and Codex / GPT-6 Astra / high for independent reviewers and judges (2026-11-08).
 This is an owner preference, not a measured model improvement.
 Explicit role choices override that default; without an override, resumed runs retain their recorded identities.
 Frozen registrations and historical evidence are not relabelled; continue existing strict epochs on their original pinned
@@ -901,8 +901,10 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   same checks. A case's HTTP check starts the candidate on a free port of
   its own and accepts a response only once the candidate's own process
   group holds the listener (`checks/serve.py`; amended 2026-10-16: on a
-  fixed port a sibling's server answered the check, a false green). A
-  failure seen only in a parallel run (for example two products' own tests
+  fixed port a sibling's server answered the check, a false green; amended
+  2026-11-15: a port that another process took between the choice and the
+  bind is chosen again, at most three starts in all, and never changes what
+  the check accepts). A failure seen only in a parallel run (for example two products' own tests
   binding the same fixed port, or a host rate limit) is rerun alone
   (`--serial`) before it is attributed to ShipLoop. A pass is never rerun,
   so rerunning alone cannot catch a false green: a check must not accept a
