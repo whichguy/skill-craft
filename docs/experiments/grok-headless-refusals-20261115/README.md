@@ -193,7 +193,10 @@ mode, subject model or baseline row changed.
   PreToolUse hook with the matcher `run_terminal_command`, before each Grok session; a profile that has it keeps it, so a
   resumed run keeps the hook it started with, and a regrade only reads it. Each denial is logged in the run's state
   folder. `result.json` records `preempt` (installed, kept, the script's sha256, `calibrated_on`, and the denials), and
-  the baseline row `preempted_tool_calls`. Claude and Codex get no hook.
+  the baseline row `preempted_tool_calls`. Claude and Codex get no hook. Neither does `slice.py` (the planning-slice
+  experiments, also `auto`): the owner decided to leave slices as they are ("Leave slices as is"), which keeps them
+  comparable with the earlier slices (96 of the 193 refusals, in 41 of 139 slices), and a refusal still ends a slice's
+  session.
 - **D, the resume note.** When the last Grok session ended on a refused shell call, run.py's resume prompt (the resume
   loop's, and `--resume-run`'s opening) adds a note: the refused command's first 200 characters, not to run it again as
   written, and the hook's rewrite.
