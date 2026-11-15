@@ -361,6 +361,27 @@ docs/distribution.md "Cursor" now lists. Left: Cursor's other registrations (`cl
 skill-craft's registration, re-adding another publisher's marketplace changes what the account offers, and moving each plugin
 installed from one takes an Uninstall and an Add.
 
+## Round 11 — what Cursor loaded after the re-registration, and what one Add did (2026-11-15)
+
+Asked by the owner, answering the offer to reinstall skill-craft in the app: "Open Cursor". Cursor 3.30.14 with Cursor Agent
+2026.09.23-86fc751, one machine, 14:27 to 14:35 PST. The app had been closed. `main` had moved on to the 2.41.0 release
+(`fe0e6ca39435d502bd0b8afd3ce300ff731e5683`), and another session's host refresh had re-registered `whichguy` at that commit
+(`lastIndexedAt` 1794778636001, 13:37:16).
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F30 | After the re-registration, skill-craft was not installed natively. On launch the marketplace page read **Add** for it, not **Added** (`codex` and `async-suite` read Added); the account's enabled list at launch (`BackendMarketplaceClient: Adding enabled plugin`, 28 plugins) named no skill-craft; and the 2.40.0 copy from 08:52 (`~/.cursor/plugins/cache/whichguy/skill-craft/0eb91fc0bc1860ee158c822d62b81e65c3099a18`) was still on disk, unloaded. This fits a `marketplace remove` dropping the install, which Round 9 also saw (the installed count fell 32 to 31). Which of the day's re-registrations did it was not isolated | firm for the state; interim for the cause | the launch log (`Cursor Plugins`, window 1, `20261115T142754`); the cache listing |
+| F31 | Cursor imports Claude Code's installed plugins. At launch it ran `loadClaudePlugin` for 12 of Claude Code's 17 installed plugins, `skill-craft@whichguy` among them, and the Installed list carried a skill-craft row with an **Imported** badge at 2.41.0. That is Claude Code's own install (`~/.claude/plugins/installed_plugins.json`: 2.41.0, `fe0e6ca39435`). So from launch Cursor ran 2.41.0 through the import, not the stale native copy | firm | the same log; that file |
+| F32 | One click on **Add** (Browse Marketplace, Personal, Whichguy, skill-craft) installed 2.41.0 with no dialog and no Uninstall. The log: `Adding enabled plugin: skill-craft from fe0e6ca3… at plugins/skill-craft`; `Plugin missing from cache, installing`; the warning `Failed to install plugin skill-craft from marketplace cache, falling back to direct install`; a sparse shallow clone of 2,426.8 ms; `Found cached plugin`; `loadFromMarketplaceSource completed in 80.8ms (29 plugins loaded, 0 failures)`. The cache is `fe0e6ca39435d502bd0b8afd3ce300ff731e5683`, `plugin.json` 2.41.0, and Cursor removed the 2.40.0 folder itself | firm | the same log; the cache listing |
+| F33 | The Installed list then shows two skill-craft rows (the native one and the Imported one) and counts 39 where it counted 38 before the click. The plugin loader's total did not move: `loadAllPlugins ... total=38 plugins` at 14:31:50 (28 marketplace plugins) and again at 14:32:19 (29). So the native copy took the Imported one's place in what loads. Not checked: whether a chat's skill list shows each skill once | firm for the counts; the reading is an inference | the same log; the app's header counts |
+
+Decided (routine, session): add the plugin natively, as Round 9's owner decision has it, and do not press **Uninstall** on the
+Imported row: that row is Claude Code's copy, and what the button does to an imported plugin was not tested. docs/distribution.md
+"Cursor" now says to relaunch or reload the app after the re-registration and then click Add, and keeps Uninstall for a running
+app that still shows the old install. Round 10 left open whether a reload alone moves an installed plugin; F30 answers it only in
+part: after a relaunch there was no installed plugin left to move, so the Add made a fresh install. Left, the owner's: the import
+already follows `claude plugin update`, so whether the native copy is still wanted is theirs to say.
+
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
 1. **Declare the floor.** One line in `skills/shiploop/SKILL.md` and its README: Python 3.9 or newer and `git` on PATH.
