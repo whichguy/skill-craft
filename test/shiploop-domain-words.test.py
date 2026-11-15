@@ -101,7 +101,7 @@ class DomainWordTests(unittest.TestCase):
             import shiploop_test_counts as counts
         finally:
             sys.path.remove(str(SCRIPTS))
-        names = [name for name, _reader in counts.READERS] + ["pytest"]
+        names = [name for name, _reader in counts.READERS] + ["pytest", "tap"]
         self.assertEqual(counts.RUNNERS, ", ".join(names))
         guide = (ROOT / "skills/shiploop/references/testing-and-documentation.md").read_text(encoding="utf-8")
         reading = guide.split("### Reading a run", 1)[1].split("\n\n", 2)[1]

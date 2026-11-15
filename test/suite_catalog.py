@@ -595,6 +595,7 @@ _PREFIX_SUITE_IDS = {
     # Frozen extracts of saved runs, each read by the one family suite named here (their file names select nothing).
     "test/fixtures/baseline-spread/": ("shiploop-e2e-baseline",),
     "test/fixtures/fidelity/": ("shiploop-e2e-fidelity",),
+    "test/fixtures/shiploop-tap/": ("shiploop-test-counts",),
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
     "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",

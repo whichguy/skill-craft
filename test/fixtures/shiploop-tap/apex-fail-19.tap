@@ -1,0 +1,31 @@
+1..19
+ok 1 WidgetControllerTest.authoritativeContextSchema
+ok 2 WidgetControllerTest.cancellationRepeated
+ok 3 WidgetControllerTest.confirmationLifecycle
+ok 4 WidgetControllerTest.freshContextRetainsHistory
+ok 5 WidgetControllerTest.incompleteProvider
+ok 6 WidgetControllerTest.malformedAndForbiddenRegistry
+ok 7 WidgetControllerTest.providerAuthentication
+ok 8 WidgetControllerTest.providerOutage
+ok 9 WidgetControllerTest.providerRateLimit
+ok 10 WidgetControllerTest.recordInstructionsRemainData
+ok 11 WidgetControllerTest.setupMissingAndSave
+ok 12 WidgetControllerTest.staleRefused
+ok 13 WidgetControllerTest.unknownToolRoundTrip
+ok 14 WidgetControllerTest.unknownTransportDiagnosis
+ok 15 WidgetControllerTest.updateConfirmed
+ok 16 WidgetControllerTest.zeroToolNarrativeRejected
+not ok 17 WidgetControllerTest.emptyConnectionRejected
+# System.AssertException: Assertion Failed
+# Class.WidgetControllerTest.ResponsesMock.respond: line 34, column 1
+# Class.WidgetAgent.response: line 67, column 1
+# Class.WidgetController.testConnection: line 17, column 1
+# Class.WidgetControllerTest.emptyConnectionRejected: line 133, column 1
+not ok 18 WidgetControllerTest.invalidMessageIsTyped
+# System.AssertException: Assertion Failed: Expected: MALFORMED_ARGUMENTS, Actual: APP_ACCESS_DENIED
+# Class.WidgetControllerTest.invalidMessageIsTyped: line 177, column 1
+not ok 19 WidgetControllerTest.toolRoundTrip
+# System.AssertException: Assertion Failed: Expected: {"message":"Ready.","code":null,"messages":[{"content":"Inspect the current isolated request.","role":"user"},{"content":"Actual tool result received; inspect the stored action status.","role":"assistant"}],"toolCalls":[{"callId":"call-isolated","status":"completed","result":{"recordId":"a00000000000000AAA","Id":"a00000000000000AAA","Notes__c":"1c539e061c26c5a34a054b5a6a689383","Status__c":"Open","Name":"Demo Isolated"},"arguments":"{\"recordId\":\"a00000000000000AAA\"}","name":"read_item"}],"status":"ready","conversationId":"a00000000000000AAA","actions":[]}, Actual: {"actions":[],"conversationId":"a00000000000000AAA","status":"ready","toolCalls":[{"name":"read_item","arguments":"{\"recordId\":\"a00000000000000AAA\"}","result":{"Name":"Demo Isolated","Status__c":"Open","Notes__c":"1c539e061c26c5a34a054b5a6a689383","Id":"a00000000000000AAA","recordId":"a00000000000000AAA"},"status":"completed","callId":"call-isolated"}],"messages":[{"role":"user","content":"Inspect the current isolated request."},{"role":"assistant","content":"Actual tool result received; inspect the stored action status."}],"code":null,"message":"Ready."}
+# Class.WidgetControllerTest.toolRoundTrip: line 80, column 1
+# Run "sf apex get test -i  -o user@example.com --result-format <format>" to retrieve test results in a different format.
+

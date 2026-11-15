@@ -3796,6 +3796,141 @@ class CountFloorTests(unittest.TestCase):
         self.assertIn("any other drop below a command's floor is refused", duty)
 
 
+class TapCountRouteTests(unittest.TestCase):
+    """Plain TAP through ShipLoop's own gate (``test_loop.verify``, ``step_proof``), the route the 2026-11-14 Grok chat
+    trial's check took: its regression row printed ``1..9`` and nine native points and was refused as uncounted.  Each test
+    submits a real command (`cat tap.txt`) to the gate rather than asserting the reader's words."""
+
+    COMMAND = "cat tap.txt"
+    TAP = ROOT / "test/fixtures/shiploop-tap"
+
+    def setUp(self) -> None:
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        base = fixture_directory(self, "shiploop-tap-route-").resolve()
+        self.repo, self.root = base / "repo", base / "run"
+        self.repo.mkdir()
+        self.root.mkdir()
+        git(self.repo, "init", "-q")
+        git(self.repo, "config", "user.email", "loop@example.invalid")
+        git(self.repo, "config", "user.name", "Loop Test")
+        (self.repo / "a.py").write_text("x = 1\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "base")
+        self.use([{"command": self.COMMAND, "suite": "regression", "min_tests": 3}])
+
+    def use(self, rows: list) -> None:
+        self.state = {"repo": str(self.repo), "accepted": {"P1": dict(DONE, test_commands=rows)},
+                      "history": [{"stage": "step-plan", "workitem": "W1", "action": "P1", "outcome": "done"}]}
+
+    def points(self, number: int, failing: int = 0) -> None:
+        lines = ["1.." + str(number)] + [("not ok " if n > number - failing else "ok ") + str(n) + " WidgetTest.case" + str(n)
+                                         for n in range(1, number + 1)]
+        (self.repo / "tap.txt").write_text("\n".join(lines) + "\n")
+
+    def run_stage(self, action: str, stage: str, *, count: bool = True) -> str:
+        writes, refusal = test_loop.verify(self.root, self.state, "W1", action, stage, count=count)
+        for relative, text in writes.items():
+            store.atomic_write_text(self.root / relative, text)
+        if not refusal and count:
+            self.state["history"].append({"stage": stage, "workitem": "W1", "action": action, "outcome": "done"})
+        return " ".join(refusal.split())
+
+    def recorded(self, action: str, number: int = 1) -> dict:
+        return store.read_record(self.root / test_loop.verify_path(action, number))["runs"][0]
+
+    def test_the_trials_native_output_is_counted_where_it_was_refused_as_uncounted(self):
+        shutil.copy(self.TAP / "apex-pass-9.tap", self.repo / "tap.txt")
+        self.assertEqual(self.run_stage("A1", "test"), "")
+        self.assertEqual(self.recorded("A1")["counts"], {"ran": 9, "failed": 0, "runners": ["tap"]})
+        # Output no reader can read keeps the uncounted refusal: the reader adds TAP, it guesses nothing.
+        (self.repo / "tap.txt").write_text("all good\n")
+        self.assertIn("could not read how many tests it ran", self.run_stage("A2", "test"))
+
+    def test_the_accepted_count_becomes_the_floor_and_eight_is_refused_by_the_floor_alone(self):
+        """``min_tests`` is 3, so only the floor the first counted run set can refuse a rerun of 8 points."""
+        self.points(9)
+        self.assertEqual(self.run_stage("A1", "test"), "")
+        self.points(8)
+        refusal = self.run_stage("A2", "document")
+        self.assertIn("ran fewer tests than its floor (at least 9: an earlier run of this command that ShipLoop accepted "
+                      "for this item) (tap reported 8 run, 0 failed).", refusal)
+        self.assertEqual((self.recorded("A2")["status"], self.recorded("A2")["accepted_ran"]), ("too-few-tests", 9))
+        self.points(9)
+        self.assertEqual(self.run_stage("A2", "document"), "")  # restored
+
+    def test_a_base_run_count_seeds_the_floor(self):
+        store.write_record(self.root / test_loop.base_path("A1", 1), {"passed": True, "runs": [
+            {"command": self.COMMAND, "suite": "regression", "status": "counted",
+             "counts": {"ran": 9, "failed": 0, "runners": ["tap"]}}]})
+        self.points(8)
+        self.assertIn("ran fewer tests than its floor (at least 9: 9 on the base)", self.run_stage("A1", "test"))
+
+    def test_a_stream_longer_than_the_kept_tail_is_counted_whole(self):
+        self.points(300)
+        self.assertEqual(self.run_stage("A1", "test"), "")
+        run = self.recorded("A1")
+        self.assertEqual(run["counts"]["ran"], 300)
+        self.assertTrue(run["stdout"].startswith("[... "), "the record keeps only the tail; the judge read it all")
+
+    def test_failures_and_an_empty_plan_are_refused_at_exit_zero(self):
+        self.points(9, failing=2)
+        self.run_stage("A1", "test")
+        self.assertEqual((self.recorded("A1")["status"], self.recorded("A1")["counts"]["failed"]), ("failed", 2))
+        (self.repo / "tap.txt").write_text("1..0\n")
+        self.run_stage("A2", "test")
+        self.assertEqual(self.recorded("A2")["status"], "no-tests")
+
+    def test_a_check_judges_the_stream_as_a_counted_run_does(self):
+        self.points(9)
+        self.assertEqual(self.run_stage("A1", "document", count=False), "")
+        checked = store.read_record(self.root / test_loop.check_path("A1"))["runs"][0]
+        self.assertEqual(self.run_stage("B1", "document"), "")
+        self.assertEqual((checked["status"], checked["counts"]), (self.recorded("B1")["status"], self.recorded("B1")["counts"]))
+
+    def test_complete_after_a_passing_check_takes_the_checks_counted_run(self):
+        self.points(9)
+        self.assertEqual(self.run_stage("A1", "document", count=False), "")
+        with mock.patch.object(test_loop.lint, "run_argv") as runner:
+            self.assertEqual(self.run_stage("A1", "document"), "")
+            runner.assert_not_called()
+        record = store.read_record(self.root / test_loop.verify_path("A1", 1))
+        self.assertEqual(record["reused"]["path"], test_loop.check_path("A1"))
+        self.assertEqual(record["runs"][0]["counts"], {"ran": 9, "failed": 0, "runners": ["tap"]})
+
+    def test_a_check_recorded_before_the_reader_is_reused_as_recorded(self):
+        """Known limit, pinned: a check that passed under the earlier reader (a focused row whose ids showed, counts
+        null) and is completed on an unchanged tree is taken as recorded.  ``_reused`` applies today's floors only to a
+        run that has counts and never re-counts the stored output, which is cut to ``TAIL_CHARS``.  A fresh run would be
+        held to ``min_tests`` here and refused."""
+        rows = [{"command": self.COMMAND, "suite": "focused", "ids": ["WidgetTest.case1"], "min_tests": 40}]
+        self.use(rows)
+        self.points(9)
+        store.write_record(self.root / test_loop.check_path("A1"), {
+            "schema": test_loop.SCHEMA, "action": "A1", "stage": "document", "work_item": "W1", "passed": True,
+            "disposition": "passed", "counted": False, "commands": rows,
+            "trees": [test_loop._tree(self.root, self.repo)],
+            "runs": [{**rows[0], "exit": 0, "status": "passed", "counts": None, "ids_missing": [], "stdout": "", "stderr": ""}]})
+        self.assertEqual(self.run_stage("A1", "document"), "")
+        record = store.read_record(self.root / test_loop.verify_path("A1", 1))
+        self.assertEqual((record["reused"]["path"], record["runs"][0]["counts"]), (test_loop.check_path("A1"), None))
+        (self.repo / "a.py").write_text("x = 2\n")  # a changed tree runs the command again, held to today's reader
+        self.assertIn("ran fewer tests than the step plan requires (at least 40)", self.run_stage("A2", "document"))
+
+    def test_a_step_proof_is_judged_from_its_stream(self):
+        proof = ({"id": "S1"}, {"command": self.COMMAND, "suite": "check"})
+        with mock.patch.object(test_loop, "step_command", return_value=proof):
+            (self.repo / "tap.txt").write_text("1..0\n")
+            writes, refusal, _summary = test_loop.step_proof(self.root, self.state, "W1", "I1")
+            self.assertTrue(refusal)
+            self.assertEqual(store.loads(next(iter(writes.values())))["runs"][0]["status"], "no-tests")
+            self.points(9)
+            writes, refusal, _summary = test_loop.step_proof(self.root, self.state, "W1", "I2")
+            self.assertEqual(refusal, "")
+            self.assertEqual(store.loads(next(iter(writes.values())))["runs"][0]["counts"]["runners"], ["tap"])
+
+
 class UnavailableExecutionTests(unittest.TestCase):
     """A command that never reached a verdict refuses its stage without blaming the product.
 

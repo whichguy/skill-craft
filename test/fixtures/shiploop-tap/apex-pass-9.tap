@@ -1,0 +1,12 @@
+1..9
+ok 1 WidgetSecurityTest.administratorAuthorityNotChatClaim
+ok 2 WidgetSecurityTest.combinedCrudDenial
+ok 3 WidgetSecurityTest.confirmationRechecksFieldOnlyAuthority
+ok 4 WidgetSecurityTest.editedArgumentsRejected
+ok 5 WidgetSecurityTest.expiredSeparatelyFromTamper
+ok 6 WidgetSecurityTest.fieldOnlyDenial
+ok 7 WidgetSecurityTest.foreignHistoryAndConfirmationDenied
+ok 8 WidgetSecurityTest.partialBookkeepingAccessDetected
+ok 9 WidgetSecurityTest.seedOwnershipIsolation
+# Run "sf apex get test -i  -o user@example.com --result-format <format>" to retrieve test results in a different format.
+

@@ -1,0 +1,39 @@
+1..36
+ok 1 WidgetControllerTest.ambiguousConfigurationFailsClosed
+ok 2 WidgetControllerTest.authoritativeContextSchema
+ok 3 WidgetControllerTest.businessFieldBounds
+ok 4 WidgetControllerTest.cancellationRepeated
+ok 5 WidgetControllerTest.capacitySuggestsNewConversation
+ok 6 WidgetControllerTest.changedPromptRestartsChain
+ok 7 WidgetControllerTest.confirmationLifecycle
+ok 8 WidgetControllerTest.connectionSuccessHasNoBusinessMutation
+ok 9 WidgetControllerTest.conversationConflictPreservesHistory
+ok 10 WidgetControllerTest.credentialAccessDiagnosisRemainsAmbiguous
+ok 11 WidgetControllerTest.emptyConnectionRejected
+ok 12 WidgetControllerTest.failedDmlIsDurableAndNeverRetried
+ok 13 WidgetControllerTest.failureAfterReadRetainsActualTrace
+ok 14 WidgetControllerTest.freshContextRetainsHistory
+ok 15 WidgetControllerTest.incompleteProvider
+ok 16 WidgetControllerTest.incompleteReasonIsWhitelisted
+ok 17 WidgetControllerTest.invalidConfigurationDistinctFromProvider
+ok 18 WidgetControllerTest.invalidMessageIsTyped
+ok 19 WidgetControllerTest.literalSearchAndInvalidActions
+ok 20 WidgetControllerTest.malformedAndForbiddenRegistry
+ok 21 WidgetControllerTest.malformedProviderBody
+ok 22 WidgetControllerTest.providerAuthentication
+ok 23 WidgetControllerTest.providerOutage
+ok 24 WidgetControllerTest.providerRateLimit
+ok 25 WidgetControllerTest.recordInstructionsRemainData
+ok 26 WidgetControllerTest.seedCreationReusesOwnedRecord
+ok 27 WidgetControllerTest.setupMissingAndSave
+ok 28 WidgetControllerTest.staleRefused
+ok 29 WidgetControllerTest.statefulCheckpointSurvivesReload
+ok 30 WidgetControllerTest.timeoutRemainsRecoverable
+ok 31 WidgetControllerTest.toolRoundTrip
+ok 32 WidgetControllerTest.unavailableCheckpointClearsForManualRecovery
+ok 33 WidgetControllerTest.unknownToolRoundTrip
+ok 34 WidgetControllerTest.unknownTransportDiagnosis
+ok 35 WidgetControllerTest.updateConfirmed
+ok 36 WidgetControllerTest.zeroToolNarrativeRejected
+# Run "sf apex get test -i  -o user@example.com --result-format <format>" to retrieve test results in a different format.
+

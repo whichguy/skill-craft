@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_test_counts as counts  # noqa: E402
+import shiploop_test_layers as test_layers  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 JEST_SKIPPED = """\
@@ -336,6 +337,171 @@ class OutcomesTests(unittest.TestCase):
         tap = "1..2\nok 1 WidgetTest.TC_1\nnot ok 2 WidgetTest.TC_2\n"
         self.assertEqual(counts.outcomes(tap, ["TC_1", "TC_2"]), {"TC_1": "passed", "TC_2": "failed"})
         self.assertEqual(counts.outcomes(RESULTS_TABLE, ["TC_1", "TC_2"]), {"TC_1": "shown", "TC_2": "shown"})
+
+
+TAP = ROOT / "test/fixtures/shiploop-tap"
+
+
+def tap(name: str) -> str:
+    return (TAP / name).read_text(encoding="utf-8")
+
+
+def stream(points: int, *, failing: int = 0, plan_last: bool = False) -> str:
+    """A flat TAP stream of ``points`` numbered points, the last ``failing`` of them ``not ok``."""
+    lines = [("not ok " if number > points - failing else "ok ") + str(number) + " WidgetTest.case" + str(number)
+             for number in range(1, points + 1)]
+    plan = "1.." + str(points)
+    return "\n".join(lines + [plan] if plan_last else [plan] + lines) + "\n"
+
+
+class TapStreamTests(unittest.TestCase):
+    """Plain TAP (``sf apex run test --result-format tap``, mocha's tap reporter): one flat stream whose ``1..N`` plan,
+    first or last, declares exactly the points it prints, numbered 1..N in order.  The 2026-11-14 Grok chat trial's
+    regression row printed ``1..9`` and nine ``ok N Class.method`` points and was refused as uncounted; its builder spent
+    the visit on a wrapper that re-printed ``# tests N`` (docs/experiments/grok-chat-full-run-review-20261114)."""
+
+    def assertRead(self, output: str, ran: int, failed: int = 0, exit_code: int = 0, runners=("tap",)) -> None:
+        result = counts.count(output, exit_code)
+        self.assertIsNotNone(result, output[:200])
+        self.assertEqual((result["ran"], result["failed"], result["runners"]), (ran, failed, list(runners)), output[:200])
+
+    def test_the_trials_native_output_is_counted_and_the_wrapper_output_is_read_once(self):
+        self.assertRead(tap("apex-pass-9.tap"), 9)
+        self.assertRead(tap("apex-pass-36.tap"), 36)
+        self.assertRead(tap("apex-fail-19.tap"), 19, 3, exit_code=1)
+        # The wrapper printed the native points and node-style totals: the node reader counts it, TAP is not read again.
+        self.assertRead(tap("wrapped-38.tap"), 38, 2, exit_code=1, runners=("node",))
+
+    def test_go_reads_no_native_point_as_a_package_line(self):
+        """c38f6887: TAP once double counted through the Go reader; its package line must not take ``ok N name``."""
+        for name in ("apex-pass-9.tap", "apex-pass-36.tap", "apex-fail-19.tap"):
+            with self.subTest(name):
+                self.assertIsNone(counts._go(tap(name)))
+
+    def test_a_stream_with_its_runners_own_totals_stays_with_that_runner(self):
+        mocha = stream(2) + "# tests 2\n# pass 2\n# fail 0\n"  # mocha's tap reporter: no `# cancelled`, so not node's
+        self.assertRead(mocha, 2)
+        node_tap = node("pass-tap.txt")
+        self.assertEqual(counts.count(node_tap, 0)["runners"], ["node"])
+
+    def test_the_plan_may_come_first_or_last_but_not_between_the_points(self):
+        self.assertRead(stream(3), 3)
+        self.assertRead(stream(3, plan_last=True), 3)
+        self.assertIsNone(counts.count("ok 1 a\n1..2\nok 2 b\n", 0))
+
+    def test_a_stream_whose_plan_and_points_disagree_is_not_read(self):
+        cases = {
+            "no plan": "ok 1 a\nok 2 b\n",
+            "a truncated stream": "\n".join(stream(9).splitlines()[:6]) + "\n",
+            "an extra point": stream(2) + "ok 3 extra\n",
+            "two plans": "1..1\nok 1 a\n1..1\nok 1 b\n",
+            "a repeated number": "1..2\nok 1 a\nok 1 b\n",
+            "numbers out of order": "1..2\nok 2 a\nok 1 b\n",
+            "a point with no number": "1..1\nok - a\n",
+            "a bail out": "1..3\nok 1 a\nBail out! the database is down\n",
+            "a nested subtest": "1..1\n    1..2\n    ok 1 x\n    ok 2 y\nok 1 group\n",
+        }
+        for case, output in cases.items():
+            with self.subTest(case):
+                self.assertIsNone(counts.count(output, 0))
+
+    def test_bail_out_words_in_a_comment_or_a_title_change_nothing(self):
+        self.assertRead("1..1\n# Bail out! is only a phrase here\nok 1 says Bail out! and passes\n", 1)
+
+    def test_an_empty_plan_reads_as_zero_tests(self):
+        self.assertRead("1..0 # skip the org is not configured\n", 0)
+
+    def test_comments_blank_lines_versions_crlf_and_yaml_blocks_are_not_points(self):
+        output = ("TAP version 14\r\n1..2\r\n# a comment\r\n\r\nok 1 a\r\nnot ok 2 b\r\n  ---\r\n  message: boom\r\n"
+                  "    ok 9 TC-9\r\n  1..3\r\n  ...\r\n")
+        self.assertRead(output, 2, 1, exit_code=1)
+
+    def test_skip_and_todo_directives_follow_tap_14(self):
+        """TAP 14: the directive starts at the first unescaped `#` after whitespace, SKIP or TODO with any suffix, in any
+        case.  A SKIP or TODO point did not run, so its `not ok` is no failure; an escaped `\\#` is the description's."""
+        output = ("1..6\nok 1 runs\nok 2 skipped one # SKIP no org\nok 3 later # skipped\nnot ok 4 known # TODO fix\n"
+                  "not ok 5 counts \\# TODO in its title and fails\nok 6 handles # of items # SKIP not first\n")
+        self.assertRead(output, 3, 1, exit_code=1)
+
+    def test_named_and_outcomes_agree_with_the_count_on_tap_points(self):
+        output = ("1..4\nok 1 TC-1\nok 2 TC-2 # todoLater\nnot ok 3 TC-3 \\# SKIP is part of the title\n"
+                  "ok 4 TC-4 # Skipped\n")
+        ids = ["TC-1", "TC-2", "TC-3", "TC-4"]
+        names = counts.named(output, ids)
+        self.assertEqual((names["shown"], names["missing"]), (["TC-1", "TC-3"], ["TC-2", "TC-4"]))
+        self.assertEqual(counts.outcomes(output, ids),
+                         {"TC-1": "passed", "TC-2": "missing", "TC-3": "failed", "TC-4": "missing"})
+        self.assertRead(output, 2, 1, exit_code=1)
+        # Other runners' lines keep their own marks: a `#todo` word in a jest title is no directive.
+        self.assertEqual(counts.named("✓ TC-5 renders #todoList (3 ms)\n", ["TC-5"])["shown"], ["TC-5"])
+
+    def test_a_yaml_block_does_not_change_the_count_and_its_text_still_names_ids(self):
+        """Pinned: `named` reads every non-skip line, a YAML diagnostic included, as it reads any runner's failure text."""
+        output = "1..1\nnot ok 1 TC-1\n  ---\n  message: TC-9 was expected to pass first\n  ...\n"
+        self.assertRead(output, 1, 1, exit_code=1)
+        self.assertEqual(counts.named(output, ["TC-9"])["shown"], ["TC-9"])
+
+    def test_exit_status_5_with_a_tap_stream_reads_the_stream(self):
+        """pytest's exit-5 guess comes last: a declared plan checked against its points is evidence, a status is not.  The
+        one registered difference from the earlier reader (it read 0 runs here)."""
+        self.assertRead("1..1\nok 1 worked\n", 1, exit_code=5)
+        self.assertEqual(counts.count("", 5), {"ran": 0, "failed": 0, "runners": ["pytest"]})
+        # pytest's own zero-test line is its evidence, whatever the status.
+        self.assertEqual(counts.count("============ no tests ran in 0.01s ============\n", 0)["runners"], ["pytest"])
+
+    def test_known_limits_are_pinned(self):
+        # A point whose title starts with a duration reads as a Go package line: Go's reader matches, so TAP never runs.
+        self.assertEqual(counts.count("1..2\nok 1 0.12s worked\nnot ok 2 failed case\n", 0),
+                         {"ran": 1, "failed": 0, "runners": ["go"]})
+        self.assertEqual(counts.count("1..2\nok 1 0.12s worked\nnot ok 2 failed case\n# tests 2\n# pass 1\n# fail 1\n"
+                                      "# cancelled 0\n", 1)["runners"], ["go", "node"])
+        # The judge reads stdout and stderr together, as jest's summary on stderr needs: a stream there is read too.
+        self.assertEqual(counts.count("\n" + stream(2), 0)["runners"], ["tap"])
+
+    def test_the_runner_list_names_tap(self):
+        self.assertTrue(counts.RUNNERS.endswith("pytest, tap"), counts.RUNNERS)
+
+
+class TapJudgeTests(unittest.TestCase):
+    """What the newly readable count lets the judge hold a TAP command to."""
+
+    REGRESSION = {"command": "sf apex run test --class-names WidgetSecurityTest --result-format tap",
+                  "suite": "regression", "min_tests": 3}
+
+    def status(self, row: dict, code: int, output: str) -> str:
+        return test_loop.judge(row, code, output)["status"]
+
+    def test_the_trials_regression_row_passes_and_its_floor_holds(self):
+        self.assertEqual(self.status(self.REGRESSION, 0, tap("apex-pass-9.tap")), "passed")  # was `uncounted`
+        self.assertEqual(self.status(dict(self.REGRESSION, min_tests=10), 0, tap("apex-pass-9.tap")), "too-few-tests")
+
+    def test_a_focused_row_with_ids_is_now_held_to_its_minimum(self):
+        row = {"command": "sf apex run test --class-names WidgetControllerTest --result-format tap", "suite": "focused",
+               "ids": ["setupMissingAndSave", "toolRoundTrip", "confirmationLifecycle"], "min_tests": 8}
+        verdict = test_loop.judge(row, 0, tap("apex-pass-36.tap"))
+        self.assertEqual((verdict["status"], verdict["counts"]["ran"]), ("passed", 36))
+        self.assertEqual(self.status(dict(row, min_tests=40), 0, tap("apex-pass-36.tap")), "too-few-tests")
+
+    def test_failures_an_empty_plan_and_a_check_row_are_judged_from_the_stream(self):
+        self.assertEqual(self.status(self.REGRESSION, 0, tap("apex-fail-19.tap")), "failed")  # exit 0, `not ok` points
+        self.assertEqual(self.status(self.REGRESSION, 0, "1..0\n"), "no-tests")
+        check = {"command": "./proof", "suite": "check"}
+        self.assertEqual(self.status(check, 0, "1..0\n"), "no-tests")
+        self.assertEqual(self.status(check, 0, stream(3, failing=1)), "failed")
+        self.assertEqual(self.status(check, 0, stream(3)), "passed")
+
+    def test_an_unread_stream_keeps_the_old_policy(self):
+        """`None` is not a refusal: a focused row whose ids all show, and a check, still pass on output not read."""
+        focused = {"command": "./run", "suite": "focused", "ids": ["TC-1"]}
+        self.assertEqual(self.status(focused, 0, "1..2\nok 1 TC-1\n"), "passed")  # a truncated stream: not read
+        self.assertEqual(self.status({"command": "./c", "suite": "check"}, 0, "1..2\nok 1 a\n"), "passed")
+        self.assertEqual(self.status(self.REGRESSION, 0, "1..2\nok 1 a\n"), "uncounted")
+
+    def test_harness_evidence_may_be_a_tap_stream(self):
+        run = {"code": "U1", "layer": "unit", "command": "sf apex run test --result-format tap", "evidence": "/tmp/x.tap"}
+        test_layers.check_harness_output(run, tap("apex-pass-9.tap"))  # accepted: it ran nine tests
+        with self.assertRaisesRegex(test_layers.LayerError, "ran no test"):
+            test_layers.check_harness_output(run, "1..0\n")
 
 
 NODE = ROOT / "test/fixtures/shiploop-node-test"
