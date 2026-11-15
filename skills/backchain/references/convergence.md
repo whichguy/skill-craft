@@ -94,7 +94,7 @@ verification obligation.
 | Compared with | Mode | Must keep |
 | --- | --- | --- |
 | A generated draft, at `freeze` (draft → enriched) | `legacy` | `goal_needs` exactly; an unchanged produce on its original step keeps its whole confirmation |
-| An inherited draft or plan, without caller `edit_bounds` | `legacy` | the same, plus every inherited step ID and input edge |
+| An inherited draft or plan, without caller `edit_bounds` | `legacy` | the same, plus every inherited step ID and input edge, the `goal`, each inherited step's `origin`, and no new `initial_state` fact that closes a need the inherited plan left open (another added fact is reported) |
 | An inherited plan, with explicit caller `edit_bounds` | `source-aware` | `goal_needs` exactly; the edit bounds ([caller-contract.md](caller-contract.md)); every other difference reported |
 | The frozen baseline, every cycle | `source-aware` | `goal_needs` exactly; every confirmation difference reported |
 
@@ -201,7 +201,8 @@ prove chunk suitability.
 After the loop ends, `backchain.py finish` writes `DIR/result.json`. It reports converged planning
 only with both the exact selected Until Loop terminal `complete` packet (the receipt) and
 candidate-specific domain evidence: every cycle record intact and matching, the final output
-identity, a structurally valid candidate, and no planning gap. The receipt must be this run's own:
+identity, a structurally valid candidate, no planning gap, and, with a caller packet, a final review whose
+source review is complete. The receipt must be this run's own:
 it repeats the frozen contract's workspace, work, conditions, context and exit checks and names this
 receipt path and gate; every callback it counts has a recorded cycle; and it carries the last
 cycle's report and, when `complete`, shows every frozen exit check passing. Each callback submits

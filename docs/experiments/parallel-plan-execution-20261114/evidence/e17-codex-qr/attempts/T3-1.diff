@@ -1,0 +1,765 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b3c4639..ac2a8dc 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,11 @@
+ # Changelog
+ 
++## 1.5.0 (2026-11-15)
++
++- Persist fixed due times, backfill existing tickets before serving, and configure response hours through environment variables.
++- Opt in with `DUE_TIMES=on` to show due times and filter active overdue tickets.
++- Keep the version 1 data file readable by 1.4.0 and retain command-line raw column positions.
++
+ ## 1.4.0 (2025-09-15)
+ 
+ - The operator command line, `bin/tickets.js` (`list`, `show`), and the weekly report, `scripts/weekly-report.js`.
+diff --git a/README.md b/README.md
+index 7ee6831..f016bde 100644
+--- a/README.md
++++ b/README.md
+@@ -30,6 +30,11 @@ Every setting is an environment variable. Unset or empty means the default.
+ | `NOTIFY_FILE` | none | the file the notifier appends one JSON line to per notification (the mail relay tails it); without it notifications are kept in memory |
+ | `WORKER_INTERVAL_MS` | `500` | how often the background worker runs; `0` turns it off, and notifications stay pending |
+ | `MAX_BODY_BYTES` | `65536` | the largest request body accepted |
++| `DUE_TIMES` | off | exactly `on` exposes persisted due times and enables the overdue filter |
++| `RESPONSE_HOURS_URGENT` | `4` | response hours for newly created or not-yet-migrated urgent tickets |
++| `RESPONSE_HOURS_HIGH` | `24` | response hours for high tickets |
++| `RESPONSE_HOURS_NORMAL` | `72` | response hours for normal tickets |
++| `RESPONSE_HOURS_LOW` | `168` | response hours for low tickets |
+ | `LOG_REQUESTS` | off | `1` logs one line per request on standard error |
+ 
+ A value the service cannot use (`PORT=http`, say) stops it at start with a message naming the variable.
+@@ -80,3 +85,7 @@ node scripts/weekly-report.js --data data/tickets.json --json    # the counts as
+ 
+ The conventions are in [CONTRIBUTING.md](CONTRIBUTING.md) and the decisions in [docs/decisions/](docs/decisions/).
+ Changes are listed in [CHANGELOG.md](CHANGELOG.md).
++
++Response hours must be whole numbers from 1 to 876000. Due times are calculated once from creation time; priority or
++configuration changes leave existing deadlines fixed. See [the rollout procedure](docs/operations.md#due-time-rollout).
++With `DUE_TIMES=on`, command-line tables and ticket details include due times; raw columns keep their existing positions.
+diff --git a/bin/tickets.js b/bin/tickets.js
+index 3996701..a34c5ef 100644
+--- a/bin/tickets.js
++++ b/bin/tickets.js
+@@ -10,6 +10,7 @@
+  * README.md, "Command line", has examples. Exit codes: 0 done, 1 no such ticket, 2 usage or data file problem.
+  */
+ 
++const { loadConfig } = require('../src/config');
+ const { systemClock } = require('../src/clock');
+ const { AppError } = require('../src/errors');
+ const { details, rawLine, table } = require('../src/format');
+@@ -43,11 +44,12 @@ function parseArgs(argv, env) {
+ }
+ 
+ /** A read-only store over the data file: no persistence, so nothing the command line does is saved. */
+-function openStore(file) {
++function openStore(file, env) {
+   if (!file) throw new UsageError('no data file: set DATA_FILE or pass --data FILE');
+   const state = createPersistence(file).load();
+   if (state === null) throw new UsageError(`${file} does not exist`);
+-  return new TicketStore({ clock: systemClock, state });
++  const { dueTimes, responseHours } = loadConfig(env);
++  return new TicketStore({ clock: systemClock, state, dueTimes, responseHours });
+ }
+ 
+ /** Every ticket that passes `filters`, in id order, page by page. */
+@@ -94,7 +96,7 @@ function main(argv, { env = process.env, out = process.stdout, err = process.std
+       return 0;
+     }
+     if (!command) throw new UsageError(options.words[0] ? `unknown command ${options.words[0]}` : 'no command given');
+-    return command(openStore(options.data), options, out);
++    return command(openStore(options.data, env), options, out);
+   } catch (error) {
+     if (error instanceof UsageError) {
+       err.write(`tickets: ${error.message}\n${USAGE}\n`);
+diff --git a/docs/api.md b/docs/api.md
+index 149f5dd..bc5ca4e 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -153,3 +153,14 @@ For operators. Every notification the service has enqueued, by state:
+ ### Health: `GET /health`
+ 
+ `{ "status": "ok" }` while the service answers.
++
++## Due times (opt-in)
++
++When `DUE_TIMES=on`, every ticket returned by create, get, list, patch or transition includes `due`, an ISO UTC timestamp.
++It is creation time plus the configured response hours for its initial priority and never moves when priority changes.
++Clients cannot supply or patch `due`.
++
++`GET /tickets?overdue=true` selects open and in-progress tickets with due strictly before the current time. Resolved and
++closed tickets are excluded. The overdue restriction applies in addition to existing status/priority filters and before
++cursor pagination. `overdue=false` adds no restriction; other values answer 400 invalid. With the flag off, ticket
++responses omit due and the service ignores the overdue query parameter as it did before.
+diff --git a/docs/decisions/0009-fixed-due-times.md b/docs/decisions/0009-fixed-due-times.md
+new file mode 100644
+index 0000000..5b81234
+--- /dev/null
++++ b/docs/decisions/0009-fixed-due-times.md
+@@ -0,0 +1,23 @@
++# 9. Fixed due times with staged exposure
++
++Date: 2026-11-15
++Status: Accepted
++
++## Context
++
++The desk promises priority-based response times, needs configurable hours and must be able to roll back to 1.4.0.
++
++## Decision
++
++The store assigns due once, at creation or startup backfill, from creation time and priority. Startup saves missing due
++values before the server listens. Persist due as an optional additive field in version 1; keep validating legacy data.
++The API exposes due and accepts the overdue filter only with DUE_TIMES=on. Hours are environment settings. Migration
++changes neither history nor notifications; it prepares metadata rather than representing an operator ticket edit.
++
++## Consequences
++
++Changing priority or configuration cannot move existing deadlines. Operators can prepare the file with API behavior
++unchanged, then enable exposure separately. The 1.4.0 reader ignores due and keeps all tickets; its writer drops unknown
++fields, so recovering original deadlines after an old binary writes requires the prepared backup. Raw CLI columns stay
++fixed for the weekly report. Existing status/priority filter combination semantics remain unchanged; overdue adds an
++active-and-past-due restriction before pagination.
+diff --git a/docs/decisions/README.md b/docs/decisions/README.md
+index b575b50..736c6e5 100644
+--- a/docs/decisions/README.md
++++ b/docs/decisions/README.md
+@@ -14,3 +14,4 @@ says so. To add one, copy [template.md](template.md) to the next number.
+ | 6 | [Notifications through an outbox](0006-notification-outbox.md) | Accepted |
+ | 7 | [An append-only audit log](0007-append-only-audit-log.md) | Accepted |
+ | 8 | [The state in one JSON data file](0008-json-data-file.md) | Accepted |
++| 9 | [Fixed due times with staged exposure](0009-fixed-due-times.md) | Accepted |
+diff --git a/docs/operations.md b/docs/operations.md
+index 064acc4..d228e0b 100644
+--- a/docs/operations.md
++++ b/docs/operations.md
+@@ -50,3 +50,22 @@ the service. The support leads' report runs every Monday at 07:00 from the opera
+ ```sh
+ DATA_FILE=/srv/tickets/data/tickets.json node /srv/tickets/scripts/weekly-report.js --json > /srv/dashboard/weekly.json
+ ```
++
++## Due-time rollout
++
++1. Stop the existing service and back up `DATA_FILE`. Choose the response hours through `RESPONSE_HOURS_URGENT`,
++   `RESPONSE_HOURS_HIGH`, `RESPONSE_HOURS_NORMAL` and `RESPONSE_HOURS_LOW` (defaults 4, 24, 72, 168).
++2. Deploy 1.5.0 with `DUE_TIMES` unset. At startup it fills missing due times from each ticket's own creation time and
++   priority and atomically saves the whole file before listening. All statuses are backfilled. It does not change
++   ticket update times, audit history or notifications. A save failure aborts startup. New tickets also persist due times.
++3. Inspect the file's tickets: every record now has `due`. Keep a copy of this prepared file. Restart with
++   `DUE_TIMES=on` to expose due on ticket responses and enable `GET /tickets?overdue=true`.
++
++The feature flag controls API output and query handling; with it off, `overdue` is ignored as in 1.4.0. Without a data
++file the same preparation happens in memory. A later priority or response-hours change never recalculates a stored due.
++Backfill is idempotent and happens before serving even if the flag is enabled on the first start.
++
++To disable the feature, unset `DUE_TIMES` and restart. To roll back the binary, stop 1.5.0 and start 1.4.0 on the same
++file. The document remains version 1 with additive ticket fields, so 1.4.0 loads every ticket, audit entry and outbox
++notification. Its writer drops unknown fields including due; if it writes the file, retain the prepared backup for
++recovering original deadlines before enabling due times again. Do not replace live tickets with an older backup.
+diff --git a/package.json b/package.json
+index 30ad02e..d469dd7 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "helpdesk-tickets",
+-  "version": "1.4.0",
++  "version": "1.5.0",
+   "private": true,
+   "description": "The IT help desk's ticket service: an HTTP API, an audit log, requester notifications and an operator command line.",
+   "license": "UNLICENSED",
+diff --git a/src/app.js b/src/app.js
+index de7b8e0..bd98c83 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -19,7 +19,7 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+ 
+   router.get('/health', () => ({ status: 200, body: { status: 'ok' } }));
+ 
+-  router.get('/tickets', ({ url }) => ({ status: 200, body: store.list(parseListQuery(url.searchParams)) }));
++  router.get('/tickets', ({ url }) => ({ status: 200, body: store.list(parseListQuery(url.searchParams, { dueTimes: store.dueTimes })) }));
+ 
+   router.post('/tickets', async ({ req }) => {
+     const input = validate.newTicket(await body(req));
+diff --git a/src/config.js b/src/config.js
+index 246d0b7..ecfea9f 100644
+--- a/src/config.js
++++ b/src/config.js
+@@ -5,6 +5,8 @@
+  * empty variable takes its default.
+  */
+ 
++const { DEFAULT_HOURS } = require('./tickets/due');
++
+ const DEFAULTS = Object.freeze({
+   port: 4180,
+   workerIntervalMs: 500,
+@@ -37,6 +39,9 @@ function filePath(env, name) {
+ /** The settings read from `env`. Throws ConfigError, naming the variable, for a value the service cannot use. */
+ function loadConfig(env = process.env) {
+   return Object.freeze({
++    dueTimes: env.DUE_TIMES === 'on',
++    responseHours: Object.freeze(Object.fromEntries(Object.entries(DEFAULT_HOURS).map(([priority, hours]) =>
++      [priority, wholeNumber(env, `RESPONSE_HOURS_${priority.toUpperCase()}`, hours, { min: 1, max: 876000 })]))),
+     port: wholeNumber(env, 'PORT', DEFAULTS.port, { max: 65535 }),
+     dataFile: filePath(env, 'DATA_FILE'),
+     notifyFile: filePath(env, 'NOTIFY_FILE'),
+diff --git a/src/format.js b/src/format.js
+index 07b3e3d..76ce079 100644
+--- a/src/format.js
++++ b/src/format.js
+@@ -30,6 +30,9 @@ const TABLE_COLUMNS = Object.freeze([
+ 
+ /** Tickets as an aligned table with a header line. The last column is not padded. */
+ function table(tickets, columns = TABLE_COLUMNS) {
++  if (columns === TABLE_COLUMNS && tickets.some((ticket) => ticket.due !== undefined)) {
++    columns = [...TABLE_COLUMNS.slice(0, -1), { title: 'DUE', value: (ticket) => minute(ticket.due) }, TABLE_COLUMNS.at(-1)];
++  }
+   const rows = tickets.map((ticket) => columns.map((column) => String(column.value(ticket))));
+   const widths = columns.map((column, index) => Math.max(column.title.length, ...rows.map((row) => row[index].length)));
+   const line = (cells) => cells.map((cell, index) => (index === cells.length - 1 ? cell : cell.padEnd(widths[index]))).join('  ');
+@@ -46,6 +49,7 @@ function describeChanges(changes) {
+ /** One ticket in full, then its history. */
+ function details(ticket, history) {
+   const fields = ['status', 'priority', 'requester', 'created', 'updated'];
++  if (ticket.due !== undefined) fields.push('due');
+   const width = Math.max(...fields.map((field) => field.length));
+   const lines = [`${ticket.id}  ${ticket.title}`];
+   for (const field of fields) lines.push(`  ${field.padEnd(width)}  ${ticket[field]}`);
+diff --git a/src/persistence.js b/src/persistence.js
+index 35aed13..e6d27da 100644
+--- a/src/persistence.js
++++ b/src/persistence.js
+@@ -104,6 +104,7 @@ function ticketRecord(ticket) {
+     status: ticket.status,
+     created: ticket.created,
+     updated: ticket.updated,
++    ...(ticket.due === undefined ? {} : { due: ticket.due }),
+   };
+ }
+ 
+@@ -144,6 +145,7 @@ function readTicket(record, where, fail) {
+   if (!isStatus(ticket.status)) throw fail(`${where}.status is not a status`);
+   time(ticket.created, `${where}.created`, fail);
+   time(ticket.updated, `${where}.updated`, fail);
++  if (ticket.due !== undefined) time(ticket.due, `${where}.due`, fail);
+   return ticket;
+ }
+ 
+diff --git a/src/server.js b/src/server.js
+index 5ef8e68..673c027 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -16,7 +16,7 @@ const { Worker, deliverOutbox } = require('./worker');
+  */
+ function createService(config, { clock = systemClock, log = createLogger() } = {}) {
+   const persistence = config.dataFile ? createPersistence(config.dataFile, { clock }) : null;
+-  const store = TicketStore.open({ clock, persistence });
++  const store = TicketStore.open({ clock, persistence, dueTimes: config.dueTimes, responseHours: config.responseHours });
+   const notifier = createNotifier({ file: config.notifyFile, clock });
+   const worker = new Worker({
+     intervalMs: config.workerIntervalMs,
+diff --git a/src/store.js b/src/store.js
+index f60ccc3..b4d8b1c 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -4,6 +4,7 @@ const { AuditLog } = require('./audit');
+ const { ConflictError, InvalidError, NotFoundError } = require('./errors');
+ const { Outbox } = require('./outbox');
+ const { paginate } = require('./pagination');
++const { DEFAULT_HOURS, dueTime, isOverdue } = require('./tickets/due');
+ const { compareIds, formatId, parseId } = require('./tickets/ids');
+ const { matchesFilters } = require('./tickets/query');
+ const { canTransition, isFinal, nextStatuses } = require('./tickets/states');
+@@ -27,35 +28,44 @@ class TicketStore {
+    *   memory only
+    * @param {object|null} [options.state] a saved state to start from; an empty store without one
+    */
+-  constructor({ clock, persistence = null, state = null }) {
++  constructor({ clock, persistence = null, state = null, dueTimes = false, responseHours = DEFAULT_HOURS }) {
+     const initial = state || { nextNumber: 1, tickets: [], audit: [], outbox: {} };
+     this.clock = clock;
++    this.dueTimes = dueTimes;
++    this.responseHours = { ...responseHours };
+     this.persistence = persistence;
+     this.nextNumber = initial.nextNumber;
+-    this.tickets = new Map(initial.tickets.map((ticket) => [ticket.id, { ...ticket }]));
++    this.tickets = new Map(initial.tickets.map((ticket) => [ticket.id, { ...ticket, due: ticket.due ?? dueTime(ticket.created, ticket.priority, this.responseHours) }]));
+     this.audit = new AuditLog(initial.audit);
+     this.outbox = new Outbox(initial.outbox);
+   }
+ 
+   /** A store holding what `persistence` saved (nothing on a first start), saving back to it. */
+-  static open({ clock, persistence = null }) {
+-    return new TicketStore({ clock, persistence, state: persistence ? persistence.load() : null });
++  static open({ clock, persistence = null, ...options }) {
++    const state = persistence ? persistence.load() : null;
++    const store = new TicketStore({ clock, persistence, state, ...options });
++    // Persist the backfill before any request can observe the feature. Saving failures abort startup.
++    if (state && state.tickets.some((ticket) => ticket.due === undefined)) store.save();
++    return store;
+   }
+ 
+   // Reads
+ 
+   get(id) {
+-    return { ...this.find(id) };
++    return this.view(this.find(id));
+   }
+ 
+   /** One page of the tickets that pass `filters`, in id order: { items, next } (docs/api.md, "List tickets"). */
+   list({ filters = {}, limit = 20, after = null } = {}) {
+     if (after !== null && parseId(after) === null) throw new InvalidError('cursor is not one this service issued');
++    const { overdue, ...regularFilters } = filters;
++    const now = this.clock.now();
+     const matching = [...this.tickets.values()]
+-      .filter((ticket) => matchesFilters(ticket, filters))
++      .filter((ticket) => matchesFilters(ticket, regularFilters) &&
++        (!this.dueTimes || !overdue || isOverdue(ticket, now)))
+       .sort((a, b) => compareIds(a.id, b.id));
+     const page = paginate(matching, { limit, after, compare: compareIds });
+-    return { items: page.items.map((ticket) => ({ ...ticket })), next: page.next };
++    return { items: page.items.map((ticket) => this.view(ticket)), next: page.next };
+   }
+ 
+   /** The audit entries of one ticket, oldest first. */
+@@ -75,18 +85,20 @@ class TicketStore {
+   create({ title, priority, requester }, actor) {
+     const at = this.now();
+     const ticket = { id: formatId(this.nextNumber), title, priority, requester, status: 'open', created: at, updated: at };
++    ticket.due = dueTime(at, priority, this.responseHours);
+     this.nextNumber += 1;
+     this.tickets.set(ticket.id, ticket);
+     const changes = Object.fromEntries(CREATED_FIELDS.map((field) => [field, { from: null, to: ticket[field] }]));
+     this.audit.append({ ticket: ticket.id, action: 'ticket.created', actor, at, changes });
+     this.notify(ticket, 'ticket.created', ticket.requester, at);
+     this.save();
+-    return { ...ticket };
++    return this.view(ticket);
+   }
+ 
+   /** Change a ticket's title or priority. A closed ticket no longer changes. */
+   update(id, patch, actor) {
+     const ticket = this.find(id);
++    if ('due' in patch) throw new InvalidError('due is set once and cannot change');
+     if (isFinal(ticket.status)) throw new ConflictError(`ticket ${id} is ${ticket.status} and can no longer change`);
+     const changes = {};
+     for (const [field, value] of Object.entries(patch)) {
+@@ -125,6 +137,12 @@ class TicketStore {
+ 
+   // Internals
+ 
++  view(ticket) {
++    const copy = { ...ticket };
++    if (!this.dueTimes) delete copy.due;
++    return copy;
++  }
++
+   find(id) {
+     const ticket = this.tickets.get(id);
+     if (!ticket) throw new NotFoundError(`ticket ${id} not found`);
+@@ -140,14 +158,14 @@ class TicketStore {
+    * the change causes) and save. When nothing changes there is no audit entry and nothing else happens.
+    */
+   apply(ticket, action, changes, actor, effects = () => {}) {
+-    if (Object.keys(changes).length === 0) return { ...ticket };
++    if (Object.keys(changes).length === 0) return this.view(ticket);
+     const at = this.now();
+     for (const [field, { to }] of Object.entries(changes)) ticket[field] = to;
+     ticket.updated = at;
+     this.audit.append({ ticket: ticket.id, action, actor, at, changes });
+     effects(at);
+     this.save();
+-    return { ...ticket };
++    return this.view(ticket);
+   }
+ 
+   /**
+diff --git a/src/tickets/due.js b/src/tickets/due.js
+new file mode 100644
+index 0000000..fdfea00
+--- /dev/null
++++ b/src/tickets/due.js
+@@ -0,0 +1,13 @@
++'use strict';
++
++const DEFAULT_HOURS = Object.freeze({ urgent: 4, high: 24, normal: 72, low: 168 });
++
++function dueTime(created, priority, hours = DEFAULT_HOURS) {
++  return new Date(Date.parse(created) + hours[priority] * 60 * 60 * 1000).toISOString();
++}
++
++function isOverdue(ticket, now) {
++  return ['open', 'in_progress'].includes(ticket.status) && Date.parse(ticket.due) < now.getTime();
++}
++
++module.exports = { DEFAULT_HOURS, dueTime, isOverdue };
+diff --git a/src/tickets/query.js b/src/tickets/query.js
+index d25ada7..869973e 100644
+--- a/src/tickets/query.js
++++ b/src/tickets/query.js
+@@ -15,7 +15,7 @@ const DEFAULT_LIMIT = 20;
+ const MAX_LIMIT = 100;
+ 
+ /** { filters, limit, after } from the search parameters of GET /tickets. A value it cannot use is an InvalidError. */
+-function parseListQuery(params) {
++function parseListQuery(params, { dueTimes = false } = {}) {
+   const filters = {};
+   if (params.has('status')) {
+     const status = params.get('status');
+@@ -27,6 +27,11 @@ function parseListQuery(params) {
+     if (!isPriority(priority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
+     filters.priority = priority;
+   }
++  if (dueTimes && params.has('overdue')) {
++    const value = params.get('overdue');
++    if (!['true', 'false'].includes(value)) throw new InvalidError('overdue must be true or false');
++    if (value === 'true') filters.overdue = true;
++  }
+   return { filters, limit: parseLimit(params), after: params.has('cursor') ? decodeCursor(params.get('cursor')) : null };
+ }
+ 
+diff --git a/test/due.test.js b/test/due.test.js
+new file mode 100644
+index 0000000..2f9a734
+--- /dev/null
++++ b/test/due.test.js
+@@ -0,0 +1,124 @@
++'use strict';
++
++const { test } = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++const { manualClock } = require('../src/clock');
++const { ConfigError, loadConfig } = require('../src/config');
++const { createPersistence } = require('../src/persistence');
++const { createPersistence: legacyPersistence } = require('./legacy-persistence.cjs');
++const { TicketStore } = require('../src/store');
++const { ticketBody, withService } = require('./helpers');
++const HOUR = 3600000;
++
++function dataFile(t) {
++  const dir = fs.mkdtempSync(path.join(__dirname, '.due-'));
++  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
++  return path.join(dir, 'tickets.json');
++}
++
++test('response hours default by priority, accept environment overrides, and reject unusable values', () => {
++  assert.deepEqual(loadConfig({}).responseHours, { urgent: 4, high: 24, normal: 72, low: 168 });
++  assert.equal(loadConfig({ RESPONSE_HOURS_HIGH: '12' }).responseHours.high, 12);
++  assert.equal(loadConfig({ RESPONSE_HOURS_HIGH: '' }).responseHours.high, 24);
++  for (const value of ['-1', '0', '1.5', 'oops', '876001']) {
++    assert.throws(() => loadConfig({ RESPONSE_HOURS_HIGH: value }), ConfigError);
++  }
++  for (const value of [undefined, '', 'off', 'ON', 'true']) assert.equal(loadConfig({ DUE_TIMES: value }).dueTimes, false);
++  assert.equal(loadConfig({ DUE_TIMES: 'on' }).dueTimes, true);
++});
++
++test('enabled API assigns each priority its deadline and includes due on every ticket response', async () => {
++  await withService({ dueTimes: true }, async (api) => {
++    for (const [priority, hours] of Object.entries(loadConfig({}).responseHours)) {
++      const { body } = await api.post('/tickets', ticketBody({ priority }));
++      assert.equal(Date.parse(body.due) - Date.parse(body.created), hours * HOUR);
++      assert.equal((await api.get(`/tickets/${body.id}`)).body.due, body.due);
++      assert.equal((await api.patch(`/tickets/${body.id}`, { priority: 'low' })).body.due, body.due);
++      assert.equal((await api.post(`/tickets/${body.id}/transition`, { to: 'in_progress' })).body.due, body.due);
++      assert.equal((await api.get('/tickets')).body.items.find((ticket) => ticket.id === body.id).due, body.due);
++      assert.equal((await api.patch(`/tickets/${body.id}`, { due: '2099-01-01' })).status, 400);
++    }
++  });
++});
++
++test('flag off preserves ticket responses and ignores the formerly unknown overdue parameter', async () => {
++  await withService({}, async (api, service) => {
++    const { body } = await api.post('/tickets', ticketBody());
++    assert.equal('due' in body, false);
++    assert.equal('due' in (await api.get(`/tickets/${body.id}`)).body, false);
++    assert.equal('due' in (await api.patch(`/tickets/${body.id}`, { priority: 'urgent' })).body, false);
++    assert.equal('due' in (await api.post(`/tickets/${body.id}/transition`, { to: 'in_progress' })).body, false);
++    const list = await api.get('/tickets?overdue=nonsense');
++    assert.equal(list.status, 200);
++    assert.equal(list.body.items.length, 1);
++    assert.equal('due' in list.body.items[0], false);
++    assert.ok(service.store.snapshot().tickets[0].due);
++  });
++});
++
++test('overdue means strictly past due and active; filtering precedes pagination and intersects existing filters', async () => {
++  const clock = manualClock();
++  await withService({ dueTimes: true, clock }, async (api) => {
++    for (let n = 0; n < 6; n++) await api.post('/tickets', ticketBody({ priority: n === 5 ? 'low' : 'urgent' }));
++    await api.post('/tickets/T-0002/transition', { to: 'in_progress' });
++    for (const id of ['T-0003', 'T-0004']) {
++      for (const to of ['in_progress', 'resolved']) await api.post(`/tickets/${id}/transition`, { to });
++    }
++    await api.post('/tickets/T-0004/transition', { to: 'closed' });
++    clock.advance(4 * HOUR);
++    assert.deepEqual((await api.get('/tickets?overdue=true')).body.items, []);
++    clock.advance(1);
++    const first = (await api.get('/tickets?overdue=true&limit=1')).body;
++    assert.deepEqual(first.items.map((t) => t.id), ['T-0001']);
++    const next = (await api.get(`/tickets?overdue=true&limit=1&cursor=${first.next}`)).body;
++    assert.deepEqual(next.items.map((t) => t.id), ['T-0002']);
++    assert.deepEqual((await api.get('/tickets?overdue=true&status=in_progress')).body.items.map((t) => t.id), ['T-0002']);
++    assert.deepEqual((await api.get('/tickets?overdue=true&priority=low')).body.items, []);
++    assert.equal((await api.get('/tickets?overdue=false')).body.items.length, 6);
++    assert.equal((await api.get('/tickets?overdue=1')).status, 400);
++  });
++});
++
++test('startup durably backfills legacy tickets before enablement, and restart never recalculates due', (t) => {
++  const file = dataFile(t);
++  const clock = manualClock();
++  const legacy = legacyPersistence(file, { clock });
++  const seed = new TicketStore({ clock });
++  for (const priority of ['urgent', 'high', 'normal', 'low']) seed.create(ticketBody({ priority }), 'operator');
++  legacy.save(seed.snapshot()); // The unmodified 1.4.0 writer omits due.
++  const original = legacy.load();
++  const persistence = createPersistence(file, { clock });
++  const migrated = TicketStore.open({ clock, persistence });
++  const stored = persistence.load();
++  assert.deepEqual(stored.audit, original.audit);
++  assert.deepEqual(stored.outbox, original.outbox);
++  for (const ticket of stored.tickets) {
++    assert.equal(Date.parse(ticket.due) - Date.parse(ticket.created), loadConfig({}).responseHours[ticket.priority] * HOUR);
++    assert.equal(ticket.updated, ticket.created);
++  }
++  assert.equal('due' in migrated.get('T-0001'), false);
++  const again = TicketStore.open({ clock, persistence, dueTimes: true, responseHours: { urgent: 100, high: 100, normal: 100, low: 100 } });
++  assert.equal(again.update('T-0001', { priority: 'low' }, 'operator').due, stored.tickets[0].due);
++  assert.equal(again.create(ticketBody({ priority: 'urgent' }), 'operator').due, new Date(clock.now().getTime() + 100 * HOUR).toISOString());
++  const third = TicketStore.open({ clock, persistence, dueTimes: true });
++  assert.equal(third.get('T-0001').due, stored.tickets[0].due);
++  // The actual 1.4.0 loader accepts the new file and sees every ticket.
++  assert.equal(JSON.parse(fs.readFileSync(file)).version, 1);
++  assert.deepEqual(legacy.load().tickets.map((ticket) => ticket.id), third.list().items.map((ticket) => ticket.id));
++});
++
++test('invalid persisted due is refused, and a migration save failure prevents startup', (t) => {
++  const file = dataFile(t);
++  const clock = manualClock();
++  const store = TicketStore.open({ clock, persistence: createPersistence(file) });
++  store.create(ticketBody(), 'operator');
++  const document = JSON.parse(fs.readFileSync(file));
++  document.tickets[0].due = 'invalid';
++  fs.writeFileSync(file, JSON.stringify(document));
++  assert.throws(() => createPersistence(file).load(), /due is not a time/);
++  const state = store.snapshot();
++  delete state.tickets[0].due;
++  assert.throws(() => TicketStore.open({ clock, persistence: { load: () => state, save() { throw new Error('disk full'); } } }), /disk full/);
++});
+diff --git a/test/legacy-persistence.cjs b/test/legacy-persistence.cjs
+new file mode 100644
+index 0000000..98a07fb
+--- /dev/null
++++ b/test/legacy-persistence.cjs
+@@ -0,0 +1,206 @@
++'use strict';
++
++const fs = require('node:fs');
++const path = require('node:path');
++const { STATES } = require('../src/outbox');
++const { parseId } = require('../src/tickets/ids');
++const { isPriority } = require('../src/tickets/priorities');
++const { isStatus } = require('../src/tickets/states');
++
++/**
++ * The data file (docs/decisions/0008-json-data-file.md): the store's whole state as one JSON document,
++ *
++ *   { "version": 1, "savedAt": "...", "nextNumber": 8, "tickets": [...], "audit": [...],
++ *     "outbox": { "nextId": 5, "events": [...] } }
++ *
++ * written after every change to a temporary file that then replaces the old one, so a crash leaves the old state or the
++ * new one, never a mix of the two.
++ *
++ * Saving and loading go through the record functions below, which name every field the file keeps. Loading checks each
++ * record, so a file edited by hand cannot put the service into a state it could not reach by itself; a file that fails
++ * a check is refused with the reason, and the service does not start.
++ */
++
++const VERSION = 1;
++
++class DataFileError extends Error {
++  constructor(file, message) {
++    super(`${file}: ${message}`);
++    this.name = 'DataFileError';
++  }
++}
++
++/** Load and save the state in `file`. */
++function createPersistence(file, { clock = { now: () => new Date() } } = {}) {
++  return {
++    file,
++
++    /** The saved state, or null when the file does not exist yet (the first start). */
++    load() {
++      let text;
++      try {
++        text = fs.readFileSync(file, 'utf8');
++      } catch (error) {
++        if (error.code === 'ENOENT') return null;
++        throw new DataFileError(file, `cannot be read: ${error.message}`);
++      }
++      let document;
++      try {
++        document = JSON.parse(text);
++      } catch {
++        throw new DataFileError(file, 'is not JSON');
++      }
++      return fromDocument(document, (message) => new DataFileError(file, message));
++    },
++
++    save(state) {
++      const document = toDocument(state, clock.now());
++      fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
++      const temporary = `${file}.${process.pid}.tmp`;
++      fs.writeFileSync(temporary, `${JSON.stringify(document, null, 2)}\n`);
++      fs.renameSync(temporary, file);
++    },
++  };
++}
++
++function toDocument(state, now) {
++  return {
++    version: VERSION,
++    savedAt: now.toISOString(),
++    nextNumber: state.nextNumber,
++    tickets: state.tickets.map(ticketRecord),
++    audit: state.audit.map(auditRecord),
++    outbox: { nextId: state.outbox.nextId, events: state.outbox.events.map(eventRecord) },
++  };
++}
++
++function fromDocument(document, fail) {
++  if (!isObject(document)) throw fail('is not a data file');
++  if (document.version !== VERSION) throw fail(`has version ${document.version}; this service reads version ${VERSION}`);
++  const nextNumber = positive(document.nextNumber, 'nextNumber', fail);
++  const tickets = array(document.tickets, 'tickets', fail).map((record, index) => readTicket(record, `tickets[${index}]`, fail));
++  const ids = new Set();
++  for (const ticket of tickets) {
++    if (ids.has(ticket.id)) throw fail(`ticket ${ticket.id} appears twice`);
++    ids.add(ticket.id);
++    if (parseId(ticket.id) >= nextNumber) throw fail(`nextNumber ${nextNumber} would reuse the number of ${ticket.id}`);
++  }
++  const audit = array(document.audit, 'audit', fail).map((record, index) => readAudit(record, index, fail));
++  const outbox = object(document.outbox, 'outbox', fail);
++  const events = array(outbox.events, 'outbox.events', fail).map((record, index) => readEvent(record, `outbox.events[${index}]`, fail));
++  const nextId = positive(outbox.nextId, 'outbox.nextId', fail);
++  if (events.some((event) => event.id >= nextId)) throw fail(`outbox.nextId ${nextId} would reuse an event id`);
++  return { nextNumber, tickets, audit, outbox: { nextId, events } };
++}
++
++// Records: the fields the file keeps, one function per kind, used to save and to load.
++
++function ticketRecord(ticket) {
++  return {
++    id: ticket.id,
++    title: ticket.title,
++    priority: ticket.priority,
++    requester: ticket.requester,
++    status: ticket.status,
++    created: ticket.created,
++    updated: ticket.updated,
++  };
++}
++
++function auditRecord(entry) {
++  return {
++    seq: entry.seq,
++    ticket: entry.ticket,
++    action: entry.action,
++    actor: entry.actor,
++    at: entry.at,
++    changes: entry.changes,
++  };
++}
++
++function eventRecord(event) {
++  return {
++    id: event.id,
++    key: event.key,
++    type: event.type,
++    to: event.to,
++    ticket: event.ticket,
++    data: event.data,
++    status: event.status,
++    attempts: event.attempts,
++    created: event.created,
++    nextAttemptAt: event.nextAttemptAt,
++    lastError: event.lastError,
++    sentAt: event.sentAt,
++  };
++}
++
++function readTicket(record, where, fail) {
++  const ticket = ticketRecord(object(record, where, fail));
++  if (parseId(ticket.id) === null) throw fail(`${where}.id is not a ticket id`);
++  text(ticket.title, `${where}.title`, fail);
++  text(ticket.requester, `${where}.requester`, fail);
++  if (!isPriority(ticket.priority)) throw fail(`${where}.priority is not a priority`);
++  if (!isStatus(ticket.status)) throw fail(`${where}.status is not a status`);
++  time(ticket.created, `${where}.created`, fail);
++  time(ticket.updated, `${where}.updated`, fail);
++  return ticket;
++}
++
++function readAudit(record, index, fail) {
++  const where = `audit[${index}]`;
++  const entry = auditRecord(object(record, where, fail));
++  if (entry.seq !== index + 1) throw fail(`${where}.seq is ${entry.seq}, not ${index + 1}: the log is append-only`);
++  for (const field of ['ticket', 'action', 'actor']) text(entry[field], `${where}.${field}`, fail);
++  time(entry.at, `${where}.at`, fail);
++  if (!isObject(entry.changes)) throw fail(`${where}.changes is not an object`);
++  for (const [field, change] of Object.entries(entry.changes)) {
++    if (!isObject(change) || !('from' in change) || !('to' in change)) throw fail(`${where}.changes.${field} needs from and to`);
++  }
++  return entry;
++}
++
++function readEvent(record, where, fail) {
++  const event = eventRecord(object(record, where, fail));
++  positive(event.id, `${where}.id`, fail);
++  for (const field of ['key', 'type', 'to']) text(event[field], `${where}.${field}`, fail);
++  if (!STATES.includes(event.status)) throw fail(`${where}.status is not one of ${STATES.join(', ')}`);
++  if (!Number.isInteger(event.attempts) || event.attempts < 0) throw fail(`${where}.attempts is not a count`);
++  if (!isObject(event.data)) throw fail(`${where}.data is not an object`);
++  time(event.created, `${where}.created`, fail);
++  if (event.status === 'pending') time(event.nextAttemptAt, `${where}.nextAttemptAt`, fail);
++  return event;
++}
++
++// Checks
++
++function isObject(value) {
++  return value !== null && typeof value === 'object' && !Array.isArray(value);
++}
++
++function object(value, where, fail) {
++  if (!isObject(value)) throw fail(`${where} is not an object`);
++  return value;
++}
++
++function array(value, where, fail) {
++  if (!Array.isArray(value)) throw fail(`${where} is not a list`);
++  return value;
++}
++
++function positive(value, where, fail) {
++  if (!Number.isSafeInteger(value) || value < 1) throw fail(`${where} is not a positive whole number`);
++  return value;
++}
++
++function text(value, where, fail) {
++  if (typeof value !== 'string' || value === '') throw fail(`${where} is not a non-empty string`);
++  return value;
++}
++
++function time(value, where, fail) {
++  if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) throw fail(`${where} is not a time`);
++  return value;
++}
++
++module.exports = { DataFileError, VERSION, createPersistence, fromDocument, toDocument };

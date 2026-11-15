@@ -8,7 +8,9 @@ leave a data file that 1.4.0 can still start on?
 MODE is one of `migrate`, `restart`, `switch`, `rollback`, `off`, `cli`. Each builds its own data file in a scratch
 folder, starts the servers it needs on free ports with WORKER_INTERVAL_MS=0 (no background delivery), stops each with SIGTERM
 as an operator's service manager does (docs/operations.md: "SIGTERM stops it cleanly ... the state is saved"), and exits 0
-when every expectation holds, else 1 after one `FAIL:` line per broken expectation.
+when every expectation holds, else 1 after one `FAIL:` line per broken expectation. A port that another process took between
+its choice and the server's bind is chosen again (checks/serve.py's rule, at most serve.TRIES starts in all); a server that
+does not start otherwise ends the probe with one `FAIL:` line.
 
 The data file is what the base writes: format version 1, eight tickets (T-0001 to T-0008), their audit entries and an
 empty outbox. T-0001 to T-0006 were created in September 2025; T-0007 (low) an hour ago, T-0008 (urgent) five hours ago,
@@ -55,7 +57,7 @@ import urllib.request
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import serve  # noqa: E402  (free_port and the candidate-ownership wait: one implementation of both)
+import serve  # noqa: E402  (free_port, the candidate-ownership wait and the retry on a taken port: one implementation of each)
 
 BASE = HERE.parent / "fixtures" / "node-tickets"
 HOURS = {"urgent": 4, "high": 24, "normal": 72, "low": 168}
@@ -143,25 +145,44 @@ def expected_due(ticket: dict) -> dt.datetime:
 # Servers
 
 class Server:
-    """One service process on a free port of its own, started from `root` over `data`, stopped with SIGTERM."""
+    """One service process on a free port of its own, started from `root` over `data`, stopped with SIGTERM.
+
+    A port that another process took between serve.free_port() and the service's bind (serve.candidate_problem says `taken`: the
+    service exits with EADDRINUSE naming its port, or another process listens on it) is chosen again: the service of that start is
+    ended and reaped and one is started on another free port, at most serve.TRIES starts in all, the rule checks/serve.py has for
+    the HTTP checks (journal Round 6, F23). Every other refusal, and the last start's, print one FAIL line, as
+    serve.wait_for_candidate does, and exit 1."""
 
     def __init__(self, root: Path, data: Path, scratch: Path, label: str, **env: str | None):
         self.label = label
-        self.port = serve.free_port()
-        self.base = f"http://127.0.0.1:{self.port}"
-        clean = {key: value for key, value in os.environ.items() if key not in SCRUB}
-        clean.update(PORT=str(self.port), DATA_FILE=str(data), WORKER_INTERVAL_MS="0")
-        clean.update({key: value for key, value in env.items() if value is not None})
         self.stderr = scratch / f"{label}.stderr"
-        with self.stderr.open("w") as err:
-            self.proc = subprocess.Popen(["node", "src/server.js"], cwd=root, env=clean, stdin=subprocess.DEVNULL,
-                                         stdout=subprocess.DEVNULL, stderr=err, start_new_session=True)
+        handed: list[int] = []
+        for attempt in range(1, serve.TRIES + 1):
+            self.port = serve.free_port()
+            handed.append(self.port)
+            self.base = f"http://127.0.0.1:{self.port}"
+            clean = {key: value for key, value in os.environ.items() if key not in SCRUB}
+            clean.update(PORT=str(self.port), DATA_FILE=str(data), WORKER_INTERVAL_MS="0")
+            clean.update({key: value for key, value in env.items() if value is not None})
+            with self.stderr.open("w") as err:
+                self.proc = subprocess.Popen(["node", "src/server.js"], cwd=root, env=clean, stdin=subprocess.DEVNULL,
+                                             stdout=subprocess.DEVNULL, stderr=err, start_new_session=True)
+            problem = serve.candidate_problem(self.proc, self.port, self.stderr)
+            if problem is None:
+                return
+            serve.listeners.end_group(self.proc.pid)  # a start that is not kept never outlives its turn
+            self.proc.wait()
+            if not problem.taken or attempt == serve.TRIES:
+                break
+            print(f"due_times_probe.py: another process took PORT={self.port}; starting the {label} server again on another port "
+                  f"(start {attempt + 1} of {serve.TRIES})", file=sys.stderr)
+        reason = problem.reason
+        if problem.taken:
+            reason += f" (started {attempt} times, on ports {', '.join(map(str, handed))}; each was taken by another process)"
         try:
-            serve.wait_for_candidate(self.proc, self.port, self.stderr)  # exits 1 with a FAIL line when it never listens
+            serve.fail(reason)  # the FAIL line and exit 1: what serve.wait_for_candidate does with a refusal
         except SystemExit:
             print(f"(the {label} server did not start)", flush=True)
-            serve.listeners.end_group(self.proc.pid)
-            self.proc.wait()
             raise
 
     def call(self, method: str, path: str, body=None) -> tuple[int, object]:
@@ -504,7 +525,7 @@ def main(argv: list[str]) -> int:
     scratch = Path(tempfile.mkdtemp(prefix="due-times-probe-"))
     try:
         MODES[argv[0]](work, scratch)
-    except SystemExit as stop:  # a server that never listened (serve.wait_for_candidate printed why)
+    except SystemExit as stop:  # a server that did not start (Server printed why)
         if stop.code not in (0, None):
             FAILURES.append("a server did not start")
     finally:

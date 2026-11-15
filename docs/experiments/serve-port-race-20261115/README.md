@@ -18,6 +18,7 @@ excerpt is `docs/experiments/git-maintenance-lock-20261114/ci-attempt2-failure-e
 | `tap/sitecustomize.py`, `run_tap.sh`, `tap-summary.txt` | A tap that counts how many times each suite starts a candidate through serve.py and how those runs ended. |
 | `lsof_shim.py` | The one lsof call serve.py makes, for the Linux container that has no lsof. Used only there. |
 | `wiring_probe.py`, `wiring-results.txt` | The follow-up (below): a suite's calibration classes run with the first grade of every delivery handed a held port, with the regrade as shipped and with `--regrades 0`. |
+| `due_times_held_port.py`, `due-times-held-port.jsonl` | The evening follow-up (below): the `ticket-due-times` probe's own `main()` run from the case's reference and base deliveries with the first port of every `Server` held, for the probe before and after its retry (48 runs). |
 
 ## What was run, and where
 
@@ -164,6 +165,46 @@ all the own checks, or a defect whose declared set holds the checks that go thro
 start a candidate through serve.py; in `brownfield` only the third check does. "Failures" counts subtests. Not shown: the rescue of a natural collision (nothing counts regrades), and Linux.
 The hidden acceptance of these classes is graded once and is not part of the probe: it goes through `quality.serve_on_free_port` and the listener-ownership check, not through serve.py.
 
+## Follow-up (2026-11-15, evening): the `ticket-due-times` probe's own servers
+
+`test/shiploop_e2e/checks/due_times_probe.py` starts its own servers (`Server`): `serve.free_port()`, its own Popen of `node src/server.js`, and, before this change,
+`serve.wait_for_candidate`. The retry of `a669c801861fc06b260007d02c14df4674025aa8` lives in `serve.main`, so it did not reach them: a number another process took between the choice
+and the bind failed the probe ("the <label> server did not start"). `Server` now asks `serve.candidate_problem(proc, port, stderr)` and, only when its `taken` is true, ends the group of
+that start, reaps it and starts again on a fresh `serve.free_port()`, at most `serve.TRIES` starts in all (journal Round 6, the update on the probe). Every other refusal, and the last
+start's, print one `FAIL:` line through `serve.fail` (what `wait_for_candidate` does with a refusal; its own contract is untouched) and exit 1.
+
+`due_times_held_port.py` runs the probe's own `main()` for one mode from a delivery of the case, with one listening socket (a dual-stack IPv6 wildcard) held by the driver and the FIRST
+`free_port()` of every `Server` handing that number out, the later ones real free ports. It is what a taken port looks like from the probe, made certain. The deliveries are the case's own
+reference delivery (`test/fixtures/quality/reference_due_times.py DEST --variant reference`) and its base (`--variant base`: it must fail exactly `migrate`, `restart` and `switch`); the old
+probe is `test/shiploop_e2e` of `b578deaa2fde848978e43031ec3aadebe8c0016b` (the tip of `main` before this change, `a669c801`'s serve.py beside it) cut with `git archive`; the new one is this
+checkout's. 48 runs, one probe mode each in a process of its own, `due-times-held-port.jsonl` (macOS, Node v26.12.1, Python 3.15.1, load average 14 to 16 from other work):
+
+| probe | delivery | condition | modes that pass | `FAIL:` lines per mode (migrate, restart, switch, rollback, off, cli) | servers made | starts taken | retry lines |
+| --- | --- | --- | ---: | --- | ---: | ---: | ---: |
+| old | reference | control | 6 of 6 | 0, 0, 0, 0, 0, 0 | 15 | 15 | 0 |
+| new | reference | control | 6 of 6 | 0, 0, 0, 0, 0, 0 | 15 | 15 | 0 |
+| old | reference | first start held | 0 of 6 | 1, 1, 1, 1, 1, 1 ("a server did not start") | 6 | 6 | 0 |
+| new | reference | first start held | 6 of 6 | 0, 0, 0, 0, 0, 0 | 15 | 30 | 15 |
+| old | base | control | 3 of 6 (rollback, off, cli) | 11, 36, 9, 0, 0, 0 | 15 | 15 | 0 |
+| new | base | control | 3 of 6 (rollback, off, cli) | 11, 36, 9, 0, 0, 0 | 15 | 15 | 0 |
+| old | base | first start held | 0 of 6 | 1, 1, 1, 1, 1, 1 ("a server did not start") | 6 | 6 | 0 |
+| new | base | first start held | 3 of 6 (rollback, off, cli) | 11, 36, 9, 0, 0, 0 | 15 | 30 | 15 |
+
+- A full pass over the six modes makes 15 servers (1 + 3 + 2 + 4 + 4 + 1: `migrate`, `restart`, `switch`, `rollback`, `off`, `cli`; counted in the control rows), so 15 `free_port()` calls: the
+  exposure of one live pass over the case's checks (journal F24 counts 3 to 12 serve.py runs for a link of the ticket or user chains).
+- With the first start of every server held, the old probe fails all six modes on both deliveries: the six the reference passes in the control, the three the base passes, and the three the
+  base fails (with one `FAIL:` line where the control has 11, 36 and 9). The collision decides the verdict. The new probe gives the control's verdict in all 12 cells, with the same number of
+  `FAIL:` lines in the three modes the base fails, and one retry line on stderr per server (15 per delivery). A passing check keeps those lines: `run.run_checks` stores the last 2000
+  characters of stdout plus stderr.
+- The 12 failures of the old probe were all the foreign-listener face (`port N is answered by pid H, not by the candidate`): the held socket is a listener, so the ownership check refuses it at
+  the first lsof look, before the candidate's bind fails. The early-exit face (the service exits with `EADDRINUSE` naming its port) is pinned by `CandidateProblemTest` (which refusals are a
+  taken port) and by `DueTimesProbeServerTest.test_a_service_that_exits_eaddrinuse_naming_its_port_is_started_again_on_another_port`, which runs a real node service that exits that way.
+
+Not measured: the probe's own natural collision rate (no churn neighbours here); its start is the same `free_port()`, Popen and `candidate_problem` sequence as serve.py's, whose rates are
+above (0.0026% per run on CI, 0.12% on this Mac), so a full pass of 15 starts would hit about 0.04% on CI's rate and about 1.8% on this Mac's, if the per-start rates hold for it. The 12
+failures also say nothing about a retry that is itself taken (the square of the rate), and the driver was not run on Linux (the new tests were: `DueTimesProbeServerTest`, `ServeRetryTest` and
+`CandidateProblemTest`, 22 OK in the container of "What was run, and where", journal Round 6).
+
 ## Reproduce
 
 ```sh
@@ -179,6 +220,10 @@ python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-direct
 python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py user-chain CalibrationTest [--regrades 0]       # the follow-up's probe
 python3 -B docs/experiments/serve-port-race-20261115/wiring_probe.py brownfield CaseChecksTest [--regrades 0]
 python3 -I docs/experiments/serve-port-race-20261115/ci_history.py CACHE_DIR OUT.json 2026-10-31
+# the probe's own servers with the first port of every Server held (the evening follow-up); OLD is `git archive b578deaa2fde848978e43031ec3aadebe8c0016b test/shiploop_e2e/checks test/shiploop_e2e/listeners.py test/shiploop_e2e/fixtures/node-tickets | tar -x -C OLD`
+python3 test/fixtures/quality/reference_due_times.py /tmp/due-reference --variant reference     # and /tmp/due-base --variant base, into empty folders
+python3 -B docs/experiments/serve-port-race-20261115/due_times_held_port.py ALL due-times-held-port.jsonl old=OLD/test/shiploop_e2e new=$PWD/test/shiploop_e2e -- base=/tmp/due-base reference=/tmp/due-reference
+python3 -B docs/experiments/serve-port-race-20261115/due_times_held_port.py ONE $PWD/test/shiploop_e2e /tmp/due-reference migrate held --tag new/reference   # one run
 ```
 
 On a machine without lsof, put `lsof_shim.py` on PATH as `lsof` (Linux only).

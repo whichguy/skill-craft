@@ -490,6 +490,152 @@ class ServeRetryTest(unittest.TestCase):
                 os.kill(pid, 0)
 
 
+def load_due_times_probe():
+    """checks/due_times_probe.py as a module of its own. It imports `serve` from its own folder, so a test patches what the
+    probe calls through `probe.serve` for as long as the test needs it."""
+    spec = importlib.util.spec_from_file_location("shiploop_e2e_test_due_times_probe", run.HERE / "checks" / "due_times_probe.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@unittest.skipUnless(shutil.which("node") and shutil.which("lsof"), "needs node and lsof")
+class DueTimesProbeServerTest(unittest.TestCase):
+    """checks/due_times_probe.py (the `ticket-due-times` case's checks, which `test_case_checks_name_existing_helper_scripts_and_subcommands`
+    ties to this suite) starts its own servers with Server, so it has serve.py's rule for a port another process took between the
+    choice and the bind (journal Round 6, the update on the probe; docs/experiments/serve-port-race-20261115/): a service that
+    exits with EADDRINUSE naming its own port, or beside which another process listens on that port, is started again on another
+    free port, at most serve.TRIES starts in all, and nothing else is. Each start of the delivery's src/server.js appends its PORT
+    to starts.log."""
+
+    LISTENS = "require('http').createServer((q, s) => s.end('{\"ok\":true}')).listen(Number(process.env.PORT));\n"
+    TAKEN, OTHER, EXITS, STAYS = ServeRetryTest.TAKEN, ServeRetryTest.OTHER, ServeRetryTest.EXITS, ServeRetryTest.STAYS
+    holder, starts = ServeRetryTest.holder, ServeRetryTest.starts
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.probe = load_due_times_probe()
+
+    def service(self, body: str) -> Path:
+        """A delivery whose src/server.js logs its PORT, counts its own starts (`starts`) and then runs `body`."""
+        root = self.tmp / f"delivery-{len(list(self.tmp.glob('delivery-*')))}"
+        (root / "src").mkdir(parents=True)
+        log = json.dumps(str(root / "starts.log"))
+        (root / "src" / "server.js").write_text(
+            f"const fs = require('fs');\nfs.appendFileSync({log}, process.env.PORT + '\\n');\n"
+            f"const starts = fs.readFileSync({log}, 'utf8').trim().split('\\n').length;\n" + body)
+        return root
+
+    def start(self, root: Path):
+        """Server(...) for `root`, stopped at the end of the test; returns it with what it printed to stdout and stderr."""
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            server = self.probe.Server(root, self.tmp / "tickets.json", self.tmp, "delivery")
+        self.addCleanup(server.stop)
+        return server, out.getvalue(), err.getvalue()
+
+    def refused(self, root: Path):
+        """Server(...) for `root` where it gives up: its exit code and what it printed to stdout and stderr."""
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as stop:
+            self.probe.Server(root, self.tmp / "tickets.json", self.tmp, "delivery")
+        return stop.exception.code, out.getvalue(), err.getvalue()
+
+    def test_a_service_that_listens_is_started_once_on_the_port_it_was_handed(self):
+        root = self.service(self.LISTENS)
+        server, out, err = self.start(root)
+        self.assertEqual(self.starts(root), [server.port])
+        self.assertEqual(server.call("GET", "/"), (200, {"ok": True}))
+        self.assertEqual((out, err), ("", ""))
+
+    def test_a_service_that_exits_eaddrinuse_naming_its_port_is_started_again_on_another_port(self):
+        root = self.service("if (starts === 1) {\n" + self.TAKEN + "}\n" + self.LISTENS)
+        server, out, err = self.start(root)
+        first, second = self.starts(root)
+        self.assertNotEqual(first, second)
+        self.assertEqual((server.port, server.base), (second, f"http://127.0.0.1:{second}"))
+        self.assertEqual(server.call("GET", "/"), (200, {"ok": True}), "the probe talks to the port of the start that was kept")
+        self.assertIn(f"another process took PORT={first}; starting the delivery server again on another port "
+                      f"(start 2 of {self.probe.serve.TRIES})", err)
+        self.assertEqual(out, "", "a start that is chosen again is not a failure of any expectation")
+
+    def test_three_starts_are_the_most_and_the_failure_names_the_ports(self):
+        root = self.service(self.TAKEN)
+        code, out, err = self.refused(root)
+        ports = self.starts(root)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(ports), self.probe.serve.TRIES)
+        self.assertIn(f"started {self.probe.serve.TRIES} times, on ports {', '.join(map(str, ports))}; each was taken by another process", out)
+        self.assertIn("FAIL: the candidate exited (rc 1)", out)
+        self.assertIn("EADDRINUSE", out, "the service's own error stays in the failure")
+        self.assertIn("(the delivery server did not start)", out)
+        self.assertEqual(err.count("starting the delivery server again"), self.probe.serve.TRIES - 1)
+
+    def test_an_eaddrinuse_naming_another_port_is_the_products_and_is_started_once(self):
+        root = self.service(self.OTHER)
+        code, out, err = self.refused(root)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.starts(root)), 1)
+        self.assertIn("FAIL: the candidate exited (rc 1)", out)
+        self.assertIn("(the delivery server did not start)", out)
+        self.assertNotIn("starting the delivery server again", err)
+
+    def test_a_service_that_exits_for_another_reason_is_started_once(self):
+        root = self.service(self.EXITS)
+        code, out, err = self.refused(root)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.starts(root)), 1)
+        self.assertIn("the candidate exited (rc 23)", out)
+        self.assertNotIn("starting the delivery server again", err)
+
+    def test_a_refusal_that_is_not_a_taken_port_ends_the_probe_on_whichever_start_it_comes(self):
+        root = self.service("if (starts === 1) {\n" + self.TAKEN + "}\n" + self.EXITS)
+        code, out, err = self.refused(root)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.starts(root)), 2, "the second start's refusal is the product's, so there is no third")
+        self.assertIn("the candidate exited (rc 23)", out)
+        self.assertNotIn("each was taken by another process", out)
+        self.assertEqual(err.count("starting the delivery server again"), 1)
+
+    def test_a_listener_on_the_port_handed_out_is_a_collision_and_the_service_starts_on_another_port(self):
+        """The real thing: free_port() hands out a number another socket holds; the service's own bind or the ownership check,
+        whichever comes first, finds it taken; the second start is on a free one."""
+        root = self.service(self.LISTENS)
+        taken = self.holder().getsockname()[1]
+        real, handed = self.probe.serve.free_port, []
+
+        def free_port():
+            handed.append(taken if not handed else real())
+            return handed[-1]
+
+        with mock.patch.object(self.probe.serve, "free_port", free_port):
+            server, out, err = self.start(root)
+        self.assertEqual(len(handed), 2)
+        self.assertEqual((handed[0], server.port), (taken, handed[1]))
+        # The ownership check can end the first service before Node runs its source, so only the last start is always logged.
+        self.assertEqual(self.starts(root)[-1], handed[1])
+        self.assertEqual(server.call("GET", "/"), (200, {"ok": True}))
+        self.assertIn(f"another process took PORT={taken}; starting the delivery server again on another port", err)
+
+    def test_the_service_of_a_start_that_is_given_up_is_ended_before_the_next_is_started(self):
+        root = self.service(self.STAYS)
+        pids, answers = [], iter([self.probe.serve.Problem("another process holds the port", True), None])
+
+        def problem(proc, port, stderr):
+            pids.append(proc.pid)
+            return next(answers)
+
+        with mock.patch.object(self.probe.serve, "candidate_problem", problem):
+            server, _out, _err = self.start(root)
+        self.assertEqual(len(pids), 2)
+        self.assertEqual(pids[1], server.proc.pid, "the start that was kept is the second")
+        with self.assertRaises(ProcessLookupError, msg=f"the service {pids[0]} the probe gave up on is still running"):
+            os.kill(pids[0], 0)
+        self.assertIsNone(server.proc.poll(), "the service that was kept keeps running")
+
+
 class CheckHygieneTest(unittest.TestCase):
     def test_temperature_unit_check_requires_tests_and_success(self):
         check = json.loads(run.CASES.read_text())["temperature-report"]["checks"][0]

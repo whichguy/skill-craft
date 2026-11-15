@@ -6257,6 +6257,9 @@ def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str
         lines.append("Backchain graph check: " + shlex.join(
             ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
             + " <your candidate file>")
+        # Backchain 0.7.0 keeps a planning run's records in the one directory its `prepare` creates; naming it gives every
+        # host the same place and lets the run review find the child's receipt and cycles (Round 10, W1).
+        lines.append("Backchain planning run directory: " + str(root / "backchain" / current_action(state)["id"] / "run"))
     return lines
 
 

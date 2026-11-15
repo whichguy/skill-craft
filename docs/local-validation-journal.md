@@ -707,7 +707,8 @@ is untouched.
   for the way live runs call serve.py (one at a time). The number will change with what other programs hold. Update 2026-11-15, later the same day: the calibration
   exposure is closed in the tests of all five suites that grade variants through serve.py (the ticket pair, then `user-directory`, `user-chain` and `brownfield`; see the
   follow-up above); ~~the live exposure in the line above is unchanged, and the live scoring through serve.py stays the owner's question.~~ [superseded later the same
-  day: the owner said yes to a retry in serve.py, so the live exposure is closed too; see the last update of Round 6.]
+  day: the owner said yes to a retry in serve.py, so the live exposure is closed too; see the last update of Round 6.] [2026-11-15, evening: "closed too" held for the checks that
+  run through serve.py; the `ticket-due-times` probe chose its own ports and was the one live check left with the exposure. It has the rule now; see the last update.]
 - F25 (firm for the wiring with a held port, none for a natural collision): the three suites of the follow-up regrade through their own grading paths. With the first grade of
   every delivery handed a held port (`docs/experiments/serve-port-race-20261115/wiring_probe.py`, `wiring-results.txt`), `user-directory`'s three calibration classes (41
   deliveries), `user-chain`'s (22) and `brownfield`'s `CaseChecksTest` (3) pass with the regrade as shipped, and fail with it off (`--regrades 0`: 43, 17 and 2 failures, subtests
@@ -720,7 +721,8 @@ It is made in this commit.
   candidate's group listens on it (`candidate_problem` says `taken`). Not started again: a candidate that exits for another reason, one that names another port, one
   that never listens within 10 s, a table lsof cannot read, and a port pinned with `E2E_SERVE_PORT` (the regression's). The ownership check is unchanged and every
   start must pass it; a retried check prints one line to stderr, and after the third start the failure names the ports. `wait_for_candidate` keeps its contract
-  for `due_times_probe.py`.
+  for `due_times_probe.py`. [2026-11-15, evening: `due_times_probe.py` no longer calls it; its `Server` asks `candidate_problem` itself, see the last update. `wait_for_candidate`
+  keeps its contract and the resources suite's test of it, and has no other caller.]
 - *One more trigger than the question named.* The question said "exits with `EADDRINUSE` naming its own `PORT`"; a foreign listener on the port is retried too, because it
   is the other face of the same cause: of the 7 collisions measured at 16 callers on Linux, 6 were that signature, and a retry on `EADDRINUSE` alone would have cured one.
   `quality.serve_on_free_port` gets both, because its wait does not give up on a foreign listener before the candidate's own bind fails. It is stated here and in the
@@ -734,8 +736,43 @@ It is made in this commit.
   serve.py: started again on another port; three starts at most and the failure names the ports; an `EADDRINUSE` naming another port, another exit code and a pinned
   port are started once; a real collision (a socket on every address holds the number `free_port()` hands out) passes on the second start; the candidate of a given-up
   start is ended before the next. Against the old serve.py 11 of the 14 fail (the three "started once" tests pass by design); the 8 serve.py tests that were there still pass.
-- *Not done.* `due_times_probe.py` (the `ticket-due-times` case) starts its own servers with `serve.free_port()` and keeps the same exposure; the retry does not reach
-  it. A candidate that stays alive beside a foreign listener on its port (a macOS dual bind) is ended and started again; one that always starts a detached listener of its
-  own on `PORT` is started three times and fails as before, and may leave those listeners to the run's reaper.
+- *Not done.* ~~`due_times_probe.py` (the `ticket-due-times` case) starts its own servers with `serve.free_port()` and keeps the same exposure; the retry does not reach
+  it.~~ [superseded 2026-11-15, evening: `Server` in `due_times_probe.py` has the same rule; see the last update.] A candidate that stays alive beside a foreign listener on its
+  port (a macOS dual bind) is ended and started again; one that always starts a detached listener of its own on `PORT` is started three times and fails as before, and may leave
+  those listeners to the run's reaper.
 - *Digests.* `checks/` is hashed into the oracle digest, so every case's oracle digest changes at this commit and no comparison that needs the old one spans it (as
   `d9a92f05` said of the evaluator digest). SPEC's "Concurrency must not change a verdict" and the README's `checks` paragraph carry the amendment.
+
+
+**Update (2026-11-15, evening): the same rule in `due_times_probe.py`.** The "Not done" of the update above, made on the task the session that wrote it handed on (its brief named
+`serve.TRIES`, `serve.candidate_problem`, `serve.free_port` and `serve.listeners.end_group` as what to use). Nothing under `skills/`, `agents/` or the catalogs moves, and neither does `checks/serve.py`.
+- *What.* `Server.__init__` (`test/shiploop_e2e/checks/due_times_probe.py`: the one place the probe starts a service, so all of `migrate`, `restart`, `switch`, `rollback`, `off` and `cli`, and the base's 1.4.0 starts of
+  `rollback` and `off`) loops at most `serve.TRIES` starts: a fresh `serve.free_port()`, `node src/server.js` with that `PORT`, then `serve.candidate_problem(proc, port, stderr)`. `None` keeps the start. Otherwise the start's
+  group is ended (`serve.listeners.end_group`) and reaped, and the next start comes only when the refusal's `taken` is true and this was not the last start, after one stderr line (`due_times_probe.py: another process took PORT=N;
+  starting the <label> server again on another port (start K of 3)`). Every other refusal, and the last start, print one `FAIL:` line through `serve.fail` (what `wait_for_candidate` does with a refusal), then `(the <label> server did not
+  start)`, and exit 1, as before. The last start's line also names the ports tried, as serve.py's does: the one addition to "the old behaviour", so that a failure after three starts is told from a single refused start; it is one line to
+  drop. `main()` and the six modes are untouched.
+- *Where the tests are.* `git grep due_times_probe test` finds the probe only through `cases.json`: no suite calibrates it (the 56-cell calibration of 2026-11-14 is `docs/experiments/planning-points-probe-20261114/calibrate.py`, run before any live run; its first run found the reference breaking `test/query.test.js`, so it ran more than once). The suite that covers it is `shiploop-e2e-resources`: `test_case_checks_name_existing_helper_scripts_and_subcommands` ties each `"$E2E_CHECKS/due_times_probe.py" MODE` of `cases.json` to the file and its `"MODE":` keys,
+  and serve.py's own tests are there, so `DueTimesProbeServerTest` (8 tests, a real `node` service per start) is too: a service that exits `EADDRINUSE` naming its port is started again on another, and `Server` keeps the second
+  start's port and base (it answers a request there); three starts are the most and the failure names the ports; a refusal that is not a taken port ends the probe on whichever start it comes (taken, then another exit code: two starts);
+  a real collision (a socket on every address holds the number `free_port()` hands out) passes on the second start; the service of a start that is given up is ended before the next is started. Three controls pass by design: a service that
+  listens is started once with nothing on stderr; `EADDRINUSE` naming another port and another exit code are started once.
+- *Fail first.* Against the unchanged probe 5 of the 8 fail (3 errors, 2 failures, each because it gave up after one start) and the 3 controls pass; with the change 8 OK (2.7 s, and 2.9 s for the 22 with serve.py's two classes in the Linux container).
+- *Measured* (`docs/experiments/serve-port-race-20261115/due_times_held_port.py`, `due-times-held-port.jsonl`; README, evening follow-up). The probe's own modes against the case's reference delivery and its base, the old probe
+  (`b578deaa`, the tip of `main` before this change, serve.py's retry beside it) and the new, with the first `free_port()` of every `Server` handing out a number that a socket of the driver holds (48 runs, macOS, load average 14 to 16).
+  The control passes 6 of 6 modes on the reference and exactly `rollback`, `off` and `cli` on the base (`migrate`, `restart` and `switch` fail with 11, 36 and 9 `FAIL:` lines), the same for both probes, with 15 servers and 15 starts per full pass.
+  With the first start held the old probe fails all 6 modes on both deliveries (one `FAIL:` line each, "answered by pid ..., not by the candidate", and "a server did not start"), so the collision decides the verdict; the new probe gives the
+  control's verdict in all 12 cells (the same `FAIL:` counts) with 15 servers, 30 starts and 15 retry lines.
+- *Whole suites with the change* (macOS, the four at once at nice 10, load average 11 to 21 from other work): `test-groups` 70 tests OK in 42.4 s, `shiploop-e2e-resources` 133 OK in 173.3 s (125 before plus the 8),
+  `shiploop-e2e-ticket-comments` 21 OK in 83.0 s, `shiploop-e2e-ticket-sla` 27 OK in 370.9 s. On Linux (the container of the study: kernel 7.2.12, Node 26.12.1, Python 3.14.9, `lsof_shim.py`) the new class, `ServeRetryTest` and
+  `CandidateProblemTest` pass together: 22 tests in 2.9 s. `ruff --select E9,F,B`: the probe has the same two findings before and after; the resources test has no finding but F821 (685 before, 709 now: the names its support module
+  injects, which the new lines use as the old ones do); the driver is clean.
+- *Digests.* `checks/` is hashed into the oracle digest, so every case's oracle digest changes at this commit and no comparison that needs the old one spans it, as in the update above (`boundary.fingerprint`: oracle `0eebb016daac`
+  before `a669c801`, `049862eda389` on `b578deaa`, `c70aea9cceda` with this change; evaluator `48f9a88313e3` before and after it). SPEC's "Concurrency must not change a verdict" and the README's `checks` paragraph state the rule of "a case's HTTP
+  check" and now hold for this probe too; they need no sentence.
+- *Not done, and unknown.* The probe's own natural collision rate (no churn neighbours here): its start is serve.py's sequence, so a full pass of 15 starts would hit about 0.04% at CI's rate and about 1.8% at this Mac's (0.12% a start) if the
+  per-start rates hold for it. A retry that is itself taken; the driver on Linux (one run per cell, macOS only; the tests ran there, above, and CI's quick tier on the push runs the resources suite on its Linux runner). The held socket is a listener, so the 12 failures were the
+  foreign-listener face; the early-exit face is pinned by `CandidateProblemTest` and by `DueTimesProbeServerTest.test_a_service_that_exits_eaddrinuse_naming_its_port_is_started_again_on_another_port`. A given-up start writes nothing the base's data file would keep (the base saves after a change and at SIGTERM, by write and rename), but a
+  delivery that saved at open would leave its second start a file it had already migrated, which is the `restart` case. The two `ruff --select E9,F,B` findings the probe had before (F401 `time` unused, F541 an f-string without a placeholder)
+  are left. A retried start leaves one stderr line, kept in the check's output (`run.run_checks` stores the last 2000 characters of stdout plus stderr), and no trace in a verdict.
+- F26 (firm for the route with a held port, none for a natural collision of the probe's own start): the `ticket-due-times` probe's servers have serve.py's retry, and a taken port no longer decides its verdict (the README's evening follow-up has the table).
