@@ -431,7 +431,12 @@ Decisions 1 and 5 shipped as **shiploop 1.36.0 / skill-craft 2.40.0**:
   - Grok 2.39.0 → 2.40.0;
   - Cursor not refreshed: its `whichguy` registration is pinned, so the move is a remove, an add and an Add click in its
     app, which falls to the owner.
-- **CI:** the push run of the release commit was in progress when this was written; it is read afterwards.
+- **CI:** the push run of the release commit was in progress when this was written. **Read at 08:36 PST:** the release
+  commit's run 43734559162 passed every job:
+  - the full tier (`shiploop-1`, `shiploop-2`, `shiploop-3`, `e2e-apparatus`, `python-floor`, `core`);
+  - `release-boundary`, `plan`, `browser-fixtures` and `hermetic`.
+  The journal commit's run 43735018197 passed too (`quick`, `release-boundary`, `plan`, `browser-fixtures`,
+  `hermetic`).
 
 ## Unknowns
 
