@@ -1,0 +1,296 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b3c4639..6cf0ca4 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,10 @@
+ # Changelog
+ 
++## 1.5.0 (2026-11-15)
++
++- Atomic `POST /tickets/import` batches of up to 5000 tickets, with ordered ids, audit entries and requester notifications.
++- Imports save the complete batch once; invalid items report their zero-based index without changes.
++
+ ## 1.4.0 (2025-09-15)
+ 
+ - The operator command line, `bin/tickets.js` (`list`, `show`), and the weekly report, `scripts/weekly-report.js`.
+diff --git a/README.md b/README.md
+index 7ee6831..53882fd 100644
+--- a/README.md
++++ b/README.md
+@@ -29,7 +29,7 @@ Every setting is an environment variable. Unset or empty means the default.
+ | `DATA_FILE` | none | the JSON file the state is saved to after every change and loaded from at start; without it the state lives in memory and is gone when the process ends |
+ | `NOTIFY_FILE` | none | the file the notifier appends one JSON line to per notification (the mail relay tails it); without it notifications are kept in memory |
+ | `WORKER_INTERVAL_MS` | `500` | how often the background worker runs; `0` turns it off, and notifications stay pending |
+-| `MAX_BODY_BYTES` | `65536` | the largest request body accepted |
++| `MAX_BODY_BYTES` | `65536` | the largest ordinary request body accepted; imports allow at least 16 MiB |
+ | `LOG_REQUESTS` | off | `1` logs one line per request on standard error |
+ 
+ A value the service cannot use (`PORT=http`, say) stops it at start with a message naming the variable.
+diff --git a/docs/api.md b/docs/api.md
+index 149f5dd..2f9bfec 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -64,6 +64,20 @@ The message is for people; clients branch on `code`.
+ `priority` is optional (`normal`). Answers 201 with the new ticket, whose status is `open`. The requester is notified
+ that the ticket was received.
+ 
++### Import tickets: `POST /tickets/import`
++
++```json
++{ "tickets": [ { "title": "VPN drops", "requester": "maria@example.com" } ] }
++```
++
++Accepts up to 5000 items, each with the same fields and validation as creating one ticket. Creates tickets in array
++order and answers 201 with `{ "created": 1, "ids": ["T-0001"] }`. An empty array succeeds with no changes.
++Every ticket gets its ordinary creation audit entry and outbox notification, using the request's `X-Actor`.
++If any item is invalid, no tickets, audit entries or notifications are added, and no ids are consumed. The 400 `invalid`
++message identifies the first invalid item by zero-based index, for example `tickets[0]: title must not be empty`.
++Imports allow bodies up to 16 MiB (or `MAX_BODY_BYTES` when larger); other endpoints keep `MAX_BODY_BYTES`.
++The entire batch is saved once before success is returned ([decision 9](decisions/0009-atomic-import.md)).
++
+ ### List tickets: `GET /tickets`
+ 
+ | Parameter | Meaning |
+diff --git a/docs/decisions/0009-atomic-import.md b/docs/decisions/0009-atomic-import.md
+new file mode 100644
+index 0000000..36ce97a
+--- /dev/null
++++ b/docs/decisions/0009-atomic-import.md
+@@ -0,0 +1,21 @@
++# 9. Atomic ticket imports
++
++Status: Accepted
++
++## Context
++
++The old tracker migration needs to create up to 5000 tickets per request within ten seconds. Saving the entire growing
++state after each ticket is too costly, and an invalid item must leave no changes.
++
++## Decision
++
++Validate every item in order with the existing new-ticket rules, reporting the first failure as `tickets[index]`.
++The store stages a batch in a separate in-memory store, using ordinary creation for audit and outbox effects, saves
++that complete state once, then publishes it. An empty batch changes nothing. The import endpoint accepts at least
++16 MiB so 5000 valid tickets fit without changing the ordinary request limit.
++
++## Consequences
++
++An invalid batch consumes no ids and produces no effects. A persistence failure leaves the live store unchanged.
++The existing persistence format and notification worker are reused. Staging requires a copy of the existing state
++and the incoming tickets in memory while a batch is processed.
+diff --git a/docs/decisions/README.md b/docs/decisions/README.md
+index b575b50..cc1f246 100644
+--- a/docs/decisions/README.md
++++ b/docs/decisions/README.md
+@@ -14,3 +14,4 @@ says so. To add one, copy [template.md](template.md) to the next number.
+ | 6 | [Notifications through an outbox](0006-notification-outbox.md) | Accepted |
+ | 7 | [An append-only audit log](0007-append-only-audit-log.md) | Accepted |
+ | 8 | [The state in one JSON data file](0008-json-data-file.md) | Accepted |
++| 9 | [Atomic ticket imports](0009-atomic-import.md) | Accepted |
+diff --git a/package.json b/package.json
+index 30ad02e..d469dd7 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "helpdesk-tickets",
+-  "version": "1.4.0",
++  "version": "1.5.0",
+   "private": true,
+   "description": "The IT help desk's ticket service: an HTTP API, an audit log, requester notifications and an operator command line.",
+   "license": "UNLICENSED",
+diff --git a/src/app.js b/src/app.js
+index de7b8e0..1e88be9 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -26,6 +26,13 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+     return { status: 201, body: store.create(input, actorOf(req)) };
+   });
+ 
++  router.post('/tickets/import', async ({ req }) => {
++    // A full batch can exceed the ordinary single-request limit, even with valid fields.
++    const input = validate.ticketImport(await readJson(req, { limit: Math.max(maxBodyBytes, 16 * 1024 * 1024) }));
++    const ids = store.importTickets(input, actorOf(req));
++    return { status: 201, body: { created: ids.length, ids } };
++  });
++
+   router.get('/tickets/:id', ({ params }) => ({ status: 200, body: store.get(params.id) }));
+ 
+   router.patch('/tickets/:id', async ({ req, params }) => {
+diff --git a/src/store.js b/src/store.js
+index f60ccc3..a06a1bc 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -84,6 +84,19 @@ class TicketStore {
+     return { ...ticket };
+   }
+ 
++  /** Create a validated batch in isolation, persist once, then publish its complete state. */
++  importTickets(inputs, actor) {
++    if (inputs.length === 0) return [];
++    const staged = new TicketStore({ clock: this.clock, state: this.snapshot() });
++    const ids = inputs.map((input) => staged.create(input, actor).id);
++    if (this.persistence) this.persistence.save(staged.snapshot());
++    this.nextNumber = staged.nextNumber;
++    this.tickets = staged.tickets;
++    this.audit = staged.audit;
++    this.outbox = staged.outbox;
++    return ids;
++  }
++
+   /** Change a ticket's title or priority. A closed ticket no longer changes. */
+   update(id, patch, actor) {
+     const ticket = this.find(id);
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index cd925c4..03a019c 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -45,6 +45,24 @@ function newTicket(body) {
+   };
+ }
+ 
++/** POST /tickets/import: validate the whole batch before any store change. */
++function ticketImport(body) {
++  onlyFields(body, ['tickets']);
++  if (!Array.isArray(body.tickets)) throw new InvalidError('tickets must be an array');
++  if (body.tickets.length > 5000) throw new InvalidError('tickets must contain at most 5000 items');
++  return body.tickets.map((item, index) => {
++    try {
++      if (item === null || typeof item !== 'object' || Array.isArray(item)) {
++        throw new InvalidError('must be a ticket object');
++      }
++      return newTicket(item);
++    } catch (error) {
++      if (!(error instanceof InvalidError)) throw error;
++      throw new InvalidError(`tickets[${index}]: ${error.message}`);
++    }
++  });
++}
++
+ /** PATCH /tickets/:id: { title?, priority? }, at least one of them. */
+ function ticketPatch(body) {
+   onlyFields(body, ['title', 'priority']);
+@@ -62,4 +80,4 @@ function transition(body) {
+   return body.to;
+ }
+ 
+-module.exports = { LIMITS, newTicket, onlyFields, text, ticketPatch, transition };
++module.exports = { LIMITS, newTicket, onlyFields, text, ticketImport, ticketPatch, transition };
+diff --git a/test/import.test.js b/test/import.test.js
+new file mode 100644
+index 0000000..3cd4790
+--- /dev/null
++++ b/test/import.test.js
+@@ -0,0 +1,112 @@
++'use strict';
++
++const { test } = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const { performance } = require('node:perf_hooks');
++const { TicketStore } = require('../src/store');
++const { manualClock } = require('../src/clock');
++const { ticketBody, withService } = require('./helpers');
++
++test('import creates ordered tickets with ordinary defaults, audit entries and delivered notifications', async () => {
++  await withService({}, async (api, service) => {
++    await api.post('/tickets', ticketBody());
++    const response = await api.post('/tickets/import', { tickets: [
++      { title: ' First ', requester: ' alice ' }, ticketBody({ title: 'Second', priority: 'urgent' }),
++    ] }, { 'X-Actor': 'migration' });
++    assert.equal(response.status, 201);
++    assert.deepEqual(response.body, { created: 2, ids: ['T-0002', 'T-0003'] });
++    assert.equal(service.store.get('T-0002').title, 'First');
++    assert.equal(service.store.get('T-0002').priority, 'normal');
++    assert.equal(service.store.get('T-0003').priority, 'urgent');
++    for (const id of response.body.ids) {
++      const [entry] = service.store.history(id);
++      assert.equal(entry.action, 'ticket.created');
++      assert.equal(entry.actor, 'migration');
++      assert.deepEqual(entry.changes.status, { from: null, to: 'open' });
++    }
++    assert.deepEqual(service.store.outboxReport().pending.map((event) => event.to), [
++      'maria@example.com', 'alice', 'maria@example.com',
++    ]);
++    assert.equal(service.worker.tick()[0].sent, 3);
++    assert.equal(service.store.outboxReport().sent.length, 3);
++  });
++});
++
++test('invalid items name the first invalid index and leave every part of the state unchanged', async () => {
++  await withService({}, async (api, service) => {
++    await api.post('/tickets', ticketBody());
++    const before = service.store.snapshot();
++    for (const invalid of [null, [], 42, 'bad', {}, ticketBody({ title: '' }),
++      ticketBody({ requester: 'a\nb' }), ticketBody({ priority: 'critical' }), ticketBody({ owner: 'sam' })]) {
++      const result = await api.post('/tickets/import', { tickets: [ticketBody(), invalid, null] });
++      assert.equal(result.status, 400);
++      assert.equal(result.body.error.code, 'invalid');
++      assert.match(result.body.error.message, /tickets\[1\]/);
++      assert.deepEqual(service.store.snapshot(), before);
++    }
++    const first = await api.post('/tickets/import', { tickets: [null, null] });
++    assert.match(first.body.error.message, /tickets\[0\]/);
++    assert.equal((await api.post('/tickets', ticketBody())).body.id, 'T-0002');
++  });
++});
++
++test('import rejects malformed envelopes, oversized batches and invalid actors without creating tickets', async () => {
++  await withService({}, async (api, service) => {
++    for (const body of [{}, { tickets: null }, { tickets: {} }, { tickets: [], extra: true },
++      { tickets: Array(5001).fill(ticketBody()) }, '{"tickets":', []]) {
++      assert.equal((await api.post('/tickets/import', body)).status, 400);
++    }
++    assert.equal((await api.post('/tickets/import', { tickets: [ticketBody()] }, { 'X-Actor': 'x'.repeat(65) })).status, 400);
++    assert.equal(service.store.snapshot().tickets.length, 0);
++  });
++});
++
++test('an empty import succeeds without changes', async () => {
++  await withService({}, async (api, service) => {
++    const before = service.store.snapshot();
++    const result = await api.post('/tickets/import', { tickets: [] });
++    assert.equal(result.status, 201);
++    assert.deepEqual(result.body, { created: 0, ids: [] });
++    assert.deepEqual(service.store.snapshot(), before);
++  });
++});
++
++test('a persistent 5000-ticket import responds within ten seconds and survives reload', async () => {
++  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tickets-import-'));
++  const dataFile = path.join(directory, 'tickets.json');
++  try {
++    await withService({ dataFile }, async (api, service) => {
++      const tickets = Array.from({ length: 5000 }, (_, index) => ticketBody({ title: `Legacy ticket ${index}` }));
++      const started = performance.now();
++      const result = await api.post('/tickets/import', { tickets });
++      assert.equal(result.status, 201);
++      assert.ok(performance.now() - started < 10000);
++      assert.equal(result.body.created, 5000);
++      assert.deepEqual(result.body.ids, Array.from({ length: 5000 }, (_, index) => `T-${String(index + 1).padStart(4, '0')}`));
++      const loaded = TicketStore.open({ clock: manualClock(), persistence: service.store.persistence });
++      assert.deepEqual(loaded.snapshot(), service.store.snapshot());
++      assert.equal(loaded.history('T-5000')[0].actor, 'system');
++      assert.equal(loaded.outboxReport().pending.length, 5000);
++    });
++  } finally {
++    fs.rmSync(directory, { recursive: true, force: true });
++  }
++});
++
++test('batch persistence happens once and a save failure leaves live state unchanged', () => {
++  let saves = 0;
++  let fail = false;
++  const store = new TicketStore({ clock: manualClock(), persistence: { save() {
++    saves += 1;
++    if (fail) throw new Error('disk full');
++  } } });
++  store.importTickets([ticketBody(), ticketBody()], 'migration');
++  assert.equal(saves, 1);
++  const before = store.snapshot();
++  fail = true;
++  assert.throws(() => store.importTickets([ticketBody()], 'migration'), /disk full/);
++  assert.deepEqual(store.snapshot(), before);
++});

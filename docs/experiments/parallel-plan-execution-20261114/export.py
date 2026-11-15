@@ -3,7 +3,8 @@
 
 Apparatus for docs/experiments/parallel-plan-execution-20261114. Per trial it keeps the ledger, the plan, the packet, the
 invocation record, score.json, timeline.txt, gantt.txt, the host's native agent record (native.json) and a trimmed copy of the host's raw events (every string cut to
-600 characters, signatures dropped, so the stream's shape and timing stay and bulk text goes). The profile directory
+600 characters, signatures dropped, so the stream's shape and timing stay and bulk text goes; a stream over 1 MB is kept as
+events.trimmed.jsonl.gz, because a Grok run of half an hour is ten megabytes of tool output). The profile directory
 (home/) and full stderr are not copied; stderr keeps its last 4 KB.
 
   export.py TRIAL... [--to DIR]       DIR defaults to this folder's evidence/ (never a folder named results/)
@@ -12,6 +13,7 @@ invocation record, score.json, timeline.txt, gantt.txt, the host's native agent 
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 from pathlib import Path
 import shutil
@@ -23,6 +25,7 @@ sys.path.insert(0, str(HERE))
 import score  # noqa: E402
 
 LIMIT = 600
+GZIP_OVER = 1_000_000
 
 
 def trim(obj):
@@ -52,6 +55,11 @@ def export(trial: Path, dest_root: Path) -> Path:
                     out.write(json.dumps(trim(json.loads(line)), separators=(",", ":")) + "\n")
                 except ValueError:
                     out.write(json.dumps({"raw": line[:LIMIT]}) + "\n")
+        kept = dest / "events.trimmed.jsonl"
+        if kept.stat().st_size > GZIP_OVER:
+            with open(kept, "rb") as raw, gzip.open(str(kept) + ".gz", "wb", compresslevel=9) as packed:
+                shutil.copyfileobj(raw, packed)
+            kept.unlink()
     host = json.loads((trial / "invocation.json").read_text()).get("host") if (trial / "invocation.json").is_file() else None
     if host:   # the host's own account of its sub-agents (rollout calls and log lines are cut; the ids are the host's own)
         (dest / "native.json").write_text(json.dumps(score.native_agents(trial, host), indent=1, default=str) + "\n")

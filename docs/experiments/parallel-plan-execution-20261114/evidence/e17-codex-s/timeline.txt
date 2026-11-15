@@ -1,0 +1,90 @@
+trial   e17-codex-s
+host    codex codex-cli 0.169.0 gpt-6.1-sol medium
+plan    tickets3  arm A0  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   4.806  H  parent        text     -            I’ll work through the requests one at a time, in the order the script permits, then verify the run.
++   6.264  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/w
++   6.327  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity
++   6.337  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work/
++  10.276  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-s/w
++  10.286  L  ledger        workspace T1           {"seconds":0.0}
++  10.287  L  ledger        start    T1           
++  10.294  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work/
++  12.676  H  parent        call     shell        shell /bin/zsh -lc "pwd; rg --files -g '"'!package-lock.json'"' -g '"'!node_modules/**'"'"
++  12.677  H  parent        result   shell        shell /bin/zsh -lc "pwd; rg --files -g '"'!package-lock.json'"' -g '"'!node_modules/**'"'"
++  15.993  H  parent        call     shell        shell /bin/zsh -lc 'cat src/store.js src/app.js src/tickets/query.js src/tickets/validate.js src/notifier.js src/templates.js bin/tickets.js test/
++  15.994  H  parent        result   shell        shell /bin/zsh -lc 'cat src/store.js src/app.js src/tickets/query.js src/tickets/validate.js src/notifier.js src/templates.js bin/tickets.js test/help
++  18.853  H  parent        call     shell        shell /bin/zsh -lc 'cat CONTRIBUTING.md src/format.js src/router.js src/outbox.js src/persistence.js test/query.test.js test/store.test.js'
++  18.855  H  parent        result   shell        shell /bin/zsh -lc 'cat CONTRIBUTING.md src/format.js src/router.js src/outbox.js src/persistence.js test/query.test.js test/store.test.js'
++  21.615  H  parent        text     -            Assignment will use the store’s audit and notification flow. I also found that listing filters currently match any supplied filter; I’ll change that t
++  42.224  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/store.js');s=p.read_text().replace('[ticket.id, { ...ticket }]','[ticket
++  42.225  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/store.js');s=p.read_text().replace('[ticket.id, { ...ticket }]','[ticket.id,
++  76.580  H  parent        call     shell        shell /bin/zsh -lc "cat > test/assignment.test.js <<'EOF' 'use strict';  const { test } = require('node:test'); const assert = require('node:asser
++  77.394  H  parent        result   shell        shell /bin/zsh -lc "cat > test/assignment.test.js <<'EOF' 'use strict';  const { test } = require('node:test'); const assert = require('node:assert/st
++  81.686  H  parent        call     shell        shell /bin/zsh -lc "cat scripts/weekly-report.js docs/decisions/README.md docs/decisions/template.md; head -n 25 CHANGELOG.md; rg -n 'raw|filter|a
++  81.687  H  parent        result   shell        shell /bin/zsh -lc "cat scripts/weekly-report.js docs/decisions/README.md docs/decisions/template.md; head -n 25 CHANGELOG.md; rg -n 'raw|filter|assig
++ 100.383  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/format.js');s=p.read_text().replace(\"['id', 'status', 'priority', 'titl
++ 101.032  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/format.js');s=p.read_text().replace(\"['id', 'status', 'priority', 'title']\
++ 105.235  L  ledger        commit   T1           {"seconds":0.0}
++ 105.236  L  ledger        end      T1           {"sha":"0043f7f9d70f30dc4d3075d194920ddf79cb42f6bd8ba3f811ae3f575d3d1a65","result":{"answer":121,"method":"Implemented assignment with audit, notifica
++ 105.263  H  parent        call     shell        shell /bin/zsh -lc "python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-
++ 105.264  H  parent        result   shell        shell /bin/zsh -lc "python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-s/wo
++ 108.354  H  parent        text     -            RECORDED T1 answer=121 (finished; do not report it again)
++ 109.670  L  ledger        ready    -            {"result":{"ready":["T2","T3"],"deferred":[],"claimed":[],"running":[],"done":["T1"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 109.698  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/w
++ 109.700  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work/
++ 112.775  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-s/w
++ 112.808  L  ledger        workspace T2           {"seconds":0.0}
++ 112.808  L  ledger        start    T2           
++ 112.815  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work/
++ 116.695  H  parent        call     shell        shell /bin/zsh -lc 'cat src/http.js src/config.js src/audit.js src/server.js test/http.test.js test/api.test.js'
++ 116.696  H  parent        result   shell        shell /bin/zsh -lc 'cat src/http.js src/config.js src/audit.js src/server.js test/http.test.js test/api.test.js'
++ 127.714  H  parent        text     -            The import will validate every item before creating tickets, then save the batch once. It also needs a larger body limit so a 5,000-ticket request can
++ 166.281  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/tickets/validate.js');s=p.read_text().replace('module.exports = { assign
++ 166.879  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/tickets/validate.js');s=p.read_text().replace('module.exports = { assignee,'
++ 181.556  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('package.json');p.write_text(p.read_text().replace('\"version\": \"1.5.0\"','
++ 181.557  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('package.json');p.write_text(p.read_text().replace('\"version\": \"1.5.0\"','\"ve
++ 185.431  L  ledger        commit   T2           {"seconds":0.0}
++ 185.431  L  ledger        end      T2           {"sha":"fb6d97af3cd84f1fd284fa4196b60d7e209b1a30e805d976881520c90989a2ac","result":{"answer":126,"method":"Implemented validated atomic imports saved 
++ 185.458  H  parent        call     shell        shell /bin/zsh -lc "python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-
++ 185.459  H  parent        result   shell        shell /bin/zsh -lc "python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-s/wo
++ 187.541  H  parent        text     -            RECORDED T2 answer=126 (finished; do not report it again)
++ 188.729  L  ledger        ready    -            {"result":{"ready":["T3"],"deferred":[],"claimed":[],"running":[],"done":["T1","T2"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 188.756  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/w
++ 188.756  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work/
++ 192.885  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-s/w
++ 192.892  L  ledger        workspace T3           {"seconds":0.0}
++ 192.893  L  ledger        start    T3           
++ 192.899  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py begin --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work/
++ 212.477  H  parent        text     -            I’ll write due times to the data file during startup, then expose them only when `DUE_TIMES=on`. I’ll keep data-file version 1 so release 1.4.0 can st
++ 213.356  H  parent        call     shell        shell /bin/zsh -lc 'cat test/config.test.js test/persistence.test.js src/tickets/states.js'
++ 213.357  H  parent        result   shell        shell /bin/zsh -lc 'cat test/config.test.js test/persistence.test.js src/tickets/states.js'
++ 256.579  H  parent        call     shell        shell /bin/zsh -lc "cat > src/tickets/due.js <<'EOF' 'use strict';  const DEFAULT_RESPONSE_HOURS = Object.freeze({ urgent: 4, high: 24, normal: 72
++ 257.268  H  parent        result   shell        shell /bin/zsh -lc "cat > src/tickets/due.js <<'EOF' 'use strict';  const DEFAULT_RESPONSE_HOURS = Object.freeze({ urgent: 4, high: 24, normal: 72, lo
++ 261.146  H  parent        call     shell        shell /bin/zsh -lc "rg -n 'return|due|open\\(' src/store.js; cat src/tickets/query.js"
++ 261.146  H  parent        result   shell        shell /bin/zsh -lc "rg -n 'return|due|open\\(' src/store.js; cat src/tickets/query.js"
++ 327.815  H  parent        call     shell        shell /bin/zsh -lc "cat > test/due.test.js <<'EOF' 'use strict';  const { test } = require('node:test'); const assert = require('node:assert/stric
++ 328.325  H  parent        result   shell        shell /bin/zsh -lc "cat > test/due.test.js <<'EOF' 'use strict';  const { test } = require('node:test'); const assert = require('node:assert/strict');
++ 340.698  H  parent        text     -            All 134 tests pass. The new coverage checks hidden due times while the switch is off, persisted migration values across restarts and configuration cha
++ 341.464  H  parent        call     shell        shell /bin/zsh -lc "cat docs/operations.md; sed -n '35,65p' README.md"
++ 341.465  H  parent        result   shell        shell /bin/zsh -lc "cat docs/operations.md; sed -n '35,65p' README.md"
++ 345.637  H  parent        call     shell        shell /bin/zsh -lc "sed -n '17,38p' README.md"
++ 345.637  H  parent        result   shell        shell /bin/zsh -lc "sed -n '17,38p' README.md"
++ 383.298  H  parent        call     shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/store.js');s=p.read_text().replace('    } ]));','    } ]));') # retain t
++ 383.870  H  parent        result   shell        shell /bin/zsh -lc "python3 - <<'PY' from pathlib import Path p=Path('src/store.js');s=p.read_text().replace('    } ]));','    } ]));') # retain the m
++ 388.331  L  ledger        commit   T3           {"seconds":0.0}
++ 388.331  L  ledger        end      T3           {"sha":"b911418e9714be649478f8c4a4f278d78b0a00d9cfdbc3dde3d72ed558e89513","result":{"answer":134,"method":"Implemented persisted fixed due times, star
++ 388.357  H  parent        call     shell        shell /bin/zsh -lc "python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-
++ 388.357  H  parent        result   shell        shell /bin/zsh -lc "python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py complete --run /Users/dadleet/e17-runs-20261115/e17-codex-s/wo
++ 390.740  H  parent        text     -            RECORDED T3 answer=134 (finished; do not report it again)
++ 391.953  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":true,"capacity"
++ 391.980  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/w
++ 391.981  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py ready --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work/
++ 395.129  L  ledger        verify   -            {"line":"VERIFY OK steps=3 chain=fb89d681aeb9"}
++ 395.156  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py verify --run /Users/dadleet/e17-runs-20261115/e17-codex-s/
++ 395.157  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py verify --run /Users/dadleet/e17-runs-20261115/e17-codex-s/work
++ 403.429  H  parent        call     shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py outcome --run /Users/dadleet/e17-runs-20261115/e17-codex-s
++ 403.430  H  parent        result   shell        shell /bin/zsh -lc 'python3 /Users/dadleet/e17-runs-20261115/e17-codex-s/work/dagkit.py outcome --run /Users/dadleet/e17-runs-20261115/e17-codex-s/wor
++ 406.087  H  parent        text     -            FINAL {"done":["T1","T2","T3"],"failed":[],"not_run":[],"answer":134}

@@ -1,0 +1,54 @@
+{
+ "schema": "ppe-plan/v1",
+ "name": "tickets3",
+ "fixture": "tickets",
+ "expected_verdict": "OK",
+ "description": "three independent feature requests on a real service, in overlapping files (README Amendment A14)",
+ "steps": [
+  {
+   "id": "T1",
+   "task": "Work only inside the workspace {ws}: the help-desk ticket service your task describes is the git checkout there (every path is relative to it, and 'this directory' below means {ws}); do not touch any other directory and do not run git: the kit saves your work. This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. Add ticket assignment. `PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}` assigns the ticket to that agent, and `{\"assignee\": null}` unassigns it; an agent is a non-empty name of at most 64 characters. Only open and in-progress tickets can be assigned or unassigned. Assigning a ticket to the agent it already has changes nothing. Every ticket shows its `assignee` (null when unassigned). The agent a ticket is assigned to is notified that it was assigned to them. `GET /tickets` gains an `assignee` filter: `assignee=<agent>` keeps that agent's tickets and an empty `assignee=` keeps the unassigned ones; a ticket must match every filter given. The command-line listing shows each ticket's assignee. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones. Run the tests with `npm test` inside {ws} (it runs `node --test`) and fix your work until every test passes. Report as the integer answer the number of tests that `npm test` reports as passed (its `pass` line).",
+   "deps": [],
+   "criteria": [
+    "C-T1"
+   ],
+   "proof": "test -s out/T1.json",
+   "paths": [
+    "*"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "T2",
+   "task": "Work only inside the workspace {ws}: the help-desk ticket service your task describes is the git checkout there (every path is relative to it, and 'this directory' below means {ws}); do not touch any other directory and do not run git: the kit saves your work. This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. Add a bulk import for the help desk's move from its old tracker. `POST /tickets/import` takes a JSON body `{\"tickets\": [...]}` whose items are what `POST /tickets` takes, at most 5000 of them, and creates them in the given order: all of them, or none when any item is invalid, in which case it answers 400 with an error whose message names the first invalid item by its index in the array (0 for the first). On success it answers 201 with `{\"created\": <how many>, \"ids\": [<the new ids in order>]}`. Each imported ticket is recorded and its requester is notified just as when one ticket is created. An import of 5000 tickets must be answered within 10 seconds. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones. Run the tests with `npm test` inside {ws} (it runs `node --test`) and fix your work until every test passes. Report as the integer answer the number of tests that `npm test` reports as passed (its `pass` line).",
+   "deps": [],
+   "criteria": [
+    "C-T2"
+   ],
+   "proof": "test -s out/T2.json",
+   "paths": [
+    "*"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  },
+  {
+   "id": "T3",
+   "task": "Work only inside the workspace {ws}: the help-desk ticket service your task describes is the git checkout there (every path is relative to it, and 'this directory' below means {ws}); do not touch any other directory and do not run git: the kit saves your work. This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones. Run the tests with `npm test` inside {ws} (it runs `node --test`) and fix your work until every test passes. Report as the integer answer the number of tests that `npm test` reports as passed (its `pass` line).",
+   "deps": [],
+   "criteria": [
+    "C-T3"
+   ],
+   "proof": "test -s out/T3.json",
+   "paths": [
+    "*"
+   ],
+   "kit": {
+    "mode": "task"
+   }
+  }
+ ]
+}

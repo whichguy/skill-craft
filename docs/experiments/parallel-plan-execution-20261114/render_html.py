@@ -6,7 +6,8 @@ one lane per step (a bar from its start to its end, taken from the kit's ledger,
 and one per child agent the host's stream attributes (a mark per host event, by arrival time), marks for claims, ready
 calls and refused attempts, and the merged event log beneath. Several trials share one time axis so a serial run and a
 parallel run of the same plan can be read against each other. No script is needed to read it; a few lines of script add
-log filters.
+log filters. A trial of E17 (a kit run with workspaces) also shows every attempt of a step as its own bar (a fix attempt
+in amber), each integration (a clean green merge, a textual conflict, a red re-test) and the teammate's landing.
 
   render_html.py TRIAL... --out PAGE.html [--title TEXT]
 """
@@ -43,6 +44,8 @@ svg text{fill:var(--ink);font:11px system-ui,sans-serif}svg .m{fill:var(--muted)
 svg .bar{fill:var(--bar)}svg .bar.fail{fill:var(--bad)}svg .bar.open{fill:var(--warn)}svg .barlabel{fill:var(--bar-ink);font-weight:600}
 svg .lane{fill:none;stroke:var(--line)}svg .agentbar{fill:var(--accent);opacity:.22}svg .mark{fill:var(--muted)}svg .spawn{fill:var(--accent)}svg .ret{fill:var(--ok)}
 svg .refused{stroke:var(--bad);stroke-width:1.6;fill:none}svg .claim{stroke:var(--accent);fill:none;stroke-width:1.4}
+svg .bar.again{fill:var(--bar);opacity:.62}svg .bar.fixer{fill:var(--warn)}svg .merge{fill:var(--ok)}svg .redt{fill:var(--bad)}
+svg .landing{stroke:var(--warn);stroke-width:1.4;stroke-dasharray:4 3}
 .group{margin:28px 0 10px;font-size:15px;color:var(--muted);font-weight:500}.note{color:var(--muted);font-size:12.5px;margin:6px 0 0}details{margin-top:10px}summary{cursor:pointer;color:var(--muted);font-size:13px}
 .filters{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;margin:8px 0}table.log{border-collapse:collapse;width:100%;font-size:12.5px;
 font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.log th{text-align:left;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line);
@@ -71,6 +74,21 @@ def nice_step(span: float) -> float:
     return 900.0
 
 
+def attempt_bars(events: list) -> dict:
+    """Every attempt of every step from the kit's ledger: derive() keeps only the last one, and E17 retries a step (a redo or a fix)."""
+    fix, begun, out = {}, {}, {}
+    for e in events:
+        step, kind, det = e["step"], e["kind"], e["detail"]
+        if kind == "workspace":
+            fix[(step, det.get("attempt"))] = bool(det.get("fix"))
+        elif kind == "start":
+            begun[step] = e["ts"]
+        elif kind in ("end", "fail") and step in begun:
+            n = len(out.setdefault(step, [])) + 1
+            out[step].append({"n": n, "start": begun.pop(step), "end": e["ts"], "fix": fix.get((step, n), False), "failed": kind == "fail"})
+    return out
+
+
 def load(trial: Path) -> dict:
     trial = Path(trial)
     plan = json.loads((trial / "work" / "plan.json").read_text())
@@ -81,6 +99,9 @@ def load(trial: Path) -> dict:
     native = score.native_agents(trial, inv.get("host", ""))["agents"]
     times = [e["ts"] for e in events] + [i["t"] for i in view if i["t"]] + [a["start"] for a in native if a.get("start")] + [a["end"] for a in native if a.get("end")]
     return {"trial": trial, "plan": plan, "events": events, "inv": inv, "view": view, "m": m, "native": native, "t0": min(times), "t1": max(times)}
+
+
+LOG_ROWS = 1500
 
 
 def card(d: dict, span: float, uid: str) -> str:
@@ -112,9 +133,22 @@ def card(d: dict, span: float, uid: str) -> str:
             tip = f'{a["actor"]} ({a.get("kind") or "sub-agent"}): {a["start"] - t0:.1f}s to {a["end"] - t0:.1f}s, the host\'s own record'
             out.append(f'<g><title>{esc(tip)}</title><rect class="agentbar" x="{x(a["start"]):.1f}" y="{row[a["actor"]] + 3}" '
                        f'width="{max(2.0, x(a["end"]) - x(a["start"])):.1f}" height="{lane_h - 8}" rx="3"/></g>')
+    multi = any(e["kind"] == "workspace" for e in events)
+    attempts = attempt_bars(events) if multi else {}
     for s in plan["steps"]:
         item = state[s["id"]]
         if item["start"] is None:
+            continue
+        if multi and attempts.get(s["id"]):
+            y = row[s["id"]]
+            for a in attempts[s["id"]]:
+                cls = "fail" if a["failed"] else ("fixer" if a["fix"] else ("again" if a["n"] > 1 else ""))
+                w = max(2.0, x(a["end"]) - x(a["start"]))
+                kind = "fix attempt" if a["fix"] else ("attempt " + str(a["n"]))
+                out.append(f'<g><title>{esc(s["id"])} {kind}: {a["start"] - t0:.1f}s to {a["end"] - t0:.1f}s ({a["end"] - a["start"]:.1f}s)</title>'
+                           f'<rect class="bar {cls}" x="{x(a["start"]):.1f}" y="{y + 2}" width="{w:.1f}" height="{lane_h - 6}" rx="3"/>'
+                           + (f'<text class="barlabel" x="{x(a["start"]) + 5:.1f}" y="{y + 14}">{esc(s["id"])}{"f" if a["fix"] else ""}{a["n"]} {a["end"] - a["start"]:.0f}s</text>' if w > 62 else "")
+                           + "</g>")
             continue
         end = item["end"] if item["end"] is not None else d["t1"]
         cls = "fail" if item["state"] == "failed" else "open" if item["state"] == "running" else ""
@@ -134,6 +168,18 @@ def card(d: dict, span: float, uid: str) -> str:
         elif e["kind"] == "ready":
             out.append(f'<line class="grid" x1="{x(e["ts"]):.1f}" y1="{row["parent"] + 3}" x2="{x(e["ts"]):.1f}" y2="{row["parent"] + lane_h - 5}" '
                        f'style="stroke:var(--accent)"><title>ready call at {e["ts"] - t0:.1f}s</title></line>')
+        elif e["kind"] == "merged" and e["step"] in row:
+            cx, cy = x(e["ts"]), row[e["step"]] + 10
+            out.append(f'<path class="merge" d="M{cx:.1f} {cy - 5} L{cx + 5:.1f} {cy} L{cx:.1f} {cy + 5} L{cx - 5:.1f} {cy} Z"><title>{esc(e["step"])} merged, the re-test green, at {e["ts"] - t0:.1f}s</title></path>')
+        elif e["kind"] == "conflict" and e["step"] in row:
+            cx, cy = x(e["ts"]), row[e["step"]] + 10
+            out.append(f'<g class="refused"><title>{esc(e["step"])} textual conflict in {esc(", ".join(e["detail"].get("paths") or []))} at {e["ts"] - t0:.1f}s</title>'
+                       f'<path d="M{cx - 4:.1f} {cy - 4} L{cx + 4:.1f} {cy + 4} M{cx + 4:.1f} {cy - 4} L{cx - 4:.1f} {cy + 4}"/></g>')
+        elif e["kind"] == "redtest" and e["step"] in row:
+            cx, cy = x(e["ts"]), row[e["step"]] + 10
+            out.append(f'<rect class="redt" x="{cx - 4:.1f}" y="{cy - 4}" width="8" height="8"><title>{esc(e["step"])} merged cleanly and the re-test was red (undone) at {e["ts"] - t0:.1f}s</title></rect>')
+        elif e["kind"] == "landed":
+            out.append(f'<line class="landing" x1="{x(e["ts"]):.1f}" y1="{pad - 6}" x2="{x(e["ts"]):.1f}" y2="{height - 22}"><title>the teammate\'s rename lands on main at {e["ts"] - t0:.1f}s</title></line>')
     for i in view:
         if not i["t"] or i["kind"] in ("usage", "system"):
             continue
@@ -156,6 +202,9 @@ def card(d: dict, span: float, uid: str) -> str:
              f'<span class="chip {"ok" if m.get("valid") else "bad"}">{"valid" if m.get("valid") else "not valid"}</span>',
              f'<span class="chip">peak {m.get("peak_concurrency")}</span>',
              f'<span class="chip">mechanism {esc(m["mechanism"]["kind"])}</span>']
+    w = m.get("write") or {}
+    if w.get("merges") is not None:
+        chips.append(f'<span class="chip">merged {w.get("merges")}, conflicts {w.get("conflicts")}, red re-tests {w.get("redtests")}, fix attempts {w.get("fix_attempts")}</span>')
     t = m["timings"]
     nums = [("makespan", m.get("makespan_s")), ("critical path", m.get("critical_path_declared_s")), ("serial sum", m.get("serial_sum_declared_s")),
             ("launch to first start", t.get("launch_to_first_start_s")), ("launch to verified", t.get("launch_to_verified_s")),
@@ -163,6 +212,15 @@ def card(d: dict, span: float, uid: str) -> str:
             ("tail since final report", m["process"].get("tail_from_final_report_s")),
             ("input tokens, all contexts", m["tokens"].get("input_all")), ("of which the parent", m["tokens"].get("parent_input_all")),
             ("output tokens", m["tokens"].get("output_all"))]
+    if multi:   # score.py's derive() keeps each step's last attempt, so its makespan and first start are late in a trial that retried: use the ledger
+        starts = [e["ts"] for e in events if e["kind"] == "start"]
+        ends = [e["ts"] for e in events if e["kind"] in ("end", "fail")]
+        launched = d["inv"].get("started")
+        fixed = {"makespan": round(max(ends) - min(starts), 1) if starts and ends else None,
+                 "launch to first start": round(min(starts) - launched, 1) if starts and launched else None}
+        nums = [(k, fixed.get(k, v)) for k, v in nums if k not in ("critical path", "serial sum")]
+    if w.get("merges") is not None:
+        nums[0:0] = [("kit seconds", w.get("kit_total_s")), ("first round", w.get("first_round_s")), ("slowest first attempt", w.get("slowest_first_s")), ("attempts at once", w.get("attempt_peak"))]
     if m.get("answers"):
         nums.insert(0, ("answers correct", f'{m["answers"]["correct"]} of {m["answers"]["total"]}'))
     numhtml = "".join(f'<span>{esc(k)} <b>{esc(v if v is not None else "not recorded")}</b></span>' for k, v in nums)
@@ -175,8 +233,8 @@ def card(d: dict, span: float, uid: str) -> str:
             rows.append((i["t"], 1, f'H|{i["kind"]}', "H", i["actor"], i["kind"], i["name"] or "-", (i["text"] or "").replace("\n", " ")[:160]))
     rows.sort(key=lambda r: (r[0], r[1]))
     log = "".join(f'<tr class="{r[3]}" data-f="{"L" if r[3] == "L" else "H"}"><td class="t">+{r[0] - t0:.3f}</td><td class="s">{r[3]}</td>'
-                  f'<td>{esc(r[4])}</td><td>{esc(r[5])}</td><td>{esc(r[6])}</td><td>{esc(r[7])}</td></tr>' for r in rows[:1500])
-    more = f'<p class="note">The first 1,500 of {len(rows)} events are shown.</p>' if len(rows) > 1500 else ""
+                  f'<td>{esc(r[4])}</td><td>{esc(r[5])}</td><td>{esc(r[6])}</td><td>{esc(r[7])}</td></tr>' for r in rows[:LOG_ROWS])
+    more = f'<p class="note">The first {LOG_ROWS:,} of {len(rows)} events are shown.</p>' if len(rows) > LOG_ROWS else ""
     return (f'<section class="card" id="{uid}"><div class="head"><h2>{esc(d["trial"].name)}</h2>{"".join(chips)}</div>'
             f'<div class="svgwrap">{"".join(out)}</div><div class="nums">{numhtml}</div>'
             f'<details><summary>Event log, {len(rows)} events, seconds from the first event</summary>'
@@ -197,7 +255,13 @@ def page(trials: list, title: str) -> str:
              ('<svg width="12" height="12"><path d="M6 1 L11 6 L6 11 L1 6 Z" style="fill:var(--ok)"/></svg>a collection returned', "return" in kinds),
              ('<svg width="12" height="12"><circle cx="6" cy="6" r="2.4" style="fill:var(--muted)"/></svg>another host event', True),
              ('<svg width="12" height="12"><circle cx="6" cy="6" r="4" style="fill:none;stroke:var(--accent);stroke-width:1.4"/></svg>a step was claimed', "claim" in kinds),
-             ('<svg width="12" height="12"><path d="M2 2 L10 10 M10 2 L2 10" style="stroke:var(--bad);stroke-width:1.6;fill:none"/></svg>a refused attempt', "refused" in kinds)]
+             ('<svg width="12" height="12"><path d="M2 2 L10 10 M10 2 L2 10" style="stroke:var(--bad);stroke-width:1.6;fill:none"/></svg>a refused attempt', "refused" in kinds),
+             ('<svg width="26" height="12"><rect x="0" y="1" width="26" height="10" rx="3" style="fill:var(--bar);opacity:.62"/></svg>a later attempt (a redo)', "workspace" in kinds and "retry" in kinds),
+             ('<svg width="26" height="12"><rect x="0" y="1" width="26" height="10" rx="3" style="fill:var(--warn)"/></svg>a fix attempt (the failed branch with main merged in)', "workspace" in kinds and "retry" in kinds),
+             ('<svg width="12" height="12"><path d="M6 1 L11 6 L6 11 L1 6 Z" style="fill:var(--ok)"/></svg>merged, re-test green', "merged" in kinds),
+             ('<svg width="12" height="12"><path d="M2 2 L10 10 M10 2 L2 10" style="stroke:var(--bad);stroke-width:1.6;fill:none"/></svg>textual conflict', "conflict" in kinds),
+             ('<svg width="12" height="12"><rect x="2" y="2" width="8" height="8" style="fill:var(--bad)"/></svg>merged, re-test red, undone', "redtest" in kinds),
+             ('<svg width="20" height="12"><line x1="10" y1="0" x2="10" y2="12" style="stroke:var(--warn);stroke-width:1.4;stroke-dasharray:4 3"/></svg>the teammate\'s rename lands on main', "landed" in kinds)]
     legend = '<p class="legend">' + "".join(f"<span>{html_}</span>" for html_, shown in items if shown) + "</p>"
     groups: dict = {}
     for d in data:
@@ -216,11 +280,14 @@ def page(trials: list, title: str) -> str:
 
 
 def main(argv=None) -> int:
+    global LOG_ROWS
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("trials", nargs="+")
     parser.add_argument("--out", required=True)
     parser.add_argument("--title", default="Parallel plan execution: what ran when")
+    parser.add_argument("--log-rows", type=int, default=LOG_ROWS, help="event-log rows kept per trial (the page grows with it)")
     args = parser.parse_args(argv)
+    LOG_ROWS = args.log_rows
     Path(args.out).write_text(page(args.trials, args.title))
     print(args.out)
     return 0

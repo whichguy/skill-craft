@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-15
 
+### skill-craft 2.40.2
+
+- Skills: shiploop 1.36.2
+
+### shiploop 1.36.2
+
+- A run whose baseline is a HEAD pointer alone (saved before `run-starting-knowledge.json` existed) no longer gets a HEAD-relative spec diff: its packets say the diff is not computed, as for any run without a baseline. Only the starting-bytes snapshot supplies the diff.
+
 ### skill-craft 2.40.1
 
 - Skills: shiploop 1.36.1
