@@ -1,0 +1,69 @@
+{
+  "scratch": "/tmp/g1-probes-owner-4woqs9ug",
+  "authority": {
+    "harness_needs": [
+      "browser"
+    ],
+    "adapter_case": {
+      "id": "battleship",
+      "dimensions": {
+        "style": "web-service"
+      },
+      "cost": 26,
+      "requires": [],
+      "hosted": false
+    },
+    "owner_gated": false,
+    "init_exit": 0,
+    "init_json": {
+      "campaign": "/private/tmp/g1-probes-owner-4woqs9ug/campaign",
+      "id": "81782d6843",
+      "identity": "7c344fce6580243a",
+      "ok": true,
+      "scope": {
+        "cases": [
+          "battleship"
+        ],
+        "id": "S0",
+        "not_covered": {
+          "style=cli-files": "outside this scope: a widening candidate",
+          "style=smoke": "outside this scope: a widening candidate",
+          "style=stateful-service": "outside this scope: a widening candidate"
+        },
+        "opened": "2026-11-16T03:22:44Z",
+        "opened_iteration": 0,
+        "reason": "start",
+        "sweep_pending": false,
+        "values": [
+          "style=web-service"
+        ]
+      },
+      "tip": "b-6f6df18fe05db8c850e27579",
+      "work_dir": "/private/tmp/g1-probes-owner-4woqs9ug/campaign.work"
+    }
+  },
+  "owner_prepared": {
+    "live_keys": [],
+    "decision": {
+      "ok": true,
+      "record": "LR-20261030-583e17",
+      "event": "owner",
+      "outcome": "reject",
+      "tip": "3cc385ce4222199d265ebbc670b90402b86d9af2",
+      "was": "441b9edb4f6fbb990d1401c56538ac8bad0c49f3"
+    },
+    "checkout_index_mode_build_unchanged": true,
+    "poll": {
+      "status": "failed",
+      "error": "the tip is 3cc385ce4222, neither 441b9edb4f6f (before step prepared-crash) nor a63f44b82b5d (its result): the tip was not moved",
+      "iteration": {
+        "consumed": {
+          "seconds": 1.5,
+          "runs": 0
+        }
+      }
+    },
+    "prepared_tip": "a63f44b82b5dcef79c828b043383cc8ac2cbb562",
+    "final_tip": "3cc385ce4222199d265ebbc670b90402b86d9af2"
+  }
+}
