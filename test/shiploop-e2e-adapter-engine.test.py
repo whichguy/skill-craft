@@ -97,6 +97,10 @@ def setUpModule():
     STATE["broken_bin"] = broken
     for name in ("codex-home", "home", "state", "leases"):
         (folder / name).mkdir()
+    # Per-command base identity does not reach clone engine commits under the private HOME.
+    (folder / "home" / ".gitconfig").write_text(
+        "[user]\n\tname = Test\n\temail = test@example.invalid\n[commit]\n\tgpgsign = false\n"
+    )
     (folder / "codex-home" / "auth.json").write_text("{}")
     STATE["bin"] = bin_dir
 
