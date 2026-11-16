@@ -1,0 +1,84 @@
+{
+  "status": "QUALIFIED_SCOPED_NO_REPAIR",
+  "recommendation": "R05",
+  "qualification_source": "e596e6734f59590e2b4c6e65bea71a868675924f",
+  "current_source": "b4ae50a37ac9be88d078dc8b7b1322e772f2c6b6",
+  "production_delta": [],
+  "new_production_regressions": 0,
+  "decision": "Retain current prompts; no inherited-procedure semantic miss was reproduced. Only task-owned qualification transport was corrected.",
+  "primary": {
+    "registration": "R05-002",
+    "subjects": 16,
+    "completed": 16,
+    "diagnosis": {
+      "PASS": 16
+    },
+    "disposition": {
+      "PASS": 16
+    },
+    "protocol": {
+      "PASS": 12,
+      "INCOMPLETE": 4
+    },
+    "verdicts": {
+      "PASS": 12,
+      "INCOMPLETE": 4
+    },
+    "incomplete_cells": [
+      "cell-05",
+      "cell-09",
+      "cell-10",
+      "cell-14"
+    ],
+    "wall_seconds": 1230.531
+  },
+  "followups": {
+    "registration": "R05-003",
+    "subjects": 4,
+    "separate_fresh_cells": [
+      "cell-05",
+      "cell-09",
+      "cell-10",
+      "cell-14"
+    ],
+    "protocol": {
+      "PASS": 4
+    },
+    "verdicts": {
+      "PASS": 4
+    },
+    "wall_seconds": 544.714,
+    "not_a_regrade": true
+  },
+  "interrupted_attempt": {
+    "registration": "R05-001",
+    "subjects": 16,
+    "launched": 6,
+    "completed_receipts": 3,
+    "interrupted": 3,
+    "not_launched": 10,
+    "independently_graded_cells": [
+      "cell-03",
+      "cell-04"
+    ],
+    "status": "TRANSPORT_INCOMPLETE",
+    "original_results_preserved": true
+  },
+  "source_stable": true,
+  "contamination": "none-observed in independent complete-trace reviews",
+  "model_controls": "Explicit fresh Sol 6.1 medium subject and Astra high judge controls retained; profiles requested but absent in local readback; no independent served-model attestation.",
+  "limits": [
+    "One local library/CLI package, one Codex host, two repetitions per primary situation/boundary. No API/service/host universality.",
+    "Synthetic predecessor apply/finish_improve/accept_effects are apparatus setup, not end-to-end execution.",
+    "Seeded prior-review artifact qualifies inherited coverage; spontaneous case creation is unqualified.",
+    "Declared synthetic owner-session requirement qualifies preparation/awaiting, never an actual owner observation.",
+    "No OS-enforced answer isolation, deployment, installed-host distribution, CI, performance or statistical efficacy claim.",
+    "Four original protocol incompletes stay incomplete despite successful separate follow-ups."
+  ],
+  "closure_review": {
+    "status": "APPROVE",
+    "source": "e123ec86156ad659dcc19cfa4c46cf5398b78a51",
+    "path": "closure-review.md",
+    "post_review_integration": "All 211 anchored spans and every pre-existing skill byte remain unchanged; only source pins/new release status were refreshed after the review."
+  }
+}

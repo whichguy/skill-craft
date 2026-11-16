@@ -1,0 +1,1008 @@
+[
+  {
+    "boundary": "carry-forward",
+    "callback": {
+      "after_stage": "carry-forward",
+      "parent_import": "correctly_refused_stopped_child",
+      "runtime_status": "stopped"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/run/packets/nav-f0c3b3f2c3f940e7ad3d16fef430b049.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/handoff.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/run/packets/nav-f0c3b3f2c3f940e7ad3d16fef430b049.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/run/inbox/nav-f0c3b3f2c3f940e7ad3d16fef430b049.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/start.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/opening.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/parent-return.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/reviews",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/SKILL.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/ADAPTER.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/54032287521744c0ae7cb85442b18513/package/.shiploop-improve/carry-forward-f430b049/parent-return.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/54032287521744c0ae7cb85442b18513",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": 1,
+      "old_head": "c177b251cb908b30b77a47c6ce4df33e62f9972e",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": null,
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [],
+            "revision": 2
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        }
+      ]
+    },
+    "situation": "changed-setup"
+  },
+  {
+    "boundary": "release-verify",
+    "callback": {
+      "after_stage": "release-plan",
+      "after_status": "active",
+      "disposition": "send-back"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/packets/nav-c8b9d43640c64fce8e22ca8dbe18bf5c.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-14c2b902df1145f88e7ce146881ca6be.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-9e6de3d714514cbf9c629fb82fb2362b.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-0cb6cc5e869c496ab4c1a336089731eb.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-134738549a1648f5b20c344035b87c9b.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-547c42fc253a4b08a8f2e9f62d23d10d.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-0547058ce2d14c78b08edf83c46255f9.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-3707c92c24c445bcb6b56531dd94b368.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-b681c5f968764023b865c8859f3c5a6c.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-cbac7afd0f954058bd64f0fe130ef288.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-fce84c412cf842baa1f23426208c2c12.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-b87cfd27e54848478d46c06c6d9a2b5a.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-8ffd6b625f85408e9ae080d3cc4dbdcf.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-cce6c65f10734e3bad4b7a54dc024eeb.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-75fd33cfc89a47caabab21f38d001360.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-6a82f7fb6ca848748d5c12bc3747182a.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-fc305f4826534940bef81474e3f51a56.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-3a881a6f64be4eeeb01ac69e0a21affb.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-958bbb1f03a349ebb41041e6a47483b4.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-86da1b03778e477fa730c5c8c4c5bfbf.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/da4b361a98994f65b95e5db0ff7b1b80/run/results/nav-ae8ffda5805d4f08b3d8163a62ab4358.md"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/da4b361a98994f65b95e5db0ff7b1b80",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": 1,
+      "old_head": "e8c439faba267ed920a701feefd882529bf01d89",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": null,
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [],
+            "revision": 2
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        }
+      ]
+    },
+    "situation": "changed-setup"
+  },
+  {
+    "boundary": "carry-forward",
+    "callback": {
+      "after_stage": "carry-forward",
+      "parent_import": "correctly_refused_stopped_child",
+      "runtime_status": "stopped"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/run/packets/nav-70f3ab3d200c40ee894d791fba8e73df.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/handoff.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/run/packets/nav-70f3ab3d200c40ee894d791fba8e73df.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/run/inbox/nav-70f3ab3d200c40ee894d791fba8e73df.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/start.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/opening.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/parent-return.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/reviews",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/SKILL.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/ADAPTER.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/26d2ec5b180943cbaa096dc1dd9af946/package/.shiploop-improve/carry-forward-ba8e73df/parent-return.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/26d2ec5b180943cbaa096dc1dd9af946",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": 2,
+      "old_head": "86951a67f6225e917545837bf42fd0975120ab69",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": "{'value': None, 'revision': 2}\n{'value': 'ready', 'revision': 3}\n{'value': 'ready', 'revision': 3}\n",
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "delete",
+            "sample",
+            null
+          ],
+          "checked": {
+            "revision": 2,
+            "value": null
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": null
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 3
+        }
+      ]
+    },
+    "situation": "unchecked-oracle"
+  },
+  {
+    "boundary": "release-verify",
+    "callback": {
+      "after_stage": "release-plan",
+      "after_status": "active",
+      "disposition": "send-back"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/packets/nav-7804f64c27ad4785b5bff65b6d7320c3.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-975cf3647cf2476bb97c6a4a5e65726f.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-71b5aed46a0b445eae66cea17e072bd5.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-e5c4ad2de93a4bf5ad5ba65123c1827d.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-c83a0c7262464d9cb37be2b690175ec7.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-860026b9aa244d9a9afb62855d90f5e8.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-03f9b04ac4c74b0cbe8e48eb385e54e3.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-7f883ecf424c476ab1509ab1600c8533.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-1c0e18f5af1444a6a661b2aeb740ba79.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-b100ae5990e546f18e7a6cb6ef9d8e44.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-516839496f414367928798070ba77f72.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-d488d25a12894dfcb0824bc85fede95f.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-94bd21cfd9024e61ae2f09a3bff1411a.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-8937ab10413a4f77978087f83ab19a17.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-94cfe061896b4cf197fa835d1a55c4d5.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-e4472e30244947ad80b0ec136310ada1.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-24e3f7dce90d42dd82ac2a89d2ca55a8.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-8857c659e0bf422d9d45dea38fbe4913.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-5a38e270169240109e30d3b8bac9169c.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-3f74a4807ab2469b887fd9af30c5968f.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/129f6a8ae40741acb91caaa415566505/run/results/nav-de69bc183cd54a1d8b49b29145ad556c.md"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/129f6a8ae40741acb91caaa415566505",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": 2,
+      "old_head": "98d36e2b890a0fc276f4f015f50f35b86601e9d7",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": "{'value': None, 'revision': 2}\n{'value': 'ready', 'revision': 3}\n{'value': 'ready', 'revision': 3}\n",
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "delete",
+            "sample",
+            null
+          ],
+          "checked": {
+            "revision": 2,
+            "value": null
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": null
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 3
+        }
+      ]
+    },
+    "situation": "unchecked-oracle"
+  },
+  {
+    "boundary": "carry-forward",
+    "callback": {
+      "after_stage": "carry-forward",
+      "parent_import": "correctly_refused_stopped_child",
+      "runtime_status": "stopped"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/run/packets/nav-c36a906672714772bd05b20ac14c7b5b.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/handoff.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/run/packets/nav-c36a906672714772bd05b20ac14c7b5b.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/run/inbox/nav-c36a906672714772bd05b20ac14c7b5b.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/start.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/opening.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/parent-return.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/reviews",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/SKILL.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/ADAPTER.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/7dc25df1be244478afe27c088735b7cb/package/.shiploop-improve/carry-forward-c14c7b5b/parent-return.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/7dc25df1be244478afe27c088735b7cb",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": 2,
+      "old_head": "5b81dab01b296b0df296edf72f19f913251270d0",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": null,
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "delete",
+            "sample",
+            null
+          ],
+          "checked": {
+            "revision": 2,
+            "value": null
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": null
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 3
+        }
+      ]
+    },
+    "situation": "inherited-review"
+  },
+  {
+    "boundary": "release-verify",
+    "callback": {
+      "after_stage": "release-plan",
+      "after_status": "active",
+      "disposition": "send-back"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/packets/nav-d365352e6caf46f9977d255ce72f53e2.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-ea9f1050b45f420faf008e092c695113.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-df5e4384da154bd490281e784f17cbb9.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-782682b86acc49f0881fadc3f5102473.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-3bac9d6c36db4f5face08d8a7b9b71b3.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-aa65b44c512f4ec9b9bb9ef21a13890d.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-9a82f32ec94b4810a21effb918ac7c46.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-f060528170604e70869269766fcd84d5.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-8e5355b1f28644a78b9c679efa78e74a.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-58dba8593be6489cb66502c65c1882c5.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-031a65af09a84f9ba876ff5c7cac85bb.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-13998e9370c748d6a67c3a41758d3fb1.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-d277043c19914d54864c804fe3dad5bf.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-7b88451d94fc4d83a1315cc840a948aa.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-dd3c43bfbc634950b018506ef23211f9.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-09f23a96656a499797b3257c6db21db8.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-1a991d20ace14e9e91e162d15dbb702d.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-58ffecf6256d4c1d9c8b1070226cc1a2.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-45584e086552430dbbe69e08145f7540.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-8f01b9a953464387beec407d9a816ec3.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/182357f69c294584b507c65aa752d9ad/run/results/nav-61ad2e0cd0fe4f52a7459a21c35b8596.md"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/182357f69c294584b507c65aa752d9ad",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": 2,
+      "old_head": "d0eaeacceb62064834f97d5f77865577ee66f1d2",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": null,
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "delete",
+            "sample",
+            null
+          ],
+          "checked": {
+            "revision": 2,
+            "value": null
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": null
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": false,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 3
+        }
+      ]
+    },
+    "situation": "inherited-review"
+  },
+  {
+    "boundary": "carry-forward",
+    "callback": {
+      "after_stage": "system-test-author",
+      "parent_import": "accepted",
+      "runtime_status": "complete"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/run/packets/nav-142caefcf774421b8e1d774d5e029c4f.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/handoff.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/run/packets/nav-142caefcf774421b8e1d774d5e029c4f.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/run/inbox/nav-142caefcf774421b8e1d774d5e029c4f.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/start.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/opening.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/parent-return.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/reviews",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/SKILL.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/ADAPTER.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/packet.json",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/reviews",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/0321833bacf842f297e9ca9f4f66d040/package/.shiploop-improve/carry-forward-5e029c4f/parent-return.md",
+        "/Users/dadleet/src/skill-craft-r05-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/0321833bacf842f297e9ca9f4f66d040",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": null,
+      "old_head": "536fccc07dd891e2b5b182b369dd2b664595e9b5",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": null,
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "revision": 2,
+            "value": "ready"
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "revision": 2,
+            "value": "ready"
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        },
+        {
+          "action": [
+            "update",
+            "absent",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "error": "NotFound"
+          },
+          "step": 3
+        }
+      ]
+    },
+    "situation": "valid-control"
+  },
+  {
+    "boundary": "release-verify",
+    "callback": {
+      "after_stage": "release-verify",
+      "after_status": "blocked",
+      "disposition": "blocked"
+    },
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46",
+    "locators": {
+      "future_outputs": "inbox final-result, review notes and commit-message are writable outputs, not preexisting inputs",
+      "missing": [],
+      "required_read_locators": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/state.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/packets/nav-cb8b8707a4cb4c7d83a2740844a81b66.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/package/acceptance.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/package/docs/shiploop/spec.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-9202c0f26ead4723aca6054e36f9fd87.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-47ef84a5f367411881acdd2a3183f2aa.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-d2b9383aa7a048318bc60a264f157527.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-7b1847083402488ea889a9878b897be0.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-9b1a0285832d467b8a0d7774a37744b2.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-e5fc02a9d79d44bd9b54deee35dbdbaa.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-43240a0bf5b942678855ffa6b3740c0d.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-1d348a7eda8b4c78997522ddfed4f022.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-300566ee070b4b9d942604b8fda1fc5b.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-a10dd2d7bb244e2eba3914945c24354c.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-e346a3c842364a77b959686bde70b5a8.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-c5083112c16f4c6fb0db38a01d2cb6cc.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-db8dfd9696274e3fa3c8b2c649dc29de.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-2a6ed3ccf5964c8aa3302a1cd4f96bf8.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-aeba5328cae547799bbd5da60846a006.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-d3811ce46bdf4a0fa1cbb45a1d9aeed7.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-c54ba47667d34e2dab767f82cd2b4dc4.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-bb5d3b091cb8452f86fc12d3390cfd77.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-fe99b672266b4e38b472c61c074441ee.md",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/probes/41724f65d2c84f579af8895561615f46/run/results/nav-e46c4be5b43e4750be50040b90b71650.md"
+      ]
+    },
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/raw/41724f65d2c84f579af8895561615f46",
+    "outcome": "PASS",
+    "proof": {
+      "earliest_invalid_action": null,
+      "old_head": "6b05b1e3bfd0c1bdf64d258b21b9fffe5f8b99cc",
+      "old_setup_from_git": {
+        "clear_on_start": false
+      },
+      "old_valid_setup_walk": [
+        {
+          "keys": [
+            "sample"
+          ],
+          "revision": 1
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        },
+        {
+          "revision": 2,
+          "value": "ready"
+        }
+      ],
+      "positive_controls": "valid update/get plus legitimate NotFound rejection passed",
+      "proof_kind": "independent written-rule model compared with actual public CLI, not unchecked helper or product-only proof",
+      "unchecked_derivation_stdout": null,
+      "walk": [
+        {
+          "action": "setup",
+          "checked": {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          "governing_rule": "R-1 setup resets, creates sample, then optional clear",
+          "step": 0
+        },
+        {
+          "action": [
+            "update",
+            "sample",
+            "ready"
+          ],
+          "checked": {
+            "revision": 2,
+            "value": "ready"
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 1
+        },
+        {
+          "action": [
+            "get",
+            "sample",
+            null
+          ],
+          "checked": {
+            "revision": 2,
+            "value": "ready"
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "value": "ready"
+          },
+          "step": 2
+        },
+        {
+          "action": [
+            "update",
+            "absent",
+            "ready"
+          ],
+          "checked": {
+            "error": "NotFound",
+            "revision": 2
+          },
+          "governing_rule": "R-1 existing-key requirement; rejected operations do not mutate or increment revision",
+          "matches_expectation": true,
+          "stated_expectation": {
+            "error": "NotFound"
+          },
+          "step": 3
+        }
+      ]
+    },
+    "situation": "valid-control"
+  }
+]

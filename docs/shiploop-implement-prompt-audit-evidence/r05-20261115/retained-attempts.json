@@ -1,0 +1,74 @@
+[
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-001",
+    "classification": "APPARATUS_SETUP_FAILURE",
+    "failures": [
+      {
+        "file": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-001/logs/3da20b2e59de42cea076261193e840e9/failure.json",
+        "data": {
+          "classification": "APPARATUS_SETUP_FAILURE",
+          "traceback": "Traceback (most recent call last):\n  File \"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/seed.py\", line 237, in main\n    row = seed.seed()\n  File \"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/seed.py\", line 185, in seed\n    updated = nav.apply(state, action, result)\n  File \"/Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop_navigator.py\", line 4448, in apply\n    canonical = _canonical_result(result, stage=stage,\n        delivery_contract=\"delivery_contract_version\" in state)\n  File \"/Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop_navigator.py\", line 1274, in _canonical_result\n    _need(stage in assumptions.STAGES and outcome == \"done\",\n    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n          \"assumptions are allowed only on a done \" + \", \".join(sorted(assumptions.STAGES)) + \" result; at this \"\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n          \"stage state an assumption (the default taken, the alternatives and why) in the summary, and remove the \"\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n          \"assumptions field\")\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop_navigator.py\", line 550, in _need\n    raise NavigatorError(message)\nshiploop_navigator.NavigatorError: assumptions are allowed only on a done carry-forward, document, plan, release-plan, release-verify, system-test, system-test-author, test-spec result; at this stage state an assumption (the default taken, the alternatives and why) in the summary, and remove the assumptions field\n"
+        }
+      }
+    ],
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-002",
+    "classification": "SUPERSEDED_APPARATUS_SEED",
+    "failures": [],
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-003",
+    "classification": "SUPERSEDED_APPARATUS_SEED",
+    "failures": [],
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-004",
+    "classification": "APPARATUS_SETUP_FAILURE",
+    "failures": [
+      {
+        "file": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-004/logs/a48cfc641e3c4d808d6489f27f1a90a5/failure.json",
+        "data": {
+          "classification": "APPARATUS_SETUP_FAILURE",
+          "traceback": "Traceback (most recent call last):\n  File \"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/seed.py\", line 254, in main\n    row = seed.seed()\n  File \"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/seed.py\", line 202, in seed\n    nav.accept_effects(core, self.run, state, updated, action_id=action)\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop_navigator.py\", line 10102, in accept_effects\n    after, writes, payload = _transition(core, root, before, after)\n                             ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop_navigator.py\", line 4743, in _transition\n    writes = {**writes, **_commit_stage(root, before, after)}\n                          ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop_navigator.py\", line 3405, in _commit_stage\n    raise NavigatorError(\"ShipLoop could not commit step \" + item + \"/\" + step + \": \" + decision.reason + \". \"\n    ...<2 lines>...\n                            \"committed.\" if head != current.base else \"Report blocked and quote this refusal.\"))\nshiploop_navigator.NavigatorError: ShipLoop could not commit step W1/S1: HEAD 89db70642613 is not the iteration's base 8707ba4f349b or its pending commit: only the commit stage commits inside an iteration. If that commit holds this step's work, undo it and keep its changes (git reset --soft 8707ba4f349b39dc9bd5f0104a864a6e8a92b00d), then run the same callback again; otherwise report blocked and say what committed.\n"
+        }
+      }
+    ],
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-005",
+    "classification": "SUPERSEDED_APPARATUS_SEED",
+    "failures": [],
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/attempt-006",
+    "classification": "SUPERSEDED_APPARATUS_SEED",
+    "failures": [],
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001",
+    "classification": "COMPLETED_APPARATUS_PREFLIGHT_OR_PROBE",
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002",
+    "classification": "COMPLETED_APPARATUS_PREFLIGHT_OR_PROBE",
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-001",
+    "classification": "APPARATUS_CONTROLLER_REPORTING_FAILURE",
+    "behavioral_result": false
+  },
+  {
+    "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-002",
+    "classification": "COMPLETED_APPARATUS_PREFLIGHT_OR_PROBE",
+    "behavioral_result": false
+  }
+]

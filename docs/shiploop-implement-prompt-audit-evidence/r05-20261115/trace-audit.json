@@ -1,0 +1,302 @@
+{
+  "status": "PASS_SUPPLEMENTAL_SCREEN",
+  "screens": [
+    {
+      "bank": "primary-002",
+      "id": "cell-01",
+      "unique_tool_calls": 23,
+      "trace_sha256": "a925e3f2c412fe00237a98517d0ed95c2c0213de9421058364a92985cd410eef",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 4,
+        "command_execution": 28,
+        "mcp_tool_call": 18
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-02",
+      "unique_tool_calls": 30,
+      "trace_sha256": "33047acf43c860add04ed072d309c7f6304e242824abc1afd2ed16e09ea7fc3f",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 5,
+        "agent_message": 4,
+        "command_execution": 42,
+        "mcp_tool_call": 18,
+        "file_change": 6
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-03",
+      "unique_tool_calls": 9,
+      "trace_sha256": "e879b1a900368436eb74cb019c699eaf1f5b3631c32c693e034abbd6d148b470",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 5,
+        "agent_message": 4,
+        "command_execution": 18
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-04",
+      "unique_tool_calls": 9,
+      "trace_sha256": "8f53070b30323f8deed50afdcea3cdc5948e9b9d6261667415b19ab9cf01b8d9",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 4,
+        "command_execution": 18
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-05",
+      "unique_tool_calls": 31,
+      "trace_sha256": "0ec3994654bdead86da64e4f4b83c9e6813f8c59020e31e2eb183848d69545b4",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 5,
+        "command_execution": 40,
+        "mcp_tool_call": 22
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-06",
+      "unique_tool_calls": 21,
+      "trace_sha256": "3f82a65700034b24f0376192f823cbe175aab3a34d6dd37dd64d7b4aea7fc336",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 5,
+        "command_execution": 42,
+        "file_change": 4
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-07",
+      "unique_tool_calls": 8,
+      "trace_sha256": "d020042929603c5532afe81b6dbafb73bf2c64a9ce4bbc52a542a74b31ac99d2",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 3,
+        "command_execution": 16
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-08",
+      "unique_tool_calls": 6,
+      "trace_sha256": "748102865ad028169be1e990e187ee8e8632131f329a816e5f9bbe40011bffaa",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 3,
+        "command_execution": 12
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-09",
+      "unique_tool_calls": 21,
+      "trace_sha256": "e4f35ef2063355d4bad589a3ee28ebfe755187abd312b94d68ddf71bf2f12520",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 4,
+        "command_execution": 28,
+        "mcp_tool_call": 14
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-10",
+      "unique_tool_calls": 29,
+      "trace_sha256": "33e055d26a24d41dd3a2d5e10cdd020641443b47ccf9b99c51781f57a9f059f0",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 5,
+        "command_execution": 44,
+        "mcp_tool_call": 14
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-11",
+      "unique_tool_calls": 12,
+      "trace_sha256": "5400f46239c881f63442ae9b7a0528af7e106256902f3b65248570ac1e77d89b",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 3,
+        "command_execution": 24
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-12",
+      "unique_tool_calls": 14,
+      "trace_sha256": "1ced42aefea607866b6d19316efd3dd05c1a08fd4b37b9586bc09ed38301e88d",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 3,
+        "command_execution": 28
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-13",
+      "unique_tool_calls": 27,
+      "trace_sha256": "2ba56ef73e9da26623d084525d81c71594824b3582a0093bfe34115c7e6249d6",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 5,
+        "command_execution": 38,
+        "mcp_tool_call": 16
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-14",
+      "unique_tool_calls": 33,
+      "trace_sha256": "a8e2fd7e532fd47fc0b012ab3778856b3b0a3589623640295347c4e6fa1b9fb2",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 5,
+        "command_execution": 44,
+        "mcp_tool_call": 22,
+        "file_change": 8
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-15",
+      "unique_tool_calls": 7,
+      "trace_sha256": "a600db805c83a2e9daace2af25c647bfbf5c994ccd0bc2ee0601ed3a0970d501",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 4,
+        "command_execution": 14
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "primary-002",
+      "id": "cell-16",
+      "unique_tool_calls": 10,
+      "trace_sha256": "b0210d8c2810b87d5af2b28e8589ef6a7c26a88587a03e2be8018b4eb2fbfecd",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 3,
+        "command_execution": 20
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "followup-003",
+      "id": "cell-05",
+      "unique_tool_calls": 32,
+      "trace_sha256": "25932a10e63f3751ca6f6b695324bc9083ae3eef8770a81f76a8e972c72422ef",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 5,
+        "command_execution": 52,
+        "mcp_tool_call": 12
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "followup-003",
+      "id": "cell-09",
+      "unique_tool_calls": 24,
+      "trace_sha256": "230052b4d22b41bfc767453b6adc535fb1bc8653a155e2849abda0cb5d5e26d2",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 4,
+        "command_execution": 32,
+        "mcp_tool_call": 16,
+        "file_change": 4
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "followup-003",
+      "id": "cell-10",
+      "unique_tool_calls": 33,
+      "trace_sha256": "221f26a7b49497a877b53ef532b9bb87fb9e2b1f0b3a6442a3b7d4f4bb1605ec",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 4,
+        "command_execution": 50,
+        "mcp_tool_call": 16,
+        "file_change": 4
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    },
+    {
+      "bank": "followup-003",
+      "id": "cell-14",
+      "unique_tool_calls": 22,
+      "trace_sha256": "3556275a1b11ab8e7ddbe0351f40c34ce2d72d0b8bdb8a3f64fc477f93d10706",
+      "input_locator_flags": [],
+      "item_types": {
+        "no-item": 3,
+        "error": 4,
+        "agent_message": 5,
+        "command_execution": 44,
+        "file_change": 4
+      },
+      "claim": "Supplemental locator screen only; independent complete-trace review governs contamination. No OS isolation claim."
+    }
+  ],
+  "complete_trace_review": "Every primary and follow-up cell separately judged; no observed contamination."
+}

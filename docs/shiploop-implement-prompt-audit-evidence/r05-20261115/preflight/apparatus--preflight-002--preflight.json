@@ -1,0 +1,10 @@
+{
+  "fresh_subjects": 16,
+  "isolation": "Independent repositories, runs, XDG state and runtime directories. Filesystem answer isolation is NOT verified; outside reads may be possible. Coordinator must audit complete traces for contamination.",
+  "matrix_unconsumed": true,
+  "outcome": "PASS",
+  "reference_probes": 8,
+  "source_identity_unchanged": true,
+  "source_sha": "e596e6734f59590e2b4c6e65bea71a868675924f",
+  "subject_calls": 0
+}

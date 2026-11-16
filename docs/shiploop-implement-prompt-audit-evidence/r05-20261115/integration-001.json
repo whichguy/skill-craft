@@ -1,0 +1,11 @@
+{
+  "qualification_source": "e596e6734f59590e2b4c6e65bea71a868675924f",
+  "integrated_source": "e123ec86156ad659dcc19cfa4c46cf5398b78a51",
+  "upstream_main": "20ec94e273fa88266c2b18a7b22cbb8a066ba6e0",
+  "all_skill_bytes_unchanged": true,
+  "skill_delta": [],
+  "plan_anchors": 202,
+  "plan_source_files": 43,
+  "plan_source_files_changed": [],
+  "runtime_test_rerun": "not warranted by documentation-only R05 delta and unchanged relevant source"
+}

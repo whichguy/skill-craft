@@ -1,0 +1,18 @@
+{
+  "registered_utc": "2026-11-15T22:38:26.501894+00:00",
+  "status": "REGISTERED",
+  "cells": 16,
+  "source": "e596e6734f59590e2b4c6e65bea71a868675924f",
+  "sha256": {
+    "apparatus/seed.py": "113fd525f286fee66976ef1691ab93ec33a4a43d0ebb98330134721ea56bd14a",
+    "apparatus/preflight.py": "04998c2dc33f3583eadfe9f53cac2b64f3f60d30aeba1f49b56d3bebb2d43207",
+    "apparatus/audit.py": "225a0577c31201f4e3858bd23591761c30804387edd4915648f7b03e91bc4d2f",
+    "apparatus/register.py": "17a871a1da494c0e3860364a5d6509351f9872d5f5d12a4136df4e228b6bf93f",
+    "apparatus/local_store.py": "b08a25b6258b97121d8f4ba99044fe5c3eb9e60b7780d31b8f933341a65e4689",
+    "apparatus/proposed-registration.json": "6fd20771c22656710f5b80964ac36a7eb182c96b10464bbffac387fcc7d73509",
+    "apparatus/preflight-001/reference-proof.json": "85b51a3305a2434e1c14140aea95d5163376a3b658b41d911a43c0527238fb58",
+    "apparatus/preflight-001/final-audit.json": "4abca2196960c4bda2c27913f857aadaedc982b2cbc6b50adc81f25a96ef2bfe",
+    "registration.json": "d5c522a46af1d3c39d8c5f87492e53d1c4bbe1bf55222ef1b405753054b888ca",
+    "run_baseline.py": "a3788a3bd103287521099b113c8cdb05b99282dd8891c21780811f80d075d734"
+  }
+}

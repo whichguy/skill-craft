@@ -1,0 +1,14 @@
+{
+  "status": "REGISTERED",
+  "registered_utc": "2026-11-15T23:05:02.567724+00:00",
+  "source": "e596e6734f59590e2b4c6e65bea71a868675924f",
+  "cells": 16,
+  "sha256": {
+    "registration-002.json": "de779bd2144a398741a6b2cc52594f4aabcbff2d3bb4c4903ca6c0d4b5fa745f",
+    "run_subjects.py": "1c16e0d3a95c38a837530aa14d3c8eba6c6e83fffe786a2ea3b79cc331415c6c",
+    "judge-instructions.md": "1b713c2d178a27b75413a4d9eb898191247af0ecb2643065e5517246720eef6f",
+    "apparatus/preflight-002/cells.json": "69fa39822523045ea1ef730855963af3e3c6da3f913d5de5659c24c011eb57c5",
+    "apparatus/preflight-002/reference-proof.json": "950c7eff94282fdf0398365568c3c930d56e14af99ca08ec68cd149a1b4ad03a",
+    "apparatus/preflight-002/final-audit.json": "46002fd3902a466a4d349328e1c245d4c46e4a25b9437d87cbd327835f3b1868"
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "cells": [
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/e61e541cc8844075a51cc0821be2c833",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": {
+        "actual_old_cli_matches_independent_reference": true,
+        "note": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/e61e541cc8844075a51cc0821be2c833/package/previous-observation.md",
+        "observed": [
+          {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          }
+        ]
+      }
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/1bf62a2f5e2b4a14830d1d76b925ff4b",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": {
+        "actual_old_cli_matches_independent_reference": true,
+        "note": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/1bf62a2f5e2b4a14830d1d76b925ff4b/package/previous-observation.md",
+        "observed": [
+          {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          }
+        ]
+      }
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/b8dfb7e4c3d94857aaaec5d2813d1a8f",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": {
+        "actual_old_cli_matches_independent_reference": true,
+        "note": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/b8dfb7e4c3d94857aaaec5d2813d1a8f/package/previous-observation.md",
+        "observed": [
+          {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          }
+        ]
+      }
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/003bde7565894a038a0ffd78c94be37d",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": {
+        "actual_old_cli_matches_independent_reference": true,
+        "note": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/003bde7565894a038a0ffd78c94be37d/package/previous-observation.md",
+        "observed": [
+          {
+            "keys": [
+              "sample"
+            ],
+            "revision": 1
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          },
+          {
+            "revision": 2,
+            "value": "ready"
+          }
+        ]
+      }
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/a6973c3d274a4877b517abec3dc4f69e",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/59f26dad5eb7454fa0f829ba8b92b545",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/424ce348db0a497aabc07d876979a35d",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/c3b7687af4254ed29651bb3c8185f4e4",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/a987818ac3dc4d0e9bef3451e490b482",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/6dbd1abddbb242539a67b3e28e2013b9",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/bacf09159f2749ae8ef017a6ac76c360",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/31e1189ba8f241c29c1acc1b0a5dcdba",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/0558ffddffbd4342aca395614e3a2390",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/e2e437bfaa974621bf442c6782c9757b",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/bf9730baa14c44bbadc13cbac976cf07",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    },
+    {
+      "actual_next_assignment_byte_match": true,
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/63ce7b67d8ee427e9bdd66fe2d2814e7",
+      "fresh_runtime_unconsumed": true,
+      "hashes_unchanged": true,
+      "no_private_answer_locators_in_product_files": true,
+      "old_setup_proof": null
+    }
+  ],
+  "distinct_active_improve_runtime_states": 8,
+  "os_level_isolation": "NOT_VERIFIED; these are workspace hygiene checks, not permission/access enforcement",
+  "outcome": "PASS",
+  "source_unchanged": true
+}

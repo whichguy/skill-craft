@@ -1,0 +1,20 @@
+{
+  "cells": [
+    "cell-05",
+    "cell-09",
+    "cell-10",
+    "cell-14"
+  ],
+  "registered_utc": "2026-11-15T23:42:15.405236+00:00",
+  "sha256": {
+    "apparatus/local_store.py": "b08a25b6258b97121d8f4ba99044fe5c3eb9e60b7780d31b8f933341a65e4689",
+    "apparatus/preflight-002/reference-proof.json": "950c7eff94282fdf0398365568c3c930d56e14af99ca08ec68cd149a1b4ad03a",
+    "apparatus/seed.py": "113fd525f286fee66976ef1691ab93ec33a4a43d0ebb98330134721ea56bd14a",
+    "followup-fixtures-003/preparation.json": "95ea482abf7d1f083de5a31dbda86bca14c07ca6c25dabe1c23ab2d9eb78ca6a",
+    "judge-instructions.md": "1b713c2d178a27b75413a4d9eb898191247af0ecb2643065e5517246720eef6f",
+    "registration-003.json": "df63bee10af12b0692a41f2f19f3abb029b59d86b82c51a99aa9fc26246a8dcf",
+    "run_followups.py": "45210ced71e97043ad2064e1ba8dedccac853f1916490d7a5c4c2307b500a87a"
+  },
+  "source": "e596e6734f59590e2b4c6e65bea71a868675924f",
+  "status": "REGISTERED"
+}

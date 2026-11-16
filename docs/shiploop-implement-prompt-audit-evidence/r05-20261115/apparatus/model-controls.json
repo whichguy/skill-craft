@@ -1,0 +1,21 @@
+{
+  "recorded_utc": "2026-11-15T22:29:03.956738+00:00",
+  "config_path": "/Users/dadleet/.codex/config.toml",
+  "named_profiles_present": {
+    "shiploop": false,
+    "shiploop-judge": false
+  },
+  "policy": "Every session also receives explicit model and reasoning controls; qualification subjects are inline and use no child agents. No persistent model or config change is made. Profile flags alone are not claimed to verify resolved defaults or served-model identity.",
+  "subject_launch_controls": [
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\""
+  ],
+  "judge_launch_controls": [
+    "--model",
+    "gpt-6-astra",
+    "-c",
+    "model_reasoning_effort=\"high\""
+  ]
+}

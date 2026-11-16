@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "/Users/dadleet/src/grok-build-additions/skills/ask/scripts/ask.sh",
+    "astra",
+    "review-plan",
+    "--file",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/qualification-plan-draft.md",
+    "--json",
+    "--effort",
+    "high",
+    "--no-tools",
+    "--cwd",
+    "/Users/dadleet/src/skill-craft-r05-20261115"
+  ],
+  "started_utc": "2026-11-15T22:08:07.342875+00:00"
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "bank": "primary-002",
+    "head": "e596e6734f59590e2b4c6e65bea71a868675924f",
+    "tracked_files": 13337,
+    "tracked_hash_modes_sha256": "8ab38cf2c63c6589bd66881248cc6cc7397909cab37cd9328ee58b90eb192929",
+    "identical_pre_post": true,
+    "ordinary_status": "",
+    "pre_inventory_sha256": "688a1e10cd85ac855c8fd9519e05af0c4eba8dfe46c01a353dc49061b013cc1c",
+    "post_inventory_sha256": "688a1e10cd85ac855c8fd9519e05af0c4eba8dfe46c01a353dc49061b013cc1c"
+  },
+  {
+    "bank": "followup-003",
+    "head": "e596e6734f59590e2b4c6e65bea71a868675924f",
+    "tracked_files": 13337,
+    "tracked_hash_modes_sha256": "8ab38cf2c63c6589bd66881248cc6cc7397909cab37cd9328ee58b90eb192929",
+    "identical_pre_post": true,
+    "ordinary_status": "",
+    "pre_inventory_sha256": "688a1e10cd85ac855c8fd9519e05af0c4eba8dfe46c01a353dc49061b013cc1c",
+    "post_inventory_sha256": "688a1e10cd85ac855c8fd9519e05af0c4eba8dfe46c01a353dc49061b013cc1c"
+  }
+]

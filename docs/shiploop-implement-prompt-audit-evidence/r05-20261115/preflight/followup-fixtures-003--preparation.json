@@ -1,0 +1,17 @@
+{
+  "fresh_cells": [
+    "cell-05",
+    "cell-09",
+    "cell-10",
+    "cell-14"
+  ],
+  "initial_bind_present": {
+    "cell-05": true,
+    "cell-09": true,
+    "cell-10": true,
+    "cell-14": true
+  },
+  "semantic_preflight": "Existing reference-proof-002 frozen; no probes or callbacks run on these subjects after assignment creation.",
+  "source_unchanged": true,
+  "status": "PASS"
+}

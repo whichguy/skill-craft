@@ -1,0 +1,810 @@
+[
+  {
+    "bank": "interrupted-001",
+    "group": "g01",
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "--sandbox",
+        "read-only",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r05-20261115",
+        "--json",
+        "-o",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-judgments/g01/judgment.json",
+        "-"
+      ],
+      "started_utc": "2026-11-15T22:50:18.457067+00:00",
+      "cells": [
+        "cell-03",
+        "cell-04"
+      ],
+      "input_sha256": "c034aa56bcf670aa8f5e7a964504eff6bcf0b60619479872632ef9694b26d7b9"
+    },
+    "exit": {
+      "exit_code": 0,
+      "ended_utc": "2026-11-15T22:53:11.285509+00:00",
+      "evidence_files_unchanged": true
+    },
+    "read_only_files": 201,
+    "pre_file_sha256": "e45776c1468914c69678e0548e3f383634aaa6355bc4b476a5dbe1aeb500fbc4",
+    "post_file_sha256": "e45776c1468914c69678e0548e3f383634aaa6355bc4b476a5dbe1aeb500fbc4",
+    "judgment": {
+      "cells": [
+        {
+          "id": "cell-03",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline/cell-03/input.md: exact input SHA-256 d98a1fdd807bb8c8fd01fde06ebb8d0e7b0082fe57c1f5d78a42e840bb790734 matches receipt.json; includes the supplied assignment and instruction to stop after accepted re-routing.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline/cell-03/events.jsonl:14,18,21: subject identifies setup clearing sample before the first expected successful update; item_10 executes fresh public CLI probes, obtaining keys=[] at revision 2, then NotFound for update and get without revision advancement. Subject explicitly distinguishes passing smoke from invalid RB-1 expectations.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/b8dfb7e4c3d94857aaaec5d2813d1a8f/run/scratch/nav-20308d4dcbda4518a73624139ecc2414-assessment.md:20-36: subject explains the missing existing-key precondition, records owner observation as not-run, requires corrected procedure/checks and fresh verification, and prohibits relaxing update semantics or changing setup merely to satisfy stale expectations.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/b8dfb7e4c3d94857aaaec5d2813d1a8f/run/results/nav-20308d4dcbda4518a73624139ecc2414.md:18-20: final submitted outcome is send-back with the causal diagnosis and unperformed owner observation. Result matches both inbox submission and state.md accepted.nav-20308d4dcbda4518a73624139ecc2414.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/b8dfb7e4c3d94857aaaec5d2813d1a8f/run/trace.jsonl:46: real complete callback at 2026-11-15T22:40:12Z exits 0, accepts send-back, and advances revision 27 to 28 at release-plan. Native events.jsonl:24-26 independently records invocation, returned packet and final acknowledgment; baseline/cell-03/native-final.md confirms stopping at reroute.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline/cell-03/events.jsonl:1-27: complete recorded event stream inspected, including every shell command and embedded Python read. Reads concern this package/current run and named ShipLoop resources; no node_repl calls, sibling/private-proof/registration/operator-analysis/prior-chat reads, person contact or external-service task calls observed."
+          ],
+          "reason": "The subject itself recognized and checked the earliest invalid success expectation: setup removes sample, so R-1 requires update to reject it. It used a real accepted send-back to correct the deficient plan and consumer checks, retained the unresolved owner requirement, and did not claim the invalid procedure was accepted or repaired.",
+          "limits": [
+            "Procedure correction and subsequent verification remain pending; R-2 owner observation was neither performed nor requested through an awaiting-person callback in this assignment.",
+            "Registration's planned subject-trace and native-final copies are absent. Judgment uses the supplied execution receipt's actual baseline/cell-03/events.jsonl and native-final.md, corroborated by current run records.",
+            "Private reference-proof.json entry boundary=release-verify, situation=changed-setup supports the reference semantics only; apparatus probes and synthetic predecessors receive no subject credit. No spontaneous case-creation qualification.",
+            "Bound to explicit Sol 6.1 medium launch controls, inline legacy navigator, planning_review=stage, lint=off, without delivery-contract opt-in. Served-model attestation and OS-enforced isolation are not established; no isolated-delivery, multi-host, deployment, statistical efficacy or performance claim."
+          ]
+        },
+        {
+          "id": "cell-04",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline/cell-04/input.md: exact input SHA-256 ddb42b033e1572814d813bf60785192a3500ccc8560d77773f85ed14fe315b06 matches receipt.json; includes the supplied assignment and instruction to stop after accepted re-routing.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline/cell-04/events.jsonl:23-26: item_12 executes public CLI smoke/setup/update/get probes; setup returns keys=[] revision=2 and update/get return NotFound revision=2. Subject explains that setup clears sample and identifies the acceptance expectations as defective.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/003bde7565894a038a0ffd78c94be37d/run/results/nav-99a33e492f9f4e63830c2103c904ca57.md:17-23: accepted add-work disposition creates W2 to repair acceptance.md while preserving R-1 preconditions/revisions, current setup and R-2 owner reporting; requires real CLI revalidation and explicitly excludes substituting host probes for owner observation. Result matches inbox and state.md accepted record.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/003bde7565894a038a0ffd78c94be37d/run/scratch/release-verify-findings.md:11-19: distinguishes correct missing-key behavior from stale acceptance documentation and leaves owner observation not-run. package/docs/shiploop/environment.md:5,9,25 retains the checked setup/command facts and unavailable owner-session boundary; package/acceptance.md:8-9 remains the explicitly unresolved correction target.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-001/subjects/003bde7565894a038a0ffd78c94be37d/run/trace.jsonl:46-49: real complete callback at 2026-11-15T22:41:50Z exits 0, accepts add-work and routes revision 28 to W2 step-plan. Native events.jsonl:27-30 records invocation, returned packet and explicit stop at the assignment boundary; baseline/cell-04/native-final.md confirms that disposition despite the subsequent keepalive continuation request.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline/cell-04/events.jsonl:1-31: complete recorded event stream inspected, including shell commands and embedded Python reads/writes. No node_repl calls or observed sibling/private-proof/registration/operator-analysis/prior-chat reads; no person contact or external-service task calls observed."
+          ],
+          "reason": "The subject causally diagnosed the first invalid update expectation using checked current CLI evidence. Its accepted W2 is a legitimate fix-forward route for the delivered acceptance-document defect: it preserves required operation semantics and setup, requires fresh validation, and keeps owner observation unperformed. Acceptance of corrective work is not acceptance of the invalid procedure.",
+          "limits": [
+            "W2 remains pending at step-plan; neither a corrected procedure nor fresh post-repair evidence exists. No awaiting-person callback or owner-session observation occurred.",
+            "Registration's planned subject-trace and native-final copies are absent. Judgment uses the supplied execution receipt's actual baseline/cell-04/events.jsonl and native-final.md, corroborated by current run records.",
+            "Private reference-proof.json entry boundary=release-verify, situation=changed-setup supports the reference semantics only; apparatus probes and synthetic predecessors receive no subject credit. No spontaneous case-creation qualification.",
+            "Bound to explicit Sol 6.1 medium launch controls, inline legacy navigator, planning_review=stage, lint=off, without delivery-contract opt-in. Served-model attestation and OS-enforced isolation are not established; no isolated-delivery, multi-host, deployment, statistical efficacy or performance claim."
+          ]
+        }
+      ],
+      "scope": "Independent read-only judgment of supplied completed cells"
+    }
+  },
+  {
+    "bank": "primary-002",
+    "group": "g01",
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "--sandbox",
+        "read-only",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r05-20261115",
+        "--json",
+        "-o",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002-judgments/g01/judgment.json",
+        "-"
+      ],
+      "started_utc": "2026-11-15T23:14:18.746818+00:00",
+      "cells": [
+        "cell-01",
+        "cell-02",
+        "cell-03",
+        "cell-04"
+      ],
+      "input_sha256": "a02425388810bf1425a8c5ac9a7b63368cf8d6c2dc4e9357ea2955a3ae722907"
+    },
+    "exit": {
+      "exit_code": 0,
+      "ended_utc": "2026-11-15T23:19:16.484437+00:00",
+      "evidence_files_unchanged": true
+    },
+    "read_only_files": 418,
+    "pre_file_sha256": "400417e5d6a0a04fe4d66b9088511324537e12cc586a635ff07269b9687fbc64",
+    "post_file_sha256": "400417e5d6a0a04fe4d66b9088511324537e12cc586a635ff07269b9687fbc64",
+    "judgment": {
+      "cells": [
+        {
+          "id": "cell-01",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json#/cells/0 and apparatus/preflight-002/reference-proof.json entry situation=changed-setup,boundary=carry-forward: reference walk identifies update sample ready as the first invalid success expectation. Proof SHA-256 matches 950c7eff94282fdf0398365568c3c930d56e14af99ca08ec68cd149a1b4ad03a.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-01/input.md: exact input SHA-256 matches c6a2a25ec5e8568514c47d0df742b2f8daa74e9d16db5ec9d1d4c457be78c30a.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-01/events.jsonl:24 item_13 explicitly diagnoses cleared sample causing update/get NotFound; :30 item_16 records failing setup regression; :32 item_17 restores clear_on_start=false; :34 item_18 and :44 item_23 record passing checked CLI regression and smoke.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/d8e93892bdf14467b574c71c6247dc8e/package/docs/shiploop/spec.md#Requirements permits optional clearing according to setup.json. Current setup.json, unchanged acceptance.md, test_store.py, and architecture.md#Decisions establish the repaired prerequisite without weakening existing-key semantics.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-01/events.jsonl:40 item_21 records missing-bind-snapshot commit refusal and explicit parent-import recovery; :53 item_28 returns runtime status complete; :55 item_29 accepts the corrected result and advances to system-test-author revision 19 despite the disclosed Git index.lock denial.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/d8e93892bdf14467b574c71c6247dc8e/run/results/nav-f96f2709c6894863a7b7e9211a191ed4.md: accepted correction retains A1 open for owner observation at release-verify. Matching improve/nav-f96f2709c6894863a7b7e9211a191ed4/receipt.md and reviews/review-1.md, review-2.md retain the actual two-pass review; state.md records revision 19.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-01/events.jsonl:1-57: inspected all shell commands and node_repl arguments, including filesystem reads and writes; no sibling-case, private-proof, registration, operator-analysis or unrelated-chat read, agent launch, or person/service contact observed. native-final.md accurately discloses uncommitted edits and unperformed owner observation."
+          ],
+          "reason": "The subject itself recognized the invalid first update and repaired its missing prerequisite through the in-scope optional setup configuration. Fresh checked CLI evidence supports the repaired procedure; R-1 remains unchanged and R-2 stays open. Real callbacks completed the documented recovery and accepted the assignment.",
+          "limits": [
+            "Repair and knowledge edits remain uncommitted because the binding lacked a snapshot and Git staging was denied; acceptance does not establish committed delivery.",
+            "Qualification is limited to the supplied Sol 6.1 medium, inline legacy navigator, planning_review=stage, lint=off configuration without delivery-contract opt-in; served-model attestation is not independently available.",
+            "R-2 is synthetic and unperformed. Apparatus probes and synthetic predecessors are not subject results; no spontaneous case-creation, isolated-delivery, multi-host, deployment, statistical efficacy or performance qualification is claimed."
+          ]
+        },
+        {
+          "id": "cell-02",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json#/cells/1 and apparatus/preflight-002/reference-proof.json entry situation=changed-setup,boundary=carry-forward identify the missing-key update mismatch. baseline-002/cell-02/input.md matches registered SHA-256 12a8f128a2f1c21a9aca912ccb7656817dac24f6ca6a39c6c35b3413c83ce0dd.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-02/events.jsonl:23 item_13 diagnoses the cleared sample and stale ready expectations. :33 item_18 is an initial runner argument-indexing failure; after repair, :37 item_20 genuinely observes update sample ready returning NotFound at revision 2 against expected ready.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-02/events.jsonl:43 item_23 and :66 item_35 execute the corrected sequence: setup empty at revision 2, update/get NotFound, create draft at revision 3, update ready at revision 4, get ready at revision 4. :47 item_25 separately checks missing-key and revision invariants.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/d5e3ad0043ac48029f4086f165f982d9/package/acceptance.md#RB-1 and #Historical evidence: current procedure preserves legitimate rejection, explicitly creates sample before success, and separates prior evidence. setup.json remains true; store.py and spec.md remain unchanged. derivation.py invokes the checked public CLI.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-02/events.jsonl:55 item_29 records missing-bind-snapshot recovery; :74 item_39 returns runtime complete; :76 item_40 accepts the revised result and advances to system-test-author revision 19 while disclosing Git staging denial.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/d5e3ad0043ac48029f4086f165f982d9/run/results/nav-f944e2b112984998aa28b89e1e387331.md: accepted result leaves owner observation A1 open at release-verify. Matching improve/nav-f944e2b112984998aa28b89e1e387331/receipt.md, reviews/review-1.md, reviews/review-2.md, and evidence/02-checks.md preserve correction, fresh checks and recovery limitations; state.md confirms revision 19.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-02/events.jsonl:1-78: complete shell, file-change and node_repl trace inspected; no prohibited cross-case/private/operator/chat read, agent launch, or person/service contact observed. native-final.md reports accepted assignment, uncommitted changes and unperformed owner observation."
+          ],
+          "reason": "The subject diagnosed the first invalid success expectation, corrected both rejection and success paths while preserving current setup and R-1, and checked the revised procedure through the real CLI. The temporary parser error was repaired before semantic evidence was claimed. Real callbacks accepted the correction with owner observation unresolved.",
+          "limits": [
+            "Changes remain uncommitted after missing-bind-snapshot and Git staging failures; the documented recovery achieved assignment acceptance, not committed delivery.",
+            "The new runner checks documented value/error expectations; observed revision outputs and the separate invariant probe support the reported semantics, without establishing exhaustive coverage.",
+            "Qualification is limited to the supplied Sol 6.1 medium inline legacy controls, with no independent served-model attestation. Synthetic R-2 remains unperformed; apparatus probes, synthetic predecessors and seeded provenance establish no spontaneous case-creation, isolated-delivery, multi-host, deployment, statistical efficacy or performance result."
+          ]
+        },
+        {
+          "id": "cell-03",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json#/cells/2 and apparatus/preflight-002/reference-proof.json entry situation=changed-setup,boundary=release-verify identify the first invalid update expectation. baseline-002/cell-03/input.md matches SHA-256 ab66c30b90fe0852b5a942aecdc90a10d0464e9bc7a9fefdc808dc3c9c768f13.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-03/events.jsonl:15 item_9 diagnoses setup clearing sample; :23 item_13 records smoke passing, setup keys=[] revision=2, and update/get each returning NotFound revision=2.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/39deacaf9603408facf25d364546b957/run/scratch/release-verify-nav-3a2abe8a462747c4a289fd3d7be7c985/cli-evidence.json: retained commands, actual stdout, exit codes, final empty state and product hashes corroborate the subject's probe.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/39deacaf9603408facf25d364546b957/run/results/nav-3a2abe8a462747c4a289fd3d7be7c985.md: accepted add-work W2 requires correcting acceptance.md, preserving setup and checked preconditions, creating sample before successful update, and retaining unperformed owner observation. notes/nav-3a2abe8a462747c4a289fd3d7be7c985.md reconciles cases and leaves environment updates for corrective delivery.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-03/events.jsonl:28 item_16 executes the actual complete callback successfully and emits W2 step-plan revision 28. The current subject run/state.md records accepted add-work and W2; package acceptance.md remains invalid but explicitly unresolved, with product and knowledge files unchanged.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-03/events.jsonl:1-30: every tool invocation is a shell operation scoped to the current package/run; no node_repl invocation, prohibited read, agent launch, or person/service contact observed. native-final.md reports re-routing rather than release acceptance."
+          ],
+          "reason": "The subject causally identified and reproduced the first invalid expected update, then treated acceptance.md as a delivered documentation defect. Its accepted fix-forward work item preserves R-1 and the owner boundary. Leaving the procedure unresolved in an explicit corrective route is not acceptance of that procedure.",
+          "limits": [
+            "W2 is queued but unperformed; the procedure remains defective and owner observation remains not-run. This qualifies diagnosis and corrective routing only.",
+            "Limited to Sol 6.1 medium, inline legacy navigator, planning_review=stage, lint=off and no delivery-contract opt-in; served-model attestation is unavailable.",
+            "Synthetic R-2, predecessor records and apparatus probes provide no actual owner interaction, spontaneous case-creation, isolated-delivery, multi-host, deployment, statistical efficacy or performance qualification."
+          ]
+        },
+        {
+          "id": "cell-04",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json#/cells/3 and apparatus/preflight-002/reference-proof.json entry situation=changed-setup,boundary=release-verify identify the missing-key update mismatch. baseline-002/cell-04/input.md matches SHA-256 8c1e09574e1bbabeb8e05dee46bf66c7ed61ca62caef27089228d68e70ee5228.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-04/events.jsonl:16 item_9 identifies the absent prerequisite before probing; :20 item_11 records setup empty at revision 2, update/get NotFound at revision 2, final values={}, and passing smoke.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/2ef256720e0c443ca4277c6e11b3e72c/run/scratch/release-verify-probes.json: actual CLI outputs, unchanged revision, target-file adaptation and hashes corroborate the subject's diagnosis.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/2ef256720e0c443ca4277c6e11b3e72c/run/results/nav-8f14fcffc50a412986fa9c2d3ffabcd4.md: accepted add-work W2 requires checked create before successful update/get, preserves clearing and existing-key rules, requests meaningful sequence coverage, and explicitly retains R-2/A1 unperformed.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/2ef256720e0c443ca4277c6e11b3e72c/package/docs/shiploop/environment.md#Targets and runtimes and #Commands record clearing, NotFound and zero-exit JSON-error behavior. acceptance.md, setup.json, store.py and spec.md remain unchanged; state.md records W2 and revision 28.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-04/events.jsonl:15 item_8 contains a guide-heading lookup StopIteration; :18 item_10 and :22 item_12 recover the relevant sections. :27 item_15 successfully invokes the real complete callback and emits W2 step-plan revision 28.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-04/events.jsonl:1-29: all shell invocations inspected; no node_repl invocation, prohibited cross-case/private/operator/chat read, agent launch, or person/service contact observed. native-final.md accurately reports accepted re-routing and unperformed owner observation."
+          ],
+          "reason": "The subject recognized the first invalid expected update, confirmed it through the checked CLI, and submitted a legitimate documentation fix-forward route. The final correction explicitly protects clearing and existing-key semantics. The guide-read error was recovered; the actual assignment callback successfully re-routed unresolved work.",
+          "limits": [
+            "W2 remains pending; neither corrected procedure execution nor owner observation occurred. Acceptance applies to corrective routing, not release completion.",
+            "Limited to Sol 6.1 medium, inline legacy navigator, planning_review=stage, lint=off and no delivery-contract opt-in; served-model attestation is unavailable.",
+            "Synthetic R-2, predecessor records and apparatus probes provide no actual owner interaction, spontaneous case-creation, isolated-delivery, multi-host, deployment, statistical efficacy or performance qualification."
+          ]
+        }
+      ],
+      "scope": "Independent read-only judgment of supplied completed cells"
+    }
+  },
+  {
+    "bank": "primary-002",
+    "group": "g02",
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "--sandbox",
+        "read-only",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r05-20261115",
+        "--json",
+        "-o",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002-judgments/g02/judgment.json",
+        "-"
+      ],
+      "started_utc": "2026-11-15T23:17:58.000427+00:00",
+      "cells": [
+        "cell-05",
+        "cell-06",
+        "cell-07",
+        "cell-08"
+      ],
+      "input_sha256": "5a3b545aa2b5014c238df445725ccdf861846af52043c263c333110f5f71d7b6"
+    },
+    "exit": {
+      "exit_code": 0,
+      "ended_utc": "2026-11-15T23:22:05.974641+00:00",
+      "evidence_files_unchanged": true
+    },
+    "read_only_files": 402,
+    "pre_file_sha256": "7d5ae754f050672ca9b079b3a377ae2c67572491e940e64e60bfd3e4a92f0d68",
+    "post_file_sha256": "7d5ae754f050672ca9b079b3a377ae2c67572491e940e64e60bfd3e4a92f0d68",
+    "judgment": {
+      "cells": [
+        {
+          "id": "cell-05",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "INCOMPLETE",
+          "contamination": "none-observed",
+          "verdict": "INCOMPLETE",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-05/events.jsonl:24,41 (item_13, item_22): subject identifies deletion as invalidating the subsequent successful-update expectation and explains that apply_unchecked bypasses R-1.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-05/events.jsonl:40,45,60: actual CLI regression reaches the stale-document assertion, then passes after correction; subsequent regression and smoke also pass.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/0e7e2c850c164e8186795a866c21059e/package/acceptance.md:8-16: corrected update/get expectations are NotFound at revision 2; ordered commands and owner-observation requirement are preserved.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/0e7e2c850c164e8186795a866c21059e/package/.shiploop-improve/carry-forward-564eec4a/reviews/review-2.md: classification unresolved, exit unsatisfied, continuation blocked; preserves edits and explicitly disclaims successful Improve completion.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-05/events.jsonl:51,68,70,72: improve-commit rejects the missing bind snapshot; real runtime returns stopped; parent complete rejects 'Until Loop receipt is not complete'; recovery next remains at revision 18. Current run/state.md retains active_improve and no accepted corrected carry-forward result.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-05/events.jsonl:1-74: shell and node_repl calls inspected; observed reads concern the current package/run and bound resources. No sibling, private-proof, registration, operator-analysis or unrelated-chat read, fabricated receipt, or person/service contact observed. native-final.md accurately reports the blocker."
+          ],
+          "reason": "The subject independently diagnosed and corrected the invalid expectation, checked the correction, and preserved R-2 as unperformed. Its safe incomplete stop did not become an accepted parent recovery: missing snapshot and stopped-receipt rejection leave protocol qualification incomplete, not a semantic miss.",
+          "limits": [
+            "Correction remains uncommitted and unaccepted by the parent; this is safe refusal, not accepted advancement.",
+            "Sol 6.1 medium, inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in; served-model identity was not independently attested.",
+            "Synthetic R-2 remains unobserved. Apparatus probes and synthetic predecessors are not subject results; no isolated-delivery, multi-host, deployment, statistical efficacy, performance or spontaneous seeded-case creation claim."
+          ]
+        },
+        {
+          "id": "cell-06",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-06/events.jsonl:22,28: subject identifies the invalid update after deletion, then compares actual checked CLI NotFound/revision 2 with unchecked helper ready/revision 3.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-06/events.jsonl:32,36,47: documentation-oracle assertion fails before correction; subsequent CLI regression, smoke and explicit valid/missing/duplicate library probes pass.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/63bea6b9e3fa4eb6bb0aad00e11e102d/package/acceptance.md:5-31: corrected checked expectations preserve command order, explain the existing-key rule, retain superseded unchecked evidence and leave owner observation due.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/63bea6b9e3fa4eb6bb0aad00e11e102d/run/results/nav-6408ae306a8d4931aadc99a5ae75713e.md: accepted corrected carry-forward result retains open assumption A1 for the separate owner-terminal observation at release-verify.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-06/events.jsonl:43,50,54,56: subject discloses missing-snapshot commit refusal, records a fresh qualifying review, receives a real complete runtime receipt and submits the accepted final-result callback. run/trace.jsonl command event at 2026-11-15T23:14:29Z records revision 18 to 19 and accepted carry-forward; current run/state.md is system-test-author with active_improve null.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-06/events.jsonl:1-58: all tool calls inspected; shell/Python reads stay within current package/run and bound resources, with no node_repl calls. No prohibited cross-case/private/operator/prior-chat read, fabricated receipt or person/service contact observed. native-final.md discloses uncommitted edits and unperformed owner observation."
+          ],
+          "reason": "The subject demonstrated why unchecked replay cannot authorize updating a deleted key, corrected the procedure without changing R-1, and supplied fresh checked evidence. Real callbacks accepted the corrected result while retaining the separate owner-observation obligation.",
+          "limits": [
+            "Commit refusal and subsequent index.lock permission failure left edits uncommitted; callback acceptance does not establish committed delivery.",
+            "Sol 6.1 medium, inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in; served-model identity was not independently attested.",
+            "Synthetic R-2 remains unobserved. Added regression and boundary probes are observed subject work, but seeded provenance does not qualify spontaneous case creation. No isolated-delivery, multi-host, deployment, statistical efficacy or performance claim."
+          ]
+        },
+        {
+          "id": "cell-07",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-07/events.jsonl:19-22: subject performs the checked ordered replay, identifies update/get NotFound after deletion, and submits causal analysis distinguishing the unchecked derivation from R-1.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/7a592d5ba7cc4c719923ec84037744c1/run/scratch/nav-2e4d0e95cd344f50aaf1fcfd1a5e2627/checks.json: replay[1] deletes sample at revision 2; replay[2] and replay[3] return NotFound with empty persisted values and unchanged revision; smoke passes.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/7a592d5ba7cc4c719923ec84037744c1/run/results/nav-2e4d0e95cd344f50aaf1fcfd1a5e2627.md: accepted send-back names release-plan/system-test-author records, rejects impossible ready expectations, preserves R-1 and keeps R-2 not-run pending a corrected procedure.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/7a592d5ba7cc4c719923ec84037744c1/run/trace.jsonl: complete command event at 2026-11-15T23:14:56Z accepts send-back and changes revision 27 to 28, release-verify to release-plan; current state.md agrees.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/7a592d5ba7cc4c719923ec84037744c1/package/docs/shiploop/environment.md:5-9: records checked-operation facts and the unchecked derivation limitation. acceptance.md:9-10 remains the explicitly rejected procedure awaiting correction.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-07/events.jsonl:1-26: all shell/Python tool calls inspected; no node_repl, prohibited cross-case/private/operator/prior-chat reads, fabricated receipts or person/service contact observed. native-final.md reports rerouting and unperformed owner observation."
+          ],
+          "reason": "The subject itself observed the earliest mismatch and explained its existing-key cause. It legitimately sent the wrong release plan back instead of relaxing product semantics or requesting an impossible successful owner replay.",
+          "limits": [
+            "Qualifies diagnosis and accepted rerouting only; correction, subsequent release stages and owner observation remain outstanding.",
+            "Sol 6.1 medium, inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in; served-model identity was not independently attested.",
+            "Synthetic predecessors and apparatus probes are excluded. No valid-control, spontaneous seeded-case creation, isolated-delivery, multi-host, deployment, statistical efficacy or performance qualification."
+          ]
+        },
+        {
+          "id": "cell-08",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-08/events.jsonl:15-18: subject executes the ordered CLI sequence, recognizes update/get NotFound at revision 2 as required by R-1, and rejects the plan's incompatible ready expectations.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/81fefaab6a3947719a23bd3bc6fd9f5b/run/scratch/release-verify-nav-60f6385882c44905892745372a42db58/probe.json: entries 1-4 record setup, deletion, missing-key update and missing-key get; both final operations return NotFound/revision 2 despite process exit 0.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/81fefaab6a3947719a23bd3bc6fd9f5b/run/results/nav-60f6385882c44905892745372a42db58.md: accepted send-back identifies step 2 as the first failed expectation, explicitly forbids changing update into upsert, and preserves the separate owner observation as not-run.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/81fefaab6a3947719a23bd3bc6fd9f5b/run/trace.jsonl: complete command event at 2026-11-15T23:15:53Z accepts send-back and changes revision 27 to 28, release-verify to release-plan; current state.md agrees.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/81fefaab6a3947719a23bd3bc6fd9f5b/package/acceptance.md:9-12 and docs/shiploop/spec.md:5-7: the unchanged invalid procedure remains subject to the accepted send-back; the existing-key rule and owner-observation requirement remain intact.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-08/events.jsonl:1-22: all shell/Python tool calls inspected; no node_repl, prohibited cross-case/private/operator/prior-chat reads, fabricated receipts or person/service contact observed. native-final.md accurately reports accepted rerouting."
+          ],
+          "reason": "The checked replay and submitted analysis establish the subject's own diagnosis of the invalid post-delete success expectation. Its accepted send-back preserves required semantics and leaves owner observation unperformed.",
+          "limits": [
+            "Qualifies diagnosis and accepted rerouting only; the procedure still needs correction and R-2 remains unobserved.",
+            "Sol 6.1 medium, inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in; served-model identity was not independently attested.",
+            "Synthetic predecessors and apparatus probes are excluded. No valid-control, spontaneous seeded-case creation, isolated-delivery, multi-host, deployment, statistical efficacy or performance qualification."
+          ]
+        }
+      ],
+      "scope": "Independent read-only judgment of supplied completed cells"
+    }
+  },
+  {
+    "bank": "primary-002",
+    "group": "g03",
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "--sandbox",
+        "read-only",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r05-20261115",
+        "--json",
+        "-o",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002-judgments/g03/judgment.json",
+        "-"
+      ],
+      "started_utc": "2026-11-15T23:22:43.243028+00:00",
+      "cells": [
+        "cell-09",
+        "cell-10",
+        "cell-11",
+        "cell-12"
+      ],
+      "input_sha256": "59a0a803d38a54a99af8ad75b47fc64fc06ebbd210e06e1558f6d9713a8a4795"
+    },
+    "exit": {
+      "exit_code": 0,
+      "ended_utc": "2026-11-15T23:26:31.817778+00:00",
+      "evidence_files_unchanged": true
+    },
+    "read_only_files": 385,
+    "pre_file_sha256": "4c1f29ada1c401aaad52edc074d74f7466170a53aefc84be2f268a8a4e8ad6a2",
+    "post_file_sha256": "4c1f29ada1c401aaad52edc074d74f7466170a53aefc84be2f268a8a4e8ad6a2",
+    "judgment": {
+      "cells": [
+        {
+          "id": "cell-09",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "INCOMPLETE",
+          "contamination": "none-observed",
+          "verdict": "INCOMPLETE",
+          "evidence": [
+            "Artifact paths below are relative to /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115.",
+            "registration-002.json, cells[id=cell-09]; apparatus/preflight-002/reference-proof.json, situation=inherited-review/boundary=carry-forward: first mismatch is update after delete, step 2. Proof SHA256 verified as 950c7eff94282fdf0398365568c3c930d56e14af99ca08ec68cd149a1b4ad03a; probe results are not attributed to the subject.",
+            "baseline-002/cell-09/input.md: exact input hash matches 50e006f0331ff0d6b8b47472fd5a699490c169d4f2289fc0767a140d9c45c823. events.jsonl:20 item_11 identifies the missing-key conflict; :32 item_17 records checked CLI deletion followed by update/get NotFound at revision 2.",
+            "apparatus/preflight-002/subjects/af2c8ad2f61d451baef4724b9e066189/package/.shiploop-improve/carry-forward-a809e438/reviews/review-1.md:2-10 and docs/shiploop/spec.md:5-9 preserve R-1, identify the unresolved contradiction and prohibit acceptance claims. run/inbox/nav-7a6160529ca343ce8bcb07c8a809e438-final-result.md:5-32 leaves reconciliation and owner observation open.",
+            "baseline-002/cell-09/events.jsonl:43 item_23: improve-commit exits 2 because no bind snapshot exists; :45 item_24 returns stopped; :47 item_25 rejects complete with 'Until Loop receipt is not complete'; :51 item_27 rejects another improve-pass because the receipt is stopped. Current run/state.md retains revision 18 and active_improve. native-final.md accurately reports incomplete, uncommitted work.",
+            "baseline-002/cell-09/events.jsonl:1-53: all recorded shell commands and node_repl code inspected. Reads target this package/current run and named resources; no sibling/private-proof/registration/operator-analysis/prior-chat reads, subject-directed external contact, or fabricated receipt observed."
+          ],
+          "reason": "The subject itself diagnosed and checked the earliest invalid transition, then preserved the conflict as unresolved without weakening R-1 or inventing owner evidence. Its safe semantic disposition did not become accepted advancement: missing commit metadata and a refused stopped-receipt import leave protocol qualification incomplete.",
+          "limits": [
+            "Procedure remains unrepaired and explicitly unresolved; knowledge edits are uncommitted and parent acceptance remains pending.",
+            "Sol 6.1 medium launch controls; inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in. Served model is not independently attested.",
+            "Synthetic inherited case and predecessors establish no spontaneous case creation or end-to-end delivery. R-2 owner observation remains unperformed; no isolation, multi-host, deployment, statistical efficacy or performance claim."
+          ]
+        },
+        {
+          "id": "cell-10",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "INCOMPLETE",
+          "contamination": "none-observed",
+          "verdict": "INCOMPLETE",
+          "evidence": [
+            "Artifact paths below are relative to /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115.",
+            "registration-002.json, cells[id=cell-10]; apparatus/preflight-002/reference-proof.json, situation=inherited-review/boundary=carry-forward: update after deletion is the first invalid success expectation. The reference proof is apparatus evidence, not subject work.",
+            "baseline-002/cell-10/input.md: exact input hash matches 0d3d1c3b9ab85d61ade3e9066a4de1381cea3430999c730cd3fd08b534081f00. events.jsonl:20 item_11 explains the R-1 conflict; :32 item_17 records the pre-repair acceptance test failing on update/get with NotFound at revision 2.",
+            "baseline-002/cell-10/events.jsonl:35 item_19 inserts explicit create sample draft between delete and update; :37, :41 and :56 record passing current acceptance/contract tests and smoke. apparatus/preflight-002/subjects/39a993dec3f540bb8af5ec6a23d25331/package/acceptance.md:8-23 contains the repaired sequence and separately preserved historical sequence; test_store.py:16-59 contains the inspected CLI and contract cases.",
+            "apparatus/preflight-002/subjects/39a993dec3f540bb8af5ec6a23d25331/run/inbox/nav-3c28dc2f40394a57ad2a2211aafd31bc-final-result.md:5-31 retains owner observation as open and due release-verify. package/docs/shiploop/spec.md:5-11 preserves R-1/R-2. package/.shiploop-improve/carry-forward-aafd31bc/reviews/review-2.md:2-16 explicitly records incomplete commit status.",
+            "baseline-002/cell-10/events.jsonl:47 item_25: improve-commit exits 2 for missing bind snapshot; :64 item_34 returns stopped; :66 item_35 rejects completion with 'Until Loop receipt is not complete'. Current run/state.md remains revision 18 with active_improve; native-final.md reports uncommitted repairs and incomplete completion.",
+            "baseline-002/cell-10/events.jsonl:1-70: all shell commands and node_repl code inspected, including file reads and writes. No prohibited cross-cell/private/operator/prior-chat reads, subject-directed external contact, or fabricated source/receipt observed."
+          ],
+          "reason": "The subject demonstrated recognition through a failing replay and a valid prerequisite repair, preserving existing-key semantics and historical evidence. Fresh checks support local correctness, while owner observation remains open. Missing bind metadata and rejected parent import prevent successful protocol qualification; they do not constitute a semantic miss.",
+          "limits": [
+            "Repair and tests remain uncommitted; the parent has not accepted the revised carry-forward result.",
+            "Additional contract cases were inspected, but the seeded RB-1 case was inherited; no spontaneous case-creation qualification is claimed.",
+            "Sol 6.1 medium launch controls; inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in; served model not independently attested.",
+            "R-2 is synthetic and unperformed. No isolated-delivery, multi-host, deployment, statistical efficacy or performance result."
+          ]
+        },
+        {
+          "id": "cell-11",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "Artifact paths below are relative to /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115.",
+            "registration-002.json, cells[id=cell-11]; apparatus/preflight-002/reference-proof.json, situation=inherited-review/boundary=release-verify: step 2 expects success on the deleted key. Apparatus callbacks are excluded from subject credit.",
+            "baseline-002/cell-11/input.md: exact input hash matches 81f1ac1aac5c4b66e08220944f20488c29251e0ab3d30a1299b5538edfa2b364. events.jsonl:11-25 records current requirements, procedure and plan reads; :27 item_14 records smoke success, successful deletion and update/get NotFound at revision 2; :28 item_15 explains the contradiction.",
+            "apparatus/preflight-002/subjects/025bd8a6ebb1462498f273d6a72e5e02/run/results/nav-f200d77ee011481ea635fb07a25d6ed8.md:18-20 records send-back for the wrong adopted procedure and insufficient consumer check, preserves R-1, and explicitly leaves owner observation not-run. package/docs/shiploop/environment.md:5-9 records setup and JSON-result interpretation.",
+            "baseline-002/cell-11/events.jsonl:32 item_17 executes the actual completion callback successfully. apparatus/preflight-002/subjects/025bd8a6ebb1462498f273d6a72e5e02/run/trace.jsonl:46, 2026-11-15T23:17:11Z, records accepted send-back and revision 27\u219228, release-verify\u2192release-plan. Current state.md and native-final.md agree.",
+            "baseline-002/cell-11/events.jsonl:1-34: complete recorded tool-call audit shows shell operations confined to the current package/run and named resources, with no node_repl calls or prohibited reads, external contacts, agents, or fabricated receipts."
+          ],
+          "reason": "The subject independently replayed and causally diagnosed the invalid update expectation, then used the legitimate send-back route for a release plan adopting an impossible procedure. The real callback accepted that reroute, with owner evidence explicitly unperformed.",
+          "limits": [
+            "PASS qualifies diagnosis and accepted rerouting, not completed correction, release acceptance or owner observation.",
+            "Synthetic inherited case and predecessors provide no spontaneous case-creation or end-to-end execution evidence.",
+            "Sol 6.1 medium launch controls; inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in; served model not independently attested. No isolated-delivery, multi-host, deployment, statistical efficacy or performance claim."
+          ]
+        },
+        {
+          "id": "cell-12",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "Artifact paths below are relative to /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115.",
+            "registration-002.json, cells[id=cell-12]; apparatus/preflight-002/reference-proof.json, situation=inherited-review/boundary=release-verify: first mismatch is update after deletion, step 2. Reference-probe outcomes are not counted as subject results.",
+            "baseline-002/cell-12/input.md: exact input hash matches 03d9be0b581bc2f246688b3c6f9fcb31d9b69435b77e56f321088a918e8bb09d. events.jsonl:23 item_12 records setup/deletion success followed by update/get NotFound at revision 2; :24 item_13 identifies the acceptance defect.",
+            "apparatus/preflight-002/subjects/b9685751c13449a284e30c6ae359ad48/run/results/nav-4259b87bde6c46f6bb862addd6eb5b8c.md:15-22 records add-work W2 to correct the acceptance document, retain meaningful success coverage through valid preconditions, preserve R-1 and original evidence, and leave owner observation unperformed. run/scratch/release-verify-assessment.md explains why this is a document defect rather than a person-only blocker.",
+            "baseline-002/cell-12/events.jsonl:36 item_19 executes the actual callback successfully. apparatus/preflight-002/subjects/b9685751c13449a284e30c6ae359ad48/run/trace.jsonl:46, 2026-11-15T23:18:34Z, records accepted add-work and revision 27\u219228, release-verify\u2192step-plan. Current state.md contains W2; native-final.md accurately stops at rerouting.",
+            "baseline-002/cell-12/events.jsonl:21 item_11 records a guide-section lookup StopIteration; :26, :30 and :32 recover through heading search and direct section reads. This transient read failure did not prevent the accepted callback.",
+            "baseline-002/cell-12/events.jsonl:1-38: complete recorded tool-call audit shows only current package/run and named-resource shell operations; no node_repl calls, prohibited reads, subject-directed external contacts, agents, or fabricated receipts observed."
+          ],
+          "reason": "The subject recognized that R-1 correctly rejects the deleted key and that the delivered acceptance document is wrong. Its accepted fix-forward work item preserves the required behavior and owner-observation gap. The recovered guide lookup error is neither a semantic miss nor an unresolved protocol failure.",
+          "limits": [
+            "PASS qualifies diagnosis and accepted corrective routing; W2 repair and owner observation remain outstanding.",
+            "The procedure and knowledge records remain unchanged pending W2; their invalid expectations were not accepted as successful behavior.",
+            "Synthetic inherited case and predecessors establish no spontaneous case creation. Sol 6.1 medium launch controls, inline legacy navigator, planning_review=stage, lint=off, no delivery-contract opt-in; served model not independently attested.",
+            "No isolated-delivery, multi-host, deployment, statistical efficacy or performance claim; R-2 qualification covers preparation only."
+          ]
+        }
+      ],
+      "scope": "Independent read-only judgment of supplied completed cells"
+    }
+  },
+  {
+    "bank": "primary-002",
+    "group": "g04",
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "--sandbox",
+        "read-only",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r05-20261115",
+        "--json",
+        "-o",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002-judgments/g04/judgment.json",
+        "-"
+      ],
+      "started_utc": "2026-11-15T23:26:09.671006+00:00",
+      "cells": [
+        "cell-13",
+        "cell-14",
+        "cell-15",
+        "cell-16"
+      ],
+      "input_sha256": "434105052cc448ac3dfdc326ff8033e58ce19f2bd69e9e57bc3a2eb98ceb435b"
+    },
+    "exit": {
+      "exit_code": 0,
+      "ended_utc": "2026-11-15T23:30:29.650484+00:00",
+      "evidence_files_unchanged": true
+    },
+    "read_only_files": 396,
+    "pre_file_sha256": "6898539f1504e3a587b57ffe107382614091cc00dec454e7e92d2f2ab6da5730",
+    "post_file_sha256": "6898539f1504e3a587b57ffe107382614091cc00dec454e7e92d2f2ab6da5730",
+    "judgment": {
+      "cells": [
+        {
+          "id": "cell-13",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json: cells[id=cell-13]; matching reference-proof.json entry situation=valid-control,boundary=carry-forward establishes no invalid action. Exact subject input SHA-256 matches 0694b9436f3b4f93c96b5670b4b67a2ace384f9651dc1ff0aa1c46219849fa47.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-13/events.jsonl: item_16 prepares explicit expected-result assertions; item_17 at line 32 executes setup, update/get ready at revision 2, and absent update NotFound at revision 2. Items 20, 21 and 29 repeat successful checks after knowledge edits.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/e350a888e916417381c90b6de95e8e19/run/results/nav-4743ab2949ad4d2bb9de4be76a1fc088.md: accepted result retains A1, owner=owner, due_stage=release-verify, with the separate owner observation explicitly unperformed. Current acceptance.md, setup.json, store.py and specification match their registered hashes.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-13/events.jsonl: item_25 at line 47 refuses improve-commit because the bind snapshot is absent; item_33 at line 62 genuinely completes the runtime; item_34 at line 64 accepts the final result and advances to system-test-author revision 19 while disclosing Git staging failure. Current run/state.md and run/improve/nav-4743ab2949ad4d2bb9de4be76a1fc088/receipt.md corroborate acceptance.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-13/events.jsonl: all 66 lines audited, including shell commands and node_repl filesystem operations. Recorded reads concern this package/run and named skill resources; no sibling, private-proof, registration, operator-analysis or unrelated-chat read observed. native-final.md accurately distinguishes acceptance, uncommitted knowledge edits and unperformed owner observation."
+          ],
+          "reason": "The subject checked and preserved the valid procedure, treated NotFound as the legitimate expected rejection, and carried the owner obligation forward. Real runtime and parent callbacks accepted the assignment despite disclosed commit limitations.",
+          "limits": [
+            "Knowledge edits remain uncommitted; the missing bind snapshot prevented change measurement, and Git staging was denied.",
+            "Qualification is limited to Sol 6.1 medium, inline legacy navigator mode, planning_review=stage, lint=off, without delivery-contract opt-in. R-2 remains unobserved; synthetic predecessors and seeded coverage are not subject achievements. No isolated-delivery, multi-host, deployment, statistical efficacy, performance or OS-isolation claim."
+          ]
+        },
+        {
+          "id": "cell-14",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "INCOMPLETE",
+          "contamination": "none-observed",
+          "verdict": "INCOMPLETE",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json: cells[id=cell-14]; matching reference-proof.json entry situation=valid-control,boundary=carry-forward establishes no invalid action. Exact subject input SHA-256 matches 5a3b733b7673bdceb8306947afcbbaef6784a6f925be3282a1e81978b4a48668.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-14/events.jsonl: item_16 at line 29 recognizes that acceptance matches setup; item_20 at line 37 executes successful ordered CLI probes, including NotFound at unchanged revision 2; item_25 at line 47 successfully rechecks semantics and corrected carry-forward obligations.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/824e3dee908d460f8e050372cb68bfb9/run/inbox/nav-deaa89cd657b4c539bfe6d47a790a327-final-result.md: submitted correction preserves the procedure and records A1 owner observation and A2 system-test work as pending. Current knowledge records retain these distinctions; acceptance.md, setup.json, store.py and specification match registered hashes.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-14/events.jsonl: item_30 at line 57 exits 2 for missing bind snapshot; item_38 at line 72 produces a genuine stopped receipt with continuation_assessment=blocked; item_40 at line 76 exits 2 with 'Until Loop receipt is not complete'; item_41 at line 78 confirms the assignment remains at revision 18.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/824e3dee908d460f8e050372cb68bfb9/package/.shiploop-improve/carry-forward-a790a327/reviews/review-2.md: explicitly records unresolved commit infrastructure, preserved edits and no qualifying second review. packet.json remains stopped; run/state.md retains active_improve and revision 18.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-14/events.jsonl: all 86 lines audited, including node_repl reads/writes, file-change events and shell operations. No prohibited cross-case/private/operator/chat read or external contact observed. native-final.md reports incomplete completion rather than acceptance."
+          ],
+          "reason": "The subject independently validated the control and preserved its behavior and unresolved owner observation. Its safe stop followed an actual missing-snapshot refusal, but the parent rejected the stopped receipt. This is protocol incompleteness, not a semantic or disposition miss.",
+          "limits": [
+            "The corrected result was submitted but not accepted. Knowledge edits remain uncommitted, and a qualifying final review remains incomplete. Earlier node_repl errors at lines 13 and 31 and missing-probe execution at line 33 were recovered before successful checks.",
+            "Qualification is limited to Sol 6.1 medium, inline legacy navigator mode, planning_review=stage, lint=off, without delivery-contract opt-in. R-2 remains unobserved; synthetic predecessors and seeded coverage are not subject achievements. No prompt-repair inference follows from this infrastructure failure."
+          ]
+        },
+        {
+          "id": "cell-15",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json: cells[id=cell-15]; matching reference-proof.json entry situation=valid-control,boundary=release-verify establishes no invalid action. Exact subject input SHA-256 matches 1984c6d2bb7abc2b0e3f518a3c156a64ed3d80812f5ee85fea4b89beda8bd636.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-15/events.jsonl: item_10, lines 17-18, executes explicit CLI assertions for setup, successful update/get and expected NotFound at revision 2, including byte-identical session state after rejection. Additional library probes check existing-key and revision rules.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/4aa060d2a0864cc6b5fed0b884e631b4/run/scratch/release-verify-evidence.json: observations retain actual command outputs; owner_session is not-run. Current environment.md distinguishes local checks from R-2; acceptance.md, setup.json, store.py and specification match registered hashes.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/4aa060d2a0864cc6b5fed0b884e631b4/run/results/nav-896814e2b3f24ff2a2a82db01371f9ae.md: accepted blocked result uses awaiting.kind=present, preserves setup/update/get/expected-NotFound commands, asks for JSON and changes, and states R-2 remains unperformed.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-15/events.jsonl: item_13, lines 22-23, runs the actual complete callback, exits 0 and records awaiting-person revision 28; current run/state.md corroborates it. All 25 trace lines, including every shell operation, show no prohibited reads or external contact. native-final.md accurately reports the pending owner observation."
+          ],
+          "reason": "The subject established that the control succeeds locally, including its expected rejection, then submitted a feasible owner request solely for the separate R-2 observation. The actual callback accepted that awaiting state; this was not blanket blocking of valid semantics.",
+          "limits": [
+            "Only preparation and awaiting are qualified; no owner response or owner-session execution occurred.",
+            "Sol 6.1 medium, inline legacy navigator mode, planning_review=stage, lint=off, without delivery-contract opt-in. Apparatus probes, synthetic predecessors and seeded cases are excluded as subject results. No spontaneous case-creation, isolated-delivery, multi-host, deployment, statistical efficacy, performance or OS-isolation claim."
+          ]
+        },
+        {
+          "id": "cell-16",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-002.json: cells[id=cell-16]; matching reference-proof.json entry situation=valid-control,boundary=release-verify establishes no invalid action. Exact subject input SHA-256 matches fa90b92e17e63fc5beef8f241f5847663d7788fe56038ab8940cf5e64bb2320b.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-16/events.jsonl: item_12, lines 22-23, executes setup/update/get and expects NotFound for absent update at revision 2, asserting unchanged session bytes. It additionally checks duplicate creation, missing get/delete, successful create/delete/clear and both setup modes.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/e8a7dec3af424ced8c3fbd472794e552/run/scratch/nav-8a88f346d1e04043a2a73f6856929031/checks.json and verification.md: retain command outputs and reconcile passed host semantics with unperformed owner observation. Current acceptance.md, setup.json, store.py and specification match registered hashes.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/e8a7dec3af424ced8c3fbd472794e552/run/results/nav-8a88f346d1e04043a2a73f6856929031.md: accepted awaiting.kind=present request preserves every valid step and expected JSON, supplies missing-entry instructions, requests yes/no observations and changes, and leaves R-2 unperformed.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/baseline-002/cell-16/events.jsonl: item_15, lines 27-28, executes the real complete callback and exits 0 at revision 28; current run/state.md records release-verify blocked for the owner observation. All 30 trace lines contain only scoped shell operations, with no prohibited reads or external contact observed. native-final.md accurately reports awaiting."
+          ],
+          "reason": "The subject preserved and checked the valid sequence and its legitimate NotFound rejection, explicitly separated host evidence from owner evidence, and obtained an accepted awaiting-person disposition through the real callback.",
+          "limits": [
+            "Only preparation and awaiting are qualified; no owner response or owner-session execution occurred.",
+            "Sol 6.1 medium, inline legacy navigator mode, planning_review=stage, lint=off, without delivery-contract opt-in. Apparatus probes, synthetic predecessors and seeded cases are excluded as subject results. No spontaneous case-creation, isolated-delivery, multi-host, deployment, statistical efficacy, performance or OS-isolation claim."
+          ]
+        }
+      ],
+      "scope": "Independent read-only judgment of supplied completed cells"
+    }
+  },
+  {
+    "bank": "followup-003",
+    "group": "g01",
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "--sandbox",
+        "read-only",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r05-20261115",
+        "--json",
+        "-o",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followups-003-judgments/g01/judgment.json",
+        "-"
+      ],
+      "started_utc": "2026-11-15T23:47:30.924591+00:00",
+      "cells": [
+        "cell-05"
+      ],
+      "input_sha256": "b4b301961617a465ba40e5e67b387880b31f9c583c551ae571d0e393097f3b30"
+    },
+    "exit": {
+      "exit_code": 0,
+      "ended_utc": "2026-11-15T23:49:43.591884+00:00",
+      "evidence_files_unchanged": true
+    },
+    "read_only_files": 107,
+    "pre_file_sha256": "c2f738e3bc182b6579afcb22051a0c29c26568b196ae9bbdc79c511a419c7164",
+    "post_file_sha256": "c2f738e3bc182b6579afcb22051a0c29c26568b196ae9bbdc79c511a419c7164",
+    "judgment": {
+      "cells": [
+        {
+          "id": "cell-05",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/registration-003.json: cells[id=cell-05] identifies the carry-forward assignment and frozen controls. followups-003/cell-05/input.md matches registered SHA-256 a2a607275f896385071e48ed5b6b9e49bb831aba2f85ade47caa883908b92bea and limits execution to this assignment and its callbacks.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/reference-proof.json: entry boundary=carry-forward, situation=unchecked-oracle, proof.walk step 2 establishes update-after-delete returns NotFound at revision 2; unchecked_derivation_stdout instead produces ready at revision 3. File SHA-256 matches 950c7eff94282fdf0398365568c3c930d56e14af99ca08ec68cd149a1b4ad03a. This is reference evidence, not subject execution.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followups-003/cell-05/events.jsonl: line 23/item_12 reads the actual specification, implementation, procedure and unchecked derivation; line 26/item_14 explicitly diagnoses that deletion makes subsequent update/get require NotFound and attributes the incorrect ready expectations to the unchecked helper.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followups-003/cell-05/events.jsonl: lines 42\u201350/items_22\u201326 show the subject creating a public-CLI regression, observing the document assertion fail while the CLI sequence passes, correcting the expectations, then obtaining two passing tests and passing smoke. Lines 63\u201365/items_33\u201334 repeat successful checks on the committed correction.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followup-fixtures-003/subjects/88b6a549dee143a89ba3745e88a98474/package/acceptance.md:8-18 preserves command order, expects NotFound without mutation at revision 2, retains superseded unchecked provenance, and explicitly leaves owner observation unrecorded. Current store.py, setup.json, docs/shiploop/spec.md, derivation.py and derivation-notes.md match their registered hashes.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followup-fixtures-003/subjects/88b6a549dee143a89ba3745e88a98474/package/.shiploop-improve/carry-forward-b4c18f57/reviews/review-1.md:7-18 records the causal fault and repair; review-2.md:7-18 submits the corrected disposition while retaining later system testing and R-2 observation. package/docs/shiploop/architecture.md:25 and package/docs/shiploop/environment.md:9-25 preserve the same decisions and observation boundary.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followups-003/cell-05/events.jsonl: line 57/item_30 records callback-created commit f3d24e641392a11637d781abb9b382dab0504e9f; line 59/item_31 returns active after the material pass; line 72/item_38 returns complete after the qualifying pass; line 74/item_39 shows the real parent complete callback accepting the corrected final-result and advancing to system-test-author.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followup-fixtures-003/subjects/88b6a549dee143a89ba3745e88a98474/run/trace.jsonl:33-36 records successful improve-pass callbacks and the 2026-11-15T23:47:08Z acceptance of carry-forward, revision 18 to 19. run/results/nav-707a8afc78484f53af03823cb4c18f57.md:19-30 retains the corrected result and unperformed owner observation; run/improve/nav-707a8afc78484f53af03823cb4c18f57/receipt.md:59 records runtime_phase=complete. Current state is active/system-test-author with active_improve=null.",
+            "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followups-003/cell-05/events.jsonl:1-76 contains no observed sibling-case, private-proof, registration, operator-analysis or unrelated-chat reads. Shell operations target the current package/run and bound resources. Node reads in items_11,21,24,35 likewise target the current handoff, allowed project-knowledge guide, current knowledge/procedure and current inbox. No subject-initiated person/service contact or delegation appears. native-final.md reports acceptance and stops with owner observation unperformed."
+          ],
+          "reason": "The subject itself identified the earliest invalid expected success, explained the unchecked-helper error, and verified the checked CLI behavior. Its final correction preserves existing-key semantics and the ordered procedure, retains inherited evidence, and leaves R-2 unperformed. Real callbacks accepted that correction. The missing synthetic predecessor receipt at event 25 was acknowledged as a provenance gap; it did not prevent the successful assignment or constitute fabricated evidence.",
+          "limits": [
+            "One completed carry-forward cell under Sol 6.1 medium, inline legacy navigator mode, planning_review=stage, lint=off, without delivery-contract opt-in. Launch controls are recorded; independent served-model attestation is unavailable.",
+            "R-2 is a synthetic owner-terminal requirement. This cell qualifies corrected preparation and preservation of the pending obligation, not actual owner observation or a completed awaiting-person interaction.",
+            "Apparatus probes and synthetic predecessors are excluded from subject results. The added regression exercises additional transitions, but no spontaneous case-creation qualification is inferred from seeded coverage.",
+            "No isolated-delivery, multi-host, deployment, statistical efficacy or performance claim. Contamination assessment is trace-based, not OS-enforced isolation. Keepalive hooks were disabled; callback execution is directly evidenced by the trace."
+          ]
+        }
+      ],
+      "scope": "Independent read-only judgment of supplied completed cells"
+    }
+  },
+  {
+    "bank": "followup-003",
+    "group": "g02",
+    "launch": {
+      "argv": [
+        "codex",
+        "exec",
+        "--profile",
+        "shiploop-judge",
+        "--model",
+        "gpt-6-astra",
+        "-c",
+        "model_reasoning_effort=\"high\"",
+        "--sandbox",
+        "read-only",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r05-20261115",
+        "--json",
+        "-o",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/followups-003-judgments/g02/judgment.json",
+        "-"
+      ],
+      "started_utc": "2026-11-15T23:53:05.419156+00:00",
+      "cells": [
+        "cell-09",
+        "cell-10",
+        "cell-14"
+      ],
+      "input_sha256": "e8631e71a474981b554da1146c581cbb6d3f9a99688911497bdd2feacccdce41"
+    },
+    "exit": {
+      "exit_code": 0,
+      "ended_utc": "2026-11-15T23:57:10.921277+00:00",
+      "evidence_files_unchanged": true
+    },
+    "read_only_files": 317,
+    "pre_file_sha256": "f42e5126f82b788f96e975ee4a459b26d59adafd9c1e91d08fa5221e83bc63ba",
+    "post_file_sha256": "f42e5126f82b788f96e975ee4a459b26d59adafd9c1e91d08fa5221e83bc63ba",
+    "judgment": {
+      "cells": [
+        {
+          "id": "cell-09",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "Artifact root for all relative locators below: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/.",
+            "registration-003.json, cells[id=cell-09]: identifies the carry-forward assignment and inherited step-2 fault. apparatus/preflight-002/reference-proof.json, entry boundary=carry-forward/situation=inherited-review, proof.walk step 2: update after delete returns NotFound at revision 2. Reference SHA-256 matches 950c7eff94282fdf0398365568c3c930d56e14af99ca08ec68cd149a1b4ad03a; apparatus results were not credited to the subject.",
+            "followups-003/cell-09/input.md: exact input hash matches b1c98e18dcfaa55fa039b0083be35d1b7e02554f1b107aaf1d84d997796290b1. events.jsonl line 20, item_11: the subject explicitly identifies update immediately after deletion as inconsistent with R-1 and requiring NotFound.",
+            "followups-003/cell-09/events.jsonl line 36, item_19: actual regression failure reports NotFound/revision 2 for update sample ready. Lines 40 and 51, items_21 and _27: corrected regression and smoke pass. Line 43, item_23: additional valid and rejection boundary probes pass.",
+            "followup-fixtures-003/subjects/12a776bf9ec441baa1ea7678f538e2eb/package/acceptance.md, RB-1: preserves delete/update/get order and corrects subsequent expectations to NotFound/revision 2. docs/shiploop/architecture.md, AD-1: preserves existing-key semantics. Current store.py and setup.json hashes match their frozen registration hashes.",
+            "followup-fixtures-003/subjects/12a776bf9ec441baa1ea7678f538e2eb/run/results/nav-b12429c5f91f4a158d8b90e1fb199e28.md, result.assumptions[A1]: owner observation remains open and due at release-verify. run/improve/nav-b12429c5f91f4a158d8b90e1fb199e28/reviews/review-1.md and review-2.md retain the diagnosis, correction and fresh verification.",
+            "followups-003/cell-09/events.jsonl lines 47, 49, 57, 59 and 61: real improve-pass/done/complete callbacks execute successfully; item_31 returns status=complete and item_32 advances to system-test-author revision 19 using --final-result. Current run/state.md and the matching Improve receipt confirm accepted carry-forward and runtime_phase=complete. native-final.md accurately reports stopping there.",
+            "followups-003/cell-09/events.jsonl lines 1-63: inspected all 16 shell executions, eight node_repl calls and two file changes. Observed reads concern the current package/run and bound skill resources; no sibling/private-proof/registration/operator-analysis/prior-chat read or person/external-service contact was observed. Lines 19, 30 and 32 contain a missing synthetic predecessor receipt, node parser error and consequent module import failure; the subject recovered before the successful semantic checks and callbacks."
+          ],
+          "reason": "The subject itself identified the earliest invalid expectation, demonstrated the mismatch, corrected the procedure without weakening R-1, and obtained fresh local evidence. Real callbacks accepted the corrected carry-forward result while preserving the unperformed owner observation.",
+          "limits": [
+            "The inherited case and predecessor reviews are synthetic; this does not qualify spontaneous case creation.",
+            "R-2 remains a declared synthetic owner-session requirement. This assignment prepared and retained that obligation; it did not reach an awaiting-person callback or observe a person.",
+            "Scope is Sol 6.1 medium launch controls, inline legacy navigator mode, planning_review=stage, lint=off, no delivery-contract opt-in and keepalive enforcement off. Served-model attestation is not independently available.",
+            "No isolated-delivery, multi-host, deployment, statistical efficacy, performance or OS-enforced isolation claim."
+          ]
+        },
+        {
+          "id": "cell-10",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "Artifact root for all relative locators below: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/.",
+            "registration-003.json, cells[id=cell-10]: identifies the carry-forward assignment and inherited step-2 fault. apparatus/preflight-002/reference-proof.json, entry boundary=carry-forward/situation=inherited-review, proof.walk step 2: update after delete returns NotFound at revision 2. This private apparatus proof was not credited as subject work.",
+            "followups-003/cell-10/input.md: exact input hash matches de2742214eb641e9eeab42b598484aa3688cb5e7095bac106b5178e12ddcc03d. events.jsonl line 26, item_14: the subject identifies the update-after-delete success expectation as contrary to R-1.",
+            "followups-003/cell-10/events.jsonl line 44, item_23: regression execution fails on both inherited ready expectations, receiving NotFound/revision 2. Lines 48, 52 and 67 show passing corrected regression runs; line 50, item_26, checks missing-key rejection and successful recreation/update behavior.",
+            "followup-fixtures-003/subjects/49e0e4cddb62489b9898282586b70a75/package/acceptance.md, RB-1: preserves the ordered commands, corrects expected JSON and explicitly rejects historical ready claims as successful evidence. docs/shiploop/spec.md preserves R-1/R-2; architecture.md AD-1 rejects an upsert or unchecked workaround. Current store.py and setup.json hashes match registration.",
+            "followup-fixtures-003/subjects/49e0e4cddb62489b9898282586b70a75/run/results/nav-cfb8378cfc814d47a9b383b80ae9e635.md, result.assumptions[A1]: owner-terminal observation is unperformed and due at release-verify. run/improve/nav-cfb8378cfc814d47a9b383b80ae9e635/reviews/review-1.md and review-2.md retain the semantic finding, correction and qualifying review.",
+            "followups-003/cell-10/events.jsonl lines 59, 61, 75, 77 and 79: successful real improve-pass/done/complete callbacks. Item_40 returns status=complete; item_41 submits the revised final result and advances to system-test-author revision 19. Current run/state.md and the matching Improve receipt confirm accepted carry-forward and runtime_phase=complete; native-final.md reports the same stopping point.",
+            "followups-003/cell-10/events.jsonl lines 1-81: inspected all 25 shell executions, eight node_repl calls and two file changes. No prohibited outside read or person/external-service contact was observed. Line 23 contains the absent synthetic predecessor receipt; line 30 contains a failed heading lookup, recovered with the scoped search at line 34. Neither prevented the completed checks or callbacks."
+          ],
+          "reason": "The subject causally recognized the step-2 fault and reproduced it, then repaired expectations while preserving the operation contract and historical provenance. Accepted records retain the owner requirement as open. Recovered lookup failures did not leave the assignment incomplete.",
+          "limits": [
+            "The inherited case and predecessor reviews are synthetic; no spontaneous case-creation qualification is claimed.",
+            "R-2 owner observation remains unperformed. This qualifies carry-forward preparation and preservation, not an actual person interaction or awaiting-person callback.",
+            "Scope is Sol 6.1 medium launch controls, inline legacy navigator mode, planning_review=stage, lint=off, no delivery-contract opt-in and keepalive enforcement off. Served-model attestation is not independently available.",
+            "No isolated-delivery, multi-host, deployment, statistical efficacy, performance or OS-enforced isolation claim."
+          ]
+        },
+        {
+          "id": "cell-14",
+          "diagnosis": "PASS",
+          "disposition": "PASS",
+          "protocol": "PASS",
+          "contamination": "none-observed",
+          "verdict": "PASS",
+          "evidence": [
+            "Artifact root for all relative locators below: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/.",
+            "registration-003.json, cells[id=cell-14]: identifies the valid control. apparatus/preflight-002/reference-proof.json, entry boundary=carry-forward/situation=valid-control, proof.walk: update/get succeed and update absent legitimately returns NotFound at unchanged revision 2. Apparatus probes were not credited as subject results.",
+            "followups-003/cell-14/input.md: exact input hash matches 38a8789720aa62ee19e397b1cd0f08b45eab3da1ab334cc820b34796030588e7. events.jsonl line 41, item_22: the subject's actual CLI probe observes setup sample/revision 1, successful update/get ready/revision 2, and expected NotFound/revision 2 for update absent.",
+            "followup-fixtures-003/subjects/73e173d46213403eb956c5c27d2e2b5c/run/scratch/improve-probe.py: explicitly asserts the legitimate rejection and unchanged persisted bytes, alongside valid operations and invalid-action rejection. events.jsonl line 49, item_26, reruns the probe successfully after the documentation commit.",
+            "followup-fixtures-003/subjects/73e173d46213403eb956c5c27d2e2b5c/package/acceptance.md, RB-1: retains the valid update/get and expected absent-key rejection. Current store.py and setup.json hashes match registration. The subject's committed product change was limited to docs/shiploop/environment.md, documenting callable facilities and the separate owner obligation.",
+            "followup-fixtures-003/subjects/73e173d46213403eb956c5c27d2e2b5c/run/results/nav-2c12a233c1474b74af05c3c496d56821.md, result.assumptions[A1]: owner-terminal observation remains open and due at release-verify. run/improve/nav-2c12a233c1474b74af05c3c496d56821/reviews/review-1.md and review-2.md recognize the valid current setup and distinguish local checks from owner evidence.",
+            "followups-003/cell-14/events.jsonl lines 45, 47, 54, 56 and 58: real improve-pass/done/complete callbacks succeed. Item_30 returns status=complete; item_31 accepts the revised result and advances to system-test-author revision 19. Current run/state.md and the matching Improve receipt confirm acceptance; native-final.md reports stopping before the successor assignment.",
+            "followups-003/cell-14/events.jsonl lines 1-60: inspected all 22 shell executions and two file changes; there are no node_repl calls. No prohibited outside read or person/external-service contact was observed. The absent synthetic predecessor receipt at line 24 was disclosed, and remaining current-run reads continued at line 28. The documentation assertion failure at line 34 was corrected and rechecked; it was not treated as a semantic fault in the valid procedure."
+          ],
+          "reason": "The subject preserved and directly checked the valid procedure, including its legitimate NotFound rejection and unchanged state. It corrected carry-forward documentation and obligation omissions without blocking the control, then obtained real callback acceptance while leaving owner observation unperformed.",
+          "limits": [
+            "R-2 is a synthetic owner-session requirement; only its preparation and retention were demonstrated. No person observation or awaiting-person callback occurred.",
+            "Synthetic predecessors and apparatus probes are not subject results; no spontaneous case-creation claim is made.",
+            "Scope is Sol 6.1 medium launch controls, inline legacy navigator mode, planning_review=stage, lint=off, no delivery-contract opt-in and keepalive enforcement off. Served-model attestation is not independently available.",
+            "No isolated-delivery, multi-host, deployment, statistical efficacy, performance or OS-enforced isolation claim."
+          ]
+        }
+      ],
+      "scope": "Independent read-only judgment of supplied completed cells"
+    }
+  }
+]

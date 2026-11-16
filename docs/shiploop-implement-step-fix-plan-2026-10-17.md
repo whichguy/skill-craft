@@ -1,14 +1,14 @@
 Execute: ask
 
-# Implement-step improvement plan — R07, R08 and R21 implemented 2026-11-15
+# Implement-step improvement plan — R05 qualified; R07, R08 and R21 implemented
 
-**R07, R08 and R21 are implemented for their scoped contracts: recorded outcomes require explicit settlements, test errors cannot certify a pass, obsolete receipts rerun, and declared external checks execute again. R07 qualification and scoped regressions pass; inherited-procedure validity is next.**
+**R05 qualification found no inherited-procedure semantic miss: retain the current prompts. R07, R08 and R21 remain implemented for their scoped contracts. R19 run-owned loop state is next.**
 
-Current source: `5d2e978614e4a100ffa04ee32e49ff054ce52dd2`, based on prior R08/R21 work and published main `fe0e6ca39435d502bd0b8afd3ce300ff731e5683`. The pre-R07 qualification baseline is `781d5eca4b82dd3b9783147271f8281bfbc2e9a8`. Thirteen full affected suites passed 1,204 executions at frozen `9ae4fc221e6876545be8b9a33a60eb6d6bf096db`; the latest main merge separately passes six full suites (350 executions) and all twenty R07 definitions. Both revisions have independent static approval and clean source/output audits. Ten of twelve R07-owned paths remain byte-identical, and all R07 admission functions are AST-identical. The [R07 evidence](shiploop-implement-prompt-audit-evidence/r07-20261115/README.md) retains original reproductions, repair attempts, both integration identities and exact check revisions. All source spans below are refreshed against current code. The original audit, R08 and R21 evidence remain frozen in their own directories.
+Current source: `b4ae50a37ac9be88d078dc8b7b1322e772f2c6b6`, integrating published main `3c55b80288a0f7bd136c155342f27cdc43d1f557`. R05 subjects used frozen `e596e6734f59590e2b4c6e65bea71a868675924f`; every pre-existing skill file and all 43 previously anchored files remain unchanged after integration. The [R05 evidence](shiploop-implement-prompt-audit-evidence/r05-20261115/README.md) separates 16/16 diagnosis/disposition passes from twelve protocol passes and four original protocol-incomplete results, with separately registered fresh follow-ups that pass 4/4. It adds no production code or prompt wording. The pre-R07 qualification baseline is `781d5eca4b82dd3b9783147271f8281bfbc2e9a8`. Thirteen full affected suites passed 1,204 executions at frozen `9ae4fc221e6876545be8b9a33a60eb6d6bf096db`; R07's earlier `5d2e978614e4a100ffa04ee32e49ff054ce52dd2` main merge separately passed six full suites (350 executions) and all twenty R07 definitions. Both R07 revisions have independent static approval and clean source/output audits. Ten of twelve R07-owned paths remain byte-identical, and all R07 admission functions are AST-identical. The [R07 evidence](shiploop-implement-prompt-audit-evidence/r07-20261115/README.md) retains original reproductions, repair attempts, both integration identities and exact check revisions. All source spans below are refreshed against current code. The original audit, R08 and R21 evidence remain frozen in their own directories.
 
 All 22 recommendation IDs, eight considerations, fourteen Code craft rules and T1–T52 references remain accounted for. The October 25 plan and Chess/Battleship analyses remain historical in archive commit `a8537de752bf925244f22c1dfed98097fc8180f2`; that archive is not a branch to merge wholesale. The unrelated September `shiploop-remaining-recommendations-plan.md` is a completed historical plan with different IDs.
 
-“Present” below means verified in this source, not universal package or live-host certification. “Qualification” means a focused acceptance experiment is still needed before deciding on a repair. The R07 settlement contract and R21 callback wording below are implemented; other proposed prompts remain unapplied. R07, R08 and R21 were explicitly authorized. The plan’s `Execute: ask` boundary still applies to remaining implementation proposals.
+“Present” below means verified in this source, not universal package or live-host certification. “Qualification” means a focused acceptance experiment is still needed before deciding on a repair. The R07 settlement contract and R21 callback wording below are implemented; other proposed prompts remain unapplied. R05 qualification and R07, R08 and R21 implementation were explicitly authorized. The plan’s `Execute: ask` boundary still applies to remaining implementation proposals.
 
 ## What changed since the earlier audit
 
@@ -27,14 +27,13 @@ New main adopted the [Grok refusal hook and resume note](experiments/grok-headle
 
 The [E14 control and later E15 qualification](experiments/parallel-plan-execution-20261114/skill-layer-contract.md#L78) keep timing claims conditional. E14 compares fan-out with one context that overlaps waits; E15 found little such waiting to overlap in the recorded ShipLoop steps. Measure the relevant project before choosing an optimization. R04 retains CC10’s measured-gain condition; R08 changes no scheduler.
 
-Published main also removed the HEAD-only knowledge-baseline fallback and released ShipLoop 1.36.2; [spec_diff](../skills/shiploop/scripts/shiploop_knowledge_home.py#L1104) now uses the starting-bytes snapshot or remains unavailable. The new E17 feature-scale study records bounded bare-worker gains and three invalid cells, while ShipLoop per-step behavior remains unmeasured. The new generic closed-loop and E2E-iterate skills are plans; this task adopts neither. The later Backchain release corrects child prepare/freeze instructions and ships ShipLoop 1.36.3; it is also integrated, with separate passing focused checks. These main changes do not rewrite earlier R07/R08/R21 evidence.
+Published main also removed the HEAD-only knowledge-baseline fallback and released ShipLoop 1.36.2; [spec_diff](../skills/shiploop/scripts/shiploop_knowledge_home.py#L1104) now uses the starting-bytes snapshot or remains unavailable. The new E17 feature-scale study records bounded bare-worker gains and three invalid cells, while ShipLoop per-step behavior remains unmeasured. The separate generic Closed Loop skill is now released at 0.1.0 (skill-craft 2.41.1); its ShipLoop adapter remains future work. The E2E-iterate plan remains historical. R05 adopts neither a new orchestrator nor its limits. The later Backchain release corrects child prepare/freeze instructions and ships ShipLoop 1.36.3; it is also integrated, with separate passing focused checks. These main changes do not rewrite earlier R07/R08/R21 evidence.
 
 ## Remaining work in priority order
 
 | Priority | IDs | Smallest warranted next action |
 |---|---|---|
-| P1 | R05 | Exercise an inherited procedure made invalid by setup changes. Add enforcement or wording only for a reproduced miss. R07 recorded-outcome continuity is implemented; its final checks are recorded below. |
-| P2 | R19 | Create a run-owned backing-state directory and pass the existing option at ordinary stage start; retain current receipt recovery. |
+| P1 | R19 | Create a run-owned backing-state directory and pass the existing option at ordinary stage start; retain current receipt recovery. |
 | P2 | R15, R16 | Align already-authorized test scope and replace forced-absence language with actual current-state observations plus independent observer controls. |
 | P2 | R17 | Delete the misleading “no action needed” parenthetical; preserve the existing keep/exclude review. |
 | P3 | R01, R13 | Correct stale path-reader documentation and qualify cold-host locator use. Retain paths and full emission. |
@@ -43,7 +42,7 @@ Published main also removed the HEAD-only knowledge-baseline fallback and releas
 
 ## Each recommendation, its code and acceptance
 
-The linked source is the implementation or exact edit target. The adjacent acceptance checks are requirements for closing the remaining work, not claims that all those checks ran today. The [current source map](shiploop-implement-prompt-audit-evidence/r07-20261115/source-map.json) retains every supporting span, excerpt hash and relevant decision commit.
+The linked source is the implementation or exact edit target. The adjacent acceptance checks are requirements for closing the remaining work, not claims that all those checks ran today. The [current source map](shiploop-implement-prompt-audit-evidence/r05-20261115/source-map.json) retains every supporting span, excerpt hash and relevant decision commit.
 
 ### R01 — Step-specific executable checks
 
@@ -89,11 +88,11 @@ The linked source is the implementation or exact edit target. The adjacent accep
 
 ### R05 — Valid inherited procedures
 
-**partial.** The shared walk now explicitly checks deciding transitions against spec rules, recomputes derived results, rejects unchecked helpers, and includes reviewer-added cases. Carry-forward still selects a separate code-review focus without that walk. Release-verify requires valid plans, current observations and scoped person replies, but does not explicitly apply the shared transition walk before the person ask. This establishes a remaining qualification boundary, not a demonstrated reviewer failure.
+**qualified for the registered local cases; no repair warranted.** Sixteen fresh subjects received actual carry-forward Improve or release-verify assignments: changed setup, an unchecked helper, a seeded inherited prior-review case and a valid control, with two repetitions at each boundary. Independent read-only judgments give diagnosis and disposition **16/16 PASS**. Protocol is **12 PASS / 4 INCOMPLETE** in the original bank; four fresh transport follow-ups pass 4/4 and are recorded separately. The current final-review focus and release-verify duties handled these cases without another copy of the shared walk.
 
-**Next:** Run the narrow behavioral qualification before editing prompts. Add the shared walk at a later boundary only if that fixture demonstrates a miss; add no procedure schema.
+**Next:** Retain the current prompts. Reopen only for a coherent observed semantic miss or a package/host boundary needing its own qualification. No procedure schema, new loop or extra result field is justified by this run.
 
-**Acceptance:** Accept: An unchanged valid library/API/CLI procedure remains accepted and its observation stays attributable to the intended candidate. Reject/challenge: Change setup so an inherited procedure's next action becomes impossible; final review/person preparation must identify the first invalid transition and retain the observation as open. Include an unchecked helper and a reviewer-added case.
+**Acceptance evidence:** Subjects found the first invalid expected transition after changed setup or deletion, rejected unchecked-helper proof, preserved valid update/get and legitimate NotFound rejection, and kept the separate owner-session observation unperformed. All eight release-verify callbacks were accepted as correction routes or valid awaiting requests. Four original Improve/Git callback incompletes remain frozen; the [R05 record](shiploop-implement-prompt-audit-evidence/r05-20261115/README.md) retains their separate fresh follow-ups, all four independently passing. The fixture's prior-review artifact is synthetic inherited coverage, not proof of spontaneous reviewer case creation. This is one library/CLI package and one host, not general API, service or deployment certification.
 
 **Code:** [shiploop_prompts.py:691 — PROCEDURE_WALK and _PROCEDURE_ITEM](../skills/shiploop/scripts/shiploop_prompts.py#L691); [shiploop_navigator.py:8212 — _improve_focus](../skills/shiploop/scripts/shiploop_navigator.py#L8212); [shiploop_prompts.py:2590 — END_REVIEW_FOCUS_HEAD](../skills/shiploop/scripts/shiploop_prompts.py#L2590); [shiploop_prompts.py:1841 — DUTIES['release-verify']](../skills/shiploop/scripts/shiploop_prompts.py#L1841); [shiploop-guidance.test.py:3047 — ProcedureFixtureTests](../test/shiploop-guidance.test.py#L3047)
 
@@ -328,23 +327,18 @@ EXACT_CHECK_CALLBACK && EXACT_LOOP_DONE_ARGV < SATISFIED_REPORT && EXACT_COMPLET
 
 Prepare the result and evidence-grounded five-field report first. A failed check prevents later commands. For blocked/send-back, report the loop blocked and use the callback; never substitute a satisfied report. This shortens orchestration without removing the stage’s Until contract. R12/R19 cite the current implementation; no new command is proposed.
 
-### Inherited acceptance: qualify before adding text
+### Inherited acceptance: unchanged after qualification
 
-**Before — current final-review opening:**
+**Before — current final-review opening excerpt, supplied through the bound Improve assignment:**
 ```text
 Across every executed work item's change, trace
 each new or changed public entry point with a valid, a boundary and an invalid
 input
 ```
 
-**After — only if the R05 behavioral fixture demonstrates a miss:**
-```text
-For an inherited procedure affected by this change, apply the shared procedure
-walk to its current setup, state, authority and observer, including review-added
-cases. Repair an invalid transition or send it back before requesting its observation.
-```
+**After — retain that wording verbatim.** R05's 16 primary subjects all diagnosed or preserved the appropriate procedure and chose a valid disposition. The four original protocol incompletes concern Git snapshot permissions and are not semantic misses; their four passing fresh follow-ups remain separate evidence. Adding the previously proposed shared-walk sentence would duplicate instructions without a reproduced benefit.
 
-The deciding-transition and unchecked-helper clauses already exist in the shared walk. Do not add them a second time or infer that the missing final-review sentence proves an observed model failure.
+For release-verify, retain its existing “A release plan that is wrong or missing a step ... is a send-back” and “A material change to code, tests, fixtures, configuration or target invalidates the observations it affects” duties. The shared deciding-transition walk remains defined once at planning. [Exact current source and qualification limits](shiploop-implement-prompt-audit-evidence/r05-20261115/README.md).
 
 ### Recorded acceptance: explicit settlement on removal
 
@@ -523,16 +517,16 @@ These are stable acceptance references, not 52 passing tests. Each points to the
 | T22 | R13 | Resolve actual guide locators; no invented Method section/API. |
 | T23 | R13 | Built package contains selected references; installed-host qualification is separate. |
 | T24 | R04 | Retain all 14 rules; reopen CC3/6/9 additions only from a demonstrated gap. |
-| T25 | R05 | Responsible reviewer rejects illegal deciding transitions, including review-added cases. |
+| T25 | R05 | Qualified locally: subjects challenge illegal transitions and unchecked helpers; seeded prior-review coverage is inherited, not spontaneous case creation. |
 | T26 | R07 | Carry pending outcomes; removal requires exact attributed settlement at an allowed boundary. Initial completeness and declaration truth remain review duties. |
 | T27 | R03 | Final-candidate evidence matches the actual acceptance owner and current commands. |
 | T28 | R06 | Actor, entry and runner prerequisites retain owner and due stage. |
-| T29 | R05 | Changed setup invalidates an inherited observation procedure. |
+| T29 | R05 | Qualified locally: subjects identify the first invalid expected action after setup changes and retain the separate owner observation as unperformed. |
 | T30 | R18 | Return, commits, retention, host termination and product evidence stay distinct. |
 | T31 | R02 | Superseded: ask-agent now has one action and Proof per step, just like inline. |
 | T32 | R22 | Quality first, then measured reads/tokens/time; no character-count performance claim. |
 | T33 | R03 | Retarget to document-review import: changed lines linted and step tests rerun; stale semantics tracked in R08. |
-| T34 | R05 | Qualify final review/person-ask inheritance before adding a shared-walk invocation. |
+| T34 | R05 | Qualified without added wording: 16/16 semantic/disposition passes; 12 original protocol passes and four original incompletes with four passing separate transport follow-ups. |
 | T35 | R15 | All relevant surfaces preserve the same already-granted test scope. |
 | T36 | R06 | A probe/zero-test summary cannot satisfy the harness gate; one runner count still does not prove product behavior. |
 | T37 | R08 | Reject errors and obsolete verdicts through all cache layers; intended-copy/mutation semantics remain separate. |
@@ -560,11 +554,11 @@ Close a recommendation when its required behavior has valid evidence at the fina
 
 ## Verification and limits
 
-R07 qualification, implementation and the refreshed current source map are in the [R07 closure record](shiploop-implement-prompt-audit-evidence/r07-20261115/README.md). R21 implementation evidence remains in its [R21 closure record](shiploop-implement-prompt-audit-evidence/r21-20261115/README.md). R08 implementation evidence remains in its [closure record](shiploop-implement-prompt-audit-evidence/r08-20261115/README.md). The following bullets describe the preceding audit, before R08 was implemented; their source identities and raw results remain unchanged.
+R05 qualification, unchanged-prompt decision and the refreshed 211-anchor source map are in the [R05 record](shiploop-implement-prompt-audit-evidence/r05-20261115/README.md). Original R07 qualification and implementation remain in the [R07 closure record](shiploop-implement-prompt-audit-evidence/r07-20261115/README.md). R21 implementation evidence remains in its [R21 closure record](shiploop-implement-prompt-audit-evidence/r21-20261115/README.md). R08 implementation evidence remains in its [closure record](shiploop-implement-prompt-audit-evidence/r08-20261115/README.md). The following bullets describe the preceding audit, before R08 was implemented; their source identities and raw results remain unchanged.
 
 - The October anchor comparison has **80 exact excerpts retained and 48 changed**, out of 128. Changed excerpts were reinterpreted through current source and later decisions, not merely assigned new line numbers. [Comparison](shiploop-implement-prompt-audit-evidence/reanchor-20261115/old-anchor-comparison.json).
 - **97 selected tests passed**: runner counts 49, masked-zero-exit controls 9, packet bounds/spills 21, loop contracts/Work 18. All 5,590 tracked skills/test file hashes and the source HEAD remained unchanged. [Receipt](shiploop-implement-prompt-audit-evidence/reanchor-20261115/test-receipt.json).
 - The pre-fix committed-helper probes reproduced mixed pytest pass/error acceptance and obsolete candidate/Proof receipt reuse, show package-version invalidation at the whole-answer layer, retain a 132,026-character packet body, and confirm the ordinary start lacks a directory option. The probes stub only their declared helper inputs; they are not full callback or live acceptance. [Probe results](shiploop-implement-prompt-audit-evidence/reanchor-20261115/probe-results.json) and [reproducer](shiploop-implement-prompt-audit-evidence/reanchor-20261115/probe_current.py).
 - Two fresh read-only CLI reviews explicitly requested `gpt-6-astra` / `high` with the `shiploop-judge` profile, no model fallback. Both exited successfully. Launch controls establish the requested model, not independently verified server identity. The parent reconciled their findings with direct source inspection and probes. Full transcripts remain at the evidence location in the [validation record](shiploop-implement-prompt-audit-evidence/reanchor-20261115/validation.json).
 - The earlier source anchors, IDs, links and excerpts were structurally validated at their pinned audit revision by the [historical document check](shiploop-implement-prompt-audit-evidence/reanchor-20261115/validate_sources.py). Markdown visual rendering was not inspected. That audit changed no runtime source and claimed no full repository suite, new CI, installed-host test, live platform run or comparative prompt-quality result. The historical 716-test receipt qualifies only its original snapshot.
-- That audit was planning work. R07, R08 and R21 are now implemented with separate regression evidence; other recommendations retain their stated dispositions.
+- That audit was planning work. R07, R08 and R21 are now implemented with separate regression evidence. R05 is qualified for its registered local cases with no production change; other recommendations retain their stated dispositions.

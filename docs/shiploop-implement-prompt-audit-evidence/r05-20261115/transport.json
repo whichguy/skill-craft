@@ -1,0 +1,287 @@
+{
+  "scope": "Qualification apparatus only; no production launcher/default/configuration change",
+  "keepalive": {
+    "timestamp_utc": "2026-11-15T22:56:00.173457+00:00",
+    "reason": "Observed whole-run Stop hook prompts after scoped assignment acceptance; one subject advanced to later stages. Preserve original batch as transport-incomplete, not an R05 semantic miss.",
+    "runner_pid": 15415,
+    "owned_descendant_pids": [
+      15845,
+      15846,
+      16077,
+      16078,
+      16079,
+      16094,
+      16095,
+      16096,
+      17525,
+      17637,
+      19487,
+      19488,
+      19491,
+      19492,
+      20044,
+      20045,
+      20050,
+      20051,
+      77407,
+      77491,
+      77492,
+      77493,
+      77923,
+      82906,
+      82912,
+      82924
+    ],
+    "completed_receipts_before_stop": [
+      "baseline/cell-03/receipt.json",
+      "baseline/cell-04/receipt.json",
+      "baseline/cell-05/receipt.json"
+    ],
+    "action": "Stop queued launches, terminate only this runner and descendants. Based on assigned acceptance boundary, not time/loop limits."
+  },
+  "initial_binding": [
+    {
+      "cell": "cell-05",
+      "initial_bind_in_frozen_inventory": true,
+      "bind_still_exists": true,
+      "errors": [
+        {
+          "line": 51,
+          "item": "item_27",
+          "message": "ShipLoop navigator: ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for you: leave the files as they are. The bound child stops here; the parent imports the review once the loop's final receipt exists. Parent, run: python3 /Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop complete --run-dir=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/0e7e2c850c164e8186795a866c21059e/run --action=nav-0ae0f7337689421cb8a236d3416784b9"
+        },
+        {
+          "line": 68,
+          "item": "item_36",
+          "message": "{\"status\":\"stopped\",\"state_file\":\"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/0e7e2c850c164e8186795a866c21059e/run/until-loop/innerloop-7tea6e_o.json\",\"workspace\":\"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/0e7e2c850c164e8186795a866c21059e/package\",\"work\":\"Improve the accepted carry-forward result as the selected Improve card's ShipLoop whole-skill subcall directs. Each iteration is one full review of the candidate named "
+        }
+      ]
+    },
+    {
+      "cell": "cell-09",
+      "initial_bind_in_frozen_inventory": true,
+      "bind_still_exists": true,
+      "errors": [
+        {
+          "line": 43,
+          "item": "item_23",
+          "message": "ShipLoop navigator: ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for you: leave the files as they are. The bound child stops here; the parent imports the review once the loop's final receipt exists. Parent, run: python3 /Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop complete --run-dir=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/af2c8ad2f61d451baef4724b9e066189/run --action=nav-a9d620020d844b35ab816fb09148714f"
+        }
+      ]
+    },
+    {
+      "cell": "cell-10",
+      "initial_bind_in_frozen_inventory": true,
+      "bind_still_exists": true,
+      "errors": [
+        {
+          "line": 47,
+          "item": "item_25",
+          "message": "ShipLoop navigator: ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for you: leave the files as they are. The bound child stops here; the parent imports the review once the loop's final receipt exists. Parent, run: python3 /Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop complete --run-dir=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/39a993dec3f540bb8af5ec6a23d25331/run --action=nav-b2f7dfc29107468a834a9957bcf43f27"
+        },
+        {
+          "line": 64,
+          "item": "item_34",
+          "message": "{\"status\":\"stopped\",\"state_file\":\"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/39a993dec3f540bb8af5ec6a23d25331/run/until-loop/innerloop-v5gfbzpj.json\",\"workspace\":\"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/39a993dec3f540bb8af5ec6a23d25331/package\",\"work\":\"Improve the accepted carry-forward result as the selected Improve card's ShipLoop whole-skill subcall directs. Each iteration is one full review of the candidate named "
+        }
+      ]
+    },
+    {
+      "cell": "cell-14",
+      "initial_bind_in_frozen_inventory": true,
+      "bind_still_exists": true,
+      "errors": [
+        {
+          "line": 57,
+          "item": "item_30",
+          "message": "ShipLoop navigator: ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for you: leave the files as they are. The bound child stops here; the parent imports the review once the loop's final receipt exists. Parent, run: python3 /Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop complete --run-dir=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/824e3dee908d460f8e050372cb68bfb9/run --action=nav-f405731308834b248369d4835725fdb8"
+        },
+        {
+          "line": 72,
+          "item": "item_38",
+          "message": "{\"status\":\"stopped\",\"state_file\":\"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/824e3dee908d460f8e050372cb68bfb9/run/until-loop/innerloop-ef2fom1m.json\",\"workspace\":\"/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/apparatus/preflight-002/subjects/824e3dee908d460f8e050372cb68bfb9/package\",\"work\":\"Improve the accepted carry-forward result as the selected Improve card's ShipLoop whole-skill subcall directs. Each iteration is one full review of the candidate named "
+        },
+        {
+          "line": 82,
+          "item": "item_43",
+          "message": "/Users/dadleet/src/skill-craft-r05-20261115/skills/shiploop/scripts/shiploop_navigator.py:9409:          \"ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for \""
+        },
+        {
+          "line": 84,
+          "item": "item_44",
+          "message": "          \"ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for \""
+        }
+      ]
+    }
+  ],
+  "diagnostic": {
+    "source": "e596e6734f59590e2b4c6e65bea71a868675924f",
+    "fixture": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/binding-diagnostic-001/subjects/43200c08459d448abbba3771a801f216",
+    "registered_cells_untouched": true,
+    "child_bound": true,
+    "bind_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/binding-diagnostic-001/subjects/43200c08459d448abbba3771a801f216/run/improve/nav-3b984d264991407bab9e66be16a90c5f-bind.md",
+    "bind_file_exists_on_real_entry": true,
+    "git_toplevel": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/binding-diagnostic-001/subjects/43200c08459d448abbba3771a801f216/package",
+    "direct_snapshot_tree": "8c9285a0652d3538471bbd3abbd7a747c3fac5fb",
+    "public_bind_writes_keys": [
+      "improve/nav-3b984d264991407bab9e66be16a90c5f-bind.md",
+      "improve/nav-3b984d264991407bab9e66be16a90c5f-bind-result.json"
+    ]
+  },
+  "permission_probes": [
+    {
+      "attempt": "permission-probes-001",
+      "mode": "workspace-write",
+      "receipt": {
+        "exit": 0,
+        "final": "{\"initial_bind_exists\": true, \"status\": \"BLOCKED\", \"error\": \"cannot snapshot the working tree: error: unable to create temporary file: Operation not permitted\\nerror: permission-probe.txt: failed to insert into database\\nerror: unable to index file 'permission-probe.txt'\\nfatal: adding files failed\"}",
+        "mode": "workspace-write",
+        "wall_seconds": 16.227
+      },
+      "launch": {
+        "argv": [
+          "codex",
+          "exec",
+          "--profile",
+          "shiploop",
+          "--model",
+          "gpt-6.1-sol",
+          "-c",
+          "model_reasoning_effort=\"medium\"",
+          "--sandbox",
+          "workspace-write",
+          "-c",
+          "approval_policy=\"never\"",
+          "--add-dir",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-001",
+          "-C",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-001/workspace-write/subjects/9ade222b8060471ab5edb8de7fbd4b2a/package",
+          "--json",
+          "-o",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-001/workspace-write/native-final.md",
+          "-"
+        ],
+        "input_sha256": "cf6c95fa7a04f66304103a51ce47f5e89b0cd200634c013c22eee7d0ef59c6a7",
+        "source": "e596e6734f59590e2b4c6e65bea71a868675924f"
+      }
+    },
+    {
+      "attempt": "permission-probes-001",
+      "mode": "danger-full-access",
+      "receipt": {
+        "exit": 0,
+        "final": "{\"initial_bind_exists\": true, \"tree\": \"1c059bbb1f4bb6cdbad80e9f47c64163207264ac\", \"status\": \"PASS\"}",
+        "mode": "danger-full-access",
+        "wall_seconds": 15.872
+      },
+      "launch": {
+        "argv": [
+          "codex",
+          "exec",
+          "--profile",
+          "shiploop",
+          "--model",
+          "gpt-6.1-sol",
+          "-c",
+          "model_reasoning_effort=\"medium\"",
+          "--sandbox",
+          "danger-full-access",
+          "-c",
+          "approval_policy=\"never\"",
+          "--add-dir",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-001",
+          "-C",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-001/danger-full-access/subjects/90dc48854bcb4ba89cbdb0652551e122/package",
+          "--json",
+          "-o",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-001/danger-full-access/native-final.md",
+          "-"
+        ],
+        "input_sha256": "b261cad0c9f2d4ca071419b3889b8018ffb19ee1df7fd826df4a8e4ca63e729e",
+        "source": "e596e6734f59590e2b4c6e65bea71a868675924f"
+      }
+    },
+    {
+      "attempt": "permission-probes-002",
+      "mode": "workspace-write",
+      "receipt": {
+        "exit": 0,
+        "final": "{\"initial_bind_exists\": true, \"status\": \"BLOCKED\", \"error\": \"cannot snapshot the working tree: error: unable to create temporary file: Operation not permitted\\nerror: permission-probe.txt: failed to insert into database\\nerror: unable to index file 'permission-probe.txt'\\nfatal: adding files failed\"}",
+        "mode": "workspace-write",
+        "wall_seconds": 16.953
+      },
+      "launch": {
+        "argv": [
+          "codex",
+          "exec",
+          "--profile",
+          "shiploop",
+          "--model",
+          "gpt-6.1-sol",
+          "-c",
+          "model_reasoning_effort=\"medium\"",
+          "--sandbox",
+          "workspace-write",
+          "-c",
+          "approval_policy=\"never\"",
+          "--add-dir",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-002",
+          "-C",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-002/workspace-write/subjects/a2c8bacd358b4e57b400f4169d7116b4/package",
+          "--json",
+          "-o",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-002/workspace-write/native-final.md",
+          "-"
+        ],
+        "input_sha256": "933bd38ec91e31093072753736add2d468ec34d5681de90c9ae2858a45a3b862",
+        "source": "e596e6734f59590e2b4c6e65bea71a868675924f"
+      }
+    },
+    {
+      "attempt": "permission-probes-002",
+      "mode": "danger-full-access",
+      "receipt": {
+        "exit": 0,
+        "final": "{\"initial_bind_exists\": true, \"tree\": \"3d3fc510435fed8ac022ff85e48fd71eab81f0e8\", \"status\": \"PASS\"}",
+        "mode": "danger-full-access",
+        "wall_seconds": 16.125
+      },
+      "launch": {
+        "argv": [
+          "codex",
+          "exec",
+          "--profile",
+          "shiploop",
+          "--model",
+          "gpt-6.1-sol",
+          "-c",
+          "model_reasoning_effort=\"medium\"",
+          "--sandbox",
+          "danger-full-access",
+          "-c",
+          "approval_policy=\"never\"",
+          "--add-dir",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-002",
+          "-C",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-002/danger-full-access/subjects/773fe901362c4084af3e6f54442c914d/package",
+          "--json",
+          "-o",
+          "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r05-20261115/permission-probes-002/danger-full-access/native-final.md",
+          "-"
+        ],
+        "input_sha256": "970904173541ae8a633ccadd02ce883d5d539ffab39939bda2e99f3ec5ff616a",
+        "source": "e596e6734f59590e2b4c6e65bea71a868675924f"
+      }
+    }
+  ],
+  "controller_reporting_failure": {
+    "classification": "APPARATUS_CONTROLLER_REPORTING_FAILURE",
+    "cause": "Concurrent fixture seed context redirects process-global stdout; controller ended with I/O on a closed stream. Both probe CLI launches were recorded. Their outputs are retained; corrected controller seeds sequentially.",
+    "source_changed": false,
+    "subject_launches": 2,
+    "probe_receipts_complete": true,
+    "meaning": "Both diagnostic CLI calls and their raw results completed. Process-global stdout redirection caused the controller to fail when printing their receipts; preserve exit 1 and both results. Separate sequential-seed controller repeated both probes without failure."
+  },
+  "production_launcher_anchor": "test/shiploop_e2e/hosts.py:469-473",
+  "conclusion": "Initial binds exist. Current snapshot attempts need Git object writes that workspace-write denies; danger-full-access succeeds in both focused probe pairs. The source converts failed current snapshots to unknown; its no-bind-snapshot diagnostic is not proof that binding was absent. Four fresh protocol follow-ups use production harness permissions. Original protocol incompletes remain unchanged."
+}
