@@ -439,6 +439,167 @@ class ImproveCliFixture(unittest.TestCase):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         return stage, self.action, store.read_record(self.run / "state.md")
 
+def _r16_local_observer_controls(test, base):
+    """Execute independent local controls; artifacts/logs are outside every observed target."""
+    base.mkdir(parents=True)
+    observer = base / "observer.py"
+    observer.write_text('''import json, sys
+from pathlib import Path
+target, expected, claim, rigged = sys.argv[1:]
+try:
+    value = json.loads(Path(target).read_text())
+    observed = value["candidate"]
+    state = "requested candidate present" if observed == expected else "different revision"
+    passed = {"identity": observed == expected, "presence": True,
+              "behavior": value["behavior"] == "ready"}[claim]
+    code = 0 if passed else 1
+except FileNotFoundError:
+    state, observed, code = "absent", None, 1
+except (OSError, ValueError, KeyError, TypeError):
+    state, observed, code = "indeterminate", None, 2
+if rigged == "always-success":
+    code = 0
+print(json.dumps({"state": state, "requested": expected, "observed": observed,
+                  "claim": claim}))
+sys.exit(code)
+''', encoding="utf-8")
+    targets = base / "targets"
+    targets.mkdir()
+    # Expected identity is a fixture constant, never derived from target content.
+    expected = "candidate-v2"
+    for state, candidate in (("correct", expected), ("wrong", "candidate-v1")):
+        directory = targets / state
+        directory.mkdir()
+        (directory / "artifact.json").write_text(json.dumps({"candidate": candidate, "behavior": "ready"}),
+                                                  encoding="utf-8")
+    (targets / "absent").mkdir()
+    (targets / "error/artifact.json").mkdir(parents=True)  # read fails, including as root
+
+    def snapshot():
+        return {str(p.relative_to(targets)): {"kind": "directory"} if p.is_dir() else
+                {"kind": "file", "hex": p.read_bytes().hex()}
+                for p in sorted(targets.rglob("*"))}
+
+    before = snapshot()
+    (base / "before.json").write_text(json.dumps(before, indent=2), encoding="utf-8")
+    expected_codes = {"absent": 1, "correct": 0, "wrong": 1, "error": 2}
+    expected_states = {"absent": "absent", "correct": "requested candidate present",
+                       "wrong": "different revision", "error": "indeterminate"}
+    records = []
+    logs = base / "logs"
+    logs.mkdir()
+    for variant in ("honest", "always-success"):
+        for claim in ("identity", "presence", "behavior") if variant == "honest" else ("identity",):
+            for state in expected_codes:
+                target = targets / state / "artifact.json"
+                argv = [sys.executable, "-B", str(observer), str(target), expected, claim, variant]
+                result = subprocess.run(argv, cwd=base, capture_output=True, text=True, timeout=30, check=False)
+                observed = json.loads(result.stdout)
+                record = {"variant": variant, "claim": claim, "fixture": state, "argv": argv,
+                          "cwd": str(base), "exit": result.returncode, "stdout": result.stdout,
+                          "stderr": result.stderr}
+                path = logs / (variant + "-" + claim + "-" + state + ".json")
+                path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+                records.append(record)
+                test.assertEqual(observed["state"], expected_states[state])
+                test.assertEqual(observed["requested"], expected)
+                test.assertEqual(result.stderr, "")
+                if variant == "honest":
+                    code = expected_codes[state] if claim == "identity" or state in ("absent", "error") else 0
+                    test.assertEqual(result.returncode, code, record)
+    # Apply precisely the same independent identity controls to both implementations.
+    qualification = {variant: all(row["exit"] == expected_codes[row["fixture"]] for row in records
+                     if row["variant"] == variant and row["claim"] == "identity")
+                     for variant in ("honest", "always-success")}
+    test.assertEqual(qualification, {"honest": True, "always-success": False})
+    test.assertEqual(snapshot(), before)
+    (base / "after.json").write_text(json.dumps(snapshot(), indent=2), encoding="utf-8")
+    report = base / "qualification.json"
+    report.write_text(json.dumps({"expected_identity": expected, "qualification": qualification,
+                                 "records": records, "paths_and_bytes_unchanged": True}, indent=2), encoding="utf-8")
+    print(json.dumps({"r16_observer_report": str(report), "qualification": qualification}))
+    return base, expected
+
+
+class R16LocalObserverTests(unittest.TestCase):
+    def test_r16_local_observer_independent_controls_reject_always_success(self):
+        with tempfile.TemporaryDirectory(prefix="r16-observer-") as temp:
+            _r16_local_observer_controls(self, Path(temp) / "observations")
+
+
+class R16ReleaseStateCliTests(ImproveCliFixture):
+    """Real callbacks and local reads; predecessor setup and authored judgments are SYNTHETIC."""
+
+    def test_r16_actual_release_plan_import_and_release_check_preserve_current_state(self):
+        knowledge_support.write({"repo": str(self.repo)})  # SYNTHETIC predecessor knowledge, not observed product truth
+        observations, expected = _r16_local_observer_controls(self, self.base / "observations")
+        target = observations / "targets/correct/artifact.json"
+        before = target.read_bytes()
+        refs = [str(observations / "qualification.json"), str(observations / "logs/honest-identity-correct.json"),
+                str(observations / "before.json"), str(observations / "after.json")]
+        summary = ("SYNTHETIC model-shaped result; real local observer: actual target state requested candidate present; "
+                   f"requested candidate {expected}; observed candidate {expected}; "
+                   "remaining delta: authorized visibility/publication/promotion still required. "
+                   "No target mutation, no release operation, no deployed consumer observation.")
+        entry = {"how": "Read the product contract.",
+                 "sources": [str(self.product_contract.relative_to(self.repo))]}
+        self._start_parent_at_stage("release-plan", refs, producer_extra={
+            "summary": summary, "consumer_entry": entry, "consumer_checks": [],
+            "consumer_checks_na": "SYNTHETIC admission fixture only; no consumer command execution claimed."})
+        pending = store.read_record(self.run / "state.md")
+        self.assertNotIn(self.action, pending["accepted"])
+        self.assertIn("SYNTHETIC", pending["active_improve"]["seed_result"]["summary"])
+        self.invoke(CLI, "next", "--run-dir", self.run)
+        self.finish_ephemeral()
+        seed = pending["active_improve"]["seed_result"]
+        # The real Improve import must still reject missing entry and missing source files.
+        for bad_entry, message in ((None, "consumer_entry"),
+                                   ({**entry, "sources": ["missing-entry.md"]}, "missing-entry.md")):
+            bad = dict(seed)
+            if bad_entry is None:
+                bad.pop("consumer_entry", None)
+            else:
+                bad["consumer_entry"] = bad_entry
+            flags, _ = self.completion_receipt(final_result=bad)
+            before_refusal = store.read_record(self.run / "state.md")
+            refused = self.invoke(CLI, "complete", "--run-dir", self.run,
+                                  "--action", self.improve, *flags, status=2)
+            self.assertIn(message, refused.stdout + refused.stderr)
+            self.assertEqual(store.read_record(self.run / "state.md"), before_refusal)
+        flags, _ = self.completion_receipt(final_result=seed)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *flags)
+        state = store.read_record(self.run / "state.md")
+        self.assertIsNone(state["active_improve"])
+        self.assertEqual(navigator.current_stage(state), "release-check")
+        self.assertEqual(state["accepted"][self.action]["summary"], summary)
+        self.assertTrue(set(refs) <= set(state["accepted"][self.action]["evidence_refs"]))
+        plan_action = self.action
+        self.action = navigator.current_action(state)["id"]
+        self.invoke(CLI, "next", "--run-dir", self.run)
+        self.producer = {"outcome": "done", "summary": summary,
+                         "evidence_refs": [*refs, str(self.run / "results" / (plan_action + ".md"))]}
+        self._write_producer("release-check")
+        # A stale action/result path is refused by the normal callback, not an absence discriminator.
+        before_refusal = store.read_record(self.run / "state.md")
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", plan_action,
+                              "--result", self.input, status=2)
+        self.assertIn("result path must be the current generated path", refused.stderr + refused.stdout)
+        self.assertEqual(store.read_record(self.run / "state.md"), before_refusal)
+        self.invoke(CLI, "check", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "release-check")
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.current_stage(state), "release")
+        self.assertEqual(state["accepted"][self.action]["summary"], summary)
+        self.assertTrue(set(refs) <= set(state["accepted"][self.action]["evidence_refs"]))
+        self.assertNotIn("delivery_observations", state["accepted"][self.action])
+        self.assertEqual(target.read_bytes(), before)
+        print(json.dumps({"r16_acceptance": "release-plan complete/Improve import through release-check complete",
+                          "state": str(self.run / "state.md"), "evidence_refs": refs,
+                          "synthetic": ["predecessor navigation", "model-shaped results", "review content"],
+                          "consumer_checks_executed": False, "delivery_contract_authority_covered": False}))
+
+
 class EphemeralImproveCliTests(ImproveCliFixture):
     def test_r07_final_result_cannot_drop_pending_without_settlement(self):
         row = {"requirement": "R-1", "outcome": "reader displays totals", "reason": "no reader",

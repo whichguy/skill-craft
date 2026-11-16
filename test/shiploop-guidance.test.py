@@ -259,6 +259,113 @@ def _knowledge_reads_only():
     return read_text
 
 class GuidanceTests(unittest.TestCase):
+    def _r16_release_packet(self, target: str) -> str:
+        """Real emitted packet after SYNTHETIC predecessor navigation; no model uptake claim."""
+        state = self.state()
+        while navigator.current_stage(state) != target:
+            extra = {"work_items": [{"id": "W1", "title": "Synthetic release item"}]} if (
+                navigator.current_stage(state) == "plan") else {}
+            state, _ = self.complete_stage(state, **extra)
+        _recovered, packet = self.cold_packet(state)
+        return normalized(packet)
+
+    def test_r16_cold_release_state_locator_resolves_on_both_routes(self) -> None:
+        """Locator availability after synthetic navigation, not model read or uptake."""
+        locator = "testing-and-documentation.md#release-entry-and-release-check"
+        for route in (prompts.INLINE, prompts.ASK_AGENT):
+            state = navigator.new_state(str(self.repo), "Synthetic release locator fixture.",
+                                        improve_skill="", delegation=route)
+            while navigator.current_stage(state) != "release":
+                stage = navigator.current_stage(state)
+                if stage in ("release-plan", "release-check"):
+                    recovered, packet = self.cold_packet(state)
+                    raw = navigator.render(None, self.run, recovered)
+                    binding = re.search(r"GUIDES = (.+?) \(the skill's guides\)", raw)
+                    with self.subTest(route=route, stage=stage):
+                        self.assertIsNotNone(binding)
+                        guide_root = Path(binding.group(1))
+                        self.assertEqual(guide_root.resolve(), REFERENCES.resolve())
+                        self.assertIn("GUIDES/" + locator, raw)
+                        self.assertIn(str(guide_root / locator), packet)
+                        filename, anchor = locator.split("#", 1)
+                        guide = guide_root / filename
+                        self.assertTrue(guide.is_file())
+                        self.assertIn(anchor, {heading_anchor(m.group(1)) for m in re.finditer(
+                            r"(?m)^#{1,6}\s+(.+?)\s*$", guide.read_text(encoding="utf-8"))})
+                extra = {"work_items": [{"id": "W1", "title": "Synthetic release item"}]} if stage == "plan" else {}
+                state, _ = self.complete_stage(state, **extra)
+        card = REFERENCES / "platforms/salesforce.md"
+        with self.subTest(source="Salesforce relative link"):
+            match = re.search(r"\[shared release-state/check rule\]\(([^)]+)\)", card.read_text(encoding="utf-8"))
+            self.assertIsNotNone(match)
+            filename, anchor = match.group(1).split("#", 1)
+            self.assertEqual((card.parent / filename).resolve(), (REFERENCES / locator.split("#", 1)[0]).resolve())
+            self.assertEqual(anchor, locator.split("#", 1)[1])
+
+    def test_r16_release_plan_qualifies_claims_independently_of_current_observation(self) -> None:
+        packet = self._r16_release_packet("release-plan")
+        self.assertNotIn("prove it tells them apart", packet)
+        for clause in ("claimed observation", "expected outcomes", "independent positive and negative controls",
+                       "existing authorized isolated route",
+                       str(REFERENCES / "testing-and-documentation.md#release-entry-and-release-check")):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, packet)
+
+    def test_r16_release_check_records_actual_state_and_indeterminate_observations(self) -> None:
+        packet = self._r16_release_packet("release-check")
+        self.assertNotIn('save its "not there yet"', packet)
+        for clause in ("actual target state", "requested and observed candidate identities", "remaining delta",
+                       "indeterminate, never absence", "Apply the planned controls for each check's claim",
+                       "unqualified required checks remain open",
+                       str(REFERENCES / "testing-and-documentation.md#release-entry-and-release-check"),
+                       "Never mutate or delete the target to manufacture absence",
+                       "infer no grant or setup workaround", "`summary`", "`evidence_refs`",
+                       "same file", "KNOWLEDGE/environment.md ## Commands and rerun"):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, packet)
+        # Preserve consumer-entry access and authority alongside the new observation rule.
+        self.assertIn("Rerun prepare's read-only probe", packet)
+        self.assertIn("create no grant", packet)
+
+    def test_r16_release_reference_separates_actual_observation_from_qualification(self) -> None:
+        section = normalized((REFERENCES / "testing-and-documentation.md").read_text(encoding="utf-8").split(
+            "### Release entry and release-check", 1)[1].split("\n## ", 1)[0])
+        self.assertNotIn('"not there yet"', section)
+        for clause in ("requested and observed candidate identities", "remaining delta",
+                       "absent, requested candidate present, or different revision",
+                       "Failed, unreadable or inconclusive observation is indeterminate, never absence",
+                       "single current-target observation does not prove discrimination",
+                       "independent positive and negative controls", "existing authorized isolated route",
+                       "identity check must reject a different revision",
+                       "Presence or behavior checks may pass on several revisions and establish no identity themselves",
+                       "unavailable controls leave discrimination unverified",
+                       "waive no required check", "Never mutate or delete", "grant or setup workaround"):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, section)
+        self.assertIn("without one or when those files do not exist", section)
+
+    def test_r16_platform_confirm_preserves_presence_query_entry_and_sources(self) -> None:
+        section = normalized((REFERENCES / "platforms/salesforce.md").read_text(encoding="utf-8").split(
+            "A consumer entry is source metadata", 1)[1].split("When Salesforce is an affected", 1)[0])
+        self.assertNotIn('"not there yet"', section)
+        for clause in ("actual org state", "not forced absence", "presence evidence only", "separate identity evidence",
+                       "[shared release-state/check rule](../testing-and-documentation.md#release-entry-and-release-check)",
+                       "sf org list metadata --metadata-type CustomTab --target-org <alias>",
+                       "sf project deploy validate", "App Launcher", "/lightning/n/<TabApiName>",
+                       "`sources` lists the tab and app files", "tabs/<Name>.tab-meta.xml",
+                       "applications/<Name>.app-meta.xml", "would stay red after a good deploy"):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, section)
+
+    def test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts(self) -> None:
+        packet = self._r16_release_packet("release")
+        for clause in ("Run each still-required authorized operation once", "cite current evidence for effects already satisfied",
+                       "remaining access, visibility, publication or promotion work", "keeps its earlier receipt",
+                       "runs no second time", "the operation's effect and the released artifact's identity",
+                       "Observe no consumer behaviour here"):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, packet)
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-guidance-")
         self.addCleanup(self.temp.cleanup)
