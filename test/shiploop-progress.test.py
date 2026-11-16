@@ -229,7 +229,16 @@ class ProgressTests(RunCase):
         self.assertEqual(progress.observe(self.run, watch=False), 0)
         old = json.loads((self.run / progress.STATUS).read_text())["instance"]
         (self.repo / "ARCHITECTURE.md").write_text("A newly saved architecture draft")
-        self.assertTrue(progress.start(self.run, interval=.1))
+        real_popen = subprocess.Popen
+
+        def retain_process(*args, **kwargs):
+            process = real_popen(*args, **kwargs)
+            self.processes.append(process)
+            return process
+
+        # Keep the real child handle until cleanup stops the observer and waits for it.
+        with mock.patch.object(progress.subprocess, "Popen", side_effect=retain_process):
+            self.assertTrue(progress.start(self.run, interval=.1))
         record = json.loads((self.run / progress.STATUS).read_text())
         self.assertNotEqual(record["instance"], old)
         self.assertTrue(self.page_contains("A newly saved architecture draft"))

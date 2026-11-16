@@ -218,10 +218,15 @@ class OwnProcesses:
 
     def _end_started(self) -> None:
         for proc in self._started:
-            with contextlib.suppress(ProcessLookupError, PermissionError):
-                REAL_KILLPG(proc.pid, signal.SIGKILL) if os.getpgid(proc.pid) == proc.pid else None
-            with contextlib.suppress(Exception):
-                proc.wait(timeout=5)
+            try:
+                with contextlib.suppress(ProcessLookupError, PermissionError):
+                    REAL_KILLPG(proc.pid, signal.SIGKILL) if os.getpgid(proc.pid) == proc.pid else None
+                with contextlib.suppress(Exception):
+                    proc.wait(timeout=5)
+            finally:
+                for stream in (proc.stdout, proc.stderr):
+                    if stream is not None:
+                        stream.close()
 
 
 # A fake browser: `--version` prints a version; otherwise it loads the URL it is given (a file: path or a loopback http page,
