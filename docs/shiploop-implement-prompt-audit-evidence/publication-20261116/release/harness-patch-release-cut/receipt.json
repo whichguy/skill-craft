@@ -1,0 +1,26 @@
+{
+  "status": "CUT",
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/release.py",
+    "--date",
+    "2026-11-16"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+  "start": "2026-11-16T20:51:55.999148+00:00",
+  "end": "2026-11-16T20:51:59.282575+00:00",
+  "exit_code": 0,
+  "pre": {
+    "head": "b64b17160ff9ca7a178845a82b43eea157bf5d1b",
+    "tree": "683a62fbebc3ba37b30cab1d2d26bbaee95f78ac",
+    "status": ""
+  },
+  "post": {
+    "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+    "status": "",
+    "ignored": ""
+  },
+  "author_override": "Per-process existing Jim Wiese <dadleet@BigDog.local>; no global config change"
+}

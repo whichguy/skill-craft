@@ -1,0 +1,6 @@
+skill-frontmatter-to-plugin-json: CHECK OK skill-craft
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (25 skills)
+sync-plugin-views: CHECK OK
+release: test-harness 0.1.0 -> 0.1.1 (1 note(s))
+release: skill-craft 3.0.0 -> 3.0.1
+release: committed b23e0166; publish with scripts/release-push.py

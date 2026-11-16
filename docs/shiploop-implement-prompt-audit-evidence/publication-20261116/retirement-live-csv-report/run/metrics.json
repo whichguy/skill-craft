@@ -1,0 +1,2716 @@
+{
+  "tmp_writes": [],
+  "claude_code_version": null,
+  "sessions": [
+    {
+      "stop": "end_turn",
+      "turns": 627,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 89216825,
+        "cache_read_input_tokens": 88923904,
+        "output_tokens": 54188,
+        "reasoning_tokens": 11294
+      }
+    }
+  ],
+  "turns": 627,
+  "model_calls": 547,
+  "window_tokens": 475000,
+  "tokens": {
+    "input_peak": 260487,
+    "processed": 89271013,
+    "output": 54188
+  },
+  "unmeasured": {
+    "stage_turns": "the host reports no per-call usage events (one total per session), so turns cannot be attributed to a stage",
+    "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+    "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement"
+  },
+  "cost_usd": null,
+  "models_served": null,
+  "unreported_sessions": 0,
+  "unreported_sessions_at_least": null,
+  "compactions": 0,
+  "truncated_outputs": null,
+  "cancelled_tool_calls": [],
+  "shiploop_failures": [
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "test command `rg -n -F \"CLI contract: accept one or more CSV paths; emit JSON; return 0, 1, or 2.\" report.py`, `rg -n 'python3 report.py FILE|rows|revenue|by_region|by_product|stderr|0|1|2|python3 -m ",
+      "check_only": true
+    },
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "test_cases[0] needs exactly id, criterion, requirement, oracle, red, green, and may add mock; test_cases are [{\"id\": \"<a focused command ID>\", \"criterion\": \"<a step-plan criterion id>\", \"requirement\":",
+      "check_only": true
+    },
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "test_commands has a check row, so drop check_na",
+      "check_only": true
+    },
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "expectation E1 is works, but report.py does not exist on the item's lint base. A new path needs an absent expectation.",
+      "check_only": true
+    },
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "open plan assumptions A5 name W1 as due_item; settle each here: an executed criterion with \"from\": \"<assumption id>\" that this item's tests confirm, or, for a fact about what exists, an expectation wi",
+      "check_only": true
+    },
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "RUN/inbox/nav-446ac47f0fd84557bf03f08a82289ab1.md: record must contain exactly one shiploop-state fence (found 0): write Markdown whose JSON sits between a line ```shiploop-state and a line ```; raw J",
+      "check_only": true
+    },
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "ShipLoop test run: test is not done. ShipLoop ran the 5 listed commands from /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retiremen",
+      "check_only": true
+    },
+    {
+      "verb": "check",
+      "exit": 2,
+      "line": "ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:",
+      "check_only": true
+    },
+    {
+      "verb": "complete",
+      "exit": 2,
+      "line": "ShipLoop test run: step review is not done. ShipLoop ran the 5 listed commands from /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/re"
+    },
+    {
+      "verb": "complete",
+      "exit": 2,
+      "line": "assumptions[0].id must be a short identifier such as A1"
+    },
+    {
+      "verb": "complete",
+      "exit": 2,
+      "line": "assumption TS3.disposition must be one of evidenced, probed, open"
+    }
+  ],
+  "failures_source": {
+    "file": "<run>/trace.jsonl",
+    "why": null
+  },
+  "run_trace": {
+    "file": "trace.jsonl",
+    "covers": true,
+    "partial": null,
+    "traced_since": "2026-11-16T17:02:27Z",
+    "untraced_steps": 0,
+    "seeded_steps": 0,
+    "commands": 78,
+    "refusals": 3,
+    "checks_failed": 8,
+    "crashed": 0,
+    "packets": 40,
+    "reprints": 0,
+    "continuations": 0,
+    "stops": 1,
+    "notes": {
+      "written": 0,
+      "held": 0,
+      "delivered": 0,
+      "cited": 0
+    },
+    "stream_failures": 3,
+    "checks": {
+      "keepalive_text": {
+        "verdict": "not exercised",
+        "evidence": "no stop decision continued a turn",
+        "lines": []
+      },
+      "packet_copies": {
+        "verdict": "pass",
+        "evidence": "40 prints (0 reprints), each with its kept copy",
+        "lines": []
+      },
+      "owner_note": {
+        "verdict": "not exercised",
+        "evidence": "no owner note was written to the run",
+        "lines": []
+      },
+      "session_end": {
+        "verdict": "not exercised",
+        "evidence": "no session end reached the run's trace",
+        "lines": []
+      }
+    }
+  },
+  "gate_counts": {
+    "other": {
+      "fired": 8,
+      "caught": 8
+    },
+    "expectations_gate": {
+      "fired": 1,
+      "caught": 1
+    },
+    "assumptions_due_item": {
+      "fired": 1,
+      "caught": 1
+    },
+    "mutation_not_done": {
+      "fired": 1,
+      "caught": 1
+    }
+  },
+  "dodges": {
+    "plans": 2,
+    "grep_searched": 0,
+    "grep_executed": 0,
+    "grep_unmatched": 0,
+    "guarded": 0,
+    "inspected": 0,
+    "surviving_mutants": 1,
+    "dodges": 1,
+    "by_action": {}
+  },
+  "nomenclature": {
+    "glossary_sha256": "b419b7db723e198f3f8e902f1fb0d514f9f94c99ecf8665160ddc8256be8ae69",
+    "texts_scanned": 43,
+    "retired": {}
+  },
+  "tool_use": null,
+  "script_verifications": {
+    "records": 7,
+    "passed": 6,
+    "could_not_run": 0,
+    "commands": 26,
+    "red": 0
+  },
+  "model_glue": [],
+  "asked_user": [],
+  "improve_children": 10,
+  "improve_reviews": {
+    "children": 10,
+    "passes": 14,
+    "edited_children": 5,
+    "max_passes": 2,
+    "per_child": [
+      {
+        "child": "carry-forward-02a98e5a",
+        "passes": 1,
+        "lines": [
+          0
+        ],
+        "seconds": 0.0,
+        "review_seconds": 135.5,
+        "edited": false,
+        "edited_basis": "tree and result",
+        "bytes": 5272
+      },
+      {
+        "child": "document-149c1ae6",
+        "passes": 2,
+        "lines": [
+          44,
+          0
+        ],
+        "seconds": 56.7,
+        "review_seconds": 276.4,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 9157
+      },
+      {
+        "child": "document-dd6432eb",
+        "passes": 1,
+        "lines": [
+          0
+        ],
+        "seconds": 0.0,
+        "review_seconds": 115.7,
+        "edited": false,
+        "edited_basis": "tree and result",
+        "bytes": 3808
+      },
+      {
+        "child": "plan-22699311",
+        "passes": 1,
+        "lines": [
+          0
+        ],
+        "seconds": 0.0,
+        "review_seconds": 160.2,
+        "edited": false,
+        "edited_basis": "tree and result",
+        "bytes": 6749
+      },
+      {
+        "child": "release-plan-52689cc2",
+        "passes": 1,
+        "lines": [
+          0
+        ],
+        "seconds": 0.0,
+        "review_seconds": 161.0,
+        "edited": false,
+        "edited_basis": "tree and result",
+        "bytes": 5400
+      },
+      {
+        "child": "spec-e01cb7fa",
+        "passes": 2,
+        "lines": [
+          9,
+          0
+        ],
+        "seconds": 30.0,
+        "review_seconds": 209.0,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 8848
+      },
+      {
+        "child": "step-plan-74f857f3",
+        "passes": 2,
+        "lines": [
+          25,
+          0
+        ],
+        "seconds": 67.6,
+        "review_seconds": 262.5,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 7721
+      },
+      {
+        "child": "step-plan-ec7bdaa4",
+        "passes": 1,
+        "lines": [
+          3
+        ],
+        "seconds": 0.0,
+        "review_seconds": 171.3,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 3345
+      },
+      {
+        "child": "system-test-author-c301c7fa",
+        "passes": 1,
+        "lines": [
+          0
+        ],
+        "seconds": 0.0,
+        "review_seconds": 130.6,
+        "edited": false,
+        "edited_basis": "tree and result",
+        "bytes": 6332
+      },
+      {
+        "child": "test-strategy-8f89783d",
+        "passes": 2,
+        "lines": [
+          14,
+          0
+        ],
+        "seconds": 46.5,
+        "review_seconds": 234.1,
+        "edited": true,
+        "edited_basis": "tree and result",
+        "bytes": 6919
+      }
+    ]
+  },
+  "knowledge_reads": [],
+  "narrative": {
+    "emitted": 6,
+    "shown": 3,
+    "verbatim": 3,
+    "skipped": [
+      "step-plan",
+      "release-plan",
+      "release-verify"
+    ],
+    "raw_emissions": 6,
+    "repeated": 0,
+    "composed": 138,
+    "results": 29,
+    "with_headline": 27,
+    "run_level": {
+      "achieved": 4,
+      "phase": 0,
+      "pace": 0
+    }
+  },
+  "stages": [
+    {
+      "stage": "intake",
+      "outcome": "done",
+      "seconds": 139.2,
+      "turns": null,
+      "tool_calls": 15,
+      "context": {
+        "calls": 14,
+        "peak": 44382,
+        "peakPct": 9.3,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "discovery",
+      "outcome": "done",
+      "seconds": 90.0,
+      "turns": null,
+      "tool_calls": 9,
+      "context": {
+        "calls": 11,
+        "peak": 59624,
+        "peakPct": 12.6,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "research",
+      "outcome": "done",
+      "seconds": 73.0,
+      "turns": null,
+      "tool_calls": 6,
+      "context": {
+        "calls": 10,
+        "peak": 65087,
+        "peakPct": 13.7,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "spec",
+      "outcome": "done",
+      "seconds": 312.0,
+      "turns": null,
+      "tool_calls": 30,
+      "context": {
+        "calls": 33,
+        "peak": 101916,
+        "peakPct": 21.5,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test-strategy",
+      "outcome": "done",
+      "seconds": 351.0,
+      "turns": null,
+      "tool_calls": 31,
+      "context": {
+        "calls": 32,
+        "peak": 115619,
+        "peakPct": 24.3,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "plan",
+      "outcome": "done",
+      "seconds": 307.0,
+      "turns": null,
+      "tool_calls": 25,
+      "context": {
+        "calls": 28,
+        "peak": 122798,
+        "peakPct": 25.9,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "prepare",
+      "outcome": "done",
+      "seconds": 53.0,
+      "turns": null,
+      "tool_calls": 6,
+      "context": {
+        "calls": 7,
+        "peak": 126700,
+        "peakPct": 26.7,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "step-plan",
+      "outcome": "done",
+      "seconds": 502.0,
+      "turns": null,
+      "tool_calls": 41,
+      "context": {
+        "calls": 45,
+        "peak": 135456,
+        "peakPct": 28.5,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test-spec",
+      "outcome": "done",
+      "seconds": 192.0,
+      "turns": null,
+      "tool_calls": 14,
+      "context": {
+        "calls": 16,
+        "peak": 139998,
+        "peakPct": 29.5,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "validate-existing",
+      "outcome": "done",
+      "seconds": 0.0,
+      "turns": null,
+      "tool_calls": 0,
+      "context": {
+        "calls": 0,
+        "peak": null,
+        "peakPct": null,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "implement",
+      "outcome": "send-back",
+      "seconds": 163.0,
+      "turns": null,
+      "tool_calls": 12,
+      "context": {
+        "calls": 15,
+        "peak": 148171,
+        "peakPct": 31.2,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "step-plan",
+      "outcome": "done",
+      "seconds": 464.0,
+      "turns": null,
+      "tool_calls": 35,
+      "context": {
+        "calls": 41,
+        "peak": 158423,
+        "peakPct": 33.4,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test-spec",
+      "outcome": "done",
+      "seconds": 138.0,
+      "turns": null,
+      "tool_calls": 11,
+      "context": {
+        "calls": 13,
+        "peak": 162208,
+        "peakPct": 34.1,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "validate-existing",
+      "outcome": "done",
+      "seconds": 0.0,
+      "turns": null,
+      "tool_calls": 0,
+      "context": {
+        "calls": 0,
+        "peak": null,
+        "peakPct": null,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "implement",
+      "outcome": "done",
+      "seconds": 151.0,
+      "turns": null,
+      "tool_calls": 12,
+      "context": {
+        "calls": 13,
+        "peak": 166008,
+        "peakPct": 34.9,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test",
+      "outcome": "done",
+      "seconds": 388.0,
+      "turns": null,
+      "tool_calls": 28,
+      "context": {
+        "calls": 35,
+        "peak": 172140,
+        "peakPct": 36.2,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "document",
+      "outcome": "done",
+      "seconds": 573.0,
+      "turns": null,
+      "tool_calls": 43,
+      "context": {
+        "calls": 49,
+        "peak": 188724,
+        "peakPct": 39.7,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "implement",
+      "outcome": "done",
+      "seconds": 124.0,
+      "turns": null,
+      "tool_calls": 8,
+      "context": {
+        "calls": 11,
+        "peak": 192318,
+        "peakPct": 40.5,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "test",
+      "outcome": "done",
+      "seconds": 200.0,
+      "turns": null,
+      "tool_calls": 15,
+      "context": {
+        "calls": 17,
+        "peak": 198500,
+        "peakPct": 41.8,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "document",
+      "outcome": "done",
+      "seconds": 141.0,
+      "turns": null,
+      "tool_calls": 13,
+      "context": {
+        "calls": 15,
+        "peak": 203332,
+        "peakPct": 42.8,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "carry-forward",
+      "outcome": "done",
+      "seconds": 343.0,
+      "turns": null,
+      "tool_calls": 25,
+      "context": {
+        "calls": 27,
+        "peak": 210257,
+        "peakPct": 44.3,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "system-test-author",
+      "outcome": "done",
+      "seconds": 317.0,
+      "turns": null,
+      "tool_calls": 27,
+      "context": {
+        "calls": 30,
+        "peak": 218625,
+        "peakPct": 46.0,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "system-test",
+      "outcome": "done",
+      "seconds": 93.0,
+      "turns": null,
+      "tool_calls": 9,
+      "context": {
+        "calls": 9,
+        "peak": 222896,
+        "peakPct": 46.9,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "product-acceptance",
+      "outcome": "done",
+      "seconds": 65.0,
+      "turns": null,
+      "tool_calls": 4,
+      "context": {
+        "calls": 5,
+        "peak": 225246,
+        "peakPct": 47.4,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "release-plan",
+      "outcome": "done",
+      "seconds": 294.0,
+      "turns": null,
+      "tool_calls": 23,
+      "context": {
+        "calls": 26,
+        "peak": 232132,
+        "peakPct": 48.9,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "release-check",
+      "outcome": "done",
+      "seconds": 118.0,
+      "turns": null,
+      "tool_calls": 12,
+      "context": {
+        "calls": 11,
+        "peak": 239580,
+        "peakPct": 50.4,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "release",
+      "outcome": "done",
+      "seconds": 74.0,
+      "turns": null,
+      "tool_calls": 9,
+      "context": {
+        "calls": 9,
+        "peak": 244414,
+        "peakPct": 51.5,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "release-verify",
+      "outcome": "done",
+      "seconds": 145.0,
+      "turns": null,
+      "tool_calls": 10,
+      "context": {
+        "calls": 12,
+        "peak": 248939,
+        "peakPct": 52.4,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "operations",
+      "outcome": "done",
+      "seconds": 68.0,
+      "turns": null,
+      "tool_calls": 5,
+      "context": {
+        "calls": 6,
+        "peak": 252032,
+        "peakPct": 53.1,
+        "compactions": 0
+      }
+    },
+    {
+      "stage": "handoff",
+      "outcome": "done",
+      "seconds": 64.0,
+      "turns": null,
+      "tool_calls": 5,
+      "context": {
+        "calls": 6,
+        "peak": 254978,
+        "peakPct": 53.7,
+        "compactions": 0
+      }
+    }
+  ],
+  "stage_tool_attribution": {
+    "basis": "timestamp-only",
+    "time_basis": "existing engine and host timestamp windows",
+    "applied": []
+  },
+  "planning": {
+    "window": {
+      "closed": true,
+      "through": "test-spec",
+      "seconds": 1989.0,
+      "host_seconds": 2019.2,
+      "before_engine_seconds": 30.2
+    },
+    "stages": [
+      {
+        "stage": "intake",
+        "outcome": "done",
+        "action": "nav-ac989a683ad64016bdbaf76060cbf455",
+        "seconds": 109.0,
+        "improve_seconds": 0.0
+      },
+      {
+        "stage": "discovery",
+        "outcome": "done",
+        "action": "nav-e779704c63744ef5996f8fb8df3745e5",
+        "seconds": 90.0,
+        "improve_seconds": 0.0
+      },
+      {
+        "stage": "research",
+        "outcome": "done",
+        "action": "nav-4f578afaf8174f2f83654437391e2060",
+        "seconds": 73.0,
+        "improve_seconds": 0.0
+      },
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "action": "nav-d9cb3b8f0e584171ba9672f2e01cb7fa",
+        "seconds": 312.0,
+        "improve_seconds": 230.6
+      },
+      {
+        "stage": "test-strategy",
+        "outcome": "done",
+        "action": "nav-e3a896e8c7754057bba057998f89783d",
+        "seconds": 351.0,
+        "improve_seconds": 260.8
+      },
+      {
+        "stage": "plan",
+        "outcome": "done",
+        "action": "nav-81ed4576284549e089da306922699311",
+        "seconds": 307.0,
+        "improve_seconds": 184.0
+      },
+      {
+        "stage": "prepare",
+        "outcome": "done",
+        "action": "nav-f7f2e3273685453b98e1bc5bb4476b14",
+        "seconds": 53.0,
+        "improve_seconds": 0.0
+      },
+      {
+        "stage": "step-plan",
+        "outcome": "done",
+        "action": "nav-faadae8982e04b73aa39aeb374f857f3",
+        "seconds": 502.0,
+        "improve_seconds": 282.7
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "action": "nav-7442b8e2dd0843eb9d8e726145aa64f4",
+        "seconds": 192.0,
+        "improve_seconds": 0.0
+      }
+    ],
+    "improve": {
+      "children": 4,
+      "seconds": 958.1
+    },
+    "producer_seconds": 1030.9,
+    "unmeasured": {},
+    "tokens": {
+      "output": 19196,
+      "reasoning": 3332,
+      "subagent_output": 68802,
+      "clock": "host",
+      "source": "rollout token_usage_records"
+    }
+  },
+  "fresh_starts": [],
+  "fresh_starts_unmeasured": null,
+  "context_windows": [
+    {
+      "start": 1794848516.773,
+      "end": 1794854474.321,
+      "minutes": 99.29,
+      "stages": [
+        "intake",
+        "discovery",
+        "research",
+        "spec",
+        "test-strategy",
+        "plan",
+        "prepare",
+        "step-plan",
+        "test-spec",
+        "validate-existing",
+        "implement",
+        "test",
+        "document",
+        "carry-forward",
+        "system-test-author",
+        "system-test",
+        "product-acceptance",
+        "release-plan",
+        "release-check",
+        "release",
+        "release-verify",
+        "operations",
+        "handoff"
+      ],
+      "peak_tokens": null,
+      "server_tool_rounds": 0,
+      "compacted": false,
+      "bytes": {
+        "shiploop_packets": 978950,
+        "shiploop_reads": 88169,
+        "product_reads": 0,
+        "run_record_reads": 78131,
+        "knowledge_reads": 4757,
+        "shell_output": 80816,
+        "web": 0,
+        "model_text": 25925,
+        "other": 59749
+      },
+      "top": [
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'python3 /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-c",
+          "bytes": 60854
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'python3 /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-c",
+          "bytes": 57225
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'python3 /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-c",
+          "bytes": 56211
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'python3 /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-c",
+          "bytes": 55661
+        },
+        {
+          "tool": "run_terminal_command",
+          "label": "/bin/zsh -lc 'python3 /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-c",
+          "bytes": 46289
+        }
+      ]
+    }
+  ],
+  "context_summary": {
+    "windows": 1,
+    "compactions": 0,
+    "server_tool_rounds": 0,
+    "bytes": {
+      "shiploop_packets": 978950,
+      "shiploop_reads": 88169,
+      "product_reads": 0,
+      "run_record_reads": 78131,
+      "knowledge_reads": 4757,
+      "shell_output": 80816,
+      "web": 0,
+      "model_text": 25925,
+      "other": 59749
+    },
+    "share": {
+      "shiploop_packets": 0.7436,
+      "shiploop_reads": 0.067,
+      "product_reads": 0.0,
+      "run_record_reads": 0.0593,
+      "knowledge_reads": 0.0036,
+      "shell_output": 0.0614,
+      "web": 0.0,
+      "model_text": 0.0197,
+      "other": 0.0454
+    },
+    "total_bytes": 1316497,
+    "median_minutes": 99.29,
+    "median_window_bytes": 1316497.0,
+    "top_sources": [
+      {
+        "source": "shiploop_packets",
+        "bytes": 978950
+      },
+      {
+        "source": "shiploop_reads",
+        "bytes": 88169
+      },
+      {
+        "source": "shell_output",
+        "bytes": 80816
+      },
+      {
+        "source": "run_record_reads",
+        "bytes": 78131
+      },
+      {
+        "source": "other",
+        "bytes": 59749
+      },
+      {
+        "source": "model_text",
+        "bytes": 25925
+      },
+      {
+        "source": "knowledge_reads",
+        "bytes": 4757
+      }
+    ]
+  },
+  "span": {
+    "started": 1794848516.773,
+    "ended": 1794854474.321
+  },
+  "fidelity": {
+    "schema": "shiploop-e2e-fidelity/v1",
+    "tool_calls_seen": 483,
+    "unmeasured": {},
+    "evidence": {
+      "counts": {
+        "script": 16,
+        "loop": 4,
+        "file": 9,
+        "note": 0,
+        "sentence": 0,
+        "skipped": 1,
+        "unclassified": 0
+      },
+      "records": {
+        "verify": 5,
+        "step-proof": 2,
+        "lint": 5,
+        "loop": 11,
+        "expectation": 2,
+        "backchain": 1,
+        "improve": 10
+      },
+      "declared_script_run_without_record": [],
+      "unmapped_runs": [],
+      "stages": [
+        {
+          "action": "nav-ac989a683ad64016bdbaf76060cbf455",
+          "stage": "intake",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 1,
+            "note": 0,
+            "outside": 1
+          }
+        },
+        {
+          "action": "nav-e779704c63744ef5996f8fb8df3745e5",
+          "stage": "discovery",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 4,
+            "outside": 3
+          }
+        },
+        {
+          "action": "nav-4f578afaf8174f2f83654437391e2060",
+          "stage": "research",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 7,
+            "outside": 4
+          }
+        },
+        {
+          "action": "nav-d9cb3b8f0e584171ba9672f2e01cb7fa",
+          "stage": "spec",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "review loop",
+          "needs": [],
+          "lacks": [],
+          "class": "loop",
+          "records": [
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 4,
+            "outside": 10
+          }
+        },
+        {
+          "action": "nav-e3a896e8c7754057bba057998f89783d",
+          "stage": "test-strategy",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "review loop",
+          "needs": [],
+          "lacks": [],
+          "class": "loop",
+          "records": [
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 3,
+            "outside": 4
+          }
+        },
+        {
+          "action": "nav-81ed4576284549e089da306922699311",
+          "stage": "plan",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "review loop",
+          "needs": [],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "backchain",
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 9,
+            "outside": 9
+          }
+        },
+        {
+          "action": "nav-f7f2e3273685453b98e1bc5bb4476b14",
+          "stage": "prepare",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 4
+          }
+        },
+        {
+          "action": "nav-faadae8982e04b73aa39aeb374f857f3",
+          "stage": "step-plan",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "loop"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "loop",
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 4,
+            "outside": 4
+          }
+        },
+        {
+          "action": "nav-7442b8e2dd0843eb9d8e726145aa64f4",
+          "stage": "test-spec",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "loop"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "loop"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 1,
+            "outside": 5
+          }
+        },
+        {
+          "action": "nav-75b1ac62104647588f84e09ca6ba0bfe",
+          "stage": "validate-existing",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "expectation",
+            "loop"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "expectation"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 0,
+            "outside": 1
+          },
+          "waived": [
+            "loop"
+          ]
+        },
+        {
+          "action": "nav-c110ae407b8d45bcb4eb0d8e65a28571",
+          "stage": "implement",
+          "work_item": "W1",
+          "outcome": "send-back",
+          "declared": "script-run",
+          "needs": [
+            "lint",
+            "loop",
+            "step-proof"
+          ],
+          "lacks": [
+            "lint",
+            "step-proof"
+          ],
+          "class": "script",
+          "records": [
+            "loop"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 3,
+            "outside": 1
+          }
+        },
+        {
+          "action": "nav-5f46576bc6c5459dbbce50d2ec7bdaa4",
+          "stage": "step-plan",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "loop"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "loop",
+            "improve"
+          ],
+          "refs": {
+            "own": 1,
+            "note": 7,
+            "outside": 5
+          }
+        },
+        {
+          "action": "nav-fa5600b1e62e4a439a86acb305a602b0",
+          "stage": "test-spec",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "loop"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "loop"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 6
+          }
+        },
+        {
+          "action": "nav-bd44998486804ac4b526e83dc2e099a6",
+          "stage": "validate-existing",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "expectation",
+            "loop"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "expectation"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 0,
+            "outside": 1
+          },
+          "waived": [
+            "loop"
+          ]
+        },
+        {
+          "action": "nav-3eb1ffcb3ef5412081d7949df4f2c06c",
+          "stage": "implement",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "lint",
+            "loop",
+            "step-proof"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "step-proof",
+            "lint",
+            "loop"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 2
+          }
+        },
+        {
+          "action": "nav-446ac47f0fd84557bf03f08a82289ab1",
+          "stage": "test",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "lint",
+            "loop",
+            "verify"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "verify",
+            "lint",
+            "loop"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 3,
+            "outside": 3
+          }
+        },
+        {
+          "action": "nav-ad707f0add7547508fd418ac149c1ae6",
+          "stage": "document",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "lint",
+            "loop",
+            "verify"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "verify",
+            "lint",
+            "loop",
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 4,
+            "outside": 1
+          }
+        },
+        {
+          "action": "nav-beb5b5c0aa3d4eb5ab9c7a62c1e0cec6",
+          "stage": "implement",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "lint",
+            "loop",
+            "step-proof"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "step-proof",
+            "lint",
+            "loop"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 1,
+            "outside": 2
+          }
+        },
+        {
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "stage": "test",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "lint",
+            "loop",
+            "verify"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "verify",
+            "lint",
+            "loop"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 4,
+            "outside": 3
+          }
+        },
+        {
+          "action": "nav-b41599bc4a194de6bfc0dd7cdd6432eb",
+          "stage": "document",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "lint",
+            "loop",
+            "verify"
+          ],
+          "lacks": [
+            "lint",
+            "loop",
+            "verify"
+          ],
+          "class": "skipped",
+          "records": [
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 0,
+            "outside": 0
+          }
+        },
+        {
+          "action": "nav-0edec6135dda4f57a01d6d5402a98e5a",
+          "stage": "carry-forward",
+          "work_item": "W1",
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "loop"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "loop",
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 8
+          }
+        },
+        {
+          "action": "nav-1db6abb636a64744aa5f6513c301c7fa",
+          "stage": "system-test-author",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "review loop",
+          "needs": [],
+          "lacks": [],
+          "class": "loop",
+          "records": [
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 12
+          }
+        },
+        {
+          "action": "nav-3f71c3259b8f403bb3f623a136203d06",
+          "stage": "system-test",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "verify"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "verify"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 8,
+            "outside": 4
+          }
+        },
+        {
+          "action": "nav-dc503929bb7244c7b4bc969503173a6a",
+          "stage": "product-acceptance",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 3,
+            "outside": 11
+          }
+        },
+        {
+          "action": "nav-e5fd75c718c345afaaa69d5a52689cc2",
+          "stage": "release-plan",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "review loop",
+          "needs": [],
+          "lacks": [],
+          "class": "loop",
+          "records": [
+            "improve"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 1,
+            "outside": 8
+          }
+        },
+        {
+          "action": "nav-f674219ee76d436d9ec7997bcd14748b",
+          "stage": "release-check",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 6
+          }
+        },
+        {
+          "action": "nav-286ac973ddf5408695efe9f533aa1684",
+          "stage": "release",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 8
+          }
+        },
+        {
+          "action": "nav-6859fc1c9da84ac39a63a0f0140bae90",
+          "stage": "release-verify",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "script-run",
+          "needs": [
+            "verify"
+          ],
+          "lacks": [],
+          "class": "script",
+          "records": [
+            "verify"
+          ],
+          "refs": {
+            "own": 0,
+            "note": 5,
+            "outside": 8
+          }
+        },
+        {
+          "action": "nav-8908d2ac23a140cc82820a30262e23d5",
+          "stage": "operations",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 2,
+            "outside": 8
+          }
+        },
+        {
+          "action": "nav-424f1358b97d498e9d7a3478e4a31a87",
+          "stage": "handoff",
+          "work_item": null,
+          "outcome": "done",
+          "declared": "model judgement",
+          "needs": [],
+          "lacks": [],
+          "class": "file",
+          "records": [],
+          "refs": {
+            "own": 0,
+            "note": 3,
+            "outside": 15
+          }
+        }
+      ]
+    },
+    "validation": {
+      "records": 7,
+      "unread": 0,
+      "runs": 26,
+      "distinct_commands": 9,
+      "passed": 6,
+      "could_not_run": 0,
+      "red": 0,
+      "schemas": [
+        "shiploop-test-loop/v2"
+      ],
+      "by_suite": {
+        "check": {
+          "runs": 8,
+          "counted": 1,
+          "counts_null": 7,
+          "zero_ran": 0
+        },
+        "focused": {
+          "runs": 16,
+          "counted": 16,
+          "counts_null": 0,
+          "zero_ran": 0
+        },
+        "regression": {
+          "runs": 2,
+          "counted": 2,
+          "counts_null": 0,
+          "zero_ran": 0
+        }
+      },
+      "tests_ran_unmeasured": 0,
+      "accepted_ran": {
+        "runs": 17,
+        "stages": [
+          "step review",
+          "test"
+        ]
+      },
+      "release_verify": {
+        "where": "returned-result",
+        "kind": "fast-forward-merge",
+        "passed": true
+      },
+      "gates_not_exercised": [
+        {
+          "gate": "mutation",
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation-check.md",
+          "work_item": "W1",
+          "reason": "no mutants: no changed product line matched an operator"
+        },
+        {
+          "gate": "mutation",
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation1.md",
+          "work_item": "W1",
+          "reason": "no mutants: no changed product line matched an operator"
+        }
+      ]
+    },
+    "edits": {
+      "script_owned": [
+        {
+          "event": 99,
+          "tool": "search_replace",
+          "form": "edit tool",
+          "target": "<run>/.shiploop-runs/work-20261116-170226-754ee2/worktree/.shiploop-improve/spec-e01cb7fa/host-owner.md"
+        }
+      ],
+      "name_kills": [],
+      "model_commits": [],
+      "limits": "a list to confirm: no hit is not proof (an edit by interpreter code such as a python3 heredoc, a shell apply_patch or git apply, a kill by numeric pid or by port, and a relative path after cd other than the three workspace files, matched by name, are not seen) and a hit can be quoted text read as a command (a quoted > word reads as a redirect)"
+    },
+    "refusals": {
+      "count": 11,
+      "repeated": 0,
+      "unstaged": 0,
+      "limits": "read from ShipLoop's run trace: every command that named the run and exited non-zero, a failed check (`shiploop check`, or `complete --check-only` before it) flagged, a routed verb's (lint, red-check) with no text; a command that named no run (a workspace verb on --workspace-root) or did not parse is read from the stream (source events.jsonl), so one a pipe hid is missing, as is a command on a wrong --run-dir; a repeat is the same whole first line in the same stage as the refusal just before it, neutral about cause",
+      "source": "<run>/trace.jsonl",
+      "items": [
+        {
+          "event": null,
+          "trace_line": 28,
+          "verb": "check",
+          "exit": 2,
+          "stage": "step-plan",
+          "line": "test command `rg -n -F \"CLI contract: accept one or more CSV paths; emit JSON; return 0, 1, or 2.\" report.py`, `rg -n 'python3 report.py FILE|rows|revenue|by_region|by_product|stderr|0|1|2|python3 -m ",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 37,
+          "verb": "check",
+          "exit": 2,
+          "stage": "test-spec",
+          "line": "test_cases[0] needs exactly id, criterion, requirement, oracle, red, green, and may add mock; test_cases are [{\"id\": \"<a focused command ID>\", \"criterion\": \"<a step-plan criterion id>\", \"requirement\":",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 43,
+          "verb": "check",
+          "exit": 2,
+          "stage": "step-plan",
+          "line": "test_commands has a check row, so drop check_na",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 44,
+          "verb": "check",
+          "exit": 2,
+          "stage": "step-plan",
+          "line": "expectation E1 is works, but report.py does not exist on the item's lint base. A new path needs an absent expectation.",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 45,
+          "verb": "check",
+          "exit": 2,
+          "stage": "step-plan",
+          "line": "open plan assumptions A5 name W1 as due_item; settle each here: an executed criterion with \"from\": \"<assumption id>\" that this item's tests confirm, or, for a fact about what exists, an expectation wi",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 59,
+          "verb": "check",
+          "exit": 2,
+          "stage": "test",
+          "line": "RUN/inbox/nav-446ac47f0fd84557bf03f08a82289ab1.md: record must contain exactly one shiploop-state fence (found 0): write Markdown whose JSON sits between a line ```shiploop-state and a line ```; raw J",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 60,
+          "verb": "check",
+          "exit": 2,
+          "stage": "test",
+          "line": "ShipLoop test run: test is not done. ShipLoop ran the 5 listed commands from ~/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retiremen",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 61,
+          "verb": "check",
+          "exit": 2,
+          "stage": "test",
+          "line": "ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:",
+          "repeat_of": null,
+          "source": "trace",
+          "check_only": true
+        },
+        {
+          "event": null,
+          "trace_line": 71,
+          "verb": "complete",
+          "exit": 2,
+          "stage": "improve",
+          "line": "ShipLoop test run: step review is not done. ShipLoop ran the 5 listed commands from ~/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/re",
+          "repeat_of": null,
+          "source": "trace"
+        },
+        {
+          "event": null,
+          "trace_line": 91,
+          "verb": "complete",
+          "exit": 2,
+          "stage": "system-test-author",
+          "line": "assumptions[0].id must be a short identifier such as A1",
+          "repeat_of": null,
+          "source": "trace"
+        },
+        {
+          "event": null,
+          "trace_line": 92,
+          "verb": "complete",
+          "exit": 2,
+          "stage": "system-test-author",
+          "line": "assumption TS3.disposition must be one of evidenced, probed, open",
+          "repeat_of": null,
+          "source": "trace"
+        }
+      ]
+    },
+    "end_state": {
+      "status": "done",
+      "stage": "done",
+      "unaccepted_stage": null,
+      "status_reason": null,
+      "blocked_by": null,
+      "awaiting": null,
+      "unverified": {
+        "entries": 0,
+        "owners": [],
+        "not_restated": 0,
+        "not_restated_due": []
+      }
+    }
+  },
+  "packets": [
+    {
+      "action": "nav-ac989a683ad64016bdbaf76060cbf455",
+      "stage": "intake",
+      "file_bytes": 18169,
+      "head_bytes": 18196
+    },
+    {
+      "action": "nav-e779704c63744ef5996f8fb8df3745e5",
+      "stage": "discovery",
+      "file_bytes": 20580,
+      "head_bytes": 20607
+    },
+    {
+      "action": "nav-4f578afaf8174f2f83654437391e2060",
+      "stage": "research",
+      "file_bytes": 16190,
+      "head_bytes": 16217
+    },
+    {
+      "action": "nav-d9cb3b8f0e584171ba9672f2e01cb7fa",
+      "stage": "spec",
+      "file_bytes": 22915,
+      "head_bytes": 22942
+    },
+    {
+      "action": "nav-babfd6957f1b422d989152be7120ffc7",
+      "stage": "improve",
+      "file_bytes": 2246,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-e3a896e8c7754057bba057998f89783d",
+      "stage": "test-strategy",
+      "file_bytes": 26226,
+      "head_bytes": 26253
+    },
+    {
+      "action": "nav-a39383604aa2466ab14777e4c2a1ec99",
+      "stage": "improve",
+      "file_bytes": 2273,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-81ed4576284549e089da306922699311",
+      "stage": "plan",
+      "file_bytes": 31927,
+      "head_bytes": 31954
+    },
+    {
+      "action": "nav-0cb48b98d10a470d9cd086387fc5a06c",
+      "stage": "improve",
+      "file_bytes": 2246,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-f7f2e3273685453b98e1bc5bb4476b14",
+      "stage": "prepare",
+      "file_bytes": 16594,
+      "head_bytes": 16621
+    },
+    {
+      "action": "nav-faadae8982e04b73aa39aeb374f857f3",
+      "stage": "step-plan",
+      "file_bytes": 34732,
+      "head_bytes": 33776
+    },
+    {
+      "action": "nav-e86ff837ee744852883da720927e1406",
+      "stage": "improve",
+      "file_bytes": 2263,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-7442b8e2dd0843eb9d8e726145aa64f4",
+      "stage": "test-spec",
+      "file_bytes": 40056,
+      "head_bytes": 39100
+    },
+    {
+      "action": "nav-c110ae407b8d45bcb4eb0d8e65a28571",
+      "stage": "implement",
+      "file_bytes": 46154,
+      "head_bytes": 45198
+    },
+    {
+      "action": "nav-5f46576bc6c5459dbbce50d2ec7bdaa4",
+      "stage": "step-plan",
+      "file_bytes": 35881,
+      "head_bytes": 34925
+    },
+    {
+      "action": "nav-b4902ab14b2e4ddeb67e0d4164fdf4bb",
+      "stage": "improve",
+      "file_bytes": 2263,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-fa5600b1e62e4a439a86acb305a602b0",
+      "stage": "test-spec",
+      "file_bytes": 41913,
+      "head_bytes": 40957
+    },
+    {
+      "action": "nav-3eb1ffcb3ef5412081d7949df4f2c06c",
+      "stage": "implement",
+      "file_bytes": 57093,
+      "head_bytes": 56137
+    },
+    {
+      "action": "nav-446ac47f0fd84557bf03f08a82289ab1",
+      "stage": "test",
+      "file_bytes": 55402,
+      "head_bytes": 54446
+    },
+    {
+      "action": "nav-ad707f0add7547508fd418ac149c1ae6",
+      "stage": "document",
+      "file_bytes": 53796,
+      "head_bytes": 52840
+    },
+    {
+      "action": "nav-e938cc00c23e48ce804c3adb4360d53f",
+      "stage": "improve",
+      "file_bytes": 2986,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-beb5b5c0aa3d4eb5ab9c7a62c1e0cec6",
+      "stage": "implement",
+      "file_bytes": 43013,
+      "head_bytes": 42057
+    },
+    {
+      "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+      "stage": "test",
+      "file_bytes": 60366,
+      "head_bytes": 59410
+    },
+    {
+      "action": "nav-fa300cf419e141fdbc737c8a858260ac",
+      "stage": "improve",
+      "file_bytes": 2260,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-0edec6135dda4f57a01d6d5402a98e5a",
+      "stage": "carry-forward",
+      "file_bytes": 35076,
+      "head_bytes": 34120
+    },
+    {
+      "action": "nav-b6f3f09875f749269a40bc41e1f3bd48",
+      "stage": "improve",
+      "file_bytes": 2275,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-1db6abb636a64744aa5f6513c301c7fa",
+      "stage": "system-test-author",
+      "file_bytes": 35103,
+      "head_bytes": 35130
+    },
+    {
+      "action": "nav-2c2d2d8e6df3469aa759038fbddf36bd",
+      "stage": "improve",
+      "file_bytes": 2290,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-3f71c3259b8f403bb3f623a136203d06",
+      "stage": "system-test",
+      "file_bytes": 21178,
+      "head_bytes": 21205
+    },
+    {
+      "action": "nav-dc503929bb7244c7b4bc969503173a6a",
+      "stage": "product-acceptance",
+      "file_bytes": 25141,
+      "head_bytes": 25168
+    },
+    {
+      "action": "nav-e5fd75c718c345afaaa69d5a52689cc2",
+      "stage": "release-plan",
+      "file_bytes": 26136,
+      "head_bytes": 26163
+    },
+    {
+      "action": "nav-2ec287436f1040968bea0ae6fc1f238a",
+      "stage": "improve",
+      "file_bytes": 2272,
+      "head_bytes": null
+    },
+    {
+      "action": "nav-f674219ee76d436d9ec7997bcd14748b",
+      "stage": "release-check",
+      "file_bytes": 21154,
+      "head_bytes": 21181
+    },
+    {
+      "action": "nav-286ac973ddf5408695efe9f533aa1684",
+      "stage": "release",
+      "file_bytes": 22223,
+      "head_bytes": 22209
+    },
+    {
+      "action": "nav-6859fc1c9da84ac39a63a0f0140bae90",
+      "stage": "release-verify",
+      "file_bytes": 25897,
+      "head_bytes": 25924
+    },
+    {
+      "action": "nav-8908d2ac23a140cc82820a30262e23d5",
+      "stage": "operations",
+      "file_bytes": 18194,
+      "head_bytes": 18221
+    },
+    {
+      "action": "nav-424f1358b97d498e9d7a3478e4a31a87",
+      "stage": "handoff",
+      "file_bytes": 26089,
+      "head_bytes": 26116
+    },
+    {
+      "action": "nav-51207dd667c84c49b85909e5140e3988",
+      "stage": "done",
+      "file_bytes": 15789,
+      "head_bytes": 15816
+    }
+  ],
+  "packets_unmeasured": {
+    "head_bytes": "codex: 10 of 38 packets have no whole print in the recorded replies: a reply is a whole print only from its head's first line to the head's own closing line, with the packet's `Full packet:` line and unshortened callback and keepalive lines; no recorded reply is one for these packets (0 recorded head replies were cut by the model's own pipe or script or by the host, and the rest of the packets are shown by no reply)"
+  },
+  "commits": {
+    "improve": {
+      "n": 0,
+      "with_lessons": 0,
+      "cited": 0,
+      "cited_earlier_run": 0
+    },
+    "script": {
+      "n": 14,
+      "with_lessons": 3
+    },
+    "other": {
+      "n": 3,
+      "with_lessons": 3
+    },
+    "counted": 17,
+    "start_head": null
+  },
+  "commits_unmeasured": {},
+  "delta": {
+    "basis": {
+      "kind": "fresh",
+      "followed_case": null,
+      "start_head": null,
+      "head": "0df9ccc2b378861f35accadb8f9d2a1c08ec0365"
+    },
+    "ids": {
+      "spec.md": {
+        "prefix": "R",
+        "prior": 0,
+        "final": 8,
+        "added": [
+          "R-1",
+          "R-2",
+          "R-3",
+          "R-4",
+          "R-5",
+          "R-6",
+          "R-7",
+          "R-8"
+        ],
+        "dropped": [],
+        "changed": [],
+        "unchanged": 0,
+        "retired_by_run": [],
+        "born_retired": []
+      },
+      "architecture.md": {
+        "prefix": "AD",
+        "prior": 0,
+        "final": 4,
+        "added": [
+          "AD-1",
+          "AD-2",
+          "AD-3",
+          "AD-4"
+        ],
+        "dropped": [],
+        "changed": [],
+        "unchanged": 0,
+        "retired_by_run": [],
+        "born_retired": []
+      }
+    },
+    "placement": {
+      "spec.md": {
+        "title": {
+          "prior": null,
+          "final": "Sales CSV report"
+        },
+        "level2": 3,
+        "stray": [
+          "Scope and basis"
+        ],
+        "stray_added": [
+          "Scope and basis"
+        ],
+        "duplicate": [],
+        "named_missing": [
+          "Retired"
+        ],
+        "named_empty": [],
+        "added_under_retired": [],
+        "changed_sections": [
+          "Requirements",
+          "Non-functional requirements"
+        ],
+        "bytes": {
+          "prior": 0,
+          "final": 10734
+        },
+        "relative_wording": {
+          "n": 0,
+          "examples": []
+        }
+      },
+      "environment.md": {
+        "title": {
+          "prior": null,
+          "final": "Environment"
+        },
+        "level2": 7,
+        "stray": [],
+        "stray_added": [],
+        "duplicate": [],
+        "named_missing": [],
+        "named_empty": [],
+        "added_under_retired": [],
+        "changed_sections": [
+          "Targets and runtimes",
+          "Commands",
+          "Skills",
+          "Harnesses and suites",
+          "ID convention",
+          "Access and accounts",
+          "Platform facts"
+        ],
+        "bytes": {
+          "prior": 0,
+          "final": 23551
+        },
+        "relative_wording": {
+          "n": 2,
+          "examples": [
+            "this run",
+            "new request"
+          ]
+        }
+      },
+      "architecture.md": {
+        "title": {
+          "prior": null,
+          "final": "Sales report architecture"
+        },
+        "level2": 7,
+        "stray": [],
+        "stray_added": [],
+        "duplicate": [],
+        "named_missing": [],
+        "named_empty": [],
+        "added_under_retired": [],
+        "changed_sections": [
+          "Stack",
+          "Structure",
+          "Conventions",
+          "Interfaces and boundaries",
+          "Real-boundary checks",
+          "Decisions",
+          "Superseded"
+        ],
+        "bytes": {
+          "prior": 0,
+          "final": 6367
+        },
+        "relative_wording": {
+          "n": 0,
+          "examples": []
+        }
+      }
+    },
+    "footprint": {
+      "by_class": {
+        "source": {
+          "added": 2,
+          "modified": 0,
+          "deleted": 0,
+          "insertions": 128,
+          "deletions": 0
+        },
+        "tests": {
+          "added": 1,
+          "modified": 0,
+          "deleted": 0,
+          "insertions": 225,
+          "deletions": 0
+        },
+        "docs": {
+          "added": 1,
+          "modified": 0,
+          "deleted": 0,
+          "insertions": 46,
+          "deletions": 0
+        },
+        "living": {
+          "added": 3,
+          "modified": 0,
+          "deleted": 0,
+          "insertions": 302,
+          "deletions": 0
+        }
+      },
+      "prior_tests_modified": [],
+      "prior_source_files": 0,
+      "prior_source_modified": 0
+    },
+    "writes": {
+      "spec.md": {
+        "reads": 0,
+        "appends": 0,
+        "other_writes": 0
+      },
+      "environment.md": {
+        "reads": 0,
+        "appends": 0,
+        "other_writes": 0
+      },
+      "architecture.md": {
+        "reads": 1,
+        "appends": 0,
+        "other_writes": 0
+      }
+    },
+    "plan": {
+      "delta_ids": [
+        "AD-1",
+        "AD-2",
+        "AD-3",
+        "AD-4",
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5",
+        "R-6",
+        "R-7",
+        "R-8"
+      ],
+      "primary": {
+        "delta": 7,
+        "preserved": 0,
+        "unknown": 0
+      },
+      "step_plan_follows": {
+        "delta": 12,
+        "preserved": 0,
+        "unknown": 0
+      },
+      "test_cases": {
+        "delta": 18,
+        "preserved": 0,
+        "unknown": 0,
+        "no_requirement": 0
+      }
+    },
+    "handoff": {
+      "lessons_commit": "0df9ccc2b378",
+      "lessons_chars": {
+        "learned": 275,
+        "considerations": 315,
+        "open_next": 238
+      },
+      "sections": {
+        "spec.md": {
+          "missing": [
+            "Retired"
+          ],
+          "empty": []
+        },
+        "environment.md": {
+          "missing": [],
+          "empty": []
+        },
+        "architecture.md": {
+          "missing": [],
+          "empty": []
+        }
+      },
+      "tracked": {
+        "spec.md": true,
+        "environment.md": true,
+        "architecture.md": true
+      }
+    },
+    "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+    "regression": {
+      "planned": [
+        {
+          "command": "python3 -m unittest -v",
+          "minimum": true,
+          "suite": "regression",
+          "action": "nav-faadae8982e04b73aa39aeb374f857f3",
+          "work_item": "W1",
+          "min_tests": null,
+          "target": null,
+          "locator": "state.md#/accepted/nav-faadae8982e04b73aa39aeb374f857f3/test_commands/6",
+          "result_locator": "results/nav-faadae8982e04b73aa39aeb374f857f3.md"
+        },
+        {
+          "command": "python3 -m unittest -v",
+          "suite": "regression",
+          "action": "nav-5f46576bc6c5459dbbce50d2ec7bdaa4",
+          "work_item": "W1",
+          "minimum": null,
+          "min_tests": null,
+          "target": null,
+          "locator": "state.md#/accepted/nav-5f46576bc6c5459dbbce50d2ec7bdaa4/test_commands/6",
+          "result_locator": "results/nav-5f46576bc6c5459dbbce50d2ec7bdaa4.md"
+        }
+      ],
+      "observations": [
+        {
+          "schema": "shiploop-test-loop/v2",
+          "kind": null,
+          "action": "nav-3f71c3259b8f403bb3f623a136203d06",
+          "work_item": "",
+          "stage": "system-test",
+          "attempt": 1,
+          "counted": null,
+          "reused": null,
+          "trees": null,
+          "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree",
+          "observed": null,
+          "created_at": "2026-11-16T18:27:11Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": null,
+          "base_head": null,
+          "base_commit": null,
+          "record": "tests/nav-3f71c3259b8f403bb3f623a136203d06-verify1.md",
+          "source_locator": null,
+          "locator": "tests/nav-3f71c3259b8f403bb3f623a136203d06-verify1.md#/runs/0",
+          "command": "python3 -m unittest -v",
+          "status": "passed",
+          "counts": {
+            "failed": 0,
+            "ran": 9,
+            "runners": [
+              "unittest"
+            ]
+          },
+          "suite": "regression",
+          "regression": null,
+          "target": null,
+          "exit": 0
+        },
+        {
+          "schema": "shiploop-test-mutation/v1",
+          "kind": null,
+          "action": "nav-446ac47f0fd84557bf03f08a82289ab1",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": null,
+          "counted": false,
+          "reused": null,
+          "trees": null,
+          "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-test-base-qfad96ya/base",
+          "observed": null,
+          "created_at": "2026-11-16T17:56:38Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": "9173545fe6979753ae34deac93faf34d3735d32c",
+          "base_head": null,
+          "base_commit": null,
+          "record": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation-check.md",
+          "source_locator": null,
+          "locator": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation-check.md",
+          "command": null,
+          "status": null,
+          "counts": null
+        },
+        {
+          "schema": "shiploop-test-mutation/v1",
+          "kind": null,
+          "action": "nav-446ac47f0fd84557bf03f08a82289ab1",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": 3,
+          "counted": null,
+          "reused": {
+            "answer": "checks/nav-446ac47f0fd84557bf03f08a82289ab1.md",
+            "created_at": "2026-11-16T17:56:38Z",
+            "path": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation-check.md"
+          },
+          "trees": null,
+          "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-test-base-qfad96ya/base",
+          "observed": null,
+          "created_at": "2026-11-16T17:56:38Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": "9173545fe6979753ae34deac93faf34d3735d32c",
+          "base_head": null,
+          "base_commit": null,
+          "record": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation1.md",
+          "source_locator": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation-check.md",
+          "locator": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation1.md",
+          "command": null,
+          "status": null,
+          "counts": null
+        },
+        {
+          "schema": "shiploop-test-base/v1",
+          "kind": null,
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": null,
+          "counted": false,
+          "reused": null,
+          "trees": null,
+          "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-test-base-t351gy16/base",
+          "observed": null,
+          "created_at": "2026-11-16T18:11:29Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": "84f077eae6593f8a46ba1e7d79182bc07c020799",
+          "base_head": "29466317be3c37e6276ce34f4b908a8fd425e0b6",
+          "base_commit": null,
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-base-check.md",
+          "source_locator": null,
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-base-check.md#/runs/4",
+          "command": "python3 -m unittest -v",
+          "status": "counted",
+          "counts": {
+            "failed": 0,
+            "ran": 9,
+            "runners": [
+              "unittest"
+            ]
+          },
+          "suite": "regression",
+          "regression": null,
+          "target": null,
+          "exit": 0
+        },
+        {
+          "schema": "shiploop-test-base/v1",
+          "kind": null,
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": 1,
+          "counted": null,
+          "reused": {
+            "answer": "checks/nav-8f28afff47a9447da89e8b15c5c3bdab.md",
+            "created_at": "2026-11-16T18:11:29Z",
+            "path": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-base-check.md"
+          },
+          "trees": null,
+          "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-test-base-t351gy16/base",
+          "observed": null,
+          "created_at": "2026-11-16T18:11:29Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": "84f077eae6593f8a46ba1e7d79182bc07c020799",
+          "base_head": "29466317be3c37e6276ce34f4b908a8fd425e0b6",
+          "base_commit": null,
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-base1.md",
+          "source_locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-base-check.md",
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-base1.md#/runs/4",
+          "command": "python3 -m unittest -v",
+          "status": "counted",
+          "counts": {
+            "failed": 0,
+            "ran": 9,
+            "runners": [
+              "unittest"
+            ]
+          },
+          "suite": "regression",
+          "regression": null,
+          "target": null,
+          "exit": 0
+        },
+        {
+          "schema": "shiploop-test-loop/v2",
+          "kind": null,
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": null,
+          "counted": false,
+          "reused": null,
+          "trees": [
+            "24dc1d14a810ab89c6bff6e6674d7954311da08f"
+          ],
+          "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree",
+          "observed": null,
+          "created_at": "2026-11-16T18:11:46Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": null,
+          "base_head": null,
+          "base_commit": null,
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-check.md",
+          "source_locator": null,
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-check.md#/runs/6",
+          "command": "python3 -m unittest -v",
+          "status": "passed",
+          "counts": {
+            "failed": 0,
+            "ran": 9,
+            "runners": [
+              "unittest"
+            ]
+          },
+          "suite": "regression",
+          "regression": null,
+          "target": null,
+          "exit": 0
+        },
+        {
+          "schema": "shiploop-test-mutation/v1",
+          "kind": null,
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": null,
+          "counted": false,
+          "reused": null,
+          "trees": null,
+          "cwd": null,
+          "observed": null,
+          "created_at": "2026-11-16T18:11:46Z",
+          "disposition": "skipped",
+          "passed": true,
+          "base_tree": "84f077eae6593f8a46ba1e7d79182bc07c020799",
+          "base_head": null,
+          "base_commit": null,
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation-check.md",
+          "source_locator": null,
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation-check.md",
+          "command": null,
+          "status": null,
+          "counts": null
+        },
+        {
+          "schema": "shiploop-test-mutation/v1",
+          "kind": null,
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": 3,
+          "counted": null,
+          "reused": {
+            "answer": "checks/nav-8f28afff47a9447da89e8b15c5c3bdab.md",
+            "created_at": "2026-11-16T18:11:46Z",
+            "path": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation-check.md"
+          },
+          "trees": null,
+          "cwd": null,
+          "observed": null,
+          "created_at": "2026-11-16T18:11:46Z",
+          "disposition": "skipped",
+          "passed": true,
+          "base_tree": "84f077eae6593f8a46ba1e7d79182bc07c020799",
+          "base_head": null,
+          "base_commit": null,
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation1.md",
+          "source_locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation-check.md",
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation1.md",
+          "command": null,
+          "status": null,
+          "counts": null
+        },
+        {
+          "schema": "shiploop-test-base/v1",
+          "kind": null,
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": null,
+          "counted": null,
+          "reused": null,
+          "trees": null,
+          "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-test-base-5eizm7b3/base",
+          "observed": null,
+          "created_at": "2026-11-16T18:10:54Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": "84f077eae6593f8a46ba1e7d79182bc07c020799",
+          "base_head": "29466317be3c37e6276ce34f4b908a8fd425e0b6",
+          "base_commit": null,
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-red-check.md",
+          "source_locator": null,
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-red-check.md#/runs/4",
+          "command": "python3 -m unittest -v",
+          "status": "counted",
+          "counts": {
+            "failed": 0,
+            "ran": 9,
+            "runners": [
+              "unittest"
+            ]
+          },
+          "suite": "regression",
+          "regression": null,
+          "target": null,
+          "exit": 0
+        },
+        {
+          "schema": "shiploop-test-loop/v2",
+          "kind": null,
+          "action": "nav-8f28afff47a9447da89e8b15c5c3bdab",
+          "work_item": "W1",
+          "stage": "test",
+          "attempt": 2,
+          "counted": null,
+          "reused": {
+            "answer": "checks/nav-8f28afff47a9447da89e8b15c5c3bdab.md",
+            "created_at": "2026-11-16T18:11:46Z",
+            "path": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-check.md"
+          },
+          "trees": [
+            "24dc1d14a810ab89c6bff6e6674d7954311da08f"
+          ],
+          "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree",
+          "observed": null,
+          "created_at": "2026-11-16T18:11:46Z",
+          "disposition": "passed",
+          "passed": true,
+          "base_tree": null,
+          "base_head": null,
+          "base_commit": null,
+          "record": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-verify1.md",
+          "source_locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-check.md",
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-verify1.md#/runs/6",
+          "command": "python3 -m unittest -v",
+          "status": "passed",
+          "counts": {
+            "failed": 0,
+            "ran": 9,
+            "runners": [
+              "unittest"
+            ]
+          },
+          "suite": "regression",
+          "regression": null,
+          "target": null,
+          "exit": 0
+        }
+      ],
+      "correspondence": [
+        {
+          "command": "python3 -m unittest -v",
+          "planned": [
+            0,
+            1
+          ],
+          "observations": [
+            0,
+            3,
+            4,
+            5,
+            8,
+            9
+          ]
+        }
+      ],
+      "issues": [
+        {
+          "locator": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation-check.md",
+          "reason": "no run rows; record retained without inferring any execution"
+        },
+        {
+          "locator": "tests/nav-446ac47f0fd84557bf03f08a82289ab1-mutation1.md",
+          "reason": "no run rows; record retained without inferring any execution"
+        },
+        {
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation-check.md",
+          "reason": "no run rows; record retained without inferring any execution"
+        },
+        {
+          "locator": "tests/nav-8f28afff47a9447da89e8b15c5c3bdab-mutation1.md",
+          "reason": "no run rows; record retained without inferring any execution"
+        }
+      ],
+      "limits": "Receipt observations, not distinct executions: reused may name an earlier check copied without running again. counted is retained verbatim (null when absent); absence alone does not establish whether a receipt counted. Exact-command correspondence only: no satisfaction across work items, targets, plans or checked trees, no pass-to-pass classification and no verdict. Repeated rows and superseded accepted plans remain visible. Missing counts, status and trees stay null; correspondence with no observations is missing evidence, not zero tests. Lists may be partial when issues are present; empty correspondence never proves absence of regressions. Locators are run-relative; source_locator names reused.path without assuming that source is still readable."
+    }
+  },
+  "delta_unmeasured": {}
+}

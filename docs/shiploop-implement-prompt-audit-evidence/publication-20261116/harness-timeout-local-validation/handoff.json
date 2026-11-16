@@ -1,0 +1,438 @@
+{
+  "status": "PASS",
+  "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "source_fingerprint": "2f82bb948568b935d2f68d0e0db92ed716240c44d7f504bb764bef5b966fd382",
+  "entries": 14112,
+  "source_guards": "pre/post fingerprint, manifest, head, index hash, config hash, ordinary/ignored/untracked status unchanged; only 3 expected dirty paths",
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/test-harness.test.py",
+        "-v"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start": "2026-11-16T20:30:11.950247+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "end": "2026-11-16T20:31:17.827911+00:00",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "node",
+        "test/skill-frontmatter.test.js"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start": "2026-11-16T20:31:23.717867+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "end": "2026-11-16T20:31:23.801525+00:00",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "ruff",
+        "check",
+        "--no-cache",
+        "--select",
+        "E9,F",
+        "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "test/test-harness.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start": "2026-11-16T20:31:28.491354+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "end": "2026-11-16T20:31:28.527935+00:00",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/build-packages.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/source-build"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start": "2026-11-16T20:31:33.479052+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "end": "2026-11-16T20:31:36.431721+00:00",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/source-build/scripts/check-marketplace-packages.py"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/source-build",
+      "start": "2026-11-16T20:31:42.722998+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "end": "2026-11-16T20:31:43.093255+00:00",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+        "diff",
+        "--check",
+        "HEAD",
+        "--",
+        "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "test/test-harness.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start": "2026-11-16T20:31:48.267354+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "end": "2026-11-16T20:31:48.281792+00:00",
+      "exit": 0
+    }
+  ],
+  "counts": {
+    "checks": 6,
+    "methods": 11,
+    "errors": 0,
+    "failures": 0,
+    "skips": 0,
+    "scenarios": 6,
+    "frontmatter_skills": 25,
+    "packages": 1
+  },
+  "methods": [
+    "test_the_lint_finds_each_seeded_shape",
+    "test_the_lint_reads_every_shipped_file",
+    "test_every_script_and_reference_the_card_names_exists",
+    "test_no_default_names_a_host_or_a_home_directory",
+    "test_the_card_binds_the_scripts_from_the_loaded_skill",
+    "test_the_driver_runs_from_an_unrelated_directory",
+    "test_the_scripts_the_card_runs_are_executable",
+    "test_the_bundled_self_test_passes_in_a_scratch_home",
+    "test_atomic_publication_and_raced_collisions",
+    "test_evidence_precedes_deadline_consuming_cleanup",
+    "test_interrupted_write_never_exposes_incomplete_final"
+  ],
+  "scenario_evidence": [
+    {
+      "scenario": "published",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp0fiqxo_0/wrapper.py",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "published",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp0fiqxo_0"
+      ],
+      "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp0fiqxo_0",
+      "start_epoch": 1794861072.438866,
+      "end_epoch": 1794861073.38145,
+      "exit": 124,
+      "elapsed": 0.934644875000231,
+      "barrier": {
+        "scenario": "published",
+        "final": {
+          "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 730,\n  \"worker_executable\": \"python3.15\",\n  \"worker_argument_count\": 4\n}\n",
+          "mode": 384
+        }
+      },
+      "final": {
+        "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 730,\n  \"worker_executable\": \"python3.15\",\n  \"worker_argument_count\": 4\n}\n",
+        "mode": 384
+      },
+      "staging_leftovers": [
+        {
+          "name": ".hard-timeout.ec94c9bb283db5ef.tmp",
+          "mode": 384,
+          "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 730,\n  \"worker_executable\": \"python3.15\",\n  \"worker_argument_count\": 4\n}\n"
+        }
+      ],
+      "pids": {
+        "worker": {
+          "pid": 46937,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 46938,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp0fiqxo_0/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "collision-file",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp3la1xk_q/wrapper.py",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "collision-file",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp3la1xk_q"
+      ],
+      "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp3la1xk_q",
+      "start_epoch": 1794861073.382447,
+      "end_epoch": 1794861074.18633,
+      "exit": 124,
+      "elapsed": 0.7978844580065925,
+      "barrier": {
+        "scenario": "collision-file",
+        "final": null
+      },
+      "final": {
+        "text": "competitor unchanged",
+        "mode": 420
+      },
+      "staging_leftovers": [],
+      "pids": {
+        "worker": {
+          "pid": 46944,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 46945,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp3la1xk_q/run\n",
+      "stderr": "test-harness hard supervisor: refusing to replace timeout evidence at hard-timeout.json: [Errno 17] File exists: '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp3la1xk_q/run/.hard-timeout.7ab58bd7cdd68e0c.tmp' -> '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp3la1xk_q/run/hard-timeout.json'\ntest-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "collision-symlink",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmps3drf8tr/wrapper.py",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "collision-symlink",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmps3drf8tr"
+      ],
+      "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmps3drf8tr",
+      "start_epoch": 1794861074.187314,
+      "end_epoch": 1794861074.9837282,
+      "exit": 124,
+      "elapsed": 0.7903393750020768,
+      "barrier": {
+        "scenario": "collision-symlink",
+        "final": null
+      },
+      "final": {
+        "text": "target unchanged",
+        "mode": 420
+      },
+      "staging_leftovers": [],
+      "pids": {
+        "worker": {
+          "pid": 46949,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 46950,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmps3drf8tr/run\n",
+      "stderr": "test-harness hard supervisor: refusing to replace timeout evidence at hard-timeout.json: [Errno 17] File exists: '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmps3drf8tr/run/.hard-timeout.04f5eb9be0d7d149.tmp' -> '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmps3drf8tr/run/hard-timeout.json'\ntest-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "cleanup",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpkpodgz9r/wrapper.py",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "cleanup",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpkpodgz9r"
+      ],
+      "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpkpodgz9r",
+      "start_epoch": 1794861074.984787,
+      "end_epoch": 1794861075.934067,
+      "exit": 124,
+      "elapsed": 0.9395545000006678,
+      "barrier": {
+        "scenario": "cleanup",
+        "final": {
+          "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 685,\n  \"worker_executable\": \"python3.15\",\n  \"worker_argument_count\": 4\n}\n",
+          "mode": 384
+        }
+      },
+      "final": {
+        "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 685,\n  \"worker_executable\": \"python3.15\",\n  \"worker_argument_count\": 4\n}\n",
+        "mode": 384
+      },
+      "staging_leftovers": [],
+      "pids": {
+        "worker": {
+          "pid": 46956,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 46957,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpkpodgz9r/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "write-empty",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmppz8u8l3n/wrapper.py",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "write-empty",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmppz8u8l3n"
+      ],
+      "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmppz8u8l3n",
+      "start_epoch": 1794861075.9351628,
+      "end_epoch": 1794861076.879871,
+      "exit": 124,
+      "elapsed": 0.9357759580016136,
+      "barrier": {
+        "scenario": "write-empty",
+        "final": null
+      },
+      "final": null,
+      "staging_leftovers": [
+        {
+          "name": ".hard-timeout.6429d06a3fdd5a5a.tmp",
+          "mode": 384,
+          "text": ""
+        }
+      ],
+      "pids": {
+        "worker": {
+          "pid": 46964,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 46965,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmppz8u8l3n/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "write-prefix",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpeslqy3se/wrapper.py",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "write-prefix",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpeslqy3se"
+      ],
+      "cwd": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpeslqy3se",
+      "start_epoch": 1794861076.8808472,
+      "end_epoch": 1794861077.821033,
+      "exit": 124,
+      "elapsed": 0.9319917079992592,
+      "barrier": {
+        "scenario": "write-prefix",
+        "final": null
+      },
+      "final": null,
+      "staging_leftovers": [
+        {
+          "name": ".hard-timeout.e2445e28595e8c16.tmp",
+          "mode": 384,
+          "text": "{\n  \"st"
+        }
+      ],
+      "pids": {
+        "worker": {
+          "pid": 46971,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 46972,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpeslqy3se/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    }
+  ],
+  "built_supervisors": [
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/source-build/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+      "sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+      "mode": 493
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/source-build/plugins/skill-craft/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+      "sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+      "mode": 493
+    }
+  ],
+  "runtime_identities": {
+    "python": {
+      "argv": [
+        "python3",
+        "-B",
+        "-c",
+        "import sys;print(sys.version);print(sys.executable)"
+      ],
+      "exit": 0,
+      "stdout": "3.15.1 (main, Oct 21 2026, 05:55:12) [Clang 21.0.0 (clang-2100.3.34.2)]\n/opt/homebrew/opt/python@3.15/bin/python3.15\n",
+      "stderr": ""
+    },
+    "node": {
+      "argv": [
+        "node",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "v26.12.1\n",
+      "stderr": ""
+    },
+    "ruff": {
+      "argv": [
+        "ruff",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "ruff 0.17.2\n",
+      "stderr": ""
+    }
+  },
+  "logs": {
+    "1": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-1.stdout.log",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-1.stderr.log"
+    ],
+    "2": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-2.stdout.log",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-2.stderr.log"
+    ],
+    "3": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-3.stdout.log",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-3.stderr.log"
+    ],
+    "4": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-4.stdout.log",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-4.stderr.log"
+    ],
+    "5": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-5.stdout.log",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-5.stderr.log"
+    ],
+    "6": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-6.stdout.log",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-6.stderr.log"
+    ]
+  },
+  "limits": [
+    "Single attempt each; no retries or repairs",
+    "Outer wrapper enforces >=270 self-test assertions; exact 279 marker count not exposed or independently inferred",
+    "Marketplace validation is offline payload validation only",
+    "No full-repository, red/control-variant, deployment, release, commit, push, or host-refresh evidence"
+  ]
+}

@@ -1,0 +1,265 @@
+{
+  "source": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+  "evidence": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification",
+  "python_resolved": "/opt/homebrew/bin/python3",
+  "python_executable": "/opt/homebrew/opt/python@3.15/bin/python3.15",
+  "python_version": "3.15.1 (main, Oct 21 2026, 05:55:12) [Clang 21.0.0 (clang-2100.3.34.2)]",
+  "env_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "deadline": "2026-11-16T18:30:00Z",
+  "expected_methods": 25,
+  "retry_policy": "none",
+  "max_concurrency": 2,
+  "expected_repository_outputs": [],
+  "pre": {
+    "timestamp": "2026-11-16T18:07:56.278281+00:00",
+    "head": "9b73ed18a291a43d4822e1a15a0f3ab0cbce4154",
+    "tree": "d28ec7750571f44200c5a716f6e5983e9632f55c",
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status_bytes": 0,
+    "status_ignored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status_ignored_bytes": 0,
+    "index_entries_sha256": "6f3171d04d986e83a25cb09a762d5e01cce298b8b554376bd70f02ddd16c4254",
+    "index_entries_bytes": 1910855,
+    "index_sha256": "a544f03936d21b2ac69360da6ebcf83f8d231f1b153ec4fc01ef7166ab59a4ef",
+    "tracked_inventory_sha256": "ba101ef5d7c0231f3cb79fa18845f252b5ff04394186946500ae89925ae1da97",
+    "tracked_count": 14115
+  },
+  "post": {
+    "timestamp": "2026-11-16T18:08:05.849463+00:00",
+    "head": "9b73ed18a291a43d4822e1a15a0f3ab0cbce4154",
+    "tree": "d28ec7750571f44200c5a716f6e5983e9632f55c",
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status_bytes": 0,
+    "status_ignored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status_ignored_bytes": 0,
+    "index_entries_sha256": "6f3171d04d986e83a25cb09a762d5e01cce298b8b554376bd70f02ddd16c4254",
+    "index_entries_bytes": 1910855,
+    "index_sha256": "a544f03936d21b2ac69360da6ebcf83f8d231f1b153ec4fc01ef7166ab59a4ef",
+    "tracked_inventory_sha256": "ba101ef5d7c0231f3cb79fa18845f252b5ff04394186946500ae89925ae1da97",
+    "tracked_count": 14115
+  },
+  "identity_unchanged": true,
+  "identity_comparison_keys": [
+    "head",
+    "tree",
+    "index_sha256",
+    "tracked_inventory_sha256",
+    "status_sha256",
+    "status_ignored_sha256",
+    "index_entries_sha256"
+  ],
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "floor",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-python-floor.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started": "2026-11-16T18:07:57.749290+00:00",
+      "expected_count": 9,
+      "selected_methods": [
+        "BelowTheFloorTest.test_the_cli_entries_state_the_requirement_and_exit_blocked",
+        "BelowTheFloorTest.test_a_host_hook_event_does_nothing_and_says_nothing",
+        "BelowTheFloorTest.test_an_interpreter_at_the_floor_passes_the_guard",
+        "BelowTheFloorTest.test_every_entry_that_imports_a_shiploop_module_checks_the_floor_first",
+        "BelowTheFloorTest.test_the_guard_module_parses_as_python_3_7",
+        "HookWrapperTest.test_without_python3_each_wrapper_exits_zero_with_no_output",
+        "HookWrapperTest.test_with_python3_each_wrapper_runs_shiploop_hook_with_its_verb_and_the_payload_on_stdin",
+        "HookWrapperTest.test_the_wrappers_are_executable_shell_scripts_the_hook_manifest_can_name",
+        "FloorIsStatedWhereItIsEnforcedTest.test_the_card_and_the_ci_job_state_the_same_floor"
+      ],
+      "method_identity_basis": "AST source selection",
+      "exit": 0,
+      "ended": "2026-11-16T18:07:58.716616+00:00",
+      "elapsed_seconds": 0.9673204999999143,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/floor.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/floor.stderr.log",
+      "observed_counts": [
+        9
+      ],
+      "terminal_OK": true,
+      "required_skips": false,
+      "observed_failure": false,
+      "warning_lines": [],
+      "summary_excerpt": "\n.........\n----------------------------------------------------------------------\nRan 9 tests in 0.902s\n\nOK",
+      "status": "PASS"
+    },
+    {
+      "name": "loops",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-loops.test.py",
+        "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+        "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+        "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+        "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+        "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+        "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+        "-v"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started": "2026-11-16T18:07:57.749357+00:00",
+      "expected_count": 6,
+      "selected_methods": [
+        "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+        "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+        "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+        "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+        "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+        "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan"
+      ],
+      "method_identity_basis": "exact unittest selectors",
+      "exit": 0,
+      "ended": "2026-11-16T18:08:05.848997+00:00",
+      "elapsed_seconds": 8.099570374994073,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/loops.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/loops.stderr.log",
+      "observed_counts": [
+        6
+      ],
+      "terminal_OK": true,
+      "required_skips": false,
+      "observed_failure": false,
+      "warning_lines": [],
+      "summary_excerpt": "test_emitted_launch_resumes_and_check_done_complete_accepts_once (__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once) ... ok\ntest_active_restart_and_lost_state_refuse_without_replacing_receipt (__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt) ... ok\ntest_next_writes_the_contract_of_a_run_seeded_at_step_plan (__main__.MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 7.886s\n\nOK",
+      "status": "PASS"
+    },
+    {
+      "name": "fidelity",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-fidelity.test.py",
+        "LoopCommandsTest",
+        "-v"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started": "2026-11-16T18:07:58.717186+00:00",
+      "expected_count": 2,
+      "selected_methods": [
+        "LoopCommandsTest.test_the_printed_start_command_is_not_glue_a_script_edit_or_a_commit",
+        "LoopCommandsTest.test_the_runtimes_own_next_call_is_still_the_improve_next_kind_and_start_is_plain"
+      ],
+      "method_identity_basis": "AST source selection",
+      "exit": 0,
+      "ended": "2026-11-16T18:07:59.129809+00:00",
+      "elapsed_seconds": 0.4126290829881327,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/fidelity.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/fidelity.stderr.log",
+      "observed_counts": [
+        2
+      ],
+      "terminal_OK": true,
+      "required_skips": false,
+      "observed_failure": false,
+      "warning_lines": [],
+      "summary_excerpt": "\ntest_the_printed_start_command_is_not_glue_a_script_edit_or_a_commit (__main__.LoopCommandsTest.test_the_printed_start_command_is_not_glue_a_script_edit_or_a_commit) ... ok\ntest_the_runtimes_own_next_call_is_still_the_improve_next_kind_and_start_is_plain (__main__.LoopCommandsTest.test_the_runtimes_own_next_call_is_still_the_improve_next_kind_and_start_is_plain) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nOK",
+      "status": "PASS"
+    },
+    {
+      "name": "guidance",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-guidance.test.py",
+        "GuidanceTests.test_r16_cold_release_state_locator_resolves_on_both_routes",
+        "GuidanceTests.test_r16_release_plan_qualifies_claims_independently_of_current_observation",
+        "GuidanceTests.test_r16_release_check_records_actual_state_and_indeterminate_observations",
+        "GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification",
+        "GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources",
+        "GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started": "2026-11-16T18:07:59.130236+00:00",
+      "expected_count": 6,
+      "selected_methods": [
+        "GuidanceTests.test_r16_cold_release_state_locator_resolves_on_both_routes",
+        "GuidanceTests.test_r16_release_plan_qualifies_claims_independently_of_current_observation",
+        "GuidanceTests.test_r16_release_check_records_actual_state_and_indeterminate_observations",
+        "GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification",
+        "GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources",
+        "GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts"
+      ],
+      "method_identity_basis": "exact unittest selectors",
+      "exit": 0,
+      "ended": "2026-11-16T18:07:59.594558+00:00",
+      "elapsed_seconds": 0.4643270000087796,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/guidance.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/guidance.stderr.log",
+      "observed_counts": [
+        6
+      ],
+      "terminal_OK": true,
+      "required_skips": false,
+      "observed_failure": false,
+      "warning_lines": [],
+      "summary_excerpt": "test_r16_release_reference_separates_actual_observation_from_qualification (__main__.GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification) ... ok\ntest_r16_platform_confirm_preserves_presence_query_entry_and_sources (__main__.GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources) ... ok\ntest_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts (__main__.GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.238s\n\nOK",
+      "status": "PASS"
+    },
+    {
+      "name": "actual_improve",
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-actual-improve-cli.test.py",
+        "R16LocalObserverTests.test_r16_local_observer_independent_controls_reject_always_success",
+        "R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started": "2026-11-16T18:07:59.594977+00:00",
+      "expected_count": 2,
+      "selected_methods": [
+        "R16LocalObserverTests.test_r16_local_observer_independent_controls_reject_always_success",
+        "R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state"
+      ],
+      "method_identity_basis": "exact unittest selectors",
+      "exit": 0,
+      "ended": "2026-11-16T18:08:03.974268+00:00",
+      "elapsed_seconds": 4.379259749999619,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/actual_improve.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/python315-merged-local-qualification/actual_improve.stderr.log",
+      "observed_counts": [
+        2
+      ],
+      "terminal_OK": true,
+      "required_skips": false,
+      "observed_failure": false,
+      "warning_lines": [],
+      "summary_excerpt": "{\"r16_observer_report\": \"/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-ymqfiifb/observations/qualification.json\", \"qualification\": {\"honest\": true, \"always-success\": false}}\n{\"r16_acceptance\": \"release-plan complete/Improve import through release-check complete\", \"state\": \"/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-ymqfiifb/parent-release-plan/state.md\", \"evidence_refs\": [\"/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-ymqfiifb/observations/qualification.json\", \"/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-ymqfiifb/observations/logs/honest-identity-correct.json\", \"/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-ymqfiifb/observations/before.json\", \"/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-child-cli-ymqfiifb/observations/after.json\"], \"synthetic\": [\"predecessor navigation\", \"model-shaped results\", \"review content\"], \"consumer_checks_executed\": false, \"delivery_contract_authority_covered\": false}\n\n..\n----------------------------------------------------------------------\nRan 2 tests in 4.148s\n\nOK",
+      "status": "PASS"
+    }
+  ],
+  "observed_methods": 25,
+  "limits": [
+    "Local established-check bank only; not release CI, publication, live-model or deployed acceptance.",
+    "Floor and fidelity identities collected from AST-selected test methods; terminal counts establish execution.",
+    "No retry or repair."
+  ],
+  "python_executable_realpath": "/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/bin/python3.15",
+  "callback_interpreter_evidence": {
+    "runtime": "Python 3.15.1",
+    "basis": "Test parent interpreter sys.executable; callback launch code inspection recorded in source-callback-interpreter.txt",
+    "observed_callback_executable_not_separately_printed": true
+  }
+}

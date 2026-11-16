@@ -1,0 +1,351 @@
+=== test-harness self-tests ===
+SCRIPTS=/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116/skills/test-harness/scripts TMP=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf
+--- discover-test-cmd.sh ---
+  PASS  discover prefers test-fast
+  PASS  discover cmd make test-fast
+  PASS  generic make test → unknown
+  PASS  npm test:fast profile fast
+  PASS  npm test → unknown
+  PASS  no candidate exit 2
+  PASS  no candidate error
+--- run-suite.sh (timeout + TMPDIR) ---
+  PASS  run-suite exit 0
+  PASS  meta.json exists
+  PASS  stdout captured
+  PASS  tmpdir pinned exists
+  PASS  run-suite output tree and raw logs are private
+  PASS  run-suite rejects pre-existing stdout.log
+  PASS  run-suite leaves pre-existing stdout.log untouched
+  PASS  run-suite rejects pre-existing stderr.log
+  PASS  run-suite leaves pre-existing stderr.log untouched
+  PASS  run-suite rejects pre-existing meta.json
+  PASS  run-suite leaves pre-existing meta.json untouched
+  PASS  run-suite rejects raced stdout.log symlink
+  PASS  run-suite reports exclusive stdout.log collision
+  PASS  run-suite never follows raced stdout.log symlink
+  PASS  run-suite rejects raced stderr.log symlink
+  PASS  run-suite reports exclusive stderr.log collision
+  PASS  run-suite never follows raced stderr.log symlink
+  PASS  run-suite rejects raced meta.json symlink
+  PASS  run-suite reports exclusive meta.json collision
+  PASS  run-suite never follows raced meta.json symlink
+  PASS  run-suite retains artifact descriptors after path replacement
+  PASS  retained stdout.log never writes through replacement symlink
+  PASS  retained stderr.log never writes through replacement symlink
+  PASS  retained meta.json never writes through replacement symlink
+  PASS  retained stdout descriptor captures child output
+  PASS  retained stderr descriptor captures child output
+  PASS  retained meta descriptor receives final metadata
+  PASS  run-suite rejects --timeout-secs above cap
+  PASS  run-suite reports one-hour cap
+  PASS  run-suite rejects TEST_HARNESS_TIMEOUT above cap
+  PASS  run-suite reports env one-hour cap
+  PASS  timeout exit 124
+  PASS  timeout error_sig
+  PASS  timeout duration stays strictly below advertised cap
+  PASS  timeout TERM-ignoring descendant killed
+  PASS  normal shell exit retained with background child
+  PASS  normal background meta exit retained
+  PASS  normal background descendant killed
+  PASS  tmpdir write exit 0
+  PASS  child wrote under pinned tmp
+RUN_DIR=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/hard-supervisor
+  PASS  hard lifecycle supervisor exits 124
+  PASS  hard lifecycle duration stays near the advertised cap
+  PASS  hard lifecycle timeout evidence exists
+  PASS  hard lifecycle evidence records an elapsed time inside the cap
+  PASS  hard lifecycle evidence omits raw command secrets
+  PASS  hard lifecycle evidence records only bounded command metadata
+  PASS  hard lifecycle kills TERM-ignoring descendant
+  PASS  hard lifecycle bounds blocked path setup
+  PASS  blocked path setup finishes near the advertised cap
+  PASS  blocked path setup never launches worker
+  PASS  hard timeout rejects file evidence collision
+  PASS  hard timeout reports file evidence refusal
+  PASS  hard timeout leaves file collision target untouched
+  PASS  hard timeout rejects symlink evidence collision
+  PASS  hard timeout reports symlink evidence refusal
+  PASS  hard timeout leaves symlink collision target untouched
+  PASS  nested SIGINT preserves exit 130
+  PASS  nested SIGINT records both owned processes
+  PASS  nested SIGINT reaps every detached level
+  PASS  nested SIGTERM preserves exit 143
+  PASS  nested SIGTERM reaps every detached level
+  PASS  nested SIGHUP preserves exit 129
+  PASS  nested SIGHUP records both owned processes
+  PASS  nested SIGHUP reaps every detached level
+  PASS  nested hard timeout preserves exit 124
+  PASS  nested hard timeout stays near the cap
+  PASS  nested hard timeout reaps every detached level
+  PASS  nested hard timeout writes emergency evidence
+--- porcelain-delta.py ---
+  PASS  pre manifest
+  PASS  invoke-baseline write-once
+  PASS  delta.json
+delta content ok
+  PASS  content_changed + added classified
+  PASS  shared restore preserves changed app.js
+  PASS  shared restore preserves added newfile
+shared restore preserves all post state
+  PASS  shared restore report records manual reconciliation
+  PASS  restored app.js
+  PASS  deleted newfile
+already-M rewrite detected
+  PASS  already-M content hash delta
+  PASS  dirty-pre changed path preserves post bytes
+dirty-pre changed preservation recorded
+  PASS  dirty-pre changed restore report records preservation
+dirty-pre deletion classified
+  PASS  dirty-pre deletion delta is explicit
+  PASS  dirty-pre deleted path stays deleted
+dirty-pre deletion preservation recorded
+  PASS  dirty-pre deleted restore report records preservation
+tracked delete classified
+  PASS  tracked delete → deleted
+  PASS  recreated deleted tracked
+  PASS  fix_then_rewrite preserves post bytes
+  PASS  invoke-baseline still present after r2
+  PASS  invoke head recorded
+--- classify-side-effects.py ---
+{"ok": false, "fail": 4, "note": 2, "out": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/se.json"}
+  PASS  classifier exits 1 on fail findings
+classify ok
+  PASS  unintended + litter + ignored-src + dirty-pre preservation finding
+{"ok": false, "fail": 6, "note": 2, "out": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/se2.json"}
+live gate fail
+  PASS  LIVE_GATE_ON_FAST under fast
+{"ok": true, "fail": 0, "note": 1, "out": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/se3.json"}
+  PASS  suspect alone exit 0
+suspect note only
+  PASS  LIVE_CALL_SUSPECT is note
+{"ok": true, "fail": 0, "note": 0, "out": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/se4.json"}
+econn skip
+  PASS  ECONNREFUSED not suspect
+--- worktree-fixloop.sh ---
+  PASS  worktree dir exists
+  PASS  WIP overlay in worktree
+  PASS  launch unchanged
+  PASS  launch still wip after wt edit
+  PASS  fixes.patch written
+  PASS  worktree kept
+  PASS  clean worktree removed
+  PASS  fix-loop worktree enter works for a folder name with a space and a dot
+  PASS  fix-loop branch name is a valid, sanitised ref
+--- size cap unrestorable ---
+cap ok
+  PASS  per-file cap → unrestorable
+--- init-run.py ---
+  PASS  init manifest exists
+init ok
+  PASS  init-run fields
+--- classify TMPDIR relative ---
+tmpdir rel ok round-1/tmp/nested/leak.bin
+  PASS  TMPDIR sample run-relative
+--- emit-report.py ---
+  PASS  diagnostic fixture exits non-zero
+  PASS  run-suite diagnostic selects real Error
+  PASS  report diagnostic selects real Error
+  PASS  diagnostic fixture remains fail-safe
+  PASS  diagnostic named fail count
+  PASS  diagnostic named failing cases
+  PASS  diagnostic errorish count nonzero
+  PASS  diagnostic error samples exclude passing FAIL text
+  PASS  emit PASS_CLEAN line
+  PASS  emit report.json
+  PASS  emit results.md
+  PASS  emit chat-card.md
+  PASS  chat has TMPDIR note
+  PASS  chat not-repo-dirt
+  PASS  no --result flag
+  PASS  baseline RESULT PASS_CLEAN
+  PASS  baseline omitted from chat-card
+  PASS  baseline in results context
+  PASS  FAIL_SUITE result
+  PASS  FAIL_SUITE excerpt
+  PASS  FAIL_SIDE_EFFECTS result
+  PASS  once next_steps audit-only
+  PASS  INCOMPLETE_RUN exit 2
+  PASS  INCOMPLETE result
+  PASS  STOPPED_SAME_ERROR
+  PASS  missing SE INCOMPLETE
+--- IGNORED_WRITE ambient runs note not fail ---
+ignored ambient ok
+  PASS  ambient runs/ IGNORED_WRITE is note
+  PASS  ignored_write_note_globs in a YAML policy makes a path note-only
+--- emit suite cases + control channels ---
+cases+channels ok
+  PASS  suite cases + control channels in report
+story+html ok
+  PASS  story + HTML sections
+--- emit rollup filter + case inventory narrative ---
+rollup+inventory ok 4 groups 1
+  PASS  rollup filter + case inventory narrative
+suite rollup trailing status + counts ok
+struggles on PASS ok
+  PASS  PASS still lists struggles
+efs result FAIL_SUITE
+fail_suite struggles ok
+  PASS  FAIL_SUITE has blocking struggles
+--- control_policy.py ---
+  PASS  control_policy self-test exit 0
+  PASS  control_policy self-test ok
+  PASS  resolved control-policy.json
+{"ok": false, "fail": 1, "note": 0, "out": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/cpol-run/round-1/side-effects.json"}
+  PASS  traceback on green → classifier fail exit
+traceback forbid ok
+  PASS  CONTROL_FORBID_HIT on Traceback
+  PASS  channels_excerpt written
+{"ok": false, "fail": 1, "note": 0, "out": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/cpol-run/round-1/side-effects-req.json"}
+  PASS  missing required marker → fail
+require miss ok
+  PASS  CONTROL_REQUIRE_MISS
+redaction ok
+  PASS  credential absent from chat-card
+  PASS  unknown policy key exit 2
+  PASS  run.py discover suite_scope full
+  PASS  run.py discover habitat host
+  PASS  run.py discover profile fast
+  PASS  run.py discover cmd is the plain runner
+  PASS  run.py --full suite_scope full
+  PASS  run.py --full cmd
+--- package scope (porcelain path-prefix) ---
+package prefix ignores root dirt at pre
+  PASS  package pre ignores monorepo root dirt
+package material delta ok
+  PASS  package dirty under prefix is material
+  PASS  package restore app.js
+  PASS  package restore deleted newfile
+  PASS  root dirt untouched by package restore
+full scope ok
+  PASS  WORK_ROOT==GIT_ROOT full fs_scope
+init package fields ok
+  PASS  init-run package fields
+nested package RESULT PASS_CLEAN_SCOPED
+  PASS  nested package green under root dirt exit 0
+  PASS  nested PASS_CLEAN_SCOPED
+package side-effect RESULT FAIL_SIDE_EFFECTS
+  PASS  package material write → non-zero exit
+  PASS  package FAIL_SIDE_EFFECTS
+--- discover hermetic runners (profile=fast) ---
+  PASS  discover tests/run.py profile fast
+  PASS  discover tests/run.py cmd
+  PASS  discover offline wrapper profile fast
+  PASS  discover offline wrapper preferred over run.sh
+  PASS  discover run_*.test.sh profile fast
+  PASS  discover run_*.test.sh cmd
+  PASS  local-change-gate.md exists
+--- resolve-scope.py SSOT ---
+  PASS  resolve nested nested=true
+  PASS  resolve nested audit_prefix
+  PASS  resolve nested suite_rel
+  PASS  resolve nested porc==git
+  PASS  resolve nested work_root
+  PASS  resolve root nested=false
+  PASS  resolve root empty prefix
+  PASS  resolve root git==work
+--- worktree-fixloop package-aware ---
+  PASS  worktree audit_prefix
+  PASS  worktree suite overlay + no root leak
+  PASS  worktree package exit
+  PASS  run-harness persists scope.json
+--- supervisor (unintended + attempt + conclusion) ---
+ok
+  PASS  supervisor surfaces in report/card/html
+ok
+  PASS  supervisor flags traceback
+ok
+  PASS  supervisor ignores timeout words in explicit pass results
+ok
+  PASS  supervisor retains real timeout prose beside passed timeout tests
+  PASS  supervise.py exists
+--- run-harness.sh help ---
+  PASS  run-harness --help
+  PASS  run-harness --help mentions fix-loop
+  PASS  run-harness --help mentions one-hour cap
+  PASS  public entrypoint owns blocked repo-validation timeout
+  PASS  public blocked repo validation stays near the advertised cap
+  PASS  public blocked repo validation never launches suite command
+  PASS  run-harness rejects --timeout-secs above cap
+  PASS  run-harness reports CLI one-hour cap
+  PASS  run-harness rejects TEST_HARNESS_TIMEOUT above cap
+  PASS  run-harness reports general env one-hour cap
+  PASS  run-harness rejects TEST_HARNESS_FULL_TIMEOUT above cap
+  PASS  run-harness reports full env one-hour cap
+  PASS  run-harness fast default smoke exit 0
+  PASS  run-harness fast default remains 1200 seconds
+  PASS  run-harness keeps its complete captured run tree private
+  PASS  forged parent marker is re-supervised
+  PASS  forged parent run reaches a clean report
+  PASS  authentic high-FD capability is accepted
+  PASS  supervisor regression actually uses FD 1024 or higher
+  PASS  operator-guide exists
+  PASS  resolve-scope.py exists
+  PASS  gate-snippet.md exists
+  PASS  self-test-matrix.md exists
+--- discover config tier (.test-harness.yml) ---
+  PASS  discover config source
+  PASS  discover config profile
+  PASS  discover config cmd
+  PASS  discover config suite_scope
+  PASS  discover config habitat
+  PASS  empty config cmd falls to makefile
+  PASS  empty config cmd make test-fast
+--- control_policy discover keys allowed ---
+  PASS  policy with cmd+profile keys exit 0
+  PASS  policy resolve wrote control-policy.json
+--- run-harness --mode fix-loop smoke (clean) ---
+fix-loop clean RESULT PASS_CLEAN run /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/th-runs/fixloop-clean/20261116T202239Z-ec94a5
+  PASS  fix-loop clean exit 0
+  PASS  fix-loop clean PASS_* + worktree removed
+  PASS  fix-loop dirty-pre preservation exits fail
+fix-loop stopped after preservation /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/th-runs/fixloop-preserve/20261116T202240Z-29a77c
+  PASS  fix-loop dirty-pre preservation stops without baseline ratchet
+  PASS  fix-loop alias exit 0
+  PASS  fix-loop alias PASS
+  PASS  once alias exit 0
+  PASS  once alias PASS
+  PASS  deadline and finalization reserve arithmetic
+  PASS  production clock cannot be replaced by an ambient epoch file
+  PASS  fix-loop shared real deadline stops on repeated failure
+  PASS  fix-loop later round does not reset timeout
+  PASS  once default exit 0
+  PASS  once default mode in manifest
+  PASS  classifier execution failure exits incomplete
+  PASS  classifier execution failure emits report evidence
+  PASS  missing classifier JSON exits incomplete
+  PASS  missing classifier JSON emits report evidence
+  PASS  invalid classifier JSON exits incomplete
+  PASS  invalid classifier JSON emits report evidence
+  PASS  hanging classifier exits through hard timeout
+  PASS  hanging classifier stays near the enclosing cap
+  PASS  hanging classifier process is reaped
+  PASS  hanging classifier records hard-timeout evidence
+  PASS  hanging report exits through hard timeout
+  PASS  hanging report stays near the enclosing cap
+  PASS  hanging report process is reaped
+  PASS  once shared preservation exits fail
+  PASS  once shared preserves changed tracked bytes
+  PASS  once shared preserves added file bytes
+  PASS  once shared reconciliation leaves index untouched
+once shared post state preserved /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once/tmph4f0r0sd/tmp/th-tests.1kMFaf/th-runs/once-shared-preserve/20261116T202306Z-508fb6
+  PASS  once shared preserve-all policy is reported
+  PASS  explicit --cmd --full exit 0
+  PASS  explicit --cmd --full profile full
+  PASS  explicit --cmd --full defaults to one-hour outer timeout
+--- emit-report RESULT_JSON + tagged control channel ---
+  PASS  RESULT_JSON pass_count
+  PASS  RESULT_JSON fail_count
+  PASS  RESULT_JSON skip_count
+  PASS  RESULT_JSON source
+  PASS  stderr control_ok
+  PASS  no tool-specific excerpt block is produced
+--- default run root (outside the repository under test, no host-named directory) ---
+  PASS  default run root: run exits 0
+  PASS  default run root is $HOME/.local/state/test-harness/runs
+  PASS  default run root creates only .local under HOME (no host-named directory)
+  PASS  XDG_STATE_HOME run exits 0
+  PASS  XDG_STATE_HOME moves the default run root
+  PASS  TEST_HARNESS_RUN_ROOT run exits 0
+  PASS  TEST_HARNESS_RUN_ROOT overrides the default and XDG_STATE_HOME
+  PASS  hard supervisor default run root follows XDG_STATE_HOME, else ~/.local/state
+=== summary: PASS=279 FAIL=0 ===

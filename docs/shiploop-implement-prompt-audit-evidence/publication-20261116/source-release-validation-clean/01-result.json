@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/release.py",
+    "--dry-run"
+  ],
+  "attempt": 1,
+  "check": 1,
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+  "elapsed_seconds": 0.211,
+  "end_utc": "2026-11-16T15:20:05.324410+00:00",
+  "env_overrides": {},
+  "exit_code": 0,
+  "signal_requirement": "Expected version plan and five-note signal",
+  "start_utc": "2026-11-16T15:20:05.113399+00:00",
+  "status": "PASS",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/01-stderr.log",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/01-stdout.log"
+}

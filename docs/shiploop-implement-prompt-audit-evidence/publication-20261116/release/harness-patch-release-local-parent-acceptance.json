@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+  "checks": 5,
+  "actual_outgoing_base": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "full_outgoing_whitespace_exclusions": 0,
+  "source_unchanged": true,
+  "evidence": "harness-patch-release-local-validation/handoff.json",
+  "timestamp": "2026-11-16T20:57:57.622709+00:00"
+}

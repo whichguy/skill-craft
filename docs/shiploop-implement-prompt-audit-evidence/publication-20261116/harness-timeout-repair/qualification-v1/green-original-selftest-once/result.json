@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/run-selftest-observed.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+  "start": "2026-11-16T20:22:09.761506+00:00",
+  "source_before": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v1/green-original-selftest-once"
+  },
+  "exit": 0,
+  "end": "2026-11-16T20:23:09.916941+00:00",
+  "elapsed": 60.15482154098572,
+  "source_after": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c"
+}

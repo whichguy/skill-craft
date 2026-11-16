@@ -1,0 +1,5 @@
+{
+  "baseline_sha256": "2e9afab75d2fe89dbdfb92bd39ba599b07d01056653b49d60561df4832b54fc2",
+  "variant_sha256": "c71af2c43fcb3e51c2c6f805c07236c8823f2a0563945dac60630ce9dee36c3c",
+  "change": "move exactly one unchanged writer call from finalization to immediately after timed_out=True; external test-only variant"
+}

@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "release_source": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "anchors": 244,
+  "source_files": 52,
+  "recommendations": 22,
+  "considerations": 8,
+  "code_craft_rules": 14,
+  "acceptance_rows": 52,
+  "local_links": 230,
+  "source_links": 183,
+  "historical_evidence_unchanged": true,
+  "failed_attempts_retained": true,
+  "plan_sha256": "39aba72a3e3e7baaa36e1a97b86cec1f80955590744df1393ac4c1581f3b747a",
+  "readme_sha256": "dab15a55a7a14dbc184f52d17c0a143968f83f5aa83eb162037877a72256c2fd"
+}

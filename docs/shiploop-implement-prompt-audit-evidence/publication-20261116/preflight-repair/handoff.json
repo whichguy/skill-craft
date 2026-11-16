@@ -1,0 +1,84 @@
+{
+  "result": "PASS: scoped release-preflight range repair",
+  "head": "f6fade35e4464538314aaafb402a09955edbbc8a",
+  "changed_files": [
+    "scripts/release.py",
+    "test/release-preflight.test.py"
+  ],
+  "fix": "Keep last..HEAD (HEAD before first release), and additionally exclude journal ancestors using ^journal. Journal selection, non-merge filtering and per-commit final-paragraph reason parsing remain unchanged.",
+  "red": {
+    "tests": 2,
+    "assertion_failures": 2,
+    "errors": 0,
+    "script_matches_committed_baseline": true,
+    "receipt": "red-01.json"
+  },
+  "green": {
+    "focused_tests": 2,
+    "focused_passed": 2,
+    "full_module_tests": 24,
+    "full_module_passed": 24,
+    "existing_tests": 22,
+    "checkout_dry_run_exit": 0,
+    "checkout_dry_run_stdout": "release: shiploop 1.37.1 -> 1.37.2 (5 note(s))\nrelease: skill-craft 2.42.1 -> 2.42.2\n",
+    "ruff_E9_F": "PASS",
+    "scoped_diff_check": "PASS"
+  },
+  "checks": [
+    {
+      "receipt": "red-01.json",
+      "exit_code": 1,
+      "start": "2026-11-16T15:11:36.877518+00:00",
+      "end": "2026-11-16T15:11:37.850622+00:00",
+      "elapsed_seconds": 0.9729099169926485
+    },
+    {
+      "receipt": "green-focused-01.json",
+      "exit_code": 0,
+      "start": "2026-11-16T15:11:54.433136+00:00",
+      "end": "2026-11-16T15:11:55.391495+00:00",
+      "elapsed_seconds": 0.9581880000041565
+    },
+    {
+      "receipt": "green-module-01.json",
+      "exit_code": 0,
+      "start": "2026-11-16T15:12:08.415825+00:00",
+      "end": "2026-11-16T15:12:16.392368+00:00",
+      "elapsed_seconds": 7.976334917009808
+    },
+    {
+      "receipt": "green-checkout-dry-run-01.json",
+      "exit_code": 0,
+      "start": "2026-11-16T15:12:09.571473+00:00",
+      "end": "2026-11-16T15:12:09.805677+00:00",
+      "elapsed_seconds": 0.23404858299181797
+    },
+    {
+      "receipt": "green-ruff-01.json",
+      "exit_code": 0,
+      "start": "2026-11-16T15:12:22.292724+00:00",
+      "end": "2026-11-16T15:12:22.306879+00:00",
+      "elapsed_seconds": 0.01394533400889486
+    },
+    {
+      "receipt": "green-diff-check-01.json",
+      "exit_code": 0,
+      "start": "2026-11-16T15:12:22.292785+00:00",
+      "end": "2026-11-16T15:12:22.308793+00:00",
+      "elapsed_seconds": 0.015795500003150664
+    }
+  ],
+  "limits": [
+    "Only two owned source/test files modified; no staging or commit.",
+    "No production skill/note/journal/generated-output/config/dependency edits.",
+    "No agent/advisor, broad suite, CI, release, push, host refresh or deployment.",
+    "The earlier real preflight refusal was supplied by the parent; this repair ran the real checkout dry run exactly once after the fix.",
+    "Disposable test repositories create local fixture commits only; no production history rewritten."
+  ],
+  "artifacts": {
+    "baseline": "baseline-identity.json",
+    "manifest": "changed-file-manifest.json",
+    "diff": "final.diff",
+    "raw_logs": "Each check label has separate .stdout.log and .stderr.log; all attempts retained."
+  }
+}

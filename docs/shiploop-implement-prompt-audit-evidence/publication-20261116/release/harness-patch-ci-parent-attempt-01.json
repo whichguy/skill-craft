@@ -1,0 +1,4 @@
+{
+  "status": "INCOMPLETE",
+  "cause": "Parent evidence validator applied an incorrect container-shape/summary expectation; current CI result and all raw bytes unchanged. Resolve against retained proof before publication; no test or network rerun."
+}

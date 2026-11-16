@@ -1,0 +1,93 @@
+{
+  "status": "PASS",
+  "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d",
+  "package": {
+    "catalogs": {
+      ".agents/plugins/marketplace.json": {
+        "bytes": 2916,
+        "sha256": "98c4f05aba3d9c4792c8c790f558f2a55f679e1290bb7723bc3b372fd45b7933",
+        "three_way_equal": true
+      },
+      ".claude-plugin/marketplace.json": {
+        "bytes": 3036,
+        "sha256": "677a6f9ce609a0d893a873dc6a31478da7138b4b07a93ace4917030a73a1c9a8",
+        "three_way_equal": true
+      },
+      ".cursor-plugin/marketplace.json": {
+        "bytes": 448,
+        "sha256": "ec308a27ce328c88ec6be1f41b56f2e77f391c8035adb5668ee819092f2c6074",
+        "three_way_equal": true
+      },
+      ".grok-plugin/marketplace.json": {
+        "bytes": 537,
+        "sha256": "d9b8a64a4f4e2df3ad6792359f6b611ba0f8af1c47eb688a06eaeda59eb986f4",
+        "three_way_equal": true
+      }
+    },
+    "entries": 529,
+    "files": 423,
+    "limits": "Package integrity only; no personal host refresh or deployed/model behavior.",
+    "manifest_paths": {
+      "candidate": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-package/candidate-package-manifest.json",
+      "cold": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-package/cold-package-manifest.json",
+      "source-build": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-package/source-build-package-manifest.json"
+    },
+    "status": "PASS",
+    "versions": {
+      "closed-loop": "0.1.1",
+      "plugin": "3.0.0",
+      "shiploop": "2.0.0",
+      "shiploop-e2e-audit": "1.0.0"
+    }
+  },
+  "native_install": {
+    "cache_metadata_entries": [
+      ".in_use"
+    ],
+    "comparison_commit": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "complete_manifest": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-package/installed-complete-manifest.json",
+    "enabled": true,
+    "entries": 530,
+    "entry_modes": {
+      "shiploop": "0o755",
+      "shiploop-drive": "0o755",
+      "shiploop-hook": "0o755",
+      "shiploop-keepalive-observe": "0o755",
+      "shiploop-keepalive-session-end": "0o755",
+      "shiploop-keepalive-stop": "0o755",
+      "shiploop-skill-call": "0o755",
+      "shiploop-status-hook": "0o755"
+    },
+    "floor": [
+      3,
+      15
+    ],
+    "help_positive": true,
+    "hooks": [
+      "shiploop-keepalive-observe",
+      "shiploop-keepalive-stop",
+      "shiploop-keepalive-session-end",
+      "shiploop-skill-call",
+      "shiploop-status-hook"
+    ],
+    "installed_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-package/native-install-scratch/claude-config/plugins/cache/whichguy/skill-craft/3.0.0",
+    "installed_version": "3.0.0",
+    "limits": "Disposable native profile and no-model startup only; no personal refresh, model behavior or deployment qualified.",
+    "optional_old_interpreter": {
+      "detail": "PASS real old-interpreter CLI refusal (2) and hook silence (0); Python 3.7.3",
+      "status": "PASS"
+    },
+    "packet_bytes": 17483,
+    "status": "PASS"
+  },
+  "raw_proof": "cold-published-package/handoff.json",
+  "source_guards_verified": true,
+  "three_way_actual_payload_hashes_modes_and_catalogs_verified": true,
+  "native_positive_outputs_verified": true,
+  "native_cache_metadata_only_extra": [
+    ".in_use"
+  ],
+  "no_personal_host_refresh": true,
+  "prior_parent_validator_attempt": "cold-package-parent-attempt-01.json"
+}

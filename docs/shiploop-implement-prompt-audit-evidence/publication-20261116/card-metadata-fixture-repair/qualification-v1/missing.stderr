@@ -1,0 +1,15 @@
+test_the_frontmatter_names_the_skill_and_matches_its_first_change_note (closed_loop_test.CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note) ... FAIL
+
+======================================================================
+FAIL: test_the_frontmatter_names_the_skill_and_matches_its_first_change_note (closed_loop_test.CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116/test/closed-loop.test.py", line 2270, in test_the_frontmatter_names_the_skill_and_matches_its_first_change_note
+    self.assertIsNotNone(version)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+AssertionError: unexpectedly None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)

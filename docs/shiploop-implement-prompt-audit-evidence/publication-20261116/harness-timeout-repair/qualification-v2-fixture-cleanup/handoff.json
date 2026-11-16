@@ -1,0 +1,84 @@
+{
+  "status": "TARGETED_QUALIFICATION_COMPLETE_PARENT_VALIDATION_PENDING",
+  "scope": "Fixture failure-cleanup ordering only",
+  "changedfiles": [
+    "test/test-harness.test.py"
+  ],
+  "exactsmalltestdiff": "exact-small-test.diff",
+  "sourceguards": "source-guards.json",
+  "fingerprint_before": "2f82bb948568b935d2f68d0e0db92ed716240c44d7f504bb764bef5b966fd382",
+  "fingerprint_after": "1af28865d623457e3a796a489b9c42a28803928a2fdd161dec5d7dcfb244d41b",
+  "frozen_prior_evidence": {
+    "qualification_v1": "../qualification-v1",
+    "all_files_unchanged": true,
+    "parent_full_eleven_method_and_six_check_bank": "User reports PASS on prior frozen fingerprint; not rerun or relabeled for this new fingerprint"
+  },
+  "reproduced_cleanup_rootcause": "The supervisor exits124 but suppressed SIGKILL leaves its own worker/descendant alive with inherited stdout/stderr pipes. Initial timed communicate raises TimeoutExpired; old finally enters unbounded communicate before kills and waits for EOF. Stack dump shows scenario line247 -> communicate -> select; external rescue releases it. This is a defect in the new regression fixture, not evidence of the historical JSON-failure cause.",
+  "fault_control": {
+    "variant": "fault-wrapper.py",
+    "variant_sha256": "9eb9b7cdf17aaaa937f4d41abc0790acdfcc0a60cd4fc4b548ef099d759617e1",
+    "only_fault": "External WRAPPER suppresses SIGKILL forwarding; records suppressed call; real supervisor/module/clock/main unchanged",
+    "observation": "External fault-runner observes communicate without changing return/exception; faulthandler stack dump only for baseline hang",
+    "before": {
+      "result": "baseline-fault/result.json",
+      "outcome": "REPRODUCED_HANG_REQUIRING_EXTERNAL_RESCUE",
+      "barrier_and_both_readiness_markers": true,
+      "blocked_after_seconds": 3.302097915991908,
+      "owned_rescue_kills": 2,
+      "final_test_exit": 1,
+      "primary_failure": "subprocess.TimeoutExpired; surfaced only after rescue",
+      "raw_logs": "baseline-fault/{stdout,stderr,communicate-1.stdout,communicate-1.stderr,communicate-2.stdout,communicate-2.stderr}.log"
+    },
+    "after": {
+      "result": "fixed-fault/result.json",
+      "outcome": "TRUTHFUL_NEGATIVE_CONTROL_EXECUTION_FAILURE",
+      "barrier_and_both_readiness_markers": true,
+      "test_exit": 1,
+      "primary_failure": "subprocess.TimeoutExpired preserved",
+      "elapsed_seconds": 2.550593833992025,
+      "external_rescue": false,
+      "owned_worker_descendant_dead": true,
+      "raw_logs": "fixed-fault/{stdout,stderr,communicate-1.stdout,communicate-1.stderr,communicate-2.stdout,communicate-2.stderr}.log"
+    },
+    "classification": "Neither injected-fault test is an ordinary passing test. Controller exit0 validates the expected diagnostic outcome; nested tests exit1.",
+    "external_controller_bound": "3.3s diagnostic observation/rescue bound only; existing fixture2.5s allowance and production1s alarm unchanged; no retry/stress loop"
+  },
+  "positive_green": {
+    "result": "positive-green/result.json",
+    "methods": 3,
+    "table_scenarios": 6,
+    "barriers_reached": 6,
+    "exact_timeout_exit124": 6,
+    "test_exit": 0,
+    "runs": 1,
+    "raw_stdout": "positive-green/stdout.log",
+    "raw_stderr": "positive-green/stderr.log",
+    "original_scratch_selftest_repeated": false,
+    "full_bank_repeated": false
+  },
+  "original8methodidentity": "original-method-identity.json",
+  "no_leftover_pids": "no-leftover-pids.json",
+  "review_reused": {
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-source-review/review.md",
+    "sha256": "d6bd4a2aec5a9bd02a2ed56ee9b1f1eb80c40e70b521a137739ff2c00160a321",
+    "disposition": "One fixture CHANGES_REQUIRED finding addressed; no additional production blocker reported; no recursive consultation"
+  },
+  "limits": [
+    "No current CI claim or historical interruption-cause certainty.",
+    "Timing results are observations from these controlled executions, not universal bounds.",
+    "Production atomic-publication guarantees/limits unchanged; blocked filesystems/power loss or malicious later writes are not covered.",
+    "All prior qualification and parent bank evidence stays bound to original fingerprint. Only changed fixture qualification is new."
+  ],
+  "pending": [
+    "Parent independent review and revalidation of changed fixture",
+    "Parent full CI and acceptance",
+    "Parent commit and forward Test Harness patch release/publication"
+  ],
+  "not_done": [
+    "No production or note edits",
+    "No original8 method/assertion edits or weakened controls",
+    "No commit/push/release/config/model/limit/dependency changes",
+    "No agents/advisors or other-worktree/profile/org actions"
+  ],
+  "completed_at": "2026-11-16T20:40:32.100535+00:00"
+}

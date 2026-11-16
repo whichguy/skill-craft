@@ -1,0 +1,128 @@
+[
+  {
+    "scenario": "current",
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+      "current"
+    ],
+    "started": "2026-11-16T19:19:42.342652+00:00",
+    "ended": "2026-11-16T19:19:42.427719+00:00",
+    "exit": 0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "expected": "pass",
+    "stdout": "current.stdout",
+    "stderr": "current.stderr"
+  },
+  {
+    "scenario": "future",
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+      "future"
+    ],
+    "started": "2026-11-16T19:19:42.428106+00:00",
+    "ended": "2026-11-16T19:19:42.512303+00:00",
+    "exit": 0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "expected": "pass",
+    "stdout": "future.stdout",
+    "stderr": "future.stderr"
+  },
+  {
+    "scenario": "missing",
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+      "missing"
+    ],
+    "started": "2026-11-16T19:19:42.512668+00:00",
+    "ended": "2026-11-16T19:19:42.600869+00:00",
+    "exit": 1,
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "expected": "underlying assertion failure",
+    "stdout": "missing.stdout",
+    "stderr": "missing.stderr"
+  },
+  {
+    "scenario": "empty",
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+      "empty"
+    ],
+    "started": "2026-11-16T19:19:42.601291+00:00",
+    "ended": "2026-11-16T19:19:42.687336+00:00",
+    "exit": 1,
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "expected": "underlying assertion failure",
+    "stdout": "empty.stdout",
+    "stderr": "empty.stderr"
+  },
+  {
+    "scenario": "whitespace",
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+      "whitespace"
+    ],
+    "started": "2026-11-16T19:19:42.687688+00:00",
+    "ended": "2026-11-16T19:19:42.770761+00:00",
+    "exit": 1,
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "expected": "underlying assertion failure",
+    "stdout": "whitespace.stdout",
+    "stderr": "whitespace.stderr"
+  },
+  {
+    "scenario": "matching-note",
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+      "matching-note"
+    ],
+    "started": "2026-11-16T19:19:42.771113+00:00",
+    "ended": "2026-11-16T19:19:42.853186+00:00",
+    "exit": 0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "expected": "pass",
+    "stdout": "matching-note.stdout",
+    "stderr": "matching-note.stderr"
+  },
+  {
+    "scenario": "mismatched-note",
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+      "mismatched-note"
+    ],
+    "started": "2026-11-16T19:19:42.853540+00:00",
+    "ended": "2026-11-16T19:19:42.935960+00:00",
+    "exit": 1,
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "expected": "underlying assertion failure",
+    "stdout": "mismatched-note.stdout",
+    "stderr": "mismatched-note.stderr"
+  }
+]

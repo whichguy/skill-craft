@@ -1,0 +1,141 @@
+{
+  "status": "TARGETED_QUALIFICATION_COMPLETE_PARENT_VALIDATION_PENDING",
+  "author_launch": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "argv": [
+      "codex",
+      "exec",
+      "--profile",
+      "shiploop",
+      "--model",
+      "gpt-6.1-sol",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "--sandbox",
+      "danger-full-access",
+      "-c",
+      "approval_policy=\"never\"",
+      "-C",
+      "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "--json",
+      "-o",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/final.md",
+      "-"
+    ],
+    "source": "../launch.json",
+    "provider_served_identity": "not separately attested; actual fresh CLI launch controls recorded"
+  },
+  "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "changedfiles": [
+    {
+      "path": "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+      "sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c"
+    },
+    {
+      "path": "test/test-harness.test.py",
+      "sha256": "d5be6f32f60ef2d09c4c0199a1895204199b6fbb711f625d7a2ae812085a7a03"
+    },
+    {
+      "path": "changes/test-harness/atomic-timeout-evidence.md",
+      "sha256": "4043261605cf63aa8ddf535b39f2541b97af401c7efd91878ab3cfc42af95991"
+    }
+  ],
+  "exactdiff": "exact.diff",
+  "hashes": {
+    "baseline_supervisor": "2e9afab75d2fe89dbdfb92bd39ba599b07d01056653b49d60561df4832b54fc2",
+    "final_supervisor": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+    "original_tests": "e2ff57e872f7c5ed5c95197047e9285cc0c62924f802ed6b39bba2f5875e1c4c",
+    "final_tests": "d5be6f32f60ef2d09c4c0199a1895204199b6fbb711f625d7a2ae812085a7a03"
+  },
+  "red": {
+    "result": "INTENDED_ASSERTION_FAILURES",
+    "production_hash_unchanged_before_after": true,
+    "baseline": {
+      "result": "red-baseline/result.json",
+      "methods": 2,
+      "scenarios": 3,
+      "failures": 3,
+      "observations": "cleanup final absent; direct writer final empty or seven-byte truncated prefix"
+    },
+    "relocation_only": {
+      "result": "red-relocation-only/result.json",
+      "methods": 2,
+      "scenarios": 3,
+      "failures": 2,
+      "observations": "cleanup passes; both interrupted-write assertions still fail; external variant only"
+    }
+  },
+  "green": {
+    "focused": {
+      "result": "green-focused/result.json",
+      "methods": 3,
+      "scenarios": 6,
+      "exit": 0
+    },
+    "original_selftest": {
+      "result": "green-original-selftest-once/result.json",
+      "inner_result": "selftest-inner.result.json",
+      "original_method_runs": 1,
+      "exit": 0,
+      "summary": "PASS=279 FAIL=0",
+      "count_caveat": "279 recorded markers, including 34 unconditional markers; not 279 independent tests",
+      "minimum_assertions_unchanged": 270
+    }
+  },
+  "controls": {
+    "table": "scenario-table.json",
+    "total_executed_scenarios": 12,
+    "barriers_reached": 12,
+    "exact_timeout_124": 12,
+    "worker_and_term_resistant_descendant_dead": 12,
+    "timing": "All observed enclosing exits under unchanged 1s + 1500ms external slack; real clock, alarm, group, worker; no retries/stress loops",
+    "atomic_green": "Published final complete/private/secret-free before staging unlink despite alarm; before-link file and symlink races preserve competing inode, bytes, symlink and target; refusal diagnostic; ordinary cleanup removes staging"
+  },
+  "sourceguards": "source-guards.json",
+  "originalmethod_identityproof": "original-method-identity.json",
+  "scopeproof": "scope-proof.json",
+  "inventories": [
+    "pre-inventory.json",
+    "post-inventory.json"
+  ],
+  "warning_review": {
+    "runtime": "Python 3.15.1",
+    "python_test_warning_hits": [],
+    "test_warnings_suppressed": false,
+    "launcher_diagnostics": "Parent-owned ../stderr.log retains WebSocket-to-HTTP transport fallback and plugin/cache/icon warnings. No configuration edits attempted."
+  },
+  "stageleftover_ordering_limits": [
+    "Full identical encoded payload precedes artifact creation; unique private same-directory exclusive/no-follow staging descriptor is written/fsynced before atomic nonreplacing hard link.",
+    "Evidence attempt follows timed_out=True and worker-exit recheck, precedes cleanup; later duplicate removed. All deadlines, reserves, alarm, process-group cleanup/cancellation and status124 unchanged.",
+    "elapsed_ms samples payload construction, not completed cleanup. Filesystem latency may reduce TERM cleanup grace; existing alarm still kills owned process group.",
+    "Alarm-interrupted empty/prefix controls leave one private staging file with final absent; after-link alarm leaves complete final plus staging alias. Ordinary cleanup/collision paths remove owned staging. No staging remains in source; fixture scratch trees removed after recording raw snapshots.",
+    "Guarantee is only no self-published incomplete bytes at final name. No blocked-filesystem completion, power-loss durability, universal timing bound, or protection against malicious subsequent writes.",
+    "Historical main CI interruption instruction remains unproven. Original failed CI43944081831 remains failed; copied raw/text logs retained unchanged. This is a Test Harness source repair, not a generic ShipLoop improvement or changed ShipLoop recommendation."
+  ],
+  "pending": [
+    "Parent acceptance and fresh independent review",
+    "Fresh native full wrapper",
+    "Metadata/build checks and independent CI",
+    "Forward Test Harness patch release and publication by parent only"
+  ],
+  "not_done": [
+    "No agents or advisors spawned",
+    "No commit/push/release",
+    "No config/models/limits/dependencies changes",
+    "No other worktrees or personal profiles/orgs acted on"
+  ],
+  "setup_attempts": "setup-attempts.json",
+  "reused_review": {
+    "response": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-review/response.json",
+    "response_sha256": "4f22b34fcd5830d68fe4480229486599c9ec0f0d41ba90e1b61eaf0e72b2dfd9",
+    "parent_disposition": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-review/parent-disposition.json",
+    "requested_model": "gpt-6-astra",
+    "requested_effort": "high",
+    "fallback": false,
+    "provider_served_identity": "not separately attested",
+    "adopted": "Separate ordering and publication RED/GREEN; early evidence attempt; atomic no-replace private staging; retain limits and original lifecycle checks",
+    "new_consultations": 0
+  },
+  "completed_at": "2026-11-16T20:25:05.513052+00:00"
+}

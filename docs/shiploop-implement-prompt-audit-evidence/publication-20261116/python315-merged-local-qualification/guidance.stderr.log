@@ -1,0 +1,12 @@
+test_r16_cold_release_state_locator_resolves_on_both_routes (__main__.GuidanceTests.test_r16_cold_release_state_locator_resolves_on_both_routes)
+Locator availability after synthetic navigation, not model read or uptake. ... ok
+test_r16_release_plan_qualifies_claims_independently_of_current_observation (__main__.GuidanceTests.test_r16_release_plan_qualifies_claims_independently_of_current_observation) ... ok
+test_r16_release_check_records_actual_state_and_indeterminate_observations (__main__.GuidanceTests.test_r16_release_check_records_actual_state_and_indeterminate_observations) ... ok
+test_r16_release_reference_separates_actual_observation_from_qualification (__main__.GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification) ... ok
+test_r16_platform_confirm_preserves_presence_query_entry_and_sources (__main__.GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources) ... ok
+test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts (__main__.GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.238s
+
+OK

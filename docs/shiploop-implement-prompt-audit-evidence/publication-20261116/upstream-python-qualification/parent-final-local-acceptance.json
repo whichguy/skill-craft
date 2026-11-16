@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+  "tree": "43622e0d5f836e03c0e79b929ddced9563b2bdf1",
+  "unique_suites": 207,
+  "reported_and_executed_named_methods": 1746,
+  "named_method_suites": 25,
+  "named_method_skips": 0,
+  "raw_calibration_log_hashes_rechecked": 594,
+  "calibration_reports": 9,
+  "primary_calibration_observations": 261,
+  "invalid": 0,
+  "network_reruns": 0,
+  "resource_warnings": [],
+  "source_pre_post_identical": true,
+  "coverage_preserved": true,
+  "source_fingerprint": {
+    "root": "/Users/dadleet/.codex/worktrees/ci-qualification-improvements/skill-craft",
+    "files": 13162,
+    "sha256": "5834adf2b555a7bf1fb3fcde345aac925bc94d8865f836a6dc2a871e2635d130",
+    "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4"
+  },
+  "duration_seconds": 1667.0933227920032,
+  "process_sampling_limit": "Two-second PID/birth ancestry and group samples cannot exclude between-sample escapes."
+}

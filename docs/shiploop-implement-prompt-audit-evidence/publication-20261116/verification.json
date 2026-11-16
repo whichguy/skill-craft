@@ -1,0 +1,309 @@
+{
+  "status": "PUBLISHED_VERIFIED",
+  "verified_at": "2026-11-16T22:17:56.530068+00:00",
+  "release": {
+    "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+    "integrated_main": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "upstream_main_checkpoint": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+    "generated_release": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "skill_craft": "3.0.1",
+    "shiploop": "2.0.0",
+    "test_harness": "0.1.1",
+    "closed_loop": "0.1.1",
+    "shiploop_e2e_audit": "1.0.0"
+  },
+  "publication": {
+    "branch": "main",
+    "checks_passed": 3,
+    "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "previous_remote_head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "push_receipt": "To https://github.com/whichguy/skill-craft.git\n \tb23e0166b8c4dd70bffc08822e246d3cc122cc0f:refs/heads/main\t3d277e4a..b23e0166\nDone",
+    "status": "pushed",
+    "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1"
+  },
+  "ci": {
+    "candidate": {
+      "status": "PASS",
+      "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+      "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+      "id": 43954284626,
+      "event": "workflow_dispatch",
+      "attempt": 1,
+      "tier": "full",
+      "jobs": 12,
+      "artifacts": 9,
+      "executions": 207,
+      "distinct_suites": 207,
+      "repeated_suites": 0,
+      "groups": {
+        "core": 61,
+        "shiploop-1": 47,
+        "shiploop-2": 48,
+        "shiploop-3": 47,
+        "e2e-apparatus": 4
+      },
+      "required_suite_omissions": 0,
+      "conditional_unittest_skips": 59,
+      "browser_fixtures": 4,
+      "source_unchanged": true,
+      "evidence": "harness-patch-full-ci/handoff.json",
+      "evidence_dir": "harness-patch-full-ci",
+      "raw_hashes_independently_checked": 830,
+      "test_harness_methods": 11,
+      "test_harness_scenarios": 6,
+      "boundary": "N/A manual; actual outgoing range still required",
+      "url": "https://github.com/whichguy/skill-craft/actions/runs/43954284626",
+      "prior_parent_collection_attempt": "harness-patch-ci-parent-attempt-01.json"
+    },
+    "main": {
+      "status": "PASS",
+      "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+      "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+      "id": 43963126308,
+      "event": "push",
+      "attempt": 1,
+      "tier": "full",
+      "jobs": 12,
+      "artifacts": 9,
+      "executions": 207,
+      "distinct_suites": 207,
+      "repeated_suites": 0,
+      "groups": {
+        "core": 61,
+        "shiploop-1": 47,
+        "shiploop-2": 48,
+        "shiploop-3": 47,
+        "e2e-apparatus": 4
+      },
+      "required_suite_omissions": 0,
+      "conditional_unittest_skips": 59,
+      "browser_fixtures": 4,
+      "source_unchanged": true,
+      "evidence": "published-patch-main-full-ci/handoff.json",
+      "evidence_dir": "published-patch-main-full-ci",
+      "raw_hashes_independently_checked": 662,
+      "test_harness_methods": 11,
+      "test_harness_scenarios": 6,
+      "boundary": "PASS actual3d277e4a..b23e0166",
+      "url": "https://github.com/whichguy/skill-craft/actions/runs/43963126308",
+      "collection_attempts": [
+        {
+          "status": "INCOMPLETE",
+          "evidence": "validator-attempt-1.json",
+          "issue": "Core validator missing required GITHUB_STEP_SUMMARY; parent authorized exactly one corrected launch, which passed."
+        },
+        {
+          "status": "INCOMPLETE",
+          "evidence": "validator-wrapper-attempt-1.json",
+          "issue": "Metadata glob matched command JSON; stopped before any remaining validator launch. Parent authorized evidence-only correction; remaining four first-time validators passed."
+        }
+      ]
+    }
+  },
+  "package": {
+    "status": "PASS",
+    "versions": {
+      "candidate": {
+        "plugin": "3.0.1",
+        "shiploop": "2.0.0",
+        "shiploop-e2e-audit": "1.0.0",
+        "closed-loop": "0.1.1",
+        "test-harness": "0.1.1"
+      },
+      "cold": {
+        "plugin": "3.0.1",
+        "shiploop": "2.0.0",
+        "shiploop-e2e-audit": "1.0.0",
+        "closed-loop": "0.1.1",
+        "test-harness": "0.1.1"
+      },
+      "built": {
+        "plugin": "3.0.1",
+        "shiploop": "2.0.0",
+        "shiploop-e2e-audit": "1.0.0",
+        "closed-loop": "0.1.1",
+        "test-harness": "0.1.1"
+      }
+    },
+    "files": 423,
+    "entries": 529,
+    "catalogs": {
+      ".agents/plugins/marketplace.json": "4b0919e2cad70b37a362bc41ee2b39fb39b5f6c454a90267973de2790c6c5cc9",
+      ".claude-plugin/marketplace.json": "cf53e99cbce8eba942b3995403c273718ae4805c5675d82bb0da7e5b7ae97c1a",
+      ".grok-plugin/marketplace.json": "0cc22141d38140222ebc2a4a5724f95102c5e74e2ed29ea739da0f009d640fdc",
+      ".cursor-plugin/marketplace.json": "ec308a27ce328c88ec6be1f41b56f2e77f391c8035adb5668ee819092f2c6074"
+    },
+    "manifests": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/candidate-package-manifest.json",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/cold-package-manifest.json",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/built-package-manifest.json"
+    ],
+    "supervisor_sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+    "limits": [
+      "Package integrity and no-model native startup only; parent collects main CI separately."
+    ],
+    "evidence_dir": "cold-published-patch-package"
+  },
+  "native_install": {
+    "status": "PASS",
+    "installed_version": "3.0.1",
+    "installed_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-install-scratch/claude-config/plugins/cache/whichguy/skill-craft/3.0.1",
+    "payload_entries": 529,
+    "payload_files": 423,
+    "cache_metadata_only_extra": [
+      ".in_use"
+    ],
+    "entry_modes": {
+      "shiploop": "0o755",
+      "shiploop-drive": "0o755",
+      "shiploop-hook": "0o755",
+      "shiploop-keepalive-observe": "0o755",
+      "shiploop-keepalive-stop": "0o755",
+      "shiploop-keepalive-session-end": "0o755",
+      "shiploop-skill-call": "0o755",
+      "shiploop-status-hook": "0o755"
+    },
+    "floor": [
+      [
+        3,
+        15
+      ]
+    ],
+    "packet_bytes": 17609,
+    "hooks": [
+      "shiploop-keepalive-observe",
+      "shiploop-keepalive-stop",
+      "shiploop-keepalive-session-end",
+      "shiploop-skill-call",
+      "shiploop-status-hook"
+    ],
+    "optional_old_interpreter": [
+      "PASS real old-interpreter CLI refusal (2) and hook silence (0); Python 3.7.3"
+    ],
+    "manifest": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-package-manifest.json",
+    "supervisor_sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+    "limits": [
+      "no model execution",
+      "no personal host refresh",
+      "no deployed behavior qualification"
+    ],
+    "commands": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-commands.json",
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-install-scratch",
+    "timing_note": "Nested probe timings use retained command/exit file mtimes; exact enclosing probe start/end is in commands.json.",
+    "evidence_dir": "cold-published-patch-package"
+  },
+  "checkout_round": {
+    "status": "PASS",
+    "case": "csv-report",
+    "head": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+    "tree": "a056d02869a53cb0de8de42aa4bf6d07b95dd496",
+    "checks_passed": 5,
+    "checks_required": 5,
+    "evidence": "retirement-live-csv-report/handoff.json",
+    "limits": [
+      "Five declared case checks all passed. No quality measures or held-out acceptance are declared by this case.",
+      "Harness fidelity records two conditional mutation gates skipped because no changed product line matched an operator; no mutation check is one of this case's five required checks.",
+      "11 retained ShipLoop check-only refusals were recovered within the original builder session; they are not erased by terminal PASS.",
+      "Codex does not report cost or per-stage turn attribution, truncated-output, cancelled-tool-call, or knowledge-read counts; null and unmeasured values retained in result.json/metrics.json.",
+      "Actual checkout round before the later Python prerequisite and published release; no qualification of a deployed service or personal host."
+    ]
+  },
+  "harness_repair": {
+    "status": "PASS",
+    "source_commit": "b64b17160ff9ca7a178845a82b43eea157bf5d1b",
+    "release_head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "production_sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+    "baseline_assertion_failures": 3,
+    "relocation_only_assertion_failures": 2,
+    "original_eight_methods_unchanged": true,
+    "current_ci_methods": 11,
+    "current_ci_scenarios": 6,
+    "full_local_bank": {
+      "fingerprint": "2f82bb948568b935d2f68d0e0db92ed716240c44d7f504bb764bef5b966fd382",
+      "methods": 11,
+      "checks": 6,
+      "evidence": "harness-timeout-local-validation/finalhandoff.json"
+    },
+    "changed_fixture": {
+      "fingerprint": "1af28865d623457e3a796a489b9c42a28803928a2fdd161dec5d7dcfb244d41b",
+      "methods": 3,
+      "scenarios": 6,
+      "checks": 3,
+      "evidence": "harness-timeout-fixture-revalidation/handoff.json"
+    },
+    "initial_review": "CHANGES_REQUIRED: attempts/harness-timeout-source-review/review.md",
+    "followup_review": "APPROVE: harness-timeout-source-review-followup/review.md",
+    "negative_fault_control": {
+      "before": "Hang reproduced; external rescue killed two owned workers. Nested failure preserved.",
+      "after": "Nested test truthfully fails with TimeoutExpired, exits 1 without rescue, and owned worker/descendant stop.",
+      "evidence": "harness-timeout-repair/qualification-v2-fixture-cleanup/handoff.json"
+    },
+    "limits": [
+      "Exact historical CI interruption remains unknown.",
+      "Filesystem latency may reduce cleanup grace; no blocked-filesystem completion or power-loss durability guarantee.",
+      "A hard alarm may leave a private staging name. No incomplete final report is published by this writer.",
+      "Requested Sol/Astra launch controls retained; provider-served identity was not separately attested."
+    ]
+  },
+  "evidence_directories": {
+    "final_candidate_ci": "harness-patch-full-ci",
+    "final_main_ci": "published-patch-main-full-ci",
+    "final_package_native_install": "cold-published-patch-package",
+    "final_preflight": "harness-patch-preflight",
+    "final_local_release_checks": "harness-patch-release-local-validation"
+  },
+  "raw_receipts": [
+    "harness-patch-publication-push/publication-receipt.json",
+    "harness-patch-publication-push/readback.json",
+    "harness-patch-publication-push/guarded-release-push.stdout",
+    "harness-patch-publication-push/guarded-release-push.stderr",
+    "harness-patch-release-cut/receipt.json",
+    "harness-patch-release-cut/stdout.log",
+    "harness-patch-release-cut/stderr.log",
+    "forward-release-cut/receipt.json",
+    "publication-push/publication-receipt.json",
+    "publication-push/readback.json",
+    "card-metadata-fixture-parent-acceptance.json",
+    "card-metadata-fixture-commit.json",
+    "harness-timeout-source-commit.json",
+    "harness-timeout-parent-acceptance.json",
+    "harness-timeout-parent-scope.json",
+    "harness-patch-release-local-parent-acceptance.json",
+    "harness-patch-ci-parent-acceptance.json",
+    "published-patch-package-parent-acceptance.json",
+    "harness-patch-current-core-parent-proof.json",
+    "harness-patch-ci-parent-attempt-01.json",
+    "source-map-draft-attempts.json",
+    "source-map-composite-attempt.json",
+    "host-owner-audit.json",
+    "forward-release-whitespace-scope.json",
+    "publication-whitespace-scope.json",
+    "card-fixture-local-parent-attempt-01.json",
+    "cold-package-parent-attempt-01.json",
+    "main-ci-identification/selection-attempt-01.json",
+    "card-fixture-local-parent-acceptance.json",
+    "card-fixture-ci-parent-acceptance.json",
+    "cold-package-parent-acceptance.json",
+    "card-metadata-fixture-repair/launch.json",
+    "card-metadata-fixture-repair/exit.json",
+    "card-metadata-fixture-repair/launch-02.json",
+    "card-metadata-fixture-repair/exit-02.json",
+    "card-metadata-fixture-repair/final.md",
+    "card-metadata-fixture-repair/final-02.md",
+    "harness-timeout-repair/launch.json",
+    "harness-timeout-repair/exit.json",
+    "harness-timeout-repair/launch-02.json",
+    "harness-timeout-repair/exit-02.json",
+    "harness-timeout-repair/final.md",
+    "harness-timeout-repair/final-02.md",
+    "prepare_source_map_patch_final.py",
+    "check_publication_documents_v2.py",
+    "published-patch-main-ci-parent-acceptance.json"
+  ],
+  "limits": [
+    "The six historical recommendation qualification trees remain unchanged and retain their recorded source identities.",
+    "Full CI and package/native startup evidence do not establish universal model semantic uptake, generic quality/performance improvement, personal host refresh or deployed acceptance.",
+    "Initial failed CI, qualification, review and collection attempts remain recorded separately."
+  ]
+}

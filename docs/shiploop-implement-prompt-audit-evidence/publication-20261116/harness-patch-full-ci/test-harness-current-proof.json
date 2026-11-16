@@ -1,0 +1,247 @@
+{
+  "status": "PASS",
+  "methods_reported": 11,
+  "scenarios": 6,
+  "barriers_reached": 6,
+  "exit124": 6,
+  "owned_pids_stopped": 12,
+  "scenario_records": [
+    {
+      "scenario": "published",
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.15.2/x64/bin/python3",
+        "/tmp/tmpbu8k5u9m/wrapper.py",
+        "/home/runner/work/skill-craft/skill-craft/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "published",
+        "/tmp/tmpbu8k5u9m"
+      ],
+      "cwd": "/tmp/tmpbu8k5u9m",
+      "start_epoch": 1794864027.7010987,
+      "end_epoch": 1794864028.6919763,
+      "exit": 124,
+      "elapsed": 0.9641394500000047,
+      "barrier": {
+        "scenario": "published",
+        "final": {
+          "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 708,\n  \"worker_executable\": \"python3\",\n  \"worker_argument_count\": 4\n}\n",
+          "mode": 384
+        }
+      },
+      "final": {
+        "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 708,\n  \"worker_executable\": \"python3\",\n  \"worker_argument_count\": 4\n}\n",
+        "mode": 384
+      },
+      "staging_leftovers": [
+        {
+          "name": ".hard-timeout.6f3676c6b0d55185.tmp",
+          "mode": 384,
+          "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 708,\n  \"worker_executable\": \"python3\",\n  \"worker_argument_count\": 4\n}\n"
+        }
+      ],
+      "pids": {
+        "worker": {
+          "pid": 128594,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 128602,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/tmp/tmpbu8k5u9m/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "collision-file",
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.15.2/x64/bin/python3",
+        "/tmp/tmpewhchgis/wrapper.py",
+        "/home/runner/work/skill-craft/skill-craft/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "collision-file",
+        "/tmp/tmpewhchgis"
+      ],
+      "cwd": "/tmp/tmpewhchgis",
+      "start_epoch": 1794864028.6929023,
+      "end_epoch": 1794864029.5877228,
+      "exit": 124,
+      "elapsed": 0.8653897290000145,
+      "barrier": {
+        "scenario": "collision-file",
+        "final": null
+      },
+      "final": {
+        "text": "competitor unchanged",
+        "mode": 420
+      },
+      "staging_leftovers": [],
+      "pids": {
+        "worker": {
+          "pid": 129110,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 129119,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/tmp/tmpewhchgis/run\n",
+      "stderr": "test-harness hard supervisor: refusing to replace timeout evidence at hard-timeout.json: [Errno 17] File exists: '/tmp/tmpewhchgis/run/.hard-timeout.14bf2d05d0e9835d.tmp' -> '/tmp/tmpewhchgis/run/hard-timeout.json'\ntest-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "collision-symlink",
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.15.2/x64/bin/python3",
+        "/tmp/tmps599p6gy/wrapper.py",
+        "/home/runner/work/skill-craft/skill-craft/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "collision-symlink",
+        "/tmp/tmps599p6gy"
+      ],
+      "cwd": "/tmp/tmps599p6gy",
+      "start_epoch": 1794864029.5891492,
+      "end_epoch": 1794864030.4963555,
+      "exit": 124,
+      "elapsed": 0.8782026530000167,
+      "barrier": {
+        "scenario": "collision-symlink",
+        "final": null
+      },
+      "final": {
+        "text": "target unchanged",
+        "mode": 420
+      },
+      "staging_leftovers": [],
+      "pids": {
+        "worker": {
+          "pid": 129549,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 129563,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/tmp/tmps599p6gy/run\n",
+      "stderr": "test-harness hard supervisor: refusing to replace timeout evidence at hard-timeout.json: [Errno 17] File exists: '/tmp/tmps599p6gy/run/.hard-timeout.06584d9daf39b72b.tmp' -> '/tmp/tmps599p6gy/run/hard-timeout.json'\ntest-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "cleanup",
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.15.2/x64/bin/python3",
+        "/tmp/tmpw1_c8ej_/wrapper.py",
+        "/home/runner/work/skill-craft/skill-craft/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "cleanup",
+        "/tmp/tmpw1_c8ej_"
+      ],
+      "cwd": "/tmp/tmpw1_c8ej_",
+      "start_epoch": 1794864030.4972756,
+      "end_epoch": 1794864031.5303214,
+      "exit": 124,
+      "elapsed": 1.0078111789999866,
+      "barrier": {
+        "scenario": "cleanup",
+        "final": {
+          "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 706,\n  \"worker_executable\": \"python3\",\n  \"worker_argument_count\": 4\n}\n",
+          "mode": 384
+        }
+      },
+      "final": {
+        "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 706,\n  \"worker_executable\": \"python3\",\n  \"worker_argument_count\": 4\n}\n",
+        "mode": 384
+      },
+      "staging_leftovers": [],
+      "pids": {
+        "worker": {
+          "pid": 129981,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 129994,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/tmp/tmpw1_c8ej_/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "write-empty",
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.15.2/x64/bin/python3",
+        "/tmp/tmpys7b6r1p/wrapper.py",
+        "/home/runner/work/skill-craft/skill-craft/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "write-empty",
+        "/tmp/tmpys7b6r1p"
+      ],
+      "cwd": "/tmp/tmpys7b6r1p",
+      "start_epoch": 1794864031.5319939,
+      "end_epoch": 1794864032.5494275,
+      "exit": 124,
+      "elapsed": 0.9816904669999644,
+      "barrier": {
+        "scenario": "write-empty",
+        "final": null
+      },
+      "final": null,
+      "staging_leftovers": [
+        {
+          "name": ".hard-timeout.805344d9ce8dfd55.tmp",
+          "mode": 384,
+          "text": ""
+        }
+      ],
+      "pids": {
+        "worker": {
+          "pid": 130463,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 130483,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/tmp/tmpys7b6r1p/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    },
+    {
+      "scenario": "write-prefix",
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.15.2/x64/bin/python3",
+        "/tmp/tmp4lmm901f/wrapper.py",
+        "/home/runner/work/skill-craft/skill-craft/skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "write-prefix",
+        "/tmp/tmp4lmm901f"
+      ],
+      "cwd": "/tmp/tmp4lmm901f",
+      "start_epoch": 1794864032.5501585,
+      "end_epoch": 1794864033.5538316,
+      "exit": 124,
+      "elapsed": 0.9895579949999842,
+      "barrier": {
+        "scenario": "write-prefix",
+        "final": null
+      },
+      "final": null,
+      "staging_leftovers": [
+        {
+          "name": ".hard-timeout.90c3bd9d8cb9d05a.tmp",
+          "mode": 384,
+          "text": "{\n  \"st"
+        }
+      ],
+      "pids": {
+        "worker": {
+          "pid": 130917,
+          "state": ""
+        },
+        "descendant": {
+          "pid": 130942,
+          "state": ""
+        }
+      },
+      "stdout": "RUN_DIR=/tmp/tmp4lmm901f/run\n",
+      "stderr": "test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated\n"
+    }
+  ],
+  "issues": [],
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts/hermetic-core/logs/032-test-harness.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts/hermetic-core/logs/032-test-harness.stderr.log"
+}

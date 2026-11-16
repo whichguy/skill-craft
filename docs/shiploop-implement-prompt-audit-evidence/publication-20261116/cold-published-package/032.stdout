@@ -1,0 +1,8 @@
+## native Claude install into /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-package/native-install-scratch/claude-config
+## installed tree vs origin/main plugins/skill-craft
+published comparison commit: 3d277e4ab7d5df678cd6aacfa9a970da608b5d3b
+PASS tree, eight executable modes, FLOOR/card 3.15
+PASS clean environment help/workspace start; packet_bytes=17483
+PASS five hooks quiet without Python
+PASS real old-interpreter CLI refusal (2) and hook silence (0); Python 3.7.3
+PASS required published clean-install checks; optional checks reported separately

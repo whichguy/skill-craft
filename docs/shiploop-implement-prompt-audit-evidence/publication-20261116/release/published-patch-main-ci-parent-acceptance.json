@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+  "id": 43963126308,
+  "event": "push",
+  "attempt": 1,
+  "tier": "full",
+  "jobs": 12,
+  "artifacts": 9,
+  "executions": 207,
+  "distinct_suites": 207,
+  "repeated_suites": 0,
+  "groups": {
+    "core": 61,
+    "shiploop-1": 47,
+    "shiploop-2": 48,
+    "shiploop-3": 47,
+    "e2e-apparatus": 4
+  },
+  "required_suite_omissions": 0,
+  "conditional_unittest_skips": 59,
+  "browser_fixtures": 4,
+  "source_unchanged": true,
+  "evidence": "published-patch-main-full-ci/handoff.json",
+  "evidence_dir": "published-patch-main-full-ci",
+  "raw_hashes_independently_checked": 662,
+  "test_harness_methods": 11,
+  "test_harness_scenarios": 6,
+  "boundary": "PASS actual3d277e4a..b23e0166",
+  "url": "https://github.com/whichguy/skill-craft/actions/runs/43963126308",
+  "collection_attempts": [
+    {
+      "status": "INCOMPLETE",
+      "evidence": "validator-attempt-1.json",
+      "issue": "Core validator missing required GITHUB_STEP_SUMMARY; parent authorized exactly one corrected launch, which passed."
+    },
+    {
+      "status": "INCOMPLETE",
+      "evidence": "validator-wrapper-attempt-1.json",
+      "issue": "Metadata glob matched command JSON; stopped before any remaining validator launch. Parent authorized evidence-only correction; remaining four first-time validators passed."
+    }
+  ]
+}

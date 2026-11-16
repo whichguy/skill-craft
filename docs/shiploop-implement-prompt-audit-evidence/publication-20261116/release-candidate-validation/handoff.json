@@ -1,0 +1,100 @@
+{
+  "status": "PASS",
+  "scope": "Local release candidate; offline validation only. No runtime, CI, publication, installed-host, or deployment evidence.",
+  "target": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+  "head": "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+  "tree": "2cf7df9f4e14501da714cf3620718727307ff5a7",
+  "required_checks": 4,
+  "terminal_checks": 4,
+  "checks": [
+    {
+      "command": [
+        "bash",
+        "scripts/sync-plugin-views.sh",
+        "--check"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "started": "2026-11-16T15:24:56.785474+00:00",
+      "exit": 0,
+      "status": "PASS",
+      "ended": "2026-11-16T15:24:58.279567+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-marketplace-packages.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "started": "2026-11-16T15:25:06.420273+00:00",
+      "exit": 0,
+      "status": "PASS",
+      "ended": "2026-11-16T15:25:06.837643+00:00"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+        "--head",
+        "850aa2d5b93df54711ccbc7f432065b2d8e793e8"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "started": "2026-11-16T15:25:15.136724+00:00",
+      "exit": 0,
+      "status": "PASS",
+      "ended": "2026-11-16T15:25:20.985490+00:00"
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+        "diff",
+        "--check",
+        "6df738c6c36a13676eb623adbab5954756cfedfa",
+        "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+        "--"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "started": "2026-11-16T15:25:30.390283+00:00",
+      "exit": 0,
+      "status": "PASS",
+      "ended": "2026-11-16T15:25:30.415210+00:00"
+    }
+  ],
+  "source_identity_unchanged": {
+    "head": true,
+    "tree": true,
+    "index_sha256": true,
+    "index_entries": true,
+    "status": true,
+    "status_ignored": true,
+    "inventory": true
+  },
+  "expected_generated_paths": [],
+  "verification": {
+    "versions": {
+      "catalog/skill-craft-plugin.json": "2.42.2",
+      "plugins/skill-craft/.claude-plugin/plugin.json": "2.42.2",
+      "plugins/skill-craft/.codex-plugin/plugin.json": "2.42.2",
+      "plugins/skill-craft/.cursor-plugin/plugin.json": "2.42.2",
+      "skills/shiploop/SKILL.md": "1.37.2",
+      "plugins/skill-craft/skills/shiploop/SKILL.md": "1.37.2"
+    },
+    "consumed_notes_absent": {
+      "changes/shiploop/r07-outcome-continuity.md": true,
+      "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md": true,
+      "changes/shiploop/r16-observe-actual-release-state.md": true,
+      "changes/shiploop/r19-run-owned-loop-state.md": true,
+      "changes/shiploop/r21-external-state-reuse.md": true
+    },
+    "release_path_count": 31,
+    "sync_skill_count_26": true,
+    "complete_payload_positive": true
+  },
+  "evidence_root": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/release-candidate-validation",
+  "completed": "2026-11-16T15:25:54.492945+00:00"
+}

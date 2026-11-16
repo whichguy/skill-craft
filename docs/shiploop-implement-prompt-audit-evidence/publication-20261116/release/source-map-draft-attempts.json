@@ -1,0 +1,255 @@
+{
+  "source": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+  "scope": "Operator map drafts; not code or delivery qualification",
+  "attempts": [
+    {
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/reanchor-retirement-d514",
+      "status": "REJECTED",
+      "reasons": [
+        "Claimed shared graph-check instruction anchor deleted, but its assignment survives.",
+        "Guide excerpt omitted graph-format section it claimed to support.",
+        "R13 original packet/field acceptance controls were replaced instead of retained."
+      ]
+    },
+    {
+      "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/reanchor-retirement-d514-v2",
+      "status": "REJECTED",
+      "reasons": [
+        "Assignment bounds overwritten by a stale AST function node.",
+        "Numeric source hrefs were remapped twice."
+      ],
+      "constant_claimed_span": [
+        2231,
+        2254
+      ],
+      "actual_assignment_span": [
+        2024,
+        2028
+      ],
+      "links_outside_supporting_spans": 44,
+      "link_failures": [
+        {
+          "label": "shiploop_navigator.py:7677 \u2014 step_block and _step_block_shown",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 7677
+        },
+        {
+          "label": "shiploop_navigator.py:2106 \u2014 printed_text",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2106
+        },
+        {
+          "label": "shiploop_prompts.py:658 \u2014 _IMPLEMENT_WORKER and _IMPLEMENT_INLINE",
+          "path": "skills/shiploop/scripts/shiploop_prompts.py",
+          "line": 658
+        },
+        {
+          "label": "shiploop_navigator.py:4989 \u2014 _step_proof_gate",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 4989
+        },
+        {
+          "label": "shiploop_navigator.py:5164 \u2014 _improve_change_gate",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 5164
+        },
+        {
+          "label": "shiploop_navigator.py:2106 \u2014 printed_text",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2106
+        },
+        {
+          "label": "shiploop_navigator.py:3769 \u2014 write_field_files",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 3769
+        },
+        {
+          "label": "shiploop_navigator.py:2684 \u2014 _normalise_steps",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2684
+        },
+        {
+          "label": "shiploop_navigator.py:2998 \u2014 _fix_forward_refusal",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2998
+        },
+        {
+          "label": "shiploop_navigator.py:2684 \u2014 _normalise_steps",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2684
+        },
+        {
+          "label": "shiploop_navigator.py:7677 \u2014 step_block and _step_block_shown",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 7677
+        },
+        {
+          "label": "shiploop_navigator.py:2106 \u2014 printed_text",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2106
+        },
+        {
+          "label": "shiploop_prompts.py:658 \u2014 _IMPLEMENT_WORKER and _IMPLEMENT_INLINE",
+          "path": "skills/shiploop/scripts/shiploop_prompts.py",
+          "line": 658
+        },
+        {
+          "label": "shiploop_navigator.py:4989 \u2014 _step_proof_gate",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 4989
+        },
+        {
+          "label": "shiploop_navigator.py:5164 \u2014 _improve_change_gate",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 5164
+        },
+        {
+          "label": "shiploop_prompts.py:594 \u2014 CODE_CRAFT",
+          "path": "skills/shiploop/scripts/shiploop_prompts.py",
+          "line": 594
+        },
+        {
+          "label": "shiploop_prompts.py:679 \u2014 PROCEDURE_WALK and _PROCEDURE_ITEM",
+          "path": "skills/shiploop/scripts/shiploop_prompts.py",
+          "line": 679
+        },
+        {
+          "label": "shiploop_navigator.py:8138 \u2014 _improve_focus",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 8138
+        },
+        {
+          "label": "shiploop_navigator.py:3655 \u2014 _check_submitted_evidence",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 3655
+        },
+        {
+          "label": "shiploop_navigator.py:10289 \u2014 cached current admission",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 10289
+        },
+        {
+          "label": "shiploop_navigator.py:10131 \u2014 Improve import admission",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 10131
+        },
+        {
+          "label": "shiploop_navigator.py:5515 \u2014 revisited result template",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 5515
+        },
+        {
+          "label": "shiploop_navigator.py:2998 \u2014 _fix_forward_refusal",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2998
+        },
+        {
+          "label": "shiploop_navigator.py:3050 \u2014 _frozen_case_refusal",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 3050
+        },
+        {
+          "label": "shiploop_navigator.py:4472 \u2014 finish_improve",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 4472
+        },
+        {
+          "label": "shiploop_navigator.py:10266 \u2014 dispatch check and matching yes",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 10266
+        },
+        {
+          "label": "shiploop_navigator.py:2106 \u2014 printed_text",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 2106
+        },
+        {
+          "label": "shiploop_navigator.py:3769 \u2014 write_field_files",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 3769
+        },
+        {
+          "label": "shiploop_navigator.py:3444 \u2014 look_back_lines",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 3444
+        },
+        {
+          "label": "shiploop_navigator.py:9803 \u2014 improve_opening_text",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 9803
+        },
+        {
+          "label": "shiploop_navigator.py:9187 \u2014 improve_start_contract",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 9187
+        },
+        {
+          "label": "shiploop_prompts.py:2269 \u2014 release_guard construction",
+          "path": "skills/shiploop/scripts/shiploop_prompts.py",
+          "line": 2269
+        },
+        {
+          "label": "shiploop_protocol.py:301 \u2014 workspace plan-return dispatch",
+          "path": "skills/shiploop/scripts/shiploop_protocol.py",
+          "line": 301
+        },
+        {
+          "label": "shiploop_navigator.py:9680 \u2014 _review_pass_archives",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 9680
+        },
+        {
+          "label": "hosts.py:381 \u2014 GrokHost.preempt_install",
+          "path": "test/shiploop_e2e/hosts.py",
+          "line": 381
+        },
+        {
+          "label": "shiploop_navigator.py:9876 \u2014 _start_improve",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 9876
+        },
+        {
+          "label": "shiploop_navigator.py:7918 \u2014 callback rendering",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 7918
+        },
+        {
+          "label": "shiploop_navigator.py:10259 \u2014 dispatch check/complete",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 10259
+        },
+        {
+          "label": "shiploop_navigator.py:6187 \u2014 platform_cards and _platform_testing_lines",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 6187
+        },
+        {
+          "label": "shiploop_navigator.py:10268 \u2014 dispatch check/complete reuse selection",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 10268
+        },
+        {
+          "label": "shiploop_navigator.py:9606 \u2014 _improve_pass",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 9606
+        },
+        {
+          "label": "shiploop_prompts.py:679 \u2014 PROCEDURE_WALK / _PROCEDURE_ITEM",
+          "path": "skills/shiploop/scripts/shiploop_prompts.py",
+          "line": 679
+        },
+        {
+          "label": "shiploop_navigator.py:475 \u2014 _improve_checkpoint / _first_item_review",
+          "path": "skills/shiploop/scripts/shiploop_navigator.py",
+          "line": 475
+        },
+        {
+          "label": "shiploop_prompts.py:597 \u2014 CODE_CRAFT rule 1",
+          "path": "skills/shiploop/scripts/shiploop_prompts.py",
+          "line": 597
+        }
+      ]
+    }
+  ],
+  "final_attempt": "Pending separate v3 semantic and link qualification; no prior draft is accepted."
+}

@@ -1,0 +1,209 @@
+{
+  "status": "PASS",
+  "scope": "Current automatic published-patch main full CI only; parent acceptance and final plan remain pending.",
+  "target": {
+    "host": "github.com",
+    "repository": "whichguy/skill-craft",
+    "run_id": 43963126308,
+    "url": "https://github.com/whichguy/skill-craft/actions/runs/43963126308",
+    "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+    "branch": "main",
+    "event": "push",
+    "attempt": 1,
+    "tier": "full",
+    "tier_reason": "release commit",
+    "actual_push_base": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b"
+  },
+  "counts": {
+    "jobs_completed_successful": 12,
+    "required_jobs": 12,
+    "job_logs": 12,
+    "nonexpired_artifacts": 9,
+    "api_digest_matched_zips": 9,
+    "validated_receipts": 5,
+    "selected_suites": 207,
+    "completed_suites": 207,
+    "distinct_suites": 207,
+    "each_suite_execution_count": 1,
+    "source_guard_jobs": 9,
+    "browser_fixture_pass_records": 4,
+    "required_omissions": 0,
+    "conditional_method_skips": 59,
+    "unittest_summary_blocks": 182,
+    "unittest_measured_counts": {
+      "reported": 8702,
+      "executed": 8643,
+      "skipped": 59
+    }
+  },
+  "groups": {
+    "core": {
+      "selected": 61,
+      "completed": 61,
+      "wall_seconds": 677.344,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "shiploop-1": {
+      "selected": 47,
+      "completed": 47,
+      "wall_seconds": 1250.93,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "shiploop-2": {
+      "selected": 48,
+      "completed": 48,
+      "wall_seconds": 726.209,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "shiploop-3": {
+      "selected": 47,
+      "completed": 47,
+      "wall_seconds": 1318.59,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "e2e-apparatus": {
+      "selected": 4,
+      "completed": 4,
+      "wall_seconds": 1172.202,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    }
+  },
+  "conditional_skips": [
+    {
+      "suite": "test-groups",
+      "reported": 78,
+      "executed": 77,
+      "skipped": 1,
+      "log": "extracted/hermetic-core/logs/002-test-groups.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-experiments",
+      "reported": 93,
+      "executed": 43,
+      "skipped": 50,
+      "log": "extracted/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-user-directory",
+      "reported": 45,
+      "executed": 44,
+      "skipped": 1,
+      "log": "extracted/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-hosts",
+      "reported": 140,
+      "executed": 138,
+      "skipped": 2,
+      "log": "extracted/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-roundtable",
+      "reported": 13,
+      "executed": 10,
+      "skipped": 3,
+      "log": "extracted/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-efficiency",
+      "reported": 77,
+      "executed": 76,
+      "skipped": 1,
+      "log": "extracted/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-stage-live",
+      "reported": 93,
+      "executed": 92,
+      "skipped": 1,
+      "log": "extracted/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log"
+    }
+  ],
+  "boundary": {
+    "status": "PASS",
+    "manual_na": false,
+    "proof": "source-guards-and-boundary.json"
+  },
+  "test_harness": {
+    "status": "PASS",
+    "methods_reported": 11,
+    "methods_executed": 11,
+    "methods_skipped": 0,
+    "barrier_scenarios": 6,
+    "proof": "test-harness-explicit-validation.json"
+  },
+  "versions": {
+    "python": "3.15.2",
+    "node": "26.13.1",
+    "playwright": "1.65.1",
+    "chrome": [
+      "157.0.8103.50",
+      "157.0.8103.78"
+    ]
+  },
+  "source": {
+    "pre": "source-pre.json",
+    "post": "source-post.json",
+    "unchanged": true,
+    "tracked_entries": 14111,
+    "ordinary_status": "",
+    "ignored_status": "",
+    "index_sha256": "8d5fe694205d1fa3507f2073d379e249bab175566157bbca556f462a788388d3",
+    "expected_generated_outputs": []
+  },
+  "proofs": {
+    "preflight": "preflight.stdout.json",
+    "terminal": "terminal.stdout.json",
+    "jobs": "jobs-220740.json",
+    "artifacts": "artifacts-220740.json",
+    "raw_job_logs": "job-logs/",
+    "artifact_zips": "artifacts/",
+    "extractions": "extracted/",
+    "validators": "validators/",
+    "suite_inventory": "suite-reconciliation.json",
+    "browser": "browser-positive-evidence.json",
+    "digests": "artifact-digests.json",
+    "manifest": "sha256-manifest.json"
+  },
+  "collection_attempts": [
+    {
+      "status": "INCOMPLETE",
+      "evidence": "validator-attempt-1.json",
+      "issue": "Core validator missing required GITHUB_STEP_SUMMARY; parent authorized exactly one corrected launch, which passed."
+    },
+    {
+      "status": "INCOMPLETE",
+      "evidence": "validator-wrapper-attempt-1.json",
+      "issue": "Metadata glob matched command JSON; stopped before any remaining validator launch. Parent authorized evidence-only correction; remaining four first-time validators passed."
+    }
+  ],
+  "limitations": [
+    "No model, hosted app, installed personal host, generic improvement or parent acceptance claim.",
+    "59 conditional unittest methods were skipped and excluded from executed-method counts. Suite receipts still cover all 207 required suites exactly once.",
+    "Method counts retained by measured framework/log; no universal all-framework method total is inferred.",
+    "Actual push base was supplied by parent. Retained CI boundary success and source policy prove actual push-range checking; the event payload itself was not exposed as an artifact.",
+    "Initial failed core validator full terminal output remains in tool chunk 2b9589; disk metadata preserves its KeyError and exit 1. Corrected and remaining validator raw stdout/stderr are on disk."
+  ],
+  "completed_utc": "2026-11-16T22:09:47.152427+00:00"
+}

@@ -1,0 +1,6 @@
+test_restarted_observer_replaces_stale_status_before_start_succeeds (fixture.ProgressTests.test_restarted_observer_replaces_stale_status_before_start_succeeds) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.410s
+
+OK

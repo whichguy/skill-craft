@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/release-push.test.py",
+    "-v"
+  ],
+  "attempt": 1,
+  "check": 5,
+  "completed_unittest_methods": 10,
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+  "elapsed_seconds": 5.492,
+  "end_utc": "2026-11-16T15:20:56.928696+00:00",
+  "env_overrides": {},
+  "exit_code": 0,
+  "signal_requirement": "Ten unittest methods, terminal OK and no skips",
+  "start_utc": "2026-11-16T15:20:51.436505+00:00",
+  "status": "PASS",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/05-stderr.log",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/05-stdout.log"
+}

@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+    "diff",
+    "--check",
+    "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+    "6df738c6c36a13676eb623adbab5954756cfedfa",
+    "--",
+    "skills/shiploop",
+    "changes/shiploop",
+    "scripts/release.py",
+    "test/release-preflight.test.py",
+    "test/shiploop-guidance.test.py",
+    "test/shiploop-actual-improve-cli.test.py",
+    "test/shiploop-loops.test.py",
+    "test/shiploop-e2e-fidelity.test.py"
+  ],
+  "attempt": 1,
+  "check": 6,
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+  "elapsed_seconds": 0.025,
+  "end_utc": "2026-11-16T15:20:56.954359+00:00",
+  "env_overrides": {},
+  "exit_code": 0,
+  "signal_requirement": "Empty diff-check output",
+  "start_utc": "2026-11-16T15:20:56.929496+00:00",
+  "status": "PASS",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/06-stderr.log",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/06-stdout.log"
+}

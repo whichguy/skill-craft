@@ -1,0 +1,15 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116/test/closed-loop.test.py",
+    "CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+  "started": "2026-11-16T19:19:08.521647+00:00",
+  "ended": "2026-11-16T19:19:08.609661+00:00",
+  "exit": 0,
+  "stdout": "green.stdout",
+  "stderr": "green.stderr"
+}

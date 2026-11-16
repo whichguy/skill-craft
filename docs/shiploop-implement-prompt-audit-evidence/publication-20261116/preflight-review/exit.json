@@ -1,0 +1,10 @@
+{
+  "utc": "2026-11-16T15:17:26.346795+00:00",
+  "exit_code": 0,
+  "head": "6df738c6c36a13676eb623adbab5954756cfedfa",
+  "source_unchanged": true,
+  "post_hashes": {
+    "scripts/release.py": "24caaf52c3c77cee6e9035df1d040511a0a67e42190a9b33f620fcf9940bdd6a",
+    "test/release-preflight.test.py": "4136ec73ea469bfceed7a489d680d699e370b81bf7e88433a1c5072f4fdc2fc8"
+  }
+}

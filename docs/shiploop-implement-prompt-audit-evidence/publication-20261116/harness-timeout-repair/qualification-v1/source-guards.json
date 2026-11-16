@@ -1,0 +1,19 @@
+{
+  "unchanged_functions": {
+    "open_exclusive_private": true,
+    "write_all": true,
+    "parse_args": true,
+    "remaining_seconds": true,
+    "finalization_reserve_seconds": true,
+    "default_run_root": true,
+    "resolve_run_dir": true
+  },
+  "main_exactly_original_after_reversing_call_move_and_new_comments": true,
+  "payload_ast_identical": true,
+  "payload_create_write_fsync_link_order": true,
+  "single_evidence_call": true,
+  "alarm_deadlines_reserves_worker_recheck_cleanup_cancellation_exitcodes_unchanged": true,
+  "writer_scope": "complete payload; private exclusive/no-follow staging; write/fsync; no-replace link; close and unlink only owned staging",
+  "original_selftest_script_sha256": "bc1d1f4899a962a500e509e6f2063e4554e3a296667624ff66ba458a9d0755ea",
+  "python": "Python 3.15.1"
+}

@@ -1,0 +1,40 @@
+  flow      /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/flow.html
+PASS  shiploop e2e case=csv-report host=codex  output=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run
+  versions  checkout: skill-craft 2.43.0, ShipLoop 1.38.0
+  invoked   PASS  /skill-craft:shiploop
+  plugin    PASS  skill-craft@whichguy 2.43.0
+  process   PASS  exited rc=0 5959.4s cost=not reported sessions=1
+  keepalive installed; decisions {'allow': 1}
+  shiploop  PASS  done
+  trace checks  keepalive text not exercised; packet copies pass (40 prints (0 reprints), each with its kept copy); owner note not exercised; session end not exercised
+  stopped   host exited rc=0; session stops end_turn; no further resume: ShipLoop run is done; engine done
+  outcome   PASS  every verdict passed
+  environment  load 46.08 -> 2.5 on 18 cpus; display held
+  environment  overlap: none (0 neighbouring runs read under ~/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116)
+  committed PASS  HEAD 0df9ccc2 (started at no commit); 7 files in HEAD, 0 uncommitted product paths
+  knowledge docs/shiploop/spec.md present, tracked; 8 requirement ids; HEAD has 17 commits, 0 untracked files
+  metrics   turns 627, cost not reported, sessions 1 (end_turn), compactions 0, truncated outputs not measured, cancelled tool calls not measured, ShipLoop command failures 11, script verifications 6/7 passed, model glue 0, asked a person 0, Improve children 10 (14 review passes, at most 2 in one child)
+  metrics   ShipLoop gates: other 8 (caught 8), assumptions_due_item 1 (caught 1), expectations_gate 1 (caught 1), mutation_not_done 1 (caught 1)
+  metrics   Test-quality dodges: 1 over 2 step plans (grep-only on code for an executed criterion 0; guarded RED 0; surviving mutants 1); inspected criteria 0; context: 0 searched greps, 0 greps with no criterion
+  metrics   planning window closed at test-spec: 33.1 min engine / 33.7 min host; Improve 16.0 min in 4 children, other 17.2 min; output tokens 19,196 (17% reasoning, host clock)
+  metrics   narrative relayed 3/6 (verbatim 3), not relayed at step-plan, release-plan, release-verify, 138 composed progress message(s); headlines 27/29 results
+  metrics   costliest stages: document 9.6m, step-plan 8.4m, step-plan 7.7m, test 6.5m, test-strategy 5.8m (by minutes: this host reports no per-stage turns)
+  fidelity  evidence 30 accepted: script 16, loop 4, file 9, note 0, sentence 0, skipped 1, unclassified 0 (records: verify 5, step-proof 2, lint 5, loop 11, expectation 2, backchain 1, improve 10); declared script-run without a record: none
+  fidelity  validation 7 records / 26 runs / 9 commands: test counts unmeasured 0, zero-ran 0 of 19 counted, red 0, accepted_ran at 2 stages; release-verify record: returned-result, passed true; gates not exercised (a record that says skipped): mutation W1 (no mutants: no changed product line matched an operator), mutation W1 (no mutants: no changed product line matched an operator)
+  fidelity  edits (heuristic, no hit is not proof): script-owned edits 1, name-pattern kills 0, model commit commands 0
+  fidelity  refusals (heuristic, no repeat flagged is not proof) 11, repeated 0
+  fidelity  end state done, unverified 0
+  failed    shiploop check exit 2, a --check-only check: test command `rg -n -F "CLI contract: accept one or more CSV paths; emit JSON; return 0, 1, or 2." report.py`, `rg -n 'python3 report.py FILE|rows|revenue|by_region|by_product|stderr|0|1|2|python3 -m 
+  failed    shiploop check exit 2, a --check-only check: test_cases[0] needs exactly id, criterion, requirement, oracle, red, green, and may add mock; test_cases are [{"id": "<a focused command ID>", "criterion": "<a step-plan criterion id>", "requirement":
+  failed    shiploop check exit 2, a --check-only check: test_commands has a check row, so drop check_na
+  failed    shiploop check exit 2, a --check-only check: expectation E1 is works, but report.py does not exist on the item's lint base. A new path needs an absent expectation.
+  failed    shiploop check exit 2, a --check-only check: open plan assumptions A5 name W1 as due_item; settle each here: an executed criterion with "from": "<assumption id>" that this item's tests confirm, or, for a fact about what exists, an expectation wi
+  checks    expected from the request: each check tests a sentence of the prompt
+  check     PASS  python3 "$E2E_CHECKS/csv_report.py" unit
+  check     PASS  python3 "$E2E_CHECKS/csv_report.py" totals
+  check     PASS  python3 "$E2E_CHECKS/csv_report.py" invalid
+  check     PASS  python3 "$E2E_CHECKS/csv_report.py" missing
+  check     PASS  python3 "$E2E_CHECKS/csv_report.py" empty
+  review export: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/review-export; page /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/review-export/run-review.html
+  baseline  nothing compared: no earlier row for csv-report from this source
+  quality   not observed: the case declares no quality measures (no mutation command, no held-out acceptance)

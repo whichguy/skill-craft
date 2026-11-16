@@ -1,0 +1,120 @@
+[
+  {
+    "group": "shiploop-1",
+    "command": "python3 test/shiploop-progress.test.py",
+    "duration_seconds": 51.779,
+    "family": "shiploop",
+    "hermetic": true,
+    "id": "shiploop-progress",
+    "path": "test/shiploop-progress.test.py",
+    "returncode": 1,
+    "status": "failed",
+    "stderr_log": "logs/008-shiploop-progress.stderr.log",
+    "stdout_log": "logs/008-shiploop-progress.stdout.log",
+    "timeout_seconds": 1800,
+    "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-shiploop-1/logs/008-shiploop-progress.stderr.log",
+    "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-shiploop-1/logs/008-shiploop-progress.stdout.log",
+    "bounded_excerpts": [
+      {
+        "line": 3,
+        "text": "FAIL: test_restarted_observer_replaces_stale_status_before_start_succeeds (__main__.ProgressTests.test_restarted_observer_replaces_stale_status_before_start_succeeds)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-progress.test.py\", line 241, in test_restarted_observer_replaces_stale_status_before_start_succeeds\n    self.assertTrue(progress.start(self.run, interval=.1))\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not true\n\n----------------------------------------------------------------------\nRan 38 tests in 50.538s\n\nFAILED (failures=1)"
+      }
+    ]
+  },
+  {
+    "group": "shiploop-1",
+    "command": "python3 test/shiploop-follow-on.test.py",
+    "duration_seconds": 56.886,
+    "family": "shiploop",
+    "hermetic": true,
+    "id": "shiploop-follow-on",
+    "path": "test/shiploop-follow-on.test.py",
+    "returncode": 1,
+    "status": "failed",
+    "stderr_log": "logs/016-shiploop-follow-on.stderr.log",
+    "stdout_log": "logs/016-shiploop-follow-on.stdout.log",
+    "timeout_seconds": 1800,
+    "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-shiploop-1/logs/016-shiploop-follow-on.stderr.log",
+    "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-shiploop-1/logs/016-shiploop-follow-on.stdout.log",
+    "bounded_excerpts": [
+      {
+        "line": 3,
+        "text": "FAIL: test_a_gap_and_a_decision_recommend_a_run_the_script_writes_its_request_and_done_is_not_blocked (__main__.RouteTests.test_a_gap_and_a_decision_recommend_a_run_the_script_writes_its_request_and_done_is_not_blocked)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 201, in test_a_gap_and_a_decision_recommend_a_run_the_script_writes_its_request_and_done_is_not_blocked\n    out = self.finish(run, head, [GAP, DECISION, NOTE, PERSON])\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 82, in finish\n    return self.accepted(command)\n           ~~~~~~~~~~~~~^^^^^^^^^\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-callback-contract.test.py\", line 357, in accepted\n    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 0 : ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', \"the exported file opens in the customer's reader\")]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.\nRead the current packet with next; the rejected request did not advance the graph.\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback."
+      },
+      {
+        "line": 20,
+        "text": "FAIL: test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it (__main__.RouteTests.test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 291, in test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it\n    self.assertIn(\"needs exactly class, statement, source, request_sentence, needs\", self.refused(command, run))\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'needs exactly class, statement, source, request_sentence, needs' not found in 'ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [(\\'R-1\\', \"the exported file opens in the customer\\'s reader\")]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.\\nRead the current packet with next; the rejected request did not advance the graph.\\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.\\n'\n\n======================================================================\nFAIL: test_an_empty_list_prints_no_follow_on_line_and_writes_no_request (__main__.RouteTests.test_an_empty_list_prints_no_follow_on_line_and_writes_no_request)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 257, in test_an_empty_list_prints_no_follow_on_line_and_writes_no_request\n    out = self.finish(run, head, [])"
+      }
+    ]
+  },
+  {
+    "group": "shiploop-3",
+    "command": "python3 test/shiploop-loophole-gates.test.py",
+    "duration_seconds": 55.947,
+    "family": "shiploop",
+    "hermetic": true,
+    "id": "shiploop-loophole-gates",
+    "path": "test/shiploop-loophole-gates.test.py",
+    "returncode": 1,
+    "status": "failed",
+    "stderr_log": "logs/047-shiploop-loophole-gates.stderr.log",
+    "stdout_log": "logs/047-shiploop-loophole-gates.stdout.log",
+    "timeout_seconds": 1800,
+    "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-shiploop-3/logs/047-shiploop-loophole-gates.stderr.log",
+    "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-shiploop-3/logs/047-shiploop-loophole-gates.stdout.log",
+    "bounded_excerpts": [
+      {
+        "line": 3,
+        "text": "FAIL: test_each_known_dodge_is_refused_and_its_named_exit_is_accepted (__main__.LoopholeGateTests.test_each_known_dodge_is_refused_and_its_named_exit_is_accepted) [an unverified outcome settled in prose with the list left out] (seen=\"hello's release-verify on 2.13.2 (E2E trio)\")\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-loophole-gates.test.py\", line 169, in test_each_known_dodge_is_refused_and_its_named_exit_is_accepted\n    contract.RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-callback-contract.test.py\", line 624, in accept_after_the_knowledge_files\n    self.assertIn(\"keeps this run's planning knowledge in the repository\", reply)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"keeps this run's planning knowledge in the repository\" not found in 'ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [(\\'R-1\\', \"the exported file opens in the customer\\'s reader\")]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.\\nRead the current packet with next; the rejected request did not advance the graph.\\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.\\n'\n\n----------------------------------------------------------------------\nRan 5 tests in 54.433s\n"
+      }
+    ]
+  },
+  {
+    "group": "python-floor",
+    "command": "python3 test/shiploop-follow-on.test.py",
+    "duration_seconds": 23.685,
+    "family": "shiploop",
+    "hermetic": true,
+    "id": "shiploop-follow-on",
+    "path": "test/shiploop-follow-on.test.py",
+    "returncode": 1,
+    "status": "failed",
+    "stderr_log": "logs/047-shiploop-follow-on.stderr.log",
+    "stdout_log": "logs/047-shiploop-follow-on.stdout.log",
+    "timeout_seconds": 1800,
+    "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-python-floor/logs/047-shiploop-follow-on.stderr.log",
+    "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-python-floor/logs/047-shiploop-follow-on.stdout.log",
+    "bounded_excerpts": [
+      {
+        "line": 3,
+        "text": "FAIL: test_a_gap_and_a_decision_recommend_a_run_the_script_writes_its_request_and_done_is_not_blocked (__main__.RouteTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 201, in test_a_gap_and_a_decision_recommend_a_run_the_script_writes_its_request_and_done_is_not_blocked\n    out = self.finish(run, head, [GAP, DECISION, NOTE, PERSON])\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 82, in finish\n    return self.accepted(command)\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-callback-contract.test.py\", line 357, in accepted\n    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)\nAssertionError: 2 != 0 : ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [('R-1', \"the exported file opens in the customer's reader\")]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.\nRead the current packet with next; the rejected request did not advance the graph.\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.\n\n"
+      },
+      {
+        "line": 18,
+        "text": "FAIL: test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it (__main__.RouteTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 291, in test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it\n    self.assertIn(\"needs exactly class, statement, source, request_sentence, needs\", self.refused(command, run))\nAssertionError: 'needs exactly class, statement, source, request_sentence, needs' not found in 'ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [(\\'R-1\\', \"the exported file opens in the customer\\'s reader\")]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.\\nRead the current packet with next; the rejected request did not advance the graph.\\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.\\n'\n\n======================================================================\nFAIL: test_an_empty_list_prints_no_follow_on_line_and_writes_no_request (__main__.RouteTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 257, in test_an_empty_list_prints_no_follow_on_line_and_writes_no_request\n    out = self.finish(run, head, [])\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-follow-on.test.py\", line 82, in finish"
+      }
+    ]
+  },
+  {
+    "group": "python-floor",
+    "command": "python3 test/shiploop-loophole-gates.test.py",
+    "duration_seconds": 28.1,
+    "family": "shiploop",
+    "hermetic": true,
+    "id": "shiploop-loophole-gates",
+    "path": "test/shiploop-loophole-gates.test.py",
+    "returncode": 1,
+    "status": "failed",
+    "stderr_log": "logs/076-shiploop-loophole-gates.stderr.log",
+    "stdout_log": "logs/076-shiploop-loophole-gates.stdout.log",
+    "timeout_seconds": 1800,
+    "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-python-floor/logs/076-shiploop-loophole-gates.stderr.log",
+    "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-python-floor/logs/076-shiploop-loophole-gates.stdout.log",
+    "bounded_excerpts": [
+      {
+        "line": 3,
+        "text": "FAIL: test_each_known_dodge_is_refused_and_its_named_exit_is_accepted (__main__.LoopholeGateTests) [an unverified outcome settled in prose with the list left out] (seen=\"hello's release-verify on 2.13.2 (E2E trio)\")\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-loophole-gates.test.py\", line 169, in test_each_known_dodge_is_refused_and_its_named_exit_is_accepted\n    contract.RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)\n  File \"/home/runner/work/skill-craft/skill-craft/test/shiploop-callback-contract.test.py\", line 624, in accept_after_the_knowledge_files\n    self.assertIn(\"keeps this run's planning knowledge in the repository\", reply)\nAssertionError: \"keeps this run's planning knowledge in the repository\" not found in 'ShipLoop navigator: settled keys must exactly equal prior pending keys minus submitted pending keys; missing: [(\\'R-1\\', \"the exported file opens in the customer\\'s reader\")]; extra: []. Every removed row needs exactly one settled entry {requirement, outcome, basis, evidence_refs}; basis is observed (current observation on the required surface) or user-correction (explicit user correction), with a nonempty list of nonblank, non-placeholder references attributing it. References are host claims, not proof of truth, currency or authority. A decline, silence, blocked test or lower-layer pass is not a scope withdrawal. Carry pending rows, defer their due_stage, or use the existing blocked/add-work routes; delivery-contract observation, correction and replanning gates still apply.\\nRead the current packet with next; the rejected request did not advance the graph.\\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.\\n'\n\n----------------------------------------------------------------------\nRan 5 tests in 27.594s\n\nFAILED (failures=1)"
+      }
+    ]
+  }
+]

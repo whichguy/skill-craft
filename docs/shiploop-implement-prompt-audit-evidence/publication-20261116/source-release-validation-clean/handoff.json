@@ -1,0 +1,165 @@
+{
+  "attempt_policy": "once; no retries",
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "attempt": 1,
+      "check": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "elapsed_seconds": 0.211,
+      "end_utc": "2026-11-16T15:20:05.324410+00:00",
+      "env_overrides": {},
+      "exit_code": 0,
+      "signal_requirement": "Expected version plan and five-note signal",
+      "start_utc": "2026-11-16T15:20:05.113399+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/01-stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/01-stdout.log"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+        "--head",
+        "6df738c6c36a13676eb623adbab5954756cfedfa"
+      ],
+      "attempt": 1,
+      "check": 2,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "elapsed_seconds": 1.547,
+      "end_utc": "2026-11-16T15:20:06.871968+00:00",
+      "env_overrides": {},
+      "exit_code": 0,
+      "signal_requirement": "Explicit boundary OK",
+      "start_utc": "2026-11-16T15:20:05.325063+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/02-stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/02-stdout.log"
+    },
+    {
+      "argv": [
+        "bash",
+        "test/release-flow.test.sh"
+      ],
+      "attempt": 1,
+      "check": 3,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "elapsed_seconds": 38.944,
+      "end_utc": "2026-11-16T15:20:45.816744+00:00",
+      "env_overrides": {},
+      "exit_code": 0,
+      "signal_requirement": "Terminal shell PASS",
+      "start_utc": "2026-11-16T15:20:06.872669+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/03-stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/03-stdout.log"
+    },
+    {
+      "argv": [
+        "bash",
+        "test/release-boundary.test.sh"
+      ],
+      "attempt": 1,
+      "check": 4,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "elapsed_seconds": 5.618,
+      "end_utc": "2026-11-16T15:20:51.435552+00:00",
+      "env_overrides": {},
+      "exit_code": 0,
+      "signal_requirement": "Terminal shell PASS",
+      "start_utc": "2026-11-16T15:20:45.817686+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/04-stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/04-stdout.log"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/release-push.test.py",
+        "-v"
+      ],
+      "attempt": 1,
+      "check": 5,
+      "completed_unittest_methods": 10,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "elapsed_seconds": 5.492,
+      "end_utc": "2026-11-16T15:20:56.928696+00:00",
+      "env_overrides": {},
+      "exit_code": 0,
+      "signal_requirement": "Ten unittest methods, terminal OK and no skips",
+      "start_utc": "2026-11-16T15:20:51.436505+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/05-stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/05-stdout.log"
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+        "diff",
+        "--check",
+        "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+        "6df738c6c36a13676eb623adbab5954756cfedfa",
+        "--",
+        "skills/shiploop",
+        "changes/shiploop",
+        "scripts/release.py",
+        "test/release-preflight.test.py",
+        "test/shiploop-guidance.test.py",
+        "test/shiploop-actual-improve-cli.test.py",
+        "test/shiploop-loops.test.py",
+        "test/shiploop-e2e-fidelity.test.py"
+      ],
+      "attempt": 1,
+      "check": 6,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "elapsed_seconds": 0.025,
+      "end_utc": "2026-11-16T15:20:56.954359+00:00",
+      "env_overrides": {},
+      "exit_code": 0,
+      "signal_requirement": "Empty diff-check output",
+      "start_utc": "2026-11-16T15:20:56.929496+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/06-stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean/06-stdout.log"
+    }
+  ],
+  "completed": 6,
+  "deadline": "2026-11-16T15:40:00+00:00",
+  "end_utc": "2026-11-16T15:20:58.806818+00:00",
+  "evidence": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation-clean",
+  "expected_generated_repository_paths": [],
+  "expected_head": "6df738c6c36a13676eb623adbab5954756cfedfa",
+  "notes_unchanged": true,
+  "pending": [],
+  "remote_base": "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+  "scope": "Local source release validation only; no CI/package/host/deployed claim",
+  "selected": 6,
+  "shell_suites": 2,
+  "source_unchanged": true,
+  "start_utc": "2026-11-16T15:20:04.548977+00:00",
+  "status": "PASS",
+  "target": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+  "test_methods": 10,
+  "versions": {
+    "shiploop": {
+      "from": "1.37.1",
+      "notes": 5,
+      "to": "1.37.2"
+    },
+    "skill-craft": {
+      "from": "2.42.1",
+      "to": "2.42.2"
+    }
+  }
+}

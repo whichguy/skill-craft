@@ -1,0 +1,101 @@
+{
+  "status": "PASS",
+  "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+  "package": {
+    "status": "PASS",
+    "versions": {
+      "candidate": {
+        "plugin": "3.0.1",
+        "shiploop": "2.0.0",
+        "shiploop-e2e-audit": "1.0.0",
+        "closed-loop": "0.1.1",
+        "test-harness": "0.1.1"
+      },
+      "cold": {
+        "plugin": "3.0.1",
+        "shiploop": "2.0.0",
+        "shiploop-e2e-audit": "1.0.0",
+        "closed-loop": "0.1.1",
+        "test-harness": "0.1.1"
+      },
+      "built": {
+        "plugin": "3.0.1",
+        "shiploop": "2.0.0",
+        "shiploop-e2e-audit": "1.0.0",
+        "closed-loop": "0.1.1",
+        "test-harness": "0.1.1"
+      }
+    },
+    "files": 423,
+    "entries": 529,
+    "catalogs": {
+      ".agents/plugins/marketplace.json": "4b0919e2cad70b37a362bc41ee2b39fb39b5f6c454a90267973de2790c6c5cc9",
+      ".claude-plugin/marketplace.json": "cf53e99cbce8eba942b3995403c273718ae4805c5675d82bb0da7e5b7ae97c1a",
+      ".grok-plugin/marketplace.json": "0cc22141d38140222ebc2a4a5724f95102c5e74e2ed29ea739da0f009d640fdc",
+      ".cursor-plugin/marketplace.json": "ec308a27ce328c88ec6be1f41b56f2e77f391c8035adb5668ee819092f2c6074"
+    },
+    "manifests": [
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/candidate-package-manifest.json",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/cold-package-manifest.json",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/built-package-manifest.json"
+    ],
+    "supervisor_sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+    "limits": [
+      "Package integrity and no-model native startup only; parent collects main CI separately."
+    ]
+  },
+  "native_install": {
+    "status": "PASS",
+    "installed_version": "3.0.1",
+    "installed_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-install-scratch/claude-config/plugins/cache/whichguy/skill-craft/3.0.1",
+    "payload_entries": 529,
+    "payload_files": 423,
+    "cache_metadata_only_extra": [
+      ".in_use"
+    ],
+    "entry_modes": {
+      "shiploop": "0o755",
+      "shiploop-drive": "0o755",
+      "shiploop-hook": "0o755",
+      "shiploop-keepalive-observe": "0o755",
+      "shiploop-keepalive-stop": "0o755",
+      "shiploop-keepalive-session-end": "0o755",
+      "shiploop-skill-call": "0o755",
+      "shiploop-status-hook": "0o755"
+    },
+    "floor": [
+      [
+        3,
+        15
+      ]
+    ],
+    "packet_bytes": 17609,
+    "hooks": [
+      "shiploop-keepalive-observe",
+      "shiploop-keepalive-stop",
+      "shiploop-keepalive-session-end",
+      "shiploop-skill-call",
+      "shiploop-status-hook"
+    ],
+    "optional_old_interpreter": [
+      "PASS real old-interpreter CLI refusal (2) and hook silence (0); Python 3.7.3"
+    ],
+    "manifest": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-package-manifest.json",
+    "supervisor_sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+    "limits": [
+      "no model execution",
+      "no personal host refresh",
+      "no deployed behavior qualification"
+    ],
+    "commands": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-commands.json",
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/cold-published-patch-package/native-install-scratch",
+    "timing_note": "Nested probe timings use retained command/exit file mtimes; exact enclosing probe start/end is in commands.json."
+  },
+  "raw_proof": "cold-published-patch-package/handoff.json",
+  "three_way_actual_payload_hashes_modes_catalogs_and_installed_source_verified": true,
+  "source_guards_verified": true,
+  "native_positive_outputs_verified": true,
+  "no_personal_host_refresh": true,
+  "timing_limit": "Nested probe timings use retained command/exit file mtimes; exact enclosing probe start/end is in commands.json."
+}

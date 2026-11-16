@@ -1,0 +1,20 @@
+{
+  "versions": {
+    "catalog/skill-craft-plugin.json": "2.42.2",
+    "plugins/skill-craft/.claude-plugin/plugin.json": "2.42.2",
+    "plugins/skill-craft/.codex-plugin/plugin.json": "2.42.2",
+    "plugins/skill-craft/.cursor-plugin/plugin.json": "2.42.2",
+    "skills/shiploop/SKILL.md": "1.37.2",
+    "plugins/skill-craft/skills/shiploop/SKILL.md": "1.37.2"
+  },
+  "consumed_notes_absent": {
+    "changes/shiploop/r07-outcome-continuity.md": true,
+    "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md": true,
+    "changes/shiploop/r16-observe-actual-release-state.md": true,
+    "changes/shiploop/r19-run-owned-loop-state.md": true,
+    "changes/shiploop/r21-external-state-reuse.md": true
+  },
+  "release_path_count": 31,
+  "sync_skill_count_26": true,
+  "complete_payload_positive": true
+}

@@ -1,0 +1,15 @@
+test_restarted_observer_replaces_stale_status_before_start_succeeds (fixture.ProgressTests.test_restarted_observer_replaces_stale_status_before_start_succeeds) ... FAIL
+
+======================================================================
+FAIL: test_restarted_observer_replaces_stale_status_before_start_succeeds (fixture.ProgressTests.test_restarted_observer_replaces_stale_status_before_start_succeeds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116/test/shiploop-progress.test.py", line 264, in test_restarted_observer_replaces_stale_status_before_start_succeeds
+    self.assertTrue(fresh_publication())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None is not true
+
+----------------------------------------------------------------------
+Ran 1 test in 1.416s
+
+FAILED (failures=1)

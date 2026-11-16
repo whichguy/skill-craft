@@ -1,0 +1,86 @@
+{
+  "case": "csv-report",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "argv": [
+    "codex",
+    "exec",
+    "--json",
+    "-m",
+    "gpt-6.1-sol",
+    "--skip-git-repo-check",
+    "-s",
+    "danger-full-access",
+    "-c",
+    "approval_policy=\"never\"",
+    "--dangerously-bypass-hook-trust",
+    "-C",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/work",
+    "-c",
+    "agents.default_subagent_model=\"gpt-6.1-sol\"",
+    "-c",
+    "model_reasoning_effort=medium",
+    "-c",
+    "agents.default_subagent_reasoning_effort=medium",
+    "$skill-craft:shiploop Build a command-line tool report.py (Python 3, standard library only) that summarises sales records. Usage: `python3 report.py FILE [FILE ...]`. Each FILE is CSV with the header row `date,region,product,units,unit_price`; units is a non-negative integer and unit_price a non-negative decimal. Print one JSON object to stdout: {\"rows\": the number of valid rows, \"revenue\": the sum of units * unit_price rounded to 2 decimals, \"by_region\": revenue per region rounded to 2 decimals, \"by_product\": total units per product}. A row with the wrong number of columns, or a non-numeric or negative units or unit_price, is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0. A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1. A file with only a header contributes nothing. Cover the behaviour with unittest tests that run with `python3 -m unittest`."
+  ],
+  "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/work",
+  "plugin_dir": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/build/plugins/skill-craft",
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 2.43.0"
+    ],
+    "wanted": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/build/plugins/skill-craft",
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/home/.codex/plugins/cache/whichguy/skill-craft/2.43.0",
+    "output": "izations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/home/.codex/plugins/cache/whichguy/skill-craft/2.43.0"
+  },
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "2.43.0",
+    "shiploop_version": "1.38.0",
+    "plugin_sha256": "abaf1e116df3",
+    "local_head": "d5142e5f502179cda135a3da405c3117d7f6fba3"
+  },
+  "host_build": "codex-cli 0.169.0",
+  "checks": [
+    "python3 \"$E2E_CHECKS/csv_report.py\" unit",
+    "python3 \"$E2E_CHECKS/csv_report.py\" totals",
+    "python3 \"$E2E_CHECKS/csv_report.py\" invalid",
+    "python3 \"$E2E_CHECKS/csv_report.py\" missing",
+    "python3 \"$E2E_CHECKS/csv_report.py\" empty"
+  ],
+  "follow_on": null,
+  "base": null,
+  "resumed_run": null,
+  "seeded": null,
+  "owner_note_at": null,
+  "needs": [],
+  "environment": {
+    "observed": true,
+    "at": "2026-11-16T17:01:55Z",
+    "tools": {
+      "node": "v26.12.1",
+      "python3": "Python 3.15.1",
+      "git": "git version 2.54.0 (Apple Git-157)"
+    },
+    "cpus": 18,
+    "loadavg": [
+      46.08,
+      51.78,
+      37.22
+    ],
+    "display_hold": true,
+    "unread": {},
+    "browser": {
+      "declared": false,
+      "probed": false,
+      "reason": "no case or --need declares a browser"
+    }
+  },
+  "planning_review": null,
+  "improve_skill": null,
+  "identity_unmeasured": {}
+}

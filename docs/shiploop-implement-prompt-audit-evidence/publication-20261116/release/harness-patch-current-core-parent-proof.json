@@ -1,0 +1,9 @@
+{
+  "status": "CORE_COMPONENT_PASS_FULL_CI_PENDING",
+  "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "run": 43954284626,
+  "methods": 11,
+  "actual_barrier_scenarios": 6,
+  "owned_pids_stopped": 12,
+  "raw_source": "harness-patch-full-ci/test-harness-current-proof.json"
+}

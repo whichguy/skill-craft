@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop_e2e/run.py",
+    "--case",
+    "csv-report",
+    "--host",
+    "codex",
+    "--model",
+    "gpt-6.1-sol",
+    "--effort",
+    "medium",
+    "--source",
+    "checkout",
+    "--output",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run",
+    "--baseline",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/baselines.jsonl",
+    "--quiet"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "started_at": "2026-11-16T17:01:50.010105+00:00",
+  "wrapper_pid": 49540,
+  "pid": 49553,
+  "exit_code": 0,
+  "finished_at": "2026-11-16T18:41:22.960648+00:00"
+}

@@ -1,0 +1,3312 @@
+[
+  {
+    "path": "run.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "run.command.json",
+    "size": 262,
+    "sha256": "684e40697a320d843c1e1a055937702b2c2bcd81bb02560fbcc0d72465a0c6bb"
+  },
+  {
+    "path": "artifacts-220620.json",
+    "size": 5587,
+    "sha256": "e2560f72b8f9f6b53ccabbc1eca9d8ae591204bdae5749e3c3642d7b309d0791"
+  },
+  {
+    "path": "artifacts-215358.json.command.json",
+    "size": 285,
+    "sha256": "715633b7e03b453a82a84bde230bb989170803450268e8350668ede60d76043c"
+  },
+  {
+    "path": "jobs-215008.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-220440.json.command.json",
+    "size": 291,
+    "sha256": "c1b2c13b36642f09934f5340064f2ffc84b1db622e36487131a0ad4ffceb7712"
+  },
+  {
+    "path": "artifacts-215358.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-215231.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "handoff.json",
+    "size": 7981,
+    "sha256": "8392d2b2f46634089fbdb47032833c8774113e24bc7a584f9f4e923001b366ac"
+  },
+  {
+    "path": "actual-outgoing-range.command.json",
+    "size": 232,
+    "sha256": "a0fc69982aa29d332b5e8e3cc31d4a7badb1bc613a74dcc96bfaba05d9bf264e"
+  },
+  {
+    "path": "jobs-220740.json.command.json",
+    "size": 291,
+    "sha256": "fd1e5aa7709b04e5fce4ffaf119471a2dbf47a01d040bcabbfa9a47ebaf60f69"
+  },
+  {
+    "path": "artifacts-220218.json.command.json",
+    "size": 285,
+    "sha256": "7395cc6efc6a03536cca7e3be4031a2813d3331f41e6b73d1afb440602286185"
+  },
+  {
+    "path": "collect.py",
+    "size": 1864,
+    "sha256": "ae601f95d29237e25a285aad40cc0696f84d8f52976471e2b47740aaaa9212e1"
+  },
+  {
+    "path": "jobs-215121.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-220440.json",
+    "size": 4900,
+    "sha256": "9e71783796e0443e952e81c552466a30bdcb23a5dfd03920417367384a52903b"
+  },
+  {
+    "path": "jobs-215953.json",
+    "size": 31609,
+    "sha256": "b0b0988994b93cd11830e39f6004d75b83872a2331cb6454e5a363ff88010d8c"
+  },
+  {
+    "path": "artifacts-220106.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-214816.command.json",
+    "size": 221,
+    "sha256": "43aa5928103b8982678e83c99fa2ce5f4ee628f4d8612508301e919132d9c5e3"
+  },
+  {
+    "path": "artifacts-220326.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "source-post.json",
+    "size": 3783296,
+    "sha256": "ad65d07df8798291e8041200af4f93c9b3b799a6fd95e4b6d0dd834c8fe1428d"
+  },
+  {
+    "path": "jobs-214816.json",
+    "size": 30701,
+    "sha256": "9d4bd0234ab6de8af85a2e459b07bb7b2e1e7c3e94f38ebe288d2bfc6df73808"
+  },
+  {
+    "path": "preflight.stdout.json",
+    "size": 219,
+    "sha256": "8bf73f3dfe882bd1abd58fe79307b8908c0c87ed2cbd4a97505b2262a7c9c83c"
+  },
+  {
+    "path": "test-harness-explicit-validation.json",
+    "size": 8359,
+    "sha256": "787b280e616f4909eb389e03c43d4b6f168d96366b1b1a83efb9cb2daeb74201"
+  },
+  {
+    "path": "jobs-214842.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-215509.json",
+    "size": 30701,
+    "sha256": "9d4bd0234ab6de8af85a2e459b07bb7b2e1e7c3e94f38ebe288d2bfc6df73808"
+  },
+  {
+    "path": "jobs-220218.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-215805.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-215231.json",
+    "size": 30701,
+    "sha256": "9d4bd0234ab6de8af85a2e459b07bb7b2e1e7c3e94f38ebe288d2bfc6df73808"
+  },
+  {
+    "path": "jobs-215358.json",
+    "size": 30701,
+    "sha256": "9d4bd0234ab6de8af85a2e459b07bb7b2e1e7c3e94f38ebe288d2bfc6df73808"
+  },
+  {
+    "path": "jobs-220326.json.command.json",
+    "size": 291,
+    "sha256": "44dd16a7010d8808551b5673d0daa869ce8a0fb81a68a487e820ddec1c1a494a"
+  },
+  {
+    "path": "preflight.command.json",
+    "size": 363,
+    "sha256": "10a595cc4a21dcc40a4f289448a700e1252e738a88d15bb79ef72a0ba22dcc91"
+  },
+  {
+    "path": "jobs-215231.json.command.json",
+    "size": 291,
+    "sha256": "2b78510f72371890d36b9e790ac1a96e6a91aa532b22ab701aafdae5522f8ad2"
+  },
+  {
+    "path": "artifacts-220106.json.command.json",
+    "size": 285,
+    "sha256": "27b97b6a42b188c8f2d33f7127bf7c51ef2a0ab24e8c2a8a099500dc19d43856"
+  },
+  {
+    "path": "artifacts-215358.json",
+    "size": 2843,
+    "sha256": "e2c70417252f4881f328d9045d27582d47e6a67c29c066ed9be4123a06097067"
+  },
+  {
+    "path": "artifacts-215231.json",
+    "size": 2843,
+    "sha256": "e2c70417252f4881f328d9045d27582d47e6a67c29c066ed9be4123a06097067"
+  },
+  {
+    "path": "artifacts-220740.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-215509.json",
+    "size": 2843,
+    "sha256": "e2c70417252f4881f328d9045d27582d47e6a67c29c066ed9be4123a06097067"
+  },
+  {
+    "path": "jobs-215953.json.command.json",
+    "size": 291,
+    "sha256": "9a9062de7ac794758ba5db3a9adfd0d1fd9b83771034f50a8ec38faae6fdabb6"
+  },
+  {
+    "path": "jobs-215509.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-215008.json.command.json",
+    "size": 285,
+    "sha256": "8cf1938058f3c01d78e3807486f8f504443fd52205699dc91c9b7b7bd9444b96"
+  },
+  {
+    "path": "jobs-220620.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-215509.json.command.json",
+    "size": 285,
+    "sha256": "e6c28ab65ba9c32dfd14077f98c39e7d65b4795d8aa42b23ff780c411fc121c7"
+  },
+  {
+    "path": "artifacts-215953.json",
+    "size": 4211,
+    "sha256": "6089fa80310f1a696cf2b2641b21e581dc69483ecf1c9915cdd8d40a1fa42b42"
+  },
+  {
+    "path": "artifacts-214842.json.command.json",
+    "size": 285,
+    "sha256": "3643113cd5be7b603669183ca3c6c6a472b317c11ae8fe5a120b9066eb179e11"
+  },
+  {
+    "path": "jobs-220440.json",
+    "size": 32063,
+    "sha256": "41fa05c279246cccef75aa9f0fa5eeaed6da855a814c9a9ecd653fe91fe41510"
+  },
+  {
+    "path": "artifacts.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-220620.json.command.json",
+    "size": 291,
+    "sha256": "0cad830ccdd6008fd2a72742b512acc13200b290e970b70308ff551eeafa2d58"
+  },
+  {
+    "path": "jobs-215953.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validator-attempt-1.json",
+    "size": 971,
+    "sha256": "6b265716e6adddfe1c9f15ea38bfa1c6d106c82e3b9496a9a2c504e60dfa24e7"
+  },
+  {
+    "path": "artifacts-215121.json.command.json",
+    "size": 285,
+    "sha256": "4bb53a616d457e63282902073b3f36e63c4cf1ac26f66998a771d91629b5d054"
+  },
+  {
+    "path": "artifacts-215625.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validator-wrapper-attempt-1.json",
+    "size": 301,
+    "sha256": "a68b4755977c903c337ab3a699fa2a57182c5186581b4b1673f02111062fcf23"
+  },
+  {
+    "path": "artifacts-215625.json.command.json",
+    "size": 285,
+    "sha256": "adb941fe11f20c6c5658407d78adacbc6d73b997b3187176a27fb5153959f81d"
+  },
+  {
+    "path": "validate-receipts.py",
+    "size": 1543,
+    "sha256": "40d9ab46d2bfade24db0689c1a3c53d5cf360c9d00f364ae65b80a31ec75e39a"
+  },
+  {
+    "path": "jobs-215805.json.command.json",
+    "size": 291,
+    "sha256": "c5454ed470d11c8de6aee4e682ccd378714fb442210ef55f2c754c85a7044c4f"
+  },
+  {
+    "path": "terminal.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-220620.json",
+    "size": 32517,
+    "sha256": "5c39b8bb3fc42bd078d28d5745c2622018d989c81bcd1e1fa524c145341a5329"
+  },
+  {
+    "path": "jobs.command.json",
+    "size": 291,
+    "sha256": "3f51ece1893bcbd329802107a0e834453164af3a41dad5f4f981757c69892547"
+  },
+  {
+    "path": "artifacts-220440.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-215231.json.command.json",
+    "size": 285,
+    "sha256": "8dd8f168314b5c529dba7447de7925b007fc62e1154ac4f8abfd31d30ad9ac4b"
+  },
+  {
+    "path": "actual-outgoing-range.log",
+    "size": 9967,
+    "sha256": "2bc075b9efc2dbfc6deab803b92555ff879e526a01906db843f66c24d9cfe371"
+  },
+  {
+    "path": "artifacts-215509.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-215008.json",
+    "size": 2843,
+    "sha256": "e2c70417252f4881f328d9045d27582d47e6a67c29c066ed9be4123a06097067"
+  },
+  {
+    "path": "artifacts-220326.json.command.json",
+    "size": 285,
+    "sha256": "6738b7bec236db3be1597a0e68c0727554d81a79383a13f84fb97a4294441016"
+  },
+  {
+    "path": "artifacts-220620.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-220106.json",
+    "size": 4211,
+    "sha256": "6089fa80310f1a696cf2b2641b21e581dc69483ecf1c9915cdd8d40a1fa42b42"
+  },
+  {
+    "path": "jobs-215625.json",
+    "size": 31155,
+    "sha256": "d13261822f3a989868c24c486d6dc7ed31f9db4d3857315881ab0855e10defd4"
+  },
+  {
+    "path": "browser-positive-evidence.json",
+    "size": 9369,
+    "sha256": "8be66044ce9a4f7401180ff345a98ebe0eb6fb1cf41ee2e6cfbdb6e5cd3e66d9"
+  },
+  {
+    "path": "test-count-signals-partial.json",
+    "size": 16064,
+    "sha256": "bdc976ab9da1a305aabe4f0534e0e4fa279758cad5b02200f62d85bc63f9712e"
+  },
+  {
+    "path": "artifacts.command.json",
+    "size": 285,
+    "sha256": "bb4a081c6474e5f0a38e67640d84d86d0324528c6edbc974b16296b84368995d"
+  },
+  {
+    "path": "expected-inventory.json",
+    "size": 13613,
+    "sha256": "ee95608ff22dabadbdeb0b7372aff15e3375ff237af4d9e94f58dda09e004043"
+  },
+  {
+    "path": "jobs-220740.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "preflight.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-220326.json",
+    "size": 4211,
+    "sha256": "6089fa80310f1a696cf2b2641b21e581dc69483ecf1c9915cdd8d40a1fa42b42"
+  },
+  {
+    "path": "jobs-215625.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "suite-reconciliation.json",
+    "size": 83092,
+    "sha256": "13f165d2c67fb3214798289256fe767bd7c79c23052c11752f88c2029f3d350d"
+  },
+  {
+    "path": "artifacts-215953.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-214842.json",
+    "size": 2843,
+    "sha256": "e2c70417252f4881f328d9045d27582d47e6a67c29c066ed9be4123a06097067"
+  },
+  {
+    "path": "jobs-220440.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-220218.json.command.json",
+    "size": 291,
+    "sha256": "ea56e3aecff83d7b2f7806ef49ec86c78b86221f25e7a9542a101e6fbd042def"
+  },
+  {
+    "path": "artifacts-220740.json.command.json",
+    "size": 285,
+    "sha256": "eab587a5459dce8d80f317e526e49991c54d74985e6773eeb12d6f68c4a0d0a6"
+  },
+  {
+    "path": "source-guards-and-boundary.json",
+    "size": 860,
+    "sha256": "bf29a18ba57103e74cf778939840489ad9e1bd566c64361b4348502d35039c65"
+  },
+  {
+    "path": "terminal.command.json",
+    "size": 363,
+    "sha256": "5ca9d66da2cfae83175be9abf0dea7e90709de59d2b6fed88822d692deef3442"
+  },
+  {
+    "path": "artifacts-220218.json",
+    "size": 4211,
+    "sha256": "6089fa80310f1a696cf2b2641b21e581dc69483ecf1c9915cdd8d40a1fa42b42"
+  },
+  {
+    "path": "artifacts-220440.json.command.json",
+    "size": 285,
+    "sha256": "0c0f21883731d9b1cb5fc85235c1cb4dc25d9315278a7b21abb38ec50811fd37"
+  },
+  {
+    "path": "artifacts-215121.json",
+    "size": 2843,
+    "sha256": "e2c70417252f4881f328d9045d27582d47e6a67c29c066ed9be4123a06097067"
+  },
+  {
+    "path": "jobs-215358.json.command.json",
+    "size": 291,
+    "sha256": "30abc536caf555ec0b53ef3d16a6745441e82afd821a14bc4f85de40450ae7d7"
+  },
+  {
+    "path": "artifacts-220740.json",
+    "size": 6274,
+    "sha256": "2b5ff4d350f5bd07502dc3de8f81d05fa55f9e1f1c32184b630563bbdaadc1e3"
+  },
+  {
+    "path": "jobs-215805.json",
+    "size": 31609,
+    "sha256": "b0b0988994b93cd11830e39f6004d75b83872a2331cb6454e5a363ff88010d8c"
+  },
+  {
+    "path": "terminal.stdout.json",
+    "size": 224,
+    "sha256": "01494f83ac5c5a580b4edb05fb1f2349e0ed81b60084736491acb209a6605b28"
+  },
+  {
+    "path": "artifacts-215121.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-215805.json",
+    "size": 4211,
+    "sha256": "6089fa80310f1a696cf2b2641b21e581dc69483ecf1c9915cdd8d40a1fa42b42"
+  },
+  {
+    "path": "artifacts-215805.json.command.json",
+    "size": 285,
+    "sha256": "f51e92a1580c585f4c21a8b6c7cfb9e1dabe52e8d591d20e5c787ce192d65416"
+  },
+  {
+    "path": "jobs-220740.json",
+    "size": 34338,
+    "sha256": "d9eee03b480490bd18329604603e6f5c94891b07aa10ccb3bb8cd44b21c52129"
+  },
+  {
+    "path": "jobs-220106.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-215121.json.command.json",
+    "size": 291,
+    "sha256": "4fc2e32dad4187c0125e959d10c373e588f0137e76dd5450e697f5d8ed30f44e"
+  },
+  {
+    "path": "jobs-215625.json.command.json",
+    "size": 291,
+    "sha256": "c87914ae6f2619c0a068c0961d81ecc9a5104b5e20204005805f281cda17e1cd"
+  },
+  {
+    "path": "jobs-215121.json",
+    "size": 30701,
+    "sha256": "9d4bd0234ab6de8af85a2e459b07bb7b2e1e7c3e94f38ebe288d2bfc6df73808"
+  },
+  {
+    "path": "jobs.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-220218.json",
+    "size": 31609,
+    "sha256": "b0b0988994b93cd11830e39f6004d75b83872a2331cb6454e5a363ff88010d8c"
+  },
+  {
+    "path": "artifacts-220620.json.command.json",
+    "size": 285,
+    "sha256": "b83e3b2ea564952ca7209f96e7bdf7f5a9dbb1a058967d6c86d1e182095e8ec1"
+  },
+  {
+    "path": "artifact-digests.json",
+    "size": 2717,
+    "sha256": "d6186573374956a0482a31fcd856fc0086d723509a86acffc7f7e2fa3a2c7470"
+  },
+  {
+    "path": "jobs-214842.json",
+    "size": 30701,
+    "sha256": "9d4bd0234ab6de8af85a2e459b07bb7b2e1e7c3e94f38ebe288d2bfc6df73808"
+  },
+  {
+    "path": "artifacts-215231.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-215358.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-214842.json.command.json",
+    "size": 291,
+    "sha256": "da785e5a80d26839c2dcba61042245cf6b7d5ff6807837b5ec7d8be853643969"
+  },
+  {
+    "path": "artifacts-215008.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-220326.json",
+    "size": 31609,
+    "sha256": "b0b0988994b93cd11830e39f6004d75b83872a2331cb6454e5a363ff88010d8c"
+  },
+  {
+    "path": "jobs-215509.json.command.json",
+    "size": 291,
+    "sha256": "ee756407b37979495df60aaafc86f404fceaf53e5e2b2faff49f0c2541c4f335"
+  },
+  {
+    "path": "artifacts-215805.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "run.json",
+    "size": 12249,
+    "sha256": "afa3af40494a0fc8148f75d068a8e5fb7508b5c2df79e51dfa6a85781a18d754"
+  },
+  {
+    "path": "artifacts-220218.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-215008.json.command.json",
+    "size": 291,
+    "sha256": "9faf1dc33de98aa3c405f56ce4f1fd963627a6d20cd41a49592cbd20de34aaeb"
+  },
+  {
+    "path": "artifacts-214842.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "source-pre.json",
+    "size": 3783296,
+    "sha256": "ad65d07df8798291e8041200af4f93c9b3b799a6fd95e4b6d0dd834c8fe1428d"
+  },
+  {
+    "path": "artifacts-215625.json",
+    "size": 3524,
+    "sha256": "6c328f132c8d678348b1d929f831cc544770276484bcee513746ad189efe866a"
+  },
+  {
+    "path": "jobs.json",
+    "size": 29879,
+    "sha256": "53237e8070719bdd85ed857dbbe328940abfd46a303370c554e5f41f1bfd3f85"
+  },
+  {
+    "path": "jobs-220326.json.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts-215953.json.command.json",
+    "size": 285,
+    "sha256": "bb1b7039b01a76c4a88435c75cf1c37a92dd60fff58011e7d0aa47e0a042518b"
+  },
+  {
+    "path": "artifacts.json",
+    "size": 1430,
+    "sha256": "329697e2994476d473d940802d988566d876a17b85544201215fd0ce31c8816a"
+  },
+  {
+    "path": "jobs-220106.json",
+    "size": 31609,
+    "sha256": "b0b0988994b93cd11830e39f6004d75b83872a2331cb6454e5a363ff88010d8c"
+  },
+  {
+    "path": "jobs-215008.json",
+    "size": 30701,
+    "sha256": "9d4bd0234ab6de8af85a2e459b07bb7b2e1e7c3e94f38ebe288d2bfc6df73808"
+  },
+  {
+    "path": "jobs-214816.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-220106.json.command.json",
+    "size": 291,
+    "sha256": "6feeaff9da7d994fe525ea372262e9df990da1993e83f09da7b71774b94317c3"
+  },
+  {
+    "path": "artifacts/hermetic-e2e-apparatus.zip",
+    "size": 4715,
+    "sha256": "6453cfc9b04b69b38baaebd907a5fc48e6d326d630adb7930e1ad4f219db1ec2"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-2.zip.command.json",
+    "size": 271,
+    "sha256": "f6ec75baf05cb5e26ada82602dd400948096ed6117f40075ab16a2b26afadf9e"
+  },
+  {
+    "path": "artifacts/hermetic-core.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-1.zip",
+    "size": 31906,
+    "sha256": "ba2e819fdda1b4ea064936e9e077cfc2dee9700e8f3fac1e51862a443b404f4d"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-3.zip",
+    "size": 40041,
+    "sha256": "6d989ce554bd5575384d976047097a05917b531788a0a929cfbeabc685cc09b9"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-2.zip",
+    "size": 33214,
+    "sha256": "15d24918e7c417282e96d7487700832e1d8a6c4a4dedd9b5fdf41c99418dea49"
+  },
+  {
+    "path": "artifacts/browser-fixtures-delayed-setup.zip",
+    "size": 2540,
+    "sha256": "af0c61c30a754b46d3139e601f8fd0221d6e374a944fbe137815da13c0f6bfc7"
+  },
+  {
+    "path": "artifacts/browser-fixtures-setup-save-boundary.zip.command.json",
+    "size": 271,
+    "sha256": "80c916b54dbeddc756c8a1a879c7db53bc3c351125406e31b02eafd3651a2562"
+  },
+  {
+    "path": "artifacts/browser-fixtures-turn-and-action-correlation.zip.command.json",
+    "size": 271,
+    "sha256": "84ec4fd8049a31ad91baa7729b40e75a8f1203643575df1b493e3fc45e4ab0e8"
+  },
+  {
+    "path": "artifacts/browser-fixtures-setup-save-boundary.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-2.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-3.zip.command.json",
+    "size": 271,
+    "sha256": "d650227fafd2cab2903cc9f2d0377fa6b65221fa45f10d9d3608e92efe14a970"
+  },
+  {
+    "path": "artifacts/hermetic-e2e-apparatus.zip.command.json",
+    "size": 271,
+    "sha256": "4d2d54c8732553f96531c0921975f5fedcbd49d09e9ba9d09bd78a1d0baf548f"
+  },
+  {
+    "path": "artifacts/hermetic-e2e-apparatus.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/browser-fixtures-app-owned-controls.zip.command.json",
+    "size": 271,
+    "sha256": "4a5a73b1f2c6ca53aa76f9fea1b765cd253b511f7410f291192d9f1d1bf7596a"
+  },
+  {
+    "path": "artifacts/browser-fixtures-turn-and-action-correlation.zip",
+    "size": 1494,
+    "sha256": "7b57589f13ea1409749a05368c7b66e79b8f1f6f43573c329f1c899972f16434"
+  },
+  {
+    "path": "artifacts/browser-fixtures-setup-save-boundary.zip",
+    "size": 863,
+    "sha256": "ba5e68ce0966639c69e1757c623ce482e428bc108e1fb2f56f01010ec95ba3a9"
+  },
+  {
+    "path": "artifacts/browser-fixtures-app-owned-controls.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-1.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/browser-fixtures-turn-and-action-correlation.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/browser-fixtures-delayed-setup.zip.command.json",
+    "size": 271,
+    "sha256": "b9fc2d08285d5c48e463a002ff1dabf5827a0cc2d6d4207752788a6dc4c69290"
+  },
+  {
+    "path": "artifacts/browser-fixtures-delayed-setup.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/hermetic-core.zip",
+    "size": 53518,
+    "sha256": "2fb44843caa707a3f260d8a724ea45860fa7dec25efbb4d579e2779392e190bd"
+  },
+  {
+    "path": "artifacts/hermetic-core.zip.command.json",
+    "size": 271,
+    "sha256": "4b883e28faf2af096c59e0a790c9e950646146743e09bd742eac6d4c61acb70c"
+  },
+  {
+    "path": "artifacts/browser-fixtures-app-owned-controls.zip",
+    "size": 1192,
+    "sha256": "07aa5a626ed3bc9f273f3b95a35477d8233a4d85528b1e7e3ab976a00b4e225b"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-3.zip.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/hermetic-shiploop-1.zip.command.json",
+    "size": 271,
+    "sha256": "91d8fcd305a7149bbaa1c046a5752bba05617a16082b7fd348866ef3cef9629d"
+  },
+  {
+    "path": "job-logs/133635631961.raw.command.json",
+    "size": 296,
+    "sha256": "e97f763954aa2cb984d4bd47df3402b76cae69c5495396b115d75be078c1b520"
+  },
+  {
+    "path": "job-logs/133635632229.raw.analysis.log",
+    "size": 205778,
+    "sha256": "8af47ab6bcb3c44c46308b940de1253354f66bf26dc17d26c74694ad7f08dd04"
+  },
+  {
+    "path": "job-logs/133635631950.raw.log",
+    "size": 101434,
+    "sha256": "0a727e19ccef4aa0167d771959a0dcf9fec43ade895d7e37036fb4c26812f03c"
+  },
+  {
+    "path": "job-logs/133635632095.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635632010.raw.log.command.json",
+    "size": 296,
+    "sha256": "832e268a2b63efced7ddf3890fbe39182d91cbf8b8660ef2483e6eeb71e6bc91"
+  },
+  {
+    "path": "job-logs/133648449175.raw.log.command.json",
+    "size": 296,
+    "sha256": "ed9da2444fab5e0f5171445f701689b50d2d2a2e02462afa0226acc51c190384"
+  },
+  {
+    "path": "job-logs/133635631916.raw.analysis.log",
+    "size": 27444,
+    "sha256": "dd073cb8a4bbb9401c53ad11c04ad5bf28cc627a434b0f6186e205a3fa26de31"
+  },
+  {
+    "path": "job-logs/133635631950.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635631950.raw.log.command.json",
+    "size": 296,
+    "sha256": "8494fbdba0fed01af0a32cf461bafb5028c5f9b6bc78be2c2cd55bcda3dc7d70"
+  },
+  {
+    "path": "job-logs/133635631978.raw.analysis.log",
+    "size": 47578,
+    "sha256": "b1ef6ea67f48ab53f7530d80a7a82ccb9a12a2025918b1570497acfec60fb85e"
+  },
+  {
+    "path": "job-logs/133635632229.raw.log.command.json",
+    "size": 296,
+    "sha256": "067c5a7966f05db57930ab61f1f6360acc8287d72f712f1f220f73f24716f4e6"
+  },
+  {
+    "path": "job-logs/133635632010.raw.analysis.log",
+    "size": 27275,
+    "sha256": "23dae6455d84371665e10f3860362391f87d5c2b8fa59ebb224238fd0dffcbc4"
+  },
+  {
+    "path": "job-logs/133635632095.raw.log.command.json",
+    "size": 296,
+    "sha256": "c5a9f5d609b52562c87e53971dbbe9bab4c2623b33b20d8b217077187eb7ce31"
+  },
+  {
+    "path": "job-logs/133635493494.raw.analysis.log",
+    "size": 44105,
+    "sha256": "1c797b3e9b0da28ccee3d09b4ea8291411b18df448b98ae7d31d3f3feb3e400c"
+  },
+  {
+    "path": "job-logs/133635493291.raw.analysis.log",
+    "size": 42017,
+    "sha256": "327c65b3e44ecb4ebdc6d4ddab0676fb149d550f361c9560adf94f62eb21ba5a"
+  },
+  {
+    "path": "job-logs/133648449175.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635631971.raw.log.command.json",
+    "size": 296,
+    "sha256": "75abdd01e0f96fc41f5586ae68a2f0da1c5507406c4a6717c1dfdbb532f487a1"
+  },
+  {
+    "path": "job-logs/133648449175.raw.analysis.log",
+    "size": 2724,
+    "sha256": "83de6c08d73ff60842566f45921acdb4b88bf88a1a11126b3c7594cfa5eee91b"
+  },
+  {
+    "path": "job-logs/133635632229.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635632010.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635493494.raw.log",
+    "size": 44127,
+    "sha256": "408f6dadbf371519a39e905273bca79e1545b862c2acb578da11fcd58d481c0e"
+  },
+  {
+    "path": "job-logs/133635631972.raw.analysis.log",
+    "size": 126688,
+    "sha256": "5acb0e5108374563791d67edbbd1d9dffe70b2686231fa22e430ef41501fa8f5"
+  },
+  {
+    "path": "job-logs/133635631916.raw.log",
+    "size": 27543,
+    "sha256": "ef40da40f901287d6a45adf591ca7f5e8e7dcca3183164723d655e19e4ca7ff6"
+  },
+  {
+    "path": "job-logs/133635631971.raw.log",
+    "size": 43866,
+    "sha256": "f8c72369ca4202b1ea98071d682a380b851dba445e34be8178e0fbdc4be86c7e"
+  },
+  {
+    "path": "job-logs/133635631961.raw.log",
+    "size": 25519,
+    "sha256": "e546538320ca4e62ce56e88f9b052dc9ed48c0e07caf696d5c161c8f61daabca"
+  },
+  {
+    "path": "job-logs/133635632010.raw.log",
+    "size": 27374,
+    "sha256": "2663fc0d4f6ef4e0713e059f317d8a0750304746d5811668781a54d48ea6c35a"
+  },
+  {
+    "path": "job-logs/133635631916.raw.log.command.json",
+    "size": 296,
+    "sha256": "1aabebea5b8c48d59c14e4b740b0bb412cf3b5490fd9e537d8012e216c1996ea"
+  },
+  {
+    "path": "job-logs/133635631978.raw.log",
+    "size": 47677,
+    "sha256": "85dd7ba9566bd7b532a3ce3f89b7c62d16c1aff39a26ec5d13aee0cca489c7e1"
+  },
+  {
+    "path": "job-logs/133635631972.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635632095.raw.analysis.log",
+    "size": 172941,
+    "sha256": "0b711235120e07d0f528c62c8e2ad2b0481681ca6cd2b8a54f7cef7119c0a89e"
+  },
+  {
+    "path": "job-logs/133635631916.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635631961.raw.analysis.log",
+    "size": 25420,
+    "sha256": "349ae1d5c9fc5e1ccbfcfe38122cbafe52f3b842e8c8b0bb0a9c9f133046a9ee"
+  },
+  {
+    "path": "job-logs/133635493291.raw.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635632229.raw.log",
+    "size": 205877,
+    "sha256": "19307d43e24d6b0d4e47d2fb0ca416cf05042a3ac583b382556e0aa45984d0cb"
+  },
+  {
+    "path": "job-logs/133635631978.raw.command.json",
+    "size": 296,
+    "sha256": "2abc0aecb6bc9d898048fbb05a8c8c302640ef736736ebab2dc68099a98f02f5"
+  },
+  {
+    "path": "job-logs/133635631950.raw.analysis.log",
+    "size": 101335,
+    "sha256": "333fc52021dbfd30459f791b638c1f94f6e83ef371428ece17444abd964301de"
+  },
+  {
+    "path": "job-logs/133635631972.raw.log.command.json",
+    "size": 296,
+    "sha256": "491aed2b88e2a867d6e6cc28fa93c7bd470a5b2076b50d9166ebb9b1214432be"
+  },
+  {
+    "path": "job-logs/133635493291.raw.log",
+    "size": 42028,
+    "sha256": "f8e8102e4b7fd3e448942ef2876d72dd501ddb2051da328a628ffd6876bfbf4f"
+  },
+  {
+    "path": "job-logs/133635631971.raw.analysis.log",
+    "size": 43767,
+    "sha256": "d8449dbd57f9fdd12c41bc49a711ebd35183ab9bc960a5fb9f21f7a38ebaf123"
+  },
+  {
+    "path": "job-logs/133635493494.raw.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635631961.raw.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635631972.raw.log",
+    "size": 126787,
+    "sha256": "300af4b07e0f392878af043c3f5c7913832511c2a2a8a8328767d35615ff657b"
+  },
+  {
+    "path": "job-logs/133635631971.raw.log.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "job-logs/133635632095.raw.log",
+    "size": 173040,
+    "sha256": "e01e51166d58896bbd79fd728b704c438b4963aabe66cf2b89c9c60688e0e935"
+  },
+  {
+    "path": "job-logs/133635493494.raw.command.json",
+    "size": 296,
+    "sha256": "fb64253a119693784b24fb4793af2284949c7f4e665add33e2b92574dfc0a7c0"
+  },
+  {
+    "path": "job-logs/133635493291.raw.command.json",
+    "size": 296,
+    "sha256": "b7f77ab63e1069337c9faa0c960f9351b00dcb68d9a6a0308e1c12d4bcd57bfe"
+  },
+  {
+    "path": "job-logs/133648449175.raw.log",
+    "size": 2779,
+    "sha256": "60b9abd775bb07753bff588230351d09952f8862c173e2f3b0fb607403bec811"
+  },
+  {
+    "path": "job-logs/133635631978.raw.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validators/shiploop-1.command.json",
+    "size": 1088,
+    "sha256": "891485dc76e326f12076ec0c54804a64d850d42c28b15440e81686f4d19c1a75"
+  },
+  {
+    "path": "validators/core-corrected.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validators/shiploop-2.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validators/shiploop-1-summary.md",
+    "size": 1374,
+    "sha256": "385bd682bf4397798e14cb8c80deaa069920c5aa21139a1b4ea0e8f64b457ff8"
+  },
+  {
+    "path": "validators/shiploop-2.stdout",
+    "size": 1349,
+    "sha256": "d97915b1315b95230bb2f0954bad81e528b3b8fa6e6acdae93e19aae889bbf4b"
+  },
+  {
+    "path": "validators/core-corrected.stdout",
+    "size": 1305,
+    "sha256": "be418ab1115f669b5060739e50c1f85fee47666b0092800148a944339f72f18c"
+  },
+  {
+    "path": "validators/e2e-apparatus.command.json",
+    "size": 1097,
+    "sha256": "91f0ec50cc6bb8a6671b34ebec9ec6eb8f28059d80fbdc066ae7a1c9700b61ee"
+  },
+  {
+    "path": "validators/shiploop-3-summary.md",
+    "size": 1359,
+    "sha256": "04ed64c8846caa254d492ef3dea69b32a80a561835892e61055b26542eb7d7ea"
+  },
+  {
+    "path": "validators/shiploop-1.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validators/e2e-apparatus.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validators/e2e-apparatus-summary.md",
+    "size": 1265,
+    "sha256": "c19b022decdc8f7a2d6965727561bf3b37b4be0c90c081c20f63fd738e24111d"
+  },
+  {
+    "path": "validators/core-corrected.command.json",
+    "size": 898,
+    "sha256": "7fe2232ff6a646bb4b65835071ee2a173d04f901bf6ce0a52bb48b0f716c497c"
+  },
+  {
+    "path": "validators/shiploop-3.stderr",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validators/shiploop-2.command.json",
+    "size": 1088,
+    "sha256": "4d56d54a09087a10bc37b3ac4cdb4c4f10b26a7c5daf4e9f5a2355bef4ae37d7"
+  },
+  {
+    "path": "validators/shiploop-3.stdout",
+    "size": 1359,
+    "sha256": "04ed64c8846caa254d492ef3dea69b32a80a561835892e61055b26542eb7d7ea"
+  },
+  {
+    "path": "validators/shiploop-2-summary.md",
+    "size": 1349,
+    "sha256": "d97915b1315b95230bb2f0954bad81e528b3b8fa6e6acdae93e19aae889bbf4b"
+  },
+  {
+    "path": "validators/core-corrected-summary.md",
+    "size": 1305,
+    "sha256": "be418ab1115f669b5060739e50c1f85fee47666b0092800148a944339f72f18c"
+  },
+  {
+    "path": "validators/e2e-apparatus.stdout",
+    "size": 1265,
+    "sha256": "c19b022decdc8f7a2d6965727561bf3b37b4be0c90c081c20f63fd738e24111d"
+  },
+  {
+    "path": "validators/shiploop-3.command.json",
+    "size": 1088,
+    "sha256": "09b97c1160fae283054c7fcc47746fccf6700ce12736eca45310b895fd8d8c8b"
+  },
+  {
+    "path": "validators/shiploop-1.stdout",
+    "size": 1374,
+    "sha256": "385bd682bf4397798e14cb8c80deaa069920c5aa21139a1b4ea0e8f64b457ff8"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/receipt.json",
+    "size": 35643,
+    "sha256": "0fc2d3de48687bb32ade93d2ee64747adffca20403788c9cecdaa5661ae1de85"
+  },
+  {
+    "path": "extracted/browser-fixtures-delayed-setup/chrome-version.log",
+    "size": 29,
+    "sha256": "72c4c1cc1b3078bf3821fce90a7eb899521f233a5e7bc7e0ee3a92a0f114526a"
+  },
+  {
+    "path": "extracted/browser-fixtures-delayed-setup/node-version.log",
+    "size": 9,
+    "sha256": "417336d0f30f0481a3e337b10abf4da8263d1a181c639c757a2a68401935bdb6"
+  },
+  {
+    "path": "extracted/browser-fixtures-delayed-setup/playwright-version.log",
+    "size": 7,
+    "sha256": "850c85f3fd07a0977995f2cdce3114f96b9fef15da2c85200bc3532ab64df548"
+  },
+  {
+    "path": "extracted/browser-fixtures-delayed-setup/install.log",
+    "size": 24,
+    "sha256": "65c731cd02e19c79f6f5a3e84a4dd64a49acd6c47d2ee551d7cc9da191e8c96c"
+  },
+  {
+    "path": "extracted/browser-fixtures-delayed-setup/delayed-setup.log",
+    "size": 17068,
+    "sha256": "81d0dfdcc876b6a40fce4fd2688c8c774d58a0042d7ed6ccade636271663c32c"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/receipt.json",
+    "size": 35470,
+    "sha256": "6d3723b06cf1f9df6208f91405112e6686395fb3a4d6b6dd426a7562f5754c5e"
+  },
+  {
+    "path": "extracted/browser-fixtures-app-owned-controls/chrome-version.log",
+    "size": 29,
+    "sha256": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a"
+  },
+  {
+    "path": "extracted/browser-fixtures-app-owned-controls/node-version.log",
+    "size": 9,
+    "sha256": "417336d0f30f0481a3e337b10abf4da8263d1a181c639c757a2a68401935bdb6"
+  },
+  {
+    "path": "extracted/browser-fixtures-app-owned-controls/playwright-version.log",
+    "size": 7,
+    "sha256": "850c85f3fd07a0977995f2cdce3114f96b9fef15da2c85200bc3532ab64df548"
+  },
+  {
+    "path": "extracted/browser-fixtures-app-owned-controls/app-owned-controls.log",
+    "size": 2796,
+    "sha256": "4f681895d735c6f66424e6288af7a11d1d7d2d0762970e741d74c68a19d3c910"
+  },
+  {
+    "path": "extracted/browser-fixtures-app-owned-controls/install.log",
+    "size": 24,
+    "sha256": "4aaef3acc3c4b16766abf61c4f4aa2d3bd413e2fe822d3edd6cfa9d7e7334efa"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/receipt.json",
+    "size": 4330,
+    "sha256": "861163806825809bac396d70f9a9e0468f9dbaf7bdcacdb85d1c4b4e54ade528"
+  },
+  {
+    "path": "extracted/browser-fixtures-setup-save-boundary/chrome-version.log",
+    "size": 29,
+    "sha256": "72c4c1cc1b3078bf3821fce90a7eb899521f233a5e7bc7e0ee3a92a0f114526a"
+  },
+  {
+    "path": "extracted/browser-fixtures-setup-save-boundary/node-version.log",
+    "size": 9,
+    "sha256": "417336d0f30f0481a3e337b10abf4da8263d1a181c639c757a2a68401935bdb6"
+  },
+  {
+    "path": "extracted/browser-fixtures-setup-save-boundary/playwright-version.log",
+    "size": 7,
+    "sha256": "850c85f3fd07a0977995f2cdce3114f96b9fef15da2c85200bc3532ab64df548"
+  },
+  {
+    "path": "extracted/browser-fixtures-setup-save-boundary/install.log",
+    "size": 24,
+    "sha256": "65c731cd02e19c79f6f5a3e84a4dd64a49acd6c47d2ee551d7cc9da191e8c96c"
+  },
+  {
+    "path": "extracted/browser-fixtures-setup-save-boundary/setup-save-boundary.log",
+    "size": 182,
+    "sha256": "637506695b66fdeb323817bafcb4fe45aead072696b8891489d5fdea8908c424"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/receipt.json",
+    "size": 35554,
+    "sha256": "08a2d96875dde46e5c976974d3c44410628b7e4e1cfeb43cfc9011cf6e4ea371"
+  },
+  {
+    "path": "extracted/browser-fixtures-turn-and-action-correlation/chrome-version.log",
+    "size": 29,
+    "sha256": "72c4c1cc1b3078bf3821fce90a7eb899521f233a5e7bc7e0ee3a92a0f114526a"
+  },
+  {
+    "path": "extracted/browser-fixtures-turn-and-action-correlation/node-version.log",
+    "size": 9,
+    "sha256": "417336d0f30f0481a3e337b10abf4da8263d1a181c639c757a2a68401935bdb6"
+  },
+  {
+    "path": "extracted/browser-fixtures-turn-and-action-correlation/playwright-version.log",
+    "size": 7,
+    "sha256": "850c85f3fd07a0977995f2cdce3114f96b9fef15da2c85200bc3532ab64df548"
+  },
+  {
+    "path": "extracted/browser-fixtures-turn-and-action-correlation/turn-and-action-correlation.log",
+    "size": 1985,
+    "sha256": "64f84ede12c7d924d90ed4b636b0a8152c3ffb121e652145c009a2b71acd8f33"
+  },
+  {
+    "path": "extracted/browser-fixtures-turn-and-action-correlation/install.log",
+    "size": 24,
+    "sha256": "65c731cd02e19c79f6f5a3e84a4dd64a49acd6c47d2ee551d7cc9da191e8c96c"
+  },
+  {
+    "path": "extracted/hermetic-core/receipt.json",
+    "size": 42610,
+    "sha256": "d93ae1071aeb6a57ffcbe6f1b1f2182a525be1b6f4ca2b77813f130eb7c38965"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/007-ask-agent-workspace.stderr.log",
+    "size": 12868,
+    "sha256": "2706ede8f5727527e7d9796e657aea53d528d43ebc8b66eb8a1bef417f59dab4"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/009-ask-agent-managed-harness.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/058-plan-dispatcher-mutants.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/023-release-flow.stdout.log",
+    "size": 27,
+    "sha256": "65c78cf62f89c38371761f4fc3efcab31b15c78a13d81845fa85cc8b3c2ea988"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/022-sync-plugin-views.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/001-backchain-graph.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/006-release-push.stderr.log",
+    "size": 1339,
+    "sha256": "9676be6a253c89f5df2d9dae61270d599976d0c99c3d1f5206a1674aa1e9f12e"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/046-closed-loop.stderr.log",
+    "size": 267,
+    "sha256": "e1af926a5c0f5a72c48468f823dbc7ccdbbdb088de7c63e0e1a2b01c9096b08e"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/015-in-parallel-queue.stderr.log",
+    "size": 1407,
+    "sha256": "a56a7ae6cf16642c0a95092747d3b05b6a667a2ab25d5a15ea412d0555a0e7d2"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/003-ci-summary.stderr.log",
+    "size": 110,
+    "sha256": "071091e9f2678614fbff061a60660bd62a624443bac9a15c73e017db515578e8"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/024-release-boundary.stdout.log",
+    "size": 31,
+    "sha256": "ba7bf08d162faa71e8957c7e28b8145d9abb3af7feb63776ae8d23fe726b6945"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/042-improve-route.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/008-ask-agent-delivery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/010-ask-agent-parallel.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/049-plan-dispatcher-state.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/035-install-targets.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/060-planning-score.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/037-install-status-uninstall.stdout.log",
+    "size": 749,
+    "sha256": "213f6d1e725b8aa66c76068e42e42fe82e76572b12c6f3a8ff073d7c30c509e1"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/047-pushpress.stderr.log",
+    "size": 2552,
+    "sha256": "9a442c5d6607f856edd07d456daa6d067ae81a38a0986c05651188f084e75bed"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/036-install-arbitrary-skill.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/054-plan-dispatcher-compound.stdout.log",
+    "size": 854,
+    "sha256": "ac2ca8866ef202a86bd86ae409e361503d44065015830ff3a1a26b496d45a682"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/004-ci-policy.stderr.log",
+    "size": 119,
+    "sha256": "4dc4eefdf0e0a09e9acad666856c1cd96e9f7af6b893f93a121c1f5cb070c3c9"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/016-in-parallel-composition.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/034-marketplace-run.stdout.log",
+    "size": 142,
+    "sha256": "e0152c723d29a8077c6b5e4d1e26d24e4e63653177bc1b623b0bfabddf4f3fe4"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/052-plan-dispatcher-progress.stdout.log",
+    "size": 538,
+    "sha256": "d8658dcdef5ea95e6da32eacb2f32fde5ab2f2d9d5ea81023b1d0860d1e32033"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/014-in-parallel-queue-audit.stderr.log",
+    "size": 120,
+    "sha256": "8f1c677851a7f13048b42cd3275eadae2a0b439528bee0617f280cc45391b3c7"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/017-agent-harness.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/020-agent-harness-audit.stderr.log",
+    "size": 124,
+    "sha256": "fac75a7c66d27cf70f47797d6c1e1bddae1e6ce3b0581b685baad206f862d75a"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/032-test-harness.stderr.log",
+    "size": 111,
+    "sha256": "9a6774886fc944cee7a1fb5bee7b946dae023991a69357e559235970f69989ab"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/002-test-groups.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/029-installed-skill-invocation.stderr.log",
+    "size": 2010,
+    "sha256": "794d33d9da3abfea1f983eb9ecd2decc4a31c42596668e3cb7d33761baf2fe32"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/043-until-loop-vendor.stderr.log",
+    "size": 109,
+    "sha256": "059bd6d7db1b73a6afad61c3880cc112c6f98eeb1adf5b17e0335d18f506a258"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/013-ask-agent-host.stderr.log",
+    "size": 110,
+    "sha256": "5fe5b10d32264d5822bbc6bea3021e5131c5029547cc4aa9bf98bf64c1740957"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/019-agent-harness-boundaries.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/018-agent-harness-delivery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/028-marketplace-host-isolation.stderr.log",
+    "size": 102,
+    "sha256": "9fe71cb73efc1c7da4b6169a5897396532631633e56eca042e38c60f13c3f3cd"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/041-improve-runtime.stderr.log",
+    "size": 105,
+    "sha256": "9575eb237faa020ef5a9ff85235ef647f952bcdfac2c686bb9ada9055bb122fb"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/055-plan-dispatcher-decisions.stdout.log",
+    "size": 1208,
+    "sha256": "cfcd87ba8efe0e48c01bb6248d69200ebc37cfb641635b003e34fefa770348aa"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/030-prompt-marketplace-contract.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/031-skill-frontmatter.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/048-dual-body-guard.stdout.log",
+    "size": 30,
+    "sha256": "05004d0a976800ced83968b97207e2500c42e343e7c6c852187a8f6ed723216a"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/026-native-marketplace-adapters.stdout.log",
+    "size": 3761,
+    "sha256": "54728618ff055d9ac4f0028f3c98f6097d054de18bb0f4fd3acbe327ebbb245b"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/050-plan-dispatcher-harness.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/005-integration-boundaries.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/011-ask-agent-current-workspace.stderr.log",
+    "size": 111,
+    "sha256": "6bd66f6c849b35961dfe592c25ec737a43e51484de992744a5dfbc8604b4a2ea"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/040-improve-agent.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/027-marketplace-package.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/053-plan-dispatcher-planning-context.stdout.log",
+    "size": 752,
+    "sha256": "de1284354a74db149546439ec918aa238583c7ffb6dfe27934a106bb64278219"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/033-scaffold-skill.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/012-ask-agent-task.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/021-skill-interop-hygiene.stdout.log",
+    "size": 103,
+    "sha256": "76e4eeae448182779cec85c7058fa1269e1f2590c1576793f8e3ce470848bb7a"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/051-plan-dispatcher-cli.stdout.log",
+    "size": 1881,
+    "sha256": "212b33254519723054e2492ff74e4aef0ac4ac78d7dd558cc6ba1c97d89bfabd"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/045-rubric-eval.stderr.log",
+    "size": 129,
+    "sha256": "0ea9348be544e72afc74925c9bde6a5c41a83dd45fee679296df3cb958d5a485"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/038-improve.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/059-native-setup-pilot.stderr.log",
+    "size": 1431,
+    "sha256": "722eb33598f727173c59c41010b9ca9c8a7e1167ff9ac1f67d2aebbbfc4297ee"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/025-release-preflight.stderr.log",
+    "size": 123,
+    "sha256": "e52c3493430d7883dce65de881c370a90fbd4c0d8ad7ed132a0002c236e6c8de"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/061-security-harness.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/039-improve-plugin.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/057-plan-dispatcher-scenarios.stdout.log",
+    "size": 1010,
+    "sha256": "20a01e078f7a33840fe0cc432bad06b3c9a6b233237798a02ea9d7c1c0eda1f0"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/044-review-coverage.stdout.log",
+    "size": 3822,
+    "sha256": "6ad10e21eb93334a932649adaa1ebd66be15c6bb76539fac1477bd3878b27d00"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/056-plan-dispatcher-exact-calls.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/006-release-push.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/003-ci-summary.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/015-in-parallel-queue.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/046-closed-loop.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/023-release-flow.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/058-plan-dispatcher-mutants.stderr.log",
+    "size": 102,
+    "sha256": "765e540bd2704900163ae0bfcc12c6e1c99491682fe3c66413a3c8f76dce62e2"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/009-ask-agent-managed-harness.stderr.log",
+    "size": 4816,
+    "sha256": "5a6376adaddea28ef364a74f3bd07ca0a092291e4ec856cd8cc8e441ffb4732d"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/022-sync-plugin-views.stdout.log",
+    "size": 1719,
+    "sha256": "e0251b7991d8c3bbb02eb100b1eab13a398a3a2eec5ba40649ec0e1fa728cd8a"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/007-ask-agent-workspace.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/001-backchain-graph.stderr.log",
+    "size": 111,
+    "sha256": "dc98327a572f1dc125a0b9791a8d3e1077772ea58b6fb517add93b254c5182a9"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/037-install-status-uninstall.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/047-pushpress.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/052-plan-dispatcher-progress.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/016-in-parallel-composition.stderr.log",
+    "size": 966,
+    "sha256": "b25797d052577be2282f99abbba70906c19c3615bf046fbea36ad178fac2c3ce"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/004-ci-policy.stdout.log",
+    "size": 294,
+    "sha256": "6e5a320aa6269e5208be3a08e8ff71e7d535228b6ff7887ad90e19c57cae216b"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/054-plan-dispatcher-compound.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/036-install-arbitrary-skill.stdout.log",
+    "size": 107,
+    "sha256": "4a34c4ec41eb5893fdd9d28d7124839e9d352f646a8ff3d5a49f28a9a7326242"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/034-marketplace-run.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/008-ask-agent-delivery.stderr.log",
+    "size": 1993,
+    "sha256": "a593d1eeb82a5dcdcb0ca3c4ce4dfbdd55daa1b5579e40cb350cddafc6711c75"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/010-ask-agent-parallel.stderr.log",
+    "size": 52114,
+    "sha256": "dddd500c269d639245f0767408e824536b881d874edd9bd5e7f31a2f4ea57566"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/024-release-boundary.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/042-improve-route.stderr.log",
+    "size": 120,
+    "sha256": "9d60c88ce5eccec40e9f6363b0f96003bab207816ee2d88152fc39272d4b8bbc"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/035-install-targets.stdout.log",
+    "size": 218,
+    "sha256": "16e9540dbfec6d456888f4ab5aa3bada0248b5ef845be29bb1a254a7d55815a8"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/060-planning-score.stderr.log",
+    "size": 111,
+    "sha256": "c1712fd049760e43a7439d040c5437faa5e373908a850eb303575bbff83b0b39"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/049-plan-dispatcher-state.stdout.log",
+    "size": 7913,
+    "sha256": "cc4a232a8e85c17aff56dec4089484d5e21a902387dca7ae516dc8bbc056183e"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/030-prompt-marketplace-contract.stderr.log",
+    "size": 1128,
+    "sha256": "0b51bd63158d8093295919898865ceca51c50bff180efaa646422554757aba7e"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/031-skill-frontmatter.stdout.log",
+    "size": 102,
+    "sha256": "7b582ec6932ac9867f68812e2151d151c798fd27a51b3b40080e6a5ed96c5109"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/026-native-marketplace-adapters.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/048-dual-body-guard.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/041-improve-runtime.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/028-marketplace-host-isolation.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/055-plan-dispatcher-decisions.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/011-ask-agent-current-workspace.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/005-integration-boundaries.stderr.log",
+    "size": 98,
+    "sha256": "7736d71002a53937d2389943fc06802041d1905f7ac3600e8dddd8242664e150"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/040-improve-agent.stderr.log",
+    "size": 109,
+    "sha256": "40e6a3053d86436d6aa245501343227a2e81436f4f14da71a21257468605aff6"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/050-plan-dispatcher-harness.stdout.log",
+    "size": 1028,
+    "sha256": "66d4ca49cfcc17746e6f708cd757bf29eec248150b1eac5ec3f64ae31bc34eb4"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/020-agent-harness-audit.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/017-agent-harness.stderr.log",
+    "size": 4301,
+    "sha256": "b7c7abf66f019b6ca56c6e49c77357bd2f26462b1d57dfbef733583cd11c8f45"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/014-in-parallel-queue-audit.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/018-agent-harness-delivery.stderr.log",
+    "size": 121,
+    "sha256": "9d59b1c9b76fd05cbae45be4508a23f27e8a6710d7fec3224c75313fae9c5146"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/043-until-loop-vendor.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/029-installed-skill-invocation.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/032-test-harness.stdout.log",
+    "size": 6046,
+    "sha256": "eccfde284f0e33eaa842c74c565726e3c855d0844e33f381e74af86dbc97a78c"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/002-test-groups.stderr.log",
+    "size": 190,
+    "sha256": "54b263e72e28b4b17a9948c4105064878d85d5324cec8687d7b98372326738fa"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/019-agent-harness-boundaries.stderr.log",
+    "size": 115,
+    "sha256": "421eff84422981fedcc682b0c2f48980e0ea320cbdbf4295ec784b6540b96c06"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/013-ask-agent-host.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/061-security-harness.stderr.log",
+    "size": 11124,
+    "sha256": "472379c00bfb0ed2c1fabd9b57dc92719f1326700acce90dec7f2137cfa295c4"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/038-improve.stdout.log",
+    "size": 327,
+    "sha256": "7e4ce2e719b902ad08b407c9381ae84ea9728c23bdf48d3bb5c3463a1ad85d2b"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/025-release-preflight.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/059-native-setup-pilot.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/056-plan-dispatcher-exact-calls.stdout.log",
+    "size": 492,
+    "sha256": "a2fdae19ecaa36d1bbeb6332208083191f8f325ca3c1b662cf1863a28338f756"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/057-plan-dispatcher-scenarios.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/039-improve-plugin.stdout.log",
+    "size": 83,
+    "sha256": "cf7c9c35fd3e214cd5ee9412fe5ba588c829eccaf4470c9efb5516eb37c69a33"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/044-review-coverage.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/033-scaffold-skill.stdout.log",
+    "size": 37,
+    "sha256": "4952113b8420316eb7121ea38b1313ad5e1b2c7ed9ce9effe619dc255453cbdb"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/053-plan-dispatcher-planning-context.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/027-marketplace-package.stderr.log",
+    "size": 129,
+    "sha256": "20320c83b66ef68ef026ebf1e6ac0876e6a4910de2cb983192aff379e032c3bb"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/051-plan-dispatcher-cli.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/021-skill-interop-hygiene.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/045-rubric-eval.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-core/logs/012-ask-agent-task.stderr.log",
+    "size": 3780,
+    "sha256": "35afb1f01d2f7bc392de54e6c642e016880abc84581168a09e574d94553e7218"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/018-shiploop-loops.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/027-shiploop-e2e-roles.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/005-shiploop-local-skills.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/013-shiploop-return-review.stderr.log",
+    "size": 127,
+    "sha256": "107993864fc010860dc1d49e232d29be05133af79dc4d51b1d48579108a46a11"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/003-shiploop-standalone-improve.stderr.log",
+    "size": 110,
+    "sha256": "0f0ab1d104e9fa1415829c687c8ca49a0c309ae47a47e2b12da21f7c802f09f5"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/042-shiploop-e2e-brownfield.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/028-shiploop-e2e-predecessor.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log",
+    "size": 249,
+    "sha256": "ce8e268002ceb2ed894a75e9587dbf3e554556c4361a2f2e4cf1763d3e33795f"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/008-shiploop-narrative.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/015-shiploop-consumer-delivery-cli.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/035-shiploop-e2e-grok-chat-full-oracle.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/007-shiploop-navigator-dry-run.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/017-shiploop-improve-schedule.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/002-shiploop-navigator-v4.stdout.log",
+    "size": 95,
+    "sha256": "e880e933a70104f5bb601115fb245e7f7af6dad169e37ca7f4476968a1bbf38d"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/032-shiploop-e2e-commit-counters.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/016-shiploop-delegation.stderr.log",
+    "size": 166,
+    "sha256": "22e1ba684bbbef1348a0ab4dffb8c6a6d2d9679ed6e00b4eeedc3e1409c75541"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/020-experiments-shiploop-delivery-fake-deployment.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/029-shiploop-e2e-adapter-steps.stderr.log",
+    "size": 180,
+    "sha256": "50ada22219518fa2c1157401485c89581b88078b4bfccbe67fe1d060435673ac"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/046-shiploop-efficiency-journal.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/009-shiploop-progress.stderr.log",
+    "size": 138,
+    "sha256": "4367c8dda4db503a10694ffa0e80dce292e7f45a42db8162e6b2dcd09afdea8e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/037-shiploop-e2e-release-slice.stderr.log",
+    "size": 145,
+    "sha256": "b02489f99a119e69029194588b3374405e92290b32fc499754448b9038893942"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/036-shiploop-e2e-gym-ui.stderr.log",
+    "size": 4137,
+    "sha256": "ff4c1a4d215862f1c09c0a02c7a69a55e7eb0f3478e28aedbf49e9e8078ac82b"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/041-shiploop-e2e-stages.stderr.log",
+    "size": 232,
+    "sha256": "f6ebb727af9c12a4d4b1fdb082067efd14632a449a87d52cea52e6c6e39e9219"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/026-shiploop-e2e-qualification.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/043-shiploop-e2e-brownfield-tickets.stderr.log",
+    "size": 152,
+    "sha256": "8a86c914ed539428bce3c823dff237f55ae9e47cbbbce540f96c109411498376"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/024-shiploop-owner-notes.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/022-shiploop-discovery.stderr.log",
+    "size": 107,
+    "sha256": "868e4c3b541c09b1ea255795453dcb4bfcf9ac855956cb2f98591530bc270be9"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/044-shiploop-e2e-test-adequacy.stdout.log",
+    "size": 3241,
+    "sha256": "d7b1437d5fbf46fd8421ff94cc42c731ca5631eeb1d030f54f1485efdcf7bea5"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/014-shiploop-consumer-delivery.stderr.log",
+    "size": 7751,
+    "sha256": "5bbe99c1033b409e244f2ff2f75d98a1992deea39101f9c523c646704c4d0405"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/031-shiploop-e2e-render-diff.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/001-shiploop-no-model-launch.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/010-shiploop-confirmation.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/040-shiploop-e2e-ticket-semantics.stderr.log",
+    "size": 106,
+    "sha256": "75ff54e727b57e4bd7b88956ed0c92c4b9a416e6f0976707e8fb54aa385ac0bd"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/011-shiploop-cross-run.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/047-shiploop-loophole-gates.stderr.log",
+    "size": 104,
+    "sha256": "578e85b6deb956faaeebc7c764a8f6554a95a2e196ec751389002371f9efeeca"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/004-shiploop-packet-completeness.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/025-shiploop-python-floor.stderr.log",
+    "size": 107,
+    "sha256": "70da537156b227339e0b9c5acac914714f6ec68473168de849043ce939f99044"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/006-experiments-shiploop-ui-allocation-evidence.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/021-shiploop-literal-transport.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/034-shiploop-e2e-grok-chat-full.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/019-shiploop-handoff.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/033-shiploop-e2e-battleship-salesforce.stderr.log",
+    "size": 171,
+    "sha256": "764143e0fea3541da1b3f88f067460910e469d232fc9c46e28e6e3ba6400190a"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/023-shiploop-retired-terms.stderr.log",
+    "size": 104,
+    "sha256": "73d5ff7b7578d25284c8a422bce80bef8933c7eaa0872340b73143afbbc2015a"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/038-shiploop-e2e-dodges.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/030-shiploop-e2e-fidelity.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/012-shiploop-workspace.stderr.log",
+    "size": 21040,
+    "sha256": "a7a8030e6e27cdbfdbdbbddab88841173b474f0e57a6cb4cd363417454411637"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/028-shiploop-e2e-predecessor.stderr.log",
+    "size": 3285,
+    "sha256": "f86ad0e882ce7e37d536e60dc472013d14ac78e3aece2f44257da6d9fe2def70"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/042-shiploop-e2e-brownfield.stderr.log",
+    "size": 131,
+    "sha256": "bf48ba2f29921c148cb56018767c0a8b0cd3b903c223823d07769ea1f8200ad1"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/003-shiploop-standalone-improve.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/018-shiploop-loops.stderr.log",
+    "size": 215,
+    "sha256": "3ee07271a32ca91a8f36bc79c20c2b10ae85b1118f9150b20a9a02467256792b"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/013-shiploop-return-review.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/005-shiploop-local-skills.stderr.log",
+    "size": 1406,
+    "sha256": "7109ab5c67b00280097e4d809fe99704cff2152af36b2677d1d68cbae6da2383"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/027-shiploop-e2e-roles.stderr.log",
+    "size": 109,
+    "sha256": "3ba2395ceb8cca1a68ed8693ba26612703854f8d866e93ecb613a3f69ba84e02"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/016-shiploop-delegation.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/002-shiploop-navigator-v4.stderr.log",
+    "size": 3226,
+    "sha256": "bbc622ace3b941c251577586cfc05a7bcc232abf892ddb222b6ba3e30de809cc"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/032-shiploop-e2e-commit-counters.stderr.log",
+    "size": 211,
+    "sha256": "4bf4872c00dc9c2a24225e57017984b489b928ccaf207f13c3d72c85b80a554a"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log",
+    "size": 159,
+    "sha256": "f3d78923584f4b2917418504a239ee4cd58a11479708a9a17c7fbfaedd296913"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/035-shiploop-e2e-grok-chat-full-oracle.stderr.log",
+    "size": 124,
+    "sha256": "d16457c891e1d33669e3d6ac5129bca8a3d797c3c6e31d4fae780ce4f0dc5d2f"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/015-shiploop-consumer-delivery-cli.stderr.log",
+    "size": 103,
+    "sha256": "e3aa448657377a91a90fe3cb7409c9605f289299af27a99ced22aced67c5f744"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/008-shiploop-narrative.stderr.log",
+    "size": 114,
+    "sha256": "11e621c50270441a17db8e3a875ae35f07d244278013dd8b5116d59f88bf04ac"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/017-shiploop-improve-schedule.stderr.log",
+    "size": 141,
+    "sha256": "9c6fd8da821054ea643e064a8d76a13ba67f21c559658ee00e0986c265f77b55"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/007-shiploop-navigator-dry-run.stderr.log",
+    "size": 124,
+    "sha256": "c13b31b8944bc5a2cdffc8ab7720a52b3c1ff266acdc65eb97a4caa2207ccf35"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/014-shiploop-consumer-delivery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/022-shiploop-discovery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/044-shiploop-e2e-test-adequacy.stderr.log",
+    "size": 136,
+    "sha256": "91dd3d3b645bb07e72a0593d8b58b63368541c1a3d76f441f0d27c0f4cfbb201"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/010-shiploop-confirmation.stderr.log",
+    "size": 103,
+    "sha256": "fd0bd5684bfbf6bb57922520600610d96804328e4a4ec46dc95bcbd111a85ef4"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/031-shiploop-e2e-render-diff.stderr.log",
+    "size": 142,
+    "sha256": "86ea8db6876bc92cb71e3ab1e7ee2e44f87a7068fe55e1729a0019e222882b25"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/001-shiploop-no-model-launch.stderr.log",
+    "size": 110,
+    "sha256": "c566d3b903beba7d2711cc6771aa21b57c679b769f84005ed08689d262285cce"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/046-shiploop-efficiency-journal.stderr.log",
+    "size": 111,
+    "sha256": "301fe988539a63ff66581254407d32c932e576a1c8494087e2c776db500f2abf"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/029-shiploop-e2e-adapter-steps.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/020-experiments-shiploop-delivery-fake-deployment.stderr.log",
+    "size": 916,
+    "sha256": "00415e0dafdcce0bbe477c465ee113e613ec2cc762cb4d7d03b56ec367d52705"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/009-shiploop-progress.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/043-shiploop-e2e-brownfield-tickets.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/024-shiploop-owner-notes.stderr.log",
+    "size": 118,
+    "sha256": "3e15d8e4de099001ea65423fb68268361e4897f8b5eb52ad605001ec5fc7e8ad"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/041-shiploop-e2e-stages.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/037-shiploop-e2e-release-slice.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/036-shiploop-e2e-gym-ui.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/026-shiploop-e2e-qualification.stderr.log",
+    "size": 119,
+    "sha256": "f061a4801367336e1892e6a7a2ed4f49cf7bde178788b0635a3ad81780d18a2c"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/033-shiploop-e2e-battleship-salesforce.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/023-shiploop-retired-terms.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/019-shiploop-handoff.stderr.log",
+    "size": 272,
+    "sha256": "8056822132eeb5b7f269800b1852f328f5752650bec636c4a3e118362b5ba93b"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/012-shiploop-workspace.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/030-shiploop-e2e-fidelity.stderr.log",
+    "size": 250,
+    "sha256": "db818b7f85ce2aab87f0a02d8e16fdfa84d96fdd6d4ff4de11dee1f05db29b7f"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/038-shiploop-e2e-dodges.stderr.log",
+    "size": 110,
+    "sha256": "53ec6bfd32b426a23950e2fbbff5aba6e95df6d3ed7324d3edb40dd8151e63f8"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/047-shiploop-loophole-gates.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/004-shiploop-packet-completeness.stderr.log",
+    "size": 166,
+    "sha256": "13cc5d351357906af221f3f1eab10eaff6a679def73a6e341af433566519a0c4"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/040-shiploop-e2e-ticket-semantics.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/011-shiploop-cross-run.stderr.log",
+    "size": 110,
+    "sha256": "8c85703903cb2134b27fa04aaa5bfb4ab9acb2ec632d1e514451b2d224404e15"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/021-shiploop-literal-transport.stderr.log",
+    "size": 240,
+    "sha256": "d44698a0568e2e078d0b0caea52abb58de1678895d93bd7d312ddf5a5e588c08"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/034-shiploop-e2e-grok-chat-full.stderr.log",
+    "size": 1217,
+    "sha256": "a0e59e85d739b72561ed73fdc775af9f5c42d4d9f2838ac08c0077f6a96e6d47"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/006-experiments-shiploop-ui-allocation-evidence.stderr.log",
+    "size": 110,
+    "sha256": "d732ca88369bc6824a3dc582ddc9b79468fcfe19bb2c39996cb4d3d550780c92"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-1/logs/025-shiploop-python-floor.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/002-planning-boundary.stderr.log",
+    "size": 125,
+    "sha256": "87e8f5f27fdf278cc89f1a51da963265e66ddab5e8b6955c75108c8d148a9f3f"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/003-planning-comparison.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/001-shiploop-mock-replay.stdout.log",
+    "size": 1000,
+    "sha256": "3f461c00f3aca496c7fdb13950e81fa0372142113ac445c34d77e2364553976b"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/004-shiploop-e2e-apparatus.stderr.log",
+    "size": 2703,
+    "sha256": "b3839a16b58073f663f3cfb7f6ef3b83fcb706c7c013170581737632b4f7f8f5"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/002-planning-boundary.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/003-planning-comparison.stderr.log",
+    "size": 101,
+    "sha256": "b886c018597fdedb2393714664d1175b1042d55473fb5ae784a7cb5e050206d3"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/001-shiploop-mock-replay.stderr.log",
+    "size": 139,
+    "sha256": "ba755858434121a1fdb6808a3b0caaef9e8b5bbee34038d6dad2eacc7f44d269"
+  },
+  {
+    "path": "extracted/hermetic-e2e-apparatus/logs/004-shiploop-e2e-apparatus.stdout.log",
+    "size": 8045,
+    "sha256": "7bba0f4d9d82cbeec507c4ba2ff858e0ae936b3616f6e00221a935d068ea4a93"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/002-shiploop-packet-bounds.stderr.log",
+    "size": 120,
+    "sha256": "5ad8e510ad72c8b047afe3bdd14379452c87dd1ac431b27d55dd7100d57066a4"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/004-shiploop-guidance.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/017-shiploop-store.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/047-shiploop-callback-contract.stdout.log",
+    "size": 49207,
+    "sha256": "1e1cf75ab038c1e3250e96b6e37f569e4216d75381c6ce598bdc9fb0dab69f34"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/025-shiploop-package-integrity.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/012-shiploop-test-counts.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/030-shiploop-e2e-intent-continuity.stderr.log",
+    "size": 123,
+    "sha256": "5e8db3f6d488b0835e212ea2b7b132dee65af1bc809849394feeb002d83d1f12"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/013-shiploop-improve-changes.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stdout.log",
+    "size": 154,
+    "sha256": "91ed5fa756d13153b6ef66e5f632df0eb079d1ca24e8599a7d2db881b00c16d8"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/024-shiploop-skill-calls.stderr.log",
+    "size": 136,
+    "sha256": "cef86a1c839173b520424c971ffa9dd27f280b36696f4de1999ed1dc58050ba6"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/022-shiploop-privacy.stderr.log",
+    "size": 103,
+    "sha256": "d03ce458f2a6cd2b4f27522f3aacad03ce1872c028853507c3ad02ca621bdcad"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/009-shiploop-auth-readiness.stderr.log",
+    "size": 102,
+    "sha256": "5f91c857fe238b7d1030ef45efb12e5e3402d3a15dc759637adcde41c9a2bca4"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/040-shiploop-e2e-stage-oracle.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/007-shiploop-step-edges.stderr.log",
+    "size": 1410,
+    "sha256": "014f28daec923095c4d9248d80afc88910ba33645c2f77727721b7d3e6b337c3"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/019-shiploop-capability-runtime.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/044-shiploop-e2e-incremental-pilot.stderr.log",
+    "size": 130,
+    "sha256": "83eb1bb1d95967541c6b014e8bbd04b7e4f6b4c13575d11db0d0e524f89fc586"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/043-shiploop-e2e-run-trace.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/029-shiploop-e2e-epoch.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/006-shiploop-progress-data.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/027-shiploop-e2e-resources.stderr.log",
+    "size": 235,
+    "sha256": "804c4bba92114c7af857e95b606b68ed383d170389d0e0df99eed11dc18eaf2d"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/003-shiploop-head-order.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/038-shiploop-e2e-owner-page.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/032-shiploop-e2e-chess-salesforce.stderr.log",
+    "size": 303,
+    "sha256": "908fb1a6de6731e578c0200b6073f70674c1c739b171af3728343f30f186f0f6"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/039-shiploop-e2e-scope-discovery.stderr.log",
+    "size": 1732,
+    "sha256": "8147d16f71ee1b77257369a640700d744ed6407be1446f9f6fc13f74c1b54522"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/035-shiploop-e2e-grok-chat-full-ui.stderr.log",
+    "size": 12567,
+    "sha256": "7cc2a189d70d3de13d1400dc7598d6417a475765f2faaec70904dedd69382285"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/031-shiploop-e2e-quality.stderr.log",
+    "size": 265,
+    "sha256": "362d4d73b91e07b51ae6c1752c64c0acded4d03f0b1c512218d1bca82de79d42"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/034-shiploop-e2e-grok-chat-salesforce.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/041-shiploop-e2e-stage-build.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/005-shiploop-status-display.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/008-shiploop-rehydration.stderr.log",
+    "size": 116,
+    "sha256": "6017729ecdc3e4125dd2e4e376c7a3a24fcb721e5a64160dba92e0b68dc526e6"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/010-shiploop-lint.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/045-shiploop-e2e-user-chain.stderr.log",
+    "size": 123,
+    "sha256": "b5c7e1c1425fe26637193bea005be2bc9f0be67d1a41170c9a912c03be20a6ec"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/033-shiploop-e2e-battleship-ui.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/015-shiploop-follow-on.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/014-shiploop-knowledge.stderr.log",
+    "size": 264,
+    "sha256": "08d8de77fd94ab32ba6e6d328028680ba920929fa9856026f5c2ea2ff5fb927e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/021-shiploop-probe-decisions.stderr.log",
+    "size": 2695,
+    "sha256": "2e7b210a0c852c1164428e479e71bce5ee1bef4f95acd9a1c9cb058ce6094559"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/020-shiploop-generalized-discovery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/023-shiploop-keepalive.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/018-shiploop-capability-fixture.stderr.log",
+    "size": 2348,
+    "sha256": "cb0675f23091213f4ea1811a755c93c4cafa8c891a68729bc9d0c83261065d78"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/001-shiploop-actual-improve-cli.stderr.log",
+    "size": 208,
+    "sha256": "410d964c62ec66d8c7abd024088879429f9a5f8560db641e2e87cd1f35a9caeb"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/036-shiploop-e2e-gym-membership-salesforce.stderr.log",
+    "size": 121,
+    "sha256": "ad7e11a94b55a920f691fe7a343f3ccb84536c31f397f8644e4bae432a7e7cbd"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/011-shiploop-seed-seam.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/016-experiments-shiploop-delivery-browser-consumer-serve-fixture.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/046-shiploop-packet-obligations.stderr.log",
+    "size": 115,
+    "sha256": "f5560ecb570b78a9f2a49d1f35ad81c3d20c46002fee095667e18f75b623d7a2"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/026-shiploop-clean-consumer.stderr.log",
+    "size": 101,
+    "sha256": "8d555c65a101337c95fc4d169bcf0d1d99c219cd6583bcb5e4fc26128c98467c"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/013-shiploop-improve-changes.stderr.log",
+    "size": 102,
+    "sha256": "668e58a4656dcf24596bc472da7436c884d57430d2cac55bc3008a29f6c681f0"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/024-shiploop-skill-calls.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log",
+    "size": 206,
+    "sha256": "bfccc35e4cdf52359b551e02fad174e0da403e98429539ea7733827faafe466c"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/030-shiploop-e2e-intent-continuity.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/040-shiploop-e2e-stage-oracle.stderr.log",
+    "size": 217,
+    "sha256": "a35bab4171245c7f10a26671ad6c6a3f13bbbee2a36523034e0f344fe0946494"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/009-shiploop-auth-readiness.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/007-shiploop-step-edges.stdout.log",
+    "size": 1638,
+    "sha256": "e8eb59d4ff0f7efb4b2920422e4f97e99a3eba01c2ae5775a3c28b5cae6d1a10"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/022-shiploop-privacy.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/047-shiploop-callback-contract.stderr.log",
+    "size": 219,
+    "sha256": "286ecea9235b336f36d110c1c2d5456c0ec31774e53a5f799d216d3ac7020d5e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log",
+    "size": 189,
+    "sha256": "0df6533b1f8a708a58946d3eab107e5653df97fb09f370eaf90552f2775dd0d8"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/017-shiploop-store.stderr.log",
+    "size": 1929,
+    "sha256": "172be63ca216a61ca7b9f5180c5e9faedf043046cb7fa2162c612bbcf2dcaa31"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/002-shiploop-packet-bounds.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/004-shiploop-guidance.stderr.log",
+    "size": 20793,
+    "sha256": "25ba2bcd65980bdeee0546bcb1937027add6c99e411446c0eea37d7510772d11"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/025-shiploop-package-integrity.stderr.log",
+    "size": 124,
+    "sha256": "c669f4ed2de7710e4f2f7c6a21f1e54ef8ac7fe7f14497e763b938ee16812774"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/012-shiploop-test-counts.stderr.log",
+    "size": 170,
+    "sha256": "178fdd1892969d0a1451692fabf31510bd2cc3a2dccfa42ed4e0eae49dff1da8"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/039-shiploop-e2e-scope-discovery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/035-shiploop-e2e-grok-chat-full-ui.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/031-shiploop-e2e-quality.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log",
+    "size": 124,
+    "sha256": "65eb66206689fc6517aa0e916cc272d8386832a648ed1a126ea2140c301d04c4"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/006-shiploop-progress-data.stderr.log",
+    "size": 133,
+    "sha256": "fd405c149530501d30a2a544813361613e461d1f54e6b12154e59a020671116a"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/027-shiploop-e2e-resources.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/044-shiploop-e2e-incremental-pilot.stdout.log",
+    "size": 466,
+    "sha256": "418207bd114b01f134476c78ab8f541df60ec46073200a8202f0467499e9dddb"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/019-shiploop-capability-runtime.stderr.log",
+    "size": 2490,
+    "sha256": "4fcf7ad2bc01b0a5df4e32e43ff54be8651449c59909c036dc7bedfe91342816"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/029-shiploop-e2e-epoch.stderr.log",
+    "size": 138,
+    "sha256": "23c35d5560e1c703e7ddc719c51c297c86495eefa43bc4c22c02610c901233fd"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/043-shiploop-e2e-run-trace.stderr.log",
+    "size": 128,
+    "sha256": "ed94827c86aa91d8c5c62ad13f972dfaeb7b988f4742d3e9b7b26eaff99858d4"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/032-shiploop-e2e-chess-salesforce.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/003-shiploop-head-order.stderr.log",
+    "size": 136,
+    "sha256": "36145b269c53cb2fb8505d03cd47645d72fe9f4a4bd8e57b7b815bbe4fcb1f3e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/038-shiploop-e2e-owner-page.stderr.log",
+    "size": 111,
+    "sha256": "139bb3d13457eec9c6941bd4799ad2ee0914256f0630841ae73364aefcb4acf2"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/014-shiploop-knowledge.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/021-shiploop-probe-decisions.stdout.log",
+    "size": 145,
+    "sha256": "68401a35c9ff6e169322dea30a680a8601b7cd751f3070460c7b1e20ca49765d"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/015-shiploop-follow-on.stderr.log",
+    "size": 118,
+    "sha256": "351b503b405cd950f52d6b8f5d449332523d3dc1c152d754987237402b166e7e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/033-shiploop-e2e-battleship-ui.stderr.log",
+    "size": 350,
+    "sha256": "f8fa3007d906fed6268897d78a48bedf79d771558f67a25422596497e6ee957f"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/018-shiploop-capability-fixture.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/001-shiploop-actual-improve-cli.stdout.log",
+    "size": 2056,
+    "sha256": "1acb5388124237befff8df5759e65a1c3263909ddd6d081f6aa78f783adc7d01"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/023-shiploop-keepalive.stderr.log",
+    "size": 187,
+    "sha256": "c6c7def6ab661701a4d76396eec9812a3d21e40419b128ab53420ce5449f9948"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/020-shiploop-generalized-discovery.stderr.log",
+    "size": 7233,
+    "sha256": "a84a22f7da1f7919ee45ddcac2632de010ee7a3a3805d4da36672c784b8174eb"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/005-shiploop-status-display.stderr.log",
+    "size": 116,
+    "sha256": "b5fa25cd41461199aee6e56c8eead6ec6c2a1aa19558ac59b84aaebc7a8777ce"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/041-shiploop-e2e-stage-build.stderr.log",
+    "size": 165,
+    "sha256": "f4b352fe521a41e1080303f53e31805efa64e476d30a1544a1ef56f1fc92c440"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/034-shiploop-e2e-grok-chat-salesforce.stderr.log",
+    "size": 112,
+    "sha256": "21d58b9aca64c050e4fdf4439a5818ea79cbfc4fbddee5afc945c8be7cac3fb9"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/008-shiploop-rehydration.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/010-shiploop-lint.stderr.log",
+    "size": 478,
+    "sha256": "3005f85fbd17592a95b0c77ac126825599f0acc13d58c4b9f80f621248e027df"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/045-shiploop-e2e-user-chain.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/046-shiploop-packet-obligations.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/016-experiments-shiploop-delivery-browser-consumer-serve-fixture.stderr.log",
+    "size": 402,
+    "sha256": "8b495eceb52b3bb744996aa2ad62a508eda1eb0e6603e69336763150802fa8d9"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/026-shiploop-clean-consumer.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/036-shiploop-e2e-gym-membership-salesforce.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-3/logs/011-shiploop-seed-seam.stderr.log",
+    "size": 114,
+    "sha256": "1cc54ed1ec00971ba7aa19c3bfa89657be448755cb049948ffe58835d75dc64e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/041-shiploop-e2e-stage-report.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/035-shiploop-e2e-grok-chat-full-quality.stdout.log",
+    "size": 233,
+    "sha256": "de50274ee93a4b1ececca0b75fdb2564ed0a65502d479ea8c38cb44aa41bc98e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/036-shiploop-e2e-platform.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/039-shiploop-e2e-sdlc-probes.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/008-shiploop-stage-spec.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/002-shiploop-stopped-improve.stderr.log",
+    "size": 107,
+    "sha256": "4995338940c646d0dd010558526f0b01d856e9aa78e839f3d3e8ff1ca4f41618"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/005-shiploop-reference.stderr.log",
+    "size": 106,
+    "sha256": "d6d2156d0a35bd7582ce7bb0f35a6ce52c1b403d5dea9f95b9a2a76cf00f2b4c"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/037-shiploop-e2e-sf-guard.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/029-shiploop-e2e-runrecord.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/045-shiploop-e2e-ticket-sla.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/048-shiploop-run-review.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/013-shiploop-backchain-check.stderr.log",
+    "size": 108,
+    "sha256": "369f4825c40ebc17393a14f5787f9e8230da5be91862eb3b85bef1ed8dff5d3e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log",
+    "size": 253,
+    "sha256": "c110bc31c16c53fb569048187db7723ab83de9b25925a842f39d099b58218f6b"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/021-shiploop-e2e-analysis.stderr.log",
+    "size": 400,
+    "sha256": "af8ef7357e60c32fc72a3c25eda8b133ebeda176fd29b46a7c5a72fdd81589ab"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/046-shiploop-e2e-recovery.stderr.log",
+    "size": 107,
+    "sha256": "e55d136ee58552811af2025de5f52cbe186c16bc9ebce334f5b6720b49581473"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/007-shiploop-progress-render.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/042-shiploop-e2e-delta.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/016-shiploop-repeatable-experiments.stderr.log",
+    "size": 2107,
+    "sha256": "01bad166189833d9b41123d6c7ae3b9ee57a68ec3b776536fc1f17549df63adf"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/003-shiploop-step-packets.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/025-shiploop-e2e-learning-records.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/047-shiploop-e2e-lifecycle.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/024-shiploop-e2e-predecessor-wiring.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/010-shiploop-quality.stderr.log",
+    "size": 153,
+    "sha256": "e0f50c7cdc852b4a81f1e5226abfed55d24ab2b2c85d3c405c4f04b11963d7b5"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/027-shiploop-e2e-adapter.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/026-shiploop-e2e-cycle.stdout.log",
+    "size": 117,
+    "sha256": "c2176372de21afbab73ff79189cd1568d068399e76bce17430348df967c0c605"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/004-shiploop-packet-recut.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/032-shiploop-e2e-environment.stdout.log",
+    "size": 48,
+    "sha256": "82d780e1a7c32973ffdef0d8985fe73b96c5cd34502440e69807dbfd636c3911"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/043-shiploop-e2e-corpus.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/038-shiploop-e2e-status-card.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/028-shiploop-e2e-adapter-engine.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/044-shiploop-e2e-ticket-comments.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/033-shiploop-e2e-baseline.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/009-shiploop-send-back.stderr.log",
+    "size": 123,
+    "sha256": "83369c4bd9e7d819930b4cd4eb498336a80a76dadf945dd83e2baaaceaca08ac"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/019-shiploop-trace.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/020-shiploop-planning-handoff.stderr.log",
+    "size": 105,
+    "sha256": "1cd5f5e2c0089c2bcb7f2965d9af24e4a72bd161f6f4566e9761fa2d8a3a78e7"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/015-shiploop-capability-async.stdout.log",
+    "size": 2242,
+    "sha256": "cf5a60c0d6bb2e41de12318d56e604995eed65cdde9b15b1c6197bc104a7d403"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/040-shiploop-e2e-review-attribution.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/001-shiploop-navigator-contract.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/034-shiploop-e2e-packet-anatomy.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/012-shiploop-test-loop.stdout.log",
+    "size": 10655,
+    "sha256": "9ca5303a3813e39c08bbd7ee7fe510408811a9fa8b964f2896d7cb139fdc975e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/023-shiploop-e2e-discovery.stderr.log",
+    "size": 114,
+    "sha256": "4cf7f1d1a01e0a87de085e4e4242cda3c66c0ff89e95a7b50cce948ed3d375cf"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/018-shiploop-domain-words.stderr.log",
+    "size": 103,
+    "sha256": "7119bc064844bbd2b4807443ebae4c66e3c9d280447b6c2ac3c22f83c4d1b00e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/017-shiploop-reference-routing.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/031-shiploop-e2e-reorientation.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/014-shiploop-assumptions.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/030-shiploop-e2e-slice.stderr.log",
+    "size": 392,
+    "sha256": "fabdb68a821b31d82ab44e93b9f05c1fa99602401cd12590308a04ad0e36cb90"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/011-shiploop-iteration.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/006-shiploop-full-runtime.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/037-shiploop-e2e-sf-guard.stderr.log",
+    "size": 214,
+    "sha256": "b6f30e163d54d49ebaa786d66b077ac42c42d496b9f9df3fa91f2850507f3cdc"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/048-shiploop-run-review.stderr.log",
+    "size": 790,
+    "sha256": "72b56cc9491bb5b77c2afa4d569d0e8c6ca1ad6678e3f45414e639082241f629"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/045-shiploop-e2e-ticket-sla.stderr.log",
+    "size": 128,
+    "sha256": "3650b66ad17e561f5d04aefbde309f2b2ff2fed56382e18f3850d655af3c98bf"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/029-shiploop-e2e-runrecord.stderr.log",
+    "size": 104,
+    "sha256": "d1a3bdcaa925bbf92cc120237c5ab1078f911832e5f3bbdd16fd82aab85d59fa"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/039-shiploop-e2e-sdlc-probes.stderr.log",
+    "size": 128,
+    "sha256": "1f9fefd0f843c89b037e1c1f732898a784e9b37a09a4e635bb7b1a1169d4a3be"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/036-shiploop-e2e-platform.stderr.log",
+    "size": 274,
+    "sha256": "d8d66529d026c54e5a836c8e28bf6cb0a48a3b26df7a49c2fd3beb46653b61d0"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/035-shiploop-e2e-grok-chat-full-quality.stderr.log",
+    "size": 18701,
+    "sha256": "974ffb8217b676143916c9652980aab1b89e01f4181964c1c2ac3c738eedbb01"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/041-shiploop-e2e-stage-report.stderr.log",
+    "size": 144,
+    "sha256": "1621a6855273839bae6a52e7668ee92d3bdef1febcc9f84a6b5421c7384a5016"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/008-shiploop-stage-spec.stderr.log",
+    "size": 111,
+    "sha256": "036db115b62f7ef9bdc3d3931d5f09fe4fcf12f96cfae68bdbd8917bf118571e"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/005-shiploop-reference.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/002-shiploop-stopped-improve.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/042-shiploop-e2e-delta.stderr.log",
+    "size": 189,
+    "sha256": "cae76294a09857b3ee7f223a0019424c9adb2a11093671620a31933bbbefbdf7"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/003-shiploop-step-packets.stderr.log",
+    "size": 109,
+    "sha256": "36946024d75ed08dc7fbe0058ddb65a2a95c221e29ed4f08b8d54849b35044f5"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/025-shiploop-e2e-learning-records.stderr.log",
+    "size": 158,
+    "sha256": "598567ee4213c04a41e815a09012eef26345f369468a3abc7f351fd2da2bc835"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/016-shiploop-repeatable-experiments.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/007-shiploop-progress-render.stderr.log",
+    "size": 131,
+    "sha256": "5e33e44c3e40f0965e189481e7862dd67a948b1d3d56709beb27bc1c2984b276"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/046-shiploop-e2e-recovery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/013-shiploop-backchain-check.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/021-shiploop-e2e-analysis.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/015-shiploop-capability-async.stderr.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/019-shiploop-trace.stderr.log",
+    "size": 146,
+    "sha256": "b3cf612fad4030c5388df0e66b12002842ccf4ecfc9ad7b985ade745a82bb6a3"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/009-shiploop-send-back.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/033-shiploop-e2e-baseline.stderr.log",
+    "size": 288,
+    "sha256": "79a3dae812802fc6321233a1182aad1c9ed595cf37b15c1d50257669833f9883"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/044-shiploop-e2e-ticket-comments.stderr.log",
+    "size": 121,
+    "sha256": "fac381947a7a70e95884fd7d501cc31f82c1466b8ce225b121371e40d845ae72"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/020-shiploop-planning-handoff.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/040-shiploop-e2e-review-attribution.stderr.log",
+    "size": 115,
+    "sha256": "a5b3526f639d38add7258e2466fc85d14b02890a18340636e3eaf6ee7c1bb109"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/024-shiploop-e2e-predecessor-wiring.stderr.log",
+    "size": 109,
+    "sha256": "5d4974911e0ef99bba41976cb7a4ad399856bf9741f88eda55c06c9d4421a0ab"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/047-shiploop-e2e-lifecycle.stderr.log",
+    "size": 145,
+    "sha256": "3219741d146f3a4697b6d825a3c6dad02964df1fec9369b6821475a3f7080131"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/028-shiploop-e2e-adapter-engine.stderr.log",
+    "size": 105,
+    "sha256": "a948149314973635f75d238a8fd19dc6d05652ed1326c7177bef6a7a3e547a32"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/027-shiploop-e2e-adapter.stderr.log",
+    "size": 129,
+    "sha256": "575d6c18e3163ec86b1522b019dcedbe20057eb779d8d3051c8aaec9b7406f1a"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/010-shiploop-quality.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/038-shiploop-e2e-status-card.stderr.log",
+    "size": 119,
+    "sha256": "dd03169e177102f6c817543f3928a0f3914c8d0a3a28091dd5d2012817f6d9e5"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/043-shiploop-e2e-corpus.stderr.log",
+    "size": 112,
+    "sha256": "5c9ece475896be8121966623d3a99033897625a93f39a441caf1244d2ecd46ee"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/032-shiploop-e2e-environment.stderr.log",
+    "size": 241,
+    "sha256": "b4a7127b76b31ff3729bdc9e84eaa339e43a37648b04432148c3c2b044a99d53"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/004-shiploop-packet-recut.stderr.log",
+    "size": 129,
+    "sha256": "b9689ead66227734419d7f84a32f7ec221b2c643621f9cb1bcb55c4cd3596a6c"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/026-shiploop-e2e-cycle.stderr.log",
+    "size": 163,
+    "sha256": "4af49897ac9e4833627a66f1ad801a5f95ccd20f00f4db23ab6f4ae0c036553f"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/006-shiploop-full-runtime.stderr.log",
+    "size": 567,
+    "sha256": "3eaaccc76dc1743730ffe002dc1e49e710f6971b09d266cbfcb5f016406d90eb"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/030-shiploop-e2e-slice.stdout.log",
+    "size": 311,
+    "sha256": "fe79e682daaab6a3fe3ef3a22b3bda7f5fcbb106e67cc78c44252264de7b8ea9"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/014-shiploop-assumptions.stderr.log",
+    "size": 107,
+    "sha256": "df2f39c9f04dbf0a039481aa60255b15c31cfca8f6e3ea00ad20eb256800947b"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/011-shiploop-iteration.stderr.log",
+    "size": 138,
+    "sha256": "92cdfc7fd55907584f0cd7ea9a152fa641e85488df19de910d085022a054a84b"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/001-shiploop-navigator-contract.stderr.log",
+    "size": 27933,
+    "sha256": "73a2442aec89210b2da8241756f7bce60272a159627eafab06e3a390634f4a1f"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/023-shiploop-e2e-discovery.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/017-shiploop-reference-routing.stderr.log",
+    "size": 973,
+    "sha256": "3d1a922bdc7e39a800a25422ff21cdc3671089e177f49d6e3143471326d42334"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/031-shiploop-e2e-reorientation.stderr.log",
+    "size": 227,
+    "sha256": "7f220fd61d8709e1d9a23ac2f2bd25bd5bff2206b29f6397e5c814d864993b88"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/018-shiploop-domain-words.stdout.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/012-shiploop-test-loop.stderr.log",
+    "size": 1112,
+    "sha256": "b5a48e58d85df55ee3c34328cb6fb7c820d0d866ab32dd4fd684f0bf041a8d6c"
+  },
+  {
+    "path": "extracted/hermetic-shiploop-2/logs/034-shiploop-e2e-packet-anatomy.stderr.log",
+    "size": 129,
+    "sha256": "e27a848385ae49452b66f2268400b28bffad15fe5717dd6dcc3072a5847686b1"
+  },
+  {
+    "path": "contract-source/test/ci_summary.py",
+    "size": 7747,
+    "sha256": "95ebcca60aaedc2c0de1fb751879b53b80ff364598687a0bfff1345c27862cb2"
+  },
+  {
+    "path": "contract-source/test/suite_catalog.py",
+    "size": 50818,
+    "sha256": "f9c0ff6e6f63518dd77df63f59860282c2dd2d27d74d14d317e5e9a3629e51f8"
+  },
+  {
+    "path": "contract-source/test/ci_policy.py",
+    "size": 9438,
+    "sha256": "d978024132f4bb487529fe0a87da031c8edaace9d56d3f98854061a750f96de2"
+  },
+  {
+    "path": "contract-source/.github/workflows/ci.yml",
+    "size": 9244,
+    "sha256": "e55430ad8f7ce814db61f12079bf860593de7867c4657635fdb3f742ec7c970b"
+  }
+]

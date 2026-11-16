@@ -1,0 +1,4 @@
+{
+  "status": "INCOMPLETE",
+  "cause": "Parent compared complete pre/post guard dictionaries including their distinct inventory-file locators. Payload hashes/modes/catalog checks had succeeded; verify inventory contents separately. No established check rerun and no source change."
+}

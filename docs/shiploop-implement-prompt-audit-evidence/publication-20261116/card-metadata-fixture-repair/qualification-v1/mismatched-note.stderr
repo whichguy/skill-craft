@@ -1,0 +1,15 @@
+test_the_frontmatter_names_the_skill_and_matches_its_first_change_note (closed_loop_test.CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note) ... FAIL
+
+======================================================================
+FAIL: test_the_frontmatter_names_the_skill_and_matches_its_first_change_note (closed_loop_test.CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116/test/closed-loop.test.py", line 2274, in test_the_frontmatter_names_the_skill_and_matches_its_first_change_note
+    self.assertIn(f"version: {version.group(1)}", note.read_text())
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'version: 12.34.56-rc.7+build.8' not found in '---\nversion: 0.1.0\n---\nExternal control note.\n'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)

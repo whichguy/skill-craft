@@ -1,0 +1,16 @@
+{
+  "tracked_files_compared": 14111,
+  "changed_tracked_paths": [
+    "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+    "test/test-harness.test.py"
+  ],
+  "new_untracked_paths": [
+    "changes/test-harness/atomic-timeout-evidence.md"
+  ],
+  "all_other_tracked_bytes_modes_symlinks_unchanged": true,
+  "all_tracked_modes_symlinks_unchanged": true,
+  "index_unchanged": true,
+  "local_config_unchanged": true,
+  "head_unchanged": true,
+  "source_bytecode_cache_count": 0
+}

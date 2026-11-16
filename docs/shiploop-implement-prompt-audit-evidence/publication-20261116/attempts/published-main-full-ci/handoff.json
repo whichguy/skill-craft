@@ -1,0 +1,262 @@
+{
+  "status": "FAIL",
+  "created_utc": "2026-11-16T20:19:16.693170+00:00",
+  "target": {
+    "host": "github.com",
+    "repository": "whichguy/skill-craft",
+    "run_id": 43944081831,
+    "url": "https://github.com/whichguy/skill-craft/actions/runs/43944081831",
+    "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d",
+    "branch": "main",
+    "event": "push",
+    "attempt": 1,
+    "tier": "full",
+    "base": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4"
+  },
+  "terminal": {
+    "attempt": 1,
+    "conclusion": "failure",
+    "databaseId": 43944081831,
+    "event": "push",
+    "headSha": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "status": "completed",
+    "url": "https://github.com/whichguy/skill-craft/actions/runs/43944081831"
+  },
+  "identity_verified": true,
+  "required_evidence_complete": true,
+  "actual_counts": {
+    "jobs": 12,
+    "job_conclusions": {
+      "success": 10,
+      "failure": 2
+    },
+    "artifacts": 9,
+    "nonexpired_artifacts": 9,
+    "receipts": 5,
+    "distinct_suites": 207,
+    "selected_suite_executions": 207,
+    "completed_suite_executions": 207,
+    "suite_outcomes": {
+      "passed": 206,
+      "failed": 1
+    },
+    "browser_pass_fixtures": 4
+  },
+  "groups": {
+    "core": {
+      "selected": 61,
+      "completed": 61,
+      "suite_status_counts": {
+        "passed": 60,
+        "failed": 1
+      },
+      "job_id": 133569073096,
+      "job_conclusion": "failure",
+      "receipt": "artifacts/hermetic-core/receipt.json",
+      "validator_exit": 1,
+      "validator": "validators/core.stdout.md",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "status": [],
+        "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d"
+      }
+    },
+    "e2e-apparatus": {
+      "selected": 4,
+      "completed": 4,
+      "suite_status_counts": {
+        "passed": 4
+      },
+      "job_id": 133569073152,
+      "job_conclusion": "success",
+      "receipt": "artifacts/hermetic-e2e-apparatus/receipt.json",
+      "validator_exit": 0,
+      "validator": "validators/e2e-apparatus.stdout.md",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "status": [],
+        "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d"
+      }
+    },
+    "shiploop-1": {
+      "selected": 47,
+      "completed": 47,
+      "suite_status_counts": {
+        "passed": 47
+      },
+      "job_id": 133569073294,
+      "job_conclusion": "success",
+      "receipt": "artifacts/hermetic-shiploop-1/receipt.json",
+      "validator_exit": 0,
+      "validator": "validators/shiploop-1.stdout.md",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "status": [],
+        "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d"
+      }
+    },
+    "shiploop-2": {
+      "selected": 48,
+      "completed": 48,
+      "suite_status_counts": {
+        "passed": 48
+      },
+      "job_id": 133569073166,
+      "job_conclusion": "success",
+      "receipt": "artifacts/hermetic-shiploop-2/receipt.json",
+      "validator_exit": 0,
+      "validator": "validators/shiploop-2.stdout.md",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "status": [],
+        "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d"
+      }
+    },
+    "shiploop-3": {
+      "selected": 47,
+      "completed": 47,
+      "suite_status_counts": {
+        "passed": 47
+      },
+      "job_id": 133569073214,
+      "job_conclusion": "success",
+      "receipt": "artifacts/hermetic-shiploop-3/receipt.json",
+      "validator_exit": 0,
+      "validator": "validators/shiploop-3.stdout.md",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "status": [],
+        "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d"
+      }
+    }
+  },
+  "conditional_skips": {
+    "reported": 59,
+    "by_suite": {
+      "test-groups": 1,
+      "shiploop-e2e-experiments": 50,
+      "shiploop-e2e-user-directory": 1,
+      "shiploop-e2e-hosts": 2,
+      "shiploop-e2e-roundtable": 3,
+      "shiploop-e2e-efficiency": 1,
+      "shiploop-e2e-stage-live": 1
+    },
+    "counted_as_passing_methods": false,
+    "evidence": "method-count-evidence.json"
+  },
+  "method_counts": {
+    "reported": 8699,
+    "reported_less_skips": 8640,
+    "unique_method_census": false
+  },
+  "observed_versions": {
+    "python": [
+      "Python 3.15.2"
+    ],
+    "node": [
+      "v26.13.1"
+    ],
+    "chrome": [
+      "Google Chrome 157.0.8103.50"
+    ],
+    "playwright": [
+      "1.65.1"
+    ]
+  },
+  "source": {
+    "unchanged": true,
+    "pre": "source-pre.json",
+    "post": "source-post.json",
+    "proof": "source-guard-proof.json",
+    "tracked_files": 14111,
+    "index_sha256": "cae7a3bc4e81af4d5b08e6af91d2972548247383c3dc7b7869134d5e986f89ba",
+    "ordinary_status": "",
+    "ignored_status": ""
+  },
+  "boundary": {
+    "status": "PASS",
+    "job_id": 133568951099,
+    "log": "job-logs/133568951099.txt",
+    "signal": "check-release-boundary: OK",
+    "event": "push",
+    "base": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+    "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "base_provenance": "Parent supplied outgoing before SHA, corroborated by retained GitHub compare base/head. CI boundary code independently consumes and validates the push event before SHA; raw log reports successful actual push boundary but does not print that before SHA.",
+    "range_proof": "push-range.json",
+    "policy_source": "ci_policy.py.source"
+  },
+  "failure": {
+    "job": "full / core",
+    "job_id": 133569073096,
+    "suite": "test-harness",
+    "method": "SelfTest.test_the_bundled_self_test_passes_in_a_scratch_home",
+    "message": "AssertionError: 1 != 0; nested JSONDecodeError while reading hard-timeout.json",
+    "excerpt": "failure-excerpt.txt",
+    "proof": "failure-proof.json"
+  },
+  "proofs": {
+    "raw_logs": "job-logs/",
+    "artifact_zips": "artifact-zips/",
+    "artifacts": "artifacts/",
+    "api_snapshots": "observations/",
+    "validators": "validators/",
+    "catalog": "catalog-proof.json",
+    "actual_suites": "actual-suite-proof.json",
+    "browser": "browser-proof.json",
+    "artifact_integrity": "artifact-proof.json",
+    "ci_source_guards": "ci-source-guard-proof.json",
+    "plan": "plan-proof.json"
+  },
+  "problems": [],
+  "limitations": [
+    "No hosted-app, installed-personal-host, model-quality or product acceptance claim.",
+    "Reported unittest method totals may include nested summaries and are not a unique-method census. Individual skip reasons are not printed in retained default unittest summary output.",
+    "The exact push-before SHA was supplied by the parent and corroborated by compare API; the successful actual CI boundary log does not print the push event JSON or before SHA."
+  ],
+  "retries": 0,
+  "reruns": 0,
+  "repairs": 0,
+  "collector_process_outcomes": [
+    {
+      "session_id": 83445,
+      "exit": 4,
+      "reason": "paused after first observed failure for immediate native parent alert"
+    },
+    {
+      "session_id": 44003,
+      "exit": 0,
+      "reason": "remaining independent collection completed"
+    }
+  ]
+}

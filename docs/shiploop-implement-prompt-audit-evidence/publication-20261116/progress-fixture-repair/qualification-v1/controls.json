@@ -1,0 +1,91 @@
+{
+  "operator_result": "PASS",
+  "rows": [
+    {
+      "label": "baseline-delayed",
+      "operator_control": "PASS",
+      "underlying": "FAIL_EXPECTED",
+      "underlying_exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "pid": 74867,
+      "requested_instance": "ddc686f89d184223b7f81790ea7680b3",
+      "start_boolean": false,
+      "start_seconds": 1.006827457997133,
+      "child_exit": 0,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "candidate-delayed-qualified",
+      "operator_control": "PASS",
+      "underlying": "PASS",
+      "underlying_exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "pid": 76362,
+      "requested_instance": "af6e02dd1a3145c5aec136d5f1c702ca",
+      "start_boolean": false,
+      "start_seconds": 1.007740000000922,
+      "child_exit": 0,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "candidate-abort",
+      "operator_control": "PASS",
+      "underlying": "FAIL_EXPECTED",
+      "underlying_exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "pid": 76809,
+      "requested_instance": "ed652c8cd0dc4595a18a54fa9ec2e762",
+      "start_boolean": false,
+      "start_seconds": 1.010722083010478,
+      "child_exit": 73,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "candidate-premature",
+      "operator_control": "PASS",
+      "underlying": "FAIL_EXPECTED",
+      "underlying_exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "pid": 76841,
+      "requested_instance": "29444dab993f405aa4087241a33468c1",
+      "start_boolean": false,
+      "start_seconds": 1.016487959001097,
+      "child_exit": 0,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "full-python315",
+      "underlying": "PASS",
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "test_seconds": 14.197,
+      "process_seconds": 14.416368082995177
+    },
+    {
+      "label": "full-python39",
+      "underlying": "PASS",
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "test_seconds": 12.651,
+      "process_seconds": 12.886677040994982
+    }
+  ],
+  "checks": [
+    "Earlier candidate probe setup error retained; no observer launch or test body; not counted as qualified coverage."
+  ],
+  "historical_CI_cause": "UNKNOWN",
+  "baseline_probe_limit": "Baseline probe intercepted Popen inside start: external list retained child; fixture append seam was bypassed. Original assertion executed unchanged; cooperative cleanup and external poll reaped child. Candidate qualified probe patches outside test and asserts fixture processes equals same retained child list.",
+  "setup_error": "candidate-delayed: hook intercepted git init; no observer launched or body executed; raw error and original hook retained; no test-body retry or replacement launch."
+}

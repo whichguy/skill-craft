@@ -1,0 +1,243 @@
+{
+  "status": "SCOPED_FIXTURE_REPAIR_VERIFIED",
+  "created_utc": "2026-11-16T15:50:27.971992+00:00",
+  "repository": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+  "head": "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+  "owned_files": [
+    "test/shiploop-follow-on.test.py",
+    "test/shiploop-loophole-gates.test.py"
+  ],
+  "changed_tracked_paths": [
+    "test/shiploop-follow-on.test.py",
+    "test/shiploop-loophole-gates.test.py"
+  ],
+  "tracked_file_count": 14158,
+  "non_owned_tracked_hashes_and_modes_unchanged": true,
+  "index_unchanged": true,
+  "baseline_clean": true,
+  "final_status": " M test/shiploop-follow-on.test.py\n M test/shiploop-loophole-gates.test.py\n",
+  "repair": {
+    "follow_on": "Carry actual prefilled pending list in block(); finish asserts accepted list matches prior pending and settled is empty; primary route pins the reader row at done.",
+    "loophole": "Keep missing-list negative; fill release-verify with actual prefilled pending list, then named exit defers that row to handoff. Assert accepted deferred row equals positioned row and settled is empty. Existing knowledge-file refusal/exit helper remains untouched."
+  },
+  "read_history": "relevant-learning-messages.txt",
+  "r07_rule": "skills/shiploop/scripts/shiploop_unverified.py check_restated: exact prior-minus-submitted settlement keys; honest carry/deferral permitted. Current results read from docs/shiploop-implement-prompt-audit-evidence/r07-20261115/{decision.md,acceptance.json}.",
+  "results": [
+    {
+      "attempt": "diff-check",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+        "diff",
+        "--check",
+        "--",
+        "test/shiploop-follow-on.test.py",
+        "test/shiploop-loophole-gates.test.py"
+      ],
+      "started_utc": "2026-11-16T15:48:39.740047+00:00",
+      "finished_utc": "2026-11-16T15:48:39.754043+00:00",
+      "wall_seconds": 0.013620999999999994,
+      "exit_code": 0,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/diff-check/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/diff-check/stderr.log"
+      ]
+    },
+    {
+      "attempt": "green-315-follow-on",
+      "argv": [
+        "/opt/homebrew/bin/python3",
+        "-B",
+        "test/shiploop-follow-on.test.py",
+        "-v"
+      ],
+      "started_utc": "2026-11-16T15:48:10.432320+00:00",
+      "finished_utc": "2026-11-16T15:48:36.247213+00:00",
+      "wall_seconds": 25.814243458,
+      "exit_code": 0,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-315-follow-on/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-315-follow-on/stderr.log"
+      ],
+      "test_count": 18,
+      "unittest_seconds": 25.48,
+      "skips": 0,
+      "failures": 0
+    },
+    {
+      "attempt": "green-315-loophole",
+      "argv": [
+        "/opt/homebrew/bin/python3",
+        "-B",
+        "test/shiploop-loophole-gates.test.py",
+        "-v"
+      ],
+      "started_utc": "2026-11-16T15:48:11.416283+00:00",
+      "finished_utc": "2026-11-16T15:48:38.301817+00:00",
+      "wall_seconds": 26.884802209,
+      "exit_code": 0,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-315-loophole/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-315-loophole/stderr.log"
+      ],
+      "test_count": 5,
+      "unittest_seconds": 26.584,
+      "skips": 0,
+      "failures": 0
+    },
+    {
+      "attempt": "green-39-follow-on",
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-follow-on.test.py",
+        "-v"
+      ],
+      "started_utc": "2026-11-16T15:48:07.871719+00:00",
+      "finished_utc": "2026-11-16T15:48:31.800049+00:00",
+      "wall_seconds": 23.927737792,
+      "exit_code": 0,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-39-follow-on/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-39-follow-on/stderr.log"
+      ],
+      "test_count": 18,
+      "unittest_seconds": 23.689,
+      "skips": 0,
+      "failures": 0
+    },
+    {
+      "attempt": "green-39-loophole",
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-loophole-gates.test.py",
+        "-v"
+      ],
+      "started_utc": "2026-11-16T15:48:08.976863+00:00",
+      "finished_utc": "2026-11-16T15:48:35.596337+00:00",
+      "wall_seconds": 26.618896458,
+      "exit_code": 0,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-39-loophole/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/green-39-loophole/stderr.log"
+      ],
+      "test_count": 5,
+      "unittest_seconds": 26.368,
+      "skips": 0,
+      "failures": 0
+    },
+    {
+      "attempt": "interpreter-versions",
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-c",
+        "import json, shutil, subprocess, sys; print(json.dumps({\"module_executable\": sys.executable, \"module_version\": sys.version, \"PATH_python3\": shutil.which(\"python3\"), \"PATH_python3_version\": subprocess.check_output([\"python3\", \"--version\"], universal_newlines=True).strip(), \"ruff_version\": subprocess.check_output([\"/opt/homebrew/bin/ruff\", \"--version\"], universal_newlines=True).strip()}, indent=2))"
+      ],
+      "started_utc": "2026-11-16T15:49:24.807123+00:00",
+      "finished_utc": "2026-11-16T15:49:24.864162+00:00",
+      "wall_seconds": 0.05663412499999998,
+      "exit_code": 0,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/interpreter-versions/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/interpreter-versions/stderr.log"
+      ]
+    },
+    {
+      "attempt": "red-follow-on",
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-follow-on.test.py",
+        "RouteTests.test_a_gap_and_a_decision_recommend_a_run_the_script_writes_its_request_and_done_is_not_blocked"
+      ],
+      "started_utc": "2026-11-16T15:46:24.311963+00:00",
+      "finished_utc": "2026-11-16T15:46:25.694855+00:00",
+      "wall_seconds": 1.382402083,
+      "exit_code": 1,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/red-follow-on/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/red-follow-on/stderr.log"
+      ],
+      "test_count": 1,
+      "unittest_seconds": 1.111,
+      "skips": 0,
+      "failures": 1
+    },
+    {
+      "attempt": "red-loophole",
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-loophole-gates.test.py",
+        "LoopholeGateTests.test_each_known_dodge_is_refused_and_its_named_exit_is_accepted"
+      ],
+      "started_utc": "2026-11-16T15:46:35.092022+00:00",
+      "finished_utc": "2026-11-16T15:46:51.388245+00:00",
+      "wall_seconds": 16.295691542,
+      "exit_code": 1,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/red-loophole/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/red-loophole/stderr.log"
+      ],
+      "test_count": 1,
+      "unittest_seconds": 16.081,
+      "skips": 0,
+      "failures": 1
+    },
+    {
+      "attempt": "ruff",
+      "argv": [
+        "/opt/homebrew/bin/ruff",
+        "check",
+        "--no-cache",
+        "--select",
+        "E9,F",
+        "test/shiploop-follow-on.test.py",
+        "test/shiploop-loophole-gates.test.py"
+      ],
+      "started_utc": "2026-11-16T15:48:38.610878+00:00",
+      "finished_utc": "2026-11-16T15:48:38.624523+00:00",
+      "wall_seconds": 0.013251875000000024,
+      "exit_code": 0,
+      "pre_post_identity_unchanged": true,
+      "logs": [
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/ruff/stdout.log",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/ruff/stderr.log"
+      ]
+    }
+  ],
+  "versions": {
+    "module_executable": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+    "module_version": "3.9.6 (default, Oct 19 2026, 19:18:13) \n[Clang 21.0.0 (clang-2100.4.1.1)]",
+    "PATH_python3": "/opt/homebrew/bin/python3",
+    "PATH_python3_version": "Python 3.15.1",
+    "ruff_version": "ruff 0.17.2"
+  },
+  "artifacts": [
+    "final.diff",
+    "two-file-sha256.json",
+    "final-identity.json",
+    "preservation-audit.json",
+    "input-evidence-sha256.json"
+  ],
+  "limits": [
+    "Fixture-only repair; no production ShipLoop or published-package candidate bytes changed.",
+    "No runtime, package-format, schema, permission, default or loop behavior change; no broader test tier, acceptance, release or CI qualification.",
+    "Exactly four full module executions after repair; no retries. Two selected pre-edit reproductions are separate retained failures.",
+    "Python 3.9.6 and 3.15.1 are module entry interpreters. Existing cli() helpers use sys.executable; printed callbacks deliberately run verbatim python3 and resolve through the recorded PATH to /opt/homebrew/bin/python3 (3.15.1). This is not an all-child-process Python 3.9 qualification.",
+    "Conditional skips: none on either interpreter, including all three dynamically generated commit-dodge methods.",
+    "No agents or advisors, staging, commits, push or release. Parent retains independent review, commit and full CI.",
+    "Original CI source evidence remains frozen. Identity checks cover this fresh worktree; no write was made to the original source worktree."
+  ]
+}

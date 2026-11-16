@@ -1,0 +1,13 @@
+APPROVE — no material defect or missing regression found in the exact two-file diff at clean `6df738c6c36a13676eb623adbab5954756cfedfa`.
+
+1. **Revision scope is correct.** `last..HEAD ^journal` retains commits reachable from HEAD but from neither the release nor journal. A genuinely new uncovered side-branch commit remains eligible for refusal. Without a release, `HEAD ^journal` preserves first-release scope; without a journal, the original span remains unchanged. Journal selection, non-merge filtering, and per-commit trailer handling are preserved. [release.py — revision selection](/Users/dadleet/src/skill-craft-r19-r16-publish-20261116/scripts/release.py:197)
+
+2. **The regressions are meaningful.** The fixture establishes that the published release actually changes ShipLoop and is outside the journal’s ancestry. The positive exercises the real dry-run; the negative requires exactly the new commit’s hash and subject, excluding the published release. Existing tests cover uncovered merged changes, unrelated side-branch journals, first release, missing journals, and trailer restrictions. No gate weakening found. [release-preflight.test.py — new graph regressions](/Users/dadleet/src/skill-craft-r19-r16-publish-20261116/test/release-preflight.test.py:189)
+
+3. **Recorded RED/GREEN supports the stated claims.** RED contains two intended assertion failures, with no errors; its script hash matches committed `f6fade35`. GREEN records 2 focused passes, 24 module passes, and checkout dry-run exit 0. Script/test hashes match the reviewed files. These runs occurred before the repair commit, using matching bytes; they are not fresh executions at `6df738c`. The original source-preflight remains **FAIL**, with its other checks pending. [repair evidence](/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/preflight-repair/handoff.json)
+
+4. **No additional blocking check is warranted for this repair.** The gate remains in `plan_all()` before either dry-run acceptance or release writes. The three cited learning commits’ decisions are preserved.
+
+This approves maintainer release tooling only. It establishes no product, model-quality, deployed, publication, package-verification, or separately running CI/check result. I ran no tests or lifecycle callbacks and made no changes.
+
+This session’s served model/effort identity is unverified; this review cannot be certified as Astra/high.

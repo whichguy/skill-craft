@@ -1,0 +1,2964 @@
+{
+  ".claude-plugin": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  ".claude-plugin/plugin.json": {
+    "bytes": 1013,
+    "mode": "0o644",
+    "sha256": "c381d41dddc51e177e8c93cda5c8cee3e4bf1b4ae01419203ca55a275b95d9fd",
+    "type": "file"
+  },
+  ".codex-plugin": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  ".codex-plugin/plugin.json": {
+    "bytes": 1741,
+    "mode": "0o644",
+    "sha256": "c2a22982adaab657124ee2c1b5272aced17e6276a1099e5da102e4a38cf8c979",
+    "type": "file"
+  },
+  ".cursor-plugin": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  ".cursor-plugin/plugin.json": {
+    "bytes": 1027,
+    "mode": "0o644",
+    "sha256": "5cbe0eeb163d9b6321934ee3842fc08941048ea7b9017fa9b8abba396b52ecb1",
+    "type": "file"
+  },
+  "LICENSE": {
+    "bytes": 1065,
+    "mode": "0o644",
+    "sha256": "7835e66470f0230acd8ccb23e27e908198625d1fb817ceaa02ea89c36f5be28f",
+    "type": "file"
+  },
+  "README.md": {
+    "bytes": 6025,
+    "mode": "0o644",
+    "sha256": "e2e951a75e6110bc2bc12b97298a68cb9aea7bbb97393be119cf11a6889c51ec",
+    "type": "file"
+  },
+  "agents": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "agents/in-parallel.md": {
+    "bytes": 737,
+    "mode": "0o644",
+    "sha256": "ce330710226b05c2b70bdf93363d3ee7631af0ce0762e48acb8055bf890d3ee2",
+    "type": "file"
+  },
+  "agents/shiploop.md": {
+    "bytes": 1027,
+    "mode": "0o644",
+    "sha256": "53f8ed0c9c07a8c2e2ec27fd57820d198d9627b4c57aa65df3f8e0f1ba4f3563",
+    "type": "file"
+  },
+  "agents/skill-interop.md": {
+    "bytes": 1155,
+    "mode": "0o644",
+    "sha256": "6a35c158dc4b8386a92b647a04e9a7d726140bb12f59b4dcb8118b6957b446c8",
+    "type": "file"
+  },
+  "hooks": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "hooks/codex.json": {
+    "bytes": 938,
+    "mode": "0o644",
+    "sha256": "60fe16a78f7355a2f2028ff375c7c108bc22308684fe24366f4d96ea63c073b9",
+    "type": "file"
+  },
+  "hooks/cursor.json": {
+    "bytes": 674,
+    "mode": "0o644",
+    "sha256": "075de4d673466d02e01b3c3fddbb25a1a323bf9dca38537da80a389a0a9aecaa",
+    "type": "file"
+  },
+  "hooks/hooks.json": {
+    "bytes": 1221,
+    "mode": "0o644",
+    "sha256": "fb30e6ab0a41fd6739e79d5d0885a4edb0cb384aec54f6c34c76c0287aa2a762",
+    "type": "file"
+  },
+  "skills": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/adversarial-review": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/adversarial-review/SKILL.md": {
+    "bytes": 1644,
+    "mode": "0o644",
+    "sha256": "e5c99dd7b79376a86c41e6208014bb8085e330504d9ddec0f498004b4b7534c9",
+    "type": "file"
+  },
+  "skills/adversarial-review/SPEC.md": {
+    "bytes": 2053,
+    "mode": "0o644",
+    "sha256": "e33927458339b0a45f00232a0521f6e85962042dfdbc8641e7002a7988d6a54f",
+    "type": "file"
+  },
+  "skills/adversarial-review/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/adversarial-review/references/findings.schema.json": {
+    "bytes": 1321,
+    "mode": "0o644",
+    "sha256": "08d01c9670a1d52c1fc5490d759379977f51e6df574b1e2868d730bcc5e0a656",
+    "type": "file"
+  },
+  "skills/adversarial-review/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/adversarial-review/scripts/adversarial-review": {
+    "bytes": 1677,
+    "mode": "0o755",
+    "sha256": "87d848c317a49c8a4995749edb78cb27e3d712068510da489fbf6aedadb727da",
+    "type": "file"
+  },
+  "skills/adversarial-review/scripts/adversarial_review.py": {
+    "bytes": 4959,
+    "mode": "0o644",
+    "sha256": "96af2b499b23bb4260ba904e27b5102b17d9fa1a32d7933988b34c891fdef3cf",
+    "type": "file"
+  },
+  "skills/architect": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/architect/SKILL.md": {
+    "bytes": 3116,
+    "mode": "0o644",
+    "sha256": "e73075ff4e4b3cb195979f97153969dbcc05935cc0527445d2778206b0041683",
+    "type": "file"
+  },
+  "skills/ask-agent": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/ask-agent/SKILL.md": {
+    "bytes": 28019,
+    "mode": "0o644",
+    "sha256": "477ff0acc6f04a5725d02dffb85d9247330993724508a26770adc827baaa4bac",
+    "type": "file"
+  },
+  "skills/ask-agent/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/ask-agent/references/consumer-owned-workspace.md": {
+    "bytes": 10505,
+    "mode": "0o644",
+    "sha256": "57b48802e0a2b97d12945aabca15161937c875022ef357fdc1bd26e842e3427f",
+    "type": "file"
+  },
+  "skills/ask-agent/references/current-workspace.md": {
+    "bytes": 7642,
+    "mode": "0o644",
+    "sha256": "e6189cca7d96b8eb6a111a78ec34f7161d29e994ba6aced555804e02e0a246bb",
+    "type": "file"
+  },
+  "skills/ask-agent/references/git-integration.md": {
+    "bytes": 25380,
+    "mode": "0o644",
+    "sha256": "a17c36a2a2e12e0892e59ebc6adac5273e52e44c20e154dbca65a0cdff517574",
+    "type": "file"
+  },
+  "skills/ask-agent/references/host-bindings.json": {
+    "bytes": 2122,
+    "mode": "0o644",
+    "sha256": "3607f338c44c7ce2f7ff0bfb975b38e2d807d17586cecb3aa0778d8991ca768e",
+    "type": "file"
+  },
+  "skills/ask-agent/references/host-capabilities.md": {
+    "bytes": 13012,
+    "mode": "0o644",
+    "sha256": "f9c91ac4bc8e0b66701958edfd2aaa29f6edca3053f864549e18bed3f68b34f7",
+    "type": "file"
+  },
+  "skills/ask-agent/references/native-lifecycle.md": {
+    "bytes": 5154,
+    "mode": "0o644",
+    "sha256": "12f20e4b1d486db1930f1438158f3865d184f0e586b9f9f61a5ac38f564346cc",
+    "type": "file"
+  },
+  "skills/ask-agent/references/result-handoff.md": {
+    "bytes": 14683,
+    "mode": "0o644",
+    "sha256": "2f6e5527aa1fad5096b41642b4f1f3dab0785a33f2425401a07a557f956ca586",
+    "type": "file"
+  },
+  "skills/ask-agent/references/task-interface.md": {
+    "bytes": 18354,
+    "mode": "0o644",
+    "sha256": "c6bb84d5b0c78995438fdb9f2f8f0f83ae0969fa612d031eb03a51fd50d05d4e",
+    "type": "file"
+  },
+  "skills/ask-agent/references/workspace-operations.md": {
+    "bytes": 21444,
+    "mode": "0o644",
+    "sha256": "dffb2b8e1619a295782dfc443368d31dcf2f1e6c6458ae45f893b9b73ffbe8f3",
+    "type": "file"
+  },
+  "skills/ask-agent/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/ask-agent/scripts/ask_agent_host.py": {
+    "bytes": 3309,
+    "mode": "0o644",
+    "sha256": "0400db1dc322aa1ce9c990e80fd91e83be5b8be1acf8a92a48535ea0526cf3be",
+    "type": "file"
+  },
+  "skills/ask-agent/scripts/ask_agent_task.py": {
+    "bytes": 72971,
+    "mode": "0o644",
+    "sha256": "b7d9d91847db0c822d9d1c3c1faa9671a5440508db343a5ef36bf03008901ffb",
+    "type": "file"
+  },
+  "skills/ask-agent/scripts/ask_agent_workspace.py": {
+    "bytes": 139139,
+    "mode": "0o644",
+    "sha256": "d5dbaa1ef1c594b62954d368131850c9639af11488b42e044740c5cbf76afb8f",
+    "type": "file"
+  },
+  "skills/c-plan": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/c-plan/SKILL.md": {
+    "bytes": 23339,
+    "mode": "0o644",
+    "sha256": "e120269c953f4ccb55fe7c91cbd09c4150343b6b5a813d54a94521f1f6361977",
+    "type": "file"
+  },
+  "skills/closed-loop": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/closed-loop/SKILL.md": {
+    "bytes": 14541,
+    "mode": "0o644",
+    "sha256": "8c9a00ea4eadf3431a0dceb62818cb8fd4b72d0db844e9e6eb969bc61b37f538",
+    "type": "file"
+  },
+  "skills/closed-loop/prompts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/closed-loop/prompts/adapter-gap.md": {
+    "bytes": 1120,
+    "mode": "0o644",
+    "sha256": "741187cfc5ef55ed9d73717caf03ca68f68d4f07c6163cc5ba399028b60a530a",
+    "type": "file"
+  },
+  "skills/closed-loop/prompts/blind-spot-hunter.md": {
+    "bytes": 2058,
+    "mode": "0o644",
+    "sha256": "b0777ca0581f9d12ea2464a3f56ba359da5c85aacdcd8f739a56ca9734a2836c",
+    "type": "file"
+  },
+  "skills/closed-loop/prompts/definer.md": {
+    "bytes": 4979,
+    "mode": "0o644",
+    "sha256": "ecc6f47126acf1c7b34b3aaea7bf00d170c4f32d63f45f0cfb200fb321455533",
+    "type": "file"
+  },
+  "skills/closed-loop/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/closed-loop/references/adapter-schema.md": {
+    "bytes": 11530,
+    "mode": "0o644",
+    "sha256": "3b438c51ec3f9ad3516bb2542aaeef34a5ff8f5aa8fdafc09f2f14ea9c20d74d",
+    "type": "file"
+  },
+  "skills/closed-loop/references/convergence.md": {
+    "bytes": 5981,
+    "mode": "0o644",
+    "sha256": "b4d955db78932218854cb4437a51362d0f00edfa2329d6bf596572c9ef43d811",
+    "type": "file"
+  },
+  "skills/closed-loop/references/escalation.md": {
+    "bytes": 6693,
+    "mode": "0o644",
+    "sha256": "996017e508b46012b7e6492830096b3b4b3ace899c4e30144a74c2b40860b6b8",
+    "type": "file"
+  },
+  "skills/closed-loop/references/readiness.md": {
+    "bytes": 4767,
+    "mode": "0o644",
+    "sha256": "21237fc7c08900140f684399c898c48eadccb04aea2cd126d3adcd7bb905dd83",
+    "type": "file"
+  },
+  "skills/closed-loop/references/until-loop.md": {
+    "bytes": 6928,
+    "mode": "0o644",
+    "sha256": "69196c87cd691c2970673bb8e6925ac6f0f1652d66c341f1d9c0bb50de235394",
+    "type": "file"
+  },
+  "skills/closed-loop/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/closed-loop/scripts/closed_loop.py": {
+    "bytes": 123344,
+    "mode": "0o644",
+    "sha256": "d1c82f69097b0a59b658b7d70e0a32a29523cf6bb14bc0e57aa926c9d97fc983",
+    "type": "file"
+  },
+  "skills/compare-prompts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/compare-prompts/SKILL.md": {
+    "bytes": 32724,
+    "mode": "0o644",
+    "sha256": "9ac71a61fbc9c9fa3cd17e372ca86d1c7bd1693e13c3615c293d5745d5021633",
+    "type": "file"
+  },
+  "skills/improve": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve-agent": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve-agent/LICENSE": {
+    "bytes": 1081,
+    "mode": "0o644",
+    "sha256": "9e72e1f93885deb1ac2cea35e124a8bcfbb562b451dfbb42188c3212a7d86f4a",
+    "type": "file"
+  },
+  "skills/improve-agent/README.md": {
+    "bytes": 2327,
+    "mode": "0o644",
+    "sha256": "f397d04d1eb1d8fbc3e152cb4f4e953ccf14f401c98cb6d246d38ae5887278be",
+    "type": "file"
+  },
+  "skills/improve-agent/SKILL.md": {
+    "bytes": 7671,
+    "mode": "0o644",
+    "sha256": "57c74b451aa38693ad553da76cf12da24a54b4245ca916342225d448c142ccf0",
+    "type": "file"
+  },
+  "skills/improve-agent/agents": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve-agent/agents/openai.yaml": {
+    "bytes": 224,
+    "mode": "0o644",
+    "sha256": "0ab6d8a1f1669ef2181cd68c5fc7a3a00eeaf533fe6cc748922ce66cf352d3af",
+    "type": "file"
+  },
+  "skills/improve-system-prompt": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve-system-prompt/SKILL.md": {
+    "bytes": 15592,
+    "mode": "0o644",
+    "sha256": "c9f5c7b321d3b8e347741623c3bd77f3cdf7c9432d9b230ceb944702a5bb2697",
+    "type": "file"
+  },
+  "skills/improve/LICENSE": {
+    "bytes": 1081,
+    "mode": "0o644",
+    "sha256": "9e72e1f93885deb1ac2cea35e124a8bcfbb562b451dfbb42188c3212a7d86f4a",
+    "type": "file"
+  },
+  "skills/improve/README.md": {
+    "bytes": 14001,
+    "mode": "0o644",
+    "sha256": "615916af4c0ed521ceff287d09e3883edf834d950f48e004ba88b2626aa07f70",
+    "type": "file"
+  },
+  "skills/improve/SKILL.md": {
+    "bytes": 10369,
+    "mode": "0o644",
+    "sha256": "46bed057839c5a55606441a527035b8be390a676724bc6b6c98fbb284e385fbb",
+    "type": "file"
+  },
+  "skills/improve/agents": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve/agents/openai.yaml": {
+    "bytes": 191,
+    "mode": "0o644",
+    "sha256": "88bccc2d09995cd012ada5466f179dd90dbe1063e486f6a1448d04af8d24fed8",
+    "type": "file"
+  },
+  "skills/improve/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve/references/callback-evidence.md": {
+    "bytes": 13508,
+    "mode": "0o644",
+    "sha256": "36ca03893682367647effba5a3e675ba893549fc972cd9babae04ee97afc8f53",
+    "type": "file"
+  },
+  "skills/improve/references/review-policy.md": {
+    "bytes": 6619,
+    "mode": "0o644",
+    "sha256": "cb0dcce1053efa963e1521fa5449a353d41a659552bc9e13c7d3c0e2178a478d",
+    "type": "file"
+  },
+  "skills/improve/references/shiploop-review-inputs.md": {
+    "bytes": 9059,
+    "mode": "0o644",
+    "sha256": "7c8cb03fe4de294c14abae0eca40da45255b13f6ebecb8e9ce3fff2d493a6e79",
+    "type": "file"
+  },
+  "skills/improve/references/shiploop-route-ask-agent.md": {
+    "bytes": 4316,
+    "mode": "0o644",
+    "sha256": "8c27e069b2b16a836e36408a71b10ca66df03c02ee9b11974fbdec55a63742e5",
+    "type": "file"
+  },
+  "skills/improve/references/shiploop-route-cases.md": {
+    "bytes": 6372,
+    "mode": "0o644",
+    "sha256": "a483e80f39f835bb602ac7395c82b1a48cbf8cb3ee8a67bcb151eb67659c5623",
+    "type": "file"
+  },
+  "skills/improve/references/shiploop-route-recovery.md": {
+    "bytes": 8962,
+    "mode": "0o644",
+    "sha256": "4500b596e2799d13d6c267db6fca24d457167c7975c9470d3f0785dd5067c64e",
+    "type": "file"
+  },
+  "skills/improve/references/shiploop-route-rules.md": {
+    "bytes": 20493,
+    "mode": "0o644",
+    "sha256": "5ff27c0906f0402d0a1e63a90c6c0f224dc761559397415ff960167507948cb1",
+    "type": "file"
+  },
+  "skills/improve/references/shiploop-route.md": {
+    "bytes": 9658,
+    "mode": "0o644",
+    "sha256": "a25e71f36e11c67a95dc03742b544d3fc3ce014d828adfd2ee854ed7ee757d37",
+    "type": "file"
+  },
+  "skills/improve/references/standalone-route.md": {
+    "bytes": 19642,
+    "mode": "0o644",
+    "sha256": "08a4971b751ceec7056d89b54ddb15a68a075f234ab6bed4836faa519951c28c",
+    "type": "file"
+  },
+  "skills/improve/runtime": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve/runtime/until-loop": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve/runtime/until-loop/ADAPTER.md": {
+    "bytes": 24819,
+    "mode": "0o644",
+    "sha256": "de85fdc2873c6d07c197a32deb3a8188d297df6e1e59e22b75fcb78277322842",
+    "type": "file"
+  },
+  "skills/improve/runtime/until-loop/LICENSE": {
+    "bytes": 1080,
+    "mode": "0o644",
+    "sha256": "5731f7a458ebc99f0b1abb1235b21e588ab90e333d09220b6008923c15b9420f",
+    "type": "file"
+  },
+  "skills/improve/runtime/until-loop/PROVENANCE.json": {
+    "bytes": 1864,
+    "mode": "0o644",
+    "sha256": "00f77f914f0c480efb4a6f54dbfd6fa83aab0f7b07a22b9c9bcddea9438f5f70",
+    "type": "file"
+  },
+  "skills/improve/runtime/until-loop/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve/runtime/until-loop/references/runtime-ephemeral.md": {
+    "bytes": 27913,
+    "mode": "0o644",
+    "sha256": "0cb7abdf7d618925e2d478574e608cc96269e290fcb6e54f77ca6f2c765b7b22",
+    "type": "file"
+  },
+  "skills/improve/runtime/until-loop/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py": {
+    "bytes": 62717,
+    "mode": "0o644",
+    "sha256": "fad65999c57893b43f2e308cc967746f90fcf3c14261d6d649ba0c002185ceb4",
+    "type": "file"
+  },
+  "skills/improve/runtime/until-loop/scripts/until_loop_recover.py": {
+    "bytes": 11148,
+    "mode": "0o644",
+    "sha256": "bae7c5fd50e550f107d1e84645e2e49c48eb68e4dc05521ea076e0cec3f09af1",
+    "type": "file"
+  },
+  "skills/improve/runtime/until-loop/scripts/until_loop_session.py": {
+    "bytes": 19226,
+    "mode": "0o644",
+    "sha256": "c79c030b79bf34373a265969eadf6a5dbf3dc286a5e5ec4b17746b1a0c91c430",
+    "type": "file"
+  },
+  "skills/in-parallel": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/in-parallel/SKILL.md": {
+    "bytes": 9396,
+    "mode": "0o644",
+    "sha256": "fc5dc482b9656ac7331634ec93e10081455af929ce37d0d14f1d50fc6618f94c",
+    "type": "file"
+  },
+  "skills/in-parallel/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/in-parallel/references/contract.md": {
+    "bytes": 13103,
+    "mode": "0o644",
+    "sha256": "263c1e1cb4ad7d350f549b03ac01ad197c17c3833c7decfb07cd671fdeef8f31",
+    "type": "file"
+  },
+  "skills/in-parallel/references/hosts.md": {
+    "bytes": 7005,
+    "mode": "0o644",
+    "sha256": "9055d9858340d58a26d0f4a98ff2d9d3e7193da4d3722aac068075f68bfe5436",
+    "type": "file"
+  },
+  "skills/in-parallel/references/script-api.md": {
+    "bytes": 3749,
+    "mode": "0o644",
+    "sha256": "b52d8cba71edf84afe1fa2f4bf16c308bdcef52e19b86ad3eccf3ad22779a6b5",
+    "type": "file"
+  },
+  "skills/in-parallel/references/usage.md": {
+    "bytes": 12569,
+    "mode": "0o644",
+    "sha256": "3a31b6ea9a9e244dc9a8e6f8f442a2c77ff4b2e3f79929a52c7814d3b21e054b",
+    "type": "file"
+  },
+  "skills/in-parallel/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/in-parallel/scripts/delivery.py": {
+    "bytes": 85757,
+    "mode": "0o644",
+    "sha256": "717e7f6f9073b6f7290b74da326240021fcf81da6117c52b843e0ac40358c37a",
+    "type": "file"
+  },
+  "skills/in-parallel/scripts/harness.py": {
+    "bytes": 67112,
+    "mode": "0o644",
+    "sha256": "7e0d91119763f81ee918a09943906b196f57f50fa5c436b726927598300f7a8a",
+    "type": "file"
+  },
+  "skills/in-parallel/scripts/harness_paths.py": {
+    "bytes": 2288,
+    "mode": "0o644",
+    "sha256": "450839998a1b8203c1cd75bdb83ed0e2e18d68f168f2f54d7a4c36168e02c14d",
+    "type": "file"
+  },
+  "skills/plan-dispatcher": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/plan-dispatcher/SKILL.md": {
+    "bytes": 30901,
+    "mode": "0o644",
+    "sha256": "370d2b100cdcb8039ac4945c93f8c30e538b746a3da583bf3595ff0808fcf8cf",
+    "type": "file"
+  },
+  "skills/plan-dispatcher/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/plan-dispatcher/references/host-matrix.md": {
+    "bytes": 1516,
+    "mode": "0o644",
+    "sha256": "afbe1e94e48a8134cce37a81c6f869ec123c71523b30c135e3d5c9e134602d4a",
+    "type": "file"
+  },
+  "skills/plan-dispatcher/references/protocol.md": {
+    "bytes": 50291,
+    "mode": "0o644",
+    "sha256": "d336e115720d2e6d729f600335df4c6b39134813707f3f4cbc6171a6727ca4e4",
+    "type": "file"
+  },
+  "skills/plan-dispatcher/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/plan-dispatcher/scripts/dispatch.js": {
+    "bytes": 56254,
+    "mode": "0o644",
+    "sha256": "c24a94989168656c767e31523f92e85984dda6a7ac8d8fc549e29021d2546163",
+    "type": "file"
+  },
+  "skills/plan-dispatcher/scripts/planning-context.js": {
+    "bytes": 17133,
+    "mode": "0o644",
+    "sha256": "23044acc81d3bf9baf8cdd8417f21e88f185bdd75daba096981afc7af213a238",
+    "type": "file"
+  },
+  "skills/plan-dispatcher/scripts/state.js": {
+    "bytes": 72509,
+    "mode": "0o644",
+    "sha256": "31a2e0ddfdbe00e023acd383f5b3087bcb6c4a5ddd7724b0020e10d13293d20c",
+    "type": "file"
+  },
+  "skills/plan-test": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/plan-test/SKILL.md": {
+    "bytes": 3513,
+    "mode": "0o644",
+    "sha256": "9619593f25722ef0f89cf39252efa5253be1873c750d756193d3c6eb97fb7661",
+    "type": "file"
+  },
+  "skills/prompt-align": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/prompt-align/SKILL.md": {
+    "bytes": 3159,
+    "mode": "0o644",
+    "sha256": "7a3076684d5c4301a2dca5b9d4d6ba4c9457e9cc55727a1bb09cbcdc36706cdb",
+    "type": "file"
+  },
+  "skills/prompt-audit": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/prompt-audit/SKILL.md": {
+    "bytes": 3666,
+    "mode": "0o644",
+    "sha256": "91849049e9ae22dcef6f50358c5a2d1b9c0a146016c1f572a9e7cd673d2207fc",
+    "type": "file"
+  },
+  "skills/prompt-migrate": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/prompt-migrate/SKILL.md": {
+    "bytes": 3119,
+    "mode": "0o644",
+    "sha256": "5d204232b123dde5e167ffafe407f81035a87e3d7d6a590ccdc5a4b670ebd9b4",
+    "type": "file"
+  },
+  "skills/prompt-refine": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/prompt-refine/SKILL.md": {
+    "bytes": 2728,
+    "mode": "0o644",
+    "sha256": "baaa349f0e23cf0344c141f7429a4c071e2b0ac9c2661869557a78f624fca136",
+    "type": "file"
+  },
+  "skills/pushpress": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/pushpress/SKILL.md": {
+    "bytes": 20605,
+    "mode": "0o644",
+    "sha256": "3b707abb1c409d98a7a053579fc97ed43a802bb8201702736f13354d1f1d520b",
+    "type": "file"
+  },
+  "skills/pushpress/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/pushpress/references/api-and-mcp-tools.md": {
+    "bytes": 34447,
+    "mode": "0o644",
+    "sha256": "a8b9380324af2823c47a3f587498872848029aa3bd954049d568b896cf8d7ea7",
+    "type": "file"
+  },
+  "skills/pushpress/references/app-map.md": {
+    "bytes": 10594,
+    "mode": "0o644",
+    "sha256": "ad1b503ff784e862fb100ee66076268a8717f559128efcde2293274b221784ff",
+    "type": "file"
+  },
+  "skills/pushpress/references/browser-technique.md": {
+    "bytes": 8830,
+    "mode": "0o644",
+    "sha256": "9e7b8eb1449f5cdb02d030cbe885f1868ad4e01dd8e438f87278fe3734c8c08d",
+    "type": "file"
+  },
+  "skills/pushpress/references/drift-and-open-questions.md": {
+    "bytes": 5048,
+    "mode": "0o644",
+    "sha256": "f504567945ab0defe157352ddd3653dbe5cdc80ca5219c7441fb1d095cb16108",
+    "type": "file"
+  },
+  "skills/pushpress/references/hosts.md": {
+    "bytes": 5845,
+    "mode": "0o644",
+    "sha256": "ef99cb3df1e8c3f7448bc3baa244a835213f7ce63cc639bf8acd00d22ec33f04",
+    "type": "file"
+  },
+  "skills/pushpress/references/money-and-reports.md": {
+    "bytes": 10433,
+    "mode": "0o644",
+    "sha256": "6dc3eb15fd8e87d6d54632bee48c493ec86735518bcca1e63981dd60e676e313",
+    "type": "file"
+  },
+  "skills/pushpress/references/people-and-plans.md": {
+    "bytes": 9895,
+    "mode": "0o644",
+    "sha256": "3405ac9ae5b4b50f5e1f13c401c6c7f20b8ff9585cd3c44d8647994e69acdabb",
+    "type": "file"
+  },
+  "skills/pushpress/references/schedule-and-checkins.md": {
+    "bytes": 8098,
+    "mode": "0o644",
+    "sha256": "53cf5439aa52698a53b12577a841d24d9acd975e964bd10974bda28c6f54fb59",
+    "type": "file"
+  },
+  "skills/pushpress/references/settings-and-admin.md": {
+    "bytes": 9558,
+    "mode": "0o644",
+    "sha256": "d7b972cd3ddf3d843c9fb8e2b9b87c16b3f827cbcbdd02988ca6edef21f76fdc",
+    "type": "file"
+  },
+  "skills/pushpress/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/pushpress/scripts/pp-extract.js": {
+    "bytes": 13607,
+    "mode": "0o644",
+    "sha256": "5898958546201082c4c80c231cae029d8c88abc5b06b9c67a87e6cac5c240a27",
+    "type": "file"
+  },
+  "skills/review-coverage": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/review-coverage/SKILL.md": {
+    "bytes": 18323,
+    "mode": "0o644",
+    "sha256": "0da002919e806d114462b5ede42abd469cccd9f6172c69fc35ecda1280882d11",
+    "type": "file"
+  },
+  "skills/review-coverage/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/review-coverage/references/host-matrix.md": {
+    "bytes": 3952,
+    "mode": "0o644",
+    "sha256": "b28821bf45b964706dbe5506131e6f84f2d6e5e924e8f7c75a9c397e4f07d61f",
+    "type": "file"
+  },
+  "skills/review-coverage/references/review_coverage.md": {
+    "bytes": 10299,
+    "mode": "0o644",
+    "sha256": "45016b39c675951675a0e113aa9f832240b96c4163e82eedaedbf611b2c90aeb",
+    "type": "file"
+  },
+  "skills/review-coverage/references/review_coverage.short.md": {
+    "bytes": 3922,
+    "mode": "0o644",
+    "sha256": "8042af7406744954e17ed38978e6bf901b5780cf0c96d2606021d1e92d30506e",
+    "type": "file"
+  },
+  "skills/review-coverage/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/review-coverage/scripts/review-coverage": {
+    "bytes": 25008,
+    "mode": "0o755",
+    "sha256": "eb62cb4d43db4157fe8d0ba19e63812dbf08bc580cc06fdc3aaa0a6f14312b63",
+    "type": "file"
+  },
+  "skills/review-fix-bench": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/review-fix-bench/SKILL.md": {
+    "bytes": 4624,
+    "mode": "0o644",
+    "sha256": "1b36819e5c88b379186be1061d1cae5624338a240f99316efb75521af6dda690",
+    "type": "file"
+  },
+  "skills/rubric-eval": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/SKILL.md": {
+    "bytes": 3139,
+    "mode": "0o644",
+    "sha256": "311eb79c2fe79039409c819a1f0a457cac22174ec6b37eab8677b7b2b16f03b0",
+    "type": "file"
+  },
+  "skills/rubric-eval/SPEC.md": {
+    "bytes": 23314,
+    "mode": "0o644",
+    "sha256": "ec35867bb68ad3a352b65054c9340a9485e96efc7d1a4ef598ba8c7304801155",
+    "type": "file"
+  },
+  "skills/rubric-eval/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/references/judges.json": {
+    "bytes": 691,
+    "mode": "0o644",
+    "sha256": "0ad791dd5026ae9d6899dc69bc77400a19c9ea48e493de1235f346a708806247",
+    "type": "file"
+  },
+  "skills/rubric-eval/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/scripts/model_call.py": {
+    "bytes": 13796,
+    "mode": "0o644",
+    "sha256": "440eda920211e8c856c6574a939a25b84496608c2be2590969b45d0c160b25a6",
+    "type": "file"
+  },
+  "skills/rubric-eval/scripts/rubric-eval": {
+    "bytes": 8836,
+    "mode": "0o755",
+    "sha256": "a6d2dc90fcc0e5a72e843984797b259d2ddc1c9bd5a5eb6075622cfe97fbac27",
+    "type": "file"
+  },
+  "skills/rubric-eval/scripts/rubric_eval.py": {
+    "bytes": 52812,
+    "mode": "0o644",
+    "sha256": "5fc9e3fad02ab3c23589d703bad141e5de661063d93cc716d30c749f141278a5",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture-v2": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture-v2/README.md": {
+    "bytes": 567,
+    "mode": "0o644",
+    "sha256": "15eeea932c57f61f1629fdffad5415c60e88a95cd010dd0284aa82c3164dac59",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v2/frames": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture-v2/frames/plan.txt": {
+    "bytes": 333,
+    "mode": "0o644",
+    "sha256": "1877a113907a3bef9e0c7db6388a6935afd686b48c1c6e2f3fcc3b78d58c3901",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v2/frames/review-bare.txt": {
+    "bytes": 410,
+    "mode": "0o644",
+    "sha256": "d5ee1b7011913eaacc2170eba2aad23d61d2239db9679e253feb30b3ef47db6d",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v2/frames/review.txt": {
+    "bytes": 542,
+    "mode": "0o644",
+    "sha256": "d719628f4f39cb8d28d05fc84aa768e85727debea814e772feabce0fb4bdb2b6",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v2/rubric.json": {
+    "bytes": 7945,
+    "mode": "0o644",
+    "sha256": "81aa9dcc97308d584b14da7bc293d7a5ca6fc8bbd68227625a5af1dd1cabf08d",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v2/scenarios.json": {
+    "bytes": 18725,
+    "mode": "0o644",
+    "sha256": "98c4bd6a78034c2f90d0a4e6fae0aef3a24ccfd3483b9e89324184c832fd2c4d",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture-v3/README.md": {
+    "bytes": 567,
+    "mode": "0o644",
+    "sha256": "15eeea932c57f61f1629fdffad5415c60e88a95cd010dd0284aa82c3164dac59",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3/frames": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture-v3/frames/plan-ref.txt": {
+    "bytes": 578,
+    "mode": "0o644",
+    "sha256": "8635efcb43f506a3444905f6c1a78168053b322895b20dae1beb49414b35b463",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3/frames/plan.txt": {
+    "bytes": 560,
+    "mode": "0o644",
+    "sha256": "175eb9b5e055d8d4296e2b4b9bc4b4f2990759ef6ec75b6425e4d9c1e5c05870",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3/frames/review-bare.txt": {
+    "bytes": 637,
+    "mode": "0o644",
+    "sha256": "6e771057b5b9e5e0ac0a5883524083b820fda8eecd4f23bf855411b8ce708783",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3/frames/review-ref.txt": {
+    "bytes": 655,
+    "mode": "0o644",
+    "sha256": "c736fc69bba289967917aed782a82be77c16dea3ef110ab4b61dac7b5d1d8499",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3/frames/review.txt": {
+    "bytes": 769,
+    "mode": "0o644",
+    "sha256": "ddd9b9700844927e6b6ae8ac778b4d901d5c455b7c90e82d87cb469ba410545d",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3/rubric.json": {
+    "bytes": 8427,
+    "mode": "0o644",
+    "sha256": "2f71e2930e8acf3c23472522dc314dd06b49d9e5af980705f15ebd5cc00cd5c7",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v3/scenarios.json": {
+    "bytes": 19185,
+    "mode": "0o644",
+    "sha256": "6bf07132cf000f2e4108adb49718cc884f30cf8fae86404d81ed5ec92a23ce0b",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture-v4/README.md": {
+    "bytes": 1009,
+    "mode": "0o644",
+    "sha256": "53abc06954d11c667673d14a2724f5ed16c1f1d3a5991152efc3c0da211540c9",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames/plan-ref.txt": {
+    "bytes": 646,
+    "mode": "0o644",
+    "sha256": "7ef3b1ef77ddb30e72416ed16f1e69c58c61662635912d2a3cf8f628f79c4a80",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames/plan.txt": {
+    "bytes": 560,
+    "mode": "0o644",
+    "sha256": "175eb9b5e055d8d4296e2b4b9bc4b4f2990759ef6ec75b6425e4d9c1e5c05870",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames/review-bare.txt": {
+    "bytes": 637,
+    "mode": "0o644",
+    "sha256": "6e771057b5b9e5e0ac0a5883524083b820fda8eecd4f23bf855411b8ce708783",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames/review-packet.source": {
+    "bytes": 88,
+    "mode": "0o644",
+    "sha256": "db41dd862eb19f79cd6dc449cb2fe3e2678581eec571b47e916f600e820fca6c",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames/review-packet.txt": {
+    "bytes": 16741,
+    "mode": "0o644",
+    "sha256": "d50c59e96e2d9c3025dc18f9ae422c9a1365bf28f3124cd864b2d6f55bac5313",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames/review-ref.txt": {
+    "bytes": 723,
+    "mode": "0o644",
+    "sha256": "5fcb3f709d0c419594f4b566466254e80adfd094bf7b407317d3318b05b1be68",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/frames/review.txt": {
+    "bytes": 769,
+    "mode": "0o644",
+    "sha256": "ddd9b9700844927e6b6ae8ac778b4d901d5c455b7c90e82d87cb469ba410545d",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/make_packet_frame.py": {
+    "bytes": 3347,
+    "mode": "0o644",
+    "sha256": "aab9f7fe6be9e0c3ba11999fa9bfcaddfb74bcac53f1d8af9bbe837526f5a5a8",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/rubric.json": {
+    "bytes": 8821,
+    "mode": "0o644",
+    "sha256": "b91198bb8a044c45e9d504e2a4ef0735fb795c0eb90148e38d63887c7886c96c",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture-v4/scenarios.json": {
+    "bytes": 19718,
+    "mode": "0o644",
+    "sha256": "2c167b7be196b773641c607ddb1f02ebb3cce4e35b41600ed6870ec62590d6d2",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture/README.md": {
+    "bytes": 567,
+    "mode": "0o644",
+    "sha256": "15eeea932c57f61f1629fdffad5415c60e88a95cd010dd0284aa82c3164dac59",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture/frames": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/rubric-eval/suites/architecture/frames/plan.txt": {
+    "bytes": 333,
+    "mode": "0o644",
+    "sha256": "1877a113907a3bef9e0c7db6388a6935afd686b48c1c6e2f3fcc3b78d58c3901",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture/frames/review-bare.txt": {
+    "bytes": 410,
+    "mode": "0o644",
+    "sha256": "d5ee1b7011913eaacc2170eba2aad23d61d2239db9679e253feb30b3ef47db6d",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture/frames/review.txt": {
+    "bytes": 542,
+    "mode": "0o644",
+    "sha256": "d719628f4f39cb8d28d05fc84aa768e85727debea814e772feabce0fb4bdb2b6",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture/rubric.json": {
+    "bytes": 7077,
+    "mode": "0o644",
+    "sha256": "6e1d856b7d1374559e54d461ab91806ffa275fed2276e4e5aa39987b60f054e0",
+    "type": "file"
+  },
+  "skills/rubric-eval/suites/architecture/scenarios.json": {
+    "bytes": 15124,
+    "mode": "0o644",
+    "sha256": "67465a019cef9625a6f6f3eeb6a7cacff323201f396c74039497052a5bd580f4",
+    "type": "file"
+  },
+  "skills/shiploop": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/SKILL.md": {
+    "bytes": 37048,
+    "mode": "0o644",
+    "sha256": "1463e139dd6d45ba1fedf5a33842531095bf6940692e28f58bc5a96ee5c0ef36",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/CASES.md": {
+    "bytes": 22777,
+    "mode": "0o644",
+    "sha256": "21de97a8802d7e47af1c5d290e0147454fc3a68ba5cf22367f4cfaae4bad46a0",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/MOCK-REPLAY.md": {
+    "bytes": 7535,
+    "mode": "0o644",
+    "sha256": "644ce23f64e1882232665e6389404b2813df74ba9d6228e84a984c500132c855",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/README.md": {
+    "bytes": 81136,
+    "mode": "0o644",
+    "sha256": "858dc833be577cffeb439c5d0d43eb2c5d379bc4ac8e65757112fa418b71a787",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/SAMPLES-2026-09-17.md": {
+    "bytes": 14767,
+    "mode": "0o644",
+    "sha256": "16266a7f5d4bf25ebd1b7a2ceba4ed13ef0eaa933e2250b6eadc944e878f0750",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/SAMPLES-2026-09-18.md": {
+    "bytes": 7143,
+    "mode": "0o644",
+    "sha256": "6724e5967d92ce024bbcfdd27f8c89ecc84a598293486b6cf9e86b6c2b543ad6",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/WORKFLOW-REVIEW.md": {
+    "bytes": 14755,
+    "mode": "0o644",
+    "sha256": "9aaae8385a7d802f0d3ade6c7c9157184b5899a3960e402545be1f443fa0f376",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/adapters": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/adapters/browser_driver.cjs": {
+    "bytes": 4532,
+    "mode": "0o644",
+    "sha256": "a6f0f5c2a465f4bf3da87198b4990fa7c9e10f413453e4cb7011d2292b823d32",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/adapters/tictactoe_20260917.cjs": {
+    "bytes": 3184,
+    "mode": "0o644",
+    "sha256": "90c16131b2f2102b713f16a1bdc784dffd980a826527a7886314c86911a78d52",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/audit.py": {
+    "bytes": 11629,
+    "mode": "0o644",
+    "sha256": "e6434ccc4e1608a45e81168e281dfdd4e6703e569bbeada9c89eb1a42495c84f",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/behavior_capture.py": {
+    "bytes": 40307,
+    "mode": "0o644",
+    "sha256": "aeea7dd736c81abb488812b99a514c2f0b039aedb5dd7af307fcde0eea387909",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/campaign.py": {
+    "bytes": 14442,
+    "mode": "0o644",
+    "sha256": "4d17d1e544637a0ad601805d7c5e1c0728b368e7229e64e540c9602f37825079",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/capture.py": {
+    "bytes": 46426,
+    "mode": "0o644",
+    "sha256": "7536901665844dcf3f9e57fcec149b5846b499964144f3d697335000c0cbc578",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/check_suite.py": {
+    "bytes": 5135,
+    "mode": "0o644",
+    "sha256": "690205a1021b5b2d858f8c254c74c370a57dd19e265960456ce108ffa74403ba",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/dag_replay.py": {
+    "bytes": 57277,
+    "mode": "0o755",
+    "sha256": "bd0a91a09b3ee5dc005c6a701aa25e362b9d45e1004658789b0781702ae8c021",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/driver_transport.py": {
+    "bytes": 12086,
+    "mode": "0o644",
+    "sha256": "335bb982fa9c48fa62a9f087ad6f3ccebdf1f1bb88711e8bbd54e59421cd8382",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/evidence.py": {
+    "bytes": 33492,
+    "mode": "0o644",
+    "sha256": "79059fe26467080ee5fd18deb886a4055b920413d1c1fcd8d83928e0b00ce37b",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/benign_unused": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/benign_unused/Bad.html": {
+    "bytes": 75,
+    "mode": "0o644",
+    "sha256": "fffcf73cbf1d82d1853895f59a47acd8f4ac7c726df052b527c2cae86f691487",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/benign_unused/Code.gs": {
+    "bytes": 75,
+    "mode": "0o644",
+    "sha256": "2f1fc3c637a8aec0b0a56ae947c349ccee9370368ba332e67bda1a124784019c",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/benign_unused/Good.html": {
+    "bytes": 84,
+    "mode": "0o644",
+    "sha256": "59454c39e7d50e1d8c18278fd67128cf56ec9c9b79924e306d319e0b0509a449",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/benign_unused/engine.js": {
+    "bytes": 36,
+    "mode": "0o644",
+    "sha256": "da1ac26e994c042c4ec81dbc7c575f0292c075df2dc277430d06ef99529d0c30",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/css_relative_bad": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/css_relative_bad/Code.gs": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "daa784abba727a98a97396858373c41375904145f291309e45cd51324d5ff7d7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/css_relative_bad/Page.html": {
+    "bytes": 149,
+    "mode": "0o644",
+    "sha256": "509e632cdee97e1fb1ec25c6a02e72bb297809b573727a848f57e23f06e3d849",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/css_relative_bad/assets": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/css_relative_bad/assets/piece.svg": {
+    "bytes": 47,
+    "mode": "0o644",
+    "sha256": "7b3bba3ed45b3afc89d0fd38e5076b1158d7747369a8517ed2b561eb4c19b077",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/css_relative_bad/theme.css": {
+    "bytes": 22,
+    "mode": "0o644",
+    "sha256": "7321d6cdf35e20054ff65967298b9f8cba9563052059cb36911014111aec86ae",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/direct_relative_bad": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/direct_relative_bad/Code.gs": {
+    "bytes": 103,
+    "mode": "0o644",
+    "sha256": "e63461b424a19e921383fb79f8afa9406e0b23399dd017fd824442bdf65bac9c",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/direct_relative_bad/Page.html": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "9d006d6b8a0d696ef2178f8d2b39891ac11814a1abf71fef276040a60407015b",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/direct_relative_bad/engine.js": {
+    "bytes": 58,
+    "mode": "0o644",
+    "sha256": "69060ec4ba9cd240ff042aedda18d5287078e2ef447d07152bfb3b7d6d8e8574",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_loaders": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_loaders/Code.gs": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "daa784abba727a98a97396858373c41375904145f291309e45cd51324d5ff7d7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_loaders/Page.html": {
+    "bytes": 289,
+    "mode": "0o644",
+    "sha256": "3a05eebf50bd21e41230557376013b0cc29a1a82ef396d886cfed86d2f6062ae",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_loaders/engine.js": {
+    "bytes": 39,
+    "mode": "0o644",
+    "sha256": "db76e156b42a8b0243a7063cbd7fa8081812df91b805ef78404014eca6dd8ef0",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_rpc": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_rpc/Code.gs": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "daa784abba727a98a97396858373c41375904145f291309e45cd51324d5ff7d7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_rpc/Page.html": {
+    "bytes": 222,
+    "mode": "0o644",
+    "sha256": "31ba30685683dd6d54f4ee5842b9d324def15fed7181968ff8a30427df74c963",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_template": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_template/Code.gs": {
+    "bytes": 179,
+    "mode": "0o644",
+    "sha256": "209ebef09c831906bfade0e86f25d3b50777c6332a5cefe1b4c8cc3d29ccefc2",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/dynamic_template/Page.html": {
+    "bytes": 70,
+    "mode": "0o644",
+    "sha256": "cdb87bc7ad09596479fd55d0d579e76aea0c5228241fd08d545ab6af97d85244",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_external": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_external/Code.gs": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "daa784abba727a98a97396858373c41375904145f291309e45cd51324d5ff7d7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_external/Page.html": {
+    "bytes": 98,
+    "mode": "0o644",
+    "sha256": "d84757467d05f4250e9dd2da8a2383208e61c56a31299c923bb5e50858259046",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_relative": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_relative/Code.gs": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "daa784abba727a98a97396858373c41375904145f291309e45cd51324d5ff7d7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_relative/Page.html": {
+    "bytes": 146,
+    "mode": "0o644",
+    "sha256": "d162f3030450c6cbfdb5acceca77842168969f5ad7a12738b7959588d880423e",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_relative/engine.html": {
+    "bytes": 39,
+    "mode": "0o644",
+    "sha256": "13635f94e65688d36757e1bb64601da4f8b41ac192e832704a161d6b9b5dd98d",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_relative/help.html": {
+    "bytes": 12,
+    "mode": "0o644",
+    "sha256": "04ed5d7ef8cae553a81314c6377579d7f9ca74f76986eea5bd576ece450a3bd4",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/embedded_relative/rules.html": {
+    "bytes": 13,
+    "mode": "0o644",
+    "sha256": "3a6cde69ddb0678c79090ad8aec6605cad848029084eb7df7ffe5a681af50987",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/external_https": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/external_https/Code.gs": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "daa784abba727a98a97396858373c41375904145f291309e45cd51324d5ff7d7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/external_https/Page.html": {
+    "bytes": 340,
+    "mode": "0o644",
+    "sha256": "8a3cb0325beb332f4397f89f12b77fe07f65912e88962ec8dba842712364a7e0",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/include_cycle": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/include_cycle/A.html": {
+    "bytes": 22,
+    "mode": "0o644",
+    "sha256": "679b4bef1aaab84b7909b71437b89233bf5f661da5df4ed113f8eeec604e2db2",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/include_cycle/B.html": {
+    "bytes": 22,
+    "mode": "0o644",
+    "sha256": "c87b5aba4b3f002e9a44fba51ed0f39997e9a240c2ea63b972f9f0f4347abaa9",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/include_cycle/Code.gs": {
+    "bytes": 179,
+    "mode": "0o644",
+    "sha256": "209ebef09c831906bfade0e86f25d3b50777c6332a5cefe1b4c8cc3d29ccefc2",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/include_cycle/Page.html": {
+    "bytes": 63,
+    "mode": "0o644",
+    "sha256": "4b9742f0c18b381b1650c2a4c38c96759f10c3b853d4c698d4c0261771e0f30a",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/insecure_http": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/insecure_http/Code.gs": {
+    "bytes": 76,
+    "mode": "0o644",
+    "sha256": "daa784abba727a98a97396858373c41375904145f291309e45cd51324d5ff7d7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/insecure_http/Page.html": {
+    "bytes": 97,
+    "mode": "0o644",
+    "sha256": "488b1d5010c03fca4a3879eb1209b1001a15d5f76a1f20ee8c4b3b74bb361dc8",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/missing_include": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/missing_include/Code.gs": {
+    "bytes": 179,
+    "mode": "0o644",
+    "sha256": "209ebef09c831906bfade0e86f25d3b50777c6332a5cefe1b4c8cc3d29ccefc2",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/missing_include/Page.html": {
+    "bytes": 68,
+    "mode": "0o644",
+    "sha256": "504c26ac8f804c622c110ea660c42a3b94ad8a26a7d8ea4426f5ba0f7ffd7289",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/PROVENANCE.md": {
+    "bytes": 1681,
+    "mode": "0o644",
+    "sha256": "9daacc1319a0e2dd5ee6e59e440b4ac3c5c7c28498a8174c99d232f5e3294678",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/checkers": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/checkers/Code.gs": {
+    "bytes": 98,
+    "mode": "0o644",
+    "sha256": "9abf5855049e259bc7acc9e5131acf4f6703b40ac2b6b7fd7653256c60665b11",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/checkers/Index.html": {
+    "bytes": 5661,
+    "mode": "0o644",
+    "sha256": "aa14d12f3d77487ec2daac6bc894c11d2f52c7f56751cb6ee21733728f0c43eb",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/checkers/engine.js": {
+    "bytes": 8125,
+    "mode": "0o644",
+    "sha256": "dd775e03a90b46083a7f028e9b4c643e7f70aa9bd24dd5fbfd9bc78c864c90a1",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/tic-tac-toe": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/tic-tac-toe/Code.gs": {
+    "bytes": 372,
+    "mode": "0o644",
+    "sha256": "445dbd4aac83e8d72f4af7cb69fc278c541651478422015b1792cdb0f0e2ccdf",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/tic-tac-toe/Index.html": {
+    "bytes": 3523,
+    "mode": "0o644",
+    "sha256": "1e4c66f3ec2df04bec6a7fabe9172a756c8b39dd4eba2c0beaf3011f93179478",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/retained-products-v1/tic-tac-toe/JavaScript.html": {
+    "bytes": 3824,
+    "mode": "0o644",
+    "sha256": "5d179326531c82cab387cc8c52b1778c30a109f1f0a4e2bcb50eec98e9b42ab7",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/self_contained": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/self_contained/Page.html": {
+    "bytes": 113,
+    "mode": "0o644",
+    "sha256": "c1bbb5a572d88511d70833728572373244ed59dbc7c6c69cdb9e2eb07c73f1f5",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/template_ok": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/template_ok/Client.html": {
+    "bytes": 49,
+    "mode": "0o644",
+    "sha256": "b27c8ed81afedc58e11a43d9aed32a76aaee677ad0a6fbc9482b8d934672c7bb",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/template_ok/Code.gs": {
+    "bytes": 222,
+    "mode": "0o644",
+    "sha256": "01c0f052602a8528504efab3ba6cba492b13be31da961603306341f9b1835761",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/template_ok/Page.html": {
+    "bytes": 142,
+    "mode": "0o644",
+    "sha256": "03aba17cadcbcdb939205dabb24562e68fa45ba532c805f2b6a6981a8ec4f681",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/template_ok/Styles.html": {
+    "bytes": 41,
+    "mode": "0o644",
+    "sha256": "af38adee7fc6214c6a1684cd97ccf546056ec01d6e2151bcda3709a4535fdaa1",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/unsafe_include": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/unsafe_include/Code.gs": {
+    "bytes": 179,
+    "mode": "0o644",
+    "sha256": "209ebef09c831906bfade0e86f25d3b50777c6332a5cefe1b4c8cc3d29ccefc2",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/gas/unsafe_include/Page.html": {
+    "bytes": 72,
+    "mode": "0o644",
+    "sha256": "16cc1d8fee9f50ea20362f11274c612ec8c35a364850e496601c8052901c5c7a",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/host": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/host/checkers_nested_heredoc_plan_callback_unattributed.json": {
+    "bytes": 8161,
+    "mode": "0o644",
+    "sha256": "dea7ba4eef76f6d61e1e66d4f2bdc3c4cccfe8e44b452467faa83050f1eacf27",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/host/checkers_supported_python_heredoc_terminal_callback.json": {
+    "bytes": 8295,
+    "mode": "0o644",
+    "sha256": "e99b475f076bfdaa76f1b04aee5389952a8110fd97f49bbe8119a3050e89e4cf",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/host/synthetic_failed_callback_followed_by_exit_zero.json": {
+    "bytes": 7800,
+    "mode": "0o644",
+    "sha256": "7704809b5391ef512e677bc1b29de8cf2509b633e296dcb269830261fe3a7e21",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/host/ttt_dynamic_start_prelude_unattributed.json": {
+    "bytes": 8073,
+    "mode": "0o644",
+    "sha256": "4130c4ddef07d02c7578796c8b96fb1ff90638cf61244e73a9152069e309a7d9",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/fixtures/host/ttt_literal_standalone_complete.json": {
+    "bytes": 8051,
+    "mode": "0o644",
+    "sha256": "d7c25ff3201fd11daf4edbc9d8f831dfc099bac2b4ddb4776ba584ccf7ac968e",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/freshness.py": {
+    "bytes": 26195,
+    "mode": "0o644",
+    "sha256": "eb3c456e2afb8fdd991c3149b965e4c9051d16e29f2c0488a98368ecbe1307d6",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/gas_artifact.py": {
+    "bytes": 31863,
+    "mode": "0o644",
+    "sha256": "63869eaedfce9c3629d095f7258692619fe1fbbd5ba8416d93a6f274a1887913",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/grading.py": {
+    "bytes": 22047,
+    "mode": "0o644",
+    "sha256": "47cdc310ff225d50fab99df2bbb5b2f2031432ceca6723462812ad4d2133f3aa",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/grok_adapter.py": {
+    "bytes": 50005,
+    "mode": "0o644",
+    "sha256": "9252bd56ac1c2f3490f81858705f36c1e7b67072237b7fda304970b7bf94f21e",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/layout.py": {
+    "bytes": 4864,
+    "mode": "0o644",
+    "sha256": "db767ced88e5a90c08f6cab71deab12c9c614699d44744dc468cef31c711c505",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/mock_grok.py": {
+    "bytes": 4301,
+    "mode": "0o755",
+    "sha256": "3f33e95ed7858c8c8768ac5bea5d7f59acc5a5bd3ea21703e9f08e7b38a47bcf",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/oracle_games.py": {
+    "bytes": 67435,
+    "mode": "0o644",
+    "sha256": "cfec4be9e57a6cbfc0509b04dc3a1fe2116cf448ee4f43665a6a8ec289cd5ac9",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/planning_evidence.py": {
+    "bytes": 43736,
+    "mode": "0o644",
+    "sha256": "2026290b88abe411f9367ce2b50802d4c81061bb28708d0139d2e2f020c406a0",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/planning_trace.py": {
+    "bytes": 3658,
+    "mode": "0o644",
+    "sha256": "79408e75447d7f014144aa7acc8039e05c3888df526f8f3df9cfde11145f93ae",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/recovery_isolation.py": {
+    "bytes": 3492,
+    "mode": "0o644",
+    "sha256": "4fb443abf062ec72a061d00f84eac2f40562eaf82a84deaf6a2b7fe68237002b",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/run.py": {
+    "bytes": 96517,
+    "mode": "0o644",
+    "sha256": "2d6495dba14787815ad8bc313f763d7d0c85b8f244188fea72d9cdb352f801ef",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/salesforce_proof.py": {
+    "bytes": 21229,
+    "mode": "0o644",
+    "sha256": "1b87fca089f074e484c6497317fe420c13d248d95161a830f21957f3291d7e29",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/scenarios.json": {
+    "bytes": 46445,
+    "mode": "0o644",
+    "sha256": "420591d386d467712328f0ba2312233fc688db7693066d4a1143a3541fbb06ca",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/suites.json": {
+    "bytes": 9382,
+    "mode": "0o644",
+    "sha256": "16ef45b05d1d46263e6b6aace5c32bb0a1e4c0e91432437eaf5e6fe43d003878",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/suites.py": {
+    "bytes": 13159,
+    "mode": "0o644",
+    "sha256": "d7a8579858d4fa445eee7903e45c46e7c30d008f6131e5ab4790eaf46cf0b4c5",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_audit.py": {
+    "bytes": 5307,
+    "mode": "0o644",
+    "sha256": "8fcfba2614bfc6b88a8024023869e5ad69cbae8441054e823b2abc56cc651e56",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_behavior_capture.py": {
+    "bytes": 18544,
+    "mode": "0o644",
+    "sha256": "f35e4556b6b79e7c4dbf4543eb1a33cfaff08918cf2afc1922a8fbb25324a210",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_campaign.py": {
+    "bytes": 9854,
+    "mode": "0o644",
+    "sha256": "03d09d4975c82f61853d5265ead8554b7a5e74c920b8a524d6fe0f0fc83bfaed",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_capture.py": {
+    "bytes": 36395,
+    "mode": "0o644",
+    "sha256": "91468c7b2f0cb54d0572b82d29bdd9d5f62d25baae89e3255d71cc67869b008f",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_check_suite.py": {
+    "bytes": 4210,
+    "mode": "0o644",
+    "sha256": "03c2c700afc5a646f4ad7a3f3d0846841a17ab74790f379f5c46d58d2e47f411",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_checkout_binding.py": {
+    "bytes": 10877,
+    "mode": "0o644",
+    "sha256": "d2b0bfb693ab48e4f2c3d396bb2b22c5d2b5684241d99294d58d2700c4c3b7a6",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_dag_replay.py": {
+    "bytes": 24961,
+    "mode": "0o644",
+    "sha256": "c22c3a5776b01652fe93d8536b2078aead572efc6fb2fa53697c8654a42e75c5",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_driver_transport.py": {
+    "bytes": 5616,
+    "mode": "0o644",
+    "sha256": "bc2d81386c2b46075e4dea2f6d0afc9496ef60bb9d0f20a692af4530aec632ed",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_evidence.py": {
+    "bytes": 18089,
+    "mode": "0o644",
+    "sha256": "6e90241d4f8dd509c4e6679b601c1155685c73642949f137bbdb57dc89d74a50",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_freshness.py": {
+    "bytes": 18707,
+    "mode": "0o644",
+    "sha256": "a1617311b6f3b7acbb010cc75f0acda0c8c8b6c1fa5ed702bf8c08d3aa6de286",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_gas_artifact.py": {
+    "bytes": 6976,
+    "mode": "0o644",
+    "sha256": "73894cfd1c1c3cccee908aca7fe13753db848456fba4685cbe1ea99b0e4c60fa",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_grading.py": {
+    "bytes": 15419,
+    "mode": "0o644",
+    "sha256": "5362512e86ad32bda719d367586d27a24498f27377aa7b6efd7662f726c59547",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_grok_adapter.py": {
+    "bytes": 52745,
+    "mode": "0o644",
+    "sha256": "05768c88377bd097585d872dae8f51948859f7f07770e917e95cea45dd76eda0",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_oracle_games.py": {
+    "bytes": 9491,
+    "mode": "0o644",
+    "sha256": "e96154a9d369eda193b36ebab6d50235ad39aebfc7da484a5155c6513b0a6955",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_planning_evidence.py": {
+    "bytes": 25843,
+    "mode": "0o644",
+    "sha256": "6ce3b266b9e675f6760e126dfe5465fbdc80878edf57d04aa00bbafed44eb383",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_protocol_compat.py": {
+    "bytes": 17253,
+    "mode": "0o644",
+    "sha256": "140a807cdcfc5c6196d54c7a24181aa2d15784386a13d6627b54d09a18cd6824",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_recovery_isolation.py": {
+    "bytes": 2824,
+    "mode": "0o644",
+    "sha256": "d5d5b5ef8ee0666e799c9ee0278624af91879a99d82c6865e3fddf733c95512c",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_run.py": {
+    "bytes": 62558,
+    "mode": "0o644",
+    "sha256": "beaf402bd78147d931fa8a964031030f861b49ad9c0263a8d488b29d2593744e",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_salesforce_proof.py": {
+    "bytes": 13070,
+    "mode": "0o644",
+    "sha256": "05e5632f731a90c0d54dc49f323b4a99ee2f4302472233dc44870f2269c1fb23",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_suites.py": {
+    "bytes": 9503,
+    "mode": "0o644",
+    "sha256": "809d65ad2bcf4e0fadc4336c5f830d38fa07d0836b21b1cc5d71c620fd936d04",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_tictactoe.py": {
+    "bytes": 10800,
+    "mode": "0o644",
+    "sha256": "b7b637d7d048bd0d7ef4afed48918e2c6540d5912e40d2b2d33b4d699163578a",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_timeout_cleanup.py": {
+    "bytes": 12232,
+    "mode": "0o644",
+    "sha256": "1094c14206e3752ec880cb7cb055816574d1f18da6dae20de915d5ad6d394693",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_trace_corpus.py": {
+    "bytes": 7360,
+    "mode": "0o644",
+    "sha256": "6f95559eac9e8935b18bafff3482f9df090b6a69be963a9215bd9786f0008310",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_verify_suite.py": {
+    "bytes": 58762,
+    "mode": "0o644",
+    "sha256": "82c9e69ad0a072a2681c0dab4b71dde210a5df6a7e676647369a1c8e6c8c6d1d",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/test_workflow_review.py": {
+    "bytes": 18961,
+    "mode": "0o644",
+    "sha256": "cb3b24ebeac76f2fc543c82c3245ecde83bbcdc75455f75cdf63b3950eccea89",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/verify_suite.py": {
+    "bytes": 94327,
+    "mode": "0o644",
+    "sha256": "d95ba3d728d8ffe85183f5cde7cc9829892abe39ac47ae99f827b9685b47ef9f",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/verify_tictactoe.py": {
+    "bytes": 20348,
+    "mode": "0o644",
+    "sha256": "70fd348a06b26c48c45b2a16f28c24d7347a40bda5d9b6e49d603ef66f6afba4",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/workflow-review-template.json": {
+    "bytes": 2509,
+    "mode": "0o644",
+    "sha256": "f732baa40a51e8e9977940827ca0490e42e6998b12fa5510a5bf72b10dd51ce3",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/harness/workflow_review.py": {
+    "bytes": 15220,
+    "mode": "0o644",
+    "sha256": "2ebccda74c779cfe8e0dea59c9d2c22006d0206ab1c42d14cf62abe528c6c36f",
+    "type": "file"
+  },
+  "skills/shiploop-e2e-audit/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-e2e-audit/scripts/resolve_harness.py": {
+    "bytes": 9860,
+    "mode": "0o644",
+    "sha256": "24d93d2ac4847d6db555518227714bbe30e07a8590ffdda5e368a110fd318dc9",
+    "type": "file"
+  },
+  "skills/shiploop-run-review": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-run-review/SCHEMA.md": {
+    "bytes": 105820,
+    "mode": "0o644",
+    "sha256": "b3b035b41756a6fd8ff02a73372799d528a91b87902ef309a07ab0429862c358",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/SKILL.md": {
+    "bytes": 14287,
+    "mode": "0o644",
+    "sha256": "e6a8860c0f377978d36398ae651af5de19f5188a8f82a6773dd79a639d9a4100",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/defaults": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-run-review/defaults/config.json": {
+    "bytes": 1117,
+    "mode": "0o644",
+    "sha256": "84ea32f92100fde16dffc7edf4e40aa2a7ff8f39ad602c27b23a443eaf18625a",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/defaults/expectations.json": {
+    "bytes": 10074,
+    "mode": "0o644",
+    "sha256": "0aa7efd6c579d97fa5e08c91ea9923dd3d21cae32476bc53a081632e1324bc8d",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/defaults/stages-v4.json": {
+    "bytes": 8100,
+    "mode": "0o644",
+    "sha256": "cbb312954ae8beceb83c5485b3689603c698e9fbf037a1c44db6f815bb2031be",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/defaults/stages-v5.json": {
+    "bytes": 9638,
+    "mode": "0o644",
+    "sha256": "967e9bd15f028dc62f4bf7761057ffcf80658716a8ddec8118d83e6ad28fd7d2",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/defaults/stages.json": {
+    "bytes": 6508,
+    "mode": "0o644",
+    "sha256": "f8ea680459b37a245ea12c6d05ae653b32ed4e1dd566a46fe4089c51981fd777",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-run-review/references/advice.md": {
+    "bytes": 10342,
+    "mode": "0o644",
+    "sha256": "0c600d1a125d3eff511ec36dbb7729c1911f7afcdd44d932c4ff49747b810b99",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-run-review/scripts/export.py": {
+    "bytes": 273087,
+    "mode": "0o644",
+    "sha256": "1630641c3c8e6e13d01f4495e4453f814856c6ec1b20738d7b538ccf87020b64",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/template": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop-run-review/template/index.html": {
+    "bytes": 230183,
+    "mode": "0o644",
+    "sha256": "5d92f88b1a34682f96455c7cdb1c53bee74a90b9d77463346edf3c8062683449",
+    "type": "file"
+  },
+  "skills/shiploop-run-review/template/static-db.js": {
+    "bytes": 1392,
+    "mode": "0o644",
+    "sha256": "85163577db0517426a461e93bafe2fa07ea59e9c6e6bafa10a2798f04ab40a44",
+    "type": "file"
+  },
+  "skills/shiploop/README.md": {
+    "bytes": 118942,
+    "mode": "0o644",
+    "sha256": "77f7850585a3201de3acf13fc2002afc0cfcd139a7fdd3ec1dce0547baeae013",
+    "type": "file"
+  },
+  "skills/shiploop/SKILL.md": {
+    "bytes": 17433,
+    "mode": "0o644",
+    "sha256": "90dbae769e6b5fffb8c149be676e5fbc723dcd78ea8234298f33ce8decc15e74",
+    "type": "file"
+  },
+  "skills/shiploop/commands": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop/commands/shiploop-complete.md": {
+    "bytes": 3102,
+    "mode": "0o644",
+    "sha256": "77de584f1be17910813798f845480b4dcfb0ff3ca8682c9435e1ac32759b8e2a",
+    "type": "file"
+  },
+  "skills/shiploop/commands/shiploop-next.md": {
+    "bytes": 705,
+    "mode": "0o644",
+    "sha256": "b15b5a1081cd5845fddce50392237251783d07cc2f56be5fc8394310db8a8ba7",
+    "type": "file"
+  },
+  "skills/shiploop/commands/shiploop-recover.md": {
+    "bytes": 1163,
+    "mode": "0o644",
+    "sha256": "c22a19a1ade1175fc8486908ef51babd51665b1908a4b44048e869fc50c0dcf0",
+    "type": "file"
+  },
+  "skills/shiploop/commands/shiploop.md": {
+    "bytes": 1586,
+    "mode": "0o644",
+    "sha256": "c404c77abd1085de68d9fa3aef2135db1a3e087ad412d3a350c6c6fa787010fa",
+    "type": "file"
+  },
+  "skills/shiploop/hooks": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop/hooks/opencode-keepalive.js": {
+    "bytes": 1422,
+    "mode": "0o644",
+    "sha256": "7394aacf6b06fa708ca850dc5841aa65d97689b6a40bb09403d57be375805e44",
+    "type": "file"
+  },
+  "skills/shiploop/host-hooks.json": {
+    "bytes": 1166,
+    "mode": "0o644",
+    "sha256": "4f77cf19cd780d863bd63e91cb18968146b956dc4384f2ceb92451b1d421488b",
+    "type": "file"
+  },
+  "skills/shiploop/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop/references/backchain-planning.md": {
+    "bytes": 17461,
+    "mode": "0o644",
+    "sha256": "d69d395fec50b23228ac2015adb383fa4044e9288ddfa9bd8a02259a6a42bc73",
+    "type": "file"
+  },
+  "skills/shiploop/references/behavioral-requirements.md": {
+    "bytes": 38195,
+    "mode": "0o644",
+    "sha256": "3fdf933cc6d159c7ff4403f85a170209c6afd8262ccf24e04498a3e714a753da",
+    "type": "file"
+  },
+  "skills/shiploop/references/carry-forward.md": {
+    "bytes": 5919,
+    "mode": "0o644",
+    "sha256": "54c86bb006ee09d33d6cbb6e51aff9e30f77b749940d860f8cfc1855fda363bf",
+    "type": "file"
+  },
+  "skills/shiploop/references/coding-guidance.md": {
+    "bytes": 5660,
+    "mode": "0o644",
+    "sha256": "b757529df9e7b50e6887c592593d37d028a710d49a9faa48994b62fc8dfe7098",
+    "type": "file"
+  },
+  "skills/shiploop/references/coding-practices.md": {
+    "bytes": 14881,
+    "mode": "0o644",
+    "sha256": "9160603ae20808705cd130ede9324edc4acd08078c6adbbf1f8b07d1bc19715a",
+    "type": "file"
+  },
+  "skills/shiploop/references/consumer-delivery.md": {
+    "bytes": 13714,
+    "mode": "0o644",
+    "sha256": "e6ebc8bc80c5477f8e5d1a710f357c5bf20fec920eb10887ac64d3b1c8056702",
+    "type": "file"
+  },
+  "skills/shiploop/references/current-system-baseline.md": {
+    "bytes": 10035,
+    "mode": "0o644",
+    "sha256": "a602800ab0905b7f89f8242c84f2ee271f3ead083843b6feda7f61b5a8e768f5",
+    "type": "file"
+  },
+  "skills/shiploop/references/delivery-authority.md": {
+    "bytes": 8126,
+    "mode": "0o644",
+    "sha256": "518f59919a6c899144385c8123b70f025930b7788073c7fc17fe892ea9093561",
+    "type": "file"
+  },
+  "skills/shiploop/references/environment-lifecycle.md": {
+    "bytes": 10849,
+    "mode": "0o644",
+    "sha256": "17426c3b311a23309f95d1e0202ad1a796d18aac70898f2a925400551e84f745",
+    "type": "file"
+  },
+  "skills/shiploop/references/execution-planning.md": {
+    "bytes": 23258,
+    "mode": "0o644",
+    "sha256": "712ef4a89cbcb430423bd6e70ea000e52a761054ede3ab5f179515ce3b5afc71",
+    "type": "file"
+  },
+  "skills/shiploop/references/glossary.md": {
+    "bytes": 17954,
+    "mode": "0o644",
+    "sha256": "b419b7db723e198f3f8e902f1fb0d514f9f94c99ecf8665160ddc8256be8ae69",
+    "type": "file"
+  },
+  "skills/shiploop/references/graph-dry-run-scenario.json": {
+    "bytes": 620,
+    "mode": "0o644",
+    "sha256": "96528d20752dc8d8f97a65f42a9fc638c5c0e869c1c69fb78f0246715b98c31e",
+    "type": "file"
+  },
+  "skills/shiploop/references/graph-dry-run.md": {
+    "bytes": 4408,
+    "mode": "0o644",
+    "sha256": "5b63048e79bf84543c1f24eb64880cea32cf76bad088d8615736b23e07f2ea1f",
+    "type": "file"
+  },
+  "skills/shiploop/references/guide-map.md": {
+    "bytes": 6581,
+    "mode": "0o644",
+    "sha256": "b3dd06be1dd35e0778307eb4755259dd691330296980a6340e4384eca69b6143",
+    "type": "file"
+  },
+  "skills/shiploop/references/host-matrix.md": {
+    "bytes": 4293,
+    "mode": "0o644",
+    "sha256": "58ecbf3e73d2495ce59ceb8313533ab71c108e2f2a2f83d4de5f4d813fb35195",
+    "type": "file"
+  },
+  "skills/shiploop/references/house-style.md": {
+    "bytes": 9486,
+    "mode": "0o644",
+    "sha256": "e7ed9d36e9daa454cdd0b7d397c8ed19b91578510b0193ae611fd86966eb923d",
+    "type": "file"
+  },
+  "skills/shiploop/references/implement-guidance.md": {
+    "bytes": 4016,
+    "mode": "0o644",
+    "sha256": "7bb1bdc97931e1547d1bdaca36ed1df65e33e8cb625f7e46a7cafda032b8fc0a",
+    "type": "file"
+  },
+  "skills/shiploop/references/improve-child.md": {
+    "bytes": 3375,
+    "mode": "0o644",
+    "sha256": "01016b81fa24bdec00bc287a8d01bcd03923a942d211c0084c4d86e974c4339c",
+    "type": "file"
+  },
+  "skills/shiploop/references/improve-context.md": {
+    "bytes": 35733,
+    "mode": "0o644",
+    "sha256": "6e814970dd9d8bb5461e80b77fa6237a7064ad8a1d26cfde76e1e492a2641cb9",
+    "type": "file"
+  },
+  "skills/shiploop/references/improve-stages.md": {
+    "bytes": 6345,
+    "mode": "0o644",
+    "sha256": "4837fb85e9679d89436d753b98c44d9057f3ceb21b55fbf60b706998ac09222e",
+    "type": "file"
+  },
+  "skills/shiploop/references/inner-loop.md": {
+    "bytes": 8130,
+    "mode": "0o644",
+    "sha256": "e102e244a868bc9cf4857d1eb42fe8602178e45c8995c507077a7f9cc51a67c6",
+    "type": "file"
+  },
+  "skills/shiploop/references/keepalive.md": {
+    "bytes": 17946,
+    "mode": "0o644",
+    "sha256": "2be7e8e19692de4975f83c5f9437247f9932b1d816b76fbbf1028a009a2363fe",
+    "type": "file"
+  },
+  "skills/shiploop/references/lint-catalog.md": {
+    "bytes": 21789,
+    "mode": "0o644",
+    "sha256": "0bf40549cc4e92f82e20c787272242e99305cda8db04d81bb1e13eba058219a5",
+    "type": "file"
+  },
+  "skills/shiploop/references/navigator.md": {
+    "bytes": 69541,
+    "mode": "0o644",
+    "sha256": "e90783cf11e067c821b8562985780f9d4901ef71cec05ee0cd299be5b1326d92",
+    "type": "file"
+  },
+  "skills/shiploop/references/path-classes.json": {
+    "bytes": 1271,
+    "mode": "0o644",
+    "sha256": "a876ae4cd827a5611f3759325f82f2583105b831d0908fdecffc180905b5ffc8",
+    "type": "file"
+  },
+  "skills/shiploop/references/plan-record.md": {
+    "bytes": 6045,
+    "mode": "0o644",
+    "sha256": "3934665b0bceecbd66c901a28afa41399ae20b80d3131d2e98cbb744452afd3b",
+    "type": "file"
+  },
+  "skills/shiploop/references/planning-experiments.md": {
+    "bytes": 12348,
+    "mode": "0o644",
+    "sha256": "01c2ee48c89fe1480567e14e65426699599d695e9e6aa91704c03773550550d1",
+    "type": "file"
+  },
+  "skills/shiploop/references/platform-discovery.md": {
+    "bytes": 9046,
+    "mode": "0o644",
+    "sha256": "6bc0036bc43c367c685401eba410e0f19685e2d677287d8f94f05984e20533e6",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop/references/platforms/apps-script.md": {
+    "bytes": 6252,
+    "mode": "0o644",
+    "sha256": "8e25ae0009e4141d699d70cb9dc52886d4614c5dd51ec3f603e61a1d7829f0ca",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/aws.md": {
+    "bytes": 9969,
+    "mode": "0o644",
+    "sha256": "7b1d981a3769828a18be11bd0f73258f173a4e4cce6728626faefb6370bd14a5",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/bash.md": {
+    "bytes": 1674,
+    "mode": "0o644",
+    "sha256": "a0cce207cdfde1eaf8379513af4c488367b669e581f829213fcfc9562752fb3d",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/cloudflare-workers.md": {
+    "bytes": 9129,
+    "mode": "0o644",
+    "sha256": "8bdea4136dcda062f3d1831674997d2e7190d7e9eb707dda2e642c9c9a330ef1",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/gcp.md": {
+    "bytes": 8553,
+    "mode": "0o644",
+    "sha256": "cdce2cac84054cb7ed023e071b65f786f1b04b7ef0b543c1063f3c62b4c13e47",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/node-express.md": {
+    "bytes": 8656,
+    "mode": "0o644",
+    "sha256": "c43f984ed822416c1186364e69e1a1786685e9ee0763189dcb47885476d2c143",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/python.md": {
+    "bytes": 2730,
+    "mode": "0o644",
+    "sha256": "63e9e6d7eb37a9b397a8550f4573dc2103d09d3d6fc6597476f77536407d9171",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/salesforce.md": {
+    "bytes": 13819,
+    "mode": "0o644",
+    "sha256": "b78c2015babb8d478f9ed70ab72da89581dc793ab7d2289d8e79987a1e8606e2",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/ui-frameworks.md": {
+    "bytes": 6806,
+    "mode": "0o644",
+    "sha256": "46073a83db1aa92f315ca080e5e8e11bbbced37c02e1ef461335d0212d61a083",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/ui.md": {
+    "bytes": 5560,
+    "mode": "0o644",
+    "sha256": "16909672c23e8b09610199505f65ed38210cef240c21e5a27a03c3e27d647ecc",
+    "type": "file"
+  },
+  "skills/shiploop/references/platforms/vercel.md": {
+    "bytes": 8445,
+    "mode": "0o644",
+    "sha256": "2d39d23f78140299922c89baf9c7b8ddc464f1ada6ba5ea1175a5d800506cb0f",
+    "type": "file"
+  },
+  "skills/shiploop/references/project-knowledge.md": {
+    "bytes": 49431,
+    "mode": "0o644",
+    "sha256": "019958baf1e3ee43317e10fa3e520f2437bc14992f42eab2a983b36ecbab9d1a",
+    "type": "file"
+  },
+  "skills/shiploop/references/repeatable-test-suites.md": {
+    "bytes": 29497,
+    "mode": "0o644",
+    "sha256": "3b755d9d8e6eab09544b4988b7814e164f922ad2ff80affcedb88b4dc731a11f",
+    "type": "file"
+  },
+  "skills/shiploop/references/requirements-definition.md": {
+    "bytes": 12402,
+    "mode": "0o644",
+    "sha256": "b6292bdfb6db846bf93dae60d32a4895c202733eb12ba2ef299681cfd7b51f41",
+    "type": "file"
+  },
+  "skills/shiploop/references/research-loop.md": {
+    "bytes": 45437,
+    "mode": "0o644",
+    "sha256": "9f3a1258e4f972e4186b40bff7e346fe14a20fc2eaf81228aeadd5202270a2bb",
+    "type": "file"
+  },
+  "skills/shiploop/references/run-options.md": {
+    "bytes": 6985,
+    "mode": "0o644",
+    "sha256": "bd6aa245889ad1b89e70d8631a3d5c06ce8c39bc144a31fbc08d5f4a3c5f36f8",
+    "type": "file"
+  },
+  "skills/shiploop/references/run-start.md": {
+    "bytes": 5298,
+    "mode": "0o644",
+    "sha256": "fcd05b4ff42d49ae6ec44ac13037c76502b6715c95c414b668a6a2810bf844f1",
+    "type": "file"
+  },
+  "skills/shiploop/references/service-discovery.md": {
+    "bytes": 18703,
+    "mode": "0o644",
+    "sha256": "81c8790ed81eceb5c5bce970fc1d577fee2a37ee93d279b0ba121e05b3e5d62f",
+    "type": "file"
+  },
+  "skills/shiploop/references/state-files.md": {
+    "bytes": 23458,
+    "mode": "0o644",
+    "sha256": "2cfaa9ecc8cd6b40172cb0a4e9a4420f3aef47ff84305d3f5cea35aaf0c17d27",
+    "type": "file"
+  },
+  "skills/shiploop/references/status-display.md": {
+    "bytes": 30657,
+    "mode": "0o644",
+    "sha256": "2b31068c39acddae427fc5c3911740f7386918ec4440dccff8638254f67980f4",
+    "type": "file"
+  },
+  "skills/shiploop/references/system-tests.md": {
+    "bytes": 7617,
+    "mode": "0o644",
+    "sha256": "8fa462db8fabf8cdae8861945ea51fa845756fd400901aa81fa4e9b7037286df",
+    "type": "file"
+  },
+  "skills/shiploop/references/test-loop.md": {
+    "bytes": 8189,
+    "mode": "0o644",
+    "sha256": "b4472d3fc9af70a0d6aa7e52bfeb37bf1b557063527c4666528d91073fb1367e",
+    "type": "file"
+  },
+  "skills/shiploop/references/testing-and-documentation.md": {
+    "bytes": 69467,
+    "mode": "0o644",
+    "sha256": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "type": "file"
+  },
+  "skills/shiploop/references/workspace-lifecycle.md": {
+    "bytes": 23209,
+    "mode": "0o644",
+    "sha256": "63e65308318ea691d3b17cf10c1a1d3807cef68e9f26f0c0eb7a87e31c28e01e",
+    "type": "file"
+  },
+  "skills/shiploop/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/shiploop/scripts/backchain_graph.py": {
+    "bytes": 33737,
+    "mode": "0o644",
+    "sha256": "d3de70efdd385ca96caa4cf186fe2a6646b2f227f509ec21782bb16f3d723637",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop": {
+    "bytes": 4263,
+    "mode": "0o755",
+    "sha256": "2ce5d8cff40ecbaaffafc8594c520b9e30de1ee9e172e4e20d1dfed48091792f",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-complete": {
+    "bytes": 1072,
+    "mode": "0o755",
+    "sha256": "25ca7315c4420701571f0621673e89495dc47c6aab575927ef994519c1016718",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-drive": {
+    "bytes": 488,
+    "mode": "0o755",
+    "sha256": "b3ff53b18a4d032e96131fe41d2ae46e170c51061b824656abe622b234eda2ce",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-hook": {
+    "bytes": 714,
+    "mode": "0o755",
+    "sha256": "af3f76a79834c1cf46a84f173bea08ed210c0b798c18f9afccdddf2134734ac3",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-keepalive-observe": {
+    "bytes": 510,
+    "mode": "0o755",
+    "sha256": "21feee6efaa84fcd9596aa705da39b420902997d65d8e0b5ff29dd465af19a29",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-keepalive-session-end": {
+    "bytes": 522,
+    "mode": "0o755",
+    "sha256": "701c82a88c63b4acd72679a26d761205c7873ace404b10a5c78f38aae337ea06",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-keepalive-stop": {
+    "bytes": 501,
+    "mode": "0o755",
+    "sha256": "e2892425366fa46877e7123f37395484569305a03d30de00838d4c0c432dda84",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-next": {
+    "bytes": 1016,
+    "mode": "0o755",
+    "sha256": "6c6f65b178413a6148a9a0e1a708835bdc2a3662e6900b3c32ef28d2fd8d5e7a",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-skill-call": {
+    "bytes": 580,
+    "mode": "0o755",
+    "sha256": "b86c43110e355b99ab814df818ec10c9c8468fb80e7dcc80adea6a924004589d",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop-status-hook": {
+    "bytes": 491,
+    "mode": "0o755",
+    "sha256": "e80f56f458134c08b77af3c29286b768b785d5824ee022c83eea4f990e9d0528",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_assumptions.py": {
+    "bytes": 11816,
+    "mode": "0o644",
+    "sha256": "b5dca7783744d329b126ceed088a80480edbea68222f53df86429d747c866e20",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_backchain_graph.py": {
+    "bytes": 7603,
+    "mode": "0o644",
+    "sha256": "5d47dcb71a2777d257aeddd6af4e3f128a80451750d80d896323e4a9943fa368",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_capture.py": {
+    "bytes": 6494,
+    "mode": "0o644",
+    "sha256": "21fa1c9748f2f81fec27748ec093d6f9931a7fbc408c0d56bf9b050be2d90844",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_check.py": {
+    "bytes": 5294,
+    "mode": "0o644",
+    "sha256": "0c0dd61fd3046cee616ef487894c8290833a5ee1d7893d53bb338452be3dfa93",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_concerns.py": {
+    "bytes": 10006,
+    "mode": "0o644",
+    "sha256": "a58bd94494d5d789242f7eff32ebf8e4dadedb8651c15462456579de388c6ec6",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_consumer_delivery.py": {
+    "bytes": 52028,
+    "mode": "0o644",
+    "sha256": "95b195d8a0565fb9af3bfa15f8060dc110939aaf835dbe41a09c59fac39dfb23",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_context_index.py": {
+    "bytes": 16445,
+    "mode": "0o644",
+    "sha256": "7965af682cfa8aa7bf534381c3073eca854f5bf96be78afbc61f3a0110cbf434",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_expectations.py": {
+    "bytes": 58699,
+    "mode": "0o644",
+    "sha256": "d455393d3ecc13af52aa03acdab646d6a8cb151964bf60de29a486f30df6b3a7",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_fields.py": {
+    "bytes": 5327,
+    "mode": "0o644",
+    "sha256": "4bd00b74871fb4e47ae1522099ad09af050ef87510080d5e9d90c8055804d572",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_follow_on.py": {
+    "bytes": 16388,
+    "mode": "0o644",
+    "sha256": "b87bc2f553fd856b4c475979a883702ae17294be25ec0949eb11dab64855ad91",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_git.py": {
+    "bytes": 7695,
+    "mode": "0o644",
+    "sha256": "afa32fed8ac54d371e44d96782de541a83a1df93b8b0df23ee603cae50f8354f",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_grants.py": {
+    "bytes": 6323,
+    "mode": "0o644",
+    "sha256": "39049b42676182f9de52d0c3fff185acfa049fbbeb6d057ab20e6b8e29eaf1f3",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_improve_changes.py": {
+    "bytes": 11091,
+    "mode": "0o644",
+    "sha256": "14d6d44d76bdafbf9e3a2c41dec2aa8a609f870fbcb56e415bce75400191158a",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_item_scope.py": {
+    "bytes": 26613,
+    "mode": "0o644",
+    "sha256": "82d0adfe1d6cd3cc71d147c2587df4c6dd5f0560032bd4527184f154f217f631",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_iteration.py": {
+    "bytes": 14013,
+    "mode": "0o644",
+    "sha256": "d4a45041cc6c31bda67f3e89d1df1455c49c51661746ccfecce05c2c213995f4",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_keepalive.py": {
+    "bytes": 56189,
+    "mode": "0o644",
+    "sha256": "432222ca5e4105524bf0e91fdb96a9c0c5994108a74ac75d575403fb21d2ca1d",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_knowledge_home.py": {
+    "bytes": 67654,
+    "mode": "0o644",
+    "sha256": "3da5dab81c5991e7edb305d3050523d7c3c88b7e559cfefcb51ef0515560d49a",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_lessons.py": {
+    "bytes": 9161,
+    "mode": "0o644",
+    "sha256": "86122911ad174c3c75e150513db3978ae1693774faeea29001356e4294794374",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_lint.py": {
+    "bytes": 147864,
+    "mode": "0o644",
+    "sha256": "989a0876b77f53f8440d9b6523fcee0828279811c033e0bea2b14b0ec385e394",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_loop_contract.py": {
+    "bytes": 1796,
+    "mode": "0o644",
+    "sha256": "e4c320f5b22349a1aaffd2a04e620cc059f6890b76b04c003ea24ccf4181a21f",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_loops.py": {
+    "bytes": 47401,
+    "mode": "0o644",
+    "sha256": "26d60ef453416988a94ccb9cfce72b8813f8785ac128405934a9f806d227cfa7",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_mutation.py": {
+    "bytes": 31595,
+    "mode": "0o644",
+    "sha256": "4bb9efb95543499059a77d9337242919c71d35a0e97adc3e2c0fccdbc80b085b",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_narrative.py": {
+    "bytes": 6201,
+    "mode": "0o644",
+    "sha256": "4b6f124c32f7b29c8365c5ec6d44acd729655724e1b59b0988683d72b278ea22",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_navigator.py": {
+    "bytes": 634853,
+    "mode": "0o644",
+    "sha256": "60c2b55ec5034ec80150accb1756ae17cbcec636b7372168e5ea75d06c6aacf6",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_navigator_dry_run.py": {
+    "bytes": 14298,
+    "mode": "0o644",
+    "sha256": "5f884e56d3a909dde63a3bd92b89774731af4bb26412afc943e4f1bf131f2a1f",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_observation_io.py": {
+    "bytes": 9042,
+    "mode": "0o644",
+    "sha256": "db64d4be502786af99bda68511bdf37f8d46ea2d0b2664f8dee8d229add46c8c",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_owner_notes.py": {
+    "bytes": 20406,
+    "mode": "0o644",
+    "sha256": "8c0a7edad78ccd5726f0cba8e8a1bc0dcbe5ddfb881abfca5e9ae0f7c00fc512",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_planning_revision.py": {
+    "bytes": 24465,
+    "mode": "0o644",
+    "sha256": "091d6d787717eed0a30bfe7180e894c6594c30c61d8276b542a8053f18755671",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_primary.py": {
+    "bytes": 16920,
+    "mode": "0o644",
+    "sha256": "a742011901f2f2fdf19c2601fa02e28fea680a723d32cf0ac3504f0a2c31235e",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_privacy.py": {
+    "bytes": 4571,
+    "mode": "0o644",
+    "sha256": "ecf4c5d31dbb2ff5edf8c5a50dc026dbe0b5b7b2d249c578db8f52c0b6256268",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_progress.py": {
+    "bytes": 21914,
+    "mode": "0o644",
+    "sha256": "19c237fe79771ea80802dc32fe0ca411786309e6c1e9d5f054f22b8ae1fb0646",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_progress_data.py": {
+    "bytes": 30254,
+    "mode": "0o644",
+    "sha256": "0149aa38df61f7c06b88680ed5aedad45fa5f094163af1612622e467e383f586",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_progress_render.py": {
+    "bytes": 79438,
+    "mode": "0o644",
+    "sha256": "ed0a9cc789b46e23cde360311a3067a3fd9cc4216b859cb3a386d153aaf8ca5f",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_progress_serve.py": {
+    "bytes": 6163,
+    "mode": "0o644",
+    "sha256": "efec740e1b5d7e4aaa5774f51235cb39370d5991719b8c1d5b23a9137a84cd87",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_prompts.py": {
+    "bytes": 207162,
+    "mode": "0o644",
+    "sha256": "5147c25763624dd34c1a6f637b3b05a1bc73d823d458329fcc1a6a5cdf55c3f0",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_protocol.py": {
+    "bytes": 56025,
+    "mode": "0o644",
+    "sha256": "a3dcf8d9b1c36f27a364efb83a20a36b473c449423d9ff95fc5a61c2ec398cfb",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_pyfloor.py": {
+    "bytes": 1142,
+    "mode": "0o644",
+    "sha256": "8cd2c20ef78c184d66a3968602a331fab5268e0f70db98bb2004605d12bcad05",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_reference.py": {
+    "bytes": 11042,
+    "mode": "0o644",
+    "sha256": "5518cfb92019f68bd0a6c3549348552e803aaf8506d596027446c012691a372b",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_request.py": {
+    "bytes": 5375,
+    "mode": "0o644",
+    "sha256": "2c6fba7572cf82c4a22e04f82d438ecc8e20ab4e834ee0bace21eef883e25fa4",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_skill_calls.py": {
+    "bytes": 6109,
+    "mode": "0o644",
+    "sha256": "7b7ee316b7e39edb57e1a7f96ab2c47094e606832e9a6d114d991611da8e1d67",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_stage_spec.py": {
+    "bytes": 45207,
+    "mode": "0o644",
+    "sha256": "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_standalone_improve.py": {
+    "bytes": 43656,
+    "mode": "0o644",
+    "sha256": "ac8c5790c8a32eb10d04524a0989b9709e2ca02fbd43f0b70c2655cc0dbcfbbc",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_status_hook.py": {
+    "bytes": 12123,
+    "mode": "0o644",
+    "sha256": "79646861389149dbe04b9bc59941b3aadaa991bb59459b196074f38328617782",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_store.py": {
+    "bytes": 22467,
+    "mode": "0o644",
+    "sha256": "5b9182980cfdf79d5438100b4bd67c41a9da686153600bb2f7ee1926a94bb2d5",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_story.py": {
+    "bytes": 30797,
+    "mode": "0o644",
+    "sha256": "6dd0786c1a96baada52d550162fb7e530808cf1c26a48cd697e426e9ea2e0a17",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_test_counts.py": {
+    "bytes": 19796,
+    "mode": "0o644",
+    "sha256": "a9948df106b24f30b3433529fec6a54baa714f93df8e15fe99a5284c44426bbd",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_test_layers.py": {
+    "bytes": 17437,
+    "mode": "0o644",
+    "sha256": "4c85b3db4b3ba899cb9a055182c6c95ac86922d6d381edd5285f322f6d3a21f6",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_test_loop.py": {
+    "bytes": 133646,
+    "mode": "0o644",
+    "sha256": "4bb59c746da3f2e3fe41be1d187bca2824ec23e4a54cc2a1d2002ab7a0f1ffec",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_trace.py": {
+    "bytes": 69429,
+    "mode": "0o644",
+    "sha256": "0fd6b1e47b4225b6873c57fb07e85ddc5455d4df06c5945214b2994c14cf139a",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_trace_page.py": {
+    "bytes": 49293,
+    "mode": "0o644",
+    "sha256": "37b6f4e9c27144f9bf46ff08ef189a953ab277c549910b569a3312f1d0e9b1c3",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_unverified.py": {
+    "bytes": 17321,
+    "mode": "0o644",
+    "sha256": "df5ae671e9f2e8c56ddebae12b6020b784dd83254051f7cf6edf750eef50c219",
+    "type": "file"
+  },
+  "skills/shiploop/scripts/shiploop_workspace.py": {
+    "bytes": 116682,
+    "mode": "0o644",
+    "sha256": "b17173461b74d41e57924a430f6d321b6bab30f001b1ea80656e8be515aa616e",
+    "type": "file"
+  },
+  "skills/skill-interop": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/skill-interop/SKILL.md": {
+    "bytes": 8485,
+    "mode": "0o644",
+    "sha256": "0d4ca4d614740e8a1c9ea3273cf5425d8014a45f7e4b294f904f803eb6fafd10",
+    "type": "file"
+  },
+  "skills/skill-interop/prompts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/skill-interop/prompts/review-skill.prompt.md": {
+    "bytes": 1362,
+    "mode": "0o644",
+    "sha256": "d610eaae600b1c33961f18f9d07ec092fe87d7d3ddda52473bf09f28fa5f8b16",
+    "type": "file"
+  },
+  "skills/skill-interop/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/skill-interop/references/anti-patterns.md": {
+    "bytes": 1330,
+    "mode": "0o644",
+    "sha256": "66a1184a12eb6a9cd58e5ae40e4312822c5542752fcc14b971145bbca43d844c",
+    "type": "file"
+  },
+  "skills/skill-interop/references/checklist.md": {
+    "bytes": 3400,
+    "mode": "0o644",
+    "sha256": "ac34c94259e81cbd1462025abe50f6cee30c1a93daaef669b8379c34d6c3c176",
+    "type": "file"
+  },
+  "skills/skill-interop/references/create-template": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/skill-interop/references/create-template/SKILL.md.tmpl": {
+    "bytes": 1031,
+    "mode": "0o644",
+    "sha256": "493c19a3de75173fafe659f11f1c2b59f9a74573f70dd9255cd415a4a32dbbf7",
+    "type": "file"
+  },
+  "skills/skill-interop/references/create-template/prompts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/skill-interop/references/create-template/prompts/main.prompt.md.tmpl": {
+    "bytes": 663,
+    "mode": "0o644",
+    "sha256": "fc69491468a3d9b77208fc36ae48d7ba99dd1475edc58d1a0c6799b7135aa7aa",
+    "type": "file"
+  },
+  "skills/skill-interop/references/create-template/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/skill-interop/references/create-template/references/host-matrix.md.tmpl": {
+    "bytes": 289,
+    "mode": "0o644",
+    "sha256": "e4e1b1071ffffc2177793242ccadeb42636dd60270baf7d9bf79aa91c9a86a6a",
+    "type": "file"
+  },
+  "skills/skill-interop/references/host-paths.md": {
+    "bytes": 4121,
+    "mode": "0o644",
+    "sha256": "0d4c3a031204723113aab1710a3692c6e347ccad85d2c334d609b9564dd906ef",
+    "type": "file"
+  },
+  "skills/skill-interop/references/marketplace-hosts.md": {
+    "bytes": 5023,
+    "mode": "0o644",
+    "sha256": "ed10c4fb498cb8f624781618ecc9d1549fcff2cd3e57ee8bfe4ba947891c5ce7",
+    "type": "file"
+  },
+  "skills/skill-interop/references/marketplace-id-forms.md": {
+    "bytes": 4525,
+    "mode": "0o644",
+    "sha256": "632516afd45a450233955109dacb06748b8f93df3ba862c52a6af4b66329e952",
+    "type": "file"
+  },
+  "skills/skill-interop/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/skill-interop/scripts/marketplace-run.sh": {
+    "bytes": 31598,
+    "mode": "0o755",
+    "sha256": "4d739421a6388267e1b4407e050bd46190e5b7477869f0b05c7d8802ef227243",
+    "type": "file"
+  },
+  "skills/skill-interop/scripts/scaffold-skill.sh": {
+    "bytes": 4853,
+    "mode": "0o755",
+    "sha256": "069d357c48a9f9c27be825c6680888d3c4ca34400c1562eed58db2901c6f44c9",
+    "type": "file"
+  },
+  "skills/test-harness": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/test-harness/SKILL.md": {
+    "bytes": 16916,
+    "mode": "0o644",
+    "sha256": "91a81426763be80c7c1116d00b12a75ef1fb01fb33f72ee0adbf793bc292c6ee",
+    "type": "file"
+  },
+  "skills/test-harness/references": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/test-harness/references/discovery-matrix.md": {
+    "bytes": 3871,
+    "mode": "0o644",
+    "sha256": "d38060af5aab98ba902b46b82fb76a921fb473f21d813337298a77776a80f8ba",
+    "type": "file"
+  },
+  "skills/test-harness/references/gate-snippet.md": {
+    "bytes": 553,
+    "mode": "0o644",
+    "sha256": "e022f5ed3988af9a4fb324b403c8ea0db84643abd1fbf92bd28c92e2d5a11cf3",
+    "type": "file"
+  },
+  "skills/test-harness/references/local-change-gate.md": {
+    "bytes": 6339,
+    "mode": "0o644",
+    "sha256": "56a6c13c724514c0928eabd6111f842f539d627b770fa5d62e34acc618d86dc6",
+    "type": "file"
+  },
+  "skills/test-harness/references/operator-guide.md": {
+    "bytes": 4216,
+    "mode": "0o644",
+    "sha256": "040d513d2197910d60eeabe5b3de91ff20f93f21fc545c1e79ff3871654fec7d",
+    "type": "file"
+  },
+  "skills/test-harness/references/report-template.md": {
+    "bytes": 5268,
+    "mode": "0o644",
+    "sha256": "877935f895186c262eb7c6eda020eb728f08289e41544f2cf11b319a6fa06eba",
+    "type": "file"
+  },
+  "skills/test-harness/references/self-test-matrix.md": {
+    "bytes": 843,
+    "mode": "0o644",
+    "sha256": "dd350ba841609aa36aadc018456f2b62ad010220473a31f52fb9a810ff579fd8",
+    "type": "file"
+  },
+  "skills/test-harness/references/side-effect-taxonomy.md": {
+    "bytes": 3560,
+    "mode": "0o644",
+    "sha256": "e2948fed96254e411eddde08b98fcec95faea64c0eba9e5fa73d208cb4fe0fc9",
+    "type": "file"
+  },
+  "skills/test-harness/scripts": {
+    "mode": "0o755",
+    "type": "directory"
+  },
+  "skills/test-harness/scripts/classify-side-effects.py": {
+    "bytes": 19580,
+    "mode": "0o755",
+    "sha256": "c671f860b85f6108b89f243d70141d9ef13a0b7d55417087874083c3eea439a3",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/control_policy.py": {
+    "bytes": 20650,
+    "mode": "0o644",
+    "sha256": "9fd5b9753379b9edef5d114a520af5944386263d11c51b7f715ec326b49665a9",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/discover-test-cmd.sh": {
+    "bytes": 7583,
+    "mode": "0o755",
+    "sha256": "625328cfb4fc50a6af96bf1c62a6345ecbf762e9a4970b079854c67a73db27f2",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/emit-report.py": {
+    "bytes": 86228,
+    "mode": "0o755",
+    "sha256": "af1a4395b7007d22adc81c94d29995463df805b00801dcbbc0f93ba9e1ac9a33",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/init-run.py": {
+    "bytes": 4481,
+    "mode": "0o755",
+    "sha256": "b5fb92383ec6cafbd8537787cbaaa9a4df430683a6854a6bc71173ca9f19e7d4",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/porcelain-delta.py": {
+    "bytes": 25762,
+    "mode": "0o755",
+    "sha256": "4b36c2584d516c907974dbaa2d0c14aa19ae8fb68c469fed90815ae5bcbb02b3",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/resolve-scope.py": {
+    "bytes": 2394,
+    "mode": "0o755",
+    "sha256": "3e7a93365ff4e3a833d75718adb9ec40718dc185ddc8dd01003bb5b7e58440cd",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/run-harness-hard-supervisor.py": {
+    "bytes": 12883,
+    "mode": "0o755",
+    "sha256": "2e9afab75d2fe89dbdfb92bd39ba599b07d01056653b49d60561df4832b54fc2",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/run-harness.sh": {
+    "bytes": 24317,
+    "mode": "0o755",
+    "sha256": "8c6c45e2d0c14ad9f8c4b3094d711a7a9d4c9303dc1f74ce3f4c294a947657f4",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/run-suite.sh": {
+    "bytes": 12076,
+    "mode": "0o755",
+    "sha256": "04be6252eb9d487d7a76a3ce848fb3a947ae3baaf339b3c9b679982b804336e8",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/supervise.py": {
+    "bytes": 15355,
+    "mode": "0o644",
+    "sha256": "f3f8685d12b6a20d384552d9c717cadd39a3ce6d79b89a975a212084ea6aadb5",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/test-harness-tests.sh": {
+    "bytes": 115840,
+    "mode": "0o755",
+    "sha256": "bc1d1f4899a962a500e509e6f2063e4554e3a296667624ff66ba458a9d0755ea",
+    "type": "file"
+  },
+  "skills/test-harness/scripts/worktree-fixloop.sh": {
+    "bytes": 6373,
+    "mode": "0o755",
+    "sha256": "636a96c997edbb2fb2ddac39ff541ab66a2c3bc13b3c890b98653a81b2ebb29e",
+    "type": "file"
+  }
+}

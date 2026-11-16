@@ -1,0 +1,5 @@
+{
+  "status": "INCOMPLETE",
+  "cause": "Parent validator incorrectly required every unittest verbose result to occupy one physical line; descriptive docstrings wrap. Original worker result and raw logs unchanged; no tests rerun.",
+  "evidence": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/python.stderr.log"
+}

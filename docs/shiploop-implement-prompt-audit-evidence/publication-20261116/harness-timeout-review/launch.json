@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/Users/dadleet/.codex/skills/ask/scripts/ask.sh",
+    "astra",
+    "ask",
+    "--json",
+    "--effort",
+    "high",
+    "--cwd",
+    "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+    "--no-tools",
+    "QUESTION_FROM_BRIEF"
+  ],
+  "question": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-review/brief.md",
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+  "start": "2026-11-16T20:11:59.019630+00:00",
+  "requested_model": "gpt-6-astra",
+  "requested_effort": "high",
+  "fallback": false,
+  "streaming": true
+}

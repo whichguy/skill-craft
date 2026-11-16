@@ -1,0 +1,30 @@
+usage: shiploop [-h]
+                {view,trace,note,workspace,lint,red-check,backchain-check,hook-status,graph-dry-run,init,delegation,lint-mode,improve-bind,improve-start,improve-commit,improve-pass,improve-reconcile,next,status,report,context,complete,check,halt,pause,resume} ...
+
+Markdown-authoritative, script-navigated session harness
+
+positional arguments:
+  {view,trace,note,workspace,lint,red-check,backchain-check,hook-status,graph-dry-run,init,delegation,lint-mode,improve-bind,improve-start,improve-commit,improve-pass,improve-reconcile,next,status,report,context,complete,check,halt,pause,resume}
+    view                portable HTML progress snapshot and read-only
+                        background observer
+    trace               read the run trace: every stage done, current or
+                        pending, the steps run, each packet as sent, refusals
+                        and hook continuations (--action, --json, --html)
+    note                the run's owner: leave a note the next packet quotes
+                        until a step it was shown in is accepted (--text or
+                        --file)
+    workspace           isolated start, return-plan review, and guarded return
+    lint                advisory lint rerun for the current action, or show a
+                        stored record part (never gates)
+    red-check           the test stage's base run without completing: does any
+                        new test pass without this item's change? (never
+                        counted, never gates)
+    backchain-check     record-only Backchain graph check of a candidate plan
+                        file (never gates)
+    hook-status         read-only JSON: can this run still move (for keepalive
+                        hooks and the driver)
+    graph-dry-run       inspect navigator routes and prompts without project
+                        work
+
+options:
+  -h, --help            show this help message and exit

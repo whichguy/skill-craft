@@ -1,0 +1,121 @@
+{
+  "changed": [],
+  "changed_from": null,
+  "completed": [
+    {
+      "command": "python3 -B skills/shiploop-e2e-audit/harness/check_suite.py --suite mock --skill-root skills/shiploop",
+      "duration_seconds": 13.156,
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "shiploop-mock-replay",
+      "path": "skills/shiploop-e2e-audit/harness/check_suite.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/001-shiploop-mock-replay.stderr.log",
+      "stdout_log": "logs/001-shiploop-mock-replay.stdout.log",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e-planning-boundary.test.py",
+      "duration_seconds": 2.168,
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "planning-boundary",
+      "path": "test/shiploop-e2e-planning-boundary.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/002-planning-boundary.stderr.log",
+      "stdout_log": "logs/002-planning-boundary.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e-planning-comparison.test.py",
+      "duration_seconds": 5.16,
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "planning-comparison",
+      "path": "test/shiploop-e2e-planning-comparison.test.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/003-planning-comparison.stderr.log",
+      "stdout_log": "logs/003-planning-comparison.stdout.log",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 -B skills/shiploop-e2e-audit/harness/check_suite.py --suite all --skill-root skills/shiploop",
+      "duration_seconds": 1172.076,
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "shiploop-e2e-apparatus",
+      "path": "skills/shiploop-e2e-audit/harness/check_suite.py",
+      "returncode": 0,
+      "status": "passed",
+      "stderr_log": "logs/004-shiploop-e2e-apparatus.stderr.log",
+      "stdout_log": "logs/004-shiploop-e2e-apparatus.stdout.log",
+      "timeout_seconds": 1800
+    }
+  ],
+  "entrypoint": "run-all",
+  "groups": [
+    "e2e-apparatus"
+  ],
+  "jobs": 4,
+  "runtimes": {
+    "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+    "node": "v26.13.1",
+    "python3": "Python 3.15.2"
+  },
+  "schema": "skill-craft-hermetic-receipt/1",
+  "selected": [
+    {
+      "command": "python3 -B skills/shiploop-e2e-audit/harness/check_suite.py --suite mock --skill-root skills/shiploop",
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "shiploop-mock-replay",
+      "path": "skills/shiploop-e2e-audit/harness/check_suite.py",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e-planning-boundary.test.py",
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "planning-boundary",
+      "path": "test/shiploop-e2e-planning-boundary.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 -B test/shiploop-e2e-planning-comparison.test.py",
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "planning-comparison",
+      "path": "test/shiploop-e2e-planning-comparison.test.py",
+      "timeout_seconds": 1800
+    },
+    {
+      "command": "python3 -B skills/shiploop-e2e-audit/harness/check_suite.py --suite all --skill-root skills/shiploop",
+      "family": "e2e-apparatus",
+      "hermetic": true,
+      "id": "shiploop-e2e-apparatus",
+      "path": "skills/shiploop-e2e-audit/harness/check_suite.py",
+      "timeout_seconds": 1800
+    }
+  ],
+  "selection": {
+    "affected": 0,
+    "deferred_policy": 0,
+    "deferred_targeted": 0,
+    "executions": 4,
+    "not_in_this_shard": 0,
+    "other_selected": 3,
+    "selected": 4,
+    "smoke": 1
+  },
+  "source": {
+    "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "status": [],
+    "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1"
+  },
+  "status": "passed",
+  "wall_seconds": 1172.202
+}

@@ -1,0 +1,182 @@
+{
+  "status": "PASS",
+  "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "source_fingerprint": "2f82bb948568b935d2f68d0e0db92ed716240c44d7f504bb764bef5b966fd382",
+  "entries": 14112,
+  "source_guards": "pre/post fingerprint, manifest, head, index hash, config hash, ordinary/ignored/untracked status unchanged; only 3 expected dirty paths",
+  "counts": {
+    "checks": 6,
+    "methods": 11,
+    "errors": 0,
+    "failures": 0,
+    "skips": 0,
+    "scenarios": 6,
+    "frontmatter_skills": 25,
+    "packages": 1
+  },
+  "limits": [
+    "Single attempt each; no retries or repairs",
+    "Outer wrapper enforces >=270 self-test assertions; exact 279 marker count not exposed or independently inferred",
+    "Marketplace validation is offline payload validation only",
+    "No full-repository, red/control-variant, deployment, release, commit, push, or host-refresh evidence"
+  ],
+  "details": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/handoff.json",
+  "scenarios": [
+    {
+      "scenario": "published",
+      "barrier_reached": true,
+      "exit": 124,
+      "elapsed_secs": 0.934644875000231,
+      "owned_pid_states": {
+        "worker": "",
+        "descendant": ""
+      }
+    },
+    {
+      "scenario": "collision-file",
+      "barrier_reached": true,
+      "exit": 124,
+      "elapsed_secs": 0.7978844580065925,
+      "owned_pid_states": {
+        "worker": "",
+        "descendant": ""
+      }
+    },
+    {
+      "scenario": "collision-symlink",
+      "barrier_reached": true,
+      "exit": 124,
+      "elapsed_secs": 0.7903393750020768,
+      "owned_pid_states": {
+        "worker": "",
+        "descendant": ""
+      }
+    },
+    {
+      "scenario": "cleanup",
+      "barrier_reached": true,
+      "exit": 124,
+      "elapsed_secs": 0.9395545000006678,
+      "owned_pid_states": {
+        "worker": "",
+        "descendant": ""
+      }
+    },
+    {
+      "scenario": "write-empty",
+      "barrier_reached": true,
+      "exit": 124,
+      "elapsed_secs": 0.9357759580016136,
+      "owned_pid_states": {
+        "worker": "",
+        "descendant": ""
+      }
+    },
+    {
+      "scenario": "write-prefix",
+      "barrier_reached": true,
+      "exit": 124,
+      "elapsed_secs": 0.9319917079992592,
+      "owned_pid_states": {
+        "worker": "",
+        "descendant": ""
+      }
+    }
+  ],
+  "runtimes": {
+    "python": "3.15.1 (main, Oct 21 2026, 05:55:12) [Clang 21.0.0 (clang-2100.3.34.2)]\n/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "node": "v26.12.1",
+    "ruff": "ruff 0.17.2"
+  },
+  "checks": [
+    {
+      "number": 1,
+      "exit": 0,
+      "argv": [
+        "python3",
+        "-B",
+        "test/test-harness.test.py",
+        "-v"
+      ],
+      "start": "2026-11-16T20:30:11.950247+00:00",
+      "end": "2026-11-16T20:31:17.827911+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-1.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-1.stderr.log"
+    },
+    {
+      "number": 2,
+      "exit": 0,
+      "argv": [
+        "node",
+        "test/skill-frontmatter.test.js"
+      ],
+      "start": "2026-11-16T20:31:23.717867+00:00",
+      "end": "2026-11-16T20:31:23.801525+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-2.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-2.stderr.log"
+    },
+    {
+      "number": 3,
+      "exit": 0,
+      "argv": [
+        "ruff",
+        "check",
+        "--no-cache",
+        "--select",
+        "E9,F",
+        "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "test/test-harness.test.py"
+      ],
+      "start": "2026-11-16T20:31:28.491354+00:00",
+      "end": "2026-11-16T20:31:28.527935+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-3.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-3.stderr.log"
+    },
+    {
+      "number": 4,
+      "exit": 0,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/build-packages.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/source-build"
+      ],
+      "start": "2026-11-16T20:31:33.479052+00:00",
+      "end": "2026-11-16T20:31:36.431721+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-4.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-4.stderr.log"
+    },
+    {
+      "number": 5,
+      "exit": 0,
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/source-build/scripts/check-marketplace-packages.py"
+      ],
+      "start": "2026-11-16T20:31:42.722998+00:00",
+      "end": "2026-11-16T20:31:43.093255+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-5.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-5.stderr.log"
+    },
+    {
+      "number": 6,
+      "exit": 0,
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+        "diff",
+        "--check",
+        "HEAD",
+        "--",
+        "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "test/test-harness.test.py"
+      ],
+      "start": "2026-11-16T20:31:48.267354+00:00",
+      "end": "2026-11-16T20:31:48.281792+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-6.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-local-validation/check-6.stderr.log"
+    }
+  ]
+}

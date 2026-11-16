@@ -1,0 +1,3044 @@
+{
+  "status": "PASS",
+  "selected_counter": {
+    "backchain-graph": 1,
+    "test-groups": 1,
+    "ci-summary": 1,
+    "ci-policy": 1,
+    "integration-boundaries": 1,
+    "release-push": 1,
+    "ask-agent-workspace": 1,
+    "ask-agent-delivery": 1,
+    "ask-agent-managed-harness": 1,
+    "ask-agent-parallel": 1,
+    "ask-agent-current-workspace": 1,
+    "ask-agent-task": 1,
+    "ask-agent-host": 1,
+    "in-parallel-queue-audit": 1,
+    "in-parallel-queue": 1,
+    "in-parallel-composition": 1,
+    "agent-harness": 1,
+    "agent-harness-delivery": 1,
+    "agent-harness-boundaries": 1,
+    "agent-harness-audit": 1,
+    "skill-interop-hygiene": 1,
+    "sync-plugin-views": 1,
+    "release-flow": 1,
+    "release-boundary": 1,
+    "release-preflight": 1,
+    "native-marketplace-adapters": 1,
+    "marketplace-package": 1,
+    "marketplace-host-isolation": 1,
+    "installed-skill-invocation": 1,
+    "prompt-marketplace-contract": 1,
+    "skill-frontmatter": 1,
+    "test-harness": 1,
+    "scaffold-skill": 1,
+    "marketplace-run": 1,
+    "install-targets": 1,
+    "install-arbitrary-skill": 1,
+    "install-status-uninstall": 1,
+    "improve": 1,
+    "improve-plugin": 1,
+    "improve-agent": 1,
+    "improve-runtime": 1,
+    "improve-route": 1,
+    "until-loop-vendor": 1,
+    "review-coverage": 1,
+    "rubric-eval": 1,
+    "closed-loop": 1,
+    "pushpress": 1,
+    "dual-body-guard": 1,
+    "plan-dispatcher-state": 1,
+    "plan-dispatcher-harness": 1,
+    "plan-dispatcher-cli": 1,
+    "plan-dispatcher-progress": 1,
+    "plan-dispatcher-planning-context": 1,
+    "plan-dispatcher-compound": 1,
+    "plan-dispatcher-decisions": 1,
+    "plan-dispatcher-exact-calls": 1,
+    "plan-dispatcher-scenarios": 1,
+    "plan-dispatcher-mutants": 1,
+    "native-setup-pilot": 1,
+    "planning-score": 1,
+    "security-harness": 1,
+    "shiploop-no-model-launch": 1,
+    "shiploop-navigator-v4": 1,
+    "shiploop-standalone-improve": 1,
+    "shiploop-packet-completeness": 1,
+    "shiploop-local-skills": 1,
+    "experiments-shiploop-ui-allocation-evidence": 1,
+    "shiploop-navigator-dry-run": 1,
+    "shiploop-narrative": 1,
+    "shiploop-progress": 1,
+    "shiploop-confirmation": 1,
+    "shiploop-cross-run": 1,
+    "shiploop-workspace": 1,
+    "shiploop-return-review": 1,
+    "shiploop-consumer-delivery": 1,
+    "shiploop-consumer-delivery-cli": 1,
+    "shiploop-delegation": 1,
+    "shiploop-improve-schedule": 1,
+    "shiploop-loops": 1,
+    "shiploop-handoff": 1,
+    "experiments-shiploop-delivery-fake-deployment": 1,
+    "shiploop-literal-transport": 1,
+    "shiploop-discovery": 1,
+    "shiploop-retired-terms": 1,
+    "shiploop-owner-notes": 1,
+    "shiploop-python-floor": 1,
+    "shiploop-e2e-qualification": 1,
+    "shiploop-e2e-roles": 1,
+    "shiploop-e2e-predecessor": 1,
+    "shiploop-e2e-adapter-steps": 1,
+    "shiploop-e2e-fidelity": 1,
+    "shiploop-e2e-render-diff": 1,
+    "shiploop-e2e-commit-counters": 1,
+    "shiploop-e2e-battleship-salesforce": 1,
+    "shiploop-e2e-grok-chat-full": 1,
+    "shiploop-e2e-grok-chat-full-oracle": 1,
+    "shiploop-e2e-gym-ui": 1,
+    "shiploop-e2e-release-slice": 1,
+    "shiploop-e2e-dodges": 1,
+    "shiploop-e2e-experiments": 1,
+    "shiploop-e2e-ticket-semantics": 1,
+    "shiploop-e2e-stages": 1,
+    "shiploop-e2e-brownfield": 1,
+    "shiploop-e2e-brownfield-tickets": 1,
+    "shiploop-e2e-test-adequacy": 1,
+    "shiploop-e2e-user-directory": 1,
+    "shiploop-efficiency-journal": 1,
+    "shiploop-loophole-gates": 1,
+    "shiploop-navigator-contract": 1,
+    "shiploop-stopped-improve": 1,
+    "shiploop-step-packets": 1,
+    "shiploop-packet-recut": 1,
+    "shiploop-reference": 1,
+    "shiploop-full-runtime": 1,
+    "shiploop-progress-render": 1,
+    "shiploop-stage-spec": 1,
+    "shiploop-send-back": 1,
+    "shiploop-quality": 1,
+    "shiploop-iteration": 1,
+    "shiploop-test-loop": 1,
+    "shiploop-backchain-check": 1,
+    "shiploop-assumptions": 1,
+    "shiploop-capability-async": 1,
+    "shiploop-repeatable-experiments": 1,
+    "shiploop-reference-routing": 1,
+    "shiploop-domain-words": 1,
+    "shiploop-trace": 1,
+    "shiploop-planning-handoff": 1,
+    "shiploop-e2e-analysis": 1,
+    "shiploop-e2e-hosts": 1,
+    "shiploop-e2e-discovery": 1,
+    "shiploop-e2e-predecessor-wiring": 1,
+    "shiploop-e2e-learning-records": 1,
+    "shiploop-e2e-cycle": 1,
+    "shiploop-e2e-adapter": 1,
+    "shiploop-e2e-adapter-engine": 1,
+    "shiploop-e2e-runrecord": 1,
+    "shiploop-e2e-slice": 1,
+    "shiploop-e2e-reorientation": 1,
+    "shiploop-e2e-environment": 1,
+    "shiploop-e2e-baseline": 1,
+    "shiploop-e2e-packet-anatomy": 1,
+    "shiploop-e2e-grok-chat-full-quality": 1,
+    "shiploop-e2e-platform": 1,
+    "shiploop-e2e-sf-guard": 1,
+    "shiploop-e2e-status-card": 1,
+    "shiploop-e2e-sdlc-probes": 1,
+    "shiploop-e2e-review-attribution": 1,
+    "shiploop-e2e-stage-report": 1,
+    "shiploop-e2e-delta": 1,
+    "shiploop-e2e-corpus": 1,
+    "shiploop-e2e-ticket-comments": 1,
+    "shiploop-e2e-ticket-sla": 1,
+    "shiploop-e2e-recovery": 1,
+    "shiploop-e2e-lifecycle": 1,
+    "shiploop-run-review": 1,
+    "shiploop-actual-improve-cli": 1,
+    "shiploop-packet-bounds": 1,
+    "shiploop-head-order": 1,
+    "shiploop-guidance": 1,
+    "shiploop-status-display": 1,
+    "shiploop-progress-data": 1,
+    "shiploop-step-edges": 1,
+    "shiploop-rehydration": 1,
+    "shiploop-auth-readiness": 1,
+    "shiploop-lint": 1,
+    "shiploop-seed-seam": 1,
+    "shiploop-test-counts": 1,
+    "shiploop-improve-changes": 1,
+    "shiploop-knowledge": 1,
+    "shiploop-follow-on": 1,
+    "experiments-shiploop-delivery-browser-consumer-serve-fixture": 1,
+    "shiploop-store": 1,
+    "shiploop-capability-fixture": 1,
+    "shiploop-capability-runtime": 1,
+    "shiploop-generalized-discovery": 1,
+    "shiploop-probe-decisions": 1,
+    "shiploop-privacy": 1,
+    "shiploop-keepalive": 1,
+    "shiploop-skill-calls": 1,
+    "shiploop-package-integrity": 1,
+    "shiploop-clean-consumer": 1,
+    "shiploop-e2e-resources": 1,
+    "shiploop-e2e-roundtable": 1,
+    "shiploop-e2e-epoch": 1,
+    "shiploop-e2e-intent-continuity": 1,
+    "shiploop-e2e-quality": 1,
+    "shiploop-e2e-chess-salesforce": 1,
+    "shiploop-e2e-battleship-ui": 1,
+    "shiploop-e2e-grok-chat-salesforce": 1,
+    "shiploop-e2e-grok-chat-full-ui": 1,
+    "shiploop-e2e-gym-membership-salesforce": 1,
+    "shiploop-e2e-efficiency": 1,
+    "shiploop-e2e-owner-page": 1,
+    "shiploop-e2e-scope-discovery": 1,
+    "shiploop-e2e-stage-oracle": 1,
+    "shiploop-e2e-stage-build": 1,
+    "shiploop-e2e-stage-live": 1,
+    "shiploop-e2e-run-trace": 1,
+    "shiploop-e2e-incremental-pilot": 1,
+    "shiploop-e2e-user-chain": 1,
+    "shiploop-packet-obligations": 1,
+    "shiploop-callback-contract": 1,
+    "shiploop-mock-replay": 1,
+    "planning-boundary": 1,
+    "planning-comparison": 1,
+    "shiploop-e2e-apparatus": 1
+  },
+  "completed_counter": {
+    "backchain-graph": 1,
+    "test-groups": 1,
+    "ci-summary": 1,
+    "ci-policy": 1,
+    "integration-boundaries": 1,
+    "release-push": 1,
+    "ask-agent-workspace": 1,
+    "ask-agent-delivery": 1,
+    "ask-agent-managed-harness": 1,
+    "ask-agent-parallel": 1,
+    "ask-agent-current-workspace": 1,
+    "ask-agent-task": 1,
+    "ask-agent-host": 1,
+    "in-parallel-queue-audit": 1,
+    "in-parallel-queue": 1,
+    "in-parallel-composition": 1,
+    "agent-harness": 1,
+    "agent-harness-delivery": 1,
+    "agent-harness-boundaries": 1,
+    "agent-harness-audit": 1,
+    "skill-interop-hygiene": 1,
+    "sync-plugin-views": 1,
+    "release-flow": 1,
+    "release-boundary": 1,
+    "release-preflight": 1,
+    "native-marketplace-adapters": 1,
+    "marketplace-package": 1,
+    "marketplace-host-isolation": 1,
+    "installed-skill-invocation": 1,
+    "prompt-marketplace-contract": 1,
+    "skill-frontmatter": 1,
+    "test-harness": 1,
+    "scaffold-skill": 1,
+    "marketplace-run": 1,
+    "install-targets": 1,
+    "install-arbitrary-skill": 1,
+    "install-status-uninstall": 1,
+    "improve": 1,
+    "improve-plugin": 1,
+    "improve-agent": 1,
+    "improve-runtime": 1,
+    "improve-route": 1,
+    "until-loop-vendor": 1,
+    "review-coverage": 1,
+    "rubric-eval": 1,
+    "closed-loop": 1,
+    "pushpress": 1,
+    "dual-body-guard": 1,
+    "plan-dispatcher-state": 1,
+    "plan-dispatcher-harness": 1,
+    "plan-dispatcher-cli": 1,
+    "plan-dispatcher-progress": 1,
+    "plan-dispatcher-planning-context": 1,
+    "plan-dispatcher-compound": 1,
+    "plan-dispatcher-decisions": 1,
+    "plan-dispatcher-exact-calls": 1,
+    "plan-dispatcher-scenarios": 1,
+    "plan-dispatcher-mutants": 1,
+    "native-setup-pilot": 1,
+    "planning-score": 1,
+    "security-harness": 1,
+    "shiploop-no-model-launch": 1,
+    "shiploop-navigator-v4": 1,
+    "shiploop-standalone-improve": 1,
+    "shiploop-packet-completeness": 1,
+    "shiploop-local-skills": 1,
+    "experiments-shiploop-ui-allocation-evidence": 1,
+    "shiploop-navigator-dry-run": 1,
+    "shiploop-narrative": 1,
+    "shiploop-progress": 1,
+    "shiploop-confirmation": 1,
+    "shiploop-cross-run": 1,
+    "shiploop-workspace": 1,
+    "shiploop-return-review": 1,
+    "shiploop-consumer-delivery": 1,
+    "shiploop-consumer-delivery-cli": 1,
+    "shiploop-delegation": 1,
+    "shiploop-improve-schedule": 1,
+    "shiploop-loops": 1,
+    "shiploop-handoff": 1,
+    "experiments-shiploop-delivery-fake-deployment": 1,
+    "shiploop-literal-transport": 1,
+    "shiploop-discovery": 1,
+    "shiploop-retired-terms": 1,
+    "shiploop-owner-notes": 1,
+    "shiploop-python-floor": 1,
+    "shiploop-e2e-qualification": 1,
+    "shiploop-e2e-roles": 1,
+    "shiploop-e2e-predecessor": 1,
+    "shiploop-e2e-adapter-steps": 1,
+    "shiploop-e2e-fidelity": 1,
+    "shiploop-e2e-render-diff": 1,
+    "shiploop-e2e-commit-counters": 1,
+    "shiploop-e2e-battleship-salesforce": 1,
+    "shiploop-e2e-grok-chat-full": 1,
+    "shiploop-e2e-grok-chat-full-oracle": 1,
+    "shiploop-e2e-gym-ui": 1,
+    "shiploop-e2e-release-slice": 1,
+    "shiploop-e2e-dodges": 1,
+    "shiploop-e2e-experiments": 1,
+    "shiploop-e2e-ticket-semantics": 1,
+    "shiploop-e2e-stages": 1,
+    "shiploop-e2e-brownfield": 1,
+    "shiploop-e2e-brownfield-tickets": 1,
+    "shiploop-e2e-test-adequacy": 1,
+    "shiploop-e2e-user-directory": 1,
+    "shiploop-efficiency-journal": 1,
+    "shiploop-loophole-gates": 1,
+    "shiploop-navigator-contract": 1,
+    "shiploop-stopped-improve": 1,
+    "shiploop-step-packets": 1,
+    "shiploop-packet-recut": 1,
+    "shiploop-reference": 1,
+    "shiploop-full-runtime": 1,
+    "shiploop-progress-render": 1,
+    "shiploop-stage-spec": 1,
+    "shiploop-send-back": 1,
+    "shiploop-quality": 1,
+    "shiploop-iteration": 1,
+    "shiploop-test-loop": 1,
+    "shiploop-backchain-check": 1,
+    "shiploop-assumptions": 1,
+    "shiploop-capability-async": 1,
+    "shiploop-repeatable-experiments": 1,
+    "shiploop-reference-routing": 1,
+    "shiploop-domain-words": 1,
+    "shiploop-trace": 1,
+    "shiploop-planning-handoff": 1,
+    "shiploop-e2e-analysis": 1,
+    "shiploop-e2e-hosts": 1,
+    "shiploop-e2e-discovery": 1,
+    "shiploop-e2e-predecessor-wiring": 1,
+    "shiploop-e2e-learning-records": 1,
+    "shiploop-e2e-cycle": 1,
+    "shiploop-e2e-adapter": 1,
+    "shiploop-e2e-adapter-engine": 1,
+    "shiploop-e2e-runrecord": 1,
+    "shiploop-e2e-slice": 1,
+    "shiploop-e2e-reorientation": 1,
+    "shiploop-e2e-environment": 1,
+    "shiploop-e2e-baseline": 1,
+    "shiploop-e2e-packet-anatomy": 1,
+    "shiploop-e2e-grok-chat-full-quality": 1,
+    "shiploop-e2e-platform": 1,
+    "shiploop-e2e-sf-guard": 1,
+    "shiploop-e2e-status-card": 1,
+    "shiploop-e2e-sdlc-probes": 1,
+    "shiploop-e2e-review-attribution": 1,
+    "shiploop-e2e-stage-report": 1,
+    "shiploop-e2e-delta": 1,
+    "shiploop-e2e-corpus": 1,
+    "shiploop-e2e-ticket-comments": 1,
+    "shiploop-e2e-ticket-sla": 1,
+    "shiploop-e2e-recovery": 1,
+    "shiploop-e2e-lifecycle": 1,
+    "shiploop-run-review": 1,
+    "shiploop-actual-improve-cli": 1,
+    "shiploop-packet-bounds": 1,
+    "shiploop-head-order": 1,
+    "shiploop-guidance": 1,
+    "shiploop-status-display": 1,
+    "shiploop-progress-data": 1,
+    "shiploop-step-edges": 1,
+    "shiploop-rehydration": 1,
+    "shiploop-auth-readiness": 1,
+    "shiploop-lint": 1,
+    "shiploop-seed-seam": 1,
+    "shiploop-test-counts": 1,
+    "shiploop-improve-changes": 1,
+    "shiploop-knowledge": 1,
+    "shiploop-follow-on": 1,
+    "experiments-shiploop-delivery-browser-consumer-serve-fixture": 1,
+    "shiploop-store": 1,
+    "shiploop-capability-fixture": 1,
+    "shiploop-capability-runtime": 1,
+    "shiploop-generalized-discovery": 1,
+    "shiploop-probe-decisions": 1,
+    "shiploop-privacy": 1,
+    "shiploop-keepalive": 1,
+    "shiploop-skill-calls": 1,
+    "shiploop-package-integrity": 1,
+    "shiploop-clean-consumer": 1,
+    "shiploop-e2e-resources": 1,
+    "shiploop-e2e-roundtable": 1,
+    "shiploop-e2e-epoch": 1,
+    "shiploop-e2e-intent-continuity": 1,
+    "shiploop-e2e-quality": 1,
+    "shiploop-e2e-chess-salesforce": 1,
+    "shiploop-e2e-battleship-ui": 1,
+    "shiploop-e2e-grok-chat-salesforce": 1,
+    "shiploop-e2e-grok-chat-full-ui": 1,
+    "shiploop-e2e-gym-membership-salesforce": 1,
+    "shiploop-e2e-efficiency": 1,
+    "shiploop-e2e-owner-page": 1,
+    "shiploop-e2e-scope-discovery": 1,
+    "shiploop-e2e-stage-oracle": 1,
+    "shiploop-e2e-stage-build": 1,
+    "shiploop-e2e-stage-live": 1,
+    "shiploop-e2e-run-trace": 1,
+    "shiploop-e2e-incremental-pilot": 1,
+    "shiploop-e2e-user-chain": 1,
+    "shiploop-packet-obligations": 1,
+    "shiploop-callback-contract": 1,
+    "shiploop-mock-replay": 1,
+    "planning-boundary": 1,
+    "planning-comparison": 1,
+    "shiploop-e2e-apparatus": 1
+  },
+  "groups": {
+    "core": {
+      "selected": 61,
+      "completed": 61,
+      "wall_seconds": 677.344,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "shiploop-1": {
+      "selected": 47,
+      "completed": 47,
+      "wall_seconds": 1250.93,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "shiploop-2": {
+      "selected": 48,
+      "completed": 48,
+      "wall_seconds": 726.209,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "shiploop-3": {
+      "selected": 47,
+      "completed": 47,
+      "wall_seconds": 1318.59,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    },
+    "e2e-apparatus": {
+      "selected": 4,
+      "completed": 4,
+      "wall_seconds": 1172.202,
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      }
+    }
+  },
+  "required_omissions": [],
+  "conditional_skips": [
+    {
+      "suite": "test-groups",
+      "reported": 78,
+      "executed": 77,
+      "skipped": 1,
+      "log": "extracted/hermetic-core/logs/002-test-groups.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-experiments",
+      "reported": 93,
+      "executed": 43,
+      "skipped": 50,
+      "log": "extracted/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-user-directory",
+      "reported": 45,
+      "executed": 44,
+      "skipped": 1,
+      "log": "extracted/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-hosts",
+      "reported": 140,
+      "executed": 138,
+      "skipped": 2,
+      "log": "extracted/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-roundtable",
+      "reported": 13,
+      "executed": 10,
+      "skipped": 3,
+      "log": "extracted/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-efficiency",
+      "reported": 77,
+      "executed": 76,
+      "skipped": 1,
+      "log": "extracted/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log"
+    },
+    {
+      "suite": "shiploop-e2e-stage-live",
+      "reported": 93,
+      "executed": 92,
+      "skipped": 1,
+      "log": "extracted/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log"
+    }
+  ],
+  "method_counts": [
+    {
+      "group": "core",
+      "suite": "backchain-graph",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/001-backchain-graph.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "test-groups",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 78,
+          "executed": 77,
+          "skipped": 1,
+          "log": "extracted/hermetic-core/logs/002-test-groups.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ci-summary",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 11,
+          "executed": 11,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/003-ci-summary.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ci-policy",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 20,
+          "executed": 20,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/004-ci-policy.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "integration-boundaries",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 1,
+          "executed": 1,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/005-integration-boundaries.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "release-push",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/006-release-push.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-workspace",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 76,
+          "executed": 76,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/007-ask-agent-workspace.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-delivery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 11,
+          "executed": 11,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/008-ask-agent-delivery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-managed-harness",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 27,
+          "executed": 27,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/009-ask-agent-managed-harness.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-parallel",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 233,
+          "executed": 233,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/010-ask-agent-parallel.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-current-workspace",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/011-ask-agent-current-workspace.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-task",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 23,
+          "executed": 23,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/012-ask-agent-task.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-host",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 11,
+          "executed": 11,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/013-ask-agent-host.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "in-parallel-queue-audit",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 21,
+          "executed": 21,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/014-in-parallel-queue-audit.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "in-parallel-queue",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 8,
+          "executed": 8,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/015-in-parallel-queue.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "in-parallel-composition",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/016-in-parallel-composition.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 23,
+          "executed": 23,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/017-agent-harness.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness-delivery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 22,
+          "executed": 22,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/018-agent-harness-delivery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness-boundaries",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 15,
+          "executed": 15,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/019-agent-harness-boundaries.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness-audit",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 25,
+          "executed": 25,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/020-agent-harness-audit.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "skill-interop-hygiene",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "sync-plugin-views",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "release-flow",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "release-boundary",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "release-preflight",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 24,
+          "executed": 24,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/025-release-preflight.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "native-marketplace-adapters",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "marketplace-package",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 30,
+          "executed": 30,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/027-marketplace-package.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "marketplace-host-isolation",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 4,
+          "executed": 4,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/028-marketplace-host-isolation.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "installed-skill-invocation",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/029-installed-skill-invocation.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "prompt-marketplace-contract",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 6,
+          "executed": 6,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/030-prompt-marketplace-contract.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "skill-frontmatter",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "test-harness",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 11,
+          "executed": 11,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/032-test-harness.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "scaffold-skill",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "marketplace-run",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "install-targets",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "install-arbitrary-skill",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "install-status-uninstall",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "improve",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "improve-plugin",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "improve-agent",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/040-improve-agent.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "improve-runtime",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 7,
+          "executed": 7,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/041-improve-runtime.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "improve-route",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 21,
+          "executed": 21,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/042-improve-route.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "until-loop-vendor",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/043-until-loop-vendor.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "review-coverage",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "rubric-eval",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 30,
+          "executed": 30,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/045-rubric-eval.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "closed-loop",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 165,
+          "executed": 165,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/046-closed-loop.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "pushpress",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 16,
+          "executed": 16,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/047-pushpress.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "dual-body-guard",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-state",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-harness",
+      "framework_counts": [
+        {
+          "framework": "node-test",
+          "counts": {
+            "tests": [
+              10
+            ],
+            "pass": [
+              10
+            ],
+            "fail": [
+              0
+            ],
+            "cancelled": [
+              0
+            ],
+            "skipped": [
+              0
+            ],
+            "todo": [
+              0
+            ]
+          },
+          "log": "extracted/hermetic-core/logs/050-plan-dispatcher-harness.stdout.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-cli",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-progress",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-planning-context",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-compound",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-decisions",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-exact-calls",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-scenarios",
+      "framework_counts": []
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-mutants",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 2,
+          "executed": 2,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/058-plan-dispatcher-mutants.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "native-setup-pilot",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 8,
+          "executed": 8,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/059-native-setup-pilot.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "planning-score",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/060-planning-score.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "core",
+      "suite": "security-harness",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 75,
+          "executed": 75,
+          "skipped": 0,
+          "log": "extracted/hermetic-core/logs/061-security-harness.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-no-model-launch",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/001-shiploop-no-model-launch.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-navigator-v4",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 18,
+          "executed": 18,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/002-shiploop-navigator-v4.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-standalone-improve",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 11,
+          "executed": 11,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/003-shiploop-standalone-improve.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-packet-completeness",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 66,
+          "executed": 66,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/004-shiploop-packet-completeness.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-local-skills",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 8,
+          "executed": 8,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/005-shiploop-local-skills.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "experiments-shiploop-ui-allocation-evidence",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 11,
+          "executed": 11,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/006-experiments-shiploop-ui-allocation-evidence.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-navigator-dry-run",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 24,
+          "executed": 24,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/007-shiploop-navigator-dry-run.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-narrative",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 15,
+          "executed": 15,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/008-shiploop-narrative.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-progress",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 38,
+          "executed": 38,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/009-shiploop-progress.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-confirmation",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/010-shiploop-confirmation.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-cross-run",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/011-shiploop-cross-run.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-workspace",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 101,
+          "executed": 101,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/012-shiploop-workspace.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-return-review",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 26,
+          "executed": 26,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/013-shiploop-return-review.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-consumer-delivery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 34,
+          "executed": 34,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/014-shiploop-consumer-delivery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-consumer-delivery-cli",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/015-shiploop-consumer-delivery-cli.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-delegation",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 66,
+          "executed": 66,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/016-shiploop-delegation.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-improve-schedule",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 41,
+          "executed": 41,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/017-shiploop-improve-schedule.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-loops",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 67,
+          "executed": 67,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/018-shiploop-loops.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-handoff",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 170,
+          "executed": 170,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/019-shiploop-handoff.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "experiments-shiploop-delivery-fake-deployment",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/020-experiments-shiploop-delivery-fake-deployment.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-literal-transport",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 1,
+          "executed": 1,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/021-shiploop-literal-transport.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-discovery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 9,
+          "executed": 9,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/022-shiploop-discovery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-retired-terms",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 6,
+          "executed": 6,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/023-shiploop-retired-terms.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-owner-notes",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 18,
+          "executed": 18,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/024-shiploop-owner-notes.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-python-floor",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 9,
+          "executed": 9,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/025-shiploop-python-floor.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-qualification",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 19,
+          "executed": 19,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/026-shiploop-e2e-qualification.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-roles",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/027-shiploop-e2e-roles.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-predecessor",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 17,
+          "executed": 17,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/028-shiploop-e2e-predecessor.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-adapter-steps",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 78,
+          "executed": 78,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/029-shiploop-e2e-adapter-steps.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-fidelity",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 149,
+          "executed": 149,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/030-shiploop-e2e-fidelity.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-render-diff",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 43,
+          "executed": 43,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/031-shiploop-e2e-render-diff.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-commit-counters",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 110,
+          "executed": 110,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/032-shiploop-e2e-commit-counters.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-battleship-salesforce",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 70,
+          "executed": 70,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/033-shiploop-e2e-battleship-salesforce.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-grok-chat-full",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 7,
+          "executed": 7,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/034-shiploop-e2e-grok-chat-full.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-grok-chat-full-oracle",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 25,
+          "executed": 25,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/035-shiploop-e2e-grok-chat-full-oracle.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-gym-ui",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 24,
+          "executed": 24,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/036-shiploop-e2e-gym-ui.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-release-slice",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 44,
+          "executed": 44,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/037-shiploop-e2e-release-slice.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-dodges",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 11,
+          "executed": 11,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/038-shiploop-e2e-dodges.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-experiments",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 93,
+          "executed": 43,
+          "skipped": 50,
+          "log": "extracted/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-ticket-semantics",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 8,
+          "executed": 8,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/040-shiploop-e2e-ticket-semantics.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-stages",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 130,
+          "executed": 130,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/041-shiploop-e2e-stages.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-brownfield",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 31,
+          "executed": 31,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/042-shiploop-e2e-brownfield.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-brownfield-tickets",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 51,
+          "executed": 51,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/043-shiploop-e2e-brownfield-tickets.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-test-adequacy",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 35,
+          "executed": 35,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/044-shiploop-e2e-test-adequacy.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-user-directory",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 45,
+          "executed": 44,
+          "skipped": 1,
+          "log": "extracted/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-efficiency-journal",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/046-shiploop-efficiency-journal.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-loophole-gates",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-1/logs/047-shiploop-loophole-gates.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-navigator-contract",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 125,
+          "executed": 125,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/001-shiploop-navigator-contract.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-stopped-improve",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 9,
+          "executed": 9,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/002-shiploop-stopped-improve.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-step-packets",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/003-shiploop-step-packets.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-packet-recut",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 30,
+          "executed": 30,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/004-shiploop-packet-recut.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-reference",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 8,
+          "executed": 8,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/005-shiploop-reference.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-full-runtime",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 2,
+          "executed": 2,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/006-shiploop-full-runtime.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-progress-render",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 32,
+          "executed": 32,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/007-shiploop-progress-render.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-stage-spec",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/008-shiploop-stage-spec.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-send-back",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 24,
+          "executed": 24,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/009-shiploop-send-back.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-quality",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 8,
+          "executed": 8,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/010-shiploop-quality.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-iteration",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 39,
+          "executed": 39,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/011-shiploop-iteration.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-test-loop",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 222,
+          "executed": 222,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/012-shiploop-test-loop.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-backchain-check",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 9,
+          "executed": 9,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/013-shiploop-backchain-check.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-assumptions",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 9,
+          "executed": 9,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/014-shiploop-assumptions.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-capability-async",
+      "framework_counts": []
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-repeatable-experiments",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 13,
+          "executed": 13,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/016-shiploop-repeatable-experiments.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-reference-routing",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 4,
+          "executed": 4,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/017-shiploop-reference-routing.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-domain-words",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/018-shiploop-domain-words.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-trace",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 46,
+          "executed": 46,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/019-shiploop-trace.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-planning-handoff",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 7,
+          "executed": 7,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/020-shiploop-planning-handoff.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-analysis",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 299,
+          "executed": 299,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/021-shiploop-e2e-analysis.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-hosts",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 140,
+          "executed": 138,
+          "skipped": 2,
+          "log": "extracted/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-discovery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 15,
+          "executed": 15,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/023-shiploop-e2e-discovery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-predecessor-wiring",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/024-shiploop-e2e-predecessor-wiring.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-learning-records",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 59,
+          "executed": 59,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/025-shiploop-e2e-learning-records.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-cycle",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 63,
+          "executed": 63,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/026-shiploop-e2e-cycle.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-adapter",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 29,
+          "executed": 29,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/027-shiploop-e2e-adapter.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-adapter-engine",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/028-shiploop-e2e-adapter-engine.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-runrecord",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 6,
+          "executed": 6,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/029-shiploop-e2e-runrecord.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-slice",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 73,
+          "executed": 73,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/030-shiploop-e2e-slice.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-reorientation",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 127,
+          "executed": 127,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/031-shiploop-e2e-reorientation.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-environment",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 140,
+          "executed": 140,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/032-shiploop-e2e-environment.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-baseline",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 187,
+          "executed": 187,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/033-shiploop-e2e-baseline.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-packet-anatomy",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 30,
+          "executed": 30,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/034-shiploop-e2e-packet-anatomy.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-grok-chat-full-quality",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 42,
+          "executed": 42,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/035-shiploop-e2e-grok-chat-full-quality.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-platform",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 173,
+          "executed": 173,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/036-shiploop-e2e-platform.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-sf-guard",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 113,
+          "executed": 113,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/037-shiploop-e2e-sf-guard.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-status-card",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 20,
+          "executed": 20,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/038-shiploop-e2e-status-card.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-sdlc-probes",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 29,
+          "executed": 29,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/039-shiploop-e2e-sdlc-probes.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-review-attribution",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 15,
+          "executed": 15,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/040-shiploop-e2e-review-attribution.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-stage-report",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 45,
+          "executed": 45,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/041-shiploop-e2e-stage-report.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-delta",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 90,
+          "executed": 90,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/042-shiploop-e2e-delta.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-corpus",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 13,
+          "executed": 13,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/043-shiploop-e2e-corpus.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-ticket-comments",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 21,
+          "executed": 21,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/044-shiploop-e2e-ticket-comments.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-ticket-sla",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 27,
+          "executed": 27,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/045-shiploop-e2e-ticket-sla.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-recovery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 8,
+          "executed": 8,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/046-shiploop-e2e-recovery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-lifecycle",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 45,
+          "executed": 45,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/047-shiploop-e2e-lifecycle.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-run-review",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 689,
+          "executed": 689,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-2/logs/048-shiploop-run-review.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-actual-improve-cli",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 106,
+          "executed": 106,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/001-shiploop-actual-improve-cli.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-packet-bounds",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 21,
+          "executed": 21,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/002-shiploop-packet-bounds.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-head-order",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 36,
+          "executed": 36,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/003-shiploop-head-order.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-guidance",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 93,
+          "executed": 93,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/004-shiploop-guidance.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-status-display",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 16,
+          "executed": 16,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/005-shiploop-status-display.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-progress-data",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 34,
+          "executed": 34,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/006-shiploop-progress-data.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-step-edges",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 15,
+          "executed": 15,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/007-shiploop-step-edges.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-rehydration",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 17,
+          "executed": 17,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/008-shiploop-rehydration.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-auth-readiness",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 3,
+          "executed": 3,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/009-shiploop-auth-readiness.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-lint",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 129,
+          "executed": 129,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/010-shiploop-lint.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-seed-seam",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 14,
+          "executed": 14,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/011-shiploop-seed-seam.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-test-counts",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 71,
+          "executed": 71,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/012-shiploop-test-counts.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-improve-changes",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 4,
+          "executed": 4,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/013-shiploop-improve-changes.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-knowledge",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 163,
+          "executed": 163,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/014-shiploop-knowledge.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-follow-on",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 18,
+          "executed": 18,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/015-shiploop-follow-on.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "experiments-shiploop-delivery-browser-consumer-serve-fixture",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 2,
+          "executed": 2,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/016-experiments-shiploop-delivery-browser-consumer-serve-fixture.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-store",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/017-shiploop-store.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-capability-fixture",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/018-shiploop-capability-fixture.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-capability-runtime",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 13,
+          "executed": 13,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/019-shiploop-capability-runtime.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-generalized-discovery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 45,
+          "executed": 45,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/020-shiploop-generalized-discovery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-probe-decisions",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 16,
+          "executed": 16,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/021-shiploop-probe-decisions.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-privacy",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 5,
+          "executed": 5,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/022-shiploop-privacy.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-keepalive",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 86,
+          "executed": 86,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/023-shiploop-keepalive.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-skill-calls",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 35,
+          "executed": 35,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/024-shiploop-skill-calls.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-package-integrity",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 24,
+          "executed": 24,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/025-shiploop-package-integrity.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-clean-consumer",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 3,
+          "executed": 3,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/026-shiploop-clean-consumer.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-resources",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 133,
+          "executed": 133,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/027-shiploop-e2e-resources.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-roundtable",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 13,
+          "executed": 10,
+          "skipped": 3,
+          "log": "extracted/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-epoch",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 38,
+          "executed": 38,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/029-shiploop-e2e-epoch.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-intent-continuity",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 24,
+          "executed": 24,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/030-shiploop-e2e-intent-continuity.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-quality",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 164,
+          "executed": 164,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/031-shiploop-e2e-quality.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-chess-salesforce",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 201,
+          "executed": 201,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/032-shiploop-e2e-chess-salesforce.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-battleship-ui",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 19,
+          "executed": 19,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/033-shiploop-e2e-battleship-ui.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-grok-chat-salesforce",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 13,
+          "executed": 13,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/034-shiploop-e2e-grok-chat-salesforce.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-grok-chat-full-ui",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 61,
+          "executed": 61,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/035-shiploop-e2e-grok-chat-full-ui.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-gym-membership-salesforce",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 22,
+          "executed": 22,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/036-shiploop-e2e-gym-membership-salesforce.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-efficiency",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 77,
+          "executed": 76,
+          "skipped": 1,
+          "log": "extracted/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-owner-page",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 12,
+          "executed": 12,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/038-shiploop-e2e-owner-page.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-scope-discovery",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 10,
+          "executed": 10,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/039-shiploop-e2e-scope-discovery.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-stage-oracle",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 117,
+          "executed": 117,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/040-shiploop-e2e-stage-oracle.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-stage-build",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 64,
+          "executed": 64,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/041-shiploop-e2e-stage-build.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-stage-live",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 93,
+          "executed": 92,
+          "skipped": 1,
+          "log": "extracted/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-run-trace",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 28,
+          "executed": 28,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/043-shiploop-e2e-run-trace.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-incremental-pilot",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 30,
+          "executed": 30,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/044-shiploop-e2e-incremental-pilot.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-user-chain",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 23,
+          "executed": 23,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/045-shiploop-e2e-user-chain.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-packet-obligations",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 15,
+          "executed": 15,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/046-shiploop-packet-obligations.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-callback-contract",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 117,
+          "executed": 117,
+          "skipped": 0,
+          "log": "extracted/hermetic-shiploop-3/logs/047-shiploop-callback-contract.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "shiploop-mock-replay",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 39,
+          "executed": 39,
+          "skipped": 0,
+          "log": "extracted/hermetic-e2e-apparatus/logs/001-shiploop-mock-replay.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "planning-boundary",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 26,
+          "executed": 26,
+          "skipped": 0,
+          "log": "extracted/hermetic-e2e-apparatus/logs/002-planning-boundary.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "planning-comparison",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 3,
+          "executed": 3,
+          "skipped": 0,
+          "log": "extracted/hermetic-e2e-apparatus/logs/003-planning-comparison.stderr.log"
+        }
+      ]
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "shiploop-e2e-apparatus",
+      "framework_counts": [
+        {
+          "framework": "unittest",
+          "reported": 362,
+          "executed": 362,
+          "skipped": 0,
+          "log": "extracted/hermetic-e2e-apparatus/logs/004-shiploop-e2e-apparatus.stderr.log"
+        }
+      ]
+    }
+  ],
+  "method_count_limitation": "Per-framework reported counts retained; framework totals are not treated as equivalent suite counts. Conditional unittest skips excluded from executed methods."
+}

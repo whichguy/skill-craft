@@ -1,0 +1,118 @@
+{
+  "status": "COMPLETE",
+  "completed_at": "2026-11-16T17:50:32.777125+00:00",
+  "objective": "Standardize latest-stable Python, update supported minimum/CI/docs, preserve current coverage, verify locally and GitHub, leave branch protection unchanged",
+  "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+  "tree": "43622e0d5f836e03c0e79b929ddced9563b2bdf1",
+  "main_head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+  "source_fingerprint": {
+    "root": "/Users/dadleet/.codex/worktrees/ci-qualification-improvements/skill-craft",
+    "files": 13162,
+    "sha256": "5834adf2b555a7bf1fb3fcde345aac925bc94d8865f836a6dc2a871e2635d130",
+    "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4"
+  },
+  "python": {
+    "supported_minimum": "3.15",
+    "local_verified": "3.15.2",
+    "github_verified": "3.15.2",
+    "ci_selector": "3.x",
+    "check_latest": true,
+    "duplicate_python_3_9_cohort_removed": true,
+    "global_system_interpreters_changed": false
+  },
+  "commits": [
+    "7a04fc044edb4418e92551c5619c48192862575b",
+    "a94cbd844d4e68831c2a971dbd430e1ec445e6e4"
+  ],
+  "coverage": {
+    "current_suites": 207,
+    "source_rows_commands_groups_timeouts_hermetic_preserved": true,
+    "full_ci_groups": {
+      "core": 61,
+      "shiploop-1": 47,
+      "shiploop-2": 48,
+      "shiploop-3": 47,
+      "e2e-apparatus": 4
+    },
+    "one_execution_per_current_suite": true,
+    "smoke_suites": 14,
+    "legacy_local_component_suites": 76,
+    "baseline_paths_audited": 13162,
+    "quick_selection_losses": 0,
+    "retirement_context": "The separately owner-approved Backchain retirement ed479466 and release8d18 removed its two suites before final integration; this task preserves all207 remaining suites."
+  },
+  "local": {
+    "status": "PASS",
+    "suites": 207,
+    "named_method_suites": 25,
+    "named_methods_reported_and_executed": 1746,
+    "named_method_skips": 0,
+    "seconds": 1667.0933227920032,
+    "calibration_reports": 9,
+    "calibration_observations": 261,
+    "raw_log_hashes_verified": 594,
+    "invalid_observations": 0,
+    "network_reruns": 0,
+    "actual_resource_warnings": 0,
+    "final_observed_owned_processes": 0,
+    "parent_acceptance": "parent-final-local-acceptance.json",
+    "full_result": "full-local-final/final-verified.json"
+  },
+  "github": {
+    "full": {
+      "status": "PASS",
+      "id": 43917017353,
+      "event": "workflow_dispatch",
+      "attempt": 1,
+      "branch": "codex/python-latest-standardization-20261116",
+      "suites": 207,
+      "jobs": 12,
+      "zip_digests": 9,
+      "browser_fixtures": 4,
+      "url": "https://github.com/whichguy/skill-craft/actions/runs/43917017353",
+      "named_methods_reported": 1746,
+      "named_methods_executed": 1743,
+      "unchanged_named_platform_skips": 3,
+      "unchanged_global_conditional_skips": 59
+    },
+    "main_quick": {
+      "status": "PASS",
+      "id": 43916735284,
+      "event": "push",
+      "attempt": 1,
+      "branch": "main",
+      "suites": 16,
+      "jobs": 8,
+      "zip_digests": 5,
+      "browser_fixtures": 4,
+      "url": "https://github.com/whichguy/skill-craft/actions/runs/43916735284"
+    },
+    "parent_acceptance": "parent-final-github-acceptance.json",
+    "native_handoff": "github-final-collection-handoff.json"
+  },
+  "source_and_settings": {
+    "checkout_clean": true,
+    "ignored_files": 0,
+    "empty_directories": 0,
+    "temporary_qualification_checkout_removed": true,
+    "branch_protection_unchanged": true,
+    "rulesets_unchanged": true,
+    "settings_writes": 0,
+    "protection_before": "protection-before.json",
+    "protection_after": "protection-after.json"
+  },
+  "first_failures_retained": {
+    "local": "full-local/final-verified.json:203passed/4failed all207completed",
+    "github": "github-full/handoff.json:206passed/1failed,run43910412213",
+    "fixture_diagnostic_red": "security-diagnostic-red/summary.json",
+    "all_prior_probe_red_failed_green_and_fixture_artifacts": "Retained separately in this evidence root; never relabeled as passing."
+  },
+  "release_scope": "Source and CI updates are on main; pending major notes remain for the separately owned packaged release. No hosts refreshed or native published install/live model/org acceptance claimed.",
+  "limits": [
+    "Two-second PID/birth/group sampling cannot exclude between-sample escapes.",
+    "Original Git worktree128 cause was unavailable because the old fixture hid stderr; new diagnostic control and scoped maintenance hardening do not prove that original cause.",
+    "CI qualifies latest stable, not an ongoing fixed3.15 minimum once3.x advances.",
+    "Requested advisor/model launch controls are retained; served-model attestation was not independently available."
+  ],
+  "evidence_root": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb"
+}

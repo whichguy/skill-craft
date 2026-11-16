@@ -1,0 +1,62 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v2-fixture-cleanup/fault-runner.py",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v2-fixture-cleanup/baseline-fault"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+  "start": "2026-11-16T20:37:39.500726+00:00",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v2-fixture-cleanup/baseline-fault/scratch"
+  },
+  "test_source_sha256": "d5be6f32f60ef2d09c4c0199a1895204199b6fbb711f625d7a2ae812085a7a03",
+  "fault_wrapper_sha256": "9eb9b7cdf17aaaa937f4d41abc0790acdfcc0a60cd4fc4b548ef099d759617e1",
+  "external_controller_bound_seconds": 3.3,
+  "rescue": [
+    {
+      "label": "worker",
+      "pid": 48686,
+      "signal": 9,
+      "epoch": 1794861462.873302
+    },
+    {
+      "label": "descendant",
+      "pid": 48687,
+      "signal": 9,
+      "epoch": 1794861462.873327
+    }
+  ],
+  "markers_observed_epoch": 1794861460.487502,
+  "barrier": {
+    "scenario": "cleanup",
+    "final": {
+      "text": "{\n  \"stop\": \"hard_timeout\",\n  \"timeout_secs\": 1,\n  \"elapsed_ms\": 685,\n  \"worker_executable\": \"python3.15\",\n  \"worker_argument_count\": 4\n}\n",
+      "mode": 384
+    }
+  },
+  "suppressed_kill": {
+    "supervisor_pid": 48685,
+    "pgid": 48686,
+    "signal": 9
+  },
+  "states_at_marker": {
+    "worker": "Ss",
+    "descendant": "S"
+  },
+  "blocked_after_allowance": true,
+  "observed_block_elapsed": 3.302097915991908,
+  "states_before_rescue": {
+    "worker": "Ss",
+    "descendant": "S"
+  },
+  "supervisor_state_before_rescue": "",
+  "exit": 1,
+  "elapsed": 3.3856594579992816,
+  "states_after": {
+    "worker": "",
+    "descendant": ""
+  },
+  "supervisor_state_after": "",
+  "end": "2026-11-16T20:37:42.898988+00:00"
+}

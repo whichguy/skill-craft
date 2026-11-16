@@ -1,0 +1,152 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/test-harness.test.py",
+        "TimeoutEvidence",
+        "-v"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "elapsed_seconds": 5.423589083002298,
+      "ended_utc": "2026-11-16T20:45:02.875957+00:00",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit": 0,
+      "started_utc": "2026-11-16T20:44:57.452333+00:00",
+      "stderr": "check-1.stderr.log",
+      "stdout": "check-1.stdout.log"
+    },
+    {
+      "argv": [
+        "ruff",
+        "check",
+        "--no-cache",
+        "--select",
+        "E9,F",
+        "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "test/test-harness.test.py"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "elapsed_seconds": 0.026877166994381696,
+      "ended_utc": "2026-11-16T20:45:15.848018+00:00",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit": 0,
+      "started_utc": "2026-11-16T20:45:15.821007+00:00",
+      "stderr": "check-2.stderr.log",
+      "stdout": "check-2.stdout.log"
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+        "diff",
+        "--check",
+        "HEAD",
+        "--",
+        "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+        "test/test-harness.test.py"
+      ],
+      "attempt": 1,
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "elapsed_seconds": 0.011972332998993807,
+      "ended_utc": "2026-11-16T20:45:20.740549+00:00",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit": 0,
+      "started_utc": "2026-11-16T20:45:20.728449+00:00",
+      "stderr": "check-3.stderr.log",
+      "stdout": "check-3.stdout.log"
+    }
+  ],
+  "completed_utc": "2026-11-16T20:45:59.267251+00:00",
+  "counts": {
+    "barriers_reached": 6,
+    "descendants_dead_or_zombie": 6,
+    "errors": 0,
+    "exit124": 6,
+    "failures": 0,
+    "methods": 3,
+    "scenarios": 6,
+    "skips": 0,
+    "workers_dead_or_zombie": 6
+  },
+  "limits": [
+    "The original eight methods, full eleven-method bank, build and frontmatter checks belong to the older frozen fingerprint; none were rerun or relabeled.",
+    "Only the three selected checks were executed, once each; injected-fault controls and stress/retry loops were not repeated.",
+    "Full future CI and parent acceptance remain pending; no current CI or publication claim."
+  ],
+  "method_completion_proof": "check-1.stderr.log",
+  "named_methods": [
+    "test_atomic_publication_and_raced_collisions",
+    "test_evidence_precedes_deadline_consuming_cleanup",
+    "test_interrupted_write_never_exposes_incomplete_final"
+  ],
+  "runner": "Fresh native test-runner, Sol 6.1 medium, no overrides",
+  "scenario_proof": "check-1.stdout.log",
+  "scope": "Changed TimeoutEvidence fixture revalidation only",
+  "source": {
+    "after": "post-source.json",
+    "before": "pre-source.json",
+    "dirty_paths": [
+      "changes/test-harness/atomic-timeout-evidence.md",
+      "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+      "test/test-harness.test.py"
+    ],
+    "entries": 14112,
+    "expected_dirty_paths": [
+      "changes/test-harness/atomic-timeout-evidence.md",
+      "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+      "test/test-harness.test.py"
+    ],
+    "fingerprint_after": "1af28865d623457e3a796a489b9c42a28803928a2fdd161dec5d7dcfb244d41b",
+    "fingerprint_before": "1af28865d623457e3a796a489b9c42a28803928a2fdd161dec5d7dcfb244d41b",
+    "guards_unchanged": {
+      "config": true,
+      "entries": true,
+      "file_hashes": true,
+      "fingerprint": true,
+      "head": true,
+      "ignored-untracked": true,
+      "index": true,
+      "index_file_sha256": true,
+      "ordinary": true
+    },
+    "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "manifests": [
+      "pre-manifest.json",
+      "post-manifest.json"
+    ],
+    "ordinary_status_note": "Default porcelain groups the untracked changes/test-harness directory; exact paths independently verified from --untracked-files=all status.",
+    "source_outputs": []
+  },
+  "status": "PASS",
+  "versions": {
+    "python": {
+      "argv": [
+        "python3",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Python 3.15.1\n"
+    },
+    "ruff": {
+      "argv": [
+        "ruff",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "ruff 0.17.2\n"
+    }
+  }
+}

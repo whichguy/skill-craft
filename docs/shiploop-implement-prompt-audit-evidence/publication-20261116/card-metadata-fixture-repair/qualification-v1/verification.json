@@ -1,0 +1,28 @@
+{
+  "changed_files": [
+    "test/closed-loop.test.py"
+  ],
+  "source_outside_owned_file_unchanged": true,
+  "tracked_and_untracked_file_hashes_compared": 14111,
+  "index_and_config_hashes_unchanged": true,
+  "effective_config_unchanged": true,
+  "staged_diff_empty": true,
+  "head_unchanged": true,
+  "test_count_before": 165,
+  "test_count_after": 165,
+  "other_164_methods_ast_identical": true,
+  "whole_module_ast_identical_except_owned_method": true,
+  "unchanged_assertions": [
+    "name",
+    "kind",
+    "neighbour descriptions"
+  ],
+  "pending_initial_note_assertion_retained_with_current_version": true,
+  "baseline_test_sha256": "194d7f128204ca289d13cff0166c3b74bc5d79731c5e554b8311262d566bbd88",
+  "final_test_sha256": "41fdcbde5e730951f2ae9af2e081ab1207e582e3d23e0e426c15371b94201fc7",
+  "baseline_card_sha256": "8c9a00ea4eadf3431a0dceb62818cb8fd4b72d0db844e9e6eb969bc61b37f538",
+  "final_card_sha256": "8c9a00ea4eadf3431a0dceb62818cb8fd4b72d0db844e9e6eb969bc61b37f538",
+  "package_files_unchanged": true,
+  "diff_check_exit": 0,
+  "diff": "patch.diff"
+}

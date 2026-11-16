@@ -1,0 +1,29 @@
+test_a_change_a_merge_brings_in_is_still_named_and_the_merge_is_not (__main__.ReleasePreflightTests.test_a_change_a_merge_brings_in_is_still_named_and_the_merge_is_not) ... ok
+test_a_dry_run_shows_the_refusal_and_writes_nothing (__main__.ReleasePreflightTests.test_a_dry_run_shows_the_refusal_and_writes_nothing) ... ok
+test_a_learnings_commit_before_the_last_release_does_not_count (__main__.ReleasePreflightTests.test_a_learnings_commit_before_the_last_release_does_not_count) ... ok
+test_a_learnings_commit_merged_from_a_branch_counts_when_the_branch_has_the_change (__main__.ReleasePreflightTests.test_a_learnings_commit_merged_from_a_branch_counts_when_the_branch_has_the_change) ... ok
+test_a_merge_of_main_into_a_branch_that_both_changed_the_skill_is_not_a_change_of_its_own (__main__.ReleasePreflightTests.test_a_merge_of_main_into_a_branch_that_both_changed_the_skill_is_not_a_change_of_its_own) ... ok
+test_a_real_run_is_refused_before_it_writes_anything (__main__.ReleasePreflightTests.test_a_real_run_is_refused_before_it_writes_anything) ... ok
+test_a_release_that_does_not_ship_shiploop_is_not_asked (__main__.ReleasePreflightTests.test_a_release_that_does_not_ship_shiploop_is_not_asked) ... ok
+test_a_round_recorded_before_a_change_does_not_vouch_for_it (__main__.ReleasePreflightTests.test_a_round_recorded_before_a_change_does_not_vouch_for_it) ... ok
+test_a_side_branch_run_that_never_had_the_change_does_not_count (__main__.ReleasePreflightTests.test_a_side_branch_run_that_never_had_the_change_does_not_count) ... ok
+test_a_trailer_outside_the_final_paragraph_is_not_a_trailer (__main__.ReleasePreflightTests.test_a_trailer_outside_the_final_paragraph_is_not_a_trailer) ... ok
+test_a_trailer_with_an_empty_reason_is_refused (__main__.ReleasePreflightTests.test_a_trailer_with_an_empty_reason_is_refused) ... ok
+test_accepted_with_a_learnings_commit_after_the_change (__main__.ReleasePreflightTests.test_accepted_with_a_learnings_commit_after_the_change) ... ok
+test_accepted_with_a_trailer_that_has_a_reason (__main__.ReleasePreflightTests.test_accepted_with_a_trailer_that_has_a_reason) ... ok
+test_an_accepted_dry_run_writes_nothing (__main__.ReleasePreflightTests.test_an_accepted_dry_run_writes_nothing) ... ok
+test_an_output_only_release_is_not_asked (__main__.ReleasePreflightTests.test_an_output_only_release_is_not_asked) ... ok
+test_old_branch_journal_does_not_reintroduce_the_published_release (__main__.ReleasePreflightTests.test_old_branch_journal_does_not_reintroduce_the_published_release) ... ok
+test_old_branch_journal_still_refuses_only_new_uncovered_changes (__main__.ReleasePreflightTests.test_old_branch_journal_still_refuses_only_new_uncovered_changes) ... ok
+test_only_the_named_file_counts (__main__.ReleasePreflightTests.test_only_the_named_file_counts) ... ok
+test_refused_with_no_learnings_commit_and_no_trailer (__main__.ReleasePreflightTests.test_refused_with_no_learnings_commit_and_no_trailer) ... ok
+test_the_first_release_looks_at_all_of_history (__main__.ReleasePreflightTests.test_the_first_release_looks_at_all_of_history) ... ok
+test_the_learnings_fix_the_refusal_names_clears_it (__main__.ReleasePreflightTests.test_the_learnings_fix_the_refusal_names_clears_it) ... ok
+test_the_release_commit_itself_does_not_count (__main__.ReleasePreflightTests.test_the_release_commit_itself_does_not_count) ... ok
+test_the_trailer_fix_the_refusal_names_clears_it (__main__.ReleasePreflightTests.test_the_trailer_fix_the_refusal_names_clears_it) ... ok
+test_what_a_conflict_resolution_itself_changed_is_not_read (__main__.ReleasePreflightTests.test_what_a_conflict_resolution_itself_changed_is_not_read) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 7.932s
+
+OK

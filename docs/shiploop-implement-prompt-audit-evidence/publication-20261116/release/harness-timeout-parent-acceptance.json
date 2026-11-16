@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_REPAIR_ACCEPTED_RELEASE_AND_CI_PENDING",
+  "base": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "fingerprint": "1af28865d623457e3a796a489b9c42a28803928a2fdd161dec5d7dcfb244d41b",
+  "source_scope": "harness-timeout-parent-scope.json",
+  "production_sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+  "original_eight_methods_unchanged": true,
+  "baseline_assertion_failures": 3,
+  "relocation_only_assertion_failures": 2,
+  "current_methods": 3,
+  "current_scenarios": 6,
+  "full_bank_prior_fingerprint": "2f82bb948568b935d2f68d0e0db92ed716240c44d7f504bb764bef5b966fd382",
+  "full_bank_prior_methods": 11,
+  "full_bank_prior_checks": 6,
+  "review": "harness-timeout-source-review-followup/review.md",
+  "historical_main_ci": "FAIL43944081831,206PASS1FAIL of207; never regraded",
+  "limits": "Current source acceptance only; final release/current CI/native install still pending. Historical exact interruption cause remains unknown."
+}

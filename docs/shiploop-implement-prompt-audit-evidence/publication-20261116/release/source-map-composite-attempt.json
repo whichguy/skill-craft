@@ -1,0 +1,11 @@
+{
+  "status": "REJECTED",
+  "source": "9b73ed18a291a43d4822e1a15a0f3ab0cbce4154",
+  "directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/reanchor-python315-9b73ed18",
+  "reason": "An unrelated comment invalidated an exact whole-span match; generic AST fallback selected only answer_key, omitting matching_yes despite the composite claim.",
+  "span": [
+    43,
+    71
+  ],
+  "replacement": "prepare_source_map_final.py explicitly binds both functions and verifies their unchanged ASTs; transport prepare() receives its own supporting anchor."
+}

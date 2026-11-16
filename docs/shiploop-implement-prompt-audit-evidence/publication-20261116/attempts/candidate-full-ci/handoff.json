@@ -1,0 +1,135 @@
+{
+  "status": "FAIL",
+  "issues": [
+    "Non-success job",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/commands/0079-validator-shiploop-1: 1 ",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/commands/0081-validator-shiploop-3: 1 ",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/commands/0083-validator-python-floor: 1 "
+  ],
+  "run_id": 43895804906,
+  "run_url": "https://github.com/whichguy/skill-craft/actions/runs/43895804906",
+  "head": "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+  "tree": "2cf7df9f4e14501da714cf3620718727307ff5a7",
+  "branch": "codex/r19-r16-publish-20261116",
+  "event": "workflow_dispatch",
+  "attempt": 1,
+  "conclusion": "failure",
+  "tier": "full",
+  "job_count": 13,
+  "artifact_count": 10,
+  "groups": {
+    "core": {
+      "selected": 63,
+      "completed": 63,
+      "passed": 63,
+      "failed": 0,
+      "incomplete": 0,
+      "validator_success": true,
+      "catalog_match": true,
+      "independent_match": true
+    },
+    "shiploop-1": {
+      "selected": 48,
+      "completed": 48,
+      "passed": 46,
+      "failed": 2,
+      "incomplete": 0,
+      "validator_success": false,
+      "catalog_match": true,
+      "independent_match": true
+    },
+    "shiploop-2": {
+      "selected": 47,
+      "completed": 47,
+      "passed": 47,
+      "failed": 0,
+      "incomplete": 0,
+      "validator_success": true,
+      "catalog_match": true,
+      "independent_match": true
+    },
+    "shiploop-3": {
+      "selected": 47,
+      "completed": 47,
+      "passed": 46,
+      "failed": 1,
+      "incomplete": 0,
+      "validator_success": false,
+      "catalog_match": true,
+      "independent_match": true
+    },
+    "e2e-apparatus": {
+      "selected": 4,
+      "completed": 4,
+      "passed": 4,
+      "failed": 0,
+      "incomplete": 0,
+      "validator_success": true,
+      "catalog_match": true,
+      "independent_match": true
+    },
+    "python-floor": {
+      "selected": 76,
+      "completed": 76,
+      "passed": 74,
+      "failed": 2,
+      "incomplete": 0,
+      "validator_success": false,
+      "catalog_match": true,
+      "independent_match": true
+    }
+  },
+  "total_executions": 285,
+  "distinct_suites": 209,
+  "repeated_executions": 76,
+  "source_unchanged": true,
+  "source_pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/source-pre.json",
+  "source_post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/source-post.json",
+  "raw_logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/workflow.log",
+  "command_receipts": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/commands",
+  "skip_evidence": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/skip-evidence.json",
+  "browser_signals": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/browser-signals.json",
+  "scope_limits": [
+    "Manual workflow release boundary is not applicable, not pushed-range coverage.",
+    "Local hermetic/browser fixtures; no live-org/real-model acceptance."
+  ],
+  "evidence_complete": true,
+  "failed_execution_count": 5,
+  "passed_execution_count": 280,
+  "distinct_failed_suite_ids": [
+    "shiploop-follow-on",
+    "shiploop-loophole-gates",
+    "shiploop-progress"
+  ],
+  "required_suites_skipped": 0,
+  "within_suite_conditional_skips": {
+    "core": 1,
+    "shiploop-1": 4,
+    "shiploop-2": 3,
+    "shiploop-3": 51,
+    "e2e-apparatus": 0,
+    "python-floor": 0
+  },
+  "within_suite_conditional_skip_total": 59,
+  "jobs_success": 9,
+  "jobs_failed": 4,
+  "planner_verified": true,
+  "planner_log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/workflow-logs/plan/4_Select qualification tier.txt",
+  "aggregate_tier_source_verified": true,
+  "aggregate_log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/workflow-logs/hermetic/2_Require all selected hermetic groups.txt",
+  "manual_boundary": "not applicable for workflow_dispatch; no pushed-range coverage",
+  "boundary_log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/workflow-logs/release-boundary/6_Release output only in release commits.txt",
+  "artifact_digests_verified": true,
+  "artifact_integrity": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifact-integrity.json",
+  "failures": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/failures.json",
+  "browser_pass_signals": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/browser-pass-signals.json",
+  "raw_workflow_archive": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/workflow-logs.zip",
+  "within_suite_skip_details": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/within-suite-skips.json",
+  "completed_at": "2026-11-16T15:47:28.622944+00:00",
+  "retry_policy": "No test retries/reruns executed; all original failures retained",
+  "collection_notes": [
+    "Initial preflight stdout/exit retained; exact initial command timestamp not exposed, later timed run identities retained before downloads.",
+    "gh run view --job --log was unavailable while run active; job-log API collected completed-job raw log.",
+    "Two unsupported CLI escape-flag placements failed before collection; exact errors retained. Raw attempt-pinned workflow log archive collected via API instead."
+  ]
+}

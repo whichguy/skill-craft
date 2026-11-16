@@ -1,0 +1,16 @@
+test_the_lint_finds_each_seeded_shape (__main__.Hygiene.test_the_lint_finds_each_seeded_shape) ... ok
+test_the_lint_reads_every_shipped_file (__main__.Hygiene.test_the_lint_reads_every_shipped_file) ... ok
+test_every_script_and_reference_the_card_names_exists (__main__.Packaging.test_every_script_and_reference_the_card_names_exists) ... ok
+test_no_default_names_a_host_or_a_home_directory (__main__.Packaging.test_no_default_names_a_host_or_a_home_directory) ... ok
+test_the_card_binds_the_scripts_from_the_loaded_skill (__main__.Packaging.test_the_card_binds_the_scripts_from_the_loaded_skill) ... ok
+test_the_driver_runs_from_an_unrelated_directory (__main__.Packaging.test_the_driver_runs_from_an_unrelated_directory) ... ok
+test_the_scripts_the_card_runs_are_executable (__main__.Packaging.test_the_scripts_the_card_runs_are_executable) ... ok
+test_the_bundled_self_test_passes_in_a_scratch_home (__main__.SelfTest.test_the_bundled_self_test_passes_in_a_scratch_home) ... ok
+test_atomic_publication_and_raced_collisions (__main__.TimeoutEvidence.test_atomic_publication_and_raced_collisions) ... ok
+test_evidence_precedes_deadline_consuming_cleanup (__main__.TimeoutEvidence.test_evidence_precedes_deadline_consuming_cleanup) ... ok
+test_interrupted_write_never_exposes_incomplete_final (__main__.TimeoutEvidence.test_interrupted_write_never_exposes_incomplete_final) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 65.791s
+
+OK

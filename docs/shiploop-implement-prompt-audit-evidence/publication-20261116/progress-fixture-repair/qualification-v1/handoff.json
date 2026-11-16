@@ -1,0 +1,165 @@
+{
+  "status": "QUALIFIED_FIXTURE_REPAIR_READY_FOR_PARENT_REVIEW",
+  "repo": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+  "head": "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+  "owned_path": "test/shiploop-progress.test.py",
+  "baseline_sha256": "026859144c50efa3c571486dc16d875b3c4ed3b089d5d20ab4dc44591d8d5cc7",
+  "current_sha256": "ff37653fd64e6e9c7613806d0db482e88fe417183aaaebfd88b2ef4b6fd1ea54",
+  "only_target_method_changed": true,
+  "production_paths": 433,
+  "production_byte_identical_to_HEAD_and_baseline": true,
+  "results": [
+    {
+      "label": "baseline-delayed",
+      "operator_control": "PASS",
+      "underlying": "FAIL_EXPECTED",
+      "underlying_exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "pid": 74867,
+      "requested_instance": "ddc686f89d184223b7f81790ea7680b3",
+      "start_boolean": false,
+      "start_seconds": 1.006827457997133,
+      "child_exit": 0,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "candidate-delayed-qualified",
+      "operator_control": "PASS",
+      "underlying": "PASS",
+      "underlying_exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "pid": 76362,
+      "requested_instance": "af6e02dd1a3145c5aec136d5f1c702ca",
+      "start_boolean": false,
+      "start_seconds": 1.007740000000922,
+      "child_exit": 0,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "candidate-abort",
+      "operator_control": "PASS",
+      "underlying": "FAIL_EXPECTED",
+      "underlying_exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "pid": 76809,
+      "requested_instance": "ed652c8cd0dc4595a18a54fa9ec2e762",
+      "start_boolean": false,
+      "start_seconds": 1.010722083010478,
+      "child_exit": 73,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "candidate-premature",
+      "operator_control": "PASS",
+      "underlying": "FAIL_EXPECTED",
+      "underlying_exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "pid": 76841,
+      "requested_instance": "29444dab993f405aa4087241a33468c1",
+      "start_boolean": false,
+      "start_seconds": 1.016487959001097,
+      "child_exit": 0,
+      "no_owned_child_survives": true
+    },
+    {
+      "label": "full-python315",
+      "underlying": "PASS",
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "test_seconds": 14.197,
+      "process_seconds": 14.416368082995177
+    },
+    {
+      "label": "full-python39",
+      "underlying": "PASS",
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "test_seconds": 12.651,
+      "process_seconds": 12.886677040994982
+    }
+  ],
+  "original_CI": {
+    "run": 43895804906,
+    "attempt": 1,
+    "head": "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+    "methods": 38,
+    "failures": 1,
+    "seconds": 50.538,
+    "child_timing_or_error_cause": "UNKNOWN",
+    "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/candidate-full-ci/artifacts/hermetic-shiploop-1/logs/008-shiploop-progress.stderr.log"
+  },
+  "repair": "One start and retained real Popen. True requires immediate fresh owned watching status and changed architecture page. False requires same child alive, then existing six-second fixture wait for requested instance/PID, held display lock, watching status, changed watch page and architecture content. Existing final old/new and architecture assertions remain.",
+  "history": [
+    {
+      "commit": "2fd93c62dbcf662aabc9d10ea2e9d76c59addf4e",
+      "preserved": "CLI lifecycle qualification remains separate; historical results unchanged. Direct test corrected only after its own controlled qualification."
+    },
+    {
+      "commit": "a890306edd70dd7c446dc872587cee7678e1d5bc",
+      "preserved": "Real child retention and existing stop/wait cleanup; no ResourceWarning in either full module output."
+    },
+    {
+      "commit": "2148d213a3dfa513aba663d0acf0b92f687d987d",
+      "preserved": "Bounded best-effort observer startup, display lock ownership and read-only observation."
+    }
+  ],
+  "operator_controls_result": "PASS",
+  "probe_limitations": [
+    "Baseline probe intercepted Popen inside start: external list retained child; fixture append seam was bypassed. Original assertion executed unchanged; cooperative cleanup and external poll reaped child. Candidate qualified probe patches outside test and asserts fixture processes equals same retained child list.",
+    "candidate-delayed: hook intercepted git init; no observer launched or body executed; raw error and original hook retained; no test-body retry or replacement launch.",
+    "Negative premature control calls real bounded start (False), substitutes True only at external start seam, and holds child until assertion/cleanup. This is not a production defect.",
+    "Abort control exits 73 after bounded start returns and before test resumes; tests rejection of already-dead child, not all post-liveness-check failure schedules.",
+    "No owned child survives any launched controlled case; full suites use unchanged fixture cleanup, not a whole-host process inventory.",
+    "Environment metadata records explicit overrides and inherited key names only, avoiding secret values. Raw stdout/stderr and UTC/monotonic command timings are retained."
+  ],
+  "limits": [
+    "No production behavior change or runtime defect established.",
+    "Original CI cause remains UNKNOWN; historical failures are not regraded.",
+    "No observer replacement, retrying launch, changed timeout, fixture sleep-to-pass, added skip or removed method.",
+    "An external hook setup error is preserved, then corrected; no observer existed in that attempt.",
+    "Both complete module runs occurred exactly once; no broad or redundant tier run.",
+    "No other worker files edited, reverted, staged or committed.",
+    "No skills, notes/LEARNINGS, helpers, generated output, configs or dependency edits.",
+    "No agents/advisors, network, images, commit, push or release.",
+    "No package, runtime, model, host, deployment or generic ShipLoop improvement claim.",
+    "Parent owns integration and full CI."
+  ],
+  "checks": {
+    "python315": {
+      "methods": 38,
+      "skips": 0,
+      "seconds": 14.197,
+      "exit": 0
+    },
+    "python39": {
+      "methods": 38,
+      "skips": 0,
+      "seconds": 12.651,
+      "exit": 0
+    },
+    "ruff": "PASS: ruff check --no-cache --select E9,F test/shiploop-progress.test.py",
+    "diffcheck": "PASS: scoped git diff --check"
+  },
+  "artifacts": {
+    "baseline": "baseline.json + baseline-test.py",
+    "current": "current.json + current-test.py",
+    "diff": "final.diff",
+    "operator_controls": "controls.json",
+    "all_commands": "*.command.json with matching *.stdout and *.stderr",
+    "history": "history.txt",
+    "probe_scripts": "probe.py (original), candidate_probe.py (setup error), qualified_probe.py (qualified candidate)",
+    "per_case": "case directories retain status/page/lock snapshots, requested command/identity, exact unittest failure, child stderr and cleanup exit"
+  }
+}

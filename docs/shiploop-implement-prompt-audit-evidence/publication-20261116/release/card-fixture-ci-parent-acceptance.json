@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d",
+  "id": 43939794697,
+  "event": "workflow_dispatch",
+  "attempt": 1,
+  "tier": "full",
+  "jobs": 12,
+  "artifacts": 9,
+  "executions": 207,
+  "distinct_suites": 207,
+  "repeated_suites": 0,
+  "groups": {
+    "core": 61,
+    "shiploop-1": 47,
+    "shiploop-2": 48,
+    "shiploop-3": 47,
+    "e2e-apparatus": 4
+  },
+  "required_suite_omissions": 0,
+  "conditional_unittest_skips": 59,
+  "browser_fixtures": 4,
+  "source_unchanged": true,
+  "boundary": "N/A manual; actual outgoing range still required",
+  "evidence": "card-fixture-full-ci/handoff.json",
+  "receipt_counter_and_raw_hashes_independently_checked": true,
+  "url": "https://github.com/whichguy/skill-craft/actions/runs/43939794697"
+}

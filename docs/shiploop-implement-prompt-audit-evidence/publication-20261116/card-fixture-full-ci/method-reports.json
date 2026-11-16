@@ -1,0 +1,1925 @@
+{
+  "reported_summaries": [
+    {
+      "group": "core",
+      "suite": "backchain-graph",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/001-backchain-graph.stderr.log",
+      "line": 3,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "test-groups",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/002-test-groups.stderr.log",
+      "line": 3,
+      "reported": 78,
+      "skipped": 1,
+      "executed": 77,
+      "result": "OK (skipped=1)"
+    },
+    {
+      "group": "core",
+      "suite": "ci-summary",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/003-ci-summary.stderr.log",
+      "line": 3,
+      "reported": 11,
+      "skipped": 0,
+      "executed": 11,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ci-policy",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/004-ci-policy.stderr.log",
+      "line": 3,
+      "reported": 20,
+      "skipped": 0,
+      "executed": 20,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "integration-boundaries",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/005-integration-boundaries.stderr.log",
+      "line": 3,
+      "reported": 1,
+      "skipped": 0,
+      "executed": 1,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "release-push",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/006-release-push.stderr.log",
+      "line": 13,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-workspace",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/007-ask-agent-workspace.stderr.log",
+      "line": 79,
+      "reported": 76,
+      "skipped": 0,
+      "executed": 76,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-delivery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/008-ask-agent-delivery.stderr.log",
+      "line": 14,
+      "reported": 11,
+      "skipped": 0,
+      "executed": 11,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-managed-harness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/009-ask-agent-managed-harness.stderr.log",
+      "line": 30,
+      "reported": 27,
+      "skipped": 0,
+      "executed": 27,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-parallel",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/010-ask-agent-parallel.stderr.log",
+      "line": 242,
+      "reported": 233,
+      "skipped": 0,
+      "executed": 233,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-current-workspace",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/011-ask-agent-current-workspace.stderr.log",
+      "line": 3,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-task",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/012-ask-agent-task.stderr.log",
+      "line": 26,
+      "reported": 23,
+      "skipped": 0,
+      "executed": 23,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "ask-agent-host",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/013-ask-agent-host.stderr.log",
+      "line": 3,
+      "reported": 11,
+      "skipped": 0,
+      "executed": 11,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "in-parallel-queue-audit",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/014-in-parallel-queue-audit.stderr.log",
+      "line": 3,
+      "reported": 21,
+      "skipped": 0,
+      "executed": 21,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "in-parallel-queue",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/015-in-parallel-queue.stderr.log",
+      "line": 11,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "in-parallel-composition",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/016-in-parallel-composition.stderr.log",
+      "line": 8,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/017-agent-harness.stderr.log",
+      "line": 26,
+      "reported": 23,
+      "skipped": 0,
+      "executed": 23,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness-delivery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/018-agent-harness-delivery.stderr.log",
+      "line": 3,
+      "reported": 22,
+      "skipped": 0,
+      "executed": 22,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness-boundaries",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/019-agent-harness-boundaries.stderr.log",
+      "line": 3,
+      "reported": 15,
+      "skipped": 0,
+      "executed": 15,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "agent-harness-audit",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/020-agent-harness-audit.stderr.log",
+      "line": 3,
+      "reported": 25,
+      "skipped": 0,
+      "executed": 25,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "release-preflight",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/025-release-preflight.stderr.log",
+      "line": 3,
+      "reported": 24,
+      "skipped": 0,
+      "executed": 24,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "marketplace-package",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/027-marketplace-package.stderr.log",
+      "line": 3,
+      "reported": 30,
+      "skipped": 0,
+      "executed": 30,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "marketplace-host-isolation",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/028-marketplace-host-isolation.stderr.log",
+      "line": 3,
+      "reported": 4,
+      "skipped": 0,
+      "executed": 4,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "installed-skill-invocation",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/029-installed-skill-invocation.stderr.log",
+      "line": 15,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "prompt-marketplace-contract",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/030-prompt-marketplace-contract.stderr.log",
+      "line": 9,
+      "reported": 6,
+      "skipped": 0,
+      "executed": 6,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "test-harness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/032-test-harness.stderr.log",
+      "line": 3,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "improve-agent",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/040-improve-agent.stderr.log",
+      "line": 3,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "improve-runtime",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/041-improve-runtime.stderr.log",
+      "line": 3,
+      "reported": 7,
+      "skipped": 0,
+      "executed": 7,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "improve-route",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/042-improve-route.stderr.log",
+      "line": 3,
+      "reported": 21,
+      "skipped": 0,
+      "executed": 21,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "until-loop-vendor",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/043-until-loop-vendor.stderr.log",
+      "line": 3,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "rubric-eval",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/045-rubric-eval.stderr.log",
+      "line": 3,
+      "reported": 30,
+      "skipped": 0,
+      "executed": 30,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "closed-loop",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/046-closed-loop.stderr.log",
+      "line": 3,
+      "reported": 165,
+      "skipped": 0,
+      "executed": 165,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "pushpress",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/047-pushpress.stderr.log",
+      "line": 22,
+      "reported": 16,
+      "skipped": 0,
+      "executed": 16,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-mutants",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/058-plan-dispatcher-mutants.stderr.log",
+      "line": 3,
+      "reported": 2,
+      "skipped": 0,
+      "executed": 2,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "native-setup-pilot",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/059-native-setup-pilot.stderr.log",
+      "line": 11,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "planning-score",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/060-planning-score.stderr.log",
+      "line": 3,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "core",
+      "suite": "security-harness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/061-security-harness.stderr.log",
+      "line": 78,
+      "reported": 75,
+      "skipped": 0,
+      "executed": 75,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-no-model-launch",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/001-shiploop-no-model-launch.stderr.log",
+      "line": 3,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-navigator-v4",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/002-shiploop-navigator-v4.stderr.log",
+      "line": 22,
+      "reported": 18,
+      "skipped": 0,
+      "executed": 18,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-standalone-improve",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/003-shiploop-standalone-improve.stderr.log",
+      "line": 3,
+      "reported": 11,
+      "skipped": 0,
+      "executed": 11,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-packet-completeness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/004-shiploop-packet-completeness.stderr.log",
+      "line": 3,
+      "reported": 66,
+      "skipped": 0,
+      "executed": 66,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-local-skills",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/005-shiploop-local-skills.stderr.log",
+      "line": 11,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "experiments-shiploop-ui-allocation-evidence",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/006-experiments-shiploop-ui-allocation-evidence.stderr.log",
+      "line": 3,
+      "reported": 11,
+      "skipped": 0,
+      "executed": 11,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-navigator-dry-run",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/007-shiploop-navigator-dry-run.stderr.log",
+      "line": 3,
+      "reported": 24,
+      "skipped": 0,
+      "executed": 24,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-narrative",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/008-shiploop-narrative.stderr.log",
+      "line": 3,
+      "reported": 15,
+      "skipped": 0,
+      "executed": 15,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-progress",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/009-shiploop-progress.stderr.log",
+      "line": 3,
+      "reported": 38,
+      "skipped": 0,
+      "executed": 38,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-confirmation",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/010-shiploop-confirmation.stderr.log",
+      "line": 3,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-cross-run",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/011-shiploop-cross-run.stderr.log",
+      "line": 3,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-workspace",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/012-shiploop-workspace.stderr.log",
+      "line": 135,
+      "reported": 101,
+      "skipped": 0,
+      "executed": 101,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-return-review",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/013-shiploop-return-review.stderr.log",
+      "line": 3,
+      "reported": 26,
+      "skipped": 0,
+      "executed": 26,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-consumer-delivery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/014-shiploop-consumer-delivery.stderr.log",
+      "line": 51,
+      "reported": 34,
+      "skipped": 0,
+      "executed": 34,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-consumer-delivery-cli",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/015-shiploop-consumer-delivery-cli.stderr.log",
+      "line": 3,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-delegation",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/016-shiploop-delegation.stderr.log",
+      "line": 3,
+      "reported": 66,
+      "skipped": 0,
+      "executed": 66,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-improve-schedule",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/017-shiploop-improve-schedule.stderr.log",
+      "line": 3,
+      "reported": 41,
+      "skipped": 0,
+      "executed": 41,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-loops",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/018-shiploop-loops.stderr.log",
+      "line": 4,
+      "reported": 67,
+      "skipped": 0,
+      "executed": 67,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-handoff",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/019-shiploop-handoff.stderr.log",
+      "line": 3,
+      "reported": 170,
+      "skipped": 0,
+      "executed": 170,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "experiments-shiploop-delivery-fake-deployment",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/020-experiments-shiploop-delivery-fake-deployment.stderr.log",
+      "line": 8,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-literal-transport",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/021-shiploop-literal-transport.stderr.log",
+      "line": 4,
+      "reported": 1,
+      "skipped": 0,
+      "executed": 1,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-discovery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/022-shiploop-discovery.stderr.log",
+      "line": 3,
+      "reported": 9,
+      "skipped": 0,
+      "executed": 9,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-retired-terms",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/023-shiploop-retired-terms.stderr.log",
+      "line": 3,
+      "reported": 6,
+      "skipped": 0,
+      "executed": 6,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-owner-notes",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/024-shiploop-owner-notes.stderr.log",
+      "line": 3,
+      "reported": 18,
+      "skipped": 0,
+      "executed": 18,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-python-floor",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/025-shiploop-python-floor.stderr.log",
+      "line": 3,
+      "reported": 9,
+      "skipped": 0,
+      "executed": 9,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-qualification",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/026-shiploop-e2e-qualification.stderr.log",
+      "line": 3,
+      "reported": 19,
+      "skipped": 0,
+      "executed": 19,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-roles",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/027-shiploop-e2e-roles.stderr.log",
+      "line": 3,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-predecessor",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/028-shiploop-e2e-predecessor.stderr.log",
+      "line": 20,
+      "reported": 17,
+      "skipped": 0,
+      "executed": 17,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-adapter-steps",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/029-shiploop-e2e-adapter-steps.stderr.log",
+      "line": 3,
+      "reported": 78,
+      "skipped": 0,
+      "executed": 78,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-fidelity",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/030-shiploop-e2e-fidelity.stderr.log",
+      "line": 3,
+      "reported": 149,
+      "skipped": 0,
+      "executed": 149,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-render-diff",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/031-shiploop-e2e-render-diff.stderr.log",
+      "line": 3,
+      "reported": 43,
+      "skipped": 0,
+      "executed": 43,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-commit-counters",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/032-shiploop-e2e-commit-counters.stderr.log",
+      "line": 3,
+      "reported": 110,
+      "skipped": 0,
+      "executed": 110,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-battleship-salesforce",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/033-shiploop-e2e-battleship-salesforce.stderr.log",
+      "line": 3,
+      "reported": 70,
+      "skipped": 0,
+      "executed": 70,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-grok-chat-full",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/034-shiploop-e2e-grok-chat-full.stderr.log",
+      "line": 10,
+      "reported": 7,
+      "skipped": 0,
+      "executed": 7,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-grok-chat-full-oracle",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/035-shiploop-e2e-grok-chat-full-oracle.stderr.log",
+      "line": 3,
+      "reported": 25,
+      "skipped": 0,
+      "executed": 25,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-gym-ui",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/036-shiploop-e2e-gym-ui.stderr.log",
+      "line": 27,
+      "reported": 24,
+      "skipped": 0,
+      "executed": 24,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-release-slice",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/037-shiploop-e2e-release-slice.stderr.log",
+      "line": 3,
+      "reported": 44,
+      "skipped": 0,
+      "executed": 44,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-dodges",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/038-shiploop-e2e-dodges.stderr.log",
+      "line": 3,
+      "reported": 11,
+      "skipped": 0,
+      "executed": 11,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-experiments",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log",
+      "line": 3,
+      "reported": 93,
+      "skipped": 50,
+      "executed": 43,
+      "result": "OK (skipped=50)"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-ticket-semantics",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/040-shiploop-e2e-ticket-semantics.stderr.log",
+      "line": 3,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-stages",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/041-shiploop-e2e-stages.stderr.log",
+      "line": 3,
+      "reported": 130,
+      "skipped": 0,
+      "executed": 130,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-brownfield",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/042-shiploop-e2e-brownfield.stderr.log",
+      "line": 3,
+      "reported": 31,
+      "skipped": 0,
+      "executed": 31,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-brownfield-tickets",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/043-shiploop-e2e-brownfield-tickets.stderr.log",
+      "line": 3,
+      "reported": 51,
+      "skipped": 0,
+      "executed": 51,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-test-adequacy",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/044-shiploop-e2e-test-adequacy.stderr.log",
+      "line": 3,
+      "reported": 35,
+      "skipped": 0,
+      "executed": 35,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-user-directory",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log",
+      "line": 3,
+      "reported": 45,
+      "skipped": 1,
+      "executed": 44,
+      "result": "OK (skipped=1)"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-efficiency-journal",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/046-shiploop-efficiency-journal.stderr.log",
+      "line": 3,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-loophole-gates",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/047-shiploop-loophole-gates.stderr.log",
+      "line": 3,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-navigator-contract",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/001-shiploop-navigator-contract.stderr.log",
+      "line": 207,
+      "reported": 125,
+      "skipped": 0,
+      "executed": 125,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-stopped-improve",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/002-shiploop-stopped-improve.stderr.log",
+      "line": 3,
+      "reported": 9,
+      "skipped": 0,
+      "executed": 9,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-step-packets",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/003-shiploop-step-packets.stderr.log",
+      "line": 3,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-packet-recut",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/004-shiploop-packet-recut.stderr.log",
+      "line": 3,
+      "reported": 30,
+      "skipped": 0,
+      "executed": 30,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-reference",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/005-shiploop-reference.stderr.log",
+      "line": 3,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-full-runtime",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/006-shiploop-full-runtime.stderr.log",
+      "line": 7,
+      "reported": 2,
+      "skipped": 0,
+      "executed": 2,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-progress-render",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/007-shiploop-progress-render.stderr.log",
+      "line": 3,
+      "reported": 32,
+      "skipped": 0,
+      "executed": 32,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-stage-spec",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/008-shiploop-stage-spec.stderr.log",
+      "line": 3,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-send-back",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/009-shiploop-send-back.stderr.log",
+      "line": 3,
+      "reported": 24,
+      "skipped": 0,
+      "executed": 24,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-quality",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/010-shiploop-quality.stderr.log",
+      "line": 4,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-iteration",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/011-shiploop-iteration.stderr.log",
+      "line": 3,
+      "reported": 39,
+      "skipped": 0,
+      "executed": 39,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-test-loop",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/012-shiploop-test-loop.stderr.log",
+      "line": 16,
+      "reported": 222,
+      "skipped": 0,
+      "executed": 222,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-backchain-check",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/013-shiploop-backchain-check.stderr.log",
+      "line": 3,
+      "reported": 9,
+      "skipped": 0,
+      "executed": 9,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-assumptions",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/014-shiploop-assumptions.stderr.log",
+      "line": 3,
+      "reported": 9,
+      "skipped": 0,
+      "executed": 9,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-repeatable-experiments",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/016-shiploop-repeatable-experiments.stderr.log",
+      "line": 16,
+      "reported": 13,
+      "skipped": 0,
+      "executed": 13,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-reference-routing",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/017-shiploop-reference-routing.stderr.log",
+      "line": 9,
+      "reported": 4,
+      "skipped": 0,
+      "executed": 4,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-domain-words",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/018-shiploop-domain-words.stderr.log",
+      "line": 3,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-trace",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/019-shiploop-trace.stderr.log",
+      "line": 3,
+      "reported": 46,
+      "skipped": 0,
+      "executed": 46,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-planning-handoff",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/020-shiploop-planning-handoff.stderr.log",
+      "line": 3,
+      "reported": 7,
+      "skipped": 0,
+      "executed": 7,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-analysis",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/021-shiploop-e2e-analysis.stderr.log",
+      "line": 3,
+      "reported": 299,
+      "skipped": 0,
+      "executed": 299,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-hosts",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log",
+      "line": 3,
+      "reported": 140,
+      "skipped": 2,
+      "executed": 138,
+      "result": "OK (skipped=2)"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-discovery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/023-shiploop-e2e-discovery.stderr.log",
+      "line": 3,
+      "reported": 15,
+      "skipped": 0,
+      "executed": 15,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-predecessor-wiring",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/024-shiploop-e2e-predecessor-wiring.stderr.log",
+      "line": 3,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-learning-records",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/025-shiploop-e2e-learning-records.stderr.log",
+      "line": 3,
+      "reported": 59,
+      "skipped": 0,
+      "executed": 59,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-cycle",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/026-shiploop-e2e-cycle.stderr.log",
+      "line": 3,
+      "reported": 63,
+      "skipped": 0,
+      "executed": 63,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-adapter",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/027-shiploop-e2e-adapter.stderr.log",
+      "line": 3,
+      "reported": 29,
+      "skipped": 0,
+      "executed": 29,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-adapter-engine",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/028-shiploop-e2e-adapter-engine.stderr.log",
+      "line": 3,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-runrecord",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/029-shiploop-e2e-runrecord.stderr.log",
+      "line": 3,
+      "reported": 6,
+      "skipped": 0,
+      "executed": 6,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-slice",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/030-shiploop-e2e-slice.stderr.log",
+      "line": 6,
+      "reported": 73,
+      "skipped": 0,
+      "executed": 73,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-reorientation",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/031-shiploop-e2e-reorientation.stderr.log",
+      "line": 3,
+      "reported": 127,
+      "skipped": 0,
+      "executed": 127,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-environment",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/032-shiploop-e2e-environment.stderr.log",
+      "line": 3,
+      "reported": 140,
+      "skipped": 0,
+      "executed": 140,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-baseline",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/033-shiploop-e2e-baseline.stderr.log",
+      "line": 3,
+      "reported": 187,
+      "skipped": 0,
+      "executed": 187,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-packet-anatomy",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/034-shiploop-e2e-packet-anatomy.stderr.log",
+      "line": 3,
+      "reported": 30,
+      "skipped": 0,
+      "executed": 30,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-grok-chat-full-quality",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/035-shiploop-e2e-grok-chat-full-quality.stderr.log",
+      "line": 107,
+      "reported": 42,
+      "skipped": 0,
+      "executed": 42,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-platform",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/036-shiploop-e2e-platform.stderr.log",
+      "line": 3,
+      "reported": 173,
+      "skipped": 0,
+      "executed": 173,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-sf-guard",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/037-shiploop-e2e-sf-guard.stderr.log",
+      "line": 3,
+      "reported": 113,
+      "skipped": 0,
+      "executed": 113,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-status-card",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/038-shiploop-e2e-status-card.stderr.log",
+      "line": 3,
+      "reported": 20,
+      "skipped": 0,
+      "executed": 20,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-sdlc-probes",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/039-shiploop-e2e-sdlc-probes.stderr.log",
+      "line": 3,
+      "reported": 29,
+      "skipped": 0,
+      "executed": 29,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-review-attribution",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/040-shiploop-e2e-review-attribution.stderr.log",
+      "line": 3,
+      "reported": 15,
+      "skipped": 0,
+      "executed": 15,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-stage-report",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/041-shiploop-e2e-stage-report.stderr.log",
+      "line": 3,
+      "reported": 45,
+      "skipped": 0,
+      "executed": 45,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-delta",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/042-shiploop-e2e-delta.stderr.log",
+      "line": 3,
+      "reported": 90,
+      "skipped": 0,
+      "executed": 90,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-corpus",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/043-shiploop-e2e-corpus.stderr.log",
+      "line": 3,
+      "reported": 13,
+      "skipped": 0,
+      "executed": 13,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-ticket-comments",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/044-shiploop-e2e-ticket-comments.stderr.log",
+      "line": 3,
+      "reported": 21,
+      "skipped": 0,
+      "executed": 21,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-ticket-sla",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/045-shiploop-e2e-ticket-sla.stderr.log",
+      "line": 3,
+      "reported": 27,
+      "skipped": 0,
+      "executed": 27,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-recovery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/046-shiploop-e2e-recovery.stderr.log",
+      "line": 3,
+      "reported": 8,
+      "skipped": 0,
+      "executed": 8,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-lifecycle",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/047-shiploop-e2e-lifecycle.stderr.log",
+      "line": 3,
+      "reported": 45,
+      "skipped": 0,
+      "executed": 45,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-run-review",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/048-shiploop-run-review.stderr.log",
+      "line": 3,
+      "reported": 689,
+      "skipped": 0,
+      "executed": 689,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-actual-improve-cli",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/001-shiploop-actual-improve-cli.stderr.log",
+      "line": 3,
+      "reported": 106,
+      "skipped": 0,
+      "executed": 106,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-packet-bounds",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/002-shiploop-packet-bounds.stderr.log",
+      "line": 3,
+      "reported": 21,
+      "skipped": 0,
+      "executed": 21,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-head-order",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/003-shiploop-head-order.stderr.log",
+      "line": 3,
+      "reported": 36,
+      "skipped": 0,
+      "executed": 36,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-guidance",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/004-shiploop-guidance.stderr.log",
+      "line": 145,
+      "reported": 93,
+      "skipped": 0,
+      "executed": 93,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-status-display",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/005-shiploop-status-display.stderr.log",
+      "line": 3,
+      "reported": 16,
+      "skipped": 0,
+      "executed": 16,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-progress-data",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/006-shiploop-progress-data.stderr.log",
+      "line": 3,
+      "reported": 34,
+      "skipped": 0,
+      "executed": 34,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-step-edges",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/007-shiploop-step-edges.stderr.log",
+      "line": 23,
+      "reported": 15,
+      "skipped": 0,
+      "executed": 15,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-rehydration",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/008-shiploop-rehydration.stderr.log",
+      "line": 3,
+      "reported": 17,
+      "skipped": 0,
+      "executed": 17,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-auth-readiness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/009-shiploop-auth-readiness.stderr.log",
+      "line": 3,
+      "reported": 3,
+      "skipped": 0,
+      "executed": 3,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-lint",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/010-shiploop-lint.stderr.log",
+      "line": 7,
+      "reported": 129,
+      "skipped": 0,
+      "executed": 129,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-seed-seam",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/011-shiploop-seed-seam.stderr.log",
+      "line": 3,
+      "reported": 14,
+      "skipped": 0,
+      "executed": 14,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-test-counts",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/012-shiploop-test-counts.stderr.log",
+      "line": 3,
+      "reported": 71,
+      "skipped": 0,
+      "executed": 71,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-improve-changes",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/013-shiploop-improve-changes.stderr.log",
+      "line": 3,
+      "reported": 4,
+      "skipped": 0,
+      "executed": 4,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-knowledge",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/014-shiploop-knowledge.stderr.log",
+      "line": 3,
+      "reported": 163,
+      "skipped": 0,
+      "executed": 163,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-follow-on",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/015-shiploop-follow-on.stderr.log",
+      "line": 3,
+      "reported": 18,
+      "skipped": 0,
+      "executed": 18,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "experiments-shiploop-delivery-browser-consumer-serve-fixture",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/016-experiments-shiploop-delivery-browser-consumer-serve-fixture.stderr.log",
+      "line": 5,
+      "reported": 2,
+      "skipped": 0,
+      "executed": 2,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-store",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/017-shiploop-store.stderr.log",
+      "line": 15,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-capability-fixture",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/018-shiploop-capability-fixture.stderr.log",
+      "line": 15,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-capability-runtime",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/019-shiploop-capability-runtime.stderr.log",
+      "line": 16,
+      "reported": 13,
+      "skipped": 0,
+      "executed": 13,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-generalized-discovery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/020-shiploop-generalized-discovery.stderr.log",
+      "line": 48,
+      "reported": 45,
+      "skipped": 0,
+      "executed": 45,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-probe-decisions",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/021-shiploop-probe-decisions.stderr.log",
+      "line": 20,
+      "reported": 16,
+      "skipped": 0,
+      "executed": 16,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-privacy",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/022-shiploop-privacy.stderr.log",
+      "line": 3,
+      "reported": 5,
+      "skipped": 0,
+      "executed": 5,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-keepalive",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/023-shiploop-keepalive.stderr.log",
+      "line": 3,
+      "reported": 86,
+      "skipped": 0,
+      "executed": 86,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-skill-calls",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/024-shiploop-skill-calls.stderr.log",
+      "line": 3,
+      "reported": 35,
+      "skipped": 0,
+      "executed": 35,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-package-integrity",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/025-shiploop-package-integrity.stderr.log",
+      "line": 3,
+      "reported": 24,
+      "skipped": 0,
+      "executed": 24,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-clean-consumer",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/026-shiploop-clean-consumer.stderr.log",
+      "line": 3,
+      "reported": 3,
+      "skipped": 0,
+      "executed": 3,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-resources",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/027-shiploop-e2e-resources.stderr.log",
+      "line": 3,
+      "reported": 133,
+      "skipped": 0,
+      "executed": 133,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-roundtable",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log",
+      "line": 3,
+      "reported": 13,
+      "skipped": 3,
+      "executed": 10,
+      "result": "OK (skipped=3)"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-epoch",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/029-shiploop-e2e-epoch.stderr.log",
+      "line": 3,
+      "reported": 38,
+      "skipped": 0,
+      "executed": 38,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-intent-continuity",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/030-shiploop-e2e-intent-continuity.stderr.log",
+      "line": 3,
+      "reported": 24,
+      "skipped": 0,
+      "executed": 24,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-quality",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/031-shiploop-e2e-quality.stderr.log",
+      "line": 3,
+      "reported": 164,
+      "skipped": 0,
+      "executed": 164,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-chess-salesforce",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/032-shiploop-e2e-chess-salesforce.stderr.log",
+      "line": 3,
+      "reported": 201,
+      "skipped": 0,
+      "executed": 201,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-battleship-ui",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/033-shiploop-e2e-battleship-ui.stderr.log",
+      "line": 6,
+      "reported": 19,
+      "skipped": 0,
+      "executed": 19,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-grok-chat-salesforce",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/034-shiploop-e2e-grok-chat-salesforce.stderr.log",
+      "line": 3,
+      "reported": 13,
+      "skipped": 0,
+      "executed": 13,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-grok-chat-full-ui",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/035-shiploop-e2e-grok-chat-full-ui.stderr.log",
+      "line": 22,
+      "reported": 61,
+      "skipped": 0,
+      "executed": 61,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-gym-membership-salesforce",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/036-shiploop-e2e-gym-membership-salesforce.stderr.log",
+      "line": 3,
+      "reported": 22,
+      "skipped": 0,
+      "executed": 22,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-efficiency",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log",
+      "line": 3,
+      "reported": 77,
+      "skipped": 1,
+      "executed": 76,
+      "result": "OK (skipped=1)"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-owner-page",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/038-shiploop-e2e-owner-page.stderr.log",
+      "line": 3,
+      "reported": 12,
+      "skipped": 0,
+      "executed": 12,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-scope-discovery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/039-shiploop-e2e-scope-discovery.stderr.log",
+      "line": 13,
+      "reported": 10,
+      "skipped": 0,
+      "executed": 10,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-stage-oracle",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/040-shiploop-e2e-stage-oracle.stderr.log",
+      "line": 3,
+      "reported": 117,
+      "skipped": 0,
+      "executed": 117,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-stage-build",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/041-shiploop-e2e-stage-build.stderr.log",
+      "line": 3,
+      "reported": 64,
+      "skipped": 0,
+      "executed": 64,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-stage-live",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log",
+      "line": 3,
+      "reported": 93,
+      "skipped": 1,
+      "executed": 92,
+      "result": "OK (skipped=1)"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-run-trace",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/043-shiploop-e2e-run-trace.stderr.log",
+      "line": 3,
+      "reported": 28,
+      "skipped": 0,
+      "executed": 28,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-incremental-pilot",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/044-shiploop-e2e-incremental-pilot.stderr.log",
+      "line": 3,
+      "reported": 30,
+      "skipped": 0,
+      "executed": 30,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-user-chain",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/045-shiploop-e2e-user-chain.stderr.log",
+      "line": 3,
+      "reported": 23,
+      "skipped": 0,
+      "executed": 23,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-packet-obligations",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/046-shiploop-packet-obligations.stderr.log",
+      "line": 3,
+      "reported": 15,
+      "skipped": 0,
+      "executed": 15,
+      "result": "OK"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-callback-contract",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/047-shiploop-callback-contract.stderr.log",
+      "line": 3,
+      "reported": 117,
+      "skipped": 0,
+      "executed": 117,
+      "result": "OK"
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "shiploop-mock-replay",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus/logs/001-shiploop-mock-replay.stderr.log",
+      "line": 3,
+      "reported": 39,
+      "skipped": 0,
+      "executed": 39,
+      "result": "OK"
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "planning-boundary",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus/logs/002-planning-boundary.stderr.log",
+      "line": 3,
+      "reported": 26,
+      "skipped": 0,
+      "executed": 26,
+      "result": "OK"
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "planning-comparison",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus/logs/003-planning-comparison.stderr.log",
+      "line": 3,
+      "reported": 3,
+      "skipped": 0,
+      "executed": 3,
+      "result": "OK"
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "shiploop-e2e-apparatus",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus/logs/004-shiploop-e2e-apparatus.stderr.log",
+      "line": 28,
+      "reported": 362,
+      "skipped": 0,
+      "executed": 362,
+      "result": "OK"
+    }
+  ],
+  "conditional_skip_lines": [
+    {
+      "group": "core",
+      "suite": "test-groups",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/002-test-groups.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)"
+    },
+    {
+      "group": "core",
+      "suite": "plan-dispatcher-harness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/050-plan-dispatcher-harness.stdout.log",
+      "line": 16,
+      "text": "\u2139 skipped 0"
+    },
+    {
+      "group": "core",
+      "suite": "security-harness",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/061-security-harness.stderr.log",
+      "line": 8,
+      "text": "test_skipped_tracked_child_below_link_cannot_hide_escape (test_scope.NativeScope.test_skipped_tracked_child_below_link_cannot_hide_escape) ... ok"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-consumer-delivery",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/014-shiploop-consumer-delivery.stderr.log",
+      "line": 14,
+      "text": "test_local_only_contract_keeps_required_behavior_from_being_skipped (__main__.ConsumerDeliveryTests.test_local_only_contract_keeps_required_behavior_from_being_skipped) ... ok"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-experiments",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=50)"
+    },
+    {
+      "group": "shiploop-1",
+      "suite": "shiploop-e2e-user-directory",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)"
+    },
+    {
+      "group": "shiploop-2",
+      "suite": "shiploop-e2e-hosts",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=2)"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-store",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/017-shiploop-store.stderr.log",
+      "line": 2,
+      "text": "test_deep_jsonl_is_skipped_with_coverage_and_neighbor_rows_retained (__main__.ObservationJSONDepthTests.test_deep_jsonl_is_skipped_with_coverage_and_neighbor_rows_retained) ... ok"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-store",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/017-shiploop-store.stderr.log",
+      "line": 3,
+      "text": "test_jsonl_decoder_recursion_is_skipped_and_diagnosed_deterministically (__main__.ObservationJSONDepthTests.test_jsonl_decoder_recursion_is_skipped_and_diagnosed_deterministically) ... ok"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-roundtable",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=3)"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-efficiency",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)"
+    },
+    {
+      "group": "shiploop-3",
+      "suite": "shiploop-e2e-stage-live",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)"
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "shiploop-mock-replay",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus/logs/001-shiploop-mock-replay.stdout.log",
+      "line": 1,
+      "text": "{\"schema\": \"shiploop-e2e-apparatus-check/1\", \"suite\": \"mock\", \"modules\": [\"test_behavior_capture\", \"test_dag_replay\", \"test_protocol_compat\", \"test_recovery_isolation\", \"test_trace_corpus\"], \"model_calls\": 0, \"tests\": 39, \"failures\": 0, \"errors\": 0, \"skipped\": 0, \"expected_failures\": 0, \"duration_seconds\": 11.459884416000023, \"status\": \"passed\", \"harness\": {\"root\": \"/home/runner/work/skill-craft/skill-craft/skills/shiploop-e2e-audit/harness\", \"package_root\": \"/home/runner/work/skill-craft/skill-craft/skills/shiploop-e2e-audit\", \"source_checkout\": \"/home/runner/work/skill-craft/skill-craft\"}, \"selected_subject\": {\"root\": \"/home/runner/work/skill-craft/skill-craft/skills/shiploop\", \"package_sha256\": \"8109ce638ba7a3318d06ac716d23daa25dfbbe59239e8f202f3be11102bada1b\", \"file_count\": 123, \"selection\": \"explicit\", \"default_selection\": \"source-sibling\", \"dag_replay_selected\": true}, \"limitations\": \"Fixture apparatus evidence only; does not establish generated application or hosted behavior.\"}"
+    },
+    {
+      "group": "e2e-apparatus",
+      "suite": "shiploop-e2e-apparatus",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus/logs/004-shiploop-e2e-apparatus.stdout.log",
+      "line": 53,
+      "text": "{\"schema\": \"shiploop-e2e-apparatus-check/1\", \"suite\": \"all\", \"modules\": [\"test_audit\", \"test_behavior_capture\", \"test_campaign\", \"test_capture\", \"test_check_suite\", \"test_checkout_binding\", \"test_dag_replay\", \"test_driver_transport\", \"test_evidence\", \"test_freshness\", \"test_gas_artifact\", \"test_grading\", \"test_grok_adapter\", \"test_oracle_games\", \"test_planning_evidence\", \"test_protocol_compat\", \"test_recovery_isolation\", \"test_run\", \"test_salesforce_proof\", \"test_suites\", \"test_tictactoe\", \"test_timeout_cleanup\", \"test_trace_corpus\", \"test_verify_suite\", \"test_workflow_review\"], \"model_calls\": 0, \"tests\": 362, \"failures\": 0, \"errors\": 0, \"skipped\": 0, \"expected_failures\": 0, \"duration_seconds\": 1169.0556271629998, \"status\": \"passed\", \"harness\": {\"root\": \"/home/runner/work/skill-craft/skill-craft/skills/shiploop-e2e-audit/harness\", \"package_root\": \"/home/runner/work/skill-craft/skill-craft/skills/shiploop-e2e-audit\", \"source_checkout\": \"/home/runner/work/skill-craft/skill-craft\"}, \"selected_subject\": {\"root\": \"/home/runner/work/skill-craft/skill-craft/skills/shiploop\", \"package_sha256\": \"8109ce638ba7a3318d06ac716d23daa25dfbbe59239e8f202f3be11102bada1b\", \"file_count\": 123, \"selection\": \"explicit\", \"default_selection\": \"source-sibling\", \"dag_replay_selected\": true}, \"limitations\": \"Fixture apparatus evidence only; does not establish generated application or hosted behavior.\"}"
+    }
+  ],
+  "note": "Counts reflect explicit unittest reports where available; no inferred method totals for suites without reports. Conditional skips are not passing methods."
+}

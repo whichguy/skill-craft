@@ -1,0 +1,11 @@
+{
+  "utc": "2026-11-16T16:10:55.643161+00:00",
+  "exit_code": 0,
+  "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+  "source_unchanged": true,
+  "hashes": {
+    "test/shiploop-follow-on.test.py": "7358df1b0282e29fff5543e0aeef0f8ccfbe53e7f6739630424149cc16d65e87",
+    "test/shiploop-loophole-gates.test.py": "dc4ee292778622ef6a7a338e0d6a7d311536eb53938cf62d88e7c1be143e3c51",
+    "test/shiploop-progress.test.py": "ff37653fd64e6e9c7613806d0db482e88fe417183aaaebfd88b2ef4b6fd1ea54"
+  }
+}

@@ -1,0 +1,15 @@
+test_check_mutation_of_files_or_head_blocks (__main__.ReleasePushTests.test_check_mutation_of_files_or_head_blocks) ... ok
+test_dirty_tracked_untracked_and_staged_checkouts_block (__main__.ReleasePushTests.test_dirty_tracked_untracked_and_staged_checkouts_block) ... ok
+test_failed_check_stops_following_check_and_push (__main__.ReleasePushTests.test_failed_check_stops_following_check_and_push) ... ok
+test_git_context_override_refuses (__main__.ReleasePushTests.test_git_context_override_refuses) ... ok
+test_missing_checks_and_shell_string_refuse (__main__.ReleasePushTests.test_missing_checks_and_shell_string_refuse) ... ok
+test_multiple_push_destinations_refuse (__main__.ReleasePushTests.test_multiple_push_destinations_refuse) ... ok
+test_push_race_is_rejected_without_force (__main__.ReleasePushTests.test_push_race_is_rejected_without_force) ... ok
+test_pushes_exact_candidate_after_success (__main__.ReleasePushTests.test_pushes_exact_candidate_after_success) ... ok
+test_remote_advance_before_or_during_checks_blocks (__main__.ReleasePushTests.test_remote_advance_before_or_during_checks_blocks) ... ok
+test_wrong_head_and_tree_block_before_checks (__main__.ReleasePushTests.test_wrong_head_and_tree_block_before_checks) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 5.435s
+
+OK

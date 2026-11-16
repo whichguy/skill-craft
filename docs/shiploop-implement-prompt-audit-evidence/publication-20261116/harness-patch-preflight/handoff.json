@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "scope": "Source preflight only; no release cut, CI or publication claim",
+  "completed_utc": "2026-11-16T20:51:19.941735+00:00",
+  "source": {
+    "repository": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+    "head": "b64b17160ff9ca7a178845a82b43eea157bf5d1b",
+    "tree": "683a62fbebc3ba37b30cab1d2d26bbaee95f78ac",
+    "tracked_entries": 14112,
+    "clean_before_after": true,
+    "guards_unchanged": true,
+    "guard_files": [
+      "source-pre.json",
+      "source-post.json"
+    ]
+  },
+  "runtime": {
+    "python": "3.15.1 (main, Oct 21 2026, 05:55:12) [Clang 21.0.0 (clang-2100.3.34.2)]",
+    "executable": "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "utc": "2026-11-16T20:50:35.714187+00:00",
+    "head": "b64b17160ff9ca7a178845a82b43eea157bf5d1b",
+    "tree": "683a62fbebc3ba37b30cab1d2d26bbaee95f78ac",
+    "tracked_count": 14112,
+    "status": ""
+  },
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:50:43.889230+00:00",
+      "end_utc": "2026-11-16T20:50:44.052781+00:00",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "--head",
+        "b64b17160ff9ca7a178845a82b43eea157bf5d1b"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:50:48.434692+00:00",
+      "end_utc": "2026-11-16T20:50:48.613209+00:00",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+        "diff",
+        "--check",
+        "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "b64b17160ff9ca7a178845a82b43eea157bf5d1b"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:50:54.341478+00:00",
+      "end_utc": "2026-11-16T20:50:54.355844+00:00",
+      "exit": 0
+    }
+  ],
+  "positive_expected_evidence": true,
+  "required_checks_completed": 3,
+  "required_checks_total": 3,
+  "retries": 0,
+  "declared_source_outputs": [],
+  "logs": [
+    "check-1.stdout.log",
+    "check-1.stderr.log",
+    "check-2.stdout.log",
+    "check-2.stderr.log",
+    "check-3.stdout.log",
+    "check-3.stderr.log"
+  ],
+  "limitations": [
+    "No ShipLoop release selected in dry-run; parent retains source-change scope and cut/publication/acceptance responsibility"
+  ]
+}

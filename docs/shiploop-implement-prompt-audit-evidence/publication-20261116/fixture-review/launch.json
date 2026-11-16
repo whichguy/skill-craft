@@ -1,0 +1,24 @@
+{
+  "utc": "2026-11-16T16:09:14.275358+00:00",
+  "argv": [
+    "codex",
+    "exec",
+    "--profile",
+    "shiploop-judge",
+    "--model",
+    "gpt-6-astra",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--sandbox",
+    "read-only",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+    "--json",
+    "-o",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/fixture-review/review.md",
+    "-"
+  ],
+  "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+  "model_requested": "gpt-6-astra",
+  "effort_requested": "high"
+}

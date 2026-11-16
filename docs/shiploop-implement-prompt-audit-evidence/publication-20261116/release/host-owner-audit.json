@@ -1,0 +1,80 @@
+{
+  "status": "ALLOWED_PARENT_COORDINATION_RECORD",
+  "source_head": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+  "scope": "One fidelity heuristic hit only; no general absence-of-edits proof inferred.",
+  "flag": {
+    "event": 99,
+    "normalized_events_lines": [
+      100,
+      101,
+      102,
+      103
+    ],
+    "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree/.shiploop-improve/spec-e01cb7fa/host-owner.md",
+    "tool": "search_replace",
+    "operation": "add followed by native-handle append"
+  },
+  "classification": "The consumer-owned workspace contract assigns this append-only launch/handle/collection/acceptance/delivery note to the parent; it is neither workflow runtime state nor terminal success receipt. The actual note is beside packet.json and records that purpose. No repair indicated.",
+  "note_sha256": "c93c6eae4c032c39f013545e038d4fa01caeae977728611aff822c334617ccd9",
+  "note": "# Native owner coordination\n\nLaunch intent: fresh gpt-6-astra high Improve executor, spec review. Parent is sole graph owner; producer has stopped.\nBinding: ShipLoop standalone Improve binding: nav-f40af4d03c4a4fae956bca4de1bc530f/nav-d9cb3b8f0e584171ba9672f2e01cb7fa\nWorkspace and Git root: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree\nHEAD/base: ac601bb51640100e9f02f8827c8e754918439d16\nInventory: untracked docs/shiploop/spec.md is candidate; untracked .shiploop-improve is runtime, excluded from product. No staged/unstaged tracked edits.\nScope: spec result and docs/shiploop; runtime evidence only in this child. No source/test implementation, push, deployment, install or cleanup.\nSelected cards: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/home/.codex/plugins/cache/whichguy/skill-craft/2.43.0/skills/ask-agent/SKILL.md (0.11.0, consumer-owned-workspace/v1); /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/home/.codex/plugins/cache/whichguy/skill-craft/2.43.0/skills/improve/SKILL.md (0.7.3, bundled Until Loop); improve-agent 0.1.3.\nReceipt: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree/.shiploop-improve/spec-e01cb7fa/packet.json\nEvidence: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree/.shiploop-improve/spec-e01cb7fa/reviews\nParent recovery: python3 /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/home/.codex/plugins/cache/whichguy/skill-craft/2.43.0/skills/shiploop/scripts/shiploop next --run-dir=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/run\nParent callback: python3 /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/home/.codex/plugins/cache/whichguy/skill-craft/2.43.0/skills/shiploop/scripts/shiploop complete --run-dir=/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/run --action=nav-babfd6957f1b422d989152be7120ffc7\nParent owns acceptance, guarded source return, and cleanup. Launch intent recorded 2026-11-16.\n\nNative launch returned: /root/spec_improve; fresh context, gpt-6-astra high. Parent awaits collection.\n\nCollected /root/spec_improve terminal complete, no delegates. Verified receipt/checks and commit a80853e0fb3a04df1665cd7d8fe1912eac19bcc2. Accepted in place; source delivery pending.\n",
+  "anchors": [
+    {
+      "revision": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+      "path": "skills/ask-agent/references/consumer-owned-workspace.md",
+      "start": 112,
+      "end": 134,
+      "source_sha256": "57b48802e0a2b97d12945aabca15161937c875022ef357fdc1bd26e842e3427f",
+      "excerpt": "## Parent-owned launch and recovery record\n\nThe consumer derives `host-owner.md` beside the expected child `packet.json`\nlocation in the same action directory. It is a durable, append-only parent\ncoordination record, not a new scheduler, runtime state schema, or terminal\nsuccess receipt. Only the parent writes it; the worker may read it for\norientation but cannot use it to select or execute a parent transition.\n\nBefore native dispatch, the parent appends a launch-intent entry with the route,\nconsumer and selected-package identities, binding marker, canonical candidate\nworkspace/Git root, current base/HEAD and dirty inventory, allowed scope,\nevidence and child-receipt locators, executor assignment, and parent recovery\ncommand. Launch intent means **possibly launched**. An interruption between a\nlaunch request and returned native handle leaves ownership unknown.\n\nWhen available, the parent appends the returned native handle, each\nhost-exposed delegate identity, collection evidence, and confirmed stop evidence\nwithout replacing earlier events. The parent later appends acceptance and caller\ndelivery outcomes with locators to bulky evidence. Native handles stay private\nwhere the host requires it.\nFor a later user decision, append its source, scope/target, conditions and native\nforwarding/receipt status here, and send it to the existing worker. This record\npreserves decision provenance; it does not authorize a parent transition.\n",
+      "excerpt_sha256": "b67ab1d15d348514b44526dcb00c4b06d27532b09fb2473e2813eb00d0f8602f"
+    },
+    {
+      "revision": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+      "path": "skills/shiploop/references/improve-context.md",
+      "start": 416,
+      "end": 432,
+      "source_sha256": "6e814970dd9d8bb5461e80b77fa6237a7064ad8a1d26cfde76e1e492a2641cb9",
+      "excerpt": "and must not be fabricated. Before dispatch, derive `host-owner.md` beside the\nexpected `packet.json` location in the same action directory and retain its\nexact absolute locator with the existing ShipLoop recovery command in host-owned\ndurable handoff material. Create an append-only launch-intent entry before\ndispatch containing the exact binding marker, Child workspace, packet receipt,\ntimestamp, package identities and parent recovery command. Also record the\ninitial HEAD, candidate inventory, inherited staged/unstaged/untracked ownership\nand allowed writes. That entry means *possibly launched*, not not-launched:\ninterruption between the native launch and recording its returned handle leaves\nownership unknown. On recovery, the saved child receipt is required input and is\nread with its sibling `host-owner.md` before work resumes.\n\nAppend the returned native job/thread handle, any host-exposed delegate identity,\nand later collection or stopped evidence without replacing earlier entries. The\nabsence of a returned handle is never proof that launch did not happen. Keep the\nraw child receipt as exact runtime JSON; `host-owner.md` is a host coordination\nrecord, not another runtime state machine, graph field, or success receipt.\n",
+      "excerpt_sha256": "815f6e2fde6d97e797ffa7e387c3d56bcb927bda70f3abc1357d241482627ae5"
+    },
+    {
+      "revision": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+      "path": "skills/shiploop/references/improve-context.md",
+      "start": 469,
+      "end": 478,
+      "source_sha256": "6e814970dd9d8bb5461e80b77fa6237a7064ad8a1d26cfde76e1e492a2641cb9",
+      "excerpt": "When a relevant main-context decision changes, the parent appends its source,\naction/target, conditions and forwarding status to `host-owner.md`, then forwards\nthe update through the native channel to the current worker. The worker honors\nthe latest applicable user instruction and records receipt, its effect and any\nalready-performed action in the existing review notes and replacement handoff.\nThe launch context stays immutable; do not rewrite it or restart the runtime to\ncarry a new approval or decline. On recovery, reconcile the launch authority with\nthese later source-bound decisions before dependent work resumes. If delivery or\nan external outcome is unknown, resolve it before further dependent effects or\nacceptance; a parent log entry alone does not prove the worker received it.\n",
+      "excerpt_sha256": "eeb98c350cf14e7237d923d3c480405102b70f506e1a630e28f62df4929b2ab2"
+    },
+    {
+      "revision": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "start": 8553,
+      "end": 8555,
+      "source_sha256": "60c2b55ec5034ec80150accb1756ae17cbcec636b7372168e5ea75d06c6aacf6",
+      "excerpt": "        \"Improve context ownership: \" + str(Path(__file__).resolve().parent.parent / \"references\" / \"improve-context.md\")\n        + (\"#default-route-the-parent-runs-improve-delegation-inline\" if inline else \"\"),\n        *([] if inline else [\"Native owner record: \" + str(packet_path.with_name(\"host-owner.md\"))]),\n",
+      "excerpt_sha256": "dcb96ed16f321410f5c845f9e1b6832445521fcc5472cd199566e44788e88a4d"
+    },
+    {
+      "revision": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+      "path": "skills/shiploop/scripts/shiploop_navigator.py",
+      "start": 9232,
+      "end": 9242,
+      "source_sha256": "60c2b55ec5034ec80150accb1756ae17cbcec636b7372168e5ea75d06c6aacf6",
+      "excerpt": "    resources = [\n        {\"purpose\": \"selected Improve card\", \"locator\": child[\"skill\"][\"skill_card\"]},\n        {\"purpose\": \"bound Until Loop card\", \"locator\": child[\"skill\"][\"runtime_card\"]},\n        {\"purpose\": \"bound Until Loop runtime\", \"locator\": child[\"skill\"][\"runtime_cli\"]},\n        {\"purpose\": \"child receipt\", \"locator\": str(receipt)},\n        {\"purpose\": \"review and check evidence directory\", \"locator\": str(reviews)},\n        {\"purpose\": \"ShipLoop parent state\", \"locator\": str(root / \"state.md\")},\n        {\"purpose\": \"review evidence directory (review-<n>.md per pass, checks.md)\", \"locator\": str(reviews)},\n        {\"purpose\": \"exact parent return instructions\", \"locator\": str(parent_return)},\n        *([{\"purpose\": \"native owner record (parent coordination data)\",\n            \"locator\": str(receipt.with_name(\"host-owner.md\"))}] if delegation(state) != guidance.INLINE else []),\n",
+      "excerpt_sha256": "6c28b1ae76f39f7c7cef70cabb4bf090c4a6d0c4bdfc2c874317a24e63dc168a"
+    },
+    {
+      "revision": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+      "path": "skills/improve/references/shiploop-route-ask-agent.md",
+      "start": 25,
+      "end": 31,
+      "source_sha256": "8c27e069b2b16a836e36408a71b10ca66df03c02ee9b11974fbdec55a63742e5",
+      "excerpt": "For a genuinely new invocation, after ShipLoop has started the child, run the host-selected improve-agent card for this bound child: it starts one fresh native worker that continues the already-started loop from the receipt's next_argv, with exclusive write ownership in the exact Child workspace, through the host-selected Ask Agent's ask-agent/consumer-owned-workspace/v1 route; never use Ask Agent's default extra-worktree route for this bound child. Read the context-ownership reference before launch or recovery (the handoff's `Improve context ownership:` line names it).\n\nWorkspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.\n\nShipLoop's opening cannot hold this conversation's approvals, declines and pending decisions: state them, with action/target, conditions and authorization source, in the dispatch prompt, so the worker applies an approval without asking again and treats a decline as binding. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.\n\nParent-only return: the worker continues the child from the receipt and writes its review files, then returns their locators without executing ShipLoop callbacks other than improve-pass and improve-commit, or workspace return. The parent collects and verifies the result before executing the exact return route in the handoff. Worker completion alone never advances this action.\n",
+      "excerpt_sha256": "f064e1aed315a86d449d7520689ba0232906783322c55ab1dcd582426ae25ab1"
+    }
+  ],
+  "limits": [
+    "Raw original patch body is absent from normalized events; resulting note plus add/append records corroborate contents.",
+    "Actual529-entry installed engine inventory separately matched the frozen build without exclusions."
+  ]
+}

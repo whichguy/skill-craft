@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+  "id": 43954284626,
+  "event": "workflow_dispatch",
+  "attempt": 1,
+  "tier": "full",
+  "jobs": 12,
+  "artifacts": 9,
+  "executions": 207,
+  "distinct_suites": 207,
+  "repeated_suites": 0,
+  "groups": {
+    "core": 61,
+    "shiploop-1": 47,
+    "shiploop-2": 48,
+    "shiploop-3": 47,
+    "e2e-apparatus": 4
+  },
+  "required_suite_omissions": 0,
+  "conditional_unittest_skips": 59,
+  "browser_fixtures": 4,
+  "source_unchanged": true,
+  "evidence": "harness-patch-full-ci/handoff.json",
+  "evidence_dir": "harness-patch-full-ci",
+  "raw_hashes_independently_checked": 830,
+  "test_harness_methods": 11,
+  "test_harness_scenarios": 6,
+  "boundary": "N/A manual; actual outgoing range still required",
+  "url": "https://github.com/whichguy/skill-craft/actions/runs/43954284626",
+  "prior_parent_collection_attempt": "harness-patch-ci-parent-attempt-01.json"
+}

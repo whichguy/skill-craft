@@ -1,0 +1,210 @@
+{
+  "status": "PASS",
+  "runs": [
+    {
+      "mode": "full",
+      "run_id": 43917017353,
+      "event": "workflow_dispatch",
+      "branch": "codex/python-latest-standardization-20261116",
+      "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+      "tree": "43622e0d5f836e03c0e79b929ddced9563b2bdf1",
+      "jobs": 12,
+      "unique_suites": 207,
+      "zip_digests": [
+        {
+          "name": "hermetic-core",
+          "sha256": "a05c7c2d924d1e4f129a2020ed8a628c0e7c38b754ecb8b57211f8abab98d15f"
+        },
+        {
+          "name": "hermetic-shiploop-1",
+          "sha256": "3b095cd16fea7d0407ce787b8eb1d1b9173ecccb94f62d7ecf679d4e8e453ea5"
+        },
+        {
+          "name": "hermetic-shiploop-2",
+          "sha256": "6686c209c6e3c0988eaa4d546e9373eec9ff8dc8f2ce8baebf452f67bdc1d94d"
+        },
+        {
+          "name": "hermetic-shiploop-3",
+          "sha256": "a4b9eb43bfc26be47d76557bab872f22bbf9eb7c7e77e090d9a59b4f1b48ce33"
+        },
+        {
+          "name": "hermetic-e2e-apparatus",
+          "sha256": "bc45d34251340ff8f8435f59a5ba03c85d17cfecbfd2f17ed1f393c2a04967e4"
+        },
+        {
+          "name": "browser-fixtures-app-owned-controls",
+          "sha256": "3c2d418ca088c5ee47684131877a56a7e549e614e974715dd4af75e304ef41ba"
+        },
+        {
+          "name": "browser-fixtures-setup-save-boundary",
+          "sha256": "0d68553d4976ea19675c65fe377ad17323dda4a4b9bb0beadcd0d17731a43174"
+        },
+        {
+          "name": "browser-fixtures-turn-and-action-correlation",
+          "sha256": "5d6703005a788d5b7600c3b1b8cd35061ed4c0886423001f91c615e62076f747"
+        },
+        {
+          "name": "browser-fixtures-delayed-setup",
+          "sha256": "7e7afbb44ac8bd53275e36b505035d07453d26461735588d955b49faa2b87612"
+        }
+      ],
+      "method_proof": {
+        "test-groups": {
+          "reported": 78,
+          "skipped": 1
+        },
+        "ci-policy": {
+          "reported": 20,
+          "skipped": 0
+        },
+        "security-harness": {
+          "reported": 75,
+          "skipped": 0
+        },
+        "shiploop-progress": {
+          "reported": 38,
+          "skipped": 0
+        },
+        "shiploop-python-floor": {
+          "reported": 9,
+          "skipped": 0
+        },
+        "shiploop-e2e-roles": {
+          "reported": 10,
+          "skipped": 0
+        },
+        "shiploop-e2e-adapter-steps": {
+          "reported": 78,
+          "skipped": 0
+        },
+        "shiploop-e2e-battleship-salesforce": {
+          "reported": 70,
+          "skipped": 0
+        },
+        "shiploop-e2e-brownfield-tickets": {
+          "reported": 51,
+          "skipped": 0
+        },
+        "shiploop-e2e-test-adequacy": {
+          "reported": 35,
+          "skipped": 0
+        },
+        "shiploop-loophole-gates": {
+          "reported": 5,
+          "skipped": 0
+        },
+        "shiploop-e2e-analysis": {
+          "reported": 299,
+          "skipped": 0
+        },
+        "shiploop-e2e-hosts": {
+          "reported": 140,
+          "skipped": 2
+        },
+        "shiploop-e2e-discovery": {
+          "reported": 15,
+          "skipped": 0
+        },
+        "shiploop-e2e-adapter": {
+          "reported": 29,
+          "skipped": 0
+        },
+        "shiploop-e2e-adapter-engine": {
+          "reported": 5,
+          "skipped": 0
+        },
+        "shiploop-e2e-environment": {
+          "reported": 140,
+          "skipped": 0
+        },
+        "shiploop-e2e-review-attribution": {
+          "reported": 15,
+          "skipped": 0
+        },
+        "shiploop-e2e-lifecycle": {
+          "reported": 45,
+          "skipped": 0
+        },
+        "shiploop-actual-improve-cli": {
+          "reported": 101,
+          "skipped": 0
+        },
+        "shiploop-skill-calls": {
+          "reported": 35,
+          "skipped": 0
+        },
+        "shiploop-package-integrity": {
+          "reported": 24,
+          "skipped": 0
+        },
+        "shiploop-e2e-quality": {
+          "reported": 164,
+          "skipped": 0
+        },
+        "shiploop-e2e-chess-salesforce": {
+          "reported": 201,
+          "skipped": 0
+        },
+        "shiploop-e2e-stage-build": {
+          "reported": 64,
+          "skipped": 0
+        }
+      },
+      "actual_resource_warnings": [],
+      "status": "PASS"
+    },
+    {
+      "mode": "quick",
+      "run_id": 43916735284,
+      "event": "push",
+      "branch": "main",
+      "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+      "tree": "43622e0d5f836e03c0e79b929ddced9563b2bdf1",
+      "jobs": 8,
+      "unique_suites": 16,
+      "zip_digests": [
+        {
+          "name": "browser-fixtures-app-owned-controls",
+          "sha256": "c91fbcae659372a88e848293eb4087c38203b01feb7c32a6eee2b5fcb7f22041"
+        },
+        {
+          "name": "hermetic-quick",
+          "sha256": "da8acb9c83efd37d0c7f2b8b167f7bf370e78eb197f912cf7edbba7492a00bc8"
+        },
+        {
+          "name": "browser-fixtures-turn-and-action-correlation",
+          "sha256": "9a7c97f7cbac94e05a685cde2fa6daa7078e3636cd18ba5d8ba2470178e75f3e"
+        },
+        {
+          "name": "browser-fixtures-delayed-setup",
+          "sha256": "0df72b822aad314d9d1104417ecc710ffe70b8e40e188448ceb996c737b6b070"
+        },
+        {
+          "name": "browser-fixtures-setup-save-boundary",
+          "sha256": "9cf8faa4aee103c661ddc1cc7dced6ac0e3a24f636ad7a3b341f04b1edf548ad"
+        }
+      ],
+      "method_proof": {
+        "test-groups": {
+          "reported": 78,
+          "skipped": 1
+        },
+        "ci-policy": {
+          "reported": 20,
+          "skipped": 0
+        },
+        "security-harness": {
+          "reported": 75,
+          "skipped": 0
+        },
+        "shiploop-actual-improve-cli": {
+          "reported": 101,
+          "skipped": 0
+        }
+      },
+      "actual_resource_warnings": [],
+      "status": "PASS"
+    }
+  ],
+  "scope": "Independent parent terminal/run/job/ZIP/source/ordered receipt/argv/log/footer check; browser/runtime/conditional-skip audit retained in native handoff."
+}

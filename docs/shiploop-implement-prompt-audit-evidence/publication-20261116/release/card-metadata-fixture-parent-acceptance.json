@@ -1,0 +1,26 @@
+{
+  "status": "TARGETED_REPAIR_ACCEPTED_FULL_LOCAL_AND_CI_PENDING",
+  "timestamp": "2026-11-16T19:28:19.069437+00:00",
+  "base": "7eb5998f5d30d3a51bb8bd19c36707b5d24fb0a8",
+  "changed_files": [
+    "test/closed-loop.test.py"
+  ],
+  "test_methods": 165,
+  "other_164_ast_identical": true,
+  "module_ast_identical_except_owned_method": true,
+  "red": {
+    "tests": 1,
+    "failures": 1,
+    "errors": 0
+  },
+  "green": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  "controls_checked": 7,
+  "negative_controls_underlying_assertions": true,
+  "package_delta": [],
+  "fixture_sha256": "41fdcbde5e730951f2ae9af2e081ab1207e582e3d23e0e426c15371b94201fc7",
+  "scope": "Test fixture maintenance only; no product or harness behavior change."
+}

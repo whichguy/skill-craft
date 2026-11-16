@@ -1,0 +1,374 @@
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/approval-review.md:17: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-attempt-01/stdout.log:180: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-followup-cache-green-01/stdout.log:4: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-followup-cache-red-01/stdout.log:112: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-regressions-final/stdout.log:25: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/closure-review.md:11: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/final-review.md:4: trailing whitespace.
++   
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/final-review.md:8: trailing whitespace.
++   
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/final-review.md:14: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r07-20261115/integration-review.md:11: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/patch.stdout:23: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/patch.stdout:33: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/patch.stdout:33: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:8: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:14: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:21: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:27: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:31: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:39: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:44: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:55: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:57: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:65: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:72: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:79: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:81: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:92: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:99: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:105: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:107: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:112: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:119: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:125: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:136: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:138: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:144: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:146: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:151: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:160: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:162: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:167: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:173: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:181: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:183: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:189: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:200: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:202: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:207: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:209: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout:215: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:113: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:127: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:167: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:179: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:207: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:214: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:224: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:247: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:259: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:302: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:327: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:345: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:354: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:386: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch:387: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:6: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:8: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:14: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:16: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:21: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:30: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:32: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:37: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:43: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:51: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:53: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:59: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:70: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:72: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:77: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:79: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:85: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:94: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:99: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:105: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:116: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:119: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:127: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:133: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:143: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:146: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:152: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:160: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:163: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:178: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:190: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:206: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:210: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:218: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:221: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:230: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:239: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:243: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:251: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:255: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:262: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:266: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:272: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:276: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:280: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:287: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:296: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:298: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:303: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:310: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:312: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:317: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:325: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:332: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:334: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:340: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:350: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:356: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:362: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:364: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:376: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:385: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:395: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:397: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:403: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:411: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:413: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:421: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:428: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:438: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:440: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:445: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:450: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:455: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:457: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:463: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt:470: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-0.stderr:1: trailing whitespace.
++test_pytest_summary_errors_fail_without_certifying_tests_ran (__main__.CountTests.test_pytest_summary_errors_fail_without_certifying_tests_ran) ... 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-0.stderr:10: trailing whitespace.
++test_pytest_error_judgement_preserves_gate_precedence (__main__.JudgeTests.test_pytest_error_judgement_preserves_gate_precedence) ... 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-1.stderr:1: trailing whitespace.
++test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) ... 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-1.stderr:4: trailing whitespace.
++test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) ... 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-1.stderr:8: trailing whitespace.
++test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) ... 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-corrected.stderr:1: trailing whitespace.
++test_stale_candidate_judgement_reruns_on_the_same_tree (__main__.TestLoopTests.test_stale_candidate_judgement_reruns_on_the_same_tree) ... 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-corrected.stderr:4: trailing whitespace.
++test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts (__main__.TestLoopTests.test_stale_whole_answer_judgement_reruns_stale_subordinate_receipts) ... 
+docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-corrected.stderr:8: trailing whitespace.
++test_stale_proof_judgement_reruns_check_and_numbered_receipts (__main__.TestLoopTests.test_stale_proof_judgement_reruns_check_and_numbered_receipts) ... 
+docs/shiploop-implement-prompt-audit-evidence/r16-20261115/author/red-002/stderr.txt:5: trailing whitespace.
++test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts (r16_selected.GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts) ... 
+docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/cold-locator-red-001/stderr.txt:2: trailing whitespace.
++Locator availability after synthetic navigation, not model read or uptake. ... 
+docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/production.diff:43: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/production.diff:45: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/refinement.diff:67: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/refinement.diff:113: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/author/production.diff:12: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/author/production.diff:13: trailing whitespace.
++ 
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/author/production.diff:12: new blank line at EOF.
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:8: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:24: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:32: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:39: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:49: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:59: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:69: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:78: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:92: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:95: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:98: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:101: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:104: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:107: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:110: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:113: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:123: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:142: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:158: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:164: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:178: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:184: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:203: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:209: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:212: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:222: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:225: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:227: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:230: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:233: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:236: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt:239: trailing whitespace.
++    
+docs/shiploop-implement-prompt-audit-evidence/r19-20261115/pin-repair/repair.diff:7: trailing whitespace.
++ 

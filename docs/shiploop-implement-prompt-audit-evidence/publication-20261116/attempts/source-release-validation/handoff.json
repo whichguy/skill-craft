@@ -1,0 +1,106 @@
+{
+  "status": "INCOMPLETE",
+  "reason": "Preflight ignored-inclusive status contains undeclared .ruff_cache files; required clean source gate was not satisfied. No required commands launched.",
+  "target": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+  "expected_head": "6df738c6c36a13676eb623adbab5954756cfedfa",
+  "actual_pre_head": "6df738c6c36a13676eb623adbab5954756cfedfa",
+  "actual_post_head": "6df738c6c36a13676eb623adbab5954756cfedfa",
+  "base": "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+  "selected_checks": 6,
+  "completed_checks": 0,
+  "pending_checks": [
+    {
+      "number": 1,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116"
+    },
+    {
+      "number": 2,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+        "--head",
+        "6df738c6c36a13676eb623adbab5954756cfedfa"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116"
+    },
+    {
+      "number": 3,
+      "argv": [
+        "bash",
+        "test/release-flow.test.sh"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116"
+    },
+    {
+      "number": 4,
+      "argv": [
+        "bash",
+        "test/release-boundary.test.sh"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116"
+    },
+    {
+      "number": 5,
+      "argv": [
+        "python3",
+        "-B",
+        "test/release-push.test.py",
+        "-v"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116"
+    },
+    {
+      "number": 6,
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+        "diff",
+        "--check",
+        "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+        "6df738c6c36a13676eb623adbab5954756cfedfa",
+        "--",
+        "skills/shiploop",
+        "changes/shiploop",
+        "scripts/release.py",
+        "test/release-preflight.test.py",
+        "test/shiploop-guidance.test.py",
+        "test/shiploop-actual-improve-cli.test.py",
+        "test/shiploop-loops.test.py",
+        "test/shiploop-e2e-fidelity.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116"
+    }
+  ],
+  "tests_completed": 0,
+  "expected_unittest_methods": 10,
+  "expected_shell_suites": 2,
+  "source_inventory_stable": true,
+  "ordinary_status_stable": true,
+  "ignored_inclusive_status_stable": true,
+  "pre_inventory_sha256": "40ddfb82b27fc6a379fc8075a43b550fe36c200d5c119c2ba694ef549d2ff089",
+  "post_inventory_sha256": "40ddfb82b27fc6a379fc8075a43b550fe36c200d5c119c2ba694ef549d2ff089",
+  "pre_ignored_inclusive_status": "!! .ruff_cache/.gitignore\n!! .ruff_cache/0.17.2/2388345520374558200\n!! .ruff_cache/0.17.2/3353058027103256826\n!! .ruff_cache/CACHEDIR.TAG\n",
+  "pre_snapshot": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation/pre.json",
+  "post_snapshot": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-release-validation/post.json",
+  "retry_attempts": 0,
+  "deadline_utc": "2026-11-16T15:35:00Z",
+  "expected_versions": {
+    "shiploop": "1.37.1 -> 1.37.2",
+    "skill-craft": "2.42.1 -> 2.42.2",
+    "notes": 5
+  },
+  "version_plan_verified": false,
+  "prior_failure": "Prior source-preflight FAIL retained separately; this invocation does not supersede it.",
+  "collector_note": "Initial snapshot was transiently written at /Users/dadleet/src/skill-craft/skills/shiploop/pre.json due to collector __file__ context; moved into this evidence directory before final handoff. No required command ran.",
+  "finished_utc": "2026-11-16T15:16:42.267213+00:00"
+}

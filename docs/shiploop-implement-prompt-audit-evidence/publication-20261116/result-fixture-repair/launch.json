@@ -1,0 +1,27 @@
+{
+  "utc": "2026-11-16T15:45:01.216766+00:00",
+  "argv": [
+    "codex",
+    "exec",
+    "--profile",
+    "shiploop",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "--sandbox",
+    "danger-full-access",
+    "-c",
+    "approval_policy=\"never\"",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+    "--json",
+    "-o",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/result-fixture-repair/final.md",
+    "-"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+  "head": "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+  "model_requested": "gpt-6.1-sol",
+  "effort_requested": "medium"
+}

@@ -1,0 +1,14 @@
+{
+  "test/shiploop-follow-on.test.py": {
+    "all_original_methods_retained": true,
+    "all_original_assert_expressions_retained": true,
+    "original_test_methods": 18,
+    "note": "Loophole module also generates three commit-dodge test methods dynamically; unittest counts are authoritative."
+  },
+  "test/shiploop-loophole-gates.test.py": {
+    "all_original_methods_retained": true,
+    "all_original_assert_expressions_retained": true,
+    "original_test_methods": 2,
+    "note": "Loophole module also generates three commit-dodge test methods dynamically; unittest counts are authoritative."
+  }
+}

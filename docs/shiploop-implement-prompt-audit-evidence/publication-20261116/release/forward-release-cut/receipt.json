@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/release.py",
+    "--date",
+    "2026-11-16"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+  "start": "2026-11-16T18:52:57.477221+00:00",
+  "end": "2026-11-16T18:53:00.690061+00:00",
+  "exit_code": 0,
+  "pre": {
+    "head": "efc201982efb1fbcefc6ec07f645affeb55191d1",
+    "tree": "5f6055ff4b99bf9e0c7e7e73c6d7cd634c67df9d",
+    "status": ""
+  },
+  "post": {
+    "head": "7eb5998f5d30d3a51bb8bd19c36707b5d24fb0a8",
+    "tree": "ddda1e2137a43da97a2f13ded4b4811ccd07aa89",
+    "status": "",
+    "ignored": ""
+  },
+  "author_override": "Per-process existing Jim Wiese <dadleet@BigDog.local>; no global config changed",
+  "status": "CUT"
+}

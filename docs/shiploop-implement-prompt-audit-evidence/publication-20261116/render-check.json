@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "scope": "Representative samples only; not a full visual inspection of the long plan or GitHub rendering.",
+  "inspected": [
+    "plan opening at1440x1200",
+    "Exact R19 startup before/after Markdown excerpt at1440x1200",
+    "Exact R16 release-state before/after Markdown excerpt at1440x1200",
+    "Publication opening/evidence table at1440x1400 and520x1400"
+  ],
+  "observations": [
+    "Readable sampled tables and prompt text; no clipped prompt content observed.",
+    "The plan table first header wraps; content remains readable.",
+    "Anchor-scroll headless screenshots were blank and are retained as incomplete render attempts. Exact same Markdown sections were rendered separately."
+  ],
+  "renderer": "Pandoc HTML5 from GFM with external review CSS, headless Chrome in task-owned disposable profiles",
+  "images": [
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/document-render/plan-top.png",
+      "bytes": 323787,
+      "sha256": "1d1fc4e1dcf86c0c084cb030cf09ba6744085aea3ad41b3bc11d852b47190b62"
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/document-render/r19-excerpt.png",
+      "bytes": 76981,
+      "sha256": "618e83c7037310c3fa3c34e2e9ec52df088761f1ee8c266facfb2c8729080ea0"
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/document-render/r16-excerpt.png",
+      "bytes": 120387,
+      "sha256": "bd1e0edaff53c492e43712fb159ba1ba44115363919138e7f38832c0ee7b7655"
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/document-render/publication-top.png",
+      "bytes": 339517,
+      "sha256": "8d3a467abbc89787b450e528af562da42560bec36eaad0c52016f8ca25f874e6"
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/document-render/publication-narrow.png",
+      "bytes": 220974,
+      "sha256": "2cd570fea8e8e317d5fcc484ae5453e0a1055593001b0cf950c3a85d11655797"
+    }
+  ],
+  "timestamp": "2026-11-16T22:21:42.725066+00:00"
+}

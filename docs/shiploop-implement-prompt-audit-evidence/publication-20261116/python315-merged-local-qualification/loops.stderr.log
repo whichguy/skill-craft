@@ -1,0 +1,14 @@
+test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd (__main__.InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd)
+R19: qualify the actual shell launch, including spaces, before changing its formatter. ... ok
+test_distinct_actions_and_runs_keep_independent_live_state (__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state)
+Distinct receipts are isolated; this does not test concurrent starts on the same receipt. ... ok
+test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop (__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop)
+The printed command is the one that starts the loop, on this action's own contract and receipt. ... ok
+test_emitted_launch_resumes_and_check_done_complete_accepts_once (__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once) ... ok
+test_active_restart_and_lost_state_refuse_without_replacing_receipt (__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt) ... ok
+test_next_writes_the_contract_of_a_run_seeded_at_step_plan (__main__.MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 7.886s
+
+OK

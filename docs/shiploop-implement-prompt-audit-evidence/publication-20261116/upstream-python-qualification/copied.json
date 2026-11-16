@@ -1,0 +1,26 @@
+[
+  {
+    "original": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/python-standardization-final-closeout-20261116-a94cbd84.json",
+    "copy": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/upstream-python-qualification/handoff.json",
+    "sha256": "6f94e750ba6d92d551ada0eab352a2121431c81bd3a0a3ba12ec6ffc83052e0e",
+    "bytes": 4834
+  },
+  {
+    "original": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/parent-final-local-acceptance.json",
+    "copy": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/upstream-python-qualification/parent-final-local-acceptance.json",
+    "sha256": "9e21bca350b6d65b22e75876e972f99cc98ab4964907beebd35384fdc04a68e9",
+    "bytes": 946
+  },
+  {
+    "original": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/parent-final-github-acceptance.json",
+    "copy": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/upstream-python-qualification/parent-final-github-acceptance.json",
+    "sha256": "17f2ac501f5869f1c85e0f1d131b582de3b740af0d1ddcb76a13c40dbc1e7514",
+    "bytes": 6044
+  },
+  {
+    "original": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-final-collection-handoff.json",
+    "copy": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/upstream-python-qualification/github-final-collection-handoff.json",
+    "sha256": "a135ec8242a6b2ab744488e6ab6b1d97f8190687a5aef3b83defaa2af89f483f",
+    "bytes": 3212
+  }
+]

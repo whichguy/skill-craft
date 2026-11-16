@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "codex",
+    "exec",
+    "--profile",
+    "shiploop",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "--sandbox",
+    "danger-full-access",
+    "-c",
+    "approval_policy=\"never\"",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+    "--json",
+    "-o",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/final-02.md",
+    "resume",
+    "01a1e602-4cf4-7992-b138-1f9f38f538b4",
+    "-"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+  "start": "2026-11-16T20:35:45.240325+00:00",
+  "brief": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/followup-02.md",
+  "model": "gpt-6.1-sol",
+  "effort": "medium"
+}

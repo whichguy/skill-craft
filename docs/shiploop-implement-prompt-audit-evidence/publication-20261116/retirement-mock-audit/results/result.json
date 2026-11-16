@@ -1,0 +1,33 @@
+{
+  "schema": "shiploop-e2e-apparatus-check/1",
+  "suite": "mock",
+  "modules": [
+    "test_behavior_capture",
+    "test_dag_replay",
+    "test_protocol_compat",
+    "test_recovery_isolation",
+    "test_trace_corpus"
+  ],
+  "model_calls": 0,
+  "tests": 39,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "duration_seconds": 5.203737957999692,
+  "status": "passed",
+  "harness": {
+    "root": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116/skills/shiploop-e2e-audit/harness",
+    "package_root": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116/skills/shiploop-e2e-audit",
+    "source_checkout": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116"
+  },
+  "selected_subject": {
+    "root": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116/skills/shiploop",
+    "package_sha256": "e0f15b400475de7b67b53aefc286336088f00ffac5571c7ef520d3ed63e18df1",
+    "file_count": 123,
+    "selection": "explicit",
+    "default_selection": "source-sibling",
+    "dag_replay_selected": true
+  },
+  "limitations": "Fixture apparatus evidence only; does not establish generated application or hosted behavior."
+}

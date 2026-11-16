@@ -1,0 +1,265 @@
+{
+  "status": "PASS",
+  "scope": "One live csv-report checkout round; no comparison, published package validation, external deployment or generic quality/performance claim",
+  "execution": {
+    "argv": [
+      "python3",
+      "-B",
+      "test/shiploop_e2e/run.py",
+      "--case",
+      "csv-report",
+      "--host",
+      "codex",
+      "--model",
+      "gpt-6.1-sol",
+      "--effort",
+      "medium",
+      "--source",
+      "checkout",
+      "--output",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run",
+      "--baseline",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/baselines.jsonl",
+      "--quiet"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116",
+    "environment_overrides": {
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "started_at": "2026-11-16T17:01:50.010105+00:00",
+    "wrapper_pid": 49540,
+    "pid": 49553,
+    "exit_code": 0,
+    "finished_at": "2026-11-16T18:41:22.960648+00:00"
+  },
+  "subject_source": {
+    "root": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116",
+    "head": "d5142e5f502179cda135a3da405c3117d7f6fba3",
+    "tree": "a056d02869a53cb0de8de42aa4bf6d07b95dd496",
+    "branch": "codex/r19-r16-publish-latest-20261116",
+    "tracked_entries": 14111,
+    "index_sha256": "97ac648a919fe0912345f9cfc2603ad6bffdd899ef9f786f9293f6842a2b5a9b",
+    "status": "",
+    "pre_post_identical": true,
+    "exclusions": []
+  },
+  "package": {
+    "timestamp": "2026-11-16T18:42:07.601720+00:00",
+    "recorded_fingerprint": "abaf1e116df3",
+    "built_fingerprint": "abaf1e116df3",
+    "installed_fingerprint": "abaf1e116df3",
+    "full_inventory_equal": true,
+    "differences": [],
+    "comparison_exclusions": [],
+    "symlinks_not_traversed": true,
+    "built_fingerprint_full": "abaf1e116df3976ca27232c9e00b3595029d3614044388bb7c38cf7f81ce4a77",
+    "installed_fingerprint_full": "abaf1e116df3976ca27232c9e00b3595029d3614044388bb7c38cf7f81ce4a77",
+    "fingerprint_order": "sorted pathlib relative paths as harness tree_digest_checked",
+    "recorded_matches_current": true
+  },
+  "actual_launch": {
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "argv": [
+      "codex",
+      "exec",
+      "--json",
+      "-m",
+      "gpt-6.1-sol",
+      "--skip-git-repo-check",
+      "-s",
+      "danger-full-access",
+      "-c",
+      "approval_policy=\"never\"",
+      "--dangerously-bypass-hook-trust",
+      "-C",
+      "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/work",
+      "-c",
+      "agents.default_subagent_model=\"gpt-6.1-sol\"",
+      "-c",
+      "model_reasoning_effort=medium",
+      "-c",
+      "agents.default_subagent_reasoning_effort=medium",
+      "$skill-craft:shiploop Build a command-line tool report.py (Python 3, standard library only) that summarises sales records. Usage: `python3 report.py FILE [FILE ...]`. Each FILE is CSV with the header row `date,region,product,units,unit_price`; units is a non-negative integer and unit_price a non-negative decimal. Print one JSON object to stdout: {\"rows\": the number of valid rows, \"revenue\": the sum of units * unit_price rounded to 2 decimals, \"by_region\": revenue per region rounded to 2 decimals, \"by_product\": total units per product}. A row with the wrong number of columns, or a non-numeric or negative units or unit_price, is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0. A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1. A file with only a header contributes nothing. Cover the behaviour with unittest tests that run with `python3 -m unittest`."
+    ],
+    "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/work",
+    "host_build": "codex-cli 0.169.0",
+    "fresh_sessions": 1,
+    "resumes": 0
+  },
+  "verdicts": {
+    "invoked": true,
+    "plugin": true,
+    "process": true,
+    "shiploop": true,
+    "committed": true
+  },
+  "required_checks": {
+    "unit": {
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n",
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" unit"
+    },
+    "totals": {
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n",
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" totals"
+    },
+    "invalid": {
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n",
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" invalid"
+    },
+    "missing": {
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n",
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" missing"
+    },
+    "empty": {
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n",
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" empty"
+    }
+  },
+  "proof": {
+    "terminal": true,
+    "all_verdicts": true,
+    "all_five_required_checks": true,
+    "source_identical_clean": true,
+    "package_identical": true,
+    "product_returned_clean": true,
+    "cleanup_observed": true
+  },
+  "shiploop": {
+    "pass": true,
+    "run_dir": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/run",
+    "status": "done",
+    "stage": "done",
+    "revision": 38,
+    "report_html": true,
+    "runs": 1,
+    "identity": "recorded",
+    "worktree": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/.shiploop-runs/work-20261116-170226-754ee2/worktree",
+    "knowledge": {
+      "spec": true,
+      "head": "0df9ccc2b378861f35accadb8f9d2a1c08ec0365",
+      "uncommitted": [],
+      "spec_tracked": true,
+      "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5",
+        "R-6",
+        "R-7",
+        "R-8"
+      ],
+      "head_commits": 17,
+      "head_files": 7,
+      "untracked_files": 0,
+      "branches": [
+        "main",
+        "shiploop/run-48c3a9154ce878eb"
+      ]
+    }
+  },
+  "returned_product": {
+    "before": {
+      "observed": true,
+      "head": "0df9ccc2b378861f35accadb8f9d2a1c08ec0365",
+      "tree": "3791b5fadd0190412b753c90062113a9fd4eb9c6",
+      "status": [],
+      "bundle": "delivery/work.bundle",
+      "bundle_bytes": 32550
+    },
+    "after": {
+      "observed": true,
+      "head": "0df9ccc2b378861f35accadb8f9d2a1c08ec0365",
+      "tree": "3791b5fadd0190412b753c90062113a9fd4eb9c6",
+      "status": []
+    }
+  },
+  "cleanup": {
+    "timestamp": "2026-11-16T18:42:51.549824+00:00",
+    "ps_exit": 0,
+    "live_run_path_processes": [],
+    "observer_matches": 0,
+    "lsof_exit": 0,
+    "lsof_stderr": "",
+    "owned_listeners": [],
+    "harness_left_behind": {
+      "observed": true,
+      "reaped": [],
+      "survived": []
+    },
+    "harness_cleanup": {
+      "end": {
+        "observed": true,
+        "stopped": [],
+        "survived": [],
+        "gone": [],
+        "reused": [],
+        "unverified": [],
+        "protected": []
+      }
+    },
+    "host_pid": 50923,
+    "host_pgid": 50923,
+    "harness_pid": 49553,
+    "wrapper_pid": 49540,
+    "owned_pid_or_pgid_processes": [],
+    "owned_pid_or_pgid_ps_exit": 0
+  },
+  "counts": {
+    "accepted_actions": 30,
+    "work_items": 1,
+    "completed_work_items": [
+      "W1"
+    ],
+    "turns": 627,
+    "model_calls": 547,
+    "improve_children": 10,
+    "script_verifications": {
+      "records": 7,
+      "passed": 6,
+      "could_not_run": 0,
+      "commands": 26,
+      "red": 0
+    },
+    "shiploop_check_refusals": 11
+  },
+  "limitations": [
+    "Five declared case checks all passed. No quality measures or held-out acceptance are declared by this case.",
+    "Harness fidelity records two conditional mutation gates skipped because no changed product line matched an operator; no mutation check is one of this case's five required checks.",
+    "11 retained ShipLoop check-only refusals were recovered within the original builder session; they are not erased by terminal PASS.",
+    "Codex does not report cost or per-stage turn attribution, truncated-output, cancelled-tool-call, or knowledge-read counts; null and unmeasured values retained in result.json/metrics.json."
+  ],
+  "evidence": {
+    "result": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/result.json",
+    "metrics": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/metrics.json",
+    "invocation": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/invocation.json",
+    "events": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/events.jsonl",
+    "transcript": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/transcript.md",
+    "resource_ledger": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/resources.jsonl",
+    "sessions": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/sessions.jsonl",
+    "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/harness.stdout.log",
+    "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/harness.stderr.log",
+    "source_before": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/source-before.json",
+    "source_after": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/source-after.json",
+    "source_comparison": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/source-comparison.json",
+    "package_built": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/package-built-inventory.json",
+    "package_installed": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/package-installed-inventory.json",
+    "package_comparison": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/package-comparison.json",
+    "product": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/product-verification.json",
+    "cleanup": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/cleanup-verification.json",
+    "bundle": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-live-csv-report/run/delivery/work.bundle"
+  },
+  "completed_at": "2026-11-16T18:43:37.562425+00:00"
+}

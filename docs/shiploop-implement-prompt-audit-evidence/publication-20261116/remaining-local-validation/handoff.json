@@ -1,0 +1,157 @@
+{
+  "status": "PASS",
+  "repo": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+  "deadline": "2026-11-16T16:35:00+00:00",
+  "retry_policy": "none; each check once; stop at first problem",
+  "generated_source_paths": [],
+  "model_controls": "native test-runner fixed gpt-6.1-sol / medium, supplied by parent",
+  "checks": [
+    {
+      "number": 1,
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-loophole-gates.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "environment_overrides": {
+        "PATH": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dadleet/.codex/tmp/arg0-macos/codex-arg0jJT7Jx:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dadleet/.grok/bin:/Users/dadleet/.bun/bin:/Users/dadleet/.claude/tools:/Users/dadleet/.local/bin:/Users/dadleet/.orbstack/bin:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/dadleet/.orbstack/bin",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started": "2026-11-16T16:13:38.476774+00:00",
+      "status": "PASS",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/remaining-local-validation/check1.log",
+      "exit": 0,
+      "finished": "2026-11-16T16:13:58.038764+00:00",
+      "expected_methods": 5,
+      "observed_terminal_counts": [
+        "5"
+      ],
+      "completion_criterion": "5 methods, terminal OK, no skips"
+    },
+    {
+      "number": 2,
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-progress.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "environment_overrides": {
+        "PATH": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dadleet/.codex/tmp/arg0-macos/codex-arg0jJT7Jx:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dadleet/.grok/bin:/Users/dadleet/.bun/bin:/Users/dadleet/.claude/tools:/Users/dadleet/.local/bin:/Users/dadleet/.orbstack/bin:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/dadleet/.orbstack/bin",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started": "2026-11-16T16:13:58.051744+00:00",
+      "status": "PASS",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/remaining-local-validation/check2.log",
+      "exit": 0,
+      "finished": "2026-11-16T16:14:11.164420+00:00",
+      "expected_methods": 38,
+      "observed_terminal_counts": [
+        "38"
+      ],
+      "completion_criterion": "38 methods, terminal OK, no skips"
+    },
+    {
+      "number": 3,
+      "argv": [
+        "bash",
+        "scripts/sync-plugin-views.sh",
+        "--check"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "environment_overrides": {},
+      "started": "2026-11-16T16:14:11.164931+00:00",
+      "status": "PASS",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/remaining-local-validation/check3.log",
+      "exit": 0,
+      "finished": "2026-11-16T16:14:12.455516+00:00",
+      "completion_criterion": "explicit CHECK OK"
+    },
+    {
+      "number": 4,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-marketplace-packages.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "environment_overrides": {},
+      "started": "2026-11-16T16:14:12.456116+00:00",
+      "status": "PASS",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/remaining-local-validation/check4.log",
+      "exit": 0,
+      "finished": "2026-11-16T16:14:12.833599+00:00",
+      "completion_criterion": "marketplace-packages 1/1 passed"
+    },
+    {
+      "number": 5,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "c154c44fee46a6c5c852ce158e818d3237d3f121",
+        "--head",
+        "9b05a94f68026941ed4028da3a744830c66cf3f4"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "environment_overrides": {},
+      "started": "2026-11-16T16:14:12.834169+00:00",
+      "status": "PASS",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/remaining-local-validation/check5.log",
+      "exit": 0,
+      "finished": "2026-11-16T16:14:18.030848+00:00",
+      "completion_criterion": "explicit check-release-boundary: OK"
+    },
+    {
+      "number": 6,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "environment_overrides": {},
+      "started": "2026-11-16T16:14:18.031310+00:00",
+      "status": "PASS",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/remaining-local-validation/check6.log",
+      "exit": 0,
+      "finished": "2026-11-16T16:14:19.470500+00:00",
+      "completion_criterion": "no pending notes / nothing to release"
+    },
+    {
+      "number": 7,
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+        "diff",
+        "--check",
+        "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+        "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "--",
+        "test/shiploop-follow-on.test.py",
+        "test/shiploop-loophole-gates.test.py",
+        "test/shiploop-progress.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "environment_overrides": {},
+      "started": "2026-11-16T16:14:19.471235+00:00",
+      "status": "PASS",
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/remaining-local-validation/check7.log",
+      "exit": 0,
+      "finished": "2026-11-16T16:14:19.494441+00:00",
+      "completion_criterion": "empty diff-check output"
+    }
+  ],
+  "started": "2026-11-16T16:13:36.798721+00:00",
+  "prior_check1": "Separate prior collector INCOMPLETE; parent independently confirmed 18 valid methods; not rerun here",
+  "ci": "Not collected; no CI or publication claim",
+  "source_stable": true,
+  "finished": "2026-11-16T16:14:20.251625+00:00",
+  "pending_checks": [],
+  "completed_checks": 7,
+  "verified_methods_this_run": 43
+}

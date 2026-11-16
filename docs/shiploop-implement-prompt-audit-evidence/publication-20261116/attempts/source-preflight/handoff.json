@@ -1,0 +1,147 @@
+{
+  "status": "FAIL",
+  "scope": "Static release-source preflight only",
+  "selected": 3,
+  "completed": 1,
+  "passed": 0,
+  "pending": [
+    2,
+    3
+  ],
+  "source": {
+    "repository": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+    "required_head": "f6fade35e4464538314aaafb402a09955edbbc8a",
+    "base": "ec2eae6978419034454580b7b96fe20e47a3d5d9",
+    "before": {
+      "start_utc": "2026-11-16T15:05:59.470105+00:00",
+      "end_utc": "2026-11-16T15:06:00.754064+00:00",
+      "head": "f6fade35e4464538314aaafb402a09955edbbc8a",
+      "ordinary_status": "",
+      "ignored_inclusive_status": "",
+      "tracked_count": 14163,
+      "tracked_manifest_sha256": "2bd63f54a219d2b3ce51761312e17bd568f97335740315a8810361b351f65639"
+    },
+    "after": {
+      "start_utc": "2026-11-16T15:06:11.958287+00:00",
+      "end_utc": "2026-11-16T15:06:12.535491+00:00",
+      "head": "f6fade35e4464538314aaafb402a09955edbbc8a",
+      "ordinary_status": "",
+      "ignored_inclusive_status": "",
+      "tracked_count": 14163,
+      "tracked_manifest_sha256": "2bd63f54a219d2b3ce51761312e17bd568f97335740315a8810361b351f65639"
+    },
+    "unchanged_and_clean": true,
+    "declared_generated_repository_paths": []
+  },
+  "checks": [
+    {
+      "selected_index": 1,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+      "env_overrides": {},
+      "attempt": 1,
+      "start_utc": "2026-11-16T15:06:04.992001+00:00",
+      "deadline_utc": "2026-11-16T15:18:00+00:00",
+      "stdout_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/1.stdout.log",
+      "stderr_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/1.stderr.log",
+      "exit": 1,
+      "status": "FAIL",
+      "end_utc": "2026-11-16T15:06:05.211100+00:00"
+    },
+    {
+      "selected_index": 2,
+      "status": "PENDING",
+      "reason": "Stopped after check 1 failed; no retries authorized"
+    },
+    {
+      "selected_index": 3,
+      "status": "PENDING",
+      "reason": "Stopped after check 1 failed; no retries authorized"
+    }
+  ],
+  "problem": {
+    "command": "python3 -B scripts/release.py --dry-run",
+    "exit": 1,
+    "excerpt": "release: shiploop would ship 1 change(s) committed after its latest E2E round (4ec9ac4b):\n  084db6aa release: skill-craft 2.42.1, shiploop 1.37.1\n  Add an entry to test/shiploop_e2e/LEARNINGS.md in a commit after them, or a 'No-E2E-Round: <reason>' trailer on each (final message paragraph, next to Co-Authored-By).\n",
+    "expected_release_plan_present": false
+  },
+  "release_plan": {
+    "shiploop_old_version": null,
+    "shiploop_new_version": null,
+    "skill_craft_old_version": null,
+    "skill_craft_new_version": null,
+    "reason": "Dry-run exited before emitting an actual release plan; versions not established",
+    "expected_shiploop_notes": 5,
+    "observed_shiploop_note_count": 5,
+    "shiploop_notes": [
+      {
+        "index": "100644 3fc7d6dcbd537aa172afc15cd6c64a027bf457fc 0",
+        "mode": "0o644",
+        "path": "changes/shiploop/r07-outcome-continuity.md",
+        "sha256": "9d86df4d750e4b0c0a821353a84b33ac8dd3674750942aa1ef0e490b67403cc9",
+        "size": 1275,
+        "symlink_target": null,
+        "type": "file"
+      },
+      {
+        "index": "100644 d9ff92760182fceae0663239d1da6a67760b226a 0",
+        "mode": "0o644",
+        "path": "changes/shiploop/r08-pytest-errors-and-receipt-judgement.md",
+        "sha256": "f7816c05a6a55e6f5e40d623a26116e58b7d13c81041432e1cb75a633806ccbc",
+        "size": 478,
+        "symlink_target": null,
+        "type": "file"
+      },
+      {
+        "index": "100644 2eed2bcad6309f29396cf4bf4177a39b20b4f35d 0",
+        "mode": "0o644",
+        "path": "changes/shiploop/r16-observe-actual-release-state.md",
+        "sha256": "3f91e86b89c1c01aea1790174d4abd982fef302cb275b9ee995334b531ee1e6a",
+        "size": 432,
+        "symlink_target": null,
+        "type": "file"
+      },
+      {
+        "index": "100644 45ad4f8f8c8a04f6fbab752afdbfcbcf66988454 0",
+        "mode": "0o644",
+        "path": "changes/shiploop/r19-run-owned-loop-state.md",
+        "sha256": "63794e23bb29de9c28edd6eb1d4ad0d92cef573b858129f92ad3e86dd7a97fbb",
+        "size": 326,
+        "symlink_target": null,
+        "type": "file"
+      },
+      {
+        "index": "100644 0c7800b536c2df338104efd2ab37328e17a09491 0",
+        "mode": "0o644",
+        "path": "changes/shiploop/r21-external-state-reuse.md",
+        "sha256": "cbeb95c4dc0b9ae2800aa484bafaa3466052c27e4a912a913b5aa6c008de8c8e",
+        "size": 310,
+        "symlink_target": null,
+        "type": "file"
+      }
+    ],
+    "notes_unchanged": true
+  },
+  "identity_paths": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/before.identity.json",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/after.identity.json",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/before.status.txt",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/after.status.txt",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/before.status-ignored.txt",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/after.status-ignored.txt",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/before.tracked.json",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/after.tracked.json"
+  ],
+  "raw_logs": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/1.stdout.log",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/source-preflight/1.stderr.log"
+  ],
+  "attempt_policy": "Once each; no retry",
+  "deadline_utc": "2026-11-16T15:18:00+00:00",
+  "claim_limits": "No runtime, CI, published, installed, or deployed claim"
+}

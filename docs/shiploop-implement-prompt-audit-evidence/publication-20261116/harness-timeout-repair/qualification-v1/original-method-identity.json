@@ -1,0 +1,51 @@
+{
+  "original_count": 8,
+  "new_methods": [
+    "TimeoutEvidence.test_atomic_publication_and_raced_collisions",
+    "TimeoutEvidence.test_evidence_precedes_deadline_consuming_cleanup",
+    "TimeoutEvidence.test_interrupted_write_never_exposes_incomplete_final"
+  ],
+  "original_methods": {
+    "SelfTest.test_the_bundled_self_test_passes_in_a_scratch_home": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "93e07ca17f0ec941acc78686131fd9597fd88fd89fb602d8b1f0149c63fc79f9"
+    },
+    "Packaging.test_the_card_binds_the_scripts_from_the_loaded_skill": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "75eab1657eccdaa3ecda72346e5cac4f2fa8743663e3b5243e4d57749220202f"
+    },
+    "Packaging.test_every_script_and_reference_the_card_names_exists": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "c0f7670e9667ba18404bc88035523951c91ee047512e5c15203f9d03bb2ce434"
+    },
+    "Packaging.test_the_scripts_the_card_runs_are_executable": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "796147af7d91a8cb8ccd51aa6c9103127cedfc94c62d8c94ca3e2f8e013cd03b"
+    },
+    "Packaging.test_the_driver_runs_from_an_unrelated_directory": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "e80f03072807a389bd600c1cdb659794c47d6e6c3a870806ea621238da7d670d"
+    },
+    "Packaging.test_no_default_names_a_host_or_a_home_directory": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "56ba8fc2f54e2819a008a0e5d2d44ed939f2054d23364a5559c51ee48a9a312d"
+    },
+    "Hygiene.test_the_lint_finds_each_seeded_shape": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "68d3f508e309174cad0bf112a3b0c645aa186b450b2742840105e86ab548ff4b"
+    },
+    "Hygiene.test_the_lint_reads_every_shipped_file": {
+      "ast_identical": true,
+      "bytes_identical": true,
+      "ast_sha256": "e2d24610ec86878c152ca8f6a4692f03f1973d42ce7b7120777d0eca02ffd0d9"
+    }
+  },
+  "minimum_assertions": 270
+}

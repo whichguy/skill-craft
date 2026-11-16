@@ -1,0 +1,119 @@
+{
+  "status": "PASS",
+  "scope": "Local source/package checks only; no CI, publication, or native-host claim",
+  "source_head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "source_tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+  "tracked_entries": 14111,
+  "python": "3.15.1 (main, Oct 21 2026, 05:55:12) [Clang 21.0.0 (clang-2100.3.34.2)]",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "generated_outputs": [],
+  "attempts_per_check": 1,
+  "retry_policy": "none",
+  "deadline_utc": "2026-11-16T21:20:00Z attention only",
+  "source_guards": {
+    "status": "PASS",
+    "differences": {},
+    "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/pre-identity.json",
+    "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/post-identity.json",
+    "files_sha256": "81973f3db494fea2833d16f930d5c3eebee48b33a2d6b47ac6414c0d43ab88f7"
+  },
+  "checks": [
+    {
+      "number": 1,
+      "argv": [
+        "bash",
+        "scripts/sync-plugin-views.sh",
+        "--check"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:54:26.996392+00:00",
+      "end_utc": "2026-11-16T20:54:28.200822+00:00",
+      "exit": 0,
+      "elapsed_seconds": 1.2042904999980237,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/1-stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/1-stderr.log",
+      "expected_signal_present": true,
+      "status": "PASS"
+    },
+    {
+      "number": 2,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-marketplace-packages.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:54:36.198844+00:00",
+      "end_utc": "2026-11-16T20:54:36.566089+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.3671099170023808,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/2-stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/2-stderr.log",
+      "expected_signal_present": true,
+      "status": "PASS"
+    },
+    {
+      "number": 3,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "--head",
+        "b23e0166b8c4dd70bffc08822e246d3cc122cc0f"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:54:41.246625+00:00",
+      "end_utc": "2026-11-16T20:54:44.847949+00:00",
+      "exit": 0,
+      "elapsed_seconds": 3.6011710409948137,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/3-stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/3-stderr.log",
+      "expected_signal_present": true,
+      "status": "PASS"
+    },
+    {
+      "number": 4,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:54:52.092705+00:00",
+      "end_utc": "2026-11-16T20:54:53.367032+00:00",
+      "exit": 0,
+      "elapsed_seconds": 1.2741961249994347,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/4-stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/4-stderr.log",
+      "expected_signal_present": true,
+      "status": "PASS"
+    },
+    {
+      "number": 5,
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+        "diff",
+        "--check",
+        "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "b23e0166b8c4dd70bffc08822e246d3cc122cc0f"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+      "start_utc": "2026-11-16T20:55:02.015762+00:00",
+      "end_utc": "2026-11-16T20:55:02.033645+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.017752583007677458,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/5-stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-release-local-validation/5-stderr.log",
+      "expected_signal_present": true,
+      "status": "PASS"
+    }
+  ],
+  "completed_utc": "2026-11-16T20:55:27.088069+00:00"
+}

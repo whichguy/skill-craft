@@ -1,0 +1,177 @@
+{
+  "status": "FAIL",
+  "completed_at": "2026-11-16T18:56:51.613868+00:00",
+  "required_checks": 5,
+  "completed_checks": 5,
+  "passed_checks": 4,
+  "failed_checks": 1,
+  "pending_checks": [],
+  "retries": "NONE",
+  "source": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+  "base": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+  "checks": [
+    {
+      "number": 1,
+      "command": [
+        "bash",
+        "scripts/sync-plugin-views.sh",
+        "--check"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started_at": "2026-11-16T18:55:37.495411+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-1.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-1.stderr.log",
+      "attempt": 1,
+      "retry_policy": "NONE",
+      "exit_code": 0,
+      "status": "PASS",
+      "finished_at": "2026-11-16T18:55:38.700261+00:00",
+      "expected_positive_evidence": "sync-plugin-views: CHECK OK",
+      "positive_evidence_present": true
+    },
+    {
+      "number": 2,
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-marketplace-packages.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started_at": "2026-11-16T18:55:47.854282+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-2.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-2.stderr.log",
+      "attempt": 1,
+      "retry_policy": "NONE",
+      "exit_code": 0,
+      "status": "PASS",
+      "finished_at": "2026-11-16T18:55:48.217939+00:00",
+      "expected_positive_evidence": "marketplace-packages: 1/1 passed (offline payload validation only)",
+      "positive_evidence_present": true
+    },
+    {
+      "number": 3,
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+        "--head",
+        "7eb5998f5d30d3a51bb8bd19c36707b5d24fb0a8"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started_at": "2026-11-16T18:55:52.945726+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-3.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-3.stderr.log",
+      "attempt": 1,
+      "retry_policy": "NONE",
+      "exit_code": 0,
+      "status": "PASS",
+      "finished_at": "2026-11-16T18:56:01.269446+00:00",
+      "expected_positive_evidence": "check-release-boundary: OK",
+      "positive_evidence_present": true
+    },
+    {
+      "number": 4,
+      "command": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started_at": "2026-11-16T18:56:07.122411+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-4.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-4.stderr.log",
+      "attempt": 1,
+      "retry_policy": "NONE",
+      "exit_code": 0,
+      "status": "PASS",
+      "finished_at": "2026-11-16T18:56:08.405255+00:00",
+      "expected_positive_evidence": "release: no pending notes under changes/; nothing to release",
+      "positive_evidence_present": true
+    },
+    {
+      "number": 5,
+      "command": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+        "diff",
+        "--check",
+        "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+        "HEAD"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "started_at": "2026-11-16T18:56:16.173715+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-5.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/check-5.stderr.log",
+      "attempt": 1,
+      "retry_policy": "NONE",
+      "exit_code": 2,
+      "status": "FAIL",
+      "finished_at": "2026-11-16T18:56:16.229632+00:00",
+      "expected_positive_evidence": "exit 0",
+      "positive_evidence_present": false,
+      "problem_count": 192,
+      "problem_counts": {
+        "new blank line at EOF.": 10,
+        "trailing whitespace.": 182
+      },
+      "bounded_failure_excerpt": [
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/approval-review.md:17: new blank line at EOF.",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-attempt-01/stdout.log:180: new blank line at EOF.",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-followup-cache-green-01/stdout.log:4: new blank line at EOF.",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-followup-cache-red-01/stdout.log:112: new blank line at EOF.",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-regressions-final/stdout.log:25: new blank line at EOF.",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/closure-review.md:11: new blank line at EOF.",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/final-review.md:4: trailing whitespace.",
+        "+   ",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/final-review.md:8: trailing whitespace.",
+        "+   ",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/final-review.md:14: new blank line at EOF.",
+        "docs/shiploop-implement-prompt-audit-evidence/r07-20261115/integration-review.md:11: new blank line at EOF."
+      ]
+    }
+  ],
+  "source_identity_comparison": {
+    "status": "PASS",
+    "deltas": {}
+  },
+  "pre_identity": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/pre-identity.json",
+  "post_identity": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/post-identity.json",
+  "pre_tracked_inventory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/pre-tracked-inventory.json",
+  "post_tracked_inventory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-local-validation/post-tracked-inventory.json",
+  "tools": {
+    "python": {
+      "path": "/opt/homebrew/bin/python3",
+      "version": "Python 3.15.1"
+    },
+    "node": {
+      "path": "/opt/homebrew/bin/node",
+      "version": "v26.12.1"
+    },
+    "git": {
+      "path": "/usr/bin/git",
+      "version": "git version 2.54.0 (Apple Git-157)"
+    }
+  },
+  "expected_repository_outputs": [],
+  "temporary_worktree_reaping_evidence": "Pre/post git worktree list porcelain is identical",
+  "scope": "Local release validation only; no remote CI or publication claim"
+}

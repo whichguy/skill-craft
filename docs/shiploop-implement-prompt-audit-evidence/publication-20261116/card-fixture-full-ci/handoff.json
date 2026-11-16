@@ -1,0 +1,800 @@
+{
+  "status": "PASS",
+  "target": {
+    "host": "github.com",
+    "repository": "whichguy/skill-craft",
+    "run_id": 43939794697,
+    "url": "https://github.com/whichguy/skill-craft/actions/runs/43939794697",
+    "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d",
+    "branch": "codex/r19-r16-publish-card-fixture-20261116",
+    "event": "workflow_dispatch",
+    "attempt": 1,
+    "tier": "full",
+    "tier_reason": "explicit manual selection"
+  },
+  "jobs": [
+    {
+      "id": 133553973875,
+      "name": "release-boundary",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133553973875.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133553973875.txt",
+      "raw_sha256": "b2e7b3f6deaeee8332f49c728098427f7bedb4d5bad50b3bbe2d8f4d1734d7a6"
+    },
+    {
+      "id": 133553974418,
+      "name": "plan",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133553974418.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133553974418.txt",
+      "raw_sha256": "a0bc4dc0cfa82d45acafb7020dd3af65372b0a4cde7d58e636d3397f75c9a3f8"
+    },
+    {
+      "id": 133554124200,
+      "name": "browser / app-owned-controls",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124200.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124200.txt",
+      "raw_sha256": "f434c7629ca2341a07050bd70462774c4c2614bdd1e80042b90f9bafc1562eed"
+    },
+    {
+      "id": 133554124259,
+      "name": "browser / turn-and-action-correlation",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124259.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124259.txt",
+      "raw_sha256": "f363cebcff8077055d1d7bcf3c9ba53251a41d691aaa2289ad4b9958bcbcacf2"
+    },
+    {
+      "id": 133554124311,
+      "name": "browser / setup-save-boundary",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124311.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124311.txt",
+      "raw_sha256": "38c4cc55ead67516e50bcd45d9a1ace3fc350a834cce1921ab361895ed54fd32"
+    },
+    {
+      "id": 133554124332,
+      "name": "full / e2e-apparatus",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124332.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124332.txt",
+      "raw_sha256": "9d08f01967069abdde7083636c2536287669fb284174640a21066daaa51784b3"
+    },
+    {
+      "id": 133554124345,
+      "name": "full / shiploop-3",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124345.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124345.txt",
+      "raw_sha256": "e3bf5cfb8e9962463f33d93e3cdc15b5e9e5ed32ec150bfc31f8aea9fffbd79a"
+    },
+    {
+      "id": 133554124372,
+      "name": "full / shiploop-2",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124372.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124372.txt",
+      "raw_sha256": "a352d56519661e63a850fd072f0f3e0cdd587176a33a25632030142460079cc7"
+    },
+    {
+      "id": 133554124389,
+      "name": "full / core",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124389.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124389.txt",
+      "raw_sha256": "3cab242bef6db7affabdbb806792336a7943521c4d849dd03d3c4ba61273b8d3"
+    },
+    {
+      "id": 133554124543,
+      "name": "full / shiploop-1",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124543.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124543.txt",
+      "raw_sha256": "a7398dd97c0131214404185666495a55b259c5ebf8839092a52d26587bdcd110"
+    },
+    {
+      "id": 133554124744,
+      "name": "browser / delayed-setup",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124744.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133554124744.txt",
+      "raw_sha256": "113a36ac7e97344a70ad548ffeb39e8a292a0645292524bed40dbc6636355106"
+    },
+    {
+      "id": 133566504726,
+      "name": "hermetic",
+      "conclusion": "success",
+      "raw": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133566504726.raw",
+      "analysis": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/job-133566504726.txt",
+      "raw_sha256": "ec7cbc3e159554f957b16919cc0912a5976260ee8f22e0c88ed8dfafd19af0d5"
+    }
+  ],
+  "job_count": 12,
+  "artifacts": [
+    {
+      "id": 14264930643,
+      "name": "hermetic-e2e-apparatus",
+      "expired": false,
+      "bytes": 4723,
+      "sha256": "354255e683e62cbf8634466b3cdc40907b6feb9f38b533b7348e81c8a99d3c1e",
+      "api_digest": "sha256:354255e683e62cbf8634466b3cdc40907b6feb9f38b533b7348e81c8a99d3c1e",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus"
+    },
+    {
+      "id": 14264685806,
+      "name": "hermetic-shiploop-3",
+      "expired": false,
+      "bytes": 40041,
+      "sha256": "7deb8500f55ff6ee4a6d44dbcdde8da08b8b52665a5f0cd71b9be0edfea068cf",
+      "api_digest": "sha256:7deb8500f55ff6ee4a6d44dbcdde8da08b8b52665a5f0cd71b9be0edfea068cf",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3"
+    },
+    {
+      "id": 14264381031,
+      "name": "hermetic-shiploop-1",
+      "expired": false,
+      "bytes": 31916,
+      "sha256": "a4ef0f24ad4b3dc84046bbb411246814b19eda64bd6f12a5345f5ab32bd20d32",
+      "api_digest": "sha256:a4ef0f24ad4b3dc84046bbb411246814b19eda64bd6f12a5345f5ab32bd20d32",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1"
+    },
+    {
+      "id": 14262793955,
+      "name": "hermetic-shiploop-2",
+      "expired": false,
+      "bytes": 33239,
+      "sha256": "b42948a4fdd60df0a0660d3ca5388ba96541b0c356d0b704c3930e2981f59675",
+      "api_digest": "sha256:b42948a4fdd60df0a0660d3ca5388ba96541b0c356d0b704c3930e2981f59675",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2"
+    },
+    {
+      "id": 14262398098,
+      "name": "browser-fixtures-delayed-setup",
+      "expired": false,
+      "bytes": 2538,
+      "sha256": "e6d26d89eb20d8c3f49259cc507a8c712aff9d99cd5fee9a3ddced5256f12270",
+      "api_digest": "sha256:e6d26d89eb20d8c3f49259cc507a8c712aff9d99cd5fee9a3ddced5256f12270",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-delayed-setup"
+    },
+    {
+      "id": 14261748079,
+      "name": "browser-fixtures-turn-and-action-correlation",
+      "expired": false,
+      "bytes": 1494,
+      "sha256": "ce534a3bbd18204cf5d96d573c464278640cb3fcac2e36269c740efd19094637",
+      "api_digest": "sha256:ce534a3bbd18204cf5d96d573c464278640cb3fcac2e36269c740efd19094637",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-turn-and-action-correlation"
+    },
+    {
+      "id": 14261698330,
+      "name": "browser-fixtures-app-owned-controls",
+      "expired": false,
+      "bytes": 1192,
+      "sha256": "624b33dadad8dbccb440fcd6870001de8973a1bd266743a97e7e8e9269124143",
+      "api_digest": "sha256:624b33dadad8dbccb440fcd6870001de8973a1bd266743a97e7e8e9269124143",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-app-owned-controls"
+    },
+    {
+      "id": 14261458042,
+      "name": "browser-fixtures-setup-save-boundary",
+      "expired": false,
+      "bytes": 863,
+      "sha256": "c589636dfd078ac6ed778d41cc25d2c794d83be8ca8dd202f2391392aae6d9e5",
+      "api_digest": "sha256:c589636dfd078ac6ed778d41cc25d2c794d83be8ca8dd202f2391392aae6d9e5",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-setup-save-boundary"
+    },
+    {
+      "id": 14261119696,
+      "name": "hermetic-core",
+      "expired": false,
+      "bytes": 52412,
+      "sha256": "e36a0eb27cbd73cde6b87b46039e950d08b7f98d08300e7fe392c9fe769a6a0d",
+      "api_digest": "sha256:e36a0eb27cbd73cde6b87b46039e950d08b7f98d08300e7fe392c9fe769a6a0d",
+      "extraction": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core"
+    }
+  ],
+  "artifact_count": 9,
+  "groups": {
+    "core": {
+      "selected": 61,
+      "completed": 61,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/receipt.json",
+      "job_id": 133554124389
+    },
+    "shiploop-1": {
+      "selected": 47,
+      "completed": 47,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/receipt.json",
+      "job_id": 133554124543
+    },
+    "shiploop-2": {
+      "selected": 48,
+      "completed": 48,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/receipt.json",
+      "job_id": 133554124372
+    },
+    "shiploop-3": {
+      "selected": 47,
+      "completed": 47,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/receipt.json",
+      "job_id": 133554124345
+    },
+    "e2e-apparatus": {
+      "selected": 4,
+      "completed": 4,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-e2e-apparatus/receipt.json",
+      "job_id": 133554124332
+    }
+  },
+  "suites": {
+    "selected": 207,
+    "completed": 207,
+    "distinct": 207,
+    "exactly_once": true,
+    "proof": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/suite-counter-proof.json",
+    "logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/suite-log-proof.json"
+  },
+  "browser_evidence": {
+    "delayed-setup": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-delayed-setup/delayed-setup.log",
+      "pass_signals": [
+        {
+          "status": "PASS",
+          "checks": 5,
+          "rootRaces": [
+            {
+              "method": "click",
+              "label": "Setup",
+              "gate": "disabled-poll",
+              "events": [
+                [
+                  "second-root-mounted",
+                  true,
+                  0
+                ],
+                [
+                  "original-enabled",
+                  true
+                ]
+              ],
+              "outcome": "rejected",
+              "reason": "ui-state-invalid"
+            },
+            {
+              "method": "enabledButton",
+              "label": "Recheck setup",
+              "gate": "disabled-poll",
+              "events": [
+                [
+                  "second-root-mounted",
+                  true,
+                  0
+                ],
+                [
+                  "original-enabled",
+                  true
+                ]
+              ],
+              "outcome": "rejected",
+              "reason": "ui-state-invalid"
+            }
+          ],
+          "browser": "157.0.8103.50"
+        }
+      ]
+    },
+    "setup-save-boundary": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-setup-save-boundary/setup-save-boundary.log",
+      "pass_signals": [
+        {
+          "status": "PASS",
+          "scenarios": [
+            {
+              "phase": "none",
+              "outcome": "ok"
+            },
+            {
+              "phase": "before",
+              "outcome": "chat-attempted-before-setup"
+            },
+            {
+              "phase": "after",
+              "outcome": "ok"
+            }
+          ],
+          "browser": "157.0.8103.50"
+        }
+      ]
+    },
+    "turn-and-action-correlation": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-turn-and-action-correlation/turn-and-action-correlation.log",
+      "pass_signals": [
+        {
+          "status": "PASS",
+          "send": [
+            "direct",
+            "missing-render",
+            "hidden-shadow",
+            "nested-shadow",
+            "sibling-shadow",
+            "wrong-body-with-matching-fragment",
+            "clipped-reply",
+            "first-glyph-only-reply",
+            "scrollable-history",
+            "message-metadata",
+            "inset-clipped-reply",
+            "unsupported-ancestor-clip-reply",
+            "fully-visible-inset-reply",
+            "partially-clipped-extra-line",
+            "unevaluable-extra-line",
+            "fully-hidden-extra-lines",
+            "zero-width-overflow-extra-line",
+            "partially-visible-overflow-extra-line",
+            "absolute-overflow-extra-line",
+            "fixed-overflow-extra-line",
+            "split",
+            "wrong-conversation",
+            "wrong-token",
+            "wrong-response-id",
+            "replay",
+            "after-confirm-direct",
+            "after-confirm-split",
+            "after-cancel-direct",
+            "changed-prior-proposal",
+            "unexplained-terminal",
+            "after-confirm-bookkeeping-direct",
+            "after-confirm-bookkeeping-split",
+            "page-reload-bookkeeping-direct",
+            "page-reload-bookkeeping-split",
+            "disabled-reload-bookkeeping-direct",
+            "disabled-reload-bookkeeping-split",
+            "unexplained-bookkeeping",
+            "changed-prior-history",
+            "changed-readback-proposal",
+            "unread-bookkeeping"
+          ],
+          "actions": [
+            "delayed-proposal-after-ready",
+            "delayed-status",
+            "wrong-status",
+            "nested-status",
+            "wrong-marker",
+            "wrong-rpc",
+            "ambiguous-record",
+            "ambiguous-name",
+            "update-name",
+            "stale-name",
+            "nonunique-name",
+            "authoritative-id",
+            "normalized-name",
+            "swapped-values",
+            "incidental-target",
+            "nested-action-details",
+            "nested-action-operation",
+            "nested-labelledby-fields",
+            "nested-labelledby-controls",
+            "clipped-proposal-field",
+            "ancestor-inset-clipped-proposal-field",
+            "fully-visible-inset-proposal-field",
+            "partially-clipped-proposal-extra",
+            "foreign-action-clipped-extra",
+            "wrong-operation-prose",
+            "fieldset-and-labelled-operation",
+            "delayed-card",
+            "delayed-controls",
+            "absent-controls",
+            "wrong-result-record",
+            "retry-disabled",
+            "retry-removed",
+            "retry-enabled-replacement",
+            "retry-out-of-order",
+            "retry-wrong-result",
+            "retry-rebound",
+            "retry-reparented",
+            "retry-applied-then-rejected"
+          ],
+          "connections": [
+            "one-connection-plus-setup",
+            "duplicate-connection-in-batch",
+            "uncorrelated-connection"
+          ],
+          "browser": "157.0.8103.50"
+        }
+      ]
+    },
+    "app-owned-controls": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/browser-fixtures-app-owned-controls/app-owned-controls.log",
+      "pass_signals": [
+        {
+          "status": "PASS",
+          "scenarios": [
+            {
+              "name": "shell-anchor-first",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "app-first-with-native-shell-buttons",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "delayed-shadow-role-button",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "hidden-root-and-control-are-ignored",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "missing-root",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguous-roots",
+              "keyboard": "ui-state-invalid",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "missing-app-setup",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguous-app-setup",
+              "keyboard": "ui-state-invalid",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguous-with-disabled-app-setup",
+              "keyboard": "ui-state-invalid",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "native-disabled-setup",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "aria-disabled-setup",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "inert-setup",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "pointer-only-setup-with-closed-config",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-labelled-div",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "DIV",
+                "DIV"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-labelled-wrapper",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "LABEL",
+                "LABEL"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-outside-native-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-wrong-exact-label",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-aria-disabled-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-transparent-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-non-text-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            }
+          ],
+          "browser": "157.0.8103.50"
+        }
+      ]
+    }
+  },
+  "conditional_skips": {
+    "report": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/method-reports.json",
+    "explicit_skipped": 59
+  },
+  "observed_versions": {
+    "python": [
+      "3.15.2"
+    ],
+    "node": [
+      "v26.13.1"
+    ]
+  },
+  "boundary": "N/A to pushed range: workflow_dispatch; not a checked main boundary",
+  "source_guard": {
+    "unchanged": true,
+    "recorded_utc": "2026-11-16T19:50:47.407475+00:00",
+    "tracked_paths": 14111,
+    "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+    "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d",
+    "status": "",
+    "ignored": "",
+    "index_sha256": "cae7a3bc4e81af4d5b08e6af91d2972548247383c3dc7b7869134d5e986f89ba",
+    "pre_inventory_sha256": "5bdbd3e939fd3fb6d246eb7459a878111f091eb1d3182bd4b0872ed0a6655fec",
+    "post_inventory_sha256": "5bdbd3e939fd3fb6d246eb7459a878111f091eb1d3182bd4b0872ed0a6655fec"
+  },
+  "source_pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/source-pre.json",
+  "source_post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/source-post.json",
+  "terminal_metadata": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/latest-run.json",
+  "evidence_root": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci",
+  "limitations": [
+    "Hermetic and local rendered-browser qualification only; no model, hosted-app or installed-personal-host acceptance claim.",
+    "Parent owns publication, acceptance and actual outgoing push-range boundary verification.",
+    "Method counts are explicit reported summaries only; suites without such reports have no inferred method totals."
+  ],
+  "finished_utc": "2026-11-16T19:51:49.422846+00:00",
+  "measured_method_reports": {
+    "suites_with_explicit_unittest_reports": 182,
+    "suites_without_inferred_method_counts": 25,
+    "reported": 8699,
+    "executed": 8640,
+    "conditional_skipped": 59,
+    "skipped_by_suite": [
+      {
+        "group": "core",
+        "suite": "test-groups",
+        "reported": 78,
+        "executed": 77,
+        "skipped": 1,
+        "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-core/logs/002-test-groups.stderr.log",
+        "line": 3
+      },
+      {
+        "group": "shiploop-1",
+        "suite": "shiploop-e2e-experiments",
+        "reported": 93,
+        "executed": 43,
+        "skipped": 50,
+        "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log",
+        "line": 3
+      },
+      {
+        "group": "shiploop-1",
+        "suite": "shiploop-e2e-user-directory",
+        "reported": 45,
+        "executed": 44,
+        "skipped": 1,
+        "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log",
+        "line": 3
+      },
+      {
+        "group": "shiploop-2",
+        "suite": "shiploop-e2e-hosts",
+        "reported": 140,
+        "executed": 138,
+        "skipped": 2,
+        "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log",
+        "line": 3
+      },
+      {
+        "group": "shiploop-3",
+        "suite": "shiploop-e2e-roundtable",
+        "reported": 13,
+        "executed": 10,
+        "skipped": 3,
+        "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log",
+        "line": 3
+      },
+      {
+        "group": "shiploop-3",
+        "suite": "shiploop-e2e-efficiency",
+        "reported": 77,
+        "executed": 76,
+        "skipped": 1,
+        "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log",
+        "line": 3
+      },
+      {
+        "group": "shiploop-3",
+        "suite": "shiploop-e2e-stage-live",
+        "reported": 93,
+        "executed": 92,
+        "skipped": 1,
+        "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/artifacts/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log",
+        "line": 3
+      }
+    ]
+  },
+  "terminal_identity_proof": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/terminal-run-view.raw",
+  "validators": {
+    "core": {
+      "command": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-core.command.json",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-core.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-core.stderr",
+      "exit": 0
+    },
+    "shiploop-1": {
+      "command": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-1.command.json",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-1.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-1.stderr",
+      "exit": 0
+    },
+    "shiploop-2": {
+      "command": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-2.command.json",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-2.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-2.stderr",
+      "exit": 0
+    },
+    "shiploop-3": {
+      "command": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-3.command.json",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-3.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-shiploop-3.stderr",
+      "exit": 0
+    },
+    "e2e-apparatus": {
+      "command": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-e2e-apparatus.command.json",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-e2e-apparatus.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-full-ci/validator-e2e-apparatus.stderr",
+      "exit": 0
+    }
+  },
+  "expected_generated_source_outputs": [],
+  "retries": 0,
+  "missing_required_evidence": []
+}

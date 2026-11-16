@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_SCOPE_VERIFIED_REVIEW_AND_REVALIDATION_PENDING",
+  "base": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "changed_paths": [
+    "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+    "test/test-harness.test.py",
+    "changes/test-harness/atomic-timeout-evidence.md"
+  ],
+  "original_eight_method_asts_identical": true,
+  "new_methods": 3,
+  "supervisor_module_ast_identical_except_writer_and_moved_writer_call": true,
+  "no_deadline_reserve_alarm_cleanup_cancellation_or_exitcode_ast_change": true,
+  "supervisor_sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+  "current_test_sha256": "0ae6d6278f772695931a695f1139094f717a6ff4e480aace0be0afabb30a4c48"
+}

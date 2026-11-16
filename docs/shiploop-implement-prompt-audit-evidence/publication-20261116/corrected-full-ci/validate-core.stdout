@@ -1,0 +1,26 @@
+### Hermetic core: PASSED
+
+Source SHA: 9b05a94f68026941ed4028da3a744830c66cf3f4
+
+Job: success; receipt: passed; selected/completed: 63/63.
+
+Scopes: selected: 63; executions: 63; smoke: 3; affected: UNAVAILABLE; other&#95;selected: 60; deferred&#95;targeted: UNAVAILABLE; deferred&#95;policy: 0; not&#95;in&#95;this&#95;shard: 0.
+
+Wall duration: 911.411 seconds.
+
+Runtimes: &#123;&quot;bash&quot;: &quot;GNU bash, version 5&#46;3&#46;9&#40;1&#41;&#45;release &#40;x86&#95;64&#45;pc&#45;linux&#45;gnu&#41;&#92;nCopyright &#40;C&#41; 2025 Free Software Foundation, Inc&#46;&#92;nLicense GPLv3&#43;: GNU GPL version 3 or later &lt;http://gnu&#46;org/licenses/gpl&#46;html&gt;&#92;n&#92;nThis is free software; you are free to change and redistribute it&#46;&#92;nThere is NO WARRANTY, to the extent permitted by law&#46;&quot;, &quot;node&quot;: &quot;v26&#46;13&#46;1&quot;, &quot;python3&quot;: &quot;Python 3&#46;15&#46;2&quot;&#125;
+
+Failures: none recorded
+
+Incomplete: none
+
+Slowest completed suites:
+
+- plan&#45;dispatcher&#45;mutants: 610.376 seconds
+- closed&#45;loop: 191.310 seconds
+- plan&#45;dispatcher&#45;scenarios: 133.774 seconds
+- ask&#45;agent&#45;parallel: 116.792 seconds
+- in&#45;parallel&#45;queue: 106.195 seconds
+
+Scope is hermetic qualification; it does not establish live acceptance.
+

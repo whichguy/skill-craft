@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "test/test-harness.test.py",
+    "TimeoutEvidence",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-harness-evidence-20261116",
+  "start": "2026-11-16T20:38:39.971696+00:00",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-timeout-repair/qualification-v2-fixture-cleanup/positive-green"
+  },
+  "end": "2026-11-16T20:38:45.423413+00:00",
+  "exit": 0,
+  "elapsed": 5.451554499988561
+}

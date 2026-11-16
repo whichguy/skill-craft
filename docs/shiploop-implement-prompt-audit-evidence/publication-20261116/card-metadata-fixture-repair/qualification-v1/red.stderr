@@ -1,0 +1,15 @@
+test_the_frontmatter_names_the_skill_and_matches_its_first_change_note (__main__.CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note) ... FAIL
+
+======================================================================
+FAIL: test_the_frontmatter_names_the_skill_and_matches_its_first_change_note (__main__.CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116/test/closed-loop.test.py", line 2268, in test_the_frontmatter_names_the_skill_and_matches_its_first_change_note
+    self.assertIn("version: 0.1.0", front)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'version: 0.1.0' not found in '---\nname: closed-loop\nargument-hint: "readiness | define | run | status <manifest or subject> [campaign=DIR] [workspace=PATH] [budget=seconds=3600,turns=400]"\ndescription: >-\n  Use to improve a subject (a skill, a prompt set, a tool) by running it on cases, grading each run, finding fixes, trying them\n  inside a boundary the improver cannot cross, and repeating until a script-checked certificate says nothing material is left in a\n  named scope, then widening to more cases when stuck. Everything specific to a subject lives in an adapter: this checks that\n  cases, a way to grade a run and a way to call the improvement stage exist before any run is spent, and can have a reviewer\n  propose the missing parts. Triggers: "closed loop", "self-improving loop", "run it, review it, improve it, repeat", "iterate on\n  <subject> with cases", "widen the cases". Not for reviewing a repository change (use improve) and not for a test-driven\n  repository campaign (the improve-loop skill).\nversion: 0.1.1\nlicense: MIT\nplatforms:\n  - linux\n  - macos\nmetadata:\n  skill_craft:\n    kind: script-backed'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)

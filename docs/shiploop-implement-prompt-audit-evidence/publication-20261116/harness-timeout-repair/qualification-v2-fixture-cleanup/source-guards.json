@@ -1,0 +1,24 @@
+{
+  "only_followup_change": "test/test-harness.test.py",
+  "tracked_files_compared": 14111,
+  "exact_change": "Move one existing proc.communicate() from before to after owned PID kill loop in finally; all other test bytes identical",
+  "head_index_local_config_status_unchanged": true,
+  "all_other_tracked_bytes_modes_symlinks_unchanged": true,
+  "source_manifest_changed_paths": [
+    "test/test-harness.test.py"
+  ],
+  "fingerprint_before": "2f82bb948568b935d2f68d0e0db92ed716240c44d7f504bb764bef5b966fd382",
+  "fingerprint_after": "1af28865d623457e3a796a489b9c42a28803928a2fdd161dec5d7dcfb244d41b",
+  "algorithm": "SHA256 UTF8 json.dumps(sorted path records,sort_keys=True,separators=(comma,colon)); cached+untracked nonignored paths, path/mode/symlink/sha256",
+  "supervisor_sha256_unchanged": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+  "note_sha256_unchanged": "4043261605cf63aa8ddf535b39f2541b97af401c7efd91878ab3cfc42af95991",
+  "before_test_sha256": "d5be6f32f60ef2d09c4c0199a1895204199b6fbb711f625d7a2ae812085a7a03",
+  "after_test_sha256": "0ae6d6278f772695931a695f1139094f717a6ff4e480aace0be0afabb30a4c48",
+  "v1_all_files_unchanged": true,
+  "original_eight_and_all_eleven_method_bodies_unchanged": true,
+  "wrapper_worker_assertions_timeout_allowance_alarm_unchanged": true,
+  "new_production_fault_switches": 0,
+  "new_fixture_timers_caps_reserves": 0,
+  "source_cache_count": 0,
+  "python_warning_hits": []
+}

@@ -1,0 +1,116 @@
+{
+  "status": "PASS",
+  "completed_at": "2026-11-16T21:41:19.153514+00:00",
+  "target": {
+    "host": "github.com",
+    "repository": "whichguy/skill-craft",
+    "run_id": 43954284626,
+    "url": "https://github.com/whichguy/skill-craft/actions/runs/43954284626",
+    "attempt": 1,
+    "event": "workflow_dispatch",
+    "head": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+    "tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+    "branch": "codex/r19-r16-publish-harness-evidence-20261116",
+    "tier": "full"
+  },
+  "counts": {
+    "jobs": 12,
+    "successful_jobs": 12,
+    "raw_job_logs": 12,
+    "artifacts": 9,
+    "valid_receipts": 5,
+    "selected": 207,
+    "completed": 207,
+    "distinct_suites": 207,
+    "all_current_suites_exact_once": true,
+    "missing_suites": [],
+    "extra_suites": [],
+    "source_guards": 9,
+    "positive_browser_controls": 4,
+    "reported_unittest_occurrences": 8702,
+    "conditional_unittest_skips": 59,
+    "executed_unittest_occurrences": 8643
+  },
+  "groups": {
+    "core": {
+      "selected": 61,
+      "completed": 61,
+      "receipt_status": "passed",
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts/hermetic-core/receipt.json",
+      "validator": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/validators/core.stdout"
+    },
+    "e2e-apparatus": {
+      "selected": 4,
+      "completed": 4,
+      "receipt_status": "passed",
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts/hermetic-e2e-apparatus/receipt.json",
+      "validator": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/validators/e2e-apparatus.stdout"
+    },
+    "shiploop-1": {
+      "selected": 47,
+      "completed": 47,
+      "receipt_status": "passed",
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts/hermetic-shiploop-1/receipt.json",
+      "validator": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/validators/shiploop-1.stdout"
+    },
+    "shiploop-2": {
+      "selected": 48,
+      "completed": 48,
+      "receipt_status": "passed",
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts/hermetic-shiploop-2/receipt.json",
+      "validator": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/validators/shiploop-2.stdout"
+    },
+    "shiploop-3": {
+      "selected": 47,
+      "completed": 47,
+      "receipt_status": "passed",
+      "validator_exit": 0,
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts/hermetic-shiploop-3/receipt.json",
+      "validator": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/validators/shiploop-3.stdout"
+    }
+  },
+  "test_harness": {
+    "methods_reported": 11,
+    "scenarios": 6,
+    "barriers_reached": 6,
+    "exit124": 6,
+    "owned_pids_stopped": 12,
+    "proof": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/test-harness-current-proof.json"
+  },
+  "versions": {
+    "python": "3.15.2",
+    "node": "26.13.1",
+    "chrome": "157.0.8103.50",
+    "playwright": "1.65.1"
+  },
+  "source": {
+    "before": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/source-before.json",
+    "after": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/source-after.json",
+    "unchanged": true,
+    "tracked_files": 14111
+  },
+  "proofs": {
+    "terminal": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/terminal.stdout",
+    "jobs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/jobs-observation-036.json",
+    "artifacts": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/artifacts-metadata-009.json",
+    "counter": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/catalog-exact-once.json",
+    "browser": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/browser-controls-proof.json",
+    "source_guards": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/source-guard-proof.json",
+    "conditional_skips": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/conditional-skips-summary.json",
+    "manifest": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/evidence-sha256.json",
+    "plan": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/job-logs/133618924184.analysis.log",
+    "boundary": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/job-logs/133618923714.analysis.log",
+    "receipt_counter": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/harness-patch-full-ci/receipt-counter-proof.json"
+  },
+  "boundary": "N/A for workflow_dispatch; parent owns actual outgoing push-range validation",
+  "limitations": [
+    "Hermetic CI and rendered local browser fixture evidence only; no model, hosted app, or installed personal host acceptance claim.",
+    "Prior published-main run 43944081831 remains FAIL 206/207; this is separate current-run evidence.",
+    "Unittest report totals are explicit occurrences, not deduplicated all-language method totals; 59 conditional skips are not passing/executed methods."
+  ],
+  "issues": []
+}

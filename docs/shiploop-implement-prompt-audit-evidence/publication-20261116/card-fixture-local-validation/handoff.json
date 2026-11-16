@@ -1,0 +1,190 @@
+{
+  "status": "PASS",
+  "routing": {
+    "native_role": "test-runner",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "basis": "host-fixed native role controls; no override"
+  },
+  "repo": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+  "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d",
+  "source_unchanged": {
+    "head": true,
+    "tree": true,
+    "tracked_inventory": true,
+    "index_sha256": true,
+    "config_sha256": true,
+    "ordinary": true,
+    "including_ignored": true,
+    "untracked": true,
+    "ignored": true
+  },
+  "tracked_entries": 14111,
+  "declared_generated_outputs": [],
+  "versions": {
+    "python": {
+      "version": "Python 3.15.1",
+      "path": "/opt/homebrew/bin/python3",
+      "realpath": "/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/bin/python3.15"
+    },
+    "node": {
+      "version": "v26.12.1",
+      "path": "/opt/homebrew/bin/node",
+      "realpath": "/opt/homebrew/Cellar/node/26.12.1_1/bin/node"
+    },
+    "ruff": {
+      "version": "ruff 0.17.2",
+      "path": "/opt/homebrew/bin/ruff",
+      "realpath": "/opt/homebrew/Cellar/ruff/0.17.2/bin/ruff"
+    }
+  },
+  "checks": [
+    {
+      "name": "python",
+      "argv": [
+        "python3",
+        "-B",
+        "test/closed-loop.test.py",
+        "-v"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+      "start": "2026-11-16T19:29:47.881039+00:00",
+      "end": "2026-11-16T19:31:13.872169+00:00",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/python.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/python.stderr.log",
+      "status": "PASS",
+      "stdout_bytes": 0,
+      "stderr_bytes": 28494
+    },
+    {
+      "name": "node",
+      "argv": [
+        "node",
+        "test/skill-frontmatter.test.js"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+      "start": "2026-11-16T19:31:32.409244+00:00",
+      "end": "2026-11-16T19:31:32.486585+00:00",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/node.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/node.stderr.log",
+      "status": "PASS",
+      "stdout_bytes": 102,
+      "stderr_bytes": 0
+    },
+    {
+      "name": "ruff",
+      "argv": [
+        "ruff",
+        "check",
+        "--no-cache",
+        "--select",
+        "E9,F",
+        "test/closed-loop.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+      "start": "2026-11-16T19:31:46.803648+00:00",
+      "end": "2026-11-16T19:31:46.833234+00:00",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/ruff.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/ruff.stderr.log",
+      "status": "PASS",
+      "stdout_bytes": 19,
+      "stderr_bytes": 0
+    },
+    {
+      "name": "diff",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+        "diff",
+        "--check",
+        "7eb5998f5d30d3a51bb8bd19c36707b5d24fb0a8",
+        "HEAD",
+        "--",
+        "test/closed-loop.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+      "start": "2026-11-16T19:31:59.485137+00:00",
+      "end": "2026-11-16T19:31:59.496111+00:00",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/diff.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/diff.stderr.log",
+      "status": "PASS",
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    {
+      "name": "publication-diff",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+        "diff",
+        "--check",
+        "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+        "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+        "--",
+        ".",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/approval-review.md",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-attempt-01/stdout.log",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-followup-cache-green-01/stdout.log",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-followup-cache-red-01/stdout.log",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/attempts/implementation-regressions-final/stdout.log",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/closure-review.md",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/final-review.md",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r07-20261115/integration-review.md",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/patch.stdout",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r08-20261115/lint-repair/relevant-history.stdout",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/final.patch",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r08-20261115/roll-forward/relevant-full-commit-messages.txt",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-0.stderr",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-1.stderr",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r08-20261115/worker/fail-first-corrected.stderr",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r16-20261115/author/red-002/stderr.txt",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/cold-locator-red-001/stderr.txt",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/production.diff",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r16-20261115/refinement/refinement.diff",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r19-20261115/author/production.diff",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r19-20261115/incoming-main-history.txt",
+        ":(exclude)docs/shiploop-implement-prompt-audit-evidence/r19-20261115/pin-repair/repair.diff"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+      "start": "2026-11-16T19:32:27.321882+00:00",
+      "end": "2026-11-16T19:32:27.384621+00:00",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/publication-diff.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/publication-diff.stderr.log",
+      "status": "PASS",
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    }
+  ],
+  "counts": {
+    "required_checks": 5,
+    "completed_checks": 5,
+    "passed_checks": 5,
+    "pending_checks": 0,
+    "python_named_methods": 165,
+    "python_passed_methods": 165,
+    "python_errors": 0,
+    "python_failures": 0,
+    "python_skips": 0,
+    "metadata_skills": 25,
+    "publication_changed_paths": 1022,
+    "publication_included_paths": 1000,
+    "publication_frozen_exclusions": 22
+  },
+  "evidence_directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation",
+  "identity_evidence": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/pre.json",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/post.json"
+  ],
+  "scope_verification": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-fixture-local-validation/publication-scope-verification.json",
+  "historical_outcomes": "Prior broad 192-finding FAIL and earlier 999-path PASS remain historical and are not regraded by this run.",
+  "retry_attempts": 0,
+  "attention_deadline": "2026-11-16T19:45:00Z"
+}

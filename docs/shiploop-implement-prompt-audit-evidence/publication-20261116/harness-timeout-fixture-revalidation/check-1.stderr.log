@@ -1,0 +1,8 @@
+test_atomic_publication_and_raced_collisions (__main__.TimeoutEvidence.test_atomic_publication_and_raced_collisions) ... ok
+test_evidence_precedes_deadline_consuming_cleanup (__main__.TimeoutEvidence.test_evidence_precedes_deadline_consuming_cleanup) ... ok
+test_interrupted_write_never_exposes_incomplete_final (__main__.TimeoutEvidence.test_interrupted_write_never_exposes_incomplete_final) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 5.375s
+
+OK

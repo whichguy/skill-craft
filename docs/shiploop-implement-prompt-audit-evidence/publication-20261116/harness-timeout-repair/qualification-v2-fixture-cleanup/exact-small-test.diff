@@ -1,0 +1,18 @@
+--- before/test/test-harness.test.py
++++ after/test/test-harness.test.py
+@@ -244,7 +244,6 @@
+             finally:
+                 if proc.poll() is None:
+                     proc.kill()
+-                proc.communicate()
+                 # Only fixture-owned processes; this also cleans up a failed control.
+                 for label in ("worker", "descendant"):
+                     pid_path = root / (label + ".pid")
+@@ -253,6 +252,7 @@
+                             os.kill(int(pid_path.read_text()), signal.SIGKILL)
+                         except ProcessLookupError:
+                             pass
++                proc.communicate()
+ 
+     def test_evidence_precedes_deadline_consuming_cleanup(self):
+         self.scenario("cleanup")

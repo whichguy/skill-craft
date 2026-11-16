@@ -1,0 +1,966 @@
+{
+  "status": "FAIL",
+  "evidence_complete": true,
+  "collected_at": "2026-11-16T19:19:23.927045+00:00",
+  "target": {
+    "host": "github.com",
+    "repository": "whichguy/skill-craft",
+    "run_id": 43933567851,
+    "attempt": 1,
+    "event": "workflow_dispatch",
+    "branch": "codex/r19-r16-publish-python315-20261116",
+    "head": "7eb5998f5d30d3a51bb8bd19c36707b5d24fb0a8",
+    "tree": "ddda1e2137a43da97a2f13ded4b4811ccd07aa89",
+    "tier": "full",
+    "url": "https://github.com/whichguy/skill-craft/actions/runs/43933567851"
+  },
+  "counts": {
+    "jobs": 12,
+    "successful_jobs": 10,
+    "failed_jobs": 2,
+    "nonexpired_artifacts": 9,
+    "job_logs": 12,
+    "selected_suites": 207,
+    "completed_suites": 207,
+    "distinct_suites": 207,
+    "passed_suites": 206,
+    "failed_suites": 1,
+    "rendered_browser_fixtures": 4,
+    "conditional_unittest_skips": 59,
+    "unittest_reported": 8699,
+    "unittest_executed": 8640
+  },
+  "groups": {
+    "core": {
+      "selected": 61,
+      "completed": 61,
+      "validator_exit": 1,
+      "status": "failed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/hermetic-core/receipt.json"
+    },
+    "shiploop-1": {
+      "selected": 47,
+      "completed": 47,
+      "validator_exit": 0,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/hermetic-shiploop-1/receipt.json"
+    },
+    "shiploop-2": {
+      "selected": 48,
+      "completed": 48,
+      "validator_exit": 0,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/hermetic-shiploop-2/receipt.json"
+    },
+    "shiploop-3": {
+      "selected": 47,
+      "completed": 47,
+      "validator_exit": 0,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/hermetic-shiploop-3/receipt.json"
+    },
+    "e2e-apparatus": {
+      "selected": 4,
+      "completed": 4,
+      "validator_exit": 0,
+      "status": "passed",
+      "runtimes": {
+        "bash": "GNU bash, version 5.3.9(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
+        "node": "v26.13.1",
+        "python3": "Python 3.15.2"
+      },
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/hermetic-e2e-apparatus/receipt.json"
+    }
+  },
+  "coverage": {
+    "expected_distinct": 207,
+    "selected_executions": 207,
+    "selected_distinct": 207,
+    "completed_executions": 207,
+    "completed_distinct": 207,
+    "selected_counter_exact": true,
+    "completed_counter_exact": true,
+    "selected_counter": {
+      "backchain-graph": 1,
+      "test-groups": 1,
+      "ci-summary": 1,
+      "ci-policy": 1,
+      "integration-boundaries": 1,
+      "release-push": 1,
+      "ask-agent-workspace": 1,
+      "ask-agent-delivery": 1,
+      "ask-agent-managed-harness": 1,
+      "ask-agent-parallel": 1,
+      "ask-agent-current-workspace": 1,
+      "ask-agent-task": 1,
+      "ask-agent-host": 1,
+      "in-parallel-queue-audit": 1,
+      "in-parallel-queue": 1,
+      "in-parallel-composition": 1,
+      "agent-harness": 1,
+      "agent-harness-delivery": 1,
+      "agent-harness-boundaries": 1,
+      "agent-harness-audit": 1,
+      "skill-interop-hygiene": 1,
+      "sync-plugin-views": 1,
+      "release-flow": 1,
+      "release-boundary": 1,
+      "release-preflight": 1,
+      "native-marketplace-adapters": 1,
+      "marketplace-package": 1,
+      "marketplace-host-isolation": 1,
+      "installed-skill-invocation": 1,
+      "prompt-marketplace-contract": 1,
+      "skill-frontmatter": 1,
+      "test-harness": 1,
+      "scaffold-skill": 1,
+      "marketplace-run": 1,
+      "install-targets": 1,
+      "install-arbitrary-skill": 1,
+      "install-status-uninstall": 1,
+      "improve": 1,
+      "improve-plugin": 1,
+      "improve-agent": 1,
+      "improve-runtime": 1,
+      "improve-route": 1,
+      "until-loop-vendor": 1,
+      "review-coverage": 1,
+      "rubric-eval": 1,
+      "closed-loop": 1,
+      "pushpress": 1,
+      "dual-body-guard": 1,
+      "plan-dispatcher-state": 1,
+      "plan-dispatcher-harness": 1,
+      "plan-dispatcher-cli": 1,
+      "plan-dispatcher-progress": 1,
+      "plan-dispatcher-planning-context": 1,
+      "plan-dispatcher-compound": 1,
+      "plan-dispatcher-decisions": 1,
+      "plan-dispatcher-exact-calls": 1,
+      "plan-dispatcher-scenarios": 1,
+      "plan-dispatcher-mutants": 1,
+      "native-setup-pilot": 1,
+      "planning-score": 1,
+      "security-harness": 1,
+      "shiploop-no-model-launch": 1,
+      "shiploop-navigator-v4": 1,
+      "shiploop-standalone-improve": 1,
+      "shiploop-packet-completeness": 1,
+      "shiploop-local-skills": 1,
+      "experiments-shiploop-ui-allocation-evidence": 1,
+      "shiploop-navigator-dry-run": 1,
+      "shiploop-narrative": 1,
+      "shiploop-progress": 1,
+      "shiploop-confirmation": 1,
+      "shiploop-cross-run": 1,
+      "shiploop-workspace": 1,
+      "shiploop-return-review": 1,
+      "shiploop-consumer-delivery": 1,
+      "shiploop-consumer-delivery-cli": 1,
+      "shiploop-delegation": 1,
+      "shiploop-improve-schedule": 1,
+      "shiploop-loops": 1,
+      "shiploop-handoff": 1,
+      "experiments-shiploop-delivery-fake-deployment": 1,
+      "shiploop-literal-transport": 1,
+      "shiploop-discovery": 1,
+      "shiploop-retired-terms": 1,
+      "shiploop-owner-notes": 1,
+      "shiploop-python-floor": 1,
+      "shiploop-e2e-qualification": 1,
+      "shiploop-e2e-roles": 1,
+      "shiploop-e2e-predecessor": 1,
+      "shiploop-e2e-adapter-steps": 1,
+      "shiploop-e2e-fidelity": 1,
+      "shiploop-e2e-render-diff": 1,
+      "shiploop-e2e-commit-counters": 1,
+      "shiploop-e2e-battleship-salesforce": 1,
+      "shiploop-e2e-grok-chat-full": 1,
+      "shiploop-e2e-grok-chat-full-oracle": 1,
+      "shiploop-e2e-gym-ui": 1,
+      "shiploop-e2e-release-slice": 1,
+      "shiploop-e2e-dodges": 1,
+      "shiploop-e2e-experiments": 1,
+      "shiploop-e2e-ticket-semantics": 1,
+      "shiploop-e2e-stages": 1,
+      "shiploop-e2e-brownfield": 1,
+      "shiploop-e2e-brownfield-tickets": 1,
+      "shiploop-e2e-test-adequacy": 1,
+      "shiploop-e2e-user-directory": 1,
+      "shiploop-efficiency-journal": 1,
+      "shiploop-loophole-gates": 1,
+      "shiploop-navigator-contract": 1,
+      "shiploop-stopped-improve": 1,
+      "shiploop-step-packets": 1,
+      "shiploop-packet-recut": 1,
+      "shiploop-reference": 1,
+      "shiploop-full-runtime": 1,
+      "shiploop-progress-render": 1,
+      "shiploop-stage-spec": 1,
+      "shiploop-send-back": 1,
+      "shiploop-quality": 1,
+      "shiploop-iteration": 1,
+      "shiploop-test-loop": 1,
+      "shiploop-backchain-check": 1,
+      "shiploop-assumptions": 1,
+      "shiploop-capability-async": 1,
+      "shiploop-repeatable-experiments": 1,
+      "shiploop-reference-routing": 1,
+      "shiploop-domain-words": 1,
+      "shiploop-trace": 1,
+      "shiploop-planning-handoff": 1,
+      "shiploop-e2e-analysis": 1,
+      "shiploop-e2e-hosts": 1,
+      "shiploop-e2e-discovery": 1,
+      "shiploop-e2e-predecessor-wiring": 1,
+      "shiploop-e2e-learning-records": 1,
+      "shiploop-e2e-cycle": 1,
+      "shiploop-e2e-adapter": 1,
+      "shiploop-e2e-adapter-engine": 1,
+      "shiploop-e2e-runrecord": 1,
+      "shiploop-e2e-slice": 1,
+      "shiploop-e2e-reorientation": 1,
+      "shiploop-e2e-environment": 1,
+      "shiploop-e2e-baseline": 1,
+      "shiploop-e2e-packet-anatomy": 1,
+      "shiploop-e2e-grok-chat-full-quality": 1,
+      "shiploop-e2e-platform": 1,
+      "shiploop-e2e-sf-guard": 1,
+      "shiploop-e2e-status-card": 1,
+      "shiploop-e2e-sdlc-probes": 1,
+      "shiploop-e2e-review-attribution": 1,
+      "shiploop-e2e-stage-report": 1,
+      "shiploop-e2e-delta": 1,
+      "shiploop-e2e-corpus": 1,
+      "shiploop-e2e-ticket-comments": 1,
+      "shiploop-e2e-ticket-sla": 1,
+      "shiploop-e2e-recovery": 1,
+      "shiploop-e2e-lifecycle": 1,
+      "shiploop-run-review": 1,
+      "shiploop-actual-improve-cli": 1,
+      "shiploop-packet-bounds": 1,
+      "shiploop-head-order": 1,
+      "shiploop-guidance": 1,
+      "shiploop-status-display": 1,
+      "shiploop-progress-data": 1,
+      "shiploop-step-edges": 1,
+      "shiploop-rehydration": 1,
+      "shiploop-auth-readiness": 1,
+      "shiploop-lint": 1,
+      "shiploop-seed-seam": 1,
+      "shiploop-test-counts": 1,
+      "shiploop-improve-changes": 1,
+      "shiploop-knowledge": 1,
+      "shiploop-follow-on": 1,
+      "experiments-shiploop-delivery-browser-consumer-serve-fixture": 1,
+      "shiploop-store": 1,
+      "shiploop-capability-fixture": 1,
+      "shiploop-capability-runtime": 1,
+      "shiploop-generalized-discovery": 1,
+      "shiploop-probe-decisions": 1,
+      "shiploop-privacy": 1,
+      "shiploop-keepalive": 1,
+      "shiploop-skill-calls": 1,
+      "shiploop-package-integrity": 1,
+      "shiploop-clean-consumer": 1,
+      "shiploop-e2e-resources": 1,
+      "shiploop-e2e-roundtable": 1,
+      "shiploop-e2e-epoch": 1,
+      "shiploop-e2e-intent-continuity": 1,
+      "shiploop-e2e-quality": 1,
+      "shiploop-e2e-chess-salesforce": 1,
+      "shiploop-e2e-battleship-ui": 1,
+      "shiploop-e2e-grok-chat-salesforce": 1,
+      "shiploop-e2e-grok-chat-full-ui": 1,
+      "shiploop-e2e-gym-membership-salesforce": 1,
+      "shiploop-e2e-efficiency": 1,
+      "shiploop-e2e-owner-page": 1,
+      "shiploop-e2e-scope-discovery": 1,
+      "shiploop-e2e-stage-oracle": 1,
+      "shiploop-e2e-stage-build": 1,
+      "shiploop-e2e-stage-live": 1,
+      "shiploop-e2e-run-trace": 1,
+      "shiploop-e2e-incremental-pilot": 1,
+      "shiploop-e2e-user-chain": 1,
+      "shiploop-packet-obligations": 1,
+      "shiploop-callback-contract": 1,
+      "shiploop-mock-replay": 1,
+      "planning-boundary": 1,
+      "planning-comparison": 1,
+      "shiploop-e2e-apparatus": 1
+    },
+    "completed_counter": {
+      "backchain-graph": 1,
+      "test-groups": 1,
+      "ci-summary": 1,
+      "ci-policy": 1,
+      "integration-boundaries": 1,
+      "release-push": 1,
+      "ask-agent-workspace": 1,
+      "ask-agent-delivery": 1,
+      "ask-agent-managed-harness": 1,
+      "ask-agent-parallel": 1,
+      "ask-agent-current-workspace": 1,
+      "ask-agent-task": 1,
+      "ask-agent-host": 1,
+      "in-parallel-queue-audit": 1,
+      "in-parallel-queue": 1,
+      "in-parallel-composition": 1,
+      "agent-harness": 1,
+      "agent-harness-delivery": 1,
+      "agent-harness-boundaries": 1,
+      "agent-harness-audit": 1,
+      "skill-interop-hygiene": 1,
+      "sync-plugin-views": 1,
+      "release-flow": 1,
+      "release-boundary": 1,
+      "release-preflight": 1,
+      "native-marketplace-adapters": 1,
+      "marketplace-package": 1,
+      "marketplace-host-isolation": 1,
+      "installed-skill-invocation": 1,
+      "prompt-marketplace-contract": 1,
+      "skill-frontmatter": 1,
+      "test-harness": 1,
+      "scaffold-skill": 1,
+      "marketplace-run": 1,
+      "install-targets": 1,
+      "install-arbitrary-skill": 1,
+      "install-status-uninstall": 1,
+      "improve": 1,
+      "improve-plugin": 1,
+      "improve-agent": 1,
+      "improve-runtime": 1,
+      "improve-route": 1,
+      "until-loop-vendor": 1,
+      "review-coverage": 1,
+      "rubric-eval": 1,
+      "closed-loop": 1,
+      "pushpress": 1,
+      "dual-body-guard": 1,
+      "plan-dispatcher-state": 1,
+      "plan-dispatcher-harness": 1,
+      "plan-dispatcher-cli": 1,
+      "plan-dispatcher-progress": 1,
+      "plan-dispatcher-planning-context": 1,
+      "plan-dispatcher-compound": 1,
+      "plan-dispatcher-decisions": 1,
+      "plan-dispatcher-exact-calls": 1,
+      "plan-dispatcher-scenarios": 1,
+      "plan-dispatcher-mutants": 1,
+      "native-setup-pilot": 1,
+      "planning-score": 1,
+      "security-harness": 1,
+      "shiploop-no-model-launch": 1,
+      "shiploop-navigator-v4": 1,
+      "shiploop-standalone-improve": 1,
+      "shiploop-packet-completeness": 1,
+      "shiploop-local-skills": 1,
+      "experiments-shiploop-ui-allocation-evidence": 1,
+      "shiploop-navigator-dry-run": 1,
+      "shiploop-narrative": 1,
+      "shiploop-progress": 1,
+      "shiploop-confirmation": 1,
+      "shiploop-cross-run": 1,
+      "shiploop-workspace": 1,
+      "shiploop-return-review": 1,
+      "shiploop-consumer-delivery": 1,
+      "shiploop-consumer-delivery-cli": 1,
+      "shiploop-delegation": 1,
+      "shiploop-improve-schedule": 1,
+      "shiploop-loops": 1,
+      "shiploop-handoff": 1,
+      "experiments-shiploop-delivery-fake-deployment": 1,
+      "shiploop-literal-transport": 1,
+      "shiploop-discovery": 1,
+      "shiploop-retired-terms": 1,
+      "shiploop-owner-notes": 1,
+      "shiploop-python-floor": 1,
+      "shiploop-e2e-qualification": 1,
+      "shiploop-e2e-roles": 1,
+      "shiploop-e2e-predecessor": 1,
+      "shiploop-e2e-adapter-steps": 1,
+      "shiploop-e2e-fidelity": 1,
+      "shiploop-e2e-render-diff": 1,
+      "shiploop-e2e-commit-counters": 1,
+      "shiploop-e2e-battleship-salesforce": 1,
+      "shiploop-e2e-grok-chat-full": 1,
+      "shiploop-e2e-grok-chat-full-oracle": 1,
+      "shiploop-e2e-gym-ui": 1,
+      "shiploop-e2e-release-slice": 1,
+      "shiploop-e2e-dodges": 1,
+      "shiploop-e2e-experiments": 1,
+      "shiploop-e2e-ticket-semantics": 1,
+      "shiploop-e2e-stages": 1,
+      "shiploop-e2e-brownfield": 1,
+      "shiploop-e2e-brownfield-tickets": 1,
+      "shiploop-e2e-test-adequacy": 1,
+      "shiploop-e2e-user-directory": 1,
+      "shiploop-efficiency-journal": 1,
+      "shiploop-loophole-gates": 1,
+      "shiploop-navigator-contract": 1,
+      "shiploop-stopped-improve": 1,
+      "shiploop-step-packets": 1,
+      "shiploop-packet-recut": 1,
+      "shiploop-reference": 1,
+      "shiploop-full-runtime": 1,
+      "shiploop-progress-render": 1,
+      "shiploop-stage-spec": 1,
+      "shiploop-send-back": 1,
+      "shiploop-quality": 1,
+      "shiploop-iteration": 1,
+      "shiploop-test-loop": 1,
+      "shiploop-backchain-check": 1,
+      "shiploop-assumptions": 1,
+      "shiploop-capability-async": 1,
+      "shiploop-repeatable-experiments": 1,
+      "shiploop-reference-routing": 1,
+      "shiploop-domain-words": 1,
+      "shiploop-trace": 1,
+      "shiploop-planning-handoff": 1,
+      "shiploop-e2e-analysis": 1,
+      "shiploop-e2e-hosts": 1,
+      "shiploop-e2e-discovery": 1,
+      "shiploop-e2e-predecessor-wiring": 1,
+      "shiploop-e2e-learning-records": 1,
+      "shiploop-e2e-cycle": 1,
+      "shiploop-e2e-adapter": 1,
+      "shiploop-e2e-adapter-engine": 1,
+      "shiploop-e2e-runrecord": 1,
+      "shiploop-e2e-slice": 1,
+      "shiploop-e2e-reorientation": 1,
+      "shiploop-e2e-environment": 1,
+      "shiploop-e2e-baseline": 1,
+      "shiploop-e2e-packet-anatomy": 1,
+      "shiploop-e2e-grok-chat-full-quality": 1,
+      "shiploop-e2e-platform": 1,
+      "shiploop-e2e-sf-guard": 1,
+      "shiploop-e2e-status-card": 1,
+      "shiploop-e2e-sdlc-probes": 1,
+      "shiploop-e2e-review-attribution": 1,
+      "shiploop-e2e-stage-report": 1,
+      "shiploop-e2e-delta": 1,
+      "shiploop-e2e-corpus": 1,
+      "shiploop-e2e-ticket-comments": 1,
+      "shiploop-e2e-ticket-sla": 1,
+      "shiploop-e2e-recovery": 1,
+      "shiploop-e2e-lifecycle": 1,
+      "shiploop-run-review": 1,
+      "shiploop-actual-improve-cli": 1,
+      "shiploop-packet-bounds": 1,
+      "shiploop-head-order": 1,
+      "shiploop-guidance": 1,
+      "shiploop-status-display": 1,
+      "shiploop-progress-data": 1,
+      "shiploop-step-edges": 1,
+      "shiploop-rehydration": 1,
+      "shiploop-auth-readiness": 1,
+      "shiploop-lint": 1,
+      "shiploop-seed-seam": 1,
+      "shiploop-test-counts": 1,
+      "shiploop-improve-changes": 1,
+      "shiploop-knowledge": 1,
+      "shiploop-follow-on": 1,
+      "experiments-shiploop-delivery-browser-consumer-serve-fixture": 1,
+      "shiploop-store": 1,
+      "shiploop-capability-fixture": 1,
+      "shiploop-capability-runtime": 1,
+      "shiploop-generalized-discovery": 1,
+      "shiploop-probe-decisions": 1,
+      "shiploop-privacy": 1,
+      "shiploop-keepalive": 1,
+      "shiploop-skill-calls": 1,
+      "shiploop-package-integrity": 1,
+      "shiploop-clean-consumer": 1,
+      "shiploop-e2e-resources": 1,
+      "shiploop-e2e-roundtable": 1,
+      "shiploop-e2e-epoch": 1,
+      "shiploop-e2e-intent-continuity": 1,
+      "shiploop-e2e-quality": 1,
+      "shiploop-e2e-chess-salesforce": 1,
+      "shiploop-e2e-battleship-ui": 1,
+      "shiploop-e2e-grok-chat-salesforce": 1,
+      "shiploop-e2e-grok-chat-full-ui": 1,
+      "shiploop-e2e-gym-membership-salesforce": 1,
+      "shiploop-e2e-efficiency": 1,
+      "shiploop-e2e-owner-page": 1,
+      "shiploop-e2e-scope-discovery": 1,
+      "shiploop-e2e-stage-oracle": 1,
+      "shiploop-e2e-stage-build": 1,
+      "shiploop-e2e-stage-live": 1,
+      "shiploop-e2e-run-trace": 1,
+      "shiploop-e2e-incremental-pilot": 1,
+      "shiploop-e2e-user-chain": 1,
+      "shiploop-packet-obligations": 1,
+      "shiploop-callback-contract": 1,
+      "shiploop-mock-replay": 1,
+      "planning-boundary": 1,
+      "planning-comparison": 1,
+      "shiploop-e2e-apparatus": 1
+    },
+    "missing": [],
+    "extra": []
+  },
+  "failure": {
+    "suite": "closed-loop",
+    "method": "CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note",
+    "command": "python3 test/closed-loop.test.py",
+    "location": "test/closed-loop.test.py:2268",
+    "expected": "version: 0.1.0",
+    "actual": "version: 0.1.1",
+    "reported_tests": 165,
+    "failures": 1,
+    "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/hermetic-core/logs/046-closed-loop.stderr.log"
+  },
+  "browser": {
+    "turn-and-action-correlation": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/browser-fixtures-turn-and-action-correlation/turn-and-action-correlation.log",
+      "signals": [
+        {
+          "status": "PASS",
+          "send": [
+            "direct",
+            "missing-render",
+            "hidden-shadow",
+            "nested-shadow",
+            "sibling-shadow",
+            "wrong-body-with-matching-fragment",
+            "clipped-reply",
+            "first-glyph-only-reply",
+            "scrollable-history",
+            "message-metadata",
+            "inset-clipped-reply",
+            "unsupported-ancestor-clip-reply",
+            "fully-visible-inset-reply",
+            "partially-clipped-extra-line",
+            "unevaluable-extra-line",
+            "fully-hidden-extra-lines",
+            "zero-width-overflow-extra-line",
+            "partially-visible-overflow-extra-line",
+            "absolute-overflow-extra-line",
+            "fixed-overflow-extra-line",
+            "split",
+            "wrong-conversation",
+            "wrong-token",
+            "wrong-response-id",
+            "replay",
+            "after-confirm-direct",
+            "after-confirm-split",
+            "after-cancel-direct",
+            "changed-prior-proposal",
+            "unexplained-terminal",
+            "after-confirm-bookkeeping-direct",
+            "after-confirm-bookkeeping-split",
+            "page-reload-bookkeeping-direct",
+            "page-reload-bookkeeping-split",
+            "disabled-reload-bookkeeping-direct",
+            "disabled-reload-bookkeeping-split",
+            "unexplained-bookkeeping",
+            "changed-prior-history",
+            "changed-readback-proposal",
+            "unread-bookkeeping"
+          ],
+          "actions": [
+            "delayed-proposal-after-ready",
+            "delayed-status",
+            "wrong-status",
+            "nested-status",
+            "wrong-marker",
+            "wrong-rpc",
+            "ambiguous-record",
+            "ambiguous-name",
+            "update-name",
+            "stale-name",
+            "nonunique-name",
+            "authoritative-id",
+            "normalized-name",
+            "swapped-values",
+            "incidental-target",
+            "nested-action-details",
+            "nested-action-operation",
+            "nested-labelledby-fields",
+            "nested-labelledby-controls",
+            "clipped-proposal-field",
+            "ancestor-inset-clipped-proposal-field",
+            "fully-visible-inset-proposal-field",
+            "partially-clipped-proposal-extra",
+            "foreign-action-clipped-extra",
+            "wrong-operation-prose",
+            "fieldset-and-labelled-operation",
+            "delayed-card",
+            "delayed-controls",
+            "absent-controls",
+            "wrong-result-record",
+            "retry-disabled",
+            "retry-removed",
+            "retry-enabled-replacement",
+            "retry-out-of-order",
+            "retry-wrong-result",
+            "retry-rebound",
+            "retry-reparented",
+            "retry-applied-then-rejected"
+          ],
+          "connections": [
+            "one-connection-plus-setup",
+            "duplicate-connection-in-batch",
+            "uncorrelated-connection"
+          ],
+          "browser": "157.0.8103.50"
+        }
+      ],
+      "pass": true
+    },
+    "app-owned-controls": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/browser-fixtures-app-owned-controls/app-owned-controls.log",
+      "signals": [
+        {
+          "status": "PASS",
+          "scenarios": [
+            {
+              "name": "shell-anchor-first",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "app-first-with-native-shell-buttons",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "delayed-shadow-role-button",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "hidden-root-and-control-are-ignored",
+              "keyboard": "pass",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [],
+              "reopen": [
+                "app-keyboard",
+                "connection",
+                "app-pointer"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "missing-root",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguous-roots",
+              "keyboard": "ui-state-invalid",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "missing-app-setup",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguous-app-setup",
+              "keyboard": "ui-state-invalid",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguous-with-disabled-app-setup",
+              "keyboard": "ui-state-invalid",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "native-disabled-setup",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "aria-disabled-setup",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "inert-setup",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "pointer-only-setup-with-closed-config",
+              "keyboard": "ui-control-missing",
+              "activation": [],
+              "decoyFocus": [],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-labelled-div",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "DIV",
+                "DIV"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-labelled-wrapper",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "LABEL",
+                "LABEL"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-outside-native-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-wrong-exact-label",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-aria-disabled-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-transparent-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            },
+            {
+              "name": "focused-non-text-input",
+              "keyboard": "keyboard-inaccessible",
+              "activation": [
+                "app-keyboard"
+              ],
+              "decoyFocus": [
+                "INPUT",
+                "INPUT"
+              ],
+              "status": "PASS"
+            }
+          ],
+          "browser": "157.0.8103.78"
+        }
+      ],
+      "pass": true
+    },
+    "setup-save-boundary": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/browser-fixtures-setup-save-boundary/setup-save-boundary.log",
+      "signals": [
+        {
+          "status": "PASS",
+          "scenarios": [
+            {
+              "phase": "none",
+              "outcome": "ok"
+            },
+            {
+              "phase": "before",
+              "outcome": "chat-attempted-before-setup"
+            },
+            {
+              "phase": "after",
+              "outcome": "ok"
+            }
+          ],
+          "browser": "157.0.8103.78"
+        }
+      ],
+      "pass": true
+    },
+    "delayed-setup": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts/browser-fixtures-delayed-setup/delayed-setup.log",
+      "signals": [
+        {
+          "status": "PASS",
+          "checks": 5,
+          "rootRaces": [
+            {
+              "method": "click",
+              "label": "Setup",
+              "gate": "disabled-poll",
+              "events": [
+                [
+                  "second-root-mounted",
+                  true,
+                  0
+                ],
+                [
+                  "original-enabled",
+                  true
+                ]
+              ],
+              "outcome": "rejected",
+              "reason": "ui-state-invalid"
+            },
+            {
+              "method": "enabledButton",
+              "label": "Recheck setup",
+              "gate": "disabled-poll",
+              "events": [
+                [
+                  "second-root-mounted",
+                  true,
+                  0
+                ],
+                [
+                  "original-enabled",
+                  true
+                ]
+              ],
+              "outcome": "rejected",
+              "reason": "ui-state-invalid"
+            }
+          ],
+          "browser": "157.0.8103.50"
+        }
+      ],
+      "pass": true
+    }
+  },
+  "versions": {
+    "python": [
+      "3.15.2"
+    ],
+    "node": [
+      "v26.13.1"
+    ]
+  },
+  "source": {
+    "directory": "/Users/dadleet/src/skill-craft-r19-r16-publish-python315-20261116",
+    "unchanged": true,
+    "tracked_files": 14111,
+    "ordinary_status": "",
+    "ignored_status": "",
+    "before": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/source-before.json",
+    "after": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/source-after.json"
+  },
+  "boundary": {
+    "status": "N/A",
+    "event": "workflow_dispatch",
+    "actual_range_proof": false,
+    "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/job-133532138622.analysis.log",
+    "signal": "release boundary: not applicable for workflow_dispatch",
+    "signal_present": true
+  },
+  "proof": {
+    "validation": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/validation.json",
+    "validators": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/validator-summary.md",
+    "terminal_identity": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/run-view-terminal.stdout",
+    "jobs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/jobs-terminal.stdout",
+    "artifact_metadata": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/artifacts-metadata.stdout",
+    "hash_manifest": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/evidence-sha256.json"
+  },
+  "capture_attempts": {
+    "original_escape_refusal": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/job-133532138622.command.json",
+    "wrong_position_error": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/forward-release-full-ci/job-133532138622-raw-escape.command.json",
+    "correction": "Parent authorized corrected gh api --allow-escape-sequences scoped raw file capture; all successful raw bytes retained with separate ANSI-stripped analysis copies. No auth/transport retries or global config changes."
+  },
+  "limitations": [
+    "Exact-release hermetic CI FAIL; not publication, installed-personal-host, model, hosted-product or live acceptance.",
+    "Manual release boundary N/A; no actual pushed-range proof. Parent separately checks a94..7eb.",
+    "59 conditional testcase skips are not passing methods; explicit unittest counts cover only observed summaries and exclude shell/Node/custom checks.",
+    "No rerun, repair, dispatch, cancellation or source changes."
+  ]
+}

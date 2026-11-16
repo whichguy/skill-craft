@@ -1,0 +1,138 @@
+{
+  "before_source": "60fa3740ae01b2419ec9f631b30cfadd82aa248e",
+  "release_source": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "release_tree": "3b6c0b79a0c85c9585aff042b3932f10af500cf1",
+  "latest_main_integrated": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "prior_evidence": [
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r05-20261115",
+      "before_tree": "e563153e4dde7cdee6f5deb9a3ac14c8ba0123e5",
+      "release_tree": "e563153e4dde7cdee6f5deb9a3ac14c8ba0123e5",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r07-20261115",
+      "before_tree": "3c754f223fefb154f988cdfa30c86e70a03c432a",
+      "release_tree": "3c754f223fefb154f988cdfa30c86e70a03c432a",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r08-20261115",
+      "before_tree": "5dd061552ce99704449212ffb1d4c6211362bf21",
+      "release_tree": "5dd061552ce99704449212ffb1d4c6211362bf21",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r19-20261115",
+      "before_tree": "c7fbe1c8b342d0a3578ee25504db79dbc0dd166a",
+      "release_tree": "c7fbe1c8b342d0a3578ee25504db79dbc0dd166a",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r21-20261115",
+      "before_tree": "3dbfefb943ac1fc45d2f1204c84c57ce55602020",
+      "release_tree": "3dbfefb943ac1fc45d2f1204c84c57ce55602020",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r16-20261115",
+      "before_tree": "111a77825ca4f27c082e26480416bca016f640e0",
+      "release_tree": "111a77825ca4f27c082e26480416bca016f640e0",
+      "unchanged": true
+    }
+  ],
+  "r19_start_command": {
+    "path": "skills/shiploop/scripts/shiploop_loops.py",
+    "ast_identical_to_accepted_local_main": true,
+    "release_start": 481,
+    "release_end": 485
+  },
+  "r16_duties": [
+    {
+      "stage": "release-plan",
+      "ast_identical": true,
+      "release_source_start": 1739,
+      "release_source_end": 1787
+    },
+    {
+      "stage": "release-check",
+      "ast_identical": true,
+      "release_source_start": 1788,
+      "release_source_end": 1815
+    }
+  ],
+  "r16_references": [
+    {
+      "path": "skills/shiploop/references/platforms/salesforce.md",
+      "sha256": "b78c2015babb8d478f9ed70ab72da89581dc793ab7d2289d8e79987a1e8606e2",
+      "byte_identical": true
+    },
+    {
+      "path": "skills/shiploop/references/testing-and-documentation.md",
+      "sha256": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+      "byte_identical": true
+    }
+  ],
+  "scope": "Scoped R19/R16 continuity only; upstream retirement/Python changes and the necessary Test Harness repair are distinct source changes. Final package generation follows all source fixes; no packaged source delta follows it. No whole-package equality to earlier live or release snapshots is claimed.",
+  "generated_release": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "release_writer": "scripts/release.py",
+  "post_generation_delta": [],
+  "generated_plugin_tree": "76632cb5e6b4868e99222ce748c9e0f28accb65e",
+  "timestamp": "2026-11-16T20:55:35.552723+00:00",
+  "source_changes_since_original_acceptance": [
+    "D\tskills/backchain/SKILL.md",
+    "D\tskills/backchain/evals/evals.json",
+    "D\tskills/backchain/evals/trigger-evals.json",
+    "D\tskills/backchain/prompts/audit.prompt.md",
+    "D\tskills/backchain/prompts/convergence-review.prompt.md",
+    "D\tskills/backchain/prompts/dependency-review.prompt.md",
+    "D\tskills/backchain/prompts/direct.v1.md",
+    "D\tskills/backchain/prompts/elaborator.v1.md",
+    "D\tskills/backchain/prompts/generator.v1.md",
+    "D\tskills/backchain/prompts/intent-judge.prompt.md",
+    "D\tskills/backchain/prompts/revise.prompt.md",
+    "D\tskills/backchain/references/caller-contract.md",
+    "D\tskills/backchain/references/convergence.md",
+    "D\tskills/backchain/references/dependency-context.md",
+    "D\tskills/backchain/references/harness.md",
+    "D\tskills/backchain/references/technical-interactions.md",
+    "D\tskills/backchain/references/technical-lens-cards.md",
+    "D\tskills/backchain/references/technical-lenses.md",
+    "D\tskills/backchain/scripts/backchain.py",
+    "D\tskills/backchain/scripts/check_preservation.py",
+    "M\tskills/closed-loop/SKILL.md",
+    "M\tskills/closed-loop/scripts/closed_loop.py",
+    "M\tskills/plan-dispatcher/SKILL.md",
+    "M\tskills/plan-dispatcher/references/protocol.md",
+    "M\tskills/plan-dispatcher/scripts/dispatch.js",
+    "M\tskills/shiploop-e2e-audit/SKILL.md",
+    "M\tskills/shiploop-e2e-audit/harness/README.md",
+    "M\tskills/shiploop/README.md",
+    "M\tskills/shiploop/SKILL.md",
+    "M\tskills/shiploop/references/backchain-planning.md",
+    "D\tskills/shiploop/references/backchain-route.md",
+    "M\tskills/shiploop/references/graph-dry-run.md",
+    "M\tskills/shiploop/references/navigator.md",
+    "M\tskills/shiploop/references/run-options.md",
+    "M\tskills/shiploop/references/state-files.md",
+    "R099\tskills/backchain/scripts/backchain_graph.py\tskills/shiploop/scripts/backchain_graph.py",
+    "M\tskills/shiploop/scripts/shiploop_backchain_graph.py",
+    "M\tskills/shiploop/scripts/shiploop_check.py",
+    "M\tskills/shiploop/scripts/shiploop_item_scope.py",
+    "M\tskills/shiploop/scripts/shiploop_navigator.py",
+    "M\tskills/shiploop/scripts/shiploop_navigator_dry_run.py",
+    "M\tskills/shiploop/scripts/shiploop_prompts.py",
+    "M\tskills/shiploop/scripts/shiploop_protocol.py",
+    "M\tskills/shiploop/scripts/shiploop_pyfloor.py",
+    "M\tskills/shiploop/scripts/shiploop_stage_spec.py",
+    "M\tskills/test-harness/SKILL.md",
+    "M\tskills/test-harness/scripts/run-harness-hard-supervisor.py"
+  ],
+  "ancillary_qualification_repair": {
+    "source_commit": "b64b17160ff9ca7a178845a82b43eea157bf5d1b",
+    "writer": "skills/test-harness/scripts/run-harness-hard-supervisor.py",
+    "sha256": "c90051c678ec907ae70b3ee2f57154c81d2773015a2ee48f096791b65966923c",
+    "note_consumed_by_release_tool": true
+  },
+  "upstream_reconciliation_checkpoint": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4"
+}

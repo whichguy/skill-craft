@@ -1,0 +1,22 @@
+{
+  "status": "ADVICE_ACCEPTED_FOR_QUALIFICATION",
+  "requested_model": "gpt-6-astra",
+  "effort": "high",
+  "fallback": false,
+  "provider_served_identity": "not separately attested",
+  "adopt": [
+    "Reproduce cleanup ordering and interrupted publication independently before edits.",
+    "Move evidence attempt before deadline-consuming cleanup; retain same worker/hard deadlines and alarm.",
+    "Only after deterministic interrupted-write reproduction, stage complete private bytes and atomically link without replacement.",
+    "Retain ordinary evidence, collision, secret, path-setup and descendant cleanup checks."
+  ],
+  "rejected": [
+    "Fixture-only waiting or ignoring malformed evidence",
+    "Timeout increases, alarm filesystem writes, generalized persistence framework or compatibility layer"
+  ],
+  "limits": [
+    "Historical CI interruption instruction remains unknown; source mechanism must be reproduced.",
+    "No guaranteed evidence under blocked filesystem or power-loss durability claim.",
+    "Private staging can remain if hard alarm interrupts."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "head": "3d277e4ab7d5df678cd6aacfa9a970da608b5d3b",
+  "tree": "54ba110dcbdfd3f7b2e119f66b60b086f0ccd93d",
+  "checks": 5,
+  "python_methods_passed": 165,
+  "metadata_skills": 25,
+  "source_guards": true,
+  "raw_log_counts_and_source_names_independently_verified": true,
+  "style_included_paths": 1000,
+  "frozen_exclusions": 22,
+  "evidence": "card-fixture-local-validation/handoff.json",
+  "prior_parent_validator_attempt": "card-fixture-local-parent-attempt-01.json",
+  "prior_attempt_limit": "One verbose method has a multiline docstring; corrected read-only record parser, no test rerun."
+}

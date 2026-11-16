@@ -1,0 +1,4 @@
+test-harness hard timeout: enclosing lifecycle exceeded 1s; owned process group terminated
+Preparing worktree (new branch 'test-harness/demo-696ad6')
+Preparing worktree (new branch 'test-harness/demo2-f67155')
+Preparing worktree (new branch 'test-harness/wt-mono-pkg-0e85df')

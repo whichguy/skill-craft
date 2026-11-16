@@ -1,0 +1,89 @@
+{
+  "source_pre": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-collection-source-pre.json",
+  "source_post": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-collection-source-post.json",
+  "source_unchanged": true,
+  "runs": {
+    "github-full-final": {
+      "status": "PASS",
+      "run_id": 43917017353,
+      "attempt": 1,
+      "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+      "event": "workflow_dispatch",
+      "branch": "codex/python-latest-standardization-20261116",
+      "jobs": 12,
+      "suites": 207,
+      "artifact_digests_verified": 9,
+      "browser_fixtures_passed": 4,
+      "python": "3.15.2",
+      "node": "26.13.1",
+      "skip_footers": [
+        {
+          "suite": "shiploop-e2e-hosts",
+          "skipped": 2
+        },
+        {
+          "suite": "shiploop-e2e-roundtable",
+          "skipped": 3
+        },
+        {
+          "suite": "shiploop-e2e-efficiency",
+          "skipped": 1
+        },
+        {
+          "suite": "shiploop-e2e-stage-live",
+          "skipped": 1
+        },
+        {
+          "suite": "shiploop-e2e-experiments",
+          "skipped": 50
+        },
+        {
+          "suite": "shiploop-e2e-user-directory",
+          "skipped": 1
+        },
+        {
+          "suite": "test-groups",
+          "skipped": 1
+        }
+      ],
+      "log_directory": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-full-final",
+      "verifier_stdout": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-full-final/verifier.stdout",
+      "job_browser_runtime_report": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-full-final/terminal-job-browser-runtime-verification.json",
+      "named_suites": 25,
+      "reported_methods": 1746,
+      "executed_methods": 1743,
+      "platform_skips_in_named_suites": 3,
+      "global_skips": 59,
+      "new_methods_no_skips": {
+        "security": 75,
+        "actual_improve": 101,
+        "skill_calls": 35,
+        "review_attribution": 15,
+        "loophole_gates": 5
+      }
+    },
+    "github-quick-final": {
+      "status": "PASS",
+      "run_id": 43916735284,
+      "attempt": 1,
+      "head": "a94cbd844d4e68831c2a971dbd430e1ec445e6e4",
+      "event": "push",
+      "branch": "main",
+      "jobs": 8,
+      "suites": 16,
+      "artifact_digests_verified": 5,
+      "browser_fixtures_passed": 4,
+      "python": "3.15.2",
+      "node": "26.13.1",
+      "skip_footers": [
+        {
+          "suite": "test-groups",
+          "skipped": 1
+        }
+      ],
+      "log_directory": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-quick-final",
+      "verifier_stdout": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-quick-final/verifier.stdout",
+      "job_browser_runtime_report": "/Users/dadleet/Documents/Codex/experiments/python-latest-standardization-20261116-1eyt60jb/github-quick-final/terminal-job-browser-runtime-verification.json"
+    }
+  }
+}

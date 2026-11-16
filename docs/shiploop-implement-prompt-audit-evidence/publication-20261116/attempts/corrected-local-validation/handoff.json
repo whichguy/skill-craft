@@ -1,0 +1,167 @@
+{
+  "actual_floor_ok_methods": 18,
+  "bounded_failure_excerpt": "\ntest_a_statement_or_needs_text_that_ends_with_a_period_does_not_double_it_and_one_without_gets_it (__main__.RequestFileTests)\nRound 6 saw \"...implement and test it.. Recorded in lessons.open_next.\" twice: the model's needs text ended with a period ... ok\ntest_the_request_names_each_gap_and_decision_with_its_source_and_keeps_the_earlier_decisions (__main__.RequestFileTests) ... ok\ntest_a_gap_and_a_decision_recommend_a_run_the_script_writes_its_request_and_done_is_not_blocked (__main__.RouteTests) ... ok\ntest_a_run_saved_without_the_list_still_loads_and_reports_nothing_was_recorded (__main__.RouteTests) ... ok\ntest_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it (__main__.RouteTests) ... ok\ntest_an_empty_list_prints_no_follow_on_line_and_writes_no_request (__main__.RouteTests) ... ok\ntest_each_fault_is_refused_naming_its_exit_and_the_corrected_list_is_accepted (__main__.RouteTests) ... ok\ntest_entries_that_recommend_nothing_write_no_request_and_print_no_start_command (__main__.RouteTests) ... ok\ntest_every_source_form_resolves_against_the_run (__main__.RouteTests) ... ok\ntest_follow_on_is_refused_off_its_stage_and_on_a_result_that_is_not_done (__main__.RouteTests) ... ok\ntest_the_handoff_template_prints_the_row_and_the_duty_names_each_class_once (__main__.RouteTests) ... ok\ntest_the_printed_start_command_starts_a_run_whose_request_is_the_file (__main__.RouteTests) ... ok\ntest_the_report_lists_entries_escaped_and_tells_none_listed_from_not_recorded (__main__.RouteTests) ... ok\ntest_the_request_file_goes_when_the_accepted_list_no_longer_recommends (__main__.RouteTests) ... ok\ntest_a_request_with_shell_syntax_reaches_the_start_command_as_plain_text (__main__.ShapeTests) ... ok\ntest_an_isolated_run_starts_from_the_original_checkout_and_a_direct_run_from_its_own (__main__.ShapeTests) ... ok\ntest_the_stored_shape_is_loose_and_a_non_list_is_refused (__main__.ShapeTests) ... ok\ntest_the_vocabulary_and_the_recommendation_rule (__main__.ShapeTests) ... ok\n\n----------------------------------------------------------------------\nRan 18 tests in 18.712s\n\nOK\n",
+  "checks": [
+    {
+      "actual_PATH": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dadleet/.codex/tmp/arg0-macos/codex-arg0jJT7Jx:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dadleet/.grok/bin:/Users/dadleet/.bun/bin:/Users/dadleet/.claude/tools:/Users/dadleet/.local/bin:/Users/dadleet/.orbstack/bin:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/dadleet/.orbstack/bin",
+      "actual_PYTHONDONTWRITEBYTECODE": "1",
+      "actual_ok_methods": 18,
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-follow-on.test.py",
+        "-v"
+      ],
+      "completion_problems": [],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+      "ended_utc": "2026-11-16T16:09:22.986866+00:00",
+      "environment_overrides": {
+        "PATH": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dadleet/.codex/tmp/arg0-macos/codex-arg0jJT7Jx:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dadleet/.grok/bin:/Users/dadleet/.bun/bin:/Users/dadleet/.claude/tools:/Users/dadleet/.local/bin:/Users/dadleet/.orbstack/bin:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/dadleet/.orbstack/bin",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "evidence_review_reference": "handoff.json evidence_review; initial parser record preserved in 01.command.json",
+      "exit_code": 0,
+      "expected_methods": 18,
+      "number": 1,
+      "reported_methods": [
+        18
+      ],
+      "resolved_executable": "/usr/bin/python3",
+      "started_utc": "2026-11-16T16:09:03.993554+00:00",
+      "status": "PASS",
+      "stderr_log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/01.stderr.log",
+      "stdout_log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/01.stdout.log"
+    }
+  ],
+  "ci_43903593989": "not monitored; owned by another collector",
+  "completed_checks": 1,
+  "deadline_utc": "2026-11-16T16:35:00+00:00",
+  "ended_utc": "2026-11-16T16:09:23.783129+00:00",
+  "evidence_review": {
+    "finding": "Worker completion parser incorrectly required test name and ok on the same line. The first unittest method has a two-line description. Raw output shows 18 named methods, 18 ok results, Ran 18 tests, standalone OK, exit 0 and no skips. Execution stopped before check 2 and was not resumed.",
+    "initial_command_record": "01.command.json",
+    "initial_handoff": "handoff.initial.json",
+    "named_methods": 18,
+    "ok_results": 18,
+    "reported_methods": 18,
+    "test_failure_observed": false,
+    "utc": "2026-11-16T16:09:52.256689+00:00"
+  },
+  "expected_generated_repository_outputs": [],
+  "expected_head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+  "expected_tree": "c36540f8873361a8ff6b602413da366cbc2e0979",
+  "model_routing": "parent-specified fixed native Sol 6.1 medium",
+  "original_ci_43895804906": "FAIL, unchanged; not collected",
+  "passed_checks": 1,
+  "pending_checks": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-loophole-gates.test.py",
+        "-v"
+      ],
+      "number": 2
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "test/shiploop-progress.test.py",
+        "-v"
+      ],
+      "number": 3
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/sync-plugin-views.sh",
+        "--check"
+      ],
+      "number": 4
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-marketplace-packages.py"
+      ],
+      "number": 5
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "c154c44fee46a6c5c852ce158e818d3237d3f121",
+        "--head",
+        "9b05a94f68026941ed4028da3a744830c66cf3f4"
+      ],
+      "number": 6
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/release.py",
+        "--dry-run"
+      ],
+      "number": 7
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+        "diff",
+        "--check",
+        "850aa2d5b93df54711ccbc7f432065b2d8e793e8",
+        "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "--",
+        "test/shiploop-follow-on.test.py",
+        "test/shiploop-loophole-gates.test.py",
+        "test/shiploop-progress.test.py"
+      ],
+      "number": 8
+    }
+  ],
+  "problem": "Execution stopped after worker evidence parser falsely flagged check 1; manual raw-log review confirms check 1 PASS. Checks 2-8 remain pending; no retries or continuation performed.",
+  "required_checks": 8,
+  "required_floor_methods": 61,
+  "retry_policy": "none",
+  "routing": {
+    "argv": [
+      "/usr/bin/python3",
+      "-c",
+      "import json,shutil,subprocess,sys; print(json.dumps({'which':shutil.which('python3'),'direct_version':sys.version.split()[0],'callback_version':subprocess.check_output(['python3','-c','import sys; print(sys.version.split()[0])'],text=True).strip()}))"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+    "exit_code": 0,
+    "first_three_overrides": {
+      "PATH": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dadleet/.codex/tmp/arg0-macos/codex-arg0jJT7Jx:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dadleet/.grok/bin:/Users/dadleet/.bun/bin:/Users/dadleet/.claude/tools:/Users/dadleet/.local/bin:/Users/dadleet/.orbstack/bin:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/dadleet/.orbstack/bin",
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "normal_environment_PATH": "/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dadleet/.codex/tmp/arg0-macos/codex-arg0jJT7Jx:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dadleet/.grok/bin:/Users/dadleet/.bun/bin:/Users/dadleet/.claude/tools:/Users/dadleet/.local/bin:/Users/dadleet/.orbstack/bin:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/dadleet/.orbstack/bin",
+    "normal_environment_PYTHONDONTWRITEBYTECODE": null,
+    "observed": {
+      "callback_version": "3.9.6",
+      "direct_version": "3.9.6",
+      "which": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-local-validation/bin/python3"
+    },
+    "shim_target": "/usr/bin/python3"
+  },
+  "scope": "local qualification only",
+  "source": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+  "source_stability": {
+    "head": true,
+    "ignored_status": true,
+    "index_sha256": true,
+    "owned_test_sha256": true,
+    "status": true,
+    "tracked_inventory_sha256": true,
+    "tree": true
+  },
+  "started_utc": "2026-11-16T16:09:02.278285+00:00",
+  "status": "INCOMPLETE"
+}

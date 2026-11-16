@@ -1,0 +1,31 @@
+test_old_branch_journal_does_not_reintroduce_the_published_release (__main__.ReleasePreflightTests.test_old_branch_journal_does_not_reintroduce_the_published_release) ... FAIL
+test_old_branch_journal_still_refuses_only_new_uncovered_changes (__main__.ReleasePreflightTests.test_old_branch_journal_still_refuses_only_new_uncovered_changes) ... FAIL
+
+======================================================================
+FAIL: test_old_branch_journal_does_not_reintroduce_the_published_release (__main__.ReleasePreflightTests.test_old_branch_journal_does_not_reintroduce_the_published_release)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116/test/release-preflight.test.py", line 218, in test_old_branch_journal_does_not_reintroduce_the_published_release
+    self.assertAccepted(self.release("--dry-run"))
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116/test/release-preflight.test.py", line 81, in assertAccepted
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : release: shiploop would ship 1 change(s) committed after its latest E2E round (7d6296a4):
+  99297b0 release: baseline
+  Add an entry to test/shiploop_e2e/LEARNINGS.md in a commit after them, or a 'No-E2E-Round: <reason>' trailer on each (final message paragraph, next to Co-Authored-By).
+
+
+======================================================================
+FAIL: test_old_branch_journal_still_refuses_only_new_uncovered_changes (__main__.ReleasePreflightTests.test_old_branch_journal_still_refuses_only_new_uncovered_changes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116/test/release-preflight.test.py", line 226, in test_old_branch_journal_still_refuses_only_new_uncovered_changes
+    self.assertIn("1 change(s) committed after its latest E2E round", message)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '1 change(s) committed after its latest E2E round' not found in "release: shiploop would ship 2 change(s) committed after its latest E2E round (7d6296a4):\n  b05e8e1 feat(shiploop): genuinely new uncovered change\n  99297b0 release: baseline\n  Add an entry to test/shiploop_e2e/LEARNINGS.md in a commit after them, or a 'No-E2E-Round: <reason>' trailer on each (final message paragraph, next to Co-Authored-By).\n"
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.904s
+
+FAILED (failures=2)

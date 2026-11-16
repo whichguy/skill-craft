@@ -1,0 +1,233 @@
+{
+  "status": "TARGETED_QUALIFICATION_COMPLETE_PARENT_VALIDATION_PENDING",
+  "timestamp": "2026-11-16T19:21:10.914711+00:00",
+  "repo": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+  "head": "7eb5998f5d30d3a51bb8bd19c36707b5d24fb0a8",
+  "scope": "Fixture maintenance only; no Closed Loop or ShipLoop product gain. One existing metadata method changed.",
+  "red": {
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116/test/closed-loop.test.py",
+      "CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note",
+      "-v"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+    "started": "2026-11-16T19:18:44.818455+00:00",
+    "ended": "2026-11-16T19:18:44.915094+00:00",
+    "exit": 1,
+    "test_sha256": "194d7f128204ca289d13cff0166c3b74bc5d79731c5e554b8311262d566bbd88",
+    "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/red.stdout",
+    "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/red.stderr",
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "result": "intended assertion failure on literal 0.1.0 versus released 0.1.1"
+  },
+  "green": {
+    "command": [
+      "python3",
+      "-B",
+      "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116/test/closed-loop.test.py",
+      "CardTests.test_the_frontmatter_names_the_skill_and_matches_its_first_change_note",
+      "-v"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-card-fixture-20261116",
+    "started": "2026-11-16T19:19:08.521647+00:00",
+    "ended": "2026-11-16T19:19:08.609661+00:00",
+    "exit": 0,
+    "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/green.stdout",
+    "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/green.stderr",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "result": "pass"
+  },
+  "controls": [
+    {
+      "scenario": "current",
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+        "current"
+      ],
+      "started": "2026-11-16T19:19:42.342652+00:00",
+      "ended": "2026-11-16T19:19:42.427719+00:00",
+      "exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "expected": "pass",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/current.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/current.stderr"
+    },
+    {
+      "scenario": "future",
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+        "future"
+      ],
+      "started": "2026-11-16T19:19:42.428106+00:00",
+      "ended": "2026-11-16T19:19:42.512303+00:00",
+      "exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "expected": "pass",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/future.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/future.stderr"
+    },
+    {
+      "scenario": "missing",
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+        "missing"
+      ],
+      "started": "2026-11-16T19:19:42.512668+00:00",
+      "ended": "2026-11-16T19:19:42.600869+00:00",
+      "exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "expected": "underlying assertion failure",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/missing.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/missing.stderr"
+    },
+    {
+      "scenario": "empty",
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+        "empty"
+      ],
+      "started": "2026-11-16T19:19:42.601291+00:00",
+      "ended": "2026-11-16T19:19:42.687336+00:00",
+      "exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "expected": "underlying assertion failure",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/empty.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/empty.stderr"
+    },
+    {
+      "scenario": "whitespace",
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+        "whitespace"
+      ],
+      "started": "2026-11-16T19:19:42.687688+00:00",
+      "ended": "2026-11-16T19:19:42.770761+00:00",
+      "exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "expected": "underlying assertion failure",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/whitespace.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/whitespace.stderr"
+    },
+    {
+      "scenario": "matching-note",
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+        "matching-note"
+      ],
+      "started": "2026-11-16T19:19:42.771113+00:00",
+      "ended": "2026-11-16T19:19:42.853186+00:00",
+      "exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "expected": "pass",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/matching-note.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/matching-note.stderr"
+    },
+    {
+      "scenario": "mismatched-note",
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+        "mismatched-note"
+      ],
+      "started": "2026-11-16T19:19:42.853540+00:00",
+      "ended": "2026-11-16T19:19:42.935960+00:00",
+      "exit": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "expected": "underlying assertion failure",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/mismatched-note.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/mismatched-note.stderr"
+    }
+  ],
+  "negative_controls_are_underlying_assertion_failures": true,
+  "verification": {
+    "changed_files": [
+      "test/closed-loop.test.py"
+    ],
+    "source_outside_owned_file_unchanged": true,
+    "tracked_and_untracked_file_hashes_compared": 14111,
+    "index_and_config_hashes_unchanged": true,
+    "effective_config_unchanged": true,
+    "staged_diff_empty": true,
+    "head_unchanged": true,
+    "test_count_before": 165,
+    "test_count_after": 165,
+    "other_164_methods_ast_identical": true,
+    "whole_module_ast_identical_except_owned_method": true,
+    "unchanged_assertions": [
+      "name",
+      "kind",
+      "neighbour descriptions"
+    ],
+    "pending_initial_note_assertion_retained_with_current_version": true,
+    "baseline_test_sha256": "194d7f128204ca289d13cff0166c3b74bc5d79731c5e554b8311262d566bbd88",
+    "final_test_sha256": "41fdcbde5e730951f2ae9af2e081ab1207e582e3d23e0e426c15371b94201fc7",
+    "baseline_card_sha256": "8c9a00ea4eadf3431a0dceb62818cb8fd4b72d0db844e9e6eb969bc61b37f538",
+    "final_card_sha256": "8c9a00ea4eadf3431a0dceb62818cb8fd4b72d0db844e9e6eb969bc61b37f538",
+    "package_files_unchanged": true,
+    "diff_check_exit": 0,
+    "diff": "patch.diff"
+  },
+  "package_files_compared": 423,
+  "baseline_package_manifest_sha256": "e3d8756253bc82ae46f73328e72d844f4a2604c91fd45369b6a6eacad6add8ce",
+  "final_package_manifest_sha256": "e3d8756253bc82ae46f73328e72d844f4a2604c91fd45369b6a6eacad6add8ce",
+  "evidence": {
+    "baseline.json": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/baseline.json",
+    "baseline-closed-loop.test.py": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/baseline-closed-loop.test.py",
+    "final-snapshot.json": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/final-snapshot.json",
+    "verification.json": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/verification.json",
+    "method-ast-hashes.json": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/method-ast-hashes.json",
+    "controls.py": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.py",
+    "controls.json": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/controls.json",
+    "red.json": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/red.json",
+    "green.json": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/green.json",
+    "patch.diff": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/patch.diff",
+    "git-status.txt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/git-status.txt",
+    "diff-check.stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/diff-check.stdout",
+    "diff-check.stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/card-metadata-fixture-repair/qualification-v1/diff-check.stderr"
+  },
+  "prior_history": [
+    "ff9cb35d46316f6ce70f92c0e418c0fad53f0e3c: initial 0.1.0 is first-release metadata as required by changes/README.md, not a permanent ceiling.",
+    "17bf59f78bc8d6ff691725e9e7c829a2046651df: suite established at 165 methods; unrelated assertions and methods retained."
+  ],
+  "pending_parent": [
+    "full 165-method suite",
+    "common SemVer metadata validation",
+    "independent validation/acceptance",
+    "commit and final CI"
+  ],
+  "prohibited_actions_performed": [],
+  "original_blocked_attempt_files": "Untouched; all new evidence is under qualification-v1."
+}

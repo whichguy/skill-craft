@@ -1,0 +1,309 @@
+diff --git a/skills/test-harness/scripts/run-harness-hard-supervisor.py b/skills/test-harness/scripts/run-harness-hard-supervisor.py
+index 581cdda9..7d63114a 100755
+--- a/skills/test-harness/scripts/run-harness-hard-supervisor.py
++++ b/skills/test-harness/scripts/run-harness-hard-supervisor.py
+@@ -46,18 +46,12 @@ def write_hard_timeout_evidence(
+     args: argparse.Namespace,
+     started: float,
+ ) -> bool:
+-    """Write timeout evidence through the descriptor that won path creation."""
+-    path = run_dir / "hard-timeout.json"
+-    try:
+-        fd = open_exclusive_private(path)
+-    except OSError as exc:
+-        print(
+-            "test-harness hard supervisor: refusing to replace timeout "
+-            f"evidence at {path.name}: {exc}",
+-            file=sys.stderr,
+-        )
+-        return False
++    """Publish complete private bytes without replacing an existing destination.
+ 
++    A hard alarm may leave the private staging name. This does not guarantee
++    completion on a blocked filesystem or durability across power loss.
++    """
++    path = run_dir / "hard-timeout.json"
+     payload = (
+         json.dumps(
+             {
+@@ -71,14 +65,34 @@ def write_hard_timeout_evidence(
+         )
+         + "\n"
+     ).encode("utf-8")
++    staging = run_dir / f".hard-timeout.{secrets.token_hex(8)}.tmp"
++    fd: int | None = None
++    published = False
+     try:
++        fd = open_exclusive_private(staging)
+         write_all(fd, payload)
+         os.fsync(fd)
+-    except OSError:
+-        return False
++        # Same-directory link installs the completed inode atomically and
++        # refuses both regular-file and symlink collisions at the final name.
++        os.link(staging, path)
++        published = True
++    except OSError as exc:
++        print(
++            "test-harness hard supervisor: refusing to replace timeout "
++            f"evidence at {path.name}: {exc}",
++            file=sys.stderr,
++        )
+     finally:
+-        os.close(fd)
+-    return True
++        if fd is not None:
++            try:
++                os.close(fd)
++            except OSError:
++                published = False
++            try:
++                staging.unlink()
++            except OSError:
++                published = False
++    return published
+ 
+ 
+ def parse_args() -> argparse.Namespace:
+@@ -337,6 +351,9 @@ def main() -> int:
+             if leader_rc is not None:
+                 break
+             timed_out = True
++            # Attempt evidence before cleanup can consume the hard deadline.
++            # elapsed_ms samples payload construction, not completed cleanup.
++            write_hard_timeout_evidence(run_dir, args, started)
+             cleanup_group(hard_deadline)
+             leader_rc = proc.poll()
+             break
+@@ -363,7 +380,6 @@ def main() -> int:
+         pass
+ 
+     if timed_out:
+-        write_hard_timeout_evidence(run_dir, args, started)
+         print(
+             "test-harness hard timeout: enclosing lifecycle exceeded "
+             f"{args.timeout_secs}s; owned process group terminated",
+diff --git a/test/test-harness.test.py b/test/test-harness.test.py
+index 6b38fa9c..ec80e03d 100644
+--- a/test/test-harness.test.py
++++ b/test/test-harness.test.py
+@@ -12,10 +12,13 @@ directory used as a default and a few secret formats. Names of people, projects
+ denylist kept outside the repository and a person reading the prose.
+ """
+ import os
++import json
+ import re
++import signal
+ import subprocess
+ import sys
+ import tempfile
++import time
+ import unittest
+ from pathlib import Path
+ 
+@@ -76,6 +79,195 @@ def tree_state(root):
+     return {p.relative_to(root).as_posix(): p.stat().st_size for p in root.rglob("*") if p.is_file() and "__pycache__" not in p.parts}
+ 
+ 
++class TimeoutEvidence(unittest.TestCase):
++    """Real main/clock/alarm/process groups with barriers at actual operations.
++
++    Three methods cover six scenarios: cleanup, two interrupted writes, and
++    three publication boundaries. A missing barrier always fails the control.
++    """
++
++    WRAPPER = r'''
++import importlib.util, json, os, signal, sys, time
++from pathlib import Path
++source, scenario, scratch = sys.argv[1:]
++root = Path(scratch)
++spec = importlib.util.spec_from_file_location("hard_supervisor", source)
++module = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(module)
++final = root / "run" / "hard-timeout.json"
++def snapshot():
++    if not final.exists():
++        return None
++    return {"text": final.read_text(), "mode": final.stat().st_mode & 0o777}
++def barrier():
++    (root / "barrier.json").write_text(json.dumps({"scenario": scenario, "final": snapshot()}))
++    while not (root / "release").exists():
++        time.sleep(0.002)
++real_killpg = os.killpg
++def killpg(pgid, sig):
++    real_killpg(pgid, sig)
++    if scenario == "cleanup" and sig == signal.SIGTERM:
++        barrier()
++module.os.killpg = killpg
++real_write = module.write_all
++def write_all(fd, payload):
++    if scenario in ("write-empty", "write-prefix"):
++        if scenario == "write-prefix":
++            real_write(fd, payload[:7])
++        barrier()
++    real_write(fd, payload)
++module.write_all = write_all
++real_link = os.link
++def link(src, dst, *args, **kwargs):
++    if scenario in ("collision-file", "collision-symlink"):
++        barrier()
++    result = real_link(src, dst, *args, **kwargs)
++    if scenario == "published":
++        barrier()
++    return result
++module.os.link = link
++sys.argv = [source, "--timeout-secs", "1", "--repo", scratch,
++            "--run-dir", str(root / "run"), "--", sys.executable,
++            str(root / "worker.py"), scratch, scenario, "command-secret-must-not-persist"]
++raise SystemExit(module.main())
++'''
++
++    WORKER = r'''
++import json, os, signal, subprocess, sys, time
++from pathlib import Path
++root, scenario = Path(sys.argv[1]), sys.argv[2]
++child = subprocess.Popen([sys.executable, "-c",
++    "import os,signal,sys,time; from pathlib import Path; "
++    "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
++    "Path(sys.argv[1]).write_text(str(os.getpid())); time.sleep(60)",
++    str(root / "descendant.pid")])
++def terminate(sig, frame):
++    child.kill()
++    child.wait()
++    raise SystemExit(0)
++signal.signal(signal.SIGTERM, signal.SIG_IGN if scenario == "cleanup" else terminate)
++(root / "worker.pid").write_text(str(os.getpid()))
++while True:
++    time.sleep(0.01)
++'''
++
++    def assert_complete(self, artifact):
++        self.assertIsNotNone(artifact, "timeout evidence must precede cleanup")
++        doc = json.loads(artifact["text"])
++        self.assertEqual(set(doc), {"stop", "timeout_secs", "elapsed_ms", "worker_executable", "worker_argument_count"})
++        self.assertEqual(doc["stop"], "hard_timeout")
++        self.assertEqual(doc["timeout_secs"], 1)
++        self.assertTrue(0 < doc["elapsed_ms"] < 1000, doc)
++        self.assertEqual(doc["worker_executable"], Path(sys.executable).name)
++        self.assertEqual(doc["worker_argument_count"], 4)
++        self.assertEqual(artifact["mode"], 0o600)
++        self.assertNotIn("command-secret-must-not-persist", artifact["text"])
++
++    def scenario(self, name):
++        with tempfile.TemporaryDirectory() as scratch:
++            root = Path(scratch)
++            wrapper = root / "wrapper.py"
++            wrapper.write_text(self.WRAPPER)
++            (root / "worker.py").write_text(self.WORKER)
++            source = SKILL / "scripts" / "run-harness-hard-supervisor.py"
++            argv = [sys.executable, str(wrapper), str(source), name, scratch]
++            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
++            started_wall = time.time()
++            started = time.monotonic()
++            proc = subprocess.Popen(argv, cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
++            marker = root / "barrier.json"
++            barrier = None
++            try:
++                # Same 1s + existing 1500ms external slack; no production cap changes.
++                until = started + 2.5
++                while time.monotonic() < until and proc.poll() is None:
++                    if marker.exists() and marker.stat().st_size:
++                        barrier = json.loads(marker.read_text())
++                        break
++                    time.sleep(0.002)
++                if barrier is not None and name.startswith("collision-"):
++                    final = root / "run" / "hard-timeout.json"
++                    target = root / "target"
++                    target.write_text("target unchanged")
++                    if name == "collision-file":
++                        final.write_text("competitor unchanged")
++                    else:
++                        final.symlink_to(target)
++                    collision_inode = final.lstat().st_ino
++                    (root / "release").touch()
++                stdout, stderr = proc.communicate(timeout=max(0.01, until - time.monotonic()))
++                elapsed = time.monotonic() - started
++                final = root / "run" / "hard-timeout.json"
++                artifact = ({"text": final.read_text(), "mode": final.stat().st_mode & 0o777}
++                            if final.exists() else None)
++                leftovers = [{"name": p.name, "mode": p.stat().st_mode & 0o777,
++                              "text": p.read_text()} for p in (root / "run").glob(".hard-timeout.*")]
++                pids = {}
++                for label in ("worker", "descendant"):
++                    pid_path = root / (label + ".pid")
++                    self.assertTrue(pid_path.is_file(), label + " readiness marker missing")
++                    pid = int(pid_path.read_text())
++                    # A killed orphan may briefly remain a zombie; it cannot execute.
++                    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True, check=False)
++                    pids[label] = {"pid": pid, "state": state.stdout.strip()}
++                print(json.dumps({"scenario": name, "argv": argv, "cwd": scratch,
++                                  "start_epoch": started_wall, "end_epoch": time.time(),
++                                  "exit": proc.returncode, "elapsed": elapsed, "barrier": barrier,
++                                  "final": artifact, "staging_leftovers": leftovers, "pids": pids,
++                                  "stdout": stdout, "stderr": stderr}), flush=True)
++                self.assertIsNotNone(barrier, "operation barrier was not reached")
++                self.assertEqual(barrier["scenario"], name)
++                self.assertEqual(proc.returncode, 124, stderr)
++                self.assertLess(elapsed, 2.5)
++                self.assertIn("test-harness hard timeout:", stderr)
++                for label, entry in pids.items():
++                    self.assertTrue(not entry["state"] or entry["state"].startswith("Z"), (label, entry))
++                for stage in leftovers:
++                    self.assertEqual(stage["mode"], 0o600)
++                if name in ("cleanup", "published"):
++                    self.assert_complete(barrier["final"])
++                    self.assert_complete(artifact)
++                elif name.startswith("write-"):
++                    self.assertIsNone(barrier["final"], "incomplete final pathname visible at write barrier")
++                    self.assertIsNone(artifact, "interrupted pre-publication must not expose final bytes")
++                else:
++                    self.assertIsNone(barrier["final"])
++                    self.assertEqual(final.lstat().st_ino, collision_inode)
++                    self.assertEqual(final.is_symlink(), name == "collision-symlink")
++                    if final.is_symlink():
++                        self.assertEqual(os.readlink(final), str(target))
++                    self.assertEqual(final.read_text(), "target unchanged" if final.is_symlink() else "competitor unchanged")
++                    self.assertEqual(target.read_text(), "target unchanged")
++                    self.assertIn("refusing to replace timeout evidence at hard-timeout.json:", stderr)
++                    self.assertNotIn("command-secret-must-not-persist", stderr)
++                    self.assertEqual(leftovers, [])
++            finally:
++                if proc.poll() is None:
++                    proc.kill()
++                proc.communicate()
++                # Only fixture-owned processes; this also cleans up a failed control.
++                for label in ("worker", "descendant"):
++                    pid_path = root / (label + ".pid")
++                    if pid_path.exists():
++                        try:
++                            os.kill(int(pid_path.read_text()), signal.SIGKILL)
++                        except ProcessLookupError:
++                            pass
++
++    def test_evidence_precedes_deadline_consuming_cleanup(self):
++        self.scenario("cleanup")
++
++    def test_interrupted_write_never_exposes_incomplete_final(self):
++        for name in ("write-empty", "write-prefix"):
++            with self.subTest(scenario=name):
++                self.scenario(name)
++
++    def test_atomic_publication_and_raced_collisions(self):
++        for name in ("published", "collision-file", "collision-symlink"):
++            with self.subTest(scenario=name):
++                self.scenario(name)
++
++
+ class SelfTest(unittest.TestCase):
+     def test_the_bundled_self_test_passes_in_a_scratch_home(self):
+         before = tree_state(SKILL)
+diff --git a/changes/test-harness/atomic-timeout-evidence.md b/changes/test-harness/atomic-timeout-evidence.md
+new file mode 100644
+index 00000000..36a89327
+--- /dev/null
++++ b/changes/test-harness/atomic-timeout-evidence.md
+@@ -0,0 +1,4 @@
++---
++bump: patch
++---
++Attempt hard-timeout evidence before cleanup and publish complete private JSON atomically without replacing existing files or symlinks.

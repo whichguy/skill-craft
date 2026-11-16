@@ -1,0 +1,25 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "test/release-preflight.test.py",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-20261116",
+  "before": {
+    "head": "f6fade35e4464538314aaafb402a09955edbbc8a",
+    "status": " M scripts/release.py\n M test/release-preflight.test.py\n",
+    "script_sha256": "24caaf52c3c77cee6e9035df1d040511a0a67e42190a9b33f620fcf9940bdd6a",
+    "test_sha256": "4136ec73ea469bfceed7a489d680d699e370b81bf7e88433a1c5072f4fdc2fc8"
+  },
+  "start": "2026-11-16T15:12:08.415825+00:00",
+  "end": "2026-11-16T15:12:16.392368+00:00",
+  "elapsed_seconds": 7.976334917009808,
+  "exit_code": 0,
+  "after": {
+    "head": "f6fade35e4464538314aaafb402a09955edbbc8a",
+    "status": " M scripts/release.py\n M test/release-preflight.test.py\n",
+    "script_sha256": "24caaf52c3c77cee6e9035df1d040511a0a67e42190a9b33f620fcf9940bdd6a",
+    "test_sha256": "4136ec73ea469bfceed7a489d680d699e370b81bf7e88433a1c5072f4fdc2fc8"
+  }
+}

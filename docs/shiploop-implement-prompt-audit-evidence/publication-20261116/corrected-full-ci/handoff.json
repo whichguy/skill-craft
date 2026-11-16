@@ -1,0 +1,659 @@
+{
+  "schema": "execution-only-ci-handoff/1",
+  "result": "PASS",
+  "completed_utc": "2026-11-16T16:34:19.757867+00:00",
+  "run": {
+    "id": 43903593989,
+    "url": "https://github.com/whichguy/skill-craft/actions/runs/43903593989",
+    "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+    "tree": "c36540f8873361a8ff6b602413da366cbc2e0979",
+    "tier": "full",
+    "event": "workflow_dispatch",
+    "attempt": 1,
+    "branch": "codex/r19-r16-publish-fixtures-20261116",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "counts": {
+    "jobs_expected": 13,
+    "jobs_completed_success": 13,
+    "artifacts_expected": 10,
+    "artifacts_retained": 10,
+    "workflow_log_files": 174,
+    "total_executions": 285,
+    "distinct_suites": 209,
+    "python_floor_repeats": 76,
+    "passed_suite_executions": 285,
+    "failed": 0,
+    "incomplete": 0,
+    "conditional_testcase_skips": 59,
+    "required_suite_omissions": 0
+  },
+  "groups": {
+    "core": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-core/receipt.json",
+      "validator_exit": 0,
+      "selected": 63,
+      "completed": 63,
+      "passed": 63,
+      "failures": [],
+      "selected_once": true,
+      "completed_once": true,
+      "complete": true,
+      "schema": "skill-craft-hermetic-receipt/1",
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "status": [],
+        "tree": "c36540f8873361a8ff6b602413da366cbc2e0979"
+      },
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/validate-core.stdout"
+    },
+    "shiploop-1": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-1/receipt.json",
+      "validator_exit": 0,
+      "selected": 47,
+      "completed": 47,
+      "passed": 47,
+      "failures": [],
+      "selected_once": true,
+      "completed_once": true,
+      "complete": true,
+      "schema": "skill-craft-hermetic-receipt/1",
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "status": [],
+        "tree": "c36540f8873361a8ff6b602413da366cbc2e0979"
+      },
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/validate-shiploop-1.stdout"
+    },
+    "shiploop-2": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-2/receipt.json",
+      "validator_exit": 0,
+      "selected": 48,
+      "completed": 48,
+      "passed": 48,
+      "failures": [],
+      "selected_once": true,
+      "completed_once": true,
+      "complete": true,
+      "schema": "skill-craft-hermetic-receipt/1",
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "status": [],
+        "tree": "c36540f8873361a8ff6b602413da366cbc2e0979"
+      },
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/validate-shiploop-2.stdout"
+    },
+    "shiploop-3": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-3/receipt.json",
+      "validator_exit": 0,
+      "selected": 47,
+      "completed": 47,
+      "passed": 47,
+      "failures": [],
+      "selected_once": true,
+      "completed_once": true,
+      "complete": true,
+      "schema": "skill-craft-hermetic-receipt/1",
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "status": [],
+        "tree": "c36540f8873361a8ff6b602413da366cbc2e0979"
+      },
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/validate-shiploop-3.stdout"
+    },
+    "e2e-apparatus": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-e2e-apparatus/receipt.json",
+      "validator_exit": 0,
+      "selected": 4,
+      "completed": 4,
+      "passed": 4,
+      "failures": [],
+      "selected_once": true,
+      "completed_once": true,
+      "complete": true,
+      "schema": "skill-craft-hermetic-receipt/1",
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "status": [],
+        "tree": "c36540f8873361a8ff6b602413da366cbc2e0979"
+      },
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/validate-e2e-apparatus.stdout"
+    },
+    "python-floor": {
+      "receipt": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-python-floor/receipt.json",
+      "validator_exit": 0,
+      "selected": 76,
+      "completed": 76,
+      "passed": 76,
+      "failures": [],
+      "selected_once": true,
+      "completed_once": true,
+      "complete": true,
+      "schema": "skill-craft-hermetic-receipt/1",
+      "source": {
+        "dirty_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head": "9b05a94f68026941ed4028da3a744830c66cf3f4",
+        "status": [],
+        "tree": "c36540f8873361a8ff6b602413da366cbc2e0979"
+      },
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/validate-python-floor.stdout"
+    }
+  },
+  "conditional_skips": [
+    {
+      "group": "core",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-core/logs/004-test-groups.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)",
+      "count": 1
+    },
+    {
+      "group": "shiploop-1",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-1/logs/039-shiploop-e2e-experiments.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=50)",
+      "count": 50
+    },
+    {
+      "group": "shiploop-1",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-1/logs/045-shiploop-e2e-user-directory.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)",
+      "count": 1
+    },
+    {
+      "group": "shiploop-2",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-2/logs/022-shiploop-e2e-hosts.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=2)",
+      "count": 2
+    },
+    {
+      "group": "shiploop-3",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-3/logs/042-shiploop-e2e-stage-live.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)",
+      "count": 1
+    },
+    {
+      "group": "shiploop-3",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-3/logs/037-shiploop-e2e-efficiency.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=1)",
+      "count": 1
+    },
+    {
+      "group": "shiploop-3",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/hermetic-shiploop-3/logs/028-shiploop-e2e-roundtable.stderr.log",
+      "line": 5,
+      "text": "OK (skipped=3)",
+      "count": 3
+    }
+  ],
+  "browser": {
+    "delayed-setup": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/browser-fixtures-delayed-setup/delayed-setup.log",
+      "pass_signal": {
+        "status": "PASS",
+        "checks": 5,
+        "rootRaces": [
+          {
+            "method": "click",
+            "label": "Setup",
+            "gate": "disabled-poll",
+            "events": [
+              [
+                "second-root-mounted",
+                true,
+                0
+              ],
+              [
+                "original-enabled",
+                true
+              ]
+            ],
+            "outcome": "rejected",
+            "reason": "ui-state-invalid"
+          },
+          {
+            "method": "enabledButton",
+            "label": "Recheck setup",
+            "gate": "disabled-poll",
+            "events": [
+              [
+                "second-root-mounted",
+                true,
+                0
+              ],
+              [
+                "original-enabled",
+                true
+              ]
+            ],
+            "outcome": "rejected",
+            "reason": "ui-state-invalid"
+          }
+        ],
+        "browser": "157.0.8103.50"
+      }
+    },
+    "setup-save-boundary": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/browser-fixtures-setup-save-boundary/setup-save-boundary.log",
+      "pass_signal": {
+        "status": "PASS",
+        "scenarios": [
+          {
+            "phase": "none",
+            "outcome": "ok"
+          },
+          {
+            "phase": "before",
+            "outcome": "chat-attempted-before-setup"
+          },
+          {
+            "phase": "after",
+            "outcome": "ok"
+          }
+        ],
+        "browser": "157.0.8103.50"
+      }
+    },
+    "turn-and-action-correlation": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/browser-fixtures-turn-and-action-correlation/turn-and-action-correlation.log",
+      "pass_signal": {
+        "status": "PASS",
+        "send": [
+          "direct",
+          "missing-render",
+          "hidden-shadow",
+          "nested-shadow",
+          "sibling-shadow",
+          "wrong-body-with-matching-fragment",
+          "clipped-reply",
+          "first-glyph-only-reply",
+          "scrollable-history",
+          "message-metadata",
+          "inset-clipped-reply",
+          "unsupported-ancestor-clip-reply",
+          "fully-visible-inset-reply",
+          "partially-clipped-extra-line",
+          "unevaluable-extra-line",
+          "fully-hidden-extra-lines",
+          "zero-width-overflow-extra-line",
+          "partially-visible-overflow-extra-line",
+          "absolute-overflow-extra-line",
+          "fixed-overflow-extra-line",
+          "split",
+          "wrong-conversation",
+          "wrong-token",
+          "wrong-response-id",
+          "replay",
+          "after-confirm-direct",
+          "after-confirm-split",
+          "after-cancel-direct",
+          "changed-prior-proposal",
+          "unexplained-terminal",
+          "after-confirm-bookkeeping-direct",
+          "after-confirm-bookkeeping-split",
+          "page-reload-bookkeeping-direct",
+          "page-reload-bookkeeping-split",
+          "disabled-reload-bookkeeping-direct",
+          "disabled-reload-bookkeeping-split",
+          "unexplained-bookkeeping",
+          "changed-prior-history",
+          "changed-readback-proposal",
+          "unread-bookkeeping"
+        ],
+        "actions": [
+          "delayed-proposal-after-ready",
+          "delayed-status",
+          "wrong-status",
+          "nested-status",
+          "wrong-marker",
+          "wrong-rpc",
+          "ambiguous-record",
+          "ambiguous-name",
+          "update-name",
+          "stale-name",
+          "nonunique-name",
+          "authoritative-id",
+          "normalized-name",
+          "swapped-values",
+          "incidental-target",
+          "nested-action-details",
+          "nested-action-operation",
+          "nested-labelledby-fields",
+          "nested-labelledby-controls",
+          "clipped-proposal-field",
+          "ancestor-inset-clipped-proposal-field",
+          "fully-visible-inset-proposal-field",
+          "partially-clipped-proposal-extra",
+          "foreign-action-clipped-extra",
+          "wrong-operation-prose",
+          "fieldset-and-labelled-operation",
+          "delayed-card",
+          "delayed-controls",
+          "absent-controls",
+          "wrong-result-record",
+          "retry-disabled",
+          "retry-removed",
+          "retry-enabled-replacement",
+          "retry-out-of-order",
+          "retry-wrong-result",
+          "retry-rebound",
+          "retry-reparented",
+          "retry-applied-then-rejected"
+        ],
+        "connections": [
+          "one-connection-plus-setup",
+          "duplicate-connection-in-batch",
+          "uncorrelated-connection"
+        ],
+        "browser": "157.0.8103.50"
+      }
+    },
+    "app-owned-controls": {
+      "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts/browser-fixtures-app-owned-controls/app-owned-controls.log",
+      "pass_signal": {
+        "status": "PASS",
+        "scenarios": [
+          {
+            "name": "shell-anchor-first",
+            "keyboard": "pass",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [],
+            "reopen": [
+              "app-keyboard",
+              "connection",
+              "app-pointer"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "app-first-with-native-shell-buttons",
+            "keyboard": "pass",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [],
+            "reopen": [
+              "app-keyboard",
+              "connection",
+              "app-pointer"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "delayed-shadow-role-button",
+            "keyboard": "pass",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [],
+            "reopen": [
+              "app-keyboard",
+              "connection",
+              "app-pointer"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "hidden-root-and-control-are-ignored",
+            "keyboard": "pass",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [],
+            "reopen": [
+              "app-keyboard",
+              "connection",
+              "app-pointer"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "missing-root",
+            "keyboard": "ui-control-missing",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "ambiguous-roots",
+            "keyboard": "ui-state-invalid",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "missing-app-setup",
+            "keyboard": "ui-control-missing",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "ambiguous-app-setup",
+            "keyboard": "ui-state-invalid",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "ambiguous-with-disabled-app-setup",
+            "keyboard": "ui-state-invalid",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "native-disabled-setup",
+            "keyboard": "ui-control-missing",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "aria-disabled-setup",
+            "keyboard": "ui-control-missing",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "inert-setup",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "pointer-only-setup-with-closed-config",
+            "keyboard": "ui-control-missing",
+            "activation": [],
+            "decoyFocus": [],
+            "status": "PASS"
+          },
+          {
+            "name": "focused-labelled-div",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [
+              "DIV",
+              "DIV"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "focused-labelled-wrapper",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [
+              "LABEL",
+              "LABEL"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "focused-outside-native-input",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [
+              "INPUT",
+              "INPUT"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "focused-wrong-exact-label",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [
+              "INPUT",
+              "INPUT"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "focused-aria-disabled-input",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [
+              "INPUT",
+              "INPUT"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "focused-transparent-input",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [
+              "INPUT",
+              "INPUT"
+            ],
+            "status": "PASS"
+          },
+          {
+            "name": "focused-non-text-input",
+            "keyboard": "keyboard-inaccessible",
+            "activation": [
+              "app-keyboard"
+            ],
+            "decoyFocus": [
+              "INPUT",
+              "INPUT"
+            ],
+            "status": "PASS"
+          }
+        ],
+        "browser": "157.0.8103.50"
+      }
+    }
+  },
+  "source": {
+    "path": "/Users/dadleet/src/skill-craft-r19-r16-publish-fixtures-20261116",
+    "unchanged": true,
+    "ordinary_clean": true,
+    "ignored_clean": true,
+    "identity": {
+      "head": {
+        "unchanged": true,
+        "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/pre-head.stdout",
+        "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/post-head.stdout",
+        "sha256": "51ea9723e3cd3c579241c99c1c8cb3d2bd80a76010bfccbb8f0509023cb6b56f"
+      },
+      "tree": {
+        "unchanged": true,
+        "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/pre-tree.stdout",
+        "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/post-tree.stdout",
+        "sha256": "9656ee843f8199a1ebef385171b9c0b20a4fdb4432b31a656fa7f67610dd5d87"
+      },
+      "index": {
+        "unchanged": true,
+        "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/pre-index.stdout",
+        "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/post-index.stdout",
+        "sha256": "56e959447006ddd97eb6576908a6a54b86a3576a44a94eff571f8af6cb1d3ce3"
+      },
+      "status": {
+        "unchanged": true,
+        "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/pre-status.stdout",
+        "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/post-status.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "status-ignored": {
+        "unchanged": true,
+        "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/pre-status-ignored.stdout",
+        "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/post-status-ignored.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tracked": {
+        "unchanged": true,
+        "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/pre-tracked.stdout",
+        "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/post-tracked.stdout",
+        "sha256": "16caff14075e24c3d4bc0a5a89af7636880b1eeb9f41c1fd1867aae33d07f2f5"
+      },
+      "inventory.json": {
+        "unchanged": true,
+        "pre": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/pre-inventory.json",
+        "post": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/post-inventory.json",
+        "sha256": "b52c611216bc45cd3e6c43de0d70d9b4b05122150a0842555771c749fcc8d3b8"
+      }
+    }
+  },
+  "planner": {
+    "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/plan-log-stripped.txt",
+    "tier": "full",
+    "exact_source": true,
+    "base": ""
+  },
+  "release_boundary": {
+    "result": "N/A",
+    "reason": "manual workflow_dispatch; no actual push-range coverage",
+    "log": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/boundary-log-stripped.txt"
+  },
+  "evidence": {
+    "root": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci",
+    "terminal_run": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/terminal-run.stdout",
+    "run_and_jobs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/latest.json",
+    "artifact_metadata": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/artifacts.json",
+    "downloaded_inventory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/downloaded-inventory.json",
+    "workflow_zip": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/workflow-logs-zip.stdout",
+    "raw_workflow_logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/workflow-logs",
+    "stripped_workflow_logs": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/workflow-logs-stripped",
+    "receipt_audit": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/receipt-audit.json",
+    "qualified_preflight": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/qualified-preflight.command.json",
+    "initial_preflight": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/corrected-full-ci/initial-preflight.json"
+  },
+  "collection_notes": [
+    "Initial mandatory gh preflight succeeded but its exact start/end UTC and separate stderr were not captured by the tool; initial-preflight.json preserves this gap without backfill. Parent-authorized qualified-preflight.command.json retains exact UTC/start/end/exit and independent stdout/stderr, and reverified all identity fields before further collection.",
+    "Original plan/boundary log reads were rejected by gh terminal-escape protection. Original failures retained. Parent-authorized raw-file follow-up succeeded with gh api --allow-escape-sequences; a wrong flag placement failed locally before network and is retained separately. No CI rerun/retry.",
+    "Local collector library invocation initially failed before any network call due to missing argv; corrected invocation completed the separately authorized qualified preflight. This collector-only error did not execute tests or change source."
+  ],
+  "limitations": [
+    "Hermetic and local browser fixture qualification only. No publication, installed-host, deployed/live-org or live-model claim.",
+    "Original run43895804906 remains FAIL285complete/280pass/5fail,3distinct; not overwritten or regraded."
+  ],
+  "retries_or_repairs": 0,
+  "source_outputs_allowed": []
+}

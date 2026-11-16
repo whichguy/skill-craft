@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-actual-improve-cli.test.py",
+    "R16LocalObserverTests.test_r16_local_observer_independent_controls_reject_always_success",
+    "R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-r16-publish-latest-20261116",
+  "environment": {
+    "PATH": "/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dadleet/.codex/tmp/arg0-macos/codex-arg0jJT7Jx:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dadleet/.grok/bin:/Users/dadleet/.bun/bin:/Users/dadleet/.claude/tools:/Users/dadleet/.local/bin:/Users/dadleet/.orbstack/bin:/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/dadleet/.orbstack/bin",
+    "HOME": "/Users/dadleet",
+    "TMPDIR": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "GIT_OPTIONAL_LOCKS": "0"
+  },
+  "start_utc": "2026-11-16T16:53:25.584771+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-source-qualification/check-4.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/retirement-source-qualification/check-4.stderr.log",
+  "exit_code": 0,
+  "status": "PASS",
+  "end_utc": "2026-11-16T16:53:31.342579+00:00",
+  "source_unchanged": true
+}
