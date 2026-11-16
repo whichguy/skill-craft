@@ -1,0 +1,11 @@
+# Model-written Chrome launches under ~/e2e-runs, 2026-11-15 (read only)
+# files: grep -rlE 'remote-debugging-port|--headless|Google Chrome.app' (*.js *.cjs *.mjs *.ts *.py, no node_modules)
+matching files:     2262
+distinct contents (shasum):      137
+distinct raw launchers (--headless, no playwright/puppeteer):      123
+  of which pass --use-mock-keychain:        0
+  of which read CHROME_PATH or CHROME_BIN:       28
+  of which look on PATH (which, command -v, google-chrome, chromium):       28
+  of which name only /Applications/Google Chrome.app (no variable, no PATH lookup):       67
+the caught launcher: stacked-test-20261115/sessions/v2170-ds-battleship/C4/work/test/browser.test.js, argv:
+  19:  const p=spawn(chrome,['--headless=new','--no-sandbox','--disable-gpu','--disable-background-networking','--no-first-run','--remote-debugging-port=0',`--user-data-dir=${dir}`,'about:blank'],{stdio:'ignore'});
