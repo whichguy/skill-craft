@@ -228,17 +228,44 @@ class ProgressTests(RunCase):
     def test_restarted_observer_replaces_stale_status_before_start_succeeds(self):
         self.assertEqual(progress.observe(self.run, watch=False), 0)
         old = json.loads((self.run / progress.STATUS).read_text())["instance"]
+        old_page = (self.run / progress.PAGE).read_bytes()
         (self.repo / "ARCHITECTURE.md").write_text("A newly saved architecture draft")
         real_popen = subprocess.Popen
+        instance = None
 
         def retain_process(*args, **kwargs):
+            nonlocal instance
+            command = args[0]
+            instance = command[command.index("--instance") + 1]
             process = real_popen(*args, **kwargs)
             self.processes.append(process)
             return process
 
         # Keep the real child handle until cleanup stops the observer and waits for it.
         with mock.patch.object(progress.subprocess, "Popen", side_effect=retain_process):
-            self.assertTrue(progress.start(self.run, interval=.1))
+            started = progress.start(self.run, interval=.1)
+        self.assertEqual(len(self.processes), 1)
+        process = self.processes[0]
+        self.assertTrue(instance)
+
+        def fresh_publication():
+            record = json.loads((self.run / progress.STATUS).read_text())
+            if (record["instance"] == instance and record["instance"] != old
+                    and record["pid"] == process.pid and record["status"] == "watching"
+                    and progress.running(self.run) and process.poll() is None
+                    and (self.run / progress.PAGE).read_bytes() != old_page
+                    and self.page_contains('data-mode="watch"')
+                    and self.page_contains("A newly saved architecture draft")):
+                return record
+            return None
+
+        if started:
+            # Success must already mean fresh publication; waiting here would hide premature True.
+            self.assertTrue(fresh_publication())
+        else:
+            # A bounded start can leave this same child alive before its first publication.
+            self.assertIsNone(process.poll(), "unconfirmed observer exited before publication")
+            self.wait_for(fresh_publication)
         record = json.loads((self.run / progress.STATUS).read_text())
         self.assertNotEqual(record["instance"], old)
         self.assertTrue(self.page_contains("A newly saved architecture draft"))
