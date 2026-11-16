@@ -3,7 +3,7 @@
 
 Below the floor the CLI says so in one line and exits 2; a host hook event does nothing and exits 0, so a machine with
 an old python3, or none, gets no error on every tool call.  The floor is declared once, in
-``shiploop_pyfloor.FLOOR``; the skill card and the CI job must state the same number (the python-floor group's
+``shiploop_pyfloor.FLOOR``; the skill card states the minimum, while CI follows the latest stable Python (the python-floor group's
 membership is pinned in test-groups, not here: importing the catalog would make this suite a reader of every path it names).  The interpreter below the floor
 is simulated by setting ``sys.version_info`` before the entry script runs (a real Python 3.7.3 gave the same exits and
 messages on 2026-10-31); the shell wrappers are run with a stub ``python3`` that records what it was asked to run.
@@ -14,10 +14,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import state_home
 
@@ -40,34 +42,43 @@ HOOK_ENTRIES = {
 PAYLOAD = '{"hook_event_name": "PostToolUse", "session_id": "s1", "cwd": "/tmp"}'
 
 
-def _run_below_floor(script: str, *args: str) -> subprocess.CompletedProcess:
-    """Run an entry script as Python 3.8.0 would: ``sys.version_info`` is set before the script's first line."""
+def _run_below_floor(script: str, *args: str, version: tuple[int, int, int] = (3, 8, 0)) -> subprocess.CompletedProcess:
+    """Simulate an unsupported interpreter before the entry script's first line."""
     code = ("import runpy, sys\n"
-            "sys.version_info = (3, 8, 0, 'final', 0)\n"
+            f"sys.version_info = {version + ('final', 0)!r}\n"
             "sys.argv = sys.argv[1:]\n"
             "runpy.run_path(sys.argv[0], run_name='__main__')\n")
-    return subprocess.run([sys.executable, "-c", code, str(SCRIPTS / script), *args], input="", text=True,
+    return subprocess.run([sys.executable, "-B", "-c", code, str(SCRIPTS / script), *args], input="", text=True,
                           capture_output=True, timeout=60, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
 
 
 class BelowTheFloorTest(unittest.TestCase):
     def test_the_cli_entries_state_the_requirement_and_exit_blocked(self) -> None:
-        for script, args in (("shiploop", ["--help"]), ("shiploop-drive", ["--help"]),
-                             ("shiploop-hook", ["status", "--host", "claude"])):
-            with self.subTest(script):
-                done = _run_below_floor(script, *args)
-                self.assertEqual(done.returncode, 2, done.stderr)
-                self.assertEqual(done.stdout, "")
-                self.assertEqual(done.stderr, f"error: ShipLoop needs Python {FLOOR} or newer; this python3 is 3.8.0. "
-                                 "Put a newer python3 first on PATH.\n")
+        for version in ((3, 8, 0), (3, 9, 0), (3, 14, 0)):
+            for script, args in (("shiploop", ["--help"]), ("shiploop-drive", ["--help"]),
+                                 ("shiploop-hook", ["status", "--host", "claude"])):
+                with self.subTest(script=script, version=version):
+                    done = _run_below_floor(script, *args, version=version)
+                    self.assertEqual(done.returncode, 2, done.stderr)
+                    self.assertEqual(done.stdout, "")
+                    actual_version = ".".join(map(str, version))
+                    self.assertEqual(done.stderr, f"error: ShipLoop needs Python {FLOOR} or newer; "
+                                     f"this python3 is {actual_version}. Put a newer python3 first on PATH.\n")
 
     def test_a_host_hook_event_does_nothing_and_says_nothing(self) -> None:
-        for verb in ("observe", "stop", "skill", "session-end"):
-            with self.subTest(verb):
-                done = _run_below_floor("shiploop-hook", verb, "--host", "auto")
-                self.assertEqual((done.returncode, done.stdout, done.stderr), (0, "", ""))
+        for version in ((3, 8, 0), (3, 9, 0), (3, 14, 0)):
+            for verb in ("observe", "stop", "skill", "session-end"):
+                with self.subTest(verb=verb, version=version):
+                    done = _run_below_floor("shiploop-hook", verb, "--host", "auto", version=version)
+                    self.assertEqual((done.returncode, done.stdout, done.stderr), (0, "", ""))
 
     def test_an_interpreter_at_the_floor_passes_the_guard(self) -> None:
+        self.assertEqual(shiploop_pyfloor.FLOOR, (3, 15))
+        for version in ((3, 15, 0), (3, 15, 1), (3, 16, 0), (4, 0, 0)):
+            with self.subTest(version=version), mock.patch.object(sys, "version_info", version + ("final", 0)):
+                self.assertIsNone(shiploop_pyfloor.require())
+                self.assertIsNone(shiploop_pyfloor.require(hook_event=True))
+        # Also exercise the real interpreter running this suite.
         shiploop_pyfloor.require()
         shiploop_pyfloor.require(hook_event=True)
 
@@ -88,7 +99,8 @@ class BelowTheFloorTest(unittest.TestCase):
         self.assertGreaterEqual(checked, 3, "shiploop, shiploop-drive and shiploop-hook")
 
     def test_the_guard_module_parses_as_python_3_7(self) -> None:
-        # It must run on the interpreters it turns away; syntax is the part a later edit could break.
+        # Refusal compatibility only: old syntax lets unsupported interpreters reach the clean exit.
+        # This does not offer Python 3.7 runtime support.
         ast.parse((SCRIPTS / "shiploop_pyfloor.py").read_text(), feature_version=(3, 7))
 
 
@@ -129,9 +141,16 @@ class FloorIsStatedWhereItIsEnforcedTest(unittest.TestCase):
         card = " ".join((ROOT / "skills/shiploop/SKILL.md").read_text().split())
         self.assertIn(f"needs `python3` {FLOOR} or newer and `git` on PATH", card)
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        self.assertIn(f"matrix.group == 'python-floor' && '{FLOOR}'", workflow)
-        # setup-python has no build of the floor for ubuntu-latest, so the leg names a runner image that has one.
-        self.assertIn("matrix.group == 'python-floor' && 'ubuntu-24.04'", workflow)
+        # Keep this a narrow workflow reader; do not import the suite catalog or inventory docs.
+        setups = [step for step in re.split(r"(?m)^      - ", workflow)
+                  if step.startswith("uses: actions/setup-python@")]
+        self.assertGreater(len(setups), 0, "CI must configure Python explicitly")
+        for step in setups:
+            with self.subTest(setup=step.splitlines()[0]):
+                self.assertRegex(step, r"(?m)^          python-version: ['\"]3\.x['\"]\s*$")
+                self.assertRegex(step, r"(?m)^          check-latest: true\s*$")
+        self.assertNotRegex(workflow, r"matrix\.group\s*==\s*['\"]python-floor['\"]")
+        self.assertNotIn("ubuntu-24.04", workflow)
 
 
 if __name__ == "__main__":

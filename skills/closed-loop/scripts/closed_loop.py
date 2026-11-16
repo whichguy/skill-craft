@@ -1712,7 +1712,7 @@ def fingerprint_problem(campaign_dir: Path):
         for line in staged.stdout.splitlines():
             meta, _, name = line.partition("\t")
             held[name] = meta.split()[1]
-        hashes = raw.stdout.split()  # one per path, in order (zip's strict= needs Python 3.10; the floor is 3.9)
+        hashes = raw.stdout.split()  # One hash per present path, in the same order.
         own = {name: hashes[number] for number, name in enumerate(present) if number < len(hashes)}
         hidden = [name for name in present if held.get(name) != own.get(name)]
         if hidden:

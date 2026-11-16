@@ -586,7 +586,7 @@ def _state_home_error(state_home: Path) -> str | None:
 def _scratch_directory(prefix: str) -> Iterator[str]:
     """A temporary directory removed on exit, whose removal errors are ignored.
 
-    ``TemporaryDirectory(ignore_cleanup_errors=True)`` is Python 3.10+; the python-floor group runs this runner on 3.9.
+    Cleanup errors must not replace the suite result.
     """
 
     name = tempfile.mkdtemp(prefix=prefix)

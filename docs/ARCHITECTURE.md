@@ -166,9 +166,14 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   identical quick selection (60-second fallback costs). Catalog order, exhaustive
   disjoint membership and changed-range inputs are preserved. This scheduling
   threshold is not a timeout or coverage cap; projected gains await measurement.
-  Full runs `core`, three deterministic ShipLoop shards, `python-floor` (the ShipLoop
-  suites on Python 3.9, on `ubuntu-24.04` because `ubuntu-latest` has no 3.9 build)
-  and `e2e-apparatus`, one job per group; all 76 floor suites retain membership.
+  Full runs five groups: `core`, three deterministic ShipLoop shards and
+  `e2e-apparatus`, one job per group, covering all 207 unique suites once.
+  The local `python-floor` selector retains its 76-suite legacy component subset
+  using the caller's `python3`; it is not a separate interpreter validation job.
+  Python prerequisites are 3.15 or newer. All CI Python setups, including browser
+  fixtures, use `python-version: '3.x'` with `check-latest: true` to qualify
+  latest stable Python. When that advances to 3.16, CI no longer exercises the
+  declared 3.15 minimum; this is not ongoing minimum-version qualification.
   Checks and browser fixtures run independently after planning; release-boundary
   is independent of planning. Four fixed browser matrix jobs run delayed-setup, setup-save-boundary,
   turn-and-action-correlation and app-owned-controls concurrently, each retaining
