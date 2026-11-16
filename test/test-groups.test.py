@@ -141,10 +141,12 @@ class TestGroupTests(unittest.TestCase):
         # Source-bound CI receipt reporting and the fake-Node browser driver each add one core suite (2026-11-15).
         # The closed-loop skill adds one core suite (2026-11-15): the orchestrator against a fake subject and the real Until Loop runtime.
         # The sport80 skill and its suite left for the fortified-strength repository (2026-11-15), so core is one fewer, 63, and all suites 206.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 63)
+        # Backchain was retired (owner decision 2026-11-16): backchain-chunks and backchain-toolkit left with it, so core is 61
+        # and all suites two fewer; backchain-graph stays, because its library moved into ShipLoop.
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
         # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
         # The ShipLoop adapter's three contract suites (2026-11-15: queries, steps, real engine with fake hosts) make 209.
-        self.assertEqual(len(suite_catalog.SUITES), 209)
+        self.assertEqual(len(suite_catalog.SUITES), 207)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -215,9 +217,6 @@ class TestGroupTests(unittest.TestCase):
                          "shiploop-navigator-v4"} <= baseline)
         self.assertLess(len(baseline), 17)
         cases = {
-            "skills/backchain/prompts/revise.prompt.md": {"backchain-chunks", "backchain-graph", "backchain-toolkit"},
-            "test/backchain_chunks.py": {"backchain-chunks"},
-            "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks", "marketplace-package"},
             # shiploop-loops reaches the stop hook end to end on a real run (owed-outcome phase A); shiploop-e2e-slice frees
             # the run's keepalive owner at a clear with the plugin's own release_owner.
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive", "shiploop-skill-calls", "shiploop-actual-improve-cli", "shiploop-domain-words",
@@ -383,12 +382,14 @@ class TestGroupTests(unittest.TestCase):
         # (closed-loop and the ShipLoop adapter's three, 2026-11-15): a new suite is named here so the digest keeps freezing the original rows.
         # The sport80 suite's row left the catalog with the skill (2026-11-15; it moved to the fortified-strength repository), so
         # the digest below is that of the rows that remain: it changed by the removal of that one row and by nothing else.
+        # Backchain's backchain-chunks and backchain-toolkit rows left with the retired skill (2026-11-16), and the digest
+        # changed again by those two removals only.
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES if s.id not in {"ci-summary", "browser-fixtures", "closed-loop",
                                            "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine"}]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "27e7b90c620a772be82d5962d612cb4c6b87f25cc85a358fd4952b60159fb79e")
+        self.assertEqual(digest, "fff0b677e7bb72149c0d21c515fb6e5d55136faa5839ed969662bfecca4b4bc0")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])

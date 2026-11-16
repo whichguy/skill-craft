@@ -57,15 +57,9 @@ class IntegrationBoundaryTests(unittest.TestCase):
             self.assertIn("shiploop-stages", result.stdout)
             self.assertIn("cursor-imports", result.stdout)
             self.assertIn("marketplace-claude", result.stdout)
-            self.assertIn("backchain-chunks", result.stdout)
 
         result = invoke(["bash", str(RUNNER), "marketplace-codex", "extra"], empty_env)
         self.assertEqual(64, result.returncode, result.stdout + result.stderr)
-
-        chunks_help = invoke(["bash", str(RUNNER), "backchain-chunks", "--help"], empty_env)
-        self.assertEqual(0, chunks_help.returncode, chunks_help.stdout + chunks_help.stderr)
-        self.assertIn("prepare", chunks_help.stdout)
-        self.assertIn("check", chunks_help.stdout)
 
         result = invoke(["bash", str(RUNNER), "not-a-command"], empty_env)
         self.assertEqual(64, result.returncode)

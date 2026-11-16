@@ -304,6 +304,19 @@ Grok 4.6 xhigh, Sol 6.1 medium and Sonnet 5.5 high it found no meaningful plan-q
 is unmeasured. This amendment applies to new runs registered against this revision. Earlier
 frozen obligations and verdicts retain their original interpretation.
 
+Amended 2026-11-16, owner decision. After the premise review
+(`docs/backchain-efficiency-journal-2026-11.md`, Round 15) the owner asked "If there's little to no
+benefit, shouldn't we just retire the whole thing?", answered "Yes, go ahead" to retiring Backchain with
+no live round, and confirmed "You have the waiver for a live ShipLoop run no live round". The Backchain
+skill is retired, and with it the run option: no run records `backchain_passes`, `--backchain-passes`
+no longer exists, and a saved run that records the option is refused with the fresh-run hint. No stage
+offers a Backchain child, so the opt-ins `one` and `converge`, and every obligation above that applies
+to a Backchain child (its gates, contract, receipts and resources), no longer apply to new runs. What
+stays required is what `none` already printed: the planning guide's dependency audit at every Backchain
+stage and the record-only structural `backchain-check`, whose plan graph format is now the guide's
+"Plan graph format" section. This amendment applies to new runs registered against this revision.
+Earlier frozen obligations and verdicts retain their original interpretation.
+
 **S-10 carve-out, owner decision 2026-10-05** (reconciled 2026-10-29 to the
 later accepted review schedule). The run option (state option `planning_review`)
 is selected with `--planning-review stage` or `--planning-review none` and recorded in

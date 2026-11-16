@@ -552,3 +552,29 @@ Decision: none taken here; these are owner decisions, because each removes or re
 - (C) Keep it as is (opt-in since 2.42.0) and run R15-13 (a) first.
 
 The main session leans to (A), with R15-13 (a) first if the owner wants the last open signal tested.
+
+Superseded 2026-11-16 by Round 16: the owner chose (B) and retired Backchain. After this round the main session
+recommended stopping, so as to spend no more tokens; the owner pointed out that no benefit means retire, and that
+recommendation was withdrawn (R16-1).
+
+## Round 16 — Backchain retired (owner decision, 2026-11-16)
+
+Question (owner). Round 15 gave the decision three options. The owner first asked for a recommendation: "I don't want to waste any
+tokens, and accomplishing the same thing is pointless, just a waste of tokens". I answered stop here, leave Backchain
+opt-in, and remove it only when other work touched its code. The owner replied: "I'm confused. If there's little to no
+benefit, shouldn't we just retire the whole thing?" To "Retire it, with no live round?" the owner answered "Yes, go
+ahead", then "You have the waiver for a live ShipLoop run no live round".
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R16-1 | My "stop here" weighed the cleanup against the cost per run, which was already near zero because Backchain was off by default. It left out where Backchain still spent tokens, which is upkeep. Every ShipLoop change near the planning stages carried the two opt-in modes and their pins. In two days Backchain also pulled in three releases (2.41.0, 2.42.0, 2.42.1), the 60-attempt value study and Round 15. The owner's correction stands: with no measured benefit, retiring it is the cheaper end state. | firm (the owner's correction) | this round's question |
+| R16-2 | Retired: `skills/backchain` and `agents/backchain.md`; Backchain's own suites `backchain-chunks` and `backchain-toolkit` with their fixtures and the `backchain-chunks` runner command; ShipLoop's run option `backchain_passes`, its `--backchain-passes` flag on `init`, `workspace start` and `graph-dry-run`, and every Backchain-child text, resource line, run directory and audit route; Plan Dispatcher's pointer to Backchain's exporter. The suite catalog loses those two core suites (core 63 to 61, all 209 to 207), and the frozen inventory digest changed by those two rows only. | firm | the retirement commit |
+| R16-3 | Kept, because it is not the Backchain skill: the planning guide's dependency audit, which is ShipLoop's own planning instruction (removing it would change how every run plans, a separate decision with its own test); and the record-only `backchain-check`. The check imported Backchain's `backchain_graph.py` from the sibling skill folder, so deleting the skill alone would have broken it. The library moved into `skills/shiploop/scripts/` with `git mv`, so its history stays, and its parity suite `backchain-graph` (88 `lib.js` verdicts) stays. The graph format the check reads moved from Backchain's SKILL.md into the guide's new "Plan graph format" section, which the check sentence and the refusal hint now cite. | firm | `test/backchain-graph.test.py`, `test/shiploop-backchain-check.test.py`, `test/marketplace-package.test.py` (the library ships beside the verb) |
+| R16-4 | Default packets change only by the removed no-child sentence and the moved format pointer. Measured against the pre-change scripts, rendering every Backchain stage on both routes: the inline step-plan and carry-forward and product-acceptance are byte-identical; spec and plan are 86 bytes shorter; the delegated step-plan and carry-forward are 82 bytes shorter. | firm (hermetic) | rendered from `git archive` of the base and from the change |
+| R16-5 | A saved run whose `state.md` still records `backchain_passes` is refused with its own reason (`BACKCHAIN_PASSES_REASON`) and the fresh-run hint. ShipLoop never migrates a saved run, as when it retired `chain_bindings` (V10). Runs in flight keep the plugin copy they started on, because their printed commands name its versioned path. The run review still reads the option from old runs' records. | firm | `shiploop_navigator._validate_current_state` |
+| R16-6 | Not done here, and flagged to the owner: two instruction files outside this repository still point at Backchain. The owner's global `CLAUDE.md` says `Execute: schedule` runs `/skill-craft:backchain`, and the workspace `AGENTS.md` above the checkouts names `skills/backchain` and the harness. I left both for the owner. | open (owner) | the files named |
+
+Verification: lint (ruff's required set) on every changed Python file, whose six remaining F841 findings all predate
+this change; the touched suites; the quick tier; and, because a structural removal is where the quick tier misses things
+(d6d659b4e046f7ec1feb6bd4458a3e07ecde1b6d), the full core group against the release commit. The owner waived the live
+ShipLoop round, so the ShipLoop commit carries a `No-E2E-Round:` trailer quoting the waiver.

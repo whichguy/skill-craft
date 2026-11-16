@@ -1918,7 +1918,7 @@ class LoopContractShapeTests(unittest.TestCase):
                     self.assertEqual(runtime.start(contract, state_dir)["status"], "active")
 
     def test_the_backchain_guidance_states_no_byte_limit_at_any_stage(self):
-        for stage in sorted(prompts.BACKCHAIN_STAGES) + ["intake"]:
+        for stage in sorted(prompts.BACKCHAIN_STAGES):  # only a Backchain stage has the route paragraph
             with self.subTest(stage=stage):
                 text = " ".join(prompts._backchain_guidance(stage).split())
                 for gone in ("Until Loop state budget", "16,384", "9,216", "CONTRACT_FILE", "sort_keys=True"):

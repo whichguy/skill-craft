@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Hermetic tests for ShipLoop's record-only backchain-check verb.
 
-The structural check itself is Backchain's (skills/backchain/scripts/backchain_graph.py); test/backchain-graph.test.py
+The structural check itself is skills/shiploop/scripts/backchain_graph.py (Backchain's check, moved into ShipLoop when
+the Backchain skill was retired on 2026-11-16); test/backchain-graph.test.py
 holds its parity tests against the lib.js verdicts in test/fixtures/backchain-check.
 """
 from __future__ import annotations
@@ -31,9 +32,9 @@ def canon(value) -> str:
 
 
 class LocationTests(unittest.TestCase):
-    def test_the_verb_checks_with_backchains_validator_beside_shiploop(self):
-        # One validator: the verb imports Backchain's module from the sibling skill, never a copy of its own.
-        expected = (prompts.backchain_skills_root() / "backchain" / "scripts" / "backchain_graph.py").resolve()
+    def test_the_verb_checks_with_the_validator_beside_it(self):
+        # One validator: the verb imports the module beside it, never a copy of its own.
+        expected = (prompts.plugin_skills_root() / "shiploop" / "scripts" / "backchain_graph.py").resolve()
         self.assertEqual(Path(verb.graph.__file__).resolve(), expected)
         self.assertFalse(hasattr(verb, "validate_structure"))
 
@@ -88,7 +89,7 @@ class CliTests(unittest.TestCase):
                 self.assertIn("this is not a finding", unavailable.stderr)
                 # A model that checked a prose plan learned the schema by reading this checker's source (batch 1009
                 # BC1); the message names the document that defines it instead.
-                self.assertIn('Backchain SKILL.md, "Plan document shape"', unavailable.stderr)
+                self.assertIn('the Backchain planning guide, "Plan graph format"', unavailable.stderr)
                 self.assertIn("not a prose plan", unavailable.stderr)
         missing = self.check(self.base / "absent.json", "--run-dir", str(self.run))
         self.assertEqual((missing.returncode, missing.stdout), (3, ""))
@@ -101,9 +102,10 @@ class CliTests(unittest.TestCase):
         refused = self.check(note, "--run-dir", str(self.run))
         self.assertEqual((refused.returncode, refused.stdout), (3, ""))
         self.assertIn("could not run: not JSON", refused.stderr)
-        self.assertIn("the Backchain plan graph as a JSON file, not a Markdown plan note", refused.stderr)
-        self.assertIn(str(prompts.backchain_skills_root() / "backchain" / "prompts" / "generator.v1.md"), refused.stderr)
-        self.assertTrue((prompts.backchain_skills_root() / "backchain" / "prompts" / "generator.v1.md").is_file())
+        self.assertIn("the plan graph as a JSON file, not a Markdown plan note", refused.stderr)
+        guide = prompts.plugin_skills_root() / "shiploop" / "references" / "backchain-planning.md"
+        self.assertIn(f"{guide}#plan-graph-format", refused.stderr)
+        self.assertIn("## Plan graph format\n", guide.read_text(encoding="utf-8"))
         self.assertIn("this is not a finding", refused.stderr)
         absent = self.check(self.base / "absent.json", "--run-dir", str(self.run))
         self.assertEqual(absent.returncode, 3)
@@ -167,43 +169,26 @@ class CliTests(unittest.TestCase):
 
 class PacketLineTests(unittest.TestCase):
     def test_the_line_is_in_backchain_producer_routes_only(self):
-        """In a run that opts in to a Backchain child (`one`, `converge`), every Backchain producer route carries the
-        check line. In the default `none` (owner decision 2026-11-15, no Backchain child) the routes whose check stands
-        on its own keep it, and the optional audit line, whose check only followed the audit child, is not printed."""
-        for mode in prompts.BACKCHAIN_PASSES_MODES:
-            child = prompts.offers_backchain_child(mode)
-            check = prompts.BACKCHAIN_CHECK if child else prompts._BACKCHAIN_CHECK_NONE
-            for stage in prompts.DUTIES:
-                for delegation in prompts.DELEGATIONS:
-                    with self.subTest(mode=mode, stage=stage, delegation=delegation):
-                        # An inline step-plan builds no execution graph: it carries the one optional audit line
-                        # (INLINE_BACKCHAIN_AUDIT), which names the printed `backchain-check` itself, instead of
-                        # the full BACKCHAIN_CHECK line (2026-10-11 dedupe).
-                        # Product-acceptance edits nothing, so it carries that line on every route (AUDIT_LINE_STAGES,
-                        # stage-prompt review 2026-10-31).
-                        inline_step_plan = (stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
-                                            or stage in prompts.AUDIT_LINE_STAGES)
-                        # The spec and plan duties fold the Backchain item (packet re-cut, 2026-10-11): the check
-                        # instruction is a duty item there, and prompt() prints no second BACKCHAIN_CHECK line.
-                        folded = stage in prompts.BACKCHAIN_FOLDED_STAGES
-                        expected = int(stage in prompts.BACKCHAIN_STAGES and not inline_step_plan and not folded)
-                        packet = prompts.prompt(stage, delegation=delegation, backchain_passes=mode)
-                        self.assertEqual(packet.count(check), expected)
-                        if folded:
-                            # a run with no child says what the check reads (2026-11-15 default round)
-                            self.assertIn("Run the printed `backchain-check` after each candidate revision" if child
-                                          else "The printed `backchain-check` reads only a candidate graph",
-                                          " ".join(packet.split()))
-                            self.assertIn("receipt", packet)
-                        if inline_step_plan:
-                            self.assertEqual(packet.count(prompts.INLINE_BACKCHAIN_AUDIT), int(child))
-                            self.assertIn("`backchain-check`", prompts.INLINE_BACKCHAIN_AUDIT)
-                            self.assertIn("evidence_refs", prompts.INLINE_BACKCHAIN_AUDIT)
-                        self.assertNotIn("backchain-check", prompts.improve_prompt(stage, delegation=delegation))
-
-    def test_the_line_size_is_pinned(self):
-        self.assertEqual(prompts.BACKCHAIN_CHECK.count("\n"), 1)
-        self.assertEqual(len(prompts.BACKCHAIN_CHECK.encode("utf-8")), 131)
+        """Every Backchain producer route whose check stands on its own carries the check sentence once; an inline
+        step-plan or carry-forward and product-acceptance print no route paragraph, and no Improve packet names the
+        check.  No route requests a Backchain child (Backchain retired, owner decision 2026-11-16)."""
+        check = prompts._BACKCHAIN_CHECK
+        reads = "The printed `backchain-check` reads only a candidate graph"
+        for stage in prompts.DUTIES:
+            for delegation in prompts.DELEGATIONS:
+                with self.subTest(stage=stage, delegation=delegation):
+                    no_paragraph = (stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
+                                    or stage in prompts.AUDIT_LINE_STAGES)
+                    # The spec and plan duties fold the Backchain item (packet re-cut, 2026-10-11): the check
+                    # instruction is a duty item there, and prompt() prints no second copy of the route paragraph.
+                    folded = stage in prompts.BACKCHAIN_FOLDED_STAGES
+                    packet = prompts.prompt(stage, delegation=delegation)
+                    in_backchain = stage in prompts.BACKCHAIN_STAGES
+                    self.assertEqual(packet.count(check), int(in_backchain and not no_paragraph and not folded))
+                    self.assertEqual(" ".join(packet.split()).count(reads), int(in_backchain and not no_paragraph))
+                    if folded:
+                        self.assertIn("receipt", packet)
+                    self.assertNotIn("backchain-check", prompts.improve_prompt(stage, delegation=delegation))
 
 
 if __name__ == "__main__":

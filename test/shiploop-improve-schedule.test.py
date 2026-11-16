@@ -461,13 +461,12 @@ class PlanningReviewScheduleTests(unittest.TestCase):
                 with self.assertRaisesRegex(nav.NavigatorError, "W9"):
                     nav._check_submitted_assumptions(self.new(mode), "plan", open_entry)
 
-    def test_every_backchain_passes_value_renders_and_walks_in_every_mode(self):
+    def test_a_run_renders_and_walks_in_every_mode(self):
         run = Path("/simulation-only/run")
-        for passes in nav.BACKCHAIN_PASSES_MODES:
-            for mode, expected in (("stage", [c[0] for c in STAGE_CHILDREN]), ("none", [c[0] for c in NONE_CHILDREN])):
-                with self.subTest(backchain_passes=passes, planning_review=mode):
-                    state, reviewed = render_walk(self.new(mode, backchain_passes=passes), run, plan_items=ITEMS)
-                    self.assertEqual(reviewed, expected)
+        for mode, expected in (("stage", [c[0] for c in STAGE_CHILDREN]), ("none", [c[0] for c in NONE_CHILDREN])):
+            with self.subTest(planning_review=mode):
+                state, reviewed = render_walk(self.new(mode), run, plan_items=ITEMS)
+                self.assertEqual(reviewed, expected)
 
     def test_the_plan_packet_names_no_review_the_run_does_not_have(self):
         run = Path("/simulation-only/run")

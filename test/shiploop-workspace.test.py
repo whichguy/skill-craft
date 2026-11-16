@@ -3000,7 +3000,7 @@ class DirectEntryGuardTests(unittest.TestCase):
 
     def test_the_options_the_refused_init_carried_are_in_the_command_it_prints_and_survive_the_recovery(self) -> None:
         card = ROOT / "skills" / "improve" / "SKILL.md"
-        carried = ("--delivery-contract", "--delegation=ask-agent", "--lint=report", "--backchain-passes=converge",
+        carried = ("--delivery-contract", "--delegation=ask-agent", "--lint=report",
                    "--planning-review=stage", f"--improve-skill={card}")
         refusal = self.init(*carried)
         self.assertEqual(refusal.returncode, 2, refusal.stdout + refusal.stderr)
@@ -3009,7 +3009,7 @@ class DirectEntryGuardTests(unittest.TestCase):
         recovered = self.run_recovery(self.printed_recovery(refusal))
         self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
         text = (self.base / "recovered" / "run" / "state.md").read_text(encoding="utf-8")
-        for value in ("ask-agent", "report", "converge", str(card)):
+        for value in ("ask-agent", "report", str(card)):
             self.assertIn(value, text)
         self.assertIn("delivery_contract_version", text)
 

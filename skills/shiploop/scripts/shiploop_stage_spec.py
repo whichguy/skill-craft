@@ -22,7 +22,7 @@ BLOCKS = frozenset({
     "environment-discovery",   # recursive discovery requirement and locators
     "test-facility",           # reuse and define test facilities
     "test-decision",           # reopen the current item's test decisions
-    "backchain",               # Backchain caller guidance (native call or audit)
+    "backchain",               # the Backchain planning guide's route and the record-only graph check
     "reconciliation",          # selected-case reconciliation
     "code-craft",              # the full Code craft rubric: implement only (owner, 2026-10-11)
     "interaction-design",      # actors, channels, events and UI planning

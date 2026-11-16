@@ -605,10 +605,9 @@ Options are recorded when the run starts and cannot be changed by a retry. You c
 | `--delegation` | `inline`, `ask-agent` | You want each step in a fresh worker's context | `delegation --set` |
 | `--lint` | `fix`, `report`, `off` | `report` to see fixes without applying them; `off` for a repo whose linters you do not trust | `lint-mode --set` |
 | `--planning-review` | `stage`, `none` | `none` to skip the four planning reviews (needs `--improve-skill=<absolute path>`) | no: start a fresh run |
-| `--backchain-passes` | `none`, `one`, `converge` | `one` (one review pass) or `converge` to let the planning stages call a Backchain child; on current models it showed no plan-quality gain (2026-11-15 study) | no: start a fresh run |
 | `--delivery-contract` | off | The change must reach a consumer (an app, an endpoint) and you want that stated up front | no |
 
-`--planning-review none` in a run with no Backchain child (the default `--backchain-passes none`) removes every model-run second look at the plan. It is allowed,
+`--planning-review none` removes every model-run second look at the plan. It is allowed,
 and it is the highest-risk combination. See [run options](references/run-options.md).
 
 ## Steer a run
@@ -1330,11 +1329,9 @@ This last transfer is a host duty, not an automatic semantic guarantee.
 [Backchain planning guidance](references/backchain-planning.md#navigator-planning)
 uses the same outcome/source/test mapping in the relevant planning and review
 packets. It is ShipLoop's planning checklist, not a second standalone planning
-run; a Backchain call uses only the `source-aware-native` route.
-A run calls no Backchain child unless it opts in at the start (`--backchain-passes one` takes one review/fix/check pass;
-`converge` completes at the first trivial review, Backchain's default gate; the default `none` offers no child), and
-`--planning-review stage|none` turns the per-stage planning reviews on or off; both are fixed for the run
-([Backchain route](references/backchain-route.md#backchain-passes-option) and [run options](references/run-options.md#planning-review-option)).
+run: the Backchain skill it once could call was retired on 2026-11-16.
+`--planning-review stage|none` turns the per-stage planning reviews on or off; it is fixed for the run
+([run options](references/run-options.md#planning-review-option)).
 Keep product-document links portable across worktree return; verify destination
 files and anchors, distinguish planned tests from evidence, and repair affected
 links together when an authorized change moves a destination. Improve/Until Loop
@@ -1729,11 +1726,11 @@ command surface is:
 
 ```sh
 # Start a navigator protocol 4 run
-shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
+shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--planning-review=stage|none] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace review-return --workspace-root ROOT [--keep PATH...] [--exclude PATH...]
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--in-place] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--in-place] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--planning-review=stage|none] --prompt=TEXT
 # Reread the current packet; never advances
 shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN

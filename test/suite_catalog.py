@@ -276,9 +276,7 @@ def _shiploop(path: str) -> Suite:
 
 
 _CORE_SUITES = (
-    _suite("backchain-chunks", "core", "test/backchain-chunks.test.py", "python3", "-B", "test/backchain-chunks.test.py"),
     _suite("backchain-graph", "core", "test/backchain-graph.test.py", "python3", "-B", "test/backchain-graph.test.py"),
-    _suite("backchain-toolkit", "core", "test/backchain-toolkit.test.py", "python3", "-B", "test/backchain-toolkit.test.py"),
     _suite("test-groups", "core", "test/test-groups.test.py", "python3", "test/test-groups.test.py"),
     _suite("ci-summary", "core", "test/ci-summary.test.py", "python3", "test/ci-summary.test.py"),
     _suite("ci-policy", "core", "test/ci-policy.test.py", "python3", "test/ci-policy.test.py"),
@@ -545,9 +543,12 @@ _PATH_SUITE_IDS = {
     # The navigator is a hub, so its edit selects the hub consumers; the seam's equivalence with complete is pinned by one
     # suite that no hub rule finds.
     "skills/shiploop/scripts/shiploop_navigator.py": ("shiploop-seed-seam",),
-    # The prompt module is a hub too; which stages print the Backchain check line or the audit line is pinned by one light
+    # The prompt module is a hub too; which stages print the Backchain check line is pinned by one light
     # suite no hub rule finds (release 2.26.2: a prompts edit passed quick and failed CI there).
     "skills/shiploop/scripts/shiploop_prompts.py": ("shiploop-backchain-check",),
+    # The structural check library moved here from the retired Backchain skill (2026-11-16); its parity suite and the
+    # verb's suite read it.
+    "skills/shiploop/scripts/backchain_graph.py": ("backchain-graph", "shiploop-backchain-check"),
 }
 
 # Paths whose row above is their whole selection, beside the suite that carries their own name: the wider rule that
@@ -586,7 +587,6 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 _PREFIX_SUITE_IDS = {
     "test/experiments/shiploop_spec_discovery/": ("planning-score",),
     "test/experiments/shiploop_security/": ("security-harness",),
-    "test/fixtures/backchain-chunks/": ("backchain-chunks",),
     "test/fixtures/native-setup-pilot/": ("native-setup-pilot",),
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),

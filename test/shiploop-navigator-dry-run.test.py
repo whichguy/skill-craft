@@ -372,27 +372,15 @@ class NavigatorDryRunTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     self.assertNotIn('Traceback', result.stderr)
 
-    def test_the_dry_run_simulates_the_selected_backchain_passes_option(self):
-        scenario = driver.scenarios()['delivery']
-        for mode in navigator.BACKCHAIN_PASSES_MODES:
-            with self.subTest(mode=mode):
-                with patch.object(navigator.guidance, 'prompt', wraps=guidance.prompt) as rendered:
-                    report = driver.run_scenario('delivery', scenario, backchain_passes=mode)
-                self.assertTrue(report['ok'], report.get('error'))
-                self.assertTrue(rendered.call_args_list)
-                self.assertEqual({call.kwargs['backchain_passes'] for call in rendered.call_args_list}, {mode})
+    def test_the_dry_run_has_no_backchain_passes_option(self):
+        """Backchain is retired (owner decision 2026-11-16): the option is gone from the dry run as from the run."""
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
         base = [sys.executable, '-B', str(SCRIPTS / 'shiploop'), 'graph-dry-run', '--scenario', 'delivery']
         with tempfile.TemporaryDirectory(prefix='navigator-dry-run-backchain-') as temporary:
-            for mode in navigator.BACKCHAIN_PASSES_MODES:
-                with self.subTest(cli=mode):
-                    result = subprocess.run(base + ['--backchain-passes', mode], cwd=temporary, env=env,
-                                            capture_output=True, text=True)
-                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            refused = subprocess.run(base + ['--backchain-passes', 'two'], cwd=temporary, env=env,
+            refused = subprocess.run(base + ['--backchain-passes', 'none'], cwd=temporary, env=env,
                                      capture_output=True, text=True)
-            self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-            self.assertIn('invalid choice', refused.stderr)
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn('unrecognized arguments: --backchain-passes', refused.stderr)
 
     def test_the_dry_run_simulates_the_selected_planning_review_option(self):
         for mode in navigator.PLANNING_REVIEW_MODES:
@@ -509,390 +497,78 @@ class NavigatorDryRunTests(unittest.TestCase):
 
 
 class BackchainStageTextTests(unittest.TestCase):
-    """The Backchain loop text and its resource list print only where a whole loop may start (plan).
+    """What each Backchain stage prints, now that no stage offers a Backchain child (Backchain retired, owner decision
+    2026-11-16): spec and plan fold the planning guide's item into their duty, a delegated step-plan or carry-forward
+    prints the route paragraph with the record-only check, and an inline step-plan or carry-forward and
+    product-acceptance print neither.  Content pins (what each stage prints or omits), not byte pins."""
 
-    Measured on the 1.16.1 packets: the loop text was 553 words and the six-file list 1.5 KB at every Backchain
-    stage, although only `plan` may request a whole loop. The other four stages print the read-only audit route,
-    its one resource and a script-computed status of the loop resources a repair/revise needs. These are content
-    pins (what each stage prints or omits), not word or byte pins: a packet may grow when an obligation needs it.
-
-    Since 2026-11-15 (owner decision) a new run defaults to `none`, which offers no Backchain child at all, so the
-    class's shared packets and helpers render the opt-in mode `one`; the `none` tests below pin the no-child packets.
-    """
-
-    LOOP_STAGE = "plan"
-    OPT_IN = {"backchain_passes": "one"}  # the mode whose child text these pins read, unless a test names another
-    # Product-acceptance edits nothing, so it prints the one-line optional audit on every route (stage-prompt review,
-    # 2026-10-31); test_product_acceptance_prints_the_audit_line_on_every_route pins it.
-    AUDIT_STAGES = ("spec", "step-plan", "carry-forward")
+    CHECK_READS = ("The printed `backchain-check` reads only a candidate graph in the plan graph format, a JSON file "
+                   "(Backchain planning guide, \"Plan graph format\"), never a spec, a Markdown note or a prose plan.")
+    CHECK_SCOPE = "Run it after each revision of a graph you wrote, and write none only to run it"
+    RETIRED = ("This run requests no Backchain child", "source-aware-native", "`review` / `audit`",
+               "`repair` / `revise`", "Backchain passes", "Selected Backchain and Until Loop resources",
+               "Run the printed `backchain-check` after each candidate revision", "Plan document shape")
 
     @staticmethod
-    def printed_guidance(stage, **modes):
-        """What an inline packet prints for the stage's Backchain call: an inline step-plan or carry-forward builds no
-        execution graph, so it carries one optional audit line instead of the caller guidance (2026-10-11 dedupe)."""
-        modes = modes or BackchainStageTextTests.OPT_IN
-        if stage in guidance.BACKCHAIN_FOLDED_STAGES:
-            # Packet re-cut (2026-10-11): spec and plan fold the Backchain caller guidance into their duty (an
-            # inline run), so the packet prints the duty once and no second copy of the guidance.
-            return " ".join(guidance.duty(stage, delegation=guidance.INLINE, **modes).split())
-        if stage in guidance.INLINE_AUDIT_STAGES:
-            return guidance.INLINE_BACKCHAIN_AUDIT
-        return guidance._backchain_guidance(stage, **modes)
-
-    def assert_prints_guidance(self, packet, stage, **modes):
-        modes = modes or self.OPT_IN
-        folded = stage in guidance.BACKCHAIN_FOLDED_STAGES
-        self.assertEqual((" ".join(packet.split()) if folded else packet).count(self.printed_guidance(stage, **modes)),
-                         1)
-        if folded or stage in guidance.INLINE_AUDIT_STAGES:
-            self.assertNotIn(guidance._backchain_guidance(stage, **modes), packet)
+    def flat(text):
+        return " ".join(text.split())
 
     @classmethod
     def setUpClass(cls):
         with tempfile.TemporaryDirectory(prefix="backchain-stage-text-") as temporary:
             result = subprocess.run(
                 [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run", "--scenario", "delivery",
-                 "--backchain-passes", cls.OPT_IN["backchain_passes"], "--format", "json"], cwd=temporary,
+                 "--format", "json"], cwd=temporary,
                 env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"), capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
         events = json.loads(result.stdout)["scenarios"][0]["events"]
         cls.packets = {event["from"]: event["prompt"] for event in events if event["command"] == "produce"}
 
-    def test_the_dry_run_packet_carries_exactly_the_stage_guidance(self):
-        for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
-            with self.subTest(stage=stage):
-                self.assert_prints_guidance(self.packets[stage], stage)
+    def test_each_route_prints_what_its_stage_needs_and_no_child_text(self):
+        for stage in sorted(guidance.BACKCHAIN_STAGES):
+            for delegation in (guidance.INLINE, guidance.ASK_AGENT):
+                text = self.flat(guidance.prompt(stage, delegation=delegation))
+                no_paragraph = (stage in guidance.INLINE_AUDIT_STAGES and delegation == guidance.INLINE
+                                or stage in guidance.AUDIT_LINE_STAGES)
+                with self.subTest(stage=stage, delegation=delegation):
+                    self.assertEqual(text.count(self.CHECK_READS), 0 if no_paragraph else 1)
+                    self.assertEqual(text.count(self.CHECK_SCOPE), 0 if no_paragraph else 1)
+                    # an inline step-plan or carry-forward prints no paragraph; its packet locator names the guide
+                    self.assertEqual("Backchain planning guide" in text,
+                                     not (stage in guidance.INLINE_AUDIT_STAGES and delegation == guidance.INLINE))
+                    for retired in self.RETIRED:
+                        self.assertNotIn(retired, text)
 
-    def test_product_acceptance_prints_the_audit_line_on_every_route(self):
-        """0 of 60 archived product-acceptance results used the Backchain route paragraph, and the stage edits nothing,
-        so its repair half could never apply (stage-prompt review, 2026-10-31)."""
+    def test_product_acceptance_checks_a_dependency_gap_with_the_guide(self):
         for delegation in (guidance.INLINE, guidance.ASK_AGENT):
             with self.subTest(delegation=delegation):
-                text = guidance.prompt("product-acceptance", delegation=delegation, **self.OPT_IN)
-                self.assertEqual(text.count(guidance.INLINE_BACKCHAIN_AUDIT), 1)
-                self.assertEqual(guidance.prompt_split("product-acceptance", delegation=delegation,
-                                                       **self.OPT_IN)[1], "")
-        self.assertIn("Backchain audit resource (", self.packets["product-acceptance"])
+                text = self.flat(guidance.prompt("product-acceptance", delegation=delegation))
+                self.assertIn("check it with the Backchain planning guide's dependency audit and route it as item 6 "
+                              "says", text)
 
-    def test_step_plan_carries_the_full_audit_guidance_only_when_delegated(self):
-        # 2026-10-11 dedupe: an inline step-plan or carry-forward carries the one optional audit line; ask-agent keeps
-        # the guidance.
-        self.assertEqual(guidance.INLINE_AUDIT_STAGES, ("step-plan", "carry-forward"))
-        for stage in guidance.INLINE_AUDIT_STAGES:
+    def test_the_dry_run_packets_print_the_check_sentence_at_spec_and_plan(self):
+        for stage in guidance.BACKCHAIN_FOLDED_STAGES:
             with self.subTest(stage=stage):
-                full = guidance._backchain_guidance(stage, **self.OPT_IN)
-                inline = guidance.prompt(stage, delegation=guidance.INLINE, **self.OPT_IN)
-                delegated = guidance.prompt(stage, delegation=guidance.ASK_AGENT, **self.OPT_IN)
-                self.assertEqual(inline.count(guidance.INLINE_BACKCHAIN_AUDIT), 1)
-                self.assertNotIn(full, inline)
-                self.assertEqual(delegated.count(full), 1)
-                self.assertNotIn(guidance.INLINE_BACKCHAIN_AUDIT, delegated)
-
-    def test_only_the_loop_stage_prints_the_resource_list_and_the_others_print_the_audit_line_and_status(self):
-        for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
-            packet = self.packets[stage]
-            with self.subTest(stage=stage):
-                loop = stage == self.LOOP_STAGE
-                self.assertEqual("Selected Backchain and Until Loop resources" in packet, loop)
-                self.assertEqual("Backchain audit resource (" in packet, not loop)
-                self.assertEqual("Loop resources for a repair or send-back request, under " in packet, not loop)
-                if not loop:
-                    self.assertIn(": all present", packet.split("Loop resources for a repair or send-back request, under ")[1]
-                                  .splitlines()[0])
-
-    def test_audit_stages_offer_the_audit_and_one_bounded_repair_and_not_the_loop_text(self):
-        for stage in self.AUDIT_STAGES:
-            flat = " ".join(guidance._backchain_guidance(stage, **self.OPT_IN).split())
-            with self.subTest(stage=stage):
-                self.assertIn("action `review` / stage `audit`", flat)
-                self.assertIn("read-only, one-pass diagnostic", flat)
-                self.assertIn("exactly one action `repair` / stage `revise`", flat)
-                self.assertNotIn("Until Loop state budget", flat)  # the runtime has no state limit
-                self.assertIn("A whole `plan`/`draft` is requested only at `plan`", flat)
-                self.assertIn("A MISSING loop resource blocks repair/revise; no other install substitutes", flat)
-                for loop_text in ("`MISSING: ...`", "Record the binding id", "required_trivial_reviews"):
-                    self.assertNotIn(loop_text, flat)
-                packet = self.packets[stage]
-                self.assertEqual(packet.count("Backchain planning guide: "), 1)  # the pointer stays at every stage
-                self.assertEqual(packet.count("Backchain graph check: "), 1)  # the record-only check line stays
-
-    LOOP_OBLIGATIONS = ("`MISSING: ...` entry blocks the route for that named resource",
-                        "never substitute a sibling, cache or other install",
-                        "Record the binding id, candidate and receipt paths",
-                        "is not execution evidence or a passed experiment",
-                        "The planning guide's Source-aware native caller section holds",
-                        "action `plan` / stage `draft`",
-                        "Backchain standalone Until Loop binding: <binding-id>",
-                        "only after the child reports `complete`",
-                        "final candidate identity and domain evidence",
-                        "The Until Loop child is plan-only")
-
-    def test_the_loop_stage_keeps_every_obligation_the_trim_did_not_target_in_every_mode(self):
-        for mode in ("one", "converge"):
-            flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes=mode).split())
-            for kept in self.LOOP_OBLIGATIONS:
-                with self.subTest(mode=mode, kept=kept):
-                    self.assertIn(kept, flat)
-        self.assertIn("Backchain graph check: ", self.packets[self.LOOP_STAGE])
-
-    def test_converge_prints_backchains_default_gate_and_none_of_the_one_pass_text(self):
-        # Owner decision D-D (2026-11-01): converge is Backchain's default gate, the first trivial review; the request
-        # carries no marker line and Backchain's freeze writes the contract.
-        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="converge").split())
-        for printed in ("Put no `Backchain passes:` line in the child request",
-                        "completes at its first trivial review", "Backchain SKILL.md step 1's `prepare`",
-                        "`--run` the printed Backchain planning run directory", "`--request`", "`--caller`",
-                        "`--binding`; no `--passes`", "then `freeze`", "which writes its start contract (never you)"):
-            with self.subTest(printed=printed):
-                self.assertIn(printed, flat)
-        for one_pass in ("required_trivial_reviews: 0", "Backchain passes: one", "One complete dependency",
-                         "required_trivial_reviews: 2", "two consecutive", "Backchain passes: converge"):
-            with self.subTest(one_pass=one_pass):
-                self.assertNotIn(one_pass, flat)
-
-    def test_one_prints_gate_zero_the_exit_condition_and_the_marker_line_and_not_the_two_review_text(self):
-        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="one").split())
-        self.assertEqual(flat.count("`required_trivial_reviews: 0`"), 1)
-        for printed in ("Backchain passes: one.",
-                        "Put the line `Backchain passes: one` beside the binding marker in the child request",
-                        "Backchain SKILL.md step 1's `prepare`", "`--binding`, `--passes one`), then `freeze`",
-                        "which writes its start contract (never you)",
-                        "this exit condition: One complete",
-                        "One complete dependency review/fix/check cycle has run",
-                        "every finding of that cycle is repaired within the edit bounds",
-                        "every `Confirm by` clause on a step this cycle may change meets the planning guide's Outcomes rule",
-                        "the printed `backchain-check` is ok on the final candidate and its receipt is cited",
-                        "final candidate-specific domain evidence is saved",
-                        "reports `exit_assessment: satisfied` even when it repaired the candidate",
-                        "no second review runs"):
-            with self.subTest(printed=printed):
-                self.assertIn(printed, flat)
-        for two_review in ("required_trivial_reviews: 2", "two consecutive", "trivial/no-change dependency reviews"):
-            with self.subTest(two_review=two_review):
-                self.assertNotIn(two_review, flat)
-
-    def test_the_stage_prompt_carries_the_text_of_the_modes_it_is_given(self):
-        # the route, not the module constants: the mode the CLI records reaches the packet the host reads
-        for mode, gate in (("one", "required_trivial_reviews: 0"), ("converge", "completes at its first trivial review")):
-            with tempfile.TemporaryDirectory(prefix="backchain-mode-text-") as temporary:
-                result = subprocess.run(
-                    [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run", "--scenario", "delivery",
-                     "--backchain-passes", mode, "--format", "json"], cwd=temporary,
-                    env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"), capture_output=True, text=True)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            events = json.loads(result.stdout)["scenarios"][0]["events"]
-            packets = {event["from"]: event["prompt"] for event in events if event["command"] == "produce"}
-            with self.subTest(mode=mode):
-                self.assertIn(gate, packets[self.LOOP_STAGE])
-                self.assert_prints_guidance(packets[self.LOOP_STAGE], self.LOOP_STAGE, backchain_passes=mode)
-                for stage in self.AUDIT_STAGES:
-                    self.assertNotIn("required_trivial_reviews", packets[stage])
-                    self.assert_prints_guidance(packets[stage], stage, backchain_passes=mode)
-
-    POINTER = ("A repair/revise child runs one review/fix/check cycle: put the line `Backchain passes: one` "
-               "beside the binding marker in the child request, as Backchain's convergence reference defines it, "
-               "and pass `--passes one` to `prepare`")
-    # Owner decision D-D (2026-11-01): a converge run's repair/revise child runs Backchain's default gate, so the
-    # request carries no marker line.
-    CONVERGE_POINTER = ("A repair/revise child runs Backchain's default gate and completes at its first trivial review: "
-                        "put no `Backchain passes:` line in the child request and pass no `--passes` to `prepare`")
-
-    def test_audit_stages_carry_the_one_pass_pointer_in_mode_one_and_the_converge_pointer_in_converge(self):
-        for stage in self.AUDIT_STAGES:
-            one = " ".join(guidance._backchain_guidance(stage, backchain_passes="one").split())
-            converge = " ".join(guidance._backchain_guidance(stage, backchain_passes="converge").split())
-            with self.subTest(stage=stage):
-                self.assertEqual(one.count(self.POINTER), 1)
-                self.assertEqual(converge.count(self.CONVERGE_POINTER), 1)
-                self.assertNotIn("Backchain passes: one", converge)
-                self.assertNotIn("Backchain passes: converge", one)
-                # the pointer names no literal gate field in either mode (see the audit-text pin above)
-                self.assertNotIn("required_trivial_reviews", one + converge)
-                # a pointer is all each mode adds: the rest of the audit text is the same
-                self.assertEqual(one.replace(self.POINTER + ". ", ""), converge.replace(self.CONVERGE_POINTER + ". ", ""))
-
-
-    # Batch 1009 BC1: the one-pass plan packet said "may request" and, a few lines later, "Write the child's start
-    # contract ... verbatim", and models read the child as required or optional by chance; both Sonnet round-1 runs
-    # skipped it and ran the printed backchain-check on a prose plan.  The packet says what the script enforces.
-    # Re-pointed at the plan duty's Backchain item (packet re-cut, 2026-10-11), which words the same obligations.
-    CHOICE = ("You may also request one Backchain `plan` / `draft`",
-              "Nothing refuses a plan without it",
-              "ShipLoop cannot see whether the child ran",
-              "Run the dependency audit of the Backchain planning guide on every route",
-              "say in `summary` which route you took and why",
-              "If you request it:",
-              "reads a candidate graph in Backchain's plan schema (Backchain SKILL.md, \"Plan document shape\"), not a prose plan")
-
-    def test_the_one_pass_plan_packet_says_the_child_is_a_choice_and_the_audit_is_not(self):
-        flat = self.printed_guidance(self.LOOP_STAGE, backchain_passes="one")
-        packet = " ".join(self.packets[self.LOOP_STAGE].split())
-        for phrase in self.CHOICE:
-            with self.subTest(phrase=phrase):
-                self.assertEqual(flat.count(phrase), 1)
-                self.assertEqual(packet.count(phrase), 1)  # the dry-run CLI route prints it, once
-        # It sits before the start commands it qualifies, so a reader meets "optional" before "start the child".
-        self.assertLess(flat.index(self.CHOICE[0]), flat.index("start the child with Backchain SKILL.md step 1's"))
-        self.assertLess(flat.index(self.CHOICE[-2]), flat.index("start the child with Backchain SKILL.md step 1's"))
-
-    def test_the_choice_is_said_only_where_the_one_pass_gate_is_printed(self):
-        """GUARD (passes on the unchanged tree): converge is the owner choosing the heavier route and its gate text has no
-        'write verbatim' sentence to qualify; the audit stages and a `none` run offer no whole child at all."""
-        quiet = {f"{stage} (one)": guidance._backchain_guidance(stage, backchain_passes="one") for stage in self.AUDIT_STAGES}
-        quiet["plan (converge)"] = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="converge")
-        quiet["plan (none)"] = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="none")
-        for label, text in quiet.items():
-            with self.subTest(label):
-                flat = " ".join(text.split())
-                self.assertNotIn("your choice", flat)
-                self.assertNotIn("nothing refuses a plan without it", flat)
-
-    NONE_SENTENCE = "No whole `plan`/`draft` is requested in this run"
-    # The seven resources only a whole loop reads; the eighth, the caller contract, serves the read-only audit.
-    LOOP_ONLY_LABELS = ("Backchain SKILL.md", "Backchain references/convergence.md",
-                        "Backchain prompts/convergence-review.prompt.md", "Backchain scripts/backchain.py",
-                        "Until Loop ADAPTER.md",
-                        "Until Loop references/runtime-ephemeral.md", "Until Loop scripts/until_loop_ephemeral.py")
-
-    _mode_packets = {}
-
-    @classmethod
-    def packets_in(cls, mode):
-        """The producer packets of the dry-run delivery scenario for `mode`, through the real CLI (once per mode)."""
-        if mode not in cls._mode_packets:
-            with tempfile.TemporaryDirectory(prefix="backchain-none-text-") as temporary:
-                result = subprocess.run(
-                    [sys.executable, "-B", str(SCRIPTS / "shiploop"), "graph-dry-run", "--scenario", "delivery",
-                     "--backchain-passes", mode, "--format", "json"], cwd=temporary,
-                    env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"), capture_output=True, text=True)
-            assert result.returncode == 0, result.stderr
-            events = json.loads(result.stdout)["scenarios"][0]["events"]
-            cls._mode_packets[mode] = {event["from"]: event["prompt"]
-                                       for event in events if event["command"] == "produce"}
-        return cls._mode_packets[mode]
-
-    # Owner decision 2026-11-15: `none`, the default, offers no Backchain child at any stage. These are the texts that
-    # request or describe one; a `none` packet prints none of them.
-    NO_CHILD = "This run requests no Backchain child (Backchain passes option `none`, the default)"
-    CHILD_TEXTS = ("You may also request one Backchain", "Request a Backchain `review` / `audit`",
-                   "action `review` / stage `audit`", "`repair` / `revise`", "repair/revise",
-                   "Backchain standalone Until Loop binding", "required_trivial_reviews", "Backchain passes: one",
-                   "Backchain SKILL.md step 1's `prepare`", "source-aware-native", "read-only Backchain review/audit",
-                   NONE_SENTENCE)
-
-    def test_none_requests_no_backchain_child_at_plan_and_keeps_the_dependency_audit_and_the_check(self):
-        plan = self.packets_in("none")[self.LOOP_STAGE]
-        flat = " ".join(plan.split())
-        self.assertEqual(flat.count(self.NO_CHILD), 1)
-        self.assertEqual(flat.count("Run the dependency audit of the Backchain planning guide."), 1)
-        self.assertIn("The printed `backchain-check` reads only a candidate graph", flat)
-        for child in self.CHILD_TEXTS:
-            with self.subTest(child=child):
-                self.assertNotIn(child, flat)
-        self.assertEqual(plan.count("Backchain planning guide: "), 1)
-        self.assertEqual(plan.count("Backchain graph check: "), 1)  # the record-only check command line stays
-
-    def test_none_prints_only_the_guide_and_the_graph_check_lines_at_every_backchain_stage(self):
-        packets = self.packets_in("none")
-        for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES, "product-acceptance"):
-            packet = packets[stage]
-            with self.subTest(stage=stage):
-                self.assertEqual(packet.count("Backchain planning guide: "), 1)
-                self.assertEqual(packet.count("Backchain graph check: "), 1)
-                for line in ("Selected Backchain and Until Loop resources", "Backchain audit resource (",
-                             "Loop resources for a repair or send-back request", "Backchain planning run directory: "):
-                    self.assertNotIn(line, packet)
-                for label in self.LOOP_ONLY_LABELS:
-                    self.assertNotIn("  " + label + ": ", packet)
-
-    def test_one_and_converge_still_print_the_whole_loop_and_the_six_file_block_at_plan(self):
-        for mode in ("one", "converge"):
-            plan = self.packets_in(mode)[self.LOOP_STAGE]
-            with self.subTest(mode=mode):
-                self.assertIn("You may also request one Backchain `plan` / `draft` through `source-aware-native`",
-                              " ".join(plan.split()))
-                self.assertNotIn(self.NONE_SENTENCE, " ".join(plan.split()))
-                self.assertIn("Selected Backchain and Until Loop resources", plan)
-                for label in self.LOOP_ONLY_LABELS:
-                    self.assertIn("  " + label + ": ", plan)
-                self.assertNotIn("Backchain audit resource (", plan)
-                self.assertNotIn("Loop resources for a repair or send-back request", plan)
-
-    def test_the_plan_packet_is_shorter_in_none_than_in_one_and_in_converge(self):
-        words = {mode: len(self.packets_in(mode)[self.LOOP_STAGE].split()) for mode in guidance.BACKCHAIN_PASSES_MODES}
-        self.assertLess(words["none"], words["one"], words)
-        self.assertLess(words["none"], words["converge"], words)
-        # and the printed guidance alone, so the saving is the loop text and not a side effect elsewhere
-        guidance_words = {mode: len(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes=mode).split())
-                          for mode in guidance.BACKCHAIN_PASSES_MODES}
-        self.assertLess(guidance_words["none"], guidance_words["one"], guidance_words)
-        self.assertLess(guidance_words["none"], guidance_words["converge"], guidance_words)
-
-    def test_none_requests_no_child_at_any_audit_stage_and_keeps_the_guide_route_and_the_check(self):
-        for stage in self.AUDIT_STAGES:
-            for delegation in (guidance.INLINE, guidance.ASK_AGENT):
-                text = " ".join(guidance.prompt(stage, delegation=delegation, backchain_passes="none").split())
-                with self.subTest(stage=stage, delegation=delegation):
-                    for child in self.CHILD_TEXTS:
-                        self.assertNotIn(child, text)
-                    self.assertNotIn(" ".join(guidance.INLINE_BACKCHAIN_AUDIT.split()), text)
-                    if stage in guidance.BACKCHAIN_FOLDED_STAGES or delegation == guidance.ASK_AGENT:
-                        # a route whose check stood on its own keeps it, and says no child is requested
-                        self.assertEqual(text.count(self.NO_CHILD), 1)
-                        self.assertIn("The printed `backchain-check` reads only a candidate graph", text)
-                    if stage not in guidance.BACKCHAIN_FOLDED_STAGES and delegation == guidance.ASK_AGENT:
-                        self.assertIn("Follow the packet's Backchain planning guide for this stage's scoped outcome",
-                                      text)
-            self.assertEqual(self.packets_in("none")[stage].count("Backchain graph check: "), 1)
-        for delegation in (guidance.INLINE, guidance.ASK_AGENT):
-            with self.subTest(stage="product-acceptance", delegation=delegation):
-                # its audit line and audit item requested the child; with none to request, its last item points at
-                # the planning guide's own dependency audit instead
-                text = " ".join(guidance.prompt("product-acceptance", delegation=delegation,
-                                                backchain_passes="none").split())
-                for child in self.CHILD_TEXTS:
-                    self.assertNotIn(child, text)
-                self.assertNotIn(" ".join(guidance.INLINE_BACKCHAIN_AUDIT.split()), text)
-                self.assertEqual(text.count("check it with the Backchain planning guide's dependency audit and route it "
-                                            "as item 6 says"), 1)
-
-
-    # What the printed check reads, said wherever a no-child run tells the host to run it. In the 2026-11-15 default round
-    # (see the learnings journal's entry for it) the host, at spec, ran `backchain-check` on docs/shiploop/spec.md and was
-    # refused (not JSON). It then wrote a one-step graph and re-ran that one file at plan, step-plan and product-acceptance
-    # only to have a receipt at each: the four receipt folders hold the same candidate hash. The sentence "after each
-    # candidate revision" read as "check the spec".
-    CHECK_READS = ("reads only a candidate graph in Backchain's plan schema, a JSON file "
-                   "(Backchain SKILL.md, \"Plan document shape\"), never a spec, a Markdown note or a prose plan")
-    CHECK_SCOPE = "Run it after each revision of a graph you wrote, and write none only to run it"
-    OLD_CHECK_SENTENCE = "`backchain-check` after each candidate revision"
-
-    def test_none_says_what_the_printed_check_reads_and_not_to_write_a_graph_only_to_run_it(self):
-        routes = (("spec", guidance.INLINE), ("spec", guidance.ASK_AGENT), ("plan", guidance.INLINE),
-                  ("plan", guidance.ASK_AGENT), ("step-plan", guidance.ASK_AGENT), ("carry-forward", guidance.ASK_AGENT))
-        for stage, delegation in routes:
-            with self.subTest(stage=stage, delegation=delegation):
-                text = " ".join(guidance.prompt(stage, delegation=delegation, backchain_passes="none").split())
-                self.assertEqual(text.count(self.CHECK_READS), 1)
-                self.assertEqual(text.count(self.CHECK_SCOPE), 1)
-                self.assertNotIn(self.OLD_CHECK_SENTENCE, text)  # the sentence that read as "check the spec"
-        # the packets the host reads, through the CLI route: the same sentences, once, at spec and plan
-        for stage in ("spec", "plan"):
-            with self.subTest(stage=stage, route="dry-run CLI"):
-                packet = " ".join(self.packets_in("none")[stage].split())
+                packet = self.flat(self.packets[stage])
                 self.assertEqual(packet.count(self.CHECK_READS), 1)
-                self.assertEqual(packet.count(self.CHECK_SCOPE), 1)
+                for retired in self.RETIRED:
+                    self.assertNotIn(retired, packet)
 
-    def test_the_opt_in_modes_keep_their_own_check_text(self):
-        """The wording above is for a run with no Backchain child. `one` and `converge` tell the host to run the check on
-        the child's candidate, which a live round proved (release A), so their text does not change."""
-        for mode in ("one", "converge"):
-            for stage in ("spec", "plan"):
-                with self.subTest(mode=mode, stage=stage):
-                    text = " ".join(guidance.prompt(stage, backchain_passes=mode).split())
-                    self.assertNotIn(self.CHECK_READS, text)
-                    self.assertNotIn(self.CHECK_SCOPE, text)
-                    self.assertIn(self.OLD_CHECK_SENTENCE, text)
+    def test_the_plan_item_keeps_the_audit_and_the_carried_locators(self):
+        plan = self.flat(guidance.duty("plan", delegation=guidance.INLINE))
+        self.assertIn("Run the dependency audit of the Backchain planning guide.", plan)
+        self.assertIn("Keep material findings visible in `summary`. Carry the selected requirement sections and test "
+                      "locators through the plan and the items' `context`.", plan)
+        spec = self.flat(guidance.duty("spec", delegation=guidance.INLINE))
+        self.assertIn("Check outcomes and missing prerequisites with the Backchain planning guide.", spec)
+
+    def test_the_planning_guide_defines_the_graph_format_the_check_reads(self):
+        guide = (SCRIPTS.parent / "references" / "backchain-planning.md").read_text(encoding="utf-8")
+        section = guide.split("## Plan graph format\n", 1)[1].split("\n## ", 1)[0]
+        for clause in ("Write one only when the work needs a graph", "**Structural invariants.**",
+                       "every `from: null` need appears in `initial_state`"):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, self.flat(section))
 
 
 class BindCommandTests(unittest.TestCase):

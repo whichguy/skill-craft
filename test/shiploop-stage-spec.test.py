@@ -115,8 +115,6 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(prompts.TEST_DECISION_STAGES, frozenset({"step-plan", "test-spec", "test"}))
         self.assertEqual(prompts.BACKCHAIN_STAGES, frozenset({
             "spec", "plan", "step-plan", "carry-forward", "product-acceptance"}))
-        self.assertEqual(prompts.BACKCHAIN_AUDIT_STAGES, frozenset({
-            "spec", "step-plan", "carry-forward", "product-acceptance"}))
         self.assertEqual(prompts.RECONCILIATION_STAGES, frozenset({
             "system-test", "product-acceptance", "release-verify", "handoff"}))
         # The Code craft block prints where product code is written: implement only (owner, 2026-10-11).  test and

@@ -266,25 +266,14 @@ task and done must be nonempty. Initial-world facts in ready require actual chec
 not just a declaration in the plan. Contracts and provenance are frozen with the
 dependency graph. Plan changes require a new run after reconciling existing work.
 
-The sibling Backchain skill emits the graph without executing it. Its exporter is
-`../backchain/scripts/backchain.py`, relative to this skill's directory (both skills ship in
-the same plugin):
-`python3 -I -B ../backchain/scripts/backchain.py export --run DIR` exports the plan a finished
-Backchain run converged on, and refuses a run that did not converge or whose plan changed after
-`finish`; `python3 -I -B ../backchain/scripts/backchain.py export PLAN.json` exports any complete
-plan. Export requires structural validity, exact
-`completionStatus=complete` including goal_needs closure, and compatibility with
-the execution graph validator. Reserved object-key IDs and whitespace-only
-contracts fail at export rather than yielding a graph that init cannot use.
-It maps `statement` to
-task, direct non-null input suppliers to deps, input needs to ready, and produces
-to done. A produce with a Backchain `confirm` entry carries its method in the done
-string: `<produce>. Confirm by: <by>` for execution, the same plus
-` (inspection is sufficient)` for inspection, or
-`<produce>. Confirm by: unconfirmable here — <by>`. A produce without one is
-exported unchanged. Workers treat every done item as an exit criterion and use
-its `Confirm by:` method when present (see [exit criteria](#exit-criteria)). This gate is structural; it does not prove semantic sufficiency or replace
-readiness/acceptance evidence. The exporter is Backchain's; this package ships none.
+A done item may carry its confirmation method: `<condition>. Confirm by: <by>` when the
+condition must be exercised, the same plus ` (inspection is sufficient)` when inspection
+is enough, or `<condition>. Confirm by: unconfirmable here — <by>`. Workers treat every
+done item as an exit criterion and use its `Confirm by:` method when present (see
+[exit criteria](#exit-criteria)). Graph validation is structural; it does not prove
+semantic sufficiency or replace readiness/acceptance evidence. (Backchain's exporter, which
+once wrote such graphs from Backchain plans, was retired with the Backchain skill on
+2026-11-16.)
 Exact repeated ready/done wording is listed once; distinct supplier dependencies
 and every original input binding remain intact, even when their wording matches.
 Generic graph provenance remains arbitrary JSON. A packet exposes input_bindings

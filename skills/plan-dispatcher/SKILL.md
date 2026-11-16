@@ -4,7 +4,7 @@ description: >-
   Use when executing or resuming an agreed dependency graph with one main
   dispatcher and parallel native workers: claim ready steps, preserve launch
   state, collect result evidence, verify outcomes, and identify successors.
-  Planning belongs to Backchain or the caller; this skill executes the plan.
+  Planning belongs to the caller; this skill executes the plan.
 version: 0.6.5
 author: Backchain
 license: MIT
@@ -171,13 +171,10 @@ selected package for recovery.
 
 ## Execute
 
-1. Use an agreed graph with per-step task, ready and done contracts. When the
-   input is Backchain JSON, export it with the sibling Backchain skill:
-   `../backchain/scripts/backchain.py export --run DIR` for a finished planning
-   run, or `export PLAN.json` for a plan (see the
-   [protocol](references/protocol.md#graph)). Otherwise preserve the
-   caller's explicit dependency and contract information in the documented
-   format. Never discard unresolved needs to make a graph executable.
+1. Use an agreed graph with per-step task, ready and done contracts in the
+   documented format (see the [protocol](references/protocol.md#graph)),
+   preserving the caller's explicit dependency and contract information.
+   Never discard unresolved needs to make a graph executable.
    Choose one absolute run directory shared by all workers, outside their
    workspaces, and a unique dispatcher owner. For a context-bound run, initialize
    with the exact immutable `planning_context` reference after capability
