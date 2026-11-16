@@ -2,7 +2,7 @@
   "status": "QUALIFIED_SCOPED_NO_REPAIR",
   "recommendation": "R05",
   "qualification_source": "e596e6734f59590e2b4c6e65bea71a868675924f",
-  "current_source": "b4ae50a37ac9be88d078dc8b7b1322e772f2c6b6",
+  "current_source": "59d4af8524f24c3c20a9dd90aa194167342663e1",
   "production_delta": [],
   "new_production_regressions": 0,
   "decision": "Retain current prompts; no inherited-procedure semantic miss was reproduced. Only task-owned qualification transport was corrected.",
@@ -79,6 +79,6 @@
     "status": "APPROVE",
     "source": "e123ec86156ad659dcc19cfa4c46cf5398b78a51",
     "path": "closure-review.md",
-    "post_review_integration": "All 211 anchored spans and every pre-existing skill byte remain unchanged; only source pins/new release status were refreshed after the review."
+    "post_review_integration": "All 211 anchored excerpts and every pre-existing skill file remain unchanged. One background E18 registration README changes its file hash but retains its cited A14/E17 excerpt. Source pins, that hash/location and release/registration status prose are refreshed; reviewer identity is preserved."
   }
 }

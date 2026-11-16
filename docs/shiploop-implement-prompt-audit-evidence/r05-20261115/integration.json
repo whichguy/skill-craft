@@ -1,8 +1,8 @@
 {
   "qualification_source": "e596e6734f59590e2b4c6e65bea71a868675924f",
-  "integrated_source": "b4ae50a37ac9be88d078dc8b7b1322e772f2c6b6",
-  "upstream_main": "3c55b80288a0f7bd136c155342f27cdc43d1f557",
-  "previous_integration": "e123ec86156ad659dcc19cfa4c46cf5398b78a51",
+  "integrated_source": "59d4af8524f24c3c20a9dd90aa194167342663e1",
+  "upstream_main": "4df66f687caf24b9919238c63ba579a2d871eaef",
+  "previous_integration": "b4ae50a37ac9be88d078dc8b7b1322e772f2c6b6",
   "closure_review_source": "e123ec86156ad659dcc19cfa4c46cf5398b78a51",
   "all_existing_skill_bytes_unchanged": true,
   "upstream_added_skill_files": [
@@ -20,7 +20,22 @@
   "relevant_skill_delta": [],
   "plan_anchors": 211,
   "plan_source_files": 46,
-  "plan_source_files_changed": [],
+  "plan_source_files_changed": [
+    "docs/experiments/parallel-plan-execution-20261114/README.md"
+  ],
   "all_current_anchor_bytes_unchanged": true,
-  "runtime_test_rerun": "Not warranted: no R05 production change, and all tested/anchored files are unchanged. Added Closed Loop leaf is separate upstream work, not adopted as an R05 runtime."
+  "runtime_test_rerun": "Not warranted: no R05 production change, all tested runtime files and anchored excerpts are unchanged. One background experiment registration README changes its full-file hash; it is not a production input.",
+  "unchanged_previous_plan_files": 42,
+  "previous_plan_files": 43,
+  "background_file_changes": [
+    {
+      "path": "docs/experiments/parallel-plan-execution-20261114/README.md",
+      "symbol": "A14 / E17 registration",
+      "old_start": 508,
+      "new_start": 508,
+      "excerpt_unchanged": true,
+      "old_file_sha256": "a3ff5a060c39ccbfb0d30176f96ebf42b4e7132100b64f1f97f59c4ac7f97410",
+      "new_file_sha256": "d4918c4c02eb650fb7150d147a597b1c5011e6c541026974f611fbe3d137c93b"
+    }
+  ]
 }

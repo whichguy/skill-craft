@@ -37,8 +37,11 @@ for anchor in anchors:
     path = anchor['path']
     if path not in files:
         raw = (repo / path).read_bytes()
-        for head in (source['source_head'], source['qualification_source_head']):
-            assert raw == subprocess.check_output(['git', '-C', str(repo), 'show', head + ':' + path]), path
+        assert raw == subprocess.check_output(['git', '-C', str(repo), 'show', source['source_head'] + ':' + path]), path
+        qualified = subprocess.check_output(['git', '-C', str(repo), 'show', source['qualification_source_head'] + ':' + path])
+        if raw != qualified:
+            assert path == 'docs/experiments/parallel-plan-execution-20261114/README.md', path
+            assert qualified.count(anchor['excerpt'].encode()) == 1, path
         files[path] = raw
     raw = files[path]
     lines = raw.decode().splitlines(keepends=True)
@@ -145,7 +148,9 @@ assert len(transport['permission_probes']) == 4
 trace = read('trace-audit.json')
 assert len(trace['screens']) == 20 and not any(r['input_locator_flags'] for r in trace['screens'])
 integration = read('integration.json')
-assert integration['all_existing_skill_bytes_unchanged'] and not integration['plan_source_files_changed']
+assert integration['all_existing_skill_bytes_unchanged']
+assert integration['plan_source_files_changed'] == ['docs/experiments/parallel-plan-execution-20261114/README.md']
+assert all(r['excerpt_unchanged'] for r in integration['background_file_changes'])
 assert len(integration['upstream_added_skill_files']) == 10 and not integration['relevant_skill_delta']
 assert acceptance['closure_review']['status'] == 'APPROVE'
 assert (evidence / 'closure-review.md').read_text().startswith('APPROVE')

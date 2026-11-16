@@ -1,0 +1,26 @@
+{
+  "qualification_source": "e596e6734f59590e2b4c6e65bea71a868675924f",
+  "integrated_source": "b4ae50a37ac9be88d078dc8b7b1322e772f2c6b6",
+  "upstream_main": "3c55b80288a0f7bd136c155342f27cdc43d1f557",
+  "previous_integration": "e123ec86156ad659dcc19cfa4c46cf5398b78a51",
+  "closure_review_source": "e123ec86156ad659dcc19cfa4c46cf5398b78a51",
+  "all_existing_skill_bytes_unchanged": true,
+  "upstream_added_skill_files": [
+    "skills/closed-loop/SKILL.md",
+    "skills/closed-loop/prompts/adapter-gap.md",
+    "skills/closed-loop/prompts/blind-spot-hunter.md",
+    "skills/closed-loop/prompts/definer.md",
+    "skills/closed-loop/references/adapter-schema.md",
+    "skills/closed-loop/references/convergence.md",
+    "skills/closed-loop/references/escalation.md",
+    "skills/closed-loop/references/readiness.md",
+    "skills/closed-loop/references/until-loop.md",
+    "skills/closed-loop/scripts/closed_loop.py"
+  ],
+  "relevant_skill_delta": [],
+  "plan_anchors": 211,
+  "plan_source_files": 46,
+  "plan_source_files_changed": [],
+  "all_current_anchor_bytes_unchanged": true,
+  "runtime_test_rerun": "Not warranted: no R05 production change, and all tested/anchored files are unchanged. Added Closed Loop leaf is separate upstream work, not adopted as an R05 runtime."
+}
