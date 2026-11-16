@@ -2,6 +2,7 @@
 
 Journal: [docs/shiploop-parallel-execution-journal.md](../../shiploop-parallel-execution-journal.md). Census: [census/](census/).
 Status: **registered before any experiment trial and before the census report was read** (commit order is the proof).
+Closed 2026-11-15 at the owner's word (journal R13); nothing further is planned.
 No ShipLoop, skill, agent or catalog file is changed by this study; it lives only under this folder and in the journal.
 
 ## Why

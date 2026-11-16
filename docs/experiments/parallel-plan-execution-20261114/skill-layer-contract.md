@@ -1,7 +1,7 @@
 # Skill-layer contract: dispatch and collect independent work, whatever the harness (proposal)
 
 Status: a proposal from the parallel-plan-execution study (journal `docs/shiploop-parallel-execution-journal.md`, README Amendments A5 to A7). Nothing in `skills/`, `agents/`,
-`hosts.py` or a marketplace file changes with it; every number cites a journal entry and the commit that holds its evidence. It is a contract and a set of bindings, not code.
+`hosts.py` or a marketplace file changes with it; every number cites a journal entry and the commit that holds its evidence. It is a contract and a set of bindings, not code. The study is closed (journal R13, 2026-11-15) and nothing further is planned: the proposal stays a proposal.
 
 ## 1. What was asked
 

@@ -190,7 +190,10 @@ class PacketLineTests(unittest.TestCase):
                         packet = prompts.prompt(stage, delegation=delegation, backchain_passes=mode)
                         self.assertEqual(packet.count(check), expected)
                         if folded:
-                            self.assertIn("Run the printed `backchain-check` after each candidate revision", packet)
+                            # a run with no child says what the check reads (2026-11-15 default round)
+                            self.assertIn("Run the printed `backchain-check` after each candidate revision" if child
+                                          else "The printed `backchain-check` reads only a candidate graph",
+                                          " ".join(packet.split()))
                             self.assertIn("receipt", packet)
                         if inline_step_plan:
                             self.assertEqual(packet.count(prompts.INLINE_BACKCHAIN_AUDIT), int(child))

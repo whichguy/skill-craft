@@ -1,0 +1,49 @@
+**Verdict: not ready.** Version 2 fixes several important derivations, but its advertised W4 sequence is unreachable through normal orchestration, and recovery still permits lost findings and surviving model processes. No checkout files were changed.
+
+| Earlier finding | Status | V2 disposition |
+|---|---|---|
+| 1. Readiness | **FIXED** | §3.6 uses supported claims, genuine execution and a bounded-edit probe. Bootstrap ordering remains unspecified below. |
+| 2. Baseline/acceptance | **PARTLY** | §3.4 improves both; baseline keys are incomplete and the generality fallback contradicts build validation. |
+| 3. Artifact derivation | **FIXED** | §3.4 includes valid correctness, final assessments, epoch/attempt provenance and conditional candidate hashes. |
+| 4. Interrupted knowledge | **PARTLY** | §3.2 adds salvage, but misses staged changes and detached model groups. |
+| 5. Multi-case transactions/stops | **PARTLY** | §3.3 prevents multiple promotions; partial coverage and sweep semantics remain inconsistent. |
+| 6. X isolation/state | **PARTLY** | §3.2’s clone and exact candidate-set token are sound; baseline destinations, bootstrap and import roots need specification. |
+| 7. Records/scopes | **PARTLY** | §§3.5–3.7 correct caseless blocking and catalog gating; W4 still stops after one iteration. |
+| 8. Cost | **FIXED**, with qualifications | §5 includes serial reviews and numeric run budgets; estimates remain unmeasured. |
+| 9. Scope/value gates | **PARTLY** | Narrower claims and planted controls are retained; G2 still lacks a demonstrated qualified-cycle requirement. |
+
+For W4, assume both explorations were somehow recorded at unchanged B, their reviews and floors passed, cleanup was verified, and the second run has a genuinely comparable predecessor:
+
+| Check | Result after two iterations |
+|---|---|
+| C1 | **FAIL:** the three caseless unresolved material records. |
+| C2 | **PASS:** two quiet iterations at B. Baseline absence does not itself prevent quietness. |
+| C3 | **PASS:** it uses hello’s latest run; the earlier iteration’s baseline status is irrelevant. |
+| C4 | **PASS:** hello’s style ran; other catalog values are listed outside scope. |
+| C5 | **Unproven:** fails unless the last iteration carries a green B-tier fact. Reusing the startup receipt is sufficient, but must be explicit. Every iteration also needs positive cleanup. |
+| C6 | **PASS:** no promoted candidate. |
+| C7 | **PASS:** matching boundary/start rule, complete valid assessments, no invalid evidence or unresolved inside-claim unknown. |
+
+These follow directly from [closed_loop.py — check_c1 through check_c7](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:797). `completion_problems` retains those failures and adds unresolved hunts or exhausted quota. Readiness charges consumption but creates **zero iterations**. [completion_problems](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:1055), [cmd_readiness](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:1844).
+
+**The actual sequence stops earlier:** after iteration one, `analyze` finds owner-gated blockers and no actionable records; `plan_next` stops before iteration two. C2 therefore fails too; C3 depends on an earlier matching row. Also, `init` opens S0 with `sweep_pending=False`, so the first request is `iterate`, not `sweep`. [analyze/plan_next](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:1006), [cmd_init](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:1793).
+
+Prioritized changes:
+
+1. **Verified bug — Replace W4’s gate with an achievable sequence.** Specify tier-receipt propagation and either accept the one-iteration owner stop or explicitly change navigation. Separately, C7 does **not** check readiness’s scoring identity: a mismatch merely withdraws allowed claims in `certificate`. Do not attribute stronger enforcement to C7. [check_c7/certificate](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:913).
+
+2. **Verified bug — Own every model process group.** `hosts.run_agent` creates independent sessions without lifecycle registration. My harmless child survived SIGKILL of its outer invocation group. Lifecycle cleanup also exits zero with `unverified`/`protected` results and marks those groups ended; a second cleanup can hide the warning. Require identity-bound ownership and explicit rejection of unresolved cleanup outcomes. Epoch sealing receipts are not cleanup guarantees. [hosts.py — run_agent](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/hosts.py:193), [lifecycle.py — cleanup](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/lifecycle.py:344), [CLI exit predicate](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/lifecycle.py:730).
+
+3. **Verified bug — Preserve staged knowledge and make salvage blocking durable.** Plain `git diff` misses staged ledger additions; the engine stages before committing. I reproduced that empty-diff window. Preserve binary index/worktree changes, relevant untracked files and committed refs. `unknown` supports a manual, campaign-wide text blocker; it neither imports archives nor resolves on rediscovery. Require explicit `add --inside-claim` and later `resolve --evidence`. An old iteration’s `invalid` text eventually leaves C7’s window. [cycle.py — commit_entry](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/cycle.py:569), [closed_loop.py — cmd_unknown](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:1930).
+
+4. **Verified bug — Enforce the generality policy before adopting the build.** The engine already retains a PROMOTE; relabeling it UNDECIDED while keeping the changed build fails `validate_facts`. C6 itself requires candidate-bound evidence, **not another style**—that is your additional policy. Partial `ran:false` reports are schema-valid and nonquiet, but promotion removes old-build evidence from the window. `record_iteration` nevertheless clears `sweep_pending`; the next request covers the entire scope, not just skipped cases. Require complete current-build coverage and resolve the contract’s improver-free sweep promise. [apply_decision](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/cycle.py:547), [validate_facts](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:649), [record_iteration](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:1185).
+
+5. **Verified contract mismatch — Complete baseline semantics.** Use `matching_rows(path, case, source, host, model, effort, planning_review, prompt_sha256)`, unpacking `(rows, seen, skipped)`. Omitting planning mode disables that filter; named-case rows missing prompt hashes can match. Exclude the current row. Row 11 applies to eligible default-path explorations: epoch launches explicitly use **epoch-local** baselines, while resumed/seeded/unfinished runs append none. Capture both destinations and readiness runs before restoration; specify subsequent reads from campaign history. [run.py — matching_rows](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/run.py:2975), [epoch.py — launch](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/epoch.py:435), [baseline append](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/run.py:4910).
+
+6. **Likely bugs — Specify publication recovery and import/bootstrap roots.** CAS does not atomically commit the step result plus tip. Persist a prepared result, reconcile `ref==T′` as already published, and reject unexpected refs. Make identity/records read that published tip. Bind imports to immutable B and pass ledger/harness paths explicitly: defaults bind the importing checkout. X must also support identity and readiness **before** its proposed first-step creation. [plan §3.2](/private/tmp/p2review.LMZoAz/docs/closed-loop-phase2-plan-2026-11-15.md:95), [learning_records defaults](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/learning_records.py:44), [spread.scoring_digest](/private/tmp/p2review.LMZoAz/test/shiploop_e2e/spread.py:69).
+
+7. **Judgement — Bound coverage claims.** The four allowlisted styles are distinct and work with C4/widening. Absent or same-style cases are never automatically widened to or individually reported excluded. Make actionability match actual scope pairs and require qualified-cycle proof at G2. [widening_candidates](/private/tmp/p2review.LMZoAz/skills/closed-loop/scripts/closed_loop.py:985).
+
+Rows 10 and 12 are confirmed; row 13 establishes a **possible** loss through its stubbed kill witness, not universally empty real outputs. The 237 rows, profile counts and medians check out. W6’s 16 runs, concurrency two, 155 minutes and invalid timing are confirmed. W7’s arithmetic is **3.92–5.25 hours before purpose checks, retries and quick tests**; R/W4/W5 remain estimates. [calibration evidence](/private/tmp/p2review.LMZoAz/docs/experiments/e2e-calibration-20261031/README.md:54).
+
+I would start **no real readiness or campaign compute** without corrected W4 navigation, process ownership, staged salvage, publication replay and baseline/tier contract tests.

@@ -785,7 +785,7 @@ class BackchainStageTextTests(unittest.TestCase):
         flat = " ".join(plan.split())
         self.assertEqual(flat.count(self.NO_CHILD), 1)
         self.assertEqual(flat.count("Run the dependency audit of the Backchain planning guide."), 1)
-        self.assertIn("Run the printed `backchain-check` after each candidate revision", flat)
+        self.assertIn("The printed `backchain-check` reads only a candidate graph", flat)
         for child in self.CHILD_TEXTS:
             with self.subTest(child=child):
                 self.assertNotIn(child, flat)
@@ -839,7 +839,7 @@ class BackchainStageTextTests(unittest.TestCase):
                     if stage in guidance.BACKCHAIN_FOLDED_STAGES or delegation == guidance.ASK_AGENT:
                         # a route whose check stood on its own keeps it, and says no child is requested
                         self.assertEqual(text.count(self.NO_CHILD), 1)
-                        self.assertIn("Run the printed `backchain-check` after each candidate revision", text)
+                        self.assertIn("The printed `backchain-check` reads only a candidate graph", text)
                     if stage not in guidance.BACKCHAIN_FOLDED_STAGES and delegation == guidance.ASK_AGENT:
                         self.assertIn("Follow the packet's Backchain planning guide for this stage's scoped outcome",
                                       text)
@@ -855,6 +855,44 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertNotIn(" ".join(guidance.INLINE_BACKCHAIN_AUDIT.split()), text)
                 self.assertEqual(text.count("check it with the Backchain planning guide's dependency audit and route it "
                                             "as item 6 says"), 1)
+
+
+    # What the printed check reads, said wherever a no-child run tells the host to run it. In the 2026-11-15 default round
+    # (see the learnings journal's entry for it) the host, at spec, ran `backchain-check` on docs/shiploop/spec.md and was
+    # refused (not JSON). It then wrote a one-step graph and re-ran that one file at plan, step-plan and product-acceptance
+    # only to have a receipt at each: the four receipt folders hold the same candidate hash. The sentence "after each
+    # candidate revision" read as "check the spec".
+    CHECK_READS = ("reads only a candidate graph in Backchain's plan schema, a JSON file "
+                   "(Backchain SKILL.md, \"Plan document shape\"), never a spec, a Markdown note or a prose plan")
+    CHECK_SCOPE = "Run it after each revision of a graph you wrote, and write none only to run it"
+    OLD_CHECK_SENTENCE = "`backchain-check` after each candidate revision"
+
+    def test_none_says_what_the_printed_check_reads_and_not_to_write_a_graph_only_to_run_it(self):
+        routes = (("spec", guidance.INLINE), ("spec", guidance.ASK_AGENT), ("plan", guidance.INLINE),
+                  ("plan", guidance.ASK_AGENT), ("step-plan", guidance.ASK_AGENT), ("carry-forward", guidance.ASK_AGENT))
+        for stage, delegation in routes:
+            with self.subTest(stage=stage, delegation=delegation):
+                text = " ".join(guidance.prompt(stage, delegation=delegation, backchain_passes="none").split())
+                self.assertEqual(text.count(self.CHECK_READS), 1)
+                self.assertEqual(text.count(self.CHECK_SCOPE), 1)
+                self.assertNotIn(self.OLD_CHECK_SENTENCE, text)  # the sentence that read as "check the spec"
+        # the packets the host reads, through the CLI route: the same sentences, once, at spec and plan
+        for stage in ("spec", "plan"):
+            with self.subTest(stage=stage, route="dry-run CLI"):
+                packet = " ".join(self.packets_in("none")[stage].split())
+                self.assertEqual(packet.count(self.CHECK_READS), 1)
+                self.assertEqual(packet.count(self.CHECK_SCOPE), 1)
+
+    def test_the_opt_in_modes_keep_their_own_check_text(self):
+        """The wording above is for a run with no Backchain child. `one` and `converge` tell the host to run the check on
+        the child's candidate, which a live round proved (release A), so their text does not change."""
+        for mode in ("one", "converge"):
+            for stage in ("spec", "plan"):
+                with self.subTest(mode=mode, stage=stage):
+                    text = " ".join(guidance.prompt(stage, backchain_passes=mode).split())
+                    self.assertNotIn(self.CHECK_READS, text)
+                    self.assertNotIn(self.CHECK_SCOPE, text)
+                    self.assertIn(self.OLD_CHECK_SENTENCE, text)
 
 
 class BindCommandTests(unittest.TestCase):

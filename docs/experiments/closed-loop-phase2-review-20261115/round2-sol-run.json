@@ -1,0 +1,12 @@
+{
+  "model_used": "gpt-6.1-sol",
+  "fallback": false,
+  "exit": 0,
+  "profile": "agent",
+  "persona": "codex-sol",
+  "effort": "max",
+  "sandbox": "workspace-write",
+  "tool_restrictions": "none",
+  "error": null,
+  "text_file": "round2-sol-answer.txt"
+}

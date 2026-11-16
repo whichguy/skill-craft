@@ -2108,9 +2108,18 @@ def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
 # Record only: the navigator prints the command; nothing refuses a failing check.
 BACKCHAIN_CHECK = ("Run the printed `backchain-check` after each candidate revision; a failure is a loop finding; "
                    "cite its receipt in `evidence_refs`.\n")
-# The same check in a run with no Backchain child (``none``): there is no Backchain loop for a failure to belong to.
-_BACKCHAIN_CHECK_NONE = ("Run the printed `backchain-check` after each candidate revision; a failure is a finding; "
-                         "cite its receipt in `evidence_refs`.\n")
+# The same check in a run with no Backchain child (``none``, the default): there is no Backchain loop for a failure to
+# belong to, and nothing for the host to check unless it wrote a graph.  What the check reads is said in these words
+# wherever a run with no Backchain child tells the host to run it.  The 2026-11-15 default round (LEARNINGS.md): at spec the host ran
+# the check on docs/shiploop/spec.md ("after each candidate revision"), was refused as not JSON, then wrote a one-step
+# graph and re-ran that one file at plan, step-plan and product-acceptance only to have a receipt at each; the four
+# receipt folders hold the same candidate hash.
+_BACKCHAIN_CHECK_READS = (
+    "The printed `backchain-check` reads only a candidate graph in Backchain's plan schema, a JSON file\n"
+    "(Backchain SKILL.md, \"Plan document shape\"), never a spec, a Markdown note or a prose plan. Run it after each\n"
+    "revision of a graph you wrote, and write none only to run it; a failure is a finding. Cite its receipt in\n"
+    "`evidence_refs`.")
+_BACKCHAIN_CHECK_NONE = _BACKCHAIN_CHECK_READS + "\n"
 
 
 _BACKCHAIN_ROUTE = """\
@@ -2306,17 +2315,18 @@ Request a Backchain `review` / `audit` only for a material prerequisite ambiguit
     `evidence_refs`. The only call route is `source-aware-native`."""
 # The spec and plan items of a run that offers no Backchain child (``none``, the default since 2026-11-15): ShipLoop's
 # own dependency audit (plan) and the record-only graph check stay, and no child request is printed.
-_BACKCHAIN_ITEM_PLAN_NONE = """\
+_BACKCHAIN_ITEM_PLAN_NONE = (
+    """\
 Run the dependency audit of the Backchain planning guide. This run requests no Backchain child (Backchain
     passes option `none`, the default).
-    Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
-    `evidence_refs`. Keep material findings visible in `summary`. Carry the selected requirement sections and test
-    locators through the plan and the items' `context`."""
-_BACKCHAIN_ITEM_CHECK_NONE = """\
+    """ + _BACKCHAIN_CHECK_READS.replace("\n", "\n    ") + """
+    Keep material findings visible in `summary`. Carry the selected requirement sections and test locators through
+    the plan and the items' `context`.""")
+_BACKCHAIN_ITEM_CHECK_NONE = (
+    """\
 Check outcomes and missing prerequisites with the Backchain planning guide. This run requests no Backchain child
     (Backchain passes option `none`, the default).
-    Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
-    `evidence_refs`."""
+    """ + _BACKCHAIN_CHECK_READS.replace("\n", "\n    "))
 _BACKCHAIN_ITEM_MARKER = "    - put the line `Backchain passes: one` beside the binding marker in the child request;\n"
 # Mode converge (owner decision D-D, 2026-11-01): Backchain's default gate; the request carries no marker line.
 _BACKCHAIN_ITEM_DEFAULT_GATE = ("    - put no `Backchain passes:` line in the child request: it runs Backchain's default "
