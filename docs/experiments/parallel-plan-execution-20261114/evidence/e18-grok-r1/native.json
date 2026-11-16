@@ -1,0 +1,17 @@
+{
+ "source": "grok logs/unified.jsonl",
+ "agents": [
+  {
+   "id": "01a1e1ae-60d4-7021-9ee5-8037457f9147",
+   "actor": "agent:7f9147",
+   "kind": "general-purpose",
+   "model": "grok-4.6",
+   "start": 1794787664.267,
+   "end": 1794788140.352,
+   "success": true,
+   "tokens": null,
+   "turns": 1,
+   "duration_ms": 475977
+  }
+ ]
+}

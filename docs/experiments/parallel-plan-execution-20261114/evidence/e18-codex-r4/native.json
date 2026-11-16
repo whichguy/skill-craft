@@ -1,0 +1,184 @@
+{
+ "source": "codex rollout files",
+ "agents": [
+  {
+   "id": "01a1e1be-1f33-7202-8192-01c932854865",
+   "actor": "thread:854865",
+   "child": true,
+   "depth": 1,
+   "nickname": "Boole",
+   "version": "v2",
+   "start": 1794788695.954,
+   "end": 1794788855.134,
+   "tokens": {
+    "input_tokens": 464115,
+    "cached_input_tokens": 409472,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 6244,
+    "reasoning_output_tokens": 534,
+    "total_tokens": 470359
+   },
+   "calls": [
+    {
+     "t": 1794788700.214,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/dagkit.py begin --run /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/run --step T3"
+    },
+    {
+     "t": 1794788703.298,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rg --files"
+    },
+    {
+     "t": 1794788706.643,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat README.md src/config.js src/store.js src/persistence.js src/app.js src/tickets/query.js src/format.js bin/tickets.js"
+    },
+    {
+     "t": 1794788712.117,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat src/server.js test/helpers.js test/config.test.js test/persistence.test.js CONTRIBUTING.md package.json docs/decisions/0008-json-data-file.md"
+    },
+    {
+     "t": 1794788743.583,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('src/tickets/due.js'); p.write_text('''\\x27use strict\\x27;\n\nconst DEFAULT_HOURS = Object.freeze({ urgent: 4, high: 24, normal: 72, low: 168 });\n\nfunction dueAt(created, priority, hours = DEFAULT_HOURS) {\n  return new Date(Date.parse(created) + hours[priority] * 60 * 60 * 1000).toISOString();\n}\n\nmodule.exports = { DEFAULT_HOURS, dueAt };\n''')\np=Path('src/config.js');s=p.read_text().replace(\"const DEFAULTS =\", \"const { DEFAULT_HOURS } = require('./tickets/due');\\n\\nconst DEFAULTS =\");s=s.replace(\"    port: wholeNumber\", \"    dueTimes: env.DUE_TIMES === 'on',\\n    dueHours: Object.freeze(Object.fromEntries(Object.entries(DEFAULT_HOURS).map(([priority, hours]) =>\\n      [priority, wholeNumber(env, `DUE_HOURS_${priority.toUpperCase()}`, hours, { min: 1, max: 876000 })]))),\\n    port: wholeNumber\");p.write_text(s)\np=Path('src/store.js');s=p.read_text().replace(\"const { AuditLog }\", \"const { DEFAULT_HOURS, dueAt } = require('./tickets/due');\\nconst { AuditLog }\");s=s.replace(\"constructor({ clock, persistence = null, state = null })\", \"constructor({ clock, persistence = null, state = null, dueTimes = false, dueHours = DEFAULT_HOURS })\");s=s.replace(\"    this.clock = clock;\", \"    this.clock = clock;\\n    this.dueTimes = dueTimes;\\n    this.dueHours = { ...dueHours };\",1);s=s.replace(\"{ assignee: null, ...ticket }\", \"{ assignee: null, ...ticket, due: ticket.due ?? dueAt(ticket.created, ticket.priority, this.dueHours) }\");s=s.replace(\"static open({ clock, persistence = null }) {\\n    return new TicketStore({ clock, persistence, state: persistence ? persistence.load() : null });\\n  }\", \"static open({ clock, persistence = null, dueTimes = false, dueHours = DEFAULT_HOURS }) {\\n    const state = persistence ? persistence.load() : null;\\n    const store = new TicketStore({ clock, persistence, state, dueTimes, dueHours });\\n    // Prepare the data before exposing any new API behavior. A failed save prevents startup.\\n    if (state && state.tickets.some((ticket) => ticket.due === undefined)) store.save();\\n    return store;\\n  }\\n\\n  present(ticket) {\\n    const copy = { ...ticket };\\n    if (!this.dueTimes) delete copy.due;\\n    return copy;\\n  }\");s=s.replace(\"return { ...this.find(id) };\", \"return this.present(this.find(id));\");s=s.replace(\"matchesFilters(ticket, filters)\", \"matchesFilters(ticket, this.dueTimes ? filters : Object.fromEntries(Object.entries(filters).filter(([key]) => key !== 'overdue')), this.clock.now())\");s=s.replace(\"page.items.map((ticket) => ({ ...ticket }))\", \"page.items.map((ticket) => this.present(ticket))\");s=s.replace(\"created: at, updated: at };\", \"created: at, updated: at, due: dueAt(at, priority, this.dueHours) };\");s=s.replace(\"new TicketStore({ clock: this.clock, state: this.snapshot() })\", \"new TicketStore({ clock: this.clock, state: this.snapshot(), dueTimes: this.dueTimes, dueHours: this.dueHours })\");s=s.replace(\"return { ...ticket };\", \"return this.present(ticket);\");p.write_text(s)\np=Path('src/persistence.js');s=p.read_text().replace(\"    updated: ticket.updated,\", \"    updated: ticket.updated,\\n    ...(ticket.due === undefined ? {} : { due: ticket.due }),\");s=s.replace(\"  time(ticket.updated, `${where}.updated`, fail);\", \"  time(ticket.updated, `${where}.updated`, fail);\\n  if (ticket.due !== undefined) time(ticket.due, `${where}.due`, fail);\");p.write_text(s)\np=Path('src/server.js');s=p.read_text().replace(\"TicketStore.open({ clock, persistence })\", \"TicketStore.open({ clock, persistence, dueTimes: config.dueTimes, dueHours: config.dueHours })\");p.write_text(s)\np=Path('src/tickets/query.js');s=p.read_text().replace(\"function parseListQuery(params)\", \"function parseListQuery(params, { dueTimes = false } = {})\");s=s.replace(\"  const filters = {};\", \"  const filters = {};\\n  if (dueTimes && params.has('overdue')) {\\n    const value = params.get('overdue');\\n    if (!['true', 'false'].includes(value)) throw new InvalidError('overdue must be true or false');\\n    if (value === 'true') filters.overdue = true;\\n  }\");s=s.replace(\"function matchesFilters(ticket, filters)\", \"function matchesFilters(ticket, filters, now = new Date())\");s=s.replace(\"return given.every(([field, value]) => ticket[field] === value);\", \"return given.every(([field, value]) => field === 'overdue'\\n    ? !value || (['open', 'in_progress'].includes(ticket.status) && Date.parse(ticket.due) < now.getTime())\\n    : ticket[field] === value);\");p.write_text(s)\np=Path('src/app.js');s=p.read_text().replace(\"parseListQuery(url.searchParams)\", \"parseListQuery(url.searchParams, { dueTimes: store.dueTimes })\");p.write_text(s)\nPY"
+    },
+    {
+     "t": 1794788751.082,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat src/clock.js test/assignment.test.js docs/decisions/README.md CHANGELOG.md"
+    },
+    {
+     "t": 1794788784.514,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('src/format.js');s=p.read_text().replace(\"return RAW_COLUMNS.map\", \"const columns = ticket.due === undefined ? RAW_COLUMNS : [...RAW_COLUMNS, 'due'];\\n  return columns.map\");s=s.replace(\"function table(tickets, columns = TABLE_COLUMNS) {\", \"function table(tickets, columns = TABLE_COLUMNS) {\\n  if (columns === TABLE_COLUMNS && tickets.some((ticket) => ticket.due !== undefined)) {\\n    columns = [...columns, { title: 'DUE', value: (ticket) => minute(ticket.due) }];\\n  }\");s=s.replace(\"  const width = Math.max(...fields\", \"  if (ticket.due !== undefined) fields.push('due');\\n  const width = Math.max(...fields\");p.write_text(s)\np=Path('bin/tickets.js');s=p.read_text().replace(\"function openStore(file)\", \"function openStore(file, env)\").replace(\"new TicketStore({ clock: systemClock, state })\", \"new TicketStore({ clock: systemClock, state, dueTimes: env.DUE_TIMES === 'on' })\").replace(\"parseListQuery(options.query)\", \"parseListQuery(options.query, { dueTimes: store.dueTimes })\").replace(\"command(openStore(options.data),\", \"command(openStore(options.data, env),\");p.write_text(s)\np=Path('package.json');s=p.read_text().replace('\"version\": \"1.5.0\"','\"version\": \"1.6.0\"');p.write_text(s)\np=Path('README.md');s=p.read_text().replace('| `PORT`', '| `DUE_TIMES` | off | `on` exposes persisted due times and enables the overdue filter |\\n| `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, `DUE_HOURS_LOW` | 4, 24, 72, 168 | positive whole response hours, at most 876000, applied only when a due time is first set |\\n| `PORT`',1);s += '\\nWith `DUE_TIMES=on`, command-line tickets also show `due`; raw output appends it after the existing columns.\\n';p.write_text(s)\np=Path('docs/api.md');s=p.read_text();s += '\\n## Due times\\n\\nWhen `DUE_TIMES=on`, every ticket includes `due`, an ISO UTC timestamp set from its creation time and priority.\\nIt remains fixed across priority edits and configuration changes. `GET /tickets?overdue=true` restricts the usual\\ncursor listing to open and in-progress tickets with `due` strictly before now; all other filters still combine.\\n`overdue=false` applies no restriction; other values return 400. With the feature off, the parameter is ignored as before.\\n';p.write_text(s)\np=Path('docs/operations.md');s=p.read_text();s += '''\n## Rolling out due times\n\nDeploy 1.6.0 with DUE_TIMES unset. At startup, the store backfills missing due times from each ticket's own creation\nand priority and atomically saves them before accepting requests. New tickets also save due times while the feature\nis off, but API and command-line output stay unchanged. Configure DUE_HOURS_URGENT/HIGH/NORMAL/LOW before this first\nstart if the defaults do not fit. The migration preserves audit history, timestamps, outbox and ticket numbers.\n\nCheck that every ticket in DATA_FILE has a due timestamp, then restart with DUE_TIMES=on. Changing the hours affects\nonly tickets that do not yet have a due time. Startup refuses malformed saved due values and stops if migration cannot\nbe saved. To hide the feature, restart with DUE_TIMES unset. To roll back further, stop the service and run release\n1.4.0 on the same data file: it reads version 1, ignores the added fields and displays every ticket. An old release\nrewriting the file discards fields it does not know, so back up the file before rollback; a later upgrade backfills\nany missing due times again using the configured hours and the then-saved priority. Never run two writers together.\n''';p.write_text(s)\np=Path('docs/decisions/0010-immutable-due-times.md');p.write_text('''# 10. Immutable ticket due times\n\nDate: 2026-11-15\nStatus: Accepted\n\n## Context\n\nResponse promises must survive priority edits, restarts and configuration changes, with staged rollout and rollback.\n\n## Decision\n\nThe store assigns due once from creation and configurable per-priority hours. Startup backfills and saves missing\nvalues before serving, even with the feature off. Due is optional on disk in version 1, validated when present, and\nhidden in responses unless DUE_TIMES=on. Existing 1.4.0 readers ignore the additional field and can still load all tickets.\nOverdue means open or in progress and strictly past due; filtering precedes pagination.\n\n## Consequences\n\nOperators can prepare data before exposing behavior. Old writers discard unknown fields, so rollback needs a backup\nif due promises must be restored exactly after a later upgrade. Migration is data preparation, not a ticket edit, and\ndoes not append audit or notifications or alter timestamps.\n''')\np=Path('docs/decisions/README.md');s=p.read_text();s += '| 10 | [Immutable ticket due times](0010-immutable-due-times.md) | Accepted |\\n';p.write_text(s)\np=Path('CHANGELOG.md');s=p.read_text().replace('# Changelog\\n', '# Changelog\\n\\n## 1.6.0 (2026-11-15)\\n\\n- Persist immutable configurable response due times, backfilling existing data before serving.\\n- Expose due times and active overdue filtering with DUE_TIMES=on; keep version 1 data readable by 1.4.0.\\n');p.write_text(s)\nPY"
+    },
+    {
+     "t": 1794788830.805,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat > test/due.test.js <<'EOF'\n'use strict';\n\nconst { test } = require('node:test');\nconst assert = require('node:assert/strict');\nconst fs = require('node:fs');\nconst path = require('node:path');\nconst { manualClock } = require('../src/clock');\nconst { loadConfig, ConfigError } = require('../src/config');\nconst { TicketStore } = require('../src/store');\nconst { createPersistence, fromDocument, toDocument } = require('../src/persistence');\nconst { ticketBody, withService } = require('./helpers');\nconst { DEFAULT_HOURS } = require('../src/tickets/due');\n\nfunction dataFile(t) {\n  const dir = fs.mkdtempSync(path.join(__dirname, 'due-data-'));\n  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));\n  return path.join(dir, 'tickets.json');\n}\n\ntest('due configuration has defaults, explicit enablement and validated response hours', () => {\n  assert.equal(loadConfig({}).dueTimes, false);\n  assert.equal(loadConfig({ DUE_TIMES: 'true' }).dueTimes, false);\n  assert.deepEqual(loadConfig({}).dueHours, DEFAULT_HOURS);\n  const configured = loadConfig({ DUE_TIMES: 'on', DUE_HOURS_HIGH: '8' });\n  assert.equal(configured.dueTimes, true);\n  assert.equal(configured.dueHours.high, 8);\n  for (const value of ['0', '-1', '1.5', 'later', '999999999999']) {\n    assert.throws(() => loadConfig({ DUE_HOURS_HIGH: value }), error => error instanceof ConfigError && /DUE_HOURS_HIGH/.test(error.message));\n  }\n});\n\ntest('each priority gets its response hours and priority edits preserve due on every API response', async () => {\n  const clock = manualClock();\n  await withService({ clock, dueTimes: true }, async api => {\n    for (const [priority, hours] of Object.entries(DEFAULT_HOURS)) {\n      const ticket = (await api.post('/tickets', ticketBody({ priority }))).body;\n      assert.equal(ticket.due, new Date(clock.now().getTime() + hours * 3600000).toISOString());\n      const changed = (await api.patch(`/tickets/${ticket.id}`, { priority: priority === 'low' ? 'urgent' : 'low' })).body;\n      assert.equal(changed.due, ticket.due);\n      assert.equal((await api.get(`/tickets/${ticket.id}`)).body.due, ticket.due);\n    }\n    assert.ok((await api.get('/tickets')).body.items.every(ticket => ticket.due));\n  });\n});\n\ntest('overdue uses strict time, active states, combined filters and cursor pages', async () => {\n  const clock = manualClock();\n  await withService({ clock, dueTimes: true }, async api => {\n    for (let index = 0; index < 4; index++) await api.post('/tickets', ticketBody({ priority: 'urgent' }));\n    await api.post('/tickets', ticketBody({ priority: 'low' }));\n    await api.post('/tickets/T-0002/transition', { to: 'in_progress' });\n    await api.post('/tickets/T-0003/transition', { to: 'in_progress' });\n    await api.post('/tickets/T-0003/transition', { to: 'resolved' });\n    await api.post('/tickets/T-0004/transition', { to: 'in_progress' });\n    await api.post('/tickets/T-0004/transition', { to: 'resolved' });\n    await api.post('/tickets/T-0004/transition', { to: 'closed' });\n    clock.advance(4 * 3600000);\n    assert.deepEqual((await api.get('/tickets?overdue=true')).body.items, []);\n    clock.advance(1);\n    const first = (await api.get('/tickets?overdue=true&limit=1')).body;\n    assert.deepEqual(first.items.map(t => t.id), ['T-0001']);\n    const second = (await api.get(`/tickets?overdue=true&limit=1&cursor=${first.next}`)).body;\n    assert.deepEqual(second.items.map(t => t.id), ['T-0002']);\n    assert.equal(second.next, null);\n    assert.deepEqual((await api.get('/tickets?overdue=true&status=in_progress&priority=urgent')).body.items.map(t => t.id), ['T-0002']);\n    assert.equal((await api.get('/tickets?overdue=false')).body.items.length, 5);\n    assert.equal((await api.get('/tickets?overdue=yes')).status, 400);\n  });\n});\n\ntest('off keeps API behavior while saving due, and later enabling preserves original promises', async t => {\n  const file = dataFile(t);\n  const clock = manualClock();\n  await withService({ clock, dataFile: file }, async api => {\n    const ticket = (await api.post('/tickets', ticketBody({ priority: 'high' }))).body;\n    assert.equal('due' in ticket, false);\n    assert.equal('due' in (await api.patch('/tickets/T-0001', { priority: 'urgent' })).body, false);\n    clock.advance(200 * 3600000);\n    assert.equal((await api.get('/tickets?overdue=nonsense')).body.items.length, 1);\n    assert.equal('due' in (await api.get('/tickets/T-0001')).body, false);\n  });\n  const document = JSON.parse(fs.readFileSync(file, 'utf8'));\n  const due = document.tickets[0].due;\n  assert.equal(due, '2025-09-02T08:00:00.000Z');\n  assert.equal(document.version, 1);\n  await withService({ clock, dataFile: file, dueTimes: true, dueHours: { ...DEFAULT_HOURS, high: 1, urgent: 2 } }, async api => {\n    assert.equal((await api.get('/tickets/T-0001')).body.due, due);\n    assert.equal((await api.get('/tickets?overdue=true')).body.items.length, 1);\n    assert.equal((await api.post('/tickets', ticketBody({ priority: 'urgent' }))).body.due,\n      new Date(clock.now().getTime() + 2 * 3600000).toISOString());\n  });\n});\n\ntest('legacy backfill saves before exposure, retains creation time and metadata, and survives restarts', t => {\n  const file = dataFile(t);\n  const clock = manualClock();\n  const original = new TicketStore({ clock });\n  original.createTicket(ticketBody({ priority: 'low' }), 'system');\n  const document = toDocument(original.snapshot(), clock.now());\n  delete document.tickets[0].due;\n  fs.writeFileSync(file, JSON.stringify(document));\n  clock.advance(500 * 3600000);\n  const persistence = createPersistence(file, { clock });\n  const migrated = TicketStore.open({ clock, persistence, dueTimes: true });\n  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));\n  assert.equal(saved.tickets[0].due, '2025-09-08T08:00:00.000Z');\n  for (const field of ['audit', 'outbox', 'nextNumber']) assert.deepEqual(saved[field], document[field]);\n  assert.equal(migrated.get('T-0001').created, document.tickets[0].created);\n  assert.equal(migrated.get('T-0001').updated, document.tickets[0].updated);\n  assert.equal(TicketStore.open({ clock, persistence, dueTimes: true, dueHours: { ...DEFAULT_HOURS, low: 1 } }).get('T-0001').due, saved.tickets[0].due);\n  assert.throws(() => TicketStore.open({ clock, persistence: { load: () => ({ ...original.snapshot(), tickets: document.tickets }), save: () => { throw new Error('disk full'); } }, dueTimes: true }), /disk full/);\n});\n\ntest('saved due values are validated and imports inherit configured hours', async () => {\n  const clock = manualClock();\n  const store = new TicketStore({ clock });\n  store.createTicket(ticketBody(), 'system');\n  const document = toDocument(store.snapshot(), clock.now());\n  for (const due of [null, 12, '', 'invalid']) {\n    document.tickets[0].due = due;\n    assert.throws(() => fromDocument(document, message => new Error(message)), /due is not a time/);\n  }\n  await withService({ clock, dueTimes: true, dueHours: { ...DEFAULT_HOURS, normal: 3 } }, async api => {\n    assert.equal((await api.post('/tickets/import', { tickets: [ticketBody(), ticketBody()] })).status, 201);\n    const items = (await api.get('/tickets')).body.items;\n    assert.equal(items.length, 2);\n    assert.ok(items.every(ticket => ticket.due === new Date(clock.now().getTime() + 3 * 3600000).toISOString()));\n  });\n});\nEOF\nnpm test > test-results.txt 2>&1\ntail -30 test-results.txt"
+    },
+    {
+     "t": 1794788847.881,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rm test-results.txt"
+    },
+    {
+     "t": 1794788852.333,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/dagkit.py complete --run /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/run --step T3 --result '{\"answer\": 135, \"method\": \"Implemented persisted immutable configurable due times and rollout filtering; npm test passed all 135 tests.\"}'"
+    }
+   ]
+  }
+ ],
+ "threads": 2,
+ "parent": {
+  "id": "01a1e1bd-f839-7af0-a937-bc43883c781f",
+  "actor": "parent",
+  "child": false,
+  "depth": null,
+  "nickname": null,
+  "version": null,
+  "start": 1794788686.52,
+  "end": 1794788865.384,
+  "tokens": {
+   "input_tokens": 231175,
+   "cached_input_tokens": 217088,
+   "cache_write_input_tokens": 0,
+   "output_tokens": 781,
+   "reasoning_output_tokens": 46,
+   "total_tokens": 231956
+  },
+  "calls": [
+   {
+    "t": 1794788691.985,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794788695.857,
+    "kind": "agent_tool",
+    "name": "spawn_agent",
+    "text": "{\"task_name\":\"request_t3\",\"fork_turns\":\"none\",\"message\":\"gAAAAABq-k1XrKbpraavcRO8KKUDimzueYgzvYjN933n-Dd-B1q5bOc2ln_e1jlL0MX7ItUR91JKXOeUJre96DqHcP8N90OaKdbCit8"
+   },
+   {
+    "t": 1794788699.284,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788712.189,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788723.555,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788735.374,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788748.109,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794788750.165,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794788803.834,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":50000}"
+   },
+   {
+    "t": 1794788847.998,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788858.442,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794788863.16,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/dagkit.py verify --run /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/run"
+   },
+   {
+    "t": 1794788863.16,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/dagkit.py outcome --run /Users/dadleet/e18-runs-20261115/e18-codex-r4/work/run --step T3"
+   }
+  ]
+ }
+}

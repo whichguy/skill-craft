@@ -1,0 +1,693 @@
+{
+ "steps": 3,
+ "started": 3,
+ "ended": 3,
+ "makespan_s": 22655.185,
+ "first_start_ts": 1794766325.877,
+ "last_end_ts": 1794788981.062,
+ "serial_sum_declared_s": null,
+ "critical_path_declared_s": null,
+ "peak_concurrency": 1,
+ "independent_pairs": 3,
+ "pairs_overlapped": 0,
+ "pairs": [
+  {
+   "pair": [
+    "T1",
+    "T2"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T1",
+    "T3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  },
+  {
+   "pair": [
+    "T2",
+    "T3"
+   ],
+   "overlap_s": 0.0,
+   "frac_of_shorter": 0.0
+  }
+ ],
+ "refused": 0,
+ "refused_by_category": {},
+ "starts_before_dep_end": 0,
+ "steps_started_twice": 0,
+ "terminal_duplicates": 0,
+ "steps_without_end": 0,
+ "claims_without_start": 0,
+ "settle_s": 0,
+ "settled_steps": 0,
+ "settled_all": null,
+ "verify": "OK",
+ "verify_line": "VERIFY OK steps=3 chain=122b70da1a43",
+ "expected_verdict": "OK",
+ "verify_as_expected": true,
+ "dispatch_latency_s": {},
+ "dispatch_latency_mean_s": null,
+ "time_scale": [
+  1.0
+ ],
+ "scaled_trial": false,
+ "refill": null,
+ "states": {
+  "T1": "done",
+  "T2": "done",
+  "T3": "done"
+ },
+ "final_found": true,
+ "false_done": [],
+ "missed_done": [],
+ "false_failed": [],
+ "missed_failed": [],
+ "false_not_run": [],
+ "missed_not_run": [],
+ "unaccounted": [],
+ "listed_twice": [],
+ "unknown_listed": [],
+ "running_at_end": [],
+ "fidelity_ok": true,
+ "answers": null,
+ "write": {
+  "mode": "isolated",
+  "oracle": {
+   "valid": true,
+   "features_ok": {
+    "T1": true,
+    "T2": true,
+    "T3": true
+   },
+   "whole_tree_ok": true,
+   "alone_ok": {},
+   "alone_skipped": {},
+   "alone_whole_tree_ok": {},
+   "interference": [],
+   "interactions": {
+    "I1": {
+     "ok": true,
+     "detail": "imported ['T-0001', 'T-0002']: both show assignee=null, both listed by assignee="
+    },
+    "I2": {
+     "ok": true,
+     "detail": "both imported tickets are due created + their priority's hours, within 1s"
+    },
+    "I3": {
+     "ok": true,
+     "detail": "assigning imported T-0001 kept its valid due ('2026-11-17T00:45:00.052Z') and set assignee=dana"
+    },
+    "I4": {
+     "ok": true,
+     "detail": "overdue&assignee=dana -> {T-0001}; overdue&assignee= -> {T-0002}; assignee=dana -> {T-0001,T-0003}; overdue=true -> {T-0001,T-0002}"
+    },
+    "I5": {
+     "ok": true,
+     "detail": "both imported tickets had a valid due before the restart and the identical due after it; T-0001's assignment to dana survived"
+    },
+    "rc": 0
+   },
+   "interactions_ok": true,
+   "suite_passed": 183,
+   "landed": true,
+   "old_name_remaining": 0,
+   "whole_tree": [
+    {
+     "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+     "kind": "global",
+     "pass": true,
+     "tries": 1,
+     "earlier": [],
+     "output": "the delivery's own node --test passes 183 tests, the base's 117 and 66 more"
+    },
+    {
+     "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+     "kind": "global",
+     "pass": true,
+     "tries": 1,
+     "earlier": [],
+     "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests"
+    }
+   ],
+   "final": {
+    "T1": [
+     {
+      "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": ""
+     },
+     {
+      "id": "ticket-lifecycle-unchanged",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "create, read, change, the lifecycle, the envelope and the audit trail answer as the base does",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "listing-unchanged",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "the listing pages 25 tickets by cursor, filters by one field and refuses bad parameters as before",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "notifications-unchanged",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "changes enqueue the requester's notifications, and the worker delivers each once",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "restart-keeps-state",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "a restart from the data file keeps the tickets, their history and the outbox, and numbers go on",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "cli-raw-columns",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "list --raw keeps id, status, priority and title in their places and the weekly report counts right",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "old-data-loads",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "a data file the base wrote loads: its tickets, history and next number, on the API and the command line",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assign-and-unassign",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "new tickets show a null assignee; assign, unassign and an in-progress ticket work, and the listing shows it",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assignee-validation",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "an empty, over-long or non-text agent and a malformed body are 400 invalid; 64 characters are taken",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assign-state-and-missing",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "resolved and closed tickets answer 409 conflict and keep their assignee; an unknown one is 404 not_found",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assign-same-agent-noop",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "assigning the agent the ticket already has answers 2xx and changes nothing: ticket, audit and outbox",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assign-audited",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "each assignment adds one audit entry with its actor and the assignee before and after",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assignee-notified",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "each new agent's notification waits in the outbox, and the worker delivers it once",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assignee-filter",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "assignee=<agent> keeps that agent's tickets and an empty assignee= the unassigned ones",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "filters-combine",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "every filter given must match: status, priority and assignee combine",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assignee-filter-pages",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "the assignee filter pages by cursor: full pages of matches, and next is null after the last one",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "assignee-persists",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "assignees survive a restart from the data file, and the filter finds them",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "old-tickets-unassigned",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "tickets from a data file written before the change are unassigned (null) and can be assigned",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "cli-shows-assignee",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "tickets list shows each ticket's assignee",
+      "tries": 1,
+      "earlier": []
+     }
+    ],
+    "T2": [
+     {
+      "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": ""
+     },
+     {
+      "id": "ticket-lifecycle-unchanged",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "create, read, change, the lifecycle, the envelope and the audit trail answer as the base does",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "listing-unchanged",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "the listing pages 25 tickets by cursor, filters by one field and refuses bad parameters as before",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "notifications-unchanged",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "changes enqueue the requester's notifications, and the worker delivers each once",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "restart-keeps-state",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "a restart from the data file keeps the tickets, their history and the outbox, and numbers go on",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "cli-raw-columns",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "list --raw keeps id, status, priority and title in their places and the weekly report counts right",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "old-data-loads",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "a data file the base wrote loads: its tickets, history and next number, on the API and the command line",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "import-creates-in-order",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "an import creates its tickets as POST /tickets would, in order, and answers created and ids",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "import-all-or-none",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "an import with an invalid item creates nothing, records nothing, and names the item's index",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "import-validates-like-create",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "each item is checked as POST /tickets checks a body, and more than 5000 tickets is refused",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "import-audited",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "each imported ticket is audited as one created ticket is, with the request's actor",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "import-notifies",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "each imported ticket's requester is notified once, as for a single create",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "import-5000-in-time",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "5000 tickets (451653 bytes) answered in 0.1 s with DATA_FILE set",
+      "tries": 1,
+      "earlier": []
+     },
+     {
+      "id": "import-persists",
+      "kind": "acceptance",
+      "pass": true,
+      "note": "imported tickets survive a restart from the data file, and numbers go on",
+      "tries": 1,
+      "earlier": []
+     }
+    ],
+    "T3": [
+     {
+      "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" migrate",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": "migrate: every expectation holds"
+     },
+     {
+      "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" restart",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": "restart: every expectation holds"
+     },
+     {
+      "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" switch",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": "switch: every expectation holds"
+     },
+     {
+      "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" rollback",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": "rollback: every expectation holds"
+     },
+     {
+      "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" off [against the base with assignment]",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": "off: every expectation holds"
+     },
+     {
+      "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" cli",
+      "kind": "behavior",
+      "pass": true,
+      "tries": 1,
+      "earlier": [],
+      "output": "cli: every expectation holds"
+     }
+    ]
+   },
+   "alone": {},
+   "root": "2389f2105eb4760d5c762099ca670755bc3b2e96"
+  },
+  "workspace_s": 0.659,
+  "commit_s": 0.609,
+  "merge_s": 0.385,
+  "script_s": 1.653,
+  "workspaces": 6,
+  "merges": 3,
+  "conflicts": 3,
+  "conflict_paths": [
+   "CHANGELOG.md",
+   "src/store.js",
+   "src/tickets/query.js",
+   "src/tickets/validate.js"
+  ],
+  "retries": 3,
+  "scope_notes": {},
+  "merge_latency_s": {
+   "T2#1": 6.67,
+   "T3#2": 4.66,
+   "T1#3": 6.8
+  },
+  "refused_empty": 0,
+  "refused_missing": 0,
+  "retests": 3,
+  "retest_s": 4.225,
+  "retest_reruns": 0,
+  "redtests": 0,
+  "mergefails": 0,
+  "retry_causes": [
+   "conflict",
+   "conflict",
+   "conflict"
+  ],
+  "fix_attempts": 3,
+  "fix_markers": [
+   "CHANGELOG.md",
+   "src/store.js",
+   "src/tickets/query.js",
+   "src/tickets/validate.js"
+  ],
+  "landed": {
+   "ok": true,
+   "files": 5,
+   "ts": 1794766397.385
+  },
+  "attempt_s": {
+   "T3": [
+    161.0,
+    39.7
+   ],
+   "T2": [
+    67.2
+   ],
+   "T1": [
+    97.3,
+    147.2,
+    25.0
+   ]
+  },
+  "attempt_peak": 3,
+  "kit_total_s": 6.85,
+  "landing_s": 0.972,
+  "first_round_s": 161.0,
+  "slowest_first_s": 161.0,
+  "first_attempt_s": {
+   "T3": 161.0,
+   "T2": 67.2,
+   "T1": 97.3
+  },
+  "first_attempt_files": {
+   "T2": [
+    "CHANGELOG.md",
+    "docs/api.md",
+    "package.json",
+    "src/app.js",
+    "src/store.js",
+    "src/tickets/validate.js",
+    "test/import.test.js"
+   ],
+   "T1": [
+    "CHANGELOG.md",
+    "README.md",
+    "bin/tickets.js",
+    "docs/api.md",
+    "package.json",
+    "src/app.js",
+    "src/format.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/templates.js",
+    "src/tickets/query.js",
+    "src/tickets/validate.js",
+    "test/assignment.test.js"
+   ],
+   "T3": [
+    "CHANGELOG.md",
+    "README.md",
+    "docs/api.md",
+    "docs/decisions/0009-due-times.md",
+    "docs/decisions/README.md",
+    "docs/operations.md",
+    "package.json",
+    "src/app.js",
+    "src/config.js",
+    "src/persistence.js",
+    "src/server.js",
+    "src/store.js",
+    "src/tickets/due.js",
+    "src/tickets/query.js",
+    "test/due.test.js",
+    "test/fixtures/persistence-1.4.0.js",
+    "test/rollback.test.js"
+   ]
+  },
+  "first_attempt_overlap": {
+   "T1+T2": [
+    "CHANGELOG.md",
+    "docs/api.md",
+    "package.json",
+    "src/app.js",
+    "src/store.js",
+    "src/tickets/validate.js"
+   ],
+   "T1+T3": [
+    "CHANGELOG.md",
+    "README.md",
+    "docs/api.md",
+    "package.json",
+    "src/app.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/tickets/query.js"
+   ],
+   "T2+T3": [
+    "CHANGELOG.md",
+    "docs/api.md",
+    "package.json",
+    "src/app.js",
+    "src/store.js"
+   ]
+  },
+  "lock_wait_s": 0.174,
+  "faults": [],
+  "noop_fixes": 0,
+  "retest_reruns_kept": 0
+ },
+ "final_answer_ok": true,
+ "mechanism": {
+  "kind": "native-agents",
+  "spawns": 1,
+  "run_calls": 1,
+  "run_calls_by_actor": {
+   "agent:7Mw3w5": 1
+  },
+  "attributable_host": true,
+  "background_spawns": 0
+ },
+ "native": {
+  "source": "claude stream (system task events)",
+  "agents": 1,
+  "peak": 1,
+  "kinds": [
+   "general-purpose"
+  ],
+  "depths": [
+   1
+  ],
+  "background": [
+   false
+  ],
+  "intervals_s": [
+   {
+    "actor": "agent:7Mw3w5",
+    "start": 22628.84,
+    "end": 22660.0,
+    "tokens": 44828
+   }
+  ]
+ },
+ "tokens": {
+  "source": "claude.result",
+  "input": 10,
+  "output": 918,
+  "cache_read": 177674,
+  "cost_usd": 0.2076696,
+  "peak_parent_input": 39169,
+  "children_included": false,
+  "parent_input_all": 190738,
+  "children_input_all": 393578,
+  "input_all": 584316,
+  "output_all": 4176,
+  "cache_create": 13054
+ },
+ "worker_git": [
+  "cd /Users/dadleet/e18-runs-20261115/e18-claude-f4/work/ws/T1-3 && npm test 2>&1 | grep -E \"^# |not ok|^\\s+not ok\"; sed -n 250,275p test/due.test.js; git diff HEAD --stat 2>/dev/null | tail -1"
+ ],
+ "parent_git": [],
+ "worker_outside": [],
+ "worker_calls": 11,
+ "worker_tests": 6,
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_s": 44.0,
+  "last_activity_tail_s": 0.273,
+  "tail_from_last_end_s": 13.989,
+  "tail_from_final_report_s": 3.119,
+  "tail_from_last_child_return_s": null,
+  "lingering_after_exit": [],
+  "orphans_terminated": []
+ },
+ "timings": {
+  "launch_to_first_start_s": -22625.211,
+  "launch_to_last_end_s": 29.974,
+  "launch_to_verified_s": 38.143,
+  "launch_to_exit_s": 43.963
+ },
+ "valid": true,
+ "identity": {
+  "host": "claude",
+  "version": "2.1.325 (Claude Code)",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "plan": "tickets3",
+  "arm": "A3s",
+  "variant": "N",
+  "workspace": "isolated",
+  "loadavg": [
+   4.82,
+   19.75,
+   40.34
+  ],
+  "enabled_features": []
+ }
+}

@@ -1,0 +1,190 @@
+{
+ "source": "codex rollout files",
+ "agents": [
+  {
+   "id": "01a1e1bb-39e7-7041-99d3-17d1a490e04a",
+   "actor": "thread:90e04a",
+   "child": true,
+   "depth": 1,
+   "nickname": "Gibbs",
+   "version": "v2",
+   "start": 1794788506.223,
+   "end": 1794788579.808,
+   "tokens": {
+    "input_tokens": 283038,
+    "cached_input_tokens": 245120,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2383,
+    "reasoning_output_tokens": 98,
+    "total_tokens": 285421
+   },
+   "calls": [
+    {
+     "t": 1794788512.108,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/dagkit.py begin --run /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/run --step T3"
+    },
+    {
+     "t": 1794788516.144,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rg --files -g '!node_modules'"
+    },
+    {
+     "t": 1794788516.144,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rg -n '<<<<<<<|=======|>>>>>>>' ."
+    },
+    {
+     "t": 1794788518.84,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat src/store.js src/format.js src/tickets/query.js bin/tickets.js CHANGELOG.md docs/decisions/README.md"
+    },
+    {
+     "t": 1794788522.413,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat README.md CONTRIBUTING.md test/due.test.js src/persistence.js src/config.js"
+    },
+    {
+     "t": 1794788542.676,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('src/store.js');s=p.read_text();start=s.index('<<<<<<< HEAD');end=s.index('\\n>>>>>>>',start);end=s.index('\\n',end+1);s=s[:start]+'''    this.tickets = new Map(initial.tickets.map((ticket) => [ticket.id, { assignee: null, ...ticket }]));\n    for (const ticket of this.tickets.values()) {\n      if (ticket.due === undefined) ticket.due = this.dueAt(ticket.created, ticket.priority);\n    }'''+s[end:];start=s.index('<<<<<<< HEAD');end=s.index('\\n>>>>>>>',start);end=s.index('\\n',end+1);s=s[:start]+'''    const ticket = { id: formatId(this.nextNumber), title, priority, requester, status: 'open', assignee: null, created: at, updated: at };\n    ticket.due = this.dueAt(at, priority);'''+s[end:];s=s.replace('new TicketStore({ clock: this.clock, state: this.snapshot() })','new TicketStore({ clock: this.clock, state: this.snapshot(), dueTimes: this.dueTimes, dueHours: this.dueHours })');p.write_text(s)\np=Path('src/format.js');s=p.read_text();a=s.index('<<<<<<< HEAD');b=s.index('\\n>>>>>>>',a);b=s.index('\\n',b+1);s=s[:a]+\"  const fields = ['status', 'priority', 'requester', 'assignee', 'created', 'updated', ...(ticket.due ? ['due'] : [])];\"+s[b:];p.write_text(s)\np=Path('src/tickets/query.js');s=p.read_text();s=s.replace('<<<<<<< HEAD\\n','').replace('=======\\n', '  }\\n');s='\\n'.join(x for x in s.split('\\n') if not x.startswith('>>>>>>>'));p.write_text(s)\np=Path('bin/tickets.js');s=p.read_text();a=s.index('<<<<<<< HEAD');b=s.index('\\n>>>>>>>',a);b=s.index('\\n',b+1);s=s[:a]+\"  'usage: tickets [--data FILE] list [--status STATUS] [--priority PRIORITY] [--assignee AGENT] [--overdue] [--raw]',\"+s[b:];p.write_text(s)\nfor file in ['CHANGELOG.md','docs/decisions/README.md']:\n p=Path(file);p.write_text('\\n'.join(x for x in p.read_text().split('\\n') if not x.startswith(('<<<<<<<','=======','>>>>>>>'))))\np=Path('test/due.test.js');s=p.read_text().replace('.create(', '.createTicket(');s=s.replace(\"assert.equal(enabled.trimEnd().split('\\\\t').length, 5);\", \"assert.equal(enabled.trimEnd().split('\\\\t').length, 6);\");s=s.replace(\"assert.equal(enabled.trimEnd().split('\\\\t').slice(0, 4).join('\\\\t'), original.trimEnd());\", \"assert.equal(enabled.trimEnd().split('\\\\t').slice(0, 4).join('\\\\t'), original.trimEnd());\")\np.write_text(s)\nPY\n"
+    },
+    {
+     "t": 1794788542.676,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "npm test"
+    },
+    {
+     "t": 1794788549.928,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "cat src/app.js src/server.js test/helpers.js"
+    },
+    {
+     "t": 1794788549.928,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "rg -n '<<<<<<<|=======|>>>>>>>' ."
+    },
+    {
+     "t": 1794788569.153,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('test/due.test.js');s=p.read_text();s=s.replace(\"assert.equal(original.trimEnd().split('\\\\t').length, 4);\", \"assert.equal(original.replace(/\\\\n$/, '').split('\\\\t').length, 5);\");s=s.replace(\"assert.equal(enabled.trimEnd().split('\\\\t').slice(0, 4).join('\\\\t'), original.trimEnd());\", \"assert.equal(enabled.replace(/\\\\n$/, '').split('\\\\t').slice(0, 5).join('\\\\t'), original.replace(/\\\\n$/, ''));\")\ns+='''\n\ntest('atomic imports preserve configured deadlines across persistence and priority changes', (t) => {\n  const file = dataFile(t);\n  const clock = manualClock();\n  const persistence = createPersistence(file);\n  const store = TicketStore.open({ clock, persistence, dueTimes: true, dueHours: { urgent: 2 } });\n  const [id] = store.importTickets([ticketBody({ priority: 'urgent' })], 'agent');\n  const ticket = store.get(id);\n  assert.equal(Date.parse(ticket.due) - Date.parse(ticket.created), 2 * HOUR);\n  assert.equal(ticket.assignee, null);\n  store.assign(id, 'dana', 'agent');\n  store.update(id, { priority: 'low' }, 'agent');\n  const reopened = TicketStore.open({ clock, persistence, dueTimes: true, dueHours: { urgent: 7 } });\n  assert.equal(reopened.get(id).due, ticket.due);\n  assert.equal(reopened.get(id).assignee, 'dana');\n});\n\ntest('overdue filters combine with assignment and ordinary filters', async () => {\n  const clock = manualClock();\n  await withService({ clock, dueTimes: true }, async (api) => {\n    for (let i = 0; i < 3; i++) await api.post('/tickets', ticketBody({ priority: 'urgent' }));\n    await api.put('/tickets/T-0001/assignee', { assignee: 'dana' });\n    await api.put('/tickets/T-0002/assignee', { assignee: 'lee' });\n    clock.advance(4 * HOUR + 1);\n    const assigned = (await api.get('/tickets?overdue=true&assignee=dana&priority=urgent&status=open')).body;\n    assert.deepEqual(assigned.items.map((ticket) => ticket.id), ['T-0001']);\n    const unassigned = (await api.get('/tickets?overdue=true&assignee=')).body;\n    assert.deepEqual(unassigned.items.map((ticket) => ticket.id), ['T-0003']);\n  });\n});\n''';p.write_text(s)\nPY"
+    },
+    {
+     "t": 1794788569.153,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "npm test > test-result.txt 2>&1"
+    },
+    {
+     "t": 1794788569.153,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "tail -n 10 test-result.txt"
+    },
+    {
+     "t": 1794788576.099,
+     "kind": "cmd",
+     "name": "shell",
+     "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/dagkit.py complete --run /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/run --step T3 --result '{\"answer\": 139, \"method\": \"Resolved merge conflicts preserving due times assignment and imports; npm test passed all 139 tests\"}'"
+    }
+   ]
+  }
+ ],
+ "threads": 2,
+ "parent": {
+  "id": "01a1e1bb-1158-7ac1-a9e5-eb17ca5ab75b",
+  "actor": "parent",
+  "child": false,
+  "depth": null,
+  "nickname": null,
+  "version": null,
+  "start": 1794788496.398,
+  "end": 1794788592.244,
+  "tokens": {
+   "input_tokens": 194281,
+   "cached_input_tokens": 181120,
+   "cache_write_input_tokens": 0,
+   "output_tokens": 693,
+   "reasoning_output_tokens": 32,
+   "total_tokens": 194974
+  },
+  "calls": [
+   {
+    "t": 1794788501.932,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794788506.084,
+    "kind": "agent_tool",
+    "name": "spawn_agent",
+    "text": "{\"task_name\":\"request_t3\",\"fork_turns\":\"none\",\"message\":\"gAAAAABq-kyaIaFYCFClTbeoA5YXTxXa23uNTWYkGadDOMg7I5VVBhQRlSzf485xKyHun1NR45HO0tdTzn5a-EZkvcVGcsODWhVbuso"
+   },
+   {
+    "t": 1794788508.445,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788520.826,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788533.066,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788546.306,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788558.369,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788570.498,
+    "kind": "agent_tool",
+    "name": "wait_agent",
+    "text": "{\"timeout_ms\":10000}"
+   },
+   {
+    "t": 1794788583.53,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/run --claim --capacity 1"
+   },
+   {
+    "t": 1794788589.88,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/dagkit.py verify --run /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/run"
+   },
+   {
+    "t": 1794788589.88,
+    "kind": "cmd",
+    "name": "shell",
+    "text": "python3 /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/dagkit.py outcome --run /Users/dadleet/e18-runs-20261115/e18-codex-f3/work/run --step T3"
+   }
+  ]
+ }
+}

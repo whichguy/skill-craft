@@ -1,0 +1,58 @@
+e18-claude-f1: sub-agent git-mentioning calls 4, flagged 0; parent flagged 0; outside paths -
+e18-claude-f2: sub-agent git-mentioning calls 2, flagged 0; parent flagged 0; outside paths -
+e18-claude-f3: sub-agent git-mentioning calls 1, flagged 0; parent flagged 0; outside paths -
+e18-claude-f4: sub-agent git-mentioning calls 1, flagged 0; parent flagged 0; outside paths -
+e18-claude-r1: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-claude-r2: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-claude-r3: sub-agent git-mentioning calls 2, flagged 0; parent flagged 0; outside paths -
+e18-claude-r4: sub-agent git-mentioning calls 1, flagged 0; parent flagged 0; outside paths -
+e18-grok-f1: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-grok-f2: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-grok-f3: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-grok-f4: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-grok-r1: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-grok-r2: sub-agent git-mentioning calls 22, flagged 22; parent flagged 0; outside paths -
+    ls -la /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/ws; ls /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo/.git 2>/dev/null | head; git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo branch -a 2>/dev/null | head -50
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo log --oneline w-T1-2 -5; echo '---'; git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show w-T1-2 --stat
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96 --stat; echo '==== T1-1 files ===='; git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo ls-tree --name-only -r 626dd96 | head -80
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:src/store.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:src/tickets/validate.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:src/tickets/query.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:src/app.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:src/persistence.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:src/format.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:test/assignment.test.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:src/templates.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 626dd96:docs/decisions/0009-ticket-assignment.md; echo '===== README decisions ====='; git -C /Users/dadleet/e18-runs-20261115/e18-grok-r2/work/repo show 93a8b1e:docs/decisions/README.md; echo '===== CHANGELOG T1-2 ====='; git -C /Us
+e18-grok-r3: sub-agent git-mentioning calls 11, flagged 11; parent flagged 0; outside paths ['/Users/dadleet/.claude/agents/', '/Users/dadleet/.claude/skills', '/Users/dadleet/.codex/skills']
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git branch -a && echo '---' && git log --oneline -20 && echo '---' && git show-ref | head -50
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git log --oneline w-T1-2 -15 && echo '==== files ====' && git diff --stat main...w-T1-2 && echo '==== T1-1 also? ====' && git branch -a --list 'w-T1*'
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git show w-T1-2:src/store.js
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git show w-T1-2:src/tickets/validate.js
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git show w-T1-2:src/app.js
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git show w-T1-2:src/tickets/query.js
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git show w-T1-2:test/assignment.test.js
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git show w-T1-2:src/format.js && echo '===== PERSISTENCE =====' && git show w-T1-2:src/persistence.js && echo '===== TEMPLATES =====' && git show w-T1-2:src/templates.js && echo '===== HELPERS DIFF =====' && git show w-T1-2:test/helpers.js
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && echo '===== DUE TEST KEYS =====' && git show w-T1-2:test/due.test.js | head -25 && echo '===== BIN =====' && git show w-T1-2:bin/tickets.js | head -50 && echo '===== DECISION =====' && git show w-T1-2:docs/decisions/0010-ticket-assignment.
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git diff w-T1-2:docs/api.md main:docs/api.md | head -200; echo '===== CHANGELOG T1-2 ====='; git show w-T1-2:CHANGELOG.md | head -40; echo '===== README T1-2 snippet ====='; git show w-T1-2:README.md | sed -n '65,90p'; echo '===== OPERATIO
+    cd /Users/dadleet/e18-runs-20261115/e18-grok-r3/work/repo && git show w-T1-2:docs/api.md | sed -n '32,180p'
+e18-grok-r4: sub-agent git-mentioning calls 11, flagged 11; parent flagged 0; outside paths -
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo log --oneline -30 && echo '---branches---' && git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo branch -a | head -50 && echo '---show failed---' && git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show 93a8b1e56c1
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo log --oneline w-T1-2 -10 && echo '==== files ====' && git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo ls-tree -r --name-only w-T1-2 | rg 'assign|validate|store|query|format|app|persist|template|due.test|helpers|api.md|CHANGE
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:src/store.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:src/tickets/validate.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:src/tickets/query.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:src/app.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:test/assignment.test.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:src/format.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:src/persistence.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo show w-T1-2:src/templates.js
+    git -C /Users/dadleet/e18-runs-20261115/e18-grok-r4/work/repo diff 929ac3d w-T1-2 -- test/due.test.js test/helpers.js test/query.test.js test/validate.test.js package.json CHANGELOG.md README.md docs/api.md docs/operations.md docs/decisions/README.md docs/decisions/0010-ticket-assignment.md
+e18-codex-f1: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-codex-f2: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-codex-f3: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-codex-f4: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-codex-r1: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-codex-r2: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-codex-r3: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
+e18-codex-r4: sub-agent git-mentioning calls 0, flagged 0; parent flagged 0; outside paths -
