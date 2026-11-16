@@ -1,0 +1,5 @@
+{'mutation': 'record cases not validated', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'promotion need not change the build', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'build change need not be a promotion', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'grandchild not killed at the timeout', 'classes': ['AdapterProcessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+SURVIVORS: []

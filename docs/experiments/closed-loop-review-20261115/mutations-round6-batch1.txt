@@ -1,0 +1,25 @@
+{'mutation': 'flag check removed', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'assume-unchanged ignored', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'skip-worktree ignored', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'unmerged entry ignored', 'classes': ['FingerprintTests'], 'result': 'MISSED', 'tail': 'OK'}
+{'mutation': 'filter check removed', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'monitor hook ignored', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'built-in monitor values refused', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'written tree not required', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'line-ending conversion refused', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'attribute failure ignored', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'index listing failure ignored', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'fingerprint compares nothing', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'staged-content failure ignored', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'git has no timeout', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'temporary file failure unhandled', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'readiness derived in saved order', 'classes': ['ReadinessTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'ending a step can lower its charge', 'classes': ['QuotaTests'], 'result': 'caught', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'failed-call time charged while a step runs', 'classes': ['QuotaTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'hunt findings never superseded', 'classes': ['EvidenceTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'clean hunt clears earlier findings', 'classes': ['EvidenceTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'file system error is a traceback', 'classes': ['StateTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'report omits resolved unknowns', 'classes': ['CertificateTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'report omits unresolved unknowns', 'classes': ['CertificateTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+MISSED: ['unmerged entry ignored']
+exit=0

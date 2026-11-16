@@ -1,0 +1,77 @@
+{
+  "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-uu_osla5/campaign",
+  "campaign_workspace": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-uu_osla5/ws",
+  "actual_readiness": [
+    1,
+    {
+      "allowed_claims": [],
+      "blocked": [
+        "no improver.bounded claim has reached 'bounded'"
+      ],
+      "boundary_sha256": "10f0cf74b26ce9e8f81b1bbb3a59870e2222f10ffe477673e9bea002def1fbe7",
+      "claims": {
+        "cases.runs:A1": {
+          "effect": "effectful",
+          "evidence": "A1 ran at 0 and cleaned up",
+          "state": "runs"
+        },
+        "grading.scores": {
+          "effect": "effectful",
+          "evidence": "evaluate returned floors for a real run",
+          "state": "scores"
+        },
+        "improver.bounded": {
+          "effect": "effectful",
+          "evidence": null,
+          "state": "declared"
+        }
+      },
+      "note": "invocable proves plumbing only, never improvement quality",
+      "ratified": true,
+      "start_ok": false
+    },
+    ""
+  ],
+  "different_workspace": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-uu_osla5/unrelated-good-subject",
+  "wrong_workspace_readiness": [
+    0,
+    {
+      "allowed_claims": [
+        "efficiency under a stated tolerance, labelled 'stated, not measured'",
+        "no quality claim is allowed yet: sensitivity is unknown for every property"
+      ],
+      "blocked": [],
+      "boundary_sha256": "10f0cf74b26ce9e8f81b1bbb3a59870e2222f10ffe477673e9bea002def1fbe7",
+      "claims": {
+        "cases.runs:A1": {
+          "effect": "effectful",
+          "evidence": "A1 ran at 0 and cleaned up",
+          "state": "runs"
+        },
+        "grading.scores": {
+          "effect": "effectful",
+          "evidence": "evaluate returned floors for a real run",
+          "state": "scores"
+        },
+        "improver.bounded": {
+          "effect": "effectful",
+          "evidence": "an out-of-bounds edit was caught",
+          "state": "bounded"
+        }
+      },
+      "note": "invocable proves plumbing only, never improvement quality",
+      "ratified": true,
+      "start_ok": true
+    },
+    ""
+  ],
+  "step": [
+    0,
+    {
+      "action": "start",
+      "iteration": 1,
+      "key": "b0b9973755-S0-1"
+    },
+    ""
+  ]
+}

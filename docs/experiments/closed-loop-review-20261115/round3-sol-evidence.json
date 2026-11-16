@@ -1,0 +1,721 @@
+{
+  "open_task": {
+    "initial": {
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "c3fe8dba40d65dd5",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "checks": {
+        "C1": {
+          "detail": {
+            "actionable": [],
+            "adapter_backlog": [],
+            "blocking": [],
+            "outside_scope": [],
+            "owner_gated": []
+          },
+          "id": "C1",
+          "pass": true,
+          "reasons": []
+        },
+        "C2": {
+          "detail": {
+            "k": 2,
+            "window": [
+              1,
+              2
+            ]
+          },
+          "id": "C2",
+          "pass": true,
+          "reasons": []
+        },
+        "C3": {
+          "detail": {},
+          "id": "C3",
+          "pass": true,
+          "reasons": []
+        },
+        "C4": {
+          "detail": {
+            "not_covered": {}
+          },
+          "id": "C4",
+          "pass": true,
+          "reasons": []
+        },
+        "C5": {
+          "detail": {},
+          "id": "C5",
+          "pass": true,
+          "reasons": []
+        },
+        "C6": {
+          "detail": {
+            "note": "no candidate",
+            "promoted": []
+          },
+          "id": "C6",
+          "pass": true,
+          "reasons": []
+        },
+        "C7": {
+          "detail": {},
+          "id": "C7",
+          "pass": true,
+          "reasons": []
+        }
+      },
+      "claims": {
+        "allowed": [
+          "efficiency under a stated tolerance, labelled 'stated, not measured'",
+          "no quality claim is allowed yet: sensitivity is unknown for every property"
+        ],
+        "note": null,
+        "recorded": true
+      },
+      "quota": {
+        "budget": {
+          "seconds": 100000,
+          "turns": 100000
+        },
+        "consumed": {
+          "seconds": 20,
+          "turns": 10
+        },
+        "exhausted": false,
+        "over": []
+      },
+      "reasons": [],
+      "status": "converged"
+    },
+    "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-s5hc4g8b/campaign",
+    "task": {
+      "id": "T1",
+      "kind": "fix",
+      "needs_owner": true,
+      "opened": "2026-11-15T22:38:27Z",
+      "status": "open",
+      "text": "Material in-scope A1 bug awaits owner decision"
+    },
+    "certificate": {
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "c3fe8dba40d65dd5",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "checks": {
+        "C1": {
+          "detail": {
+            "actionable": [],
+            "adapter_backlog": [],
+            "blocking": [],
+            "outside_scope": [],
+            "owner_gated": []
+          },
+          "id": "C1",
+          "pass": true,
+          "reasons": []
+        },
+        "C2": {
+          "detail": {
+            "k": 2,
+            "window": [
+              1,
+              2
+            ]
+          },
+          "id": "C2",
+          "pass": true,
+          "reasons": []
+        },
+        "C3": {
+          "detail": {},
+          "id": "C3",
+          "pass": true,
+          "reasons": []
+        },
+        "C4": {
+          "detail": {
+            "not_covered": {}
+          },
+          "id": "C4",
+          "pass": true,
+          "reasons": []
+        },
+        "C5": {
+          "detail": {},
+          "id": "C5",
+          "pass": true,
+          "reasons": []
+        },
+        "C6": {
+          "detail": {
+            "note": "no candidate",
+            "promoted": []
+          },
+          "id": "C6",
+          "pass": true,
+          "reasons": []
+        },
+        "C7": {
+          "detail": {},
+          "id": "C7",
+          "pass": true,
+          "reasons": []
+        }
+      },
+      "claims": {
+        "allowed": [
+          "efficiency under a stated tolerance, labelled 'stated, not measured'",
+          "no quality claim is allowed yet: sensitivity is unknown for every property"
+        ],
+        "note": null,
+        "recorded": true
+      },
+      "quota": {
+        "budget": {
+          "seconds": 100000,
+          "turns": 100000
+        },
+        "consumed": {
+          "seconds": 20,
+          "turns": 10
+        },
+        "exhausted": false,
+        "over": []
+      },
+      "reasons": [],
+      "status": "converged"
+    },
+    "next": {
+      "action": "task",
+      "task": {
+        "id": "T1",
+        "kind": "fix",
+        "needs_owner": true,
+        "opened": "2026-11-15T22:38:27Z",
+        "status": "open",
+        "text": "Material in-scope A1 bug awaits owner decision"
+      }
+    },
+    "report": {
+      "adapter_backlog": [],
+      "allowed_claims": [
+        "efficiency under a stated tolerance, labelled 'stated, not measured'",
+        "no quality claim is allowed yet: sensitivity is unknown for every property"
+      ],
+      "at": "2026-11-15T22:38:28Z",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "c3fe8dba40d65dd5",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "campaign_status": "in progress",
+      "claims_note": null,
+      "iterations": 2,
+      "not_covered": {},
+      "outside_scope": [],
+      "quota": {
+        "budget": {
+          "seconds": 100000,
+          "turns": 100000
+        },
+        "consumed": {
+          "seconds": 20,
+          "turns": 10
+        },
+        "exhausted": false,
+        "over": []
+      },
+      "reasons": [
+        "task T1 (fix) is open"
+      ],
+      "schema": "closed-loop-report/1",
+      "scope": "S0",
+      "scope_cases": [
+        "A1"
+      ],
+      "scope_certificate": "converged",
+      "scopes": [
+        {
+          "cases": [
+            "A1"
+          ],
+          "id": "S0",
+          "reason": "start"
+        }
+      ],
+      "stop": null,
+      "subject": "fake",
+      "unknowns": [],
+      "unresolved": []
+    }
+  },
+  "cached_stop_deferred_hunt": {
+    "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-0u3q7p42/campaign",
+    "initial": {
+      "action": "stop",
+      "at": "2026-11-15T22:38:29Z",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "089ee7b5b0c62c88",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+      "report": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-0u3q7p42/campaign/report.md",
+      "rung": "E5",
+      "scope_certificate": "converged",
+      "status": "converged"
+    },
+    "while_open": {
+      "action": "stop",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "089ee7b5b0c62c88",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "reason": "the earlier converged stop is stale: task T2 (hunt) is open",
+      "status": "incomplete"
+    },
+    "hunt_findings": [
+      "material in-scope A1 defect (deferred-to-owner)"
+    ],
+    "next": {
+      "action": "stop",
+      "at": "2026-11-15T22:38:29Z",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "089ee7b5b0c62c88",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+      "rung": "E5",
+      "scope_certificate": "converged",
+      "status": "converged"
+    },
+    "report": {
+      "adapter_backlog": [],
+      "allowed_claims": [
+        "efficiency under a stated tolerance, labelled 'stated, not measured'",
+        "no quality claim is allowed yet: sensitivity is unknown for every property"
+      ],
+      "at": "2026-11-15T22:38:29Z",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "089ee7b5b0c62c88",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "campaign_status": "converged",
+      "claims_note": null,
+      "iterations": 2,
+      "not_covered": {},
+      "outside_scope": [],
+      "quota": {
+        "budget": {
+          "seconds": 100000,
+          "turns": 100000
+        },
+        "consumed": {
+          "seconds": 20,
+          "turns": 10
+        },
+        "exhausted": false,
+        "over": []
+      },
+      "reasons": [],
+      "schema": "closed-loop-report/1",
+      "scope": "S0",
+      "scope_cases": [
+        "A1"
+      ],
+      "scope_certificate": "converged",
+      "scopes": [
+        {
+          "cases": [
+            "A1"
+          ],
+          "id": "S0",
+          "reason": "start"
+        }
+      ],
+      "stop": {
+        "at": "2026-11-15T22:38:29Z",
+        "binds": {
+          "build": "b0",
+          "campaign_identity": "089ee7b5b0c62c88",
+          "candidates": [],
+          "scope": "S0",
+          "scoring": "score-1"
+        },
+        "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+        "rung": "E5",
+        "scope_certificate": "converged",
+        "status": "converged"
+      },
+      "subject": "fake",
+      "unknowns": [],
+      "unresolved": []
+    }
+  },
+  "cached_stop_budget": {
+    "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-rj71ucid/campaign",
+    "initial": {
+      "action": "stop",
+      "at": "2026-11-15T22:38:30Z",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "d4ecf21b4d5430d5",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+      "report": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-rj71ucid/campaign/report.md",
+      "rung": "E5",
+      "scope_certificate": "converged",
+      "status": "converged"
+    },
+    "next": {
+      "action": "stop",
+      "at": "2026-11-15T22:38:30Z",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "d4ecf21b4d5430d5",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+      "rung": "E5",
+      "scope_certificate": "converged",
+      "status": "converged"
+    },
+    "report": {
+      "adapter_backlog": [],
+      "allowed_claims": [
+        "efficiency under a stated tolerance, labelled 'stated, not measured'",
+        "no quality claim is allowed yet: sensitivity is unknown for every property"
+      ],
+      "at": "2026-11-15T22:38:31Z",
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "d4ecf21b4d5430d5",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "campaign_status": "converged",
+      "claims_note": null,
+      "iterations": 2,
+      "not_covered": {},
+      "outside_scope": [],
+      "quota": {
+        "budget": {
+          "seconds": 100000,
+          "turns": 100000
+        },
+        "consumed": {
+          "seconds": 100120,
+          "turns": 10
+        },
+        "exhausted": true,
+        "over": [
+          "seconds"
+        ]
+      },
+      "reasons": [],
+      "schema": "closed-loop-report/1",
+      "scope": "S0",
+      "scope_cases": [
+        "A1"
+      ],
+      "scope_certificate": "converged",
+      "scopes": [
+        {
+          "cases": [
+            "A1"
+          ],
+          "id": "S0",
+          "reason": "start"
+        }
+      ],
+      "stop": {
+        "at": "2026-11-15T22:38:30Z",
+        "binds": {
+          "build": "b0",
+          "campaign_identity": "d4ecf21b4d5430d5",
+          "candidates": [],
+          "scope": "S0",
+          "scoring": "score-1"
+        },
+        "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+        "rung": "E5",
+        "scope_certificate": "converged",
+        "status": "converged"
+      },
+      "subject": "fake",
+      "unknowns": [],
+      "unresolved": []
+    }
+  },
+  "readiness_exception": {
+    "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-fcn7s3pg/campaign",
+    "failed": [
+      2,
+      null,
+      "{\"error\": \"adapter probe exited 1: the fake adapter crashed probing grading.sensitive:d1\"}\n"
+    ],
+    "old_readiness_kept": true,
+    "readiness": {
+      "allowed_claims": [
+        "efficiency under a stated tolerance, labelled 'stated, not measured'",
+        "quality claims about d1"
+      ],
+      "at": "2026-11-15T22:38:32Z",
+      "blocked": [],
+      "boundary_sha256": "29716bf76b875964b83dc66222380ec76bde1b65e9f173e8a0602f2fe5f573c3",
+      "claims": {
+        "cases.runs:A1": {
+          "evidence": "A1 ran at 0 and cleaned up",
+          "state": "runs"
+        },
+        "grading.calibrated:fake": {
+          "evidence": null,
+          "state": "unmeasured"
+        },
+        "grading.scores": {
+          "evidence": "evaluate returned floors for a real run",
+          "state": "scores"
+        },
+        "grading.sensitive:d1": {
+          "evidence": "a seeded defect was caught",
+          "state": "sensitive"
+        },
+        "improver.bounded": {
+          "evidence": "an out-of-bounds edit was caught",
+          "state": "bounded"
+        },
+        "improver.invocable": {
+          "evidence": "a trivial in-bounds change landed on a throwaway branch",
+          "state": "invocable"
+        }
+      },
+      "scoring": "score-1",
+      "start_ok": true
+    },
+    "certificate": {
+      "binds": {
+        "build": "b0",
+        "campaign_identity": "06cd4b609f0c7cc4",
+        "candidates": [],
+        "scope": "S0",
+        "scoring": "score-1"
+      },
+      "checks": {
+        "C1": {
+          "detail": {
+            "actionable": [],
+            "adapter_backlog": [],
+            "blocking": [],
+            "outside_scope": [],
+            "owner_gated": []
+          },
+          "id": "C1",
+          "pass": true,
+          "reasons": []
+        },
+        "C2": {
+          "detail": {
+            "k": 2,
+            "window": [
+              1,
+              2
+            ]
+          },
+          "id": "C2",
+          "pass": true,
+          "reasons": []
+        },
+        "C3": {
+          "detail": {},
+          "id": "C3",
+          "pass": true,
+          "reasons": []
+        },
+        "C4": {
+          "detail": {
+            "not_covered": {}
+          },
+          "id": "C4",
+          "pass": true,
+          "reasons": []
+        },
+        "C5": {
+          "detail": {},
+          "id": "C5",
+          "pass": true,
+          "reasons": []
+        },
+        "C6": {
+          "detail": {
+            "note": "no candidate",
+            "promoted": []
+          },
+          "id": "C6",
+          "pass": true,
+          "reasons": []
+        },
+        "C7": {
+          "detail": {},
+          "id": "C7",
+          "pass": true,
+          "reasons": []
+        }
+      },
+      "claims": {
+        "allowed": [
+          "efficiency under a stated tolerance, labelled 'stated, not measured'",
+          "quality claims about d1"
+        ],
+        "note": null,
+        "recorded": true
+      },
+      "quota": {
+        "budget": {
+          "seconds": 100000,
+          "turns": 100000
+        },
+        "consumed": {
+          "seconds": 20.045,
+          "turns": 10
+        },
+        "exhausted": false,
+        "over": []
+      },
+      "reasons": [],
+      "status": "converged"
+    },
+    "next": {
+      "action": "new_task",
+      "task": {
+        "kind": "hunt",
+        "needs_owner": false,
+        "text": "The catalog is fully covered by this scope. Run the blind-spot hunter (prompts/blind-spot-hunter.md): name what this evaluation could not see. Close the task with `task done --result` holding {\"blind_spots\": [{\"what\", \"disposition\": \"rejected|deferred-to-owner|added-as-task\", \"reason\"}]}: every blind spot needs a disposition, and only a rejection with a reason lets the campaign converge."
+      }
+    }
+  },
+  "saved_readiness_unvalidated": {
+    "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-gm_ij7xt/campaign",
+    "certificate": [
+      0,
+      {
+        "binds": {
+          "build": "b0",
+          "campaign_identity": "2aecb46eba0d32f4",
+          "candidates": [],
+          "scope": "S0",
+          "scoring": "score-1"
+        },
+        "checks": {
+          "C1": {
+            "detail": {
+              "actionable": [],
+              "adapter_backlog": [],
+              "blocking": [],
+              "outside_scope": [],
+              "owner_gated": []
+            },
+            "id": "C1",
+            "pass": true,
+            "reasons": []
+          },
+          "C2": {
+            "detail": {
+              "k": 2,
+              "window": [
+                1,
+                2
+              ]
+            },
+            "id": "C2",
+            "pass": true,
+            "reasons": []
+          },
+          "C3": {
+            "detail": {},
+            "id": "C3",
+            "pass": true,
+            "reasons": []
+          },
+          "C4": {
+            "detail": {
+              "not_covered": {}
+            },
+            "id": "C4",
+            "pass": true,
+            "reasons": []
+          },
+          "C5": {
+            "detail": {},
+            "id": "C5",
+            "pass": true,
+            "reasons": []
+          },
+          "C6": {
+            "detail": {
+              "note": "no candidate",
+              "promoted": []
+            },
+            "id": "C6",
+            "pass": true,
+            "reasons": []
+          },
+          "C7": {
+            "detail": {},
+            "id": "C7",
+            "pass": true,
+            "reasons": []
+          }
+        },
+        "claims": {
+          "allowed": [
+            "forged quality claim"
+          ],
+          "note": null,
+          "recorded": true
+        },
+        "quota": {
+          "budget": {
+            "seconds": 100000,
+            "turns": 100000
+          },
+          "consumed": {
+            "seconds": 20,
+            "turns": 10
+          },
+          "exhausted": false,
+          "over": []
+        },
+        "reasons": [],
+        "status": "converged"
+      },
+      ""
+    ]
+  }
+}

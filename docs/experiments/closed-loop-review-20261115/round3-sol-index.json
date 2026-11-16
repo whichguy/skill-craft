@@ -1,0 +1,14 @@
+{
+  "revision": "56e02efb798b18fc949866639214b37abffd3998",
+  "final_status": "",
+  "evidence": {
+    "suite": "/private/tmp/closed-loop-review3-tests-mwtabsgg/result.json",
+    "operator_index_and_drill": "/private/tmp/closed-loop-operator-bs2xehto/results.json",
+    "operator_open_task": "/private/tmp/closed-loop-operator-ed8_6zs1/results.json",
+    "state_probes": "/private/tmp/closed-loop-review3-main-8f1ujp22/evidence.json",
+    "additional_probes": "/private/tmp/closed-loop-review3-main-8f1ujp22/additional.json",
+    "clean_filter": "/private/tmp/closed-loop-review3-main-8f1ujp22/git-filter.json",
+    "lifecycle_and_quota": "/private/tmp/closed-loop-robustness-evidence/summary.json",
+    "readiness_wrong_workspace": "/private/tmp/closed-loop-review3-main-8f1ujp22/readiness-workspace.json"
+  }
+}

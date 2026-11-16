@@ -27,6 +27,7 @@ from pathlib import Path
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -140,6 +141,9 @@ def base_after_landing(dest: Path) -> Path:
 # ------------------------------------------------------------------ the oracle
 
 TRANSIENT = re.compile(r"EADDRINUSE|ECONNRESET|ECONNREFUSED|EPIPE|socket hang up")   # an error string of the machine's network, not proof of its cause
+HANG = re.compile(r"\(rc None\)")   # base_tests.py's own cap: the delivery's `node --test` did not end in its time limit. With PPE_RERUN_HANG=1 (README A15: score_replay.sh sets it) such a check
+#                                       is run again like a network error: every tree hangs now and then on a loaded machine (evidence/e17-flake-check.txt), E17's Codex qs verdict rested on one run,
+#                                       and E17's own scoring, without the variable, is unchanged
 INTERACTION_IDS = ("I1", "I2", "I3", "I4", "I5")
 PROVENANCE_CHECKS = ("base_tests.py", "serve.py", "due_times_probe.py", "ticket_assignment_accept.py", "ticket_import_accept.py")
 
@@ -159,6 +163,7 @@ def provenance() -> dict:
     out = {name: hashlib.sha256(path.read_bytes()).hexdigest()[:16] if path.is_file() else None for name, path in files.items()}
     out["cases (the three requests, their checks and acceptance blocks)"] = hashlib.sha256(entries.encode()).hexdigest()[:16]
     out["fixture digest"] = brownfield.digest(BASE_FIXTURE)
+    out["PPE_RERUN_HANG"] = os.environ.get("PPE_RERUN_HANG") or "off"
     status = subprocess.run(["git", "-C", str(REPO), "status", "--short", "--", "docs/experiments/parallel-plan-execution-20261114", "test/shiploop_e2e"],
                             capture_output=True, text=True).stdout.strip()
     out["skill-craft HEAD"] = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
@@ -166,11 +171,32 @@ def provenance() -> dict:
     return out
 
 
+def run_group(argv: list, cwd: Path, timeout: float, env: dict | None = None) -> tuple[int, str]:
+    """A command in a process group of its own: (the exit code, stdout and stderr). One that does not end in ``timeout`` is killed with everything it started, a
+    server a hung test left listening included, and gives 124 (A15: such servers were left behind for good and are other runs' port collisions)."""
+    proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        out, err = proc.communicate(timeout=timeout)
+        return proc.returncode, out + err
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            pass
+        for pipe in (proc.stdout, proc.stderr):
+            pipe.close()
+        return 124, "timed out"
+
+
 def run_checks(tree: Path, case: str, base: Path | None = None, timeout: int = 300, with_assignment: bool = False, only: str | None = None) -> list[dict]:
     """The case's own checks run from ``tree`` the way the harness runs them (E2E_CHECKS set, a shell, exit 0 is a pass). ``only`` is ``"behavior"``
     (the request's own HTTP or probe checks), ``"global"`` (the two own-tests checks: the delivery's tests pass and outnumber the base's, and the base's
     own tests pass unchanged; they are about the whole tree, not about one feature) or None (all). A machine-level network error string (a port taken,
-    a connection reset: seen when other sessions use the machine) is run again, at most twice, and every earlier output is kept. ``base`` stands in for
+    a connection reset: seen when other sessions use the machine) (and, with PPE_RERUN_HANG=1, a hang of the delivery's own test run, ``(rc None)``, A15) is run again, at most twice, and every earlier output is kept. ``base`` stands in for
     the base folder of the two own-tests checks (the base with a landing applied). ``with_assignment`` is for a tree that holds assignment: due times'
     ``off`` check compares the delivered service with the base byte for byte (it ignores only times), so a tree whose tickets all show `assignee`
     can never pass it as written; for such a tree it is run against the base with assignment, the one pin changed."""
@@ -189,12 +215,8 @@ def run_checks(tree: Path, case: str, base: Path | None = None, timeout: int = 3
             command = command.replace(" node-tickets", " " + shlex.quote(str(base)))
         earlier = []
         for tries in (1, 2, 3):
-            try:
-                done = subprocess.run(["bash", "-c", command], cwd=tree, env=env, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL)
-                rc, text = done.returncode, (done.stdout + done.stderr)
-            except subprocess.TimeoutExpired:
-                rc, text = 124, "timed out"
-            if rc == 0 or not TRANSIENT.search(text) or tries == 3:
+            rc, text = run_group(["bash", "-c", command], tree, timeout, env)
+            if rc == 0 or not (TRANSIENT.search(text) or (os.environ.get("PPE_RERUN_HANG") == "1" and HANG.search(text))) or tries == 3:
                 break
             earlier.append(" ".join(text.split())[-200:])
         rows.append({"command": shown[:90], "kind": "global" if is_global else "behavior", "pass": rc == 0, "tries": tries, "earlier": earlier,
@@ -240,9 +262,9 @@ def feature_rows(tree: Path, case: str, base: Path | None = None, with_assignmen
 
 
 def suite_passed(tree: Path) -> int | None:
-    done = subprocess.run(["npm", "test", "--silent"], cwd=tree, capture_output=True, text=True, timeout=300, stdin=subprocess.DEVNULL)
-    found = re.findall(r"^(?:ℹ|#) pass (\d+)\s*$", done.stdout + done.stderr, re.M)
-    return int(found[-1]) if found else None
+    rc, text = run_group(["npm", "test", "--silent"], tree, 300)
+    found = re.findall(r"^(?:ℹ|#) pass (\d+)\s*$", text, re.M)
+    return int(found[-1]) if found and rc != 124 else None
 
 
 def interactions(tree: Path) -> dict:

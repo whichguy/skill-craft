@@ -76,7 +76,26 @@ def main(argv: list) -> int:
     write = plan.get("fixture") == "write"
     real = plan.get("fixture") == "tickets"   # README Amendment A14: the real service; the stand-in worker adds one small file and test per task
     oracle = json.loads((Path(run).parent.parent / "oracle.json").read_text()) if task_mode and not write and not real else {}
-    for step in plan["steps"]:
+    seeded = real and any(json.loads(line)["kind"] == "replay_seed" for line in (Path(run) / "ledger.jsonl").read_text().splitlines() if line.strip())
+    if seeded:   # README Amendment A15: a run seeded at a failed integration offers only the failed step; the stand-in worker repairs a fix workspace by giving the failed branch's work up
+        last = plan["steps"][-1]["id"]
+        oracle[last] = json.loads((Path(run) / "out" / f"{last}.json").read_text())["result"]["answer"]
+        while True:
+            ready = json.loads(shell([sys.executable, kit, "ready", "--run", run, "--claim", "--capacity", "1"]))
+            if ready["complete"] or not ready["ready"]:
+                break
+            for sid in ready["ready"]:
+                begun = shell([sys.executable, kit, "begin", "--run", run, "--step", sid])
+                workspace = Path(re.search(r"Workspace \(work only inside it\): (\S+)", begun).group(1))
+                unmerged = [n for n in subprocess.run(["git", "-C", str(workspace), "diff", "--name-only", "--diff-filter=U"], capture_output=True, text=True).stdout.split() if n]
+                if unmerged:   # the stand-in gives the failed branch's work up: main as it is is a green tree
+                    main_head = subprocess.run(["git", "-C", str(workspace), "rev-parse", "MERGE_HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+                    subprocess.run(["git", "-C", str(workspace), "merge", "--abort"], check=True, capture_output=True)
+                    subprocess.run(["git", "-C", str(workspace), "reset", "-q", "--hard", main_head], check=True, capture_output=True)
+                (workspace / "src" / f"zz{sid}.js").write_text(f"'use strict';\nmodule.exports = {{ tag: '{sid}' }};\n")
+                oracle[sid] = 1
+                out.append(shell([sys.executable, kit, "complete", "--run", run, "--step", sid, "--result", json.dumps({"answer": 1, "method": "fake"})]))
+    for step in ([] if seeded else plan["steps"]):
         if task_mode:
             shell([sys.executable, kit, "ready", "--run", run])   # the A0 loop's first command; in an isolated write run it merges the finished branches
             begun = shell([sys.executable, kit, "begin", "--run", run, "--step", step["id"]])

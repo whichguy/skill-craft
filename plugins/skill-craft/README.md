@@ -19,6 +19,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [ask-agent](skills/ask-agent/SKILL.md) | `/skill-craft:ask-agent` | 0.11.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main… |
 | [backchain](skills/backchain/SKILL.md) | `/skill-craft:backchain` | 0.8.0 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain /… |
 | [c-plan](skills/c-plan/SKILL.md) | `/skill-craft:c-plan` | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value… |
+| [closed-loop](skills/closed-loop/SKILL.md) | `/skill-craft:closed-loop` | 0.1.0 | Use to improve a subject (a skill, a prompt set, a tool) by running it on cases, grading each run, finding fixes… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | `/skill-craft:compare-prompts` | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results… |
 | [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.7.3 | Review and improve until a trivial pass |
 | [improve-agent](skills/improve-agent/SKILL.md) | `/skill-craft:improve-agent` | 0.1.3 | Run Improve in a fresh native agent |
@@ -38,7 +39,6 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | `/skill-craft:shiploop-e2e-audit` | 0.7.17 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use… |
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | `/skill-craft:shiploop-run-review` | 0.5.2 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice… |
 | [skill-interop](skills/skill-interop/SKILL.md) | `/skill-craft:skill-interop` | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a… |
-| [sport80](skills/sport80/SKILL.md) | `/skill-craft:sport80` | 0.2.0 | Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account… |
 | [test-harness](skills/test-harness/SKILL.md) | `/skill-craft:test-harness` | 0.1.0 | Run harness, audit side effects, fix, rerun |
 
 ## Support

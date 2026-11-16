@@ -1,0 +1,120 @@
+{
+  "readiness_exception_new_start": {
+    "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-ryru6k7t/campaign",
+    "refresh": [
+      2,
+      null,
+      "{\"error\": \"adapter probe exited 1: the fake adapter crashed probing grading.sensitive:d1\"}\n"
+    ],
+    "next_step": [
+      0,
+      {
+        "action": "start",
+        "iteration": 1,
+        "key": "d14bd08666-S0-1"
+      },
+      ""
+    ]
+  },
+  "bad_probe_cost": {
+    "campaign": "/private/tmp/closed-loop-review3-main-8f1ujp22/closed-loop-test-cm5143nx/campaign",
+    "initial_consumed": {},
+    "refresh": [
+      2,
+      null,
+      "{\"error\": \"probe cases.runs:A1 reported 'runs' without evidence: a claim is proven only by what the probe shows\"}\n"
+    ],
+    "consumed_after": {}
+  },
+  "proposal_omitted_protection": {
+    "errors": [],
+    "proposal": {
+      "contract": "closed-loop-definer/1",
+      "slots": {
+        "mission": {
+          "status": "proposed",
+          "evidence": [
+            "README.md:1"
+          ],
+          "value": [
+            "a clause a reviewer can cite"
+          ]
+        },
+        "cases": {
+          "status": "proposed",
+          "evidence": [
+            "README.md:1"
+          ],
+          "value": [
+            {
+              "id": "A1"
+            }
+          ]
+        },
+        "steps": {
+          "status": "proposed",
+          "evidence": [
+            "README.md:1"
+          ],
+          "value": {
+            "start": [
+              "true"
+            ]
+          }
+        },
+        "evaluation": {
+          "status": "proposed",
+          "evidence": [
+            "README.md:1"
+          ],
+          "value": {
+            "evaluation_class": "scripted"
+          }
+        },
+        "improvement": {
+          "status": "proposed",
+          "evidence": [
+            "README.md:1"
+          ],
+          "value": {
+            "candidate_paths": [
+              "adapter.py"
+            ],
+            "withheld_paths": [],
+            "evaluator_paths": [],
+            "verify": [
+              "true"
+            ]
+          }
+        },
+        "authority": {
+          "status": "proposed",
+          "evidence": [
+            "README.md:1"
+          ],
+          "value": {
+            "routine": [],
+            "owner_only": [
+              "hosted"
+            ],
+            "owner_only_requires": [
+              "hosted"
+            ]
+          }
+        },
+        "records": {
+          "status": "proposed",
+          "evidence": [
+            "README.md:1"
+          ],
+          "value": {
+            "ledger": "records.jsonl"
+          }
+        }
+      },
+      "risks": [],
+      "needs_owner": [],
+      "unknowns": []
+    }
+  }
+}

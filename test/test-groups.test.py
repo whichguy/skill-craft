@@ -136,6 +136,8 @@ class TestGroupTests(unittest.TestCase):
         # The test-harness skill adds one core suite (2026-11-08): its bundled behaviour suite, the packaging contract and a narrow lint.
         # The Ask Agent host command adds one core suite (2026-11-14): detection from exact variable names, and the binding data against the card and the prose.
         # Source-bound CI receipt reporting and the fake-Node browser driver each add one core suite (2026-11-15).
+        # The closed-loop skill adds one core suite (2026-11-15): the orchestrator against a fake subject and the real Until Loop runtime.
+        # The sport80 skill and its suite left for the fortified-strength repository (2026-11-15), so core is one fewer, 63, and all suites 206.
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 63)
         # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
         self.assertEqual(len(suite_catalog.SUITES), 206)
@@ -373,12 +375,15 @@ class TestGroupTests(unittest.TestCase):
                              [s.id for s in suite_catalog.select([group], changed)])
 
     def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
-        # Frozen ded345978767587e07c6fffe60aa3f7e785c668b rows, excluding the two new CI helper suites.
+        # Frozen ded345978767587e07c6fffe60aa3f7e785c668b rows, excluding the two new CI helper suites and the suites added since
+        # (closed-loop, 2026-11-15): a new suite is named here so the digest keeps freezing the original rows.
+        # The sport80 suite's row left the catalog with the skill (2026-11-15; it moved to the fortified-strength repository), so
+        # the digest below is that of the rows that remain: it changed by the removal of that one row and by nothing else.
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
-                   for s in suite_catalog.SUITES if s.id not in {"ci-summary", "browser-fixtures"}]
+                   for s in suite_catalog.SUITES if s.id not in {"ci-summary", "browser-fixtures", "closed-loop"}]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "41716cdb7822645e569324614cc99226a57e2a675542cec965572b92c8e940eb")
+        self.assertEqual(digest, "27e7b90c620a772be82d5962d612cb4c6b87f25cc85a358fd4952b60159fb79e")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])

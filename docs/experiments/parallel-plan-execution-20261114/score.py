@@ -608,7 +608,8 @@ def write_measures(trial: Path, plan: dict, run: dagkit.Run, events: list) -> di
         reported[s["id"]] = json.loads(out.read_text()).get("result", {}).get("answer") if out.is_file() else None
     oracle = trial / "oracle" / "hidden_tests.py"
     if plan.get("fixture") == "tickets":   # the real service: each feature's checks and held-out acceptance, the whole tree's, the interaction checks (ticketfix.evaluate)
-        verdict = {"deferred": True, "valid": False} if os.environ.get("PPE_DEFER_ORACLE") == "1" else ticketfix.evaluate(trial, meta, events)
+        seeded = any(e["kind"] == "replay_seed" for e in events)   # A15: the earlier part of the ledger is E17's; its candidates are not this trial's to judge (the final tree is the one merge's candidate)
+        verdict = {"deferred": True, "valid": False} if os.environ.get("PPE_DEFER_ORACLE") == "1" else ticketfix.evaluate(trial, meta, events, candidates=not seeded)
     else:
         verdict = writefix.evaluate(oracle, Path(meta["repo"]), reported) if oracle.is_file() else None
 
@@ -648,7 +649,7 @@ def _real_accounting(events: list) -> dict:
     landing_s = total("landed")
     retest_s = sum(e["detail"].get("seconds") or 0 for e in events if e["kind"] == "retest" and not e["detail"].get("landing"))
     kit_total = total("workspace") + total("commit") + total("merged") + total("conflict") + total("redtest") + total("redtest", "reset_s") + landing_s + retest_s
-    first, spans = {}, {}
+    spans = {}
     for e in events:   # each task's first attempt: the first start to the first end after it
         if e["kind"] == "start" and e["step"] not in spans:
             spans[e["step"]] = [e["ts"], None]
@@ -728,6 +729,16 @@ def score_trial(trial: Path) -> dict:
                                     "end": round(a["end"] - (m["first_start_ts"] or a["end"]), 2) if a.get("end") else None, "tokens": a.get("tokens")}
                                    for a in native["agents"]]}
     m["tokens"] = tokens(view, host, native)
+    # A15, the audit of what a worker could have used that it should not: every git command a sub-agent ran and every one the parent ran (whole, up to 4,000 characters: the
+    # workers are told not to run git; a flag is "no access detected", never "access ruled out"), the paths under /Users/dadleet a sub-agent named outside this trial's own folder
+    # (E17's raw trials and this repository's evidence hold solutions), and how much the sub-agents did: their tool calls and how many ran the project's tests
+    calls = [i for i in view if i["kind"] == "call"]
+    worker = [i for i in calls if i["actor"] != "parent"]
+    m["worker_git"] = [(i.get("full") or "")[:4000] for i in worker if re.search(r"\bgit\b", i.get("full") or "")]
+    m["parent_git"] = [(i.get("full") or "")[:4000] for i in calls if i["actor"] == "parent" and re.search(r"\bgit\b", i.get("full") or "")]
+    m["worker_outside"] = sorted({p for i in worker for p in re.findall(r"/Users/dadleet/[^\s'\"\\)\]}>,;]+", i.get("full") or "") if not p.startswith(str(trial.resolve()))})[:40]
+    m["worker_calls"] = len(worker)
+    m["worker_tests"] = sum(1 for i in worker if re.search(r"\b(?:npm\s+(?:run\s+)?test|node\s+--test)\b", i.get("full") or ""))
     proc_end, launched = inv.get("ended"), inv.get("started")
     ends = [i["t"] for i in view if i["t"]] + [e["ts"] for e in events]
     m["process"] = {"status": inv.get("status"), "returncode": inv.get("returncode"), "elapsed_s": inv.get("elapsed_s"),

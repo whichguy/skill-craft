@@ -1,0 +1,2 @@
+{'mutation': 'unmerged entry ignored', 'classes': ['FingerprintTests'], 'result': 'caught', 'tail': 'FAILED (failures=1)'}
+MISSED: []

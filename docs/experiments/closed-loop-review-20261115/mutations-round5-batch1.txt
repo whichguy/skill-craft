@@ -1,0 +1,20 @@
+{'mutation': 'fingerprint compares nothing', 'classes': ['FingerprintTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'fingerprint ignores an ls-files failure', 'classes': ['FingerprintTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'C1 ignores open tasks', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'stale stop ignores hunts', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'stale stop ignores the budget', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'refresh does not withdraw', 'classes': ['ReadinessTests'], 'result': 'SURVIVED', 'tail': 'OK'}
+{'mutation': 'workspace override accepted', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'saved readiness not checked', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'saved readiness not re-derived', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'runs need no ratification', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'cleanup receipt kept on retry', 'classes': ['ResumeTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'cancel unacknowledged accepted', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'running step ignores the budget', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'step timeout off', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'elapsed not counted', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'probe cost lost on refusal', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'unknown resolved without evidence', 'classes': ['CertificateTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'proposal ignores pinned paths', 'classes': ['ProposalTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'adapter environment not filtered', 'classes': ['ManifestTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+SURVIVORS: ['refresh does not withdraw']

@@ -1,0 +1,80 @@
+{
+  "verified_without_evidence": "converged",
+  "unexpected_status": "incomplete",
+  "unclean_earlier_run": "converged",
+  "report_before_widen": "converged",
+  "missing_scope_case_in_last_quiet": {
+    "status": "converged",
+    "quiet": [
+      false,
+      false,
+      true,
+      true
+    ],
+    "last_cases": [
+      "A1"
+    ]
+  },
+  "negative_k": {
+    "status": "incomplete",
+    "c2": {
+      "detail": {
+        "k": -1,
+        "window": [
+          1
+        ]
+      },
+      "id": "C2",
+      "pass": true,
+      "reasons": []
+    },
+    "c3": {
+      "detail": {},
+      "id": "C3",
+      "pass": false,
+      "reasons": [
+        "A1 missed its floors on the current build"
+      ]
+    }
+  },
+  "false_strings": "converged",
+  "widen_no_new_scope_runs": {
+    "widen": "widen",
+    "scope": "S1",
+    "iteration_scopes": [
+      "S0",
+      "S0"
+    ],
+    "certificate": "converged"
+  },
+  "no_ratification_no_readiness_owner_only_case": {
+    "ratification": null,
+    "approved_cases": [],
+    "action": "start",
+    "starts": 1
+  },
+  "failed_step_cost": {
+    "recorded": {
+      "seconds": 20
+    },
+    "aggregate": {},
+    "quota": {
+      "budget": {
+        "seconds": 1
+      },
+      "consumed": {},
+      "exhausted": false,
+      "over": []
+    }
+  },
+  "same_second_campaign_key_collision": {
+    "same_id": true,
+    "starts": 1,
+    "second_scope": [
+      "B1"
+    ],
+    "second_iteration_cases": [
+      "A1"
+    ]
+  }
+}
