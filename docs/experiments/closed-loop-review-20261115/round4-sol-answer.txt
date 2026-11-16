@@ -1,0 +1,44 @@
+**Verdict: not ready to ship.** I would not ship without fixing the Git guard, durable seconds accounting, and readiness round-trip validation.
+
+I read `aceb1d03`’s message/stat first. Actual HEAD is `76693288`; the reviewed skill, fixture and tests are identical to the requested HEAD. **157 tests passed in 122.252 seconds.** The checkout stayed clean; all artifacts are outside it. [Evidence index](/private/tmp/closed-loop-review4-index-q1dsyrh9/index.json).
+
+I reran the original reproductions:
+
+| Reproduction | Result | Probe and relevant symbol |
+|---|---|---|
+| Index flags | **NOT FIXED** | Stage current state, set either flag, verify successfully, then `unknown add --inside-claim`: certificate becomes incomplete, but real runtime returns **complete**. [closed_loop.py — fingerprint_problem](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1618) |
+| Original constant clean filter | **FIXED** | `filter.constant.clean='printf constant'`: check and contract exit 2. Same symbol above. |
+| Open owner task | **FIXED** | Add after quiet evidence: C1 exits 1; certificate incomplete. [check_c1](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:797) |
+| Cached stop: deferred hunt / spent budget | **FIXED** | Both mutations make `next` and report incomplete. [completion_problems](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1055) |
+| Readiness failure, kill, wrong workspace, malformed saved claims | **FIXED** | Failed/killed refresh leaves `start_ok:false`; wrong workspace and malformed records exit 2; subsequent start blocks. [cmd_readiness](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1774) |
+| Killed retried launch | **FIXED** | Kill after adapter launch: old receipt absent, C5 fails, cleanup covers the key. [apply_action](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1242) |
+| Responsive polling | **FIXED** | Against 0.2 seconds, three polls ran, then all subsequent steps stopped incomplete. [plan_next](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1096) |
+| Refused probe cost | **FIXED** | Missing-evidence response still charged its reported 1,234 seconds. [claim_states](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1412) |
+| Cancellation acknowledgement | **FIXED** | A `running` cancellation response exits 2 and preserves running state. [cmd_cancel](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1937) |
+| Environment filter | **FIXED** | Allowlisted variable visible; unlisted variable absent. [run_argv_once](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:299) |
+
+The regressions and false stops warrant these changes, in priority order:
+
+1. **P1 — Verified bug: successful readiness can make its own campaign unreadable.** With the existing `FULL_CLAIMS` order and both sensitivity and calibration proven, readiness returns success. Saving sorts claim-map keys; loading derives allowed claims in that different order. List equality then declares valid state malformed. Both `status` and another readiness attempt exit 2, preventing recovery through the CLI. Compare allowed claims independently of ordering, or canonicalize their derivation. [closed_loop.py — check_state_against_manifest](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1495).
+
+2. **P2 — Verified bug: failed polling double-charges overlapping wall time.** One timed-out poll left approximately **0.114 seconds elapsed**, plus **0.106 seconds charged separately**, exhausting a 0.2-second budget. Use non-overlapping elapsed accounting. [used_amounts](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:596), [session](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1517).
+
+3. **P2 — Verified bug: ordinary CRLF normalization causes false refusal.** Stage/commit, then restore campaign files under `core.autocrlf=true`: Git is clean, parsed state unchanged, certificate converged, but every check and contract exits 2. Runtime fingerprints still detect semantic changes. Global text/EOL attributes reproduce this too. Provide a raw-content attribute policy or documented recovery. [fingerprint_problem](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1668).
+
+4. **P2 — Verified bug: upgrading an outstanding run strands it.** A real running state emitted by the parent revision lacks `started_epoch`; current `status`, `cancel` and `cleanup` all reject it. Migrate from its existing `started` timestamp, or explicitly prohibit upgrades with outstanding runs. [validate_state](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:388).
+
+5. **P2 — Verified bugs: finish error/report handling.** A nonexistent `contract --out` parent produces a traceback instead of JSON; catch filesystem errors in [main](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:2077). `unknown resolve --evidence` correctly rejects missing/blank evidence, but neither report quotes the saved resolution; include it in [write_report](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1305).
+
+6. **Judgement: hunts need a resolution/supersession path.** Completing an `added-as-task` investigation and rerunning a clean hunt still leaves the historical finding blocking forever, including after reopen. This follows the stated policy; disclose it or permit evidenced resolution. [hunt_findings](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1044).
+
+Staging, committing, global excludes, split indexes and alternative temporary directories passed. Active native fsmonitor remained unverified because its daemon was unavailable. Pre-ratification readiness remained usable.
+
+Two paths to false completion remain:
+
+1. **P1 — Verified bug: snapshot equality does not prove future fingerprint visibility.** The original flag attacks still succeed. Additionally, a static clean filter returning a saved copy of the **original campaign bytes** passes every check; a later sanctioned unknown remains invisible and the real runtime completes. Reject unsafe flags/transformations even when current bytes match, or change the fingerprint mechanism.
+
+   Also require successful `write-tree`: an excluded-path merge conflict passes this guard and all seven checks while runtime fingerprinting yields `null`; stale satisfaction then completes. This contradicts the card’s explicit protection against [any Git failure](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/references/until-loop.md:39). These edits occurred **after verification returned**, outside the disclosed check-to-fingerprint race.
+
+2. **P1 — Verified bug: cancellation erases spent seconds.** A running step showed **0.403 seconds against a 0.3-second budget**. Cancellation reduced usage to zero. After cleanup and reopen **without increasing the budget**, the campaign converged. Persist elapsed cost before removing running status, including cancellation and other terminal transitions. [record_iteration](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1185).
+
+The literal card run from an empty directory **passed**: shell bindings, two scope contracts, receipt recovery, and the expected owner-gated incomplete stop. [Drill evidence](/private/tmp/closed-loop-operator-99n4afvb/literal-card.json).

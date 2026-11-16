@@ -1,0 +1,30 @@
+{
+  "command": [
+    "python3",
+    "test/closed-loop.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb",
+  "expected_head": "ff9cb35d46316f6ce70f92c0e418c0fad53f0e3c",
+  "pre": {
+    "head": "ff9cb35d46316f6ce70f92c0e418c0fad53f0e3c",
+    "status": ""
+  },
+  "routing": "fresh default child gpt-6.1-sol max, explicit owner effort override",
+  "retry_policy": "one attempt; no retries",
+  "deadline_seconds": 280,
+  "declared_outputs": [
+    "unique temporary directories only"
+  ],
+  "started_utc": "2026-11-15T21:17:32.020592+00:00",
+  "finished_utc": "2026-11-15T21:19:34.549348+00:00",
+  "elapsed_seconds": 122.52740612499838,
+  "exit_code": 0,
+  "timed_out": false,
+  "post": {
+    "head": "ff9cb35d46316f6ce70f92c0e418c0fad53f0e3c",
+    "status": ""
+  },
+  "result": "PASS",
+  "verified_test_count": 63,
+  "evidence_verification": "All expected files exist; full captured stderr contains 63 completed tests and terminal OK; stdout empty; source identity unchanged and clean."
+}

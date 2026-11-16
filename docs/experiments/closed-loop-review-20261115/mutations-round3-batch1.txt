@@ -1,0 +1,25 @@
+{'mutation': 'saved nested evidence not validated', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'saved quiet flag not recomputed', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'C5 ignores a running step', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'C5 ignores an uncertain launch', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'C7 ignores a failed readiness', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'SyntaxError: invalid syntax'}
+{'mutation': 'claims survive an evaluator change', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'converged stop ignores owed work', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'report ignores owed work', 'classes': ['EvidenceTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'poll failures never stop', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'poll limit ignores the budget', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'replay recomputes the base', 'classes': ['ResumeTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'launch intent not written ahead', 'classes': ['ResumeTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'cleanup skips ratification', 'classes': ['GateTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'cleanup runs for an empty set', 'classes': ['GateTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'readiness ignores the budget', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'readiness loses partial cost', 'classes': ['QuotaTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'proven claim needs no evidence', 'classes': ['ReadinessTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'ignored state not detected', 'classes': ['FingerprintTests'], 'result': 'killed', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'git failure not detected', 'classes': ['FingerprintTests'], 'result': 'SURVIVED', 'tail': 'OK'}
+{'mutation': 'no folder ignore file', 'classes': ['FingerprintTests'], 'result': 'killed', 'tail': 'FAILED (errors=1)'}
+{'mutation': 'proposal paths unchecked', 'classes': ['ProposalTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'proposal values untyped', 'classes': ['ProposalTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'proposal not reconciled', 'classes': ['ProposalTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+{'mutation': 'existence check outside the lock', 'classes': ['StateTests'], 'result': 'killed', 'tail': 'FAILED (failures=1)'}
+SURVIVORS: ['git failure not detected']

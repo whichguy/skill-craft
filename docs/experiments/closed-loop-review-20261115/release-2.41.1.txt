@@ -1,0 +1,20 @@
+scripts/release-push.py --expected-head 1562e8a99fe2b1cc930d48b57176f8549db0def8 --expected-tree 4a4123185c8f66a82627bb37efe3409824086e19 --expected-base 20ec94e273fa88266c2b18a7b22cbb8a066ba6e0 (four checks)
+closed-loop suite on the release tree before the push: Ran 165 tests in 194.125s, OK
+
+release check 1/4: ["bash", "scripts/sync-plugin-views.sh", "--check"]
+skill-frontmatter-to-plugin-json: CHECK OK skill-craft
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (27 skills)
+sync-plugin-views: CHECK OK
+release check 2/4: ["python3", "scripts/check-marketplace-packages.py"]
+OK skill-craft: complete marketplace payload
+marketplace-packages: 1/1 passed (offline payload validation only)
+release check 3/4: ["python3", "scripts/check-release-boundary.py", "--base", "20ec94e273fa88266c2b18a7b22cbb8a066ba6e0"]
+check-release-boundary: OK
+release check 4/4: ["python3", "test/test-groups.test.py"]
+......................................................................
+----------------------------------------------------------------------
+Ran 70 tests in 34.320s
+
+OK
+{"branch": "main", "checks_passed": 4, "head": "1562e8a99fe2b1cc930d48b57176f8549db0def8", "previous_remote_head": "20ec94e273fa88266c2b18a7b22cbb8a066ba6e0", "push_receipt": "To https://github.com/whichguy/skill-craft.git\n \t1562e8a99fe2b1cc930d48b57176f8549db0def8:refs/heads/main\t20ec94e2..1562e8a9\nDone", "status": "pushed", "tree": "4a4123185c8f66a82627bb37efe3409824086e19"}
+exit=0

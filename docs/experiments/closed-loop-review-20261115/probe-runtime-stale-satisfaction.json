@@ -1,0 +1,27 @@
+{
+  "artifact_root": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-55lnwdwq",
+  "scenario": "external campaign unknown added after green verify",
+  "iterations": [
+    {
+      "iteration": 1,
+      "certificate_before": "incomplete",
+      "runtime_status": "active"
+    },
+    {
+      "iteration": 2,
+      "certificate_before": "incomplete",
+      "runtime_status": "active"
+    },
+    {
+      "iteration": 3,
+      "certificate_before": "converged",
+      "runtime_status": "complete"
+    }
+  ],
+  "late_certificate": {
+    "status": "incomplete",
+    "reasons": [
+      "C7: an unknown lies inside the scope's claim: late evidence gap"
+    ]
+  }
+}

@@ -321,6 +321,7 @@ _CORE_SUITES = (
     _suite("review-coverage", "core", "test/review-coverage.test.sh", "bash", "test/review-coverage.test.sh"),
     _suite("rubric-eval", "core", "test/rubric-eval.test.py", "python3", "test/rubric-eval.test.py"),
     _suite("sport80", "core", "test/sport80.test.py", "python3", "test/sport80.test.py"),
+    _suite("closed-loop", "core", "test/closed-loop.test.py", "python3", "test/closed-loop.test.py"),
     _suite("pushpress", "core", "test/pushpress.test.py", "python3", "test/pushpress.test.py"),
     _suite("dual-body-guard", "core", "test/dual-body-guard.test.sh", "bash", "test/dual-body-guard.test.sh"),
     _suite("plan-dispatcher-state", "core", "test/plan-dispatcher-state.test.js", "node", "test/plan-dispatcher-state.test.js"),

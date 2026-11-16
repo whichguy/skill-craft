@@ -1,0 +1,65 @@
+**Verdict: not ready to ship.** The fixes substantially improve the original build, but false completion remains reproducible.
+
+All **110 tests passed in 65.385 seconds** at `163f21f2e9724ff61611f71a3311bc360ed25a41`. Nothing was written inside the checkout. Reproductions, runtime results, and test evidence are collected in this [temporary evidence bundle](/private/tmp/closed-loop-review2-kqt26hpk/evidence.json).
+
+The ten original findings, assessed by tracing the implementation and additional probes:
+
+| # | Assessment | Evidence |
+|---|---|---|
+| 1. Malformed evidence | **PARTLY** | [`validate_facts`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:540) rejects the original malformed iterations. Record fields and nested persisted evidence still bypass validation; see item 2 below. |
+| 2. Scope/window integrity | **FIXED** | Exact requested-case coverage, [`window`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:634)’s active-scope restriction, and frozen expected scope prevent the original omissions and zero-iteration S1 convergence. |
+| 3. Stale runtime satisfaction | **PARTLY** | The ordinary sanctioned-mutation reproduction is now refused. Ignored state, unavailable fingerprints, concurrent mutation, and external pins still defeat freshness. |
+| 4. Resolution and cleanup | **PARTLY** | [`check_c1`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:697) requires evidence; C5 covers completed iterations. Running/uncertain launches remain unaccounted for, and readiness claims can become stale. |
+| 5. Remaining work disappears | **PARTLY** | Declared combinations and hunt dispositions are implemented. A new owner-held task does not invalidate a cached converged campaign stop. |
+| 6. Unauthorized starts | **FIXED** | [`authority_problem`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:852) gates both planned and executed starts. Task instructions now require approval before effects. A separate cleanup bypass remains. |
+| 7. Quota enforcement | **PARTLY** | Mandatory budgets, call timeouts and some charges work. Polling, readiness retries, partial probe costs, and completion at exhaustion remain defective. |
+| 8. Isolation/recovery | **PARTLY** | Random IDs, the existence check inside [`cmd_init`’s lock](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1401), and journal idempotence fix those reproductions. Nested-state validation and crash replay remain weak. |
+| 9. Effectful readiness contracts | **FIXED** | [`build_contract`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1205) emits only scope checks; readiness is a recorded gate. |
+| 10. Shell binding/proposal wrapper | **FIXED** | Quoted [shell functions](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/SKILL.md:41) and a separate bare manifest repair both original failures. The added proposal validator has separate gaps below. |
+
+Prioritized changes:
+
+1. **P1 — Verified bugs: the real runtime still accepts stale satisfaction.** Three probes produced an **incomplete certificate followed by runtime `complete`**:
+   - `.git/info/exclude` ignored the untracked `campaign.json`.
+   - A Git error caused verification to record `tree: null`.
+   - An in-scope unknown was added after the checks finished but before their fingerprint was taken.
+
+   [`_workspace_tree`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py:456) honors ignores and returns `None` on errors; [`_transition`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py:1045) skips freshness when that value is null. [`record`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py:239) fingerprints only after consuming results.
+
+   Ensure mandatory state is included regardless of ignores, fail closed without a fingerprint, and bind checks to a stable before/after snapshot. Separately, changing the pinned adapter outside both workspaces made `certificate` reject the boundary while `done` still completed. Bind external implementation identities through completion, or explicitly disclose that additional gap.
+
+2. **P1 — Verified bugs: malformed records and persisted evidence still converge.** A material deferred record with `"cases": "A1"` is classified outside scope A1: [`check_c1`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:706) turns the string into individual characters. The full certificate converges. Changing a persisted review’s `valid` to `"false"` also converges because [`validate_state`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:320) checks only its containing dictionary, and C7 uses truthiness.
+
+   Validate complete record schemas and nested saved evidence; verify or recompute derived quietness on load.
+
+3. **P1 — Verified bugs: completion ignores outstanding lifecycle state.** After convergence, adding an in-scope unknown starts another iteration. Resolving that unknown while the iteration remains running produces a converged certificate. [`check_c5`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:775) examines only completed iterations.
+
+   Separately, after a converged campaign stop, sanctioned `task add --needs-owner` leaves both `next` and `report` reporting convergence. [`plan_next`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:969) rechecks only the certificate before returning that stop.
+
+   Block completion on running/uncertain launches and unresolved applicable tasks; revalidate the full campaign-completion predicate.
+
+4. **P1 — Verified bugs: readiness claims outlive their evidence.** [`claim_states`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1247) accepts a top-level claim state without evidence. Stored readiness omits probe evidence and scoring/workspace identity. I changed scoring to `score-2`, disabled sensitivity, gathered two fresh quiet iterations, and still received **“quality claims about d1.”** Rerunning readiness with `bounded=False` also leaves the existing certificate converged.
+
+   Retain claim evidence and its applicable identities, reject missing evidence, invalidate affected claims, and reconcile failed readiness with completion.
+
+5. **P1 — Verified bugs: the quota remains bypassable.**
+   - Following exactly one iteration per packet, **30 consumed seconds against 25** produced seven passing checks and runtime `complete`; the next navigation command stopped incomplete.
+   - Four poll timeouts consumed **0.816 seconds against 0.3**, yet `next` still returned `poll`. [`plan_next`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:977) prioritizes running steps over quota and retry stops.
+   - Repeating readiness consumed **21, then 42**, against a budget of 10.
+   - A successful seven-second probe followed by a failing probe charged only **0.032 seconds**.
+
+   Charge incrementally, check authorization before additional probes/work, bound running steps and repeated poll failures, and make packet reporting respect exhaustion. The disclosed single-step overshoot does not cover these repeated effects.
+
+6. **P1 — Verified bug: cleanup bypasses ratification.** With no ratification and zero iterations, [`cmd_cleanup`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1587) executed an instrumented adapter cleanup and returned `covered: []`. Gate it on the ratified cleanup boundary and avoid invoking it for an empty set. This contradicts the card’s prohibition on unratified deletion commands.
+
+7. **P2 — Verified bug: crash replay changes the launch base.** Replaying the same key after a crash recomputes the live base as b1, then receives the original b0→b1 receipt and marks it invalid. Persist launch intent—including base—before calling the adapter; retries must reuse that intent. Include launches with uncertain outcomes in cleanup accounting. See [`start_action`/`apply_action`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:906).
+
+8. **P2 — Verified bugs: proposal validation overpromises.** [`validate_proposal`/`path_overlap`](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py:1323) accept candidate root `/`, absolute/relative aliases of protected paths, and `found` slots with `[null]` evidence and no value. Require typed values, nonblank evidence, and paths resolved against one declared root; reconcile proposal and manifest.
+
+The ordinary runtime path is improved: read-only queries and receipt recovery caused no campaign-content changes; `campaign.lock` caused no fingerprint churn; `.git` writes stayed excluded. Gate zero disables the first-pass shortcut. Missing verification and failing recorded checks still block completion. **Judgment:** the subject-change limitation is stated honestly, but understates the external inputs excluded from freshness.
+
+**Likely instruction bugs:** the [action table](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/SKILL.md:98) says repeat every `start`/`poll`, including finished ones; following it can widen before verifying the old contract. Explicitly distinguish running from finished. Also distinguish readiness pending ratification from failed/missing readiness, rather than routing both back to the definer. Approval flags themselves are clearly reserved to the owner; cleanup and quota enforcement are the concrete authority conflicts.
+
+The tests conceal two failures: [the quota test](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/test/closed-loop.test.py:1192) checks the campaign after an extra stop step, missing earlier runtime completion; [crash recovery](/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/test/closed-loop.test.py:1114) never polls the recovered handle to completion. Add persistent-running, post-launch failure, partially costly probe, and fingerprint-failure fixtures. A consequential safeguard absent from the mutation list is **the initialization existence check remaining inside the lock**.
+
+No definite Python 3.9 syntax/API incompatibility emerged; execution on 3.9 remains unverified.
