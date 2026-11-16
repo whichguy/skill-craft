@@ -1717,7 +1717,8 @@ preparatory commit); a mismatch there is a send-back.
    alone does not establish acceptance: an outcome whose only evidence is inspection or a deferred assumption is
    not accepted; report add-work for an executable lower-layer check, or blocked naming the missing observation.
 3. Give every request outcome one end state in `summary`: observed by an executed check; observed another way (the
-   first method could not, the new check ran and passed); or unachievable here or not yet due, listed in
+   first method could not, the new check ran and passed); explicitly user-corrected with an attributable `settled`
+   record on a revisit; or unachievable here or not yet due, listed in
    `unverified` while the run continues. Try another way to observe it before listing. Each `unverified` entry:
    `outcome`, the `requirement` (R-<n>) it maps to, named `reason`, `lower_layer_check` (the passed unit or component
    test of its logic, from the Primary requirements lines; a requirement not in `primary` may give why none exists),
@@ -1725,7 +1726,7 @@ preparatory commit); a mismatch there is a send-back.
    external effect it gates). Carry in the open items earlier stages recorded
    (system-test-author, system-test). ShipLoop's own return of the worktree to the source checkout is release's,
    checked by its receipt and release-verify's rerun: name it in `summary` for release-plan, not in `unverified`. An
-   outcome stated only in the summary has no end state; an empty list says every outcome was observed.
+   outcome stated only in the summary has no end state; an empty list says none remains listed as unverified.
 4. Keep verified product criteria apart from pending release verification: a case not yet due stays pending with
    owner and prerequisites, so release can proceed. Release readiness is not a claim that every consumer behaviour
    was observed.
@@ -1773,9 +1774,9 @@ preparatory commit); a mismatch there is a send-back.
    owners, commands or case selectors, independent expected outcomes, prerequisites, execution versus target
    locations, remote test-definition revision, setup, test and teardown, fixture isolation, sharing and cost,
    cleanup and stop conditions. State what release-check must establish before release, what release-verify
-   confirms after, and which observations and cleanup each owns. Each post-release confirm command names the output
-   showing the result present and the output showing it absent; release-check runs it once before the real deploy to
-   prove it tells them apart.
+   confirms after, and which observations and cleanup each owns. Name each check's claimed observation, expected
+   outcomes and independent positive and negative controls through an existing authorized isolated route, following
+   GUIDES/testing-and-documentation.md#release-entry-and-release-check.
 6. Post-release consumer checks go in `consumer_checks`, shaped like test_commands (a `check` row is judged by exit
    code, no ids or min_tests). ShipLoop runs every one when release-verify reports done and refuses unless each
    passes: in an isolated run with a completed return, in a clean copy of the returned result (no Git history,
@@ -1802,9 +1803,12 @@ preparatory commit); a mismatch there is a send-back.
    can grant it, for release-verify's step 1; create no grant.
 3. Run the dry-run form of the planned deploy (for example the deploy tool's validate or check-only mode) once; save the output in
    RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
-4. Run each `consumer_checks` post-release confirm command once against the current target; save its "not there yet"
-   output in the same file. A confirm command that cannot tell present from absent is fixed now in
-   KNOWLEDGE/environment.md ## Commands and rerun.
+4. Run each `consumer_checks` post-release confirm command once against the current target; save actual target state,
+   requested and observed candidate identities and remaining delta in `summary`, with output in the same file and
+   `evidence_refs`. Failed, unreadable or inconclusive observation is indeterminate, never absence. Apply the planned
+   controls for each check's claim per GUIDES/testing-and-documentation.md#release-entry-and-release-check;
+   unqualified required checks remain open. Fix a faulty check in KNOWLEDGE/environment.md ## Commands and rerun.
+   Never mutate or delete the target to manufacture absence; infer no grant or setup workaround.
 5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
    dry run; decisions are kept for the return at release). Compare review-return's expected return and the
    rollback it prints (the keep rows filled in) with the procedure in KNOWLEDGE/environment.md; if they differ,
@@ -1823,8 +1827,10 @@ preparatory commit); a mismatch there is a send-back.
    are current and release-check's dry run passed against this candidate. If code, tests, fixtures, configuration or
    target changed since, rerun the affected checks first. Anything unmet: release nothing, report `blocked` or
    `add-work` with the reason.
-3. Run the planned release operation once; save the provider's receipt in RUN/notes/<action>-release.md and cite it
-   in `evidence_refs`. After release-verify sent the run back to release-plan, run only what the amended plan
+3. Run each still-required authorized operation once; cite current evidence for effects already satisfied. An
+   already-present artifact does not make remaining access, visibility, publication or promotion work N/A. Save the
+   provider's receipt in RUN/notes/<action>-release.md and cite it in `evidence_refs`.
+   After release-verify sent the run back to release-plan, run only what the amended plan
    changed: an operation it left as it was keeps its earlier receipt, cited, and runs no second time.
 4. Follow it to a terminal state (accepted or running is not done; Release operation guidance). Check postconditions
    now and record in `summary`, separately, the operation's effect and the released artifact's identity.

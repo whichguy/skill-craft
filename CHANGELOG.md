@@ -2,6 +2,29 @@
 
 Written by scripts/release.py.
 
+## 2026-11-16
+
+### skill-craft 2.42.2
+
+- Skills: shiploop 1.37.2
+
+### shiploop 1.37.2
+
+- Require an attributable `settled` record for every removed unverified outcome at revisited acceptance and later restatements. Preserve due-stage routing, deferral, pending handoff and independent delivery-contract gates. Revisit templates carry the latest pending list; reports distinguish observed declarations, explicit user corrections, current pending outcomes and historical omissions. References remain host claims, not verification of truth or authority. This is a roll-forward result contract.
+  Recheck cheap unverified/settlement admission before whole-answer reuse and on Improve seed or explicit final-result import, including same-version passing answers predating this repair. Cached reuse first rechecks referenced-file existence, then continuity, and records either refusal as the current no answer. Valid local cached answers remain reusable; empty pending lists can reflect attributable user correction as well as observation.
+  The compact test-loop reference states four-field settlement attribution and declaration limits. Adapt E2E refusal reporting to generated settlement/restatement errors while retaining historical signatures; this reporting adjustment is apparatus compatibility, separate from the generic import admission repair.
+- Count pytest summary errors as failures without treating setup or collection errors as tests that ran. Emit shiploop-test-loop/v2 receipts and require that schema for candidate and step Proof reuse. Whole check answers bind test_schema to the same format, so missing or v1 formats rerun commands rather than migrate or rejudge old receipts. The fidelity report reader recognizes v2 alongside archived v1 evidence; reporting does not authorize runtime reuse.
+- Record actual pre-release target state, requested and observed candidate identities,
+  and remaining work instead of demanding absence. Qualify checks independently for
+  their claimed observation; errors remain indeterminate and unavailable controls
+  waive no required check. Reuse current evidence for satisfied release effects while
+  preserving remaining authorized operations, consumer checks and replan receipts.
+- Keep ordinary inner-stage Until Loop backing state in the run's existing loops
+  directory alongside its contract and runtime-owned receipt. Emitted launches now
+  pass that directory to the runtime; formatting stays read-only, and receipt,
+  resume, terminal deletion and parent acceptance rules are unchanged.
+- Require fresh completion checks for commands naming targets, host-dependent or known remote commands, and every release verification. Apply the same checkout eligibility rule to whole-answer, candidate, step Proof and mutation receipts while preserving eligible local reuse and provenance.
+
 ## 2026-11-15
 
 ### skill-craft 2.42.1
