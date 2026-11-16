@@ -59,18 +59,40 @@ def score(run, *, required_case=_CURRENT_CASE):
 STATE: dict = {}
 
 
-def build_engine_source(folder: Path):
+RIGGED_RULE = "    return path.startswith(CANDIDATE_PREFIXES) and not path.startswith(HARNESS_PREFIXES)\n"
+
+
+def build_engine_source(folder: Path, rigged: bool = False):
+    """The stand-in source: the stand-in engine and scorecard, a quick tier that exits as $FAKE_TIER_EXIT says, and a build script that
+    only makes its folder. `rigged` also makes the harness's boundary rule accept every path (the negative control of the planted-edit check)."""
     src, _ = queries.build_source(folder)
     harness = src / "test" / "shiploop_e2e"
     shutil.copy2(FIXTURE, harness / "iterate.py")
     (harness / "scorecard.py").write_text((harness / "scorecard.py").read_text() + SCORE_OVERRIDE)
     (src / "test" / "run-all.sh").write_text("#!/bin/sh\nexit ${FAKE_TIER_EXIT:-0}\n")
+    (src / "scripts").mkdir()
+    (src / "scripts" / "build-packages.py").write_text("import pathlib, sys\npathlib.Path(sys.argv[1]).mkdir(parents=True, exist_ok=True)\n")
+    if rigged:
+        text = (harness / "boundary.py").read_text()
+        if RIGGED_RULE not in text:
+            raise AssertionError("boundary.candidate_path changed: update the rigged copy in this test")
+        (harness / "boundary.py").write_text(text.replace(RIGGED_RULE, "    return True\n", 1))
     return src, commit_all(src, "engine stand-ins")
+
+
+def source_for(variant: str):
+    """(source repository, base commit) of a variant, built once per run."""
+    if variant not in STATE["variants"]:
+        folder = STATE["folder"] / f"source-{variant}"
+        folder.mkdir()
+        STATE["variants"][variant] = build_engine_source(folder, rigged=(variant == "rigged"))
+    return STATE["variants"][variant]
 
 
 def setUpModule():
     STATE["folder"] = Path(tempfile.mkdtemp(prefix="shiploop-adapter-steps-")).resolve()
-    STATE["src"], STATE["base"] = build_engine_source(STATE["folder"])
+    STATE["variants"] = {}
+    source_for("plain")
 
 
 def tearDownModule():
@@ -101,15 +123,17 @@ def wait_for(predicate, timeout=60.0, pause=0.2):
 class StepCase(unittest.TestCase):
     """One evaluator clone, one work folder and one knob file per test; whatever a test leaves running is ended afterwards."""
 
+    variant = "plain"
+
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp(prefix="adapter-step-", dir=STATE["folder"])).resolve()
         self.x = self.folder / "x"
         self.work = self.folder / "work"
-        queries.run_facade("setup", "--workspace", str(self.x), "--base", STATE["base"], "--source", str(STATE["src"]))
+        src, self.base = source_for(self.variant)
+        queries.run_facade("setup", "--workspace", str(self.x), "--base", self.base, "--source", str(src))
         self.layout = facade.Layout(self.x)
         self.knobs = self.folder / "knobs.json"
         self.log = self.folder / "engine.log"
-        self.base = STATE["base"]
         self.set_knobs({})
         self.addCleanup(self.stop_everything)
 
@@ -129,6 +153,9 @@ class StepCase(unittest.TestCase):
 
     def build(self):
         return self.run_cli("identity")["build"]
+
+    def probe(self, claim, *flags, env=None):
+        return self.run_cli("probe", "--host", "codex", "--model", "fake-model", "--effort", "high", *flags, claim, env=env)
 
     def start(self, key, cases, mode="iterate", env=None, check=True, base=None):
         return self.run_cli("step", "--host", "codex", "--model", "fake-model", "--effort", "high", "--tolerance", "0.25", "--attempts", "1",
@@ -220,6 +247,31 @@ class QuietStepTests(StepCase):
         it = self.valid(self.finish("s1"), ["hello"])
         self.assertTrue(any("stray.txt" in text for text in it["invalid"]), it["invalid"])
         self.x_clean()
+
+    def test_an_invalid_review_is_reported_and_the_iteration_cannot_be_quiet(self):
+        self.set_knobs({"*": {"review_invalid": True}})
+        self.start("s1", ["hello"])
+        it = self.valid(self.finish("s1"), ["hello"])
+        self.assertEqual(it["review"], {"valid": False, "complete": True})
+        self.assertEqual(it["judge"], {"valid": False, "complete": False}, "the loop ends the exploration before the judge")
+        self.assertTrue(any("INVALID_REVIEW on hello" in text for text in it["invalid"]), it["invalid"])
+        reasons = closed_loop.quiet_reasons(it, it["invalid"])
+        self.assertIn("the review was not valid and complete", reasons)
+        self.assertIn("invalid or incomplete evidence was recorded", reasons)
+
+    def test_a_run_the_harness_cannot_attribute_to_the_build_is_invalid_evidence(self):
+        self.set_knobs({"*": {"attribution": False}})
+        self.start("s1", ["hello"])
+        it = self.valid(self.finish("s1"), ["hello"])
+        self.assertTrue(any("could not attribute" in text and "the build under test was not what ran" in text for text in it["invalid"]), it["invalid"])
+        self.assertTrue(it["cases"]["hello"]["floors_met"], "the strict outcome does not look at attribution: the invalid entry is what stops a quiet verdict")
+        self.assertIn("invalid or incomplete evidence was recorded", closed_loop.quiet_reasons(it, it["invalid"]))
+
+    def test_a_loop_that_stops_for_another_reason_is_invalid_evidence(self):
+        self.set_knobs({"*": {"stop": "the evaluator changed: start a new loop"}})
+        self.start("s1", ["hello"])
+        it = self.valid(self.finish("s1"), ["hello"])
+        self.assertTrue(any("stopped for another reason" in text and "the evaluator changed" in text for text in it["invalid"]), it["invalid"])
 
     def test_a_process_left_behind_by_a_host_is_stopped_and_named_in_the_receipt(self):
         self.set_knobs({"*": {"escape": "ledger"}})
@@ -573,6 +625,76 @@ class RaceTests(StepCase):
         self.assertEqual(self.tip(), self.record("s1")["prepared"]["tip_to"])
 
 
+class ProbeTests(StepCase):
+    """The model-free probes. The ones that start a model session (`cases.runs`) and read its run are in the real-engine suite."""
+
+    def test_the_bounded_claim_needs_a_build_a_green_tier_and_a_caught_planted_edit(self):
+        reply = self.probe("improver.bounded")
+        self.assertEqual(reply["state"], "bounded", reply)
+        for words in ("the plugin build passed", "the quick tier passed", "was caught: out of scope ['test/shiploop_e2e/cases.json']"):
+            self.assertIn(words, reply["evidence"])
+        receipt = json.loads(self.layout.tier_file(self.build()).read_text())
+        self.assertEqual((receipt["green"], receipt["build"]), (True, self.build()))
+        self.x_clean()
+        self.assertEqual(git(self.x, "rev-parse", "HEAD"), self.base, "a probe works in a clone under the state folder, never in X")
+        self.assertTrue(list(self.layout.probes.glob("bounded/*/x")))
+        self.start("s1", ["hello"])
+        self.assertTrue(self.valid(self.finish("s1"), ["hello"])["tier"]["green"], "an unchanged build carries the receipt the probe kept")
+
+    def test_a_red_quick_tier_leaves_the_claim_declared_and_the_receipt_red(self):
+        reply = self.probe("improver.bounded", env={"FAKE_TIER_EXIT": "1"})
+        self.assertEqual(reply["state"], "declared")
+        self.assertIn("the quick tier exited 1", reply["evidence"])
+        self.assertFalse(json.loads(self.layout.tier_file(self.build()).read_text())["green"])
+
+    def test_the_scores_claim_needs_a_stored_real_run(self):
+        reply = self.probe("grading.scores")
+        self.assertEqual(reply["state"], "declared")
+        self.assertIn("no stored real run folder", reply["evidence"])
+
+    def report(self, driver, tamper=False, name="calibration.json"):
+        digest = facade.bridge(self.layout, "scoring_digest", {"cases": ["hello"]})["sha256"]
+        path = self.folder / name
+        path.write_text(json.dumps({"contract": "calibration/1", "driver": driver, "cases": {"hello": {}},
+                                    "scoring": {"cases": ["hello"], "sha256": "0" * 64 if tamper else digest},
+                                    "recommended": {"attempts": 3, "tolerance": 0.45, "metric": "tokens", "why": None}}))
+        return path
+
+    def test_the_calibrated_claim_needs_a_report_for_this_profile_whose_digest_still_holds(self):
+        claim = "grading.calibrated:codex/fake-model/high"
+        driver = {"host": "codex", "model": "fake-model", "effort": "high"}
+        proven = self.probe(claim, "--calibration", str(self.report(driver)))
+        self.assertEqual(proven["state"], "calibrated", proven)
+        self.assertIn("3 attempts per arm at tolerance 0.45 on tokens", proven["evidence"])
+        cases = (("no report", (), "no calibration report was given"),
+                 ("a changed scoring digest", ("--calibration", str(self.report(driver, tamper=True, name="tampered.json"))), "scoring files or case entries changed"),
+                 ("another driver", ("--calibration", str(self.report({**driver, "model": "other"}, name="other.json"))), "the report is for codex/other/high"),
+                 ("no such file", ("--calibration", str(self.folder / "missing.json")), "not a usable calibration"))
+        for label, flags, words in cases:
+            with self.subTest(label):
+                refused = self.probe(claim, *flags)
+                self.assertEqual(refused["state"], "unmeasured")
+                self.assertIn(words, refused["evidence"])
+
+    def test_a_claim_the_facade_cannot_prove_is_an_error_not_a_state(self):
+        refused = self.run_cli("probe", "grading.sensitive:accuracy", check=False)
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("has no probe for", refused.stderr)
+
+
+class RiggedBoundaryTests(StepCase):
+    """A positive control is worth something only if the check can fail: with a harness whose boundary rule lets every path through, the
+    planted edit to a harness file is not caught, and the claim stays declared."""
+
+    variant = "rigged"
+
+    def test_a_boundary_that_lets_a_harness_edit_through_is_not_bounded(self):
+        reply = self.probe("improver.bounded")
+        self.assertEqual(reply["state"], "declared")
+        self.assertIn("NOT separated by boundary.candidate_path", reply["evidence"])
+        self.assertIn("the quick tier passed", reply["evidence"], "the other two parts held, so the failure is the planted edit's alone")
+
+
 class RefusalTests(StepCase):
     def refused(self, *cases, mode="iterate", out=None, base=None, text):
         done = self.run_cli("step", "--tolerance", "0.25", "--attempts", "1", "start", "--key", "r1", "--scope", "s1", "--cases", ",".join(cases),
@@ -622,6 +744,15 @@ class PureTests(unittest.TestCase):
         how, _detail = facade.stop_group({"pid": stranger.pid, "pgid": stranger.pid, "started": "Mon Jan  1 00:00:00 1990"})
         self.assertEqual(how, "reused")
         self.assertTrue(alive(stranger.pid))
+
+    def test_a_zombie_is_not_a_survivor(self):
+        """A dead process its parent has not reaped still shows in the table: stopping a group must not wait on it or call it a survivor."""
+        child = subprocess.Popen([sys.executable, "-c", "pass"], start_new_session=True)
+        self.addCleanup(child.wait)
+        wait_for(lambda: facade.ps_rows([child.pid]).get(child.pid, {}).get("stat", "").startswith("Z"), 10)
+        ident = facade.identity_of(child.pid)
+        how, _detail = facade.stop_group(ident)
+        self.assertEqual(how, "gone")
 
     def test_this_process_and_its_ancestors_are_never_signalled(self):
         how, _detail = facade.stop_group({"pid": os.getpid(), "pgid": os.getpgrp(), "started": facade.identity_of(os.getpid())["started"]})

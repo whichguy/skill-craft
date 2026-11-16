@@ -210,6 +210,19 @@ elif op == "baseline_match":
     out = {"matches": [sum(1 for row in rows if runner.row_matches(
         row, query["case"], query.get("source"), query.get("host"), query.get("model"), query.get("effort"),
         query.get("planning_review"), query.get("prompt_sha256")) is None) for query in payload["queries"]]}
+elif op == "append_row":
+    import learning_records as lr
+    lr.append(payload["event"], payload["record"], Path(payload["path"]), **payload["fields"])
+    out = {"ok": True}
+elif op == "calibration_check":
+    import cycle
+    path = Path(payload["path"])
+    try:
+        report = json.loads(path.read_text())
+        cases = sorted(report.get("cases") or {})
+        out = {"ok": True, "calibration": cycle.load_calibration(path, cases), "driver": report.get("driver"), "cases": cases}
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        out = {"ok": False, "why": str(error), "driver": None, "cases": []}
 elif op == "scoring_digest":
     import spread
     catalog = json.loads((harness / "cases.json").read_text())
@@ -382,6 +395,31 @@ def version_tuple(text: str) -> tuple:
     return tuple(int(part) for part in parts) + (0,) * (3 - len(parts))
 
 
+def clone_at(source: Path, dest: Path, rev: str) -> None:
+    """A private local clone of `source`, detached at `rev`, with no loop refs from elsewhere (the improver's context reads every
+    `refs/shiploop-loop/*`, plan row 10) and no background maintenance (the clone is one campaign's own, and a repack must not race the
+    harness's Git use). A source that is repacking at this moment can lose an object between the clone and the checkout ("unable to read
+    tree"); one retry from a clean folder is the cure the 2026-11-01 load-flake notes found."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in (1, 2):
+        try:
+            cloned = subprocess.run(["git", "clone", "--local", "--no-checkout", "-q", str(source), str(dest)], capture_output=True,
+                                    text=True, check=False)
+            if cloned.returncode != 0:
+                raise FacadeError(f"git clone of {source} into {dest} failed ({cloned.returncode}): {cloned.stderr.strip()[-300:]}")
+            git(dest, "config", "gc.auto", "0")
+            git(dest, "config", "maintenance.auto", "false")
+            git(dest, "checkout", "-q", "--detach", rev)
+            break
+        except FacadeError:
+            shutil.rmtree(dest, ignore_errors=True)
+            if attempt == 2:
+                raise
+            time.sleep(2)
+    for ref_name in git(dest, "for-each-ref", "--format=%(refname)", "refs/shiploop-loop").splitlines():
+        git(dest, "update-ref", "-d", ref_name)
+
+
 def cmd_setup(args) -> dict:
     """Create the evaluator clone X at the base commit and its state folder. Run by the operator before `closed_loop.py init`."""
     source = Path(args.source or HERE.parents[2]).resolve()
@@ -399,26 +437,7 @@ def cmd_setup(args) -> dict:
     if version_tuple(released) < MIN_BASE_VERSION:
         raise FacadeError(f"the base {base[:12]} is skill-craft {released}; the minimum is {'.'.join(map(str, MIN_BASE_VERSION))} "
                           "(new ShipLoop runs call no Backchain child from 2.42.0)")
-    x.parent.mkdir(parents=True, exist_ok=True)
-    for attempt in (1, 2):
-        # A source that is repacking at this moment can lose an object between the clone and the checkout ("unable to read
-        # tree"); one retry from a clean folder is the cure the 2026-11-01 load-flake notes found.
-        try:
-            cloned = subprocess.run(["git", "clone", "--local", "--no-checkout", "-q", str(source), str(x)], capture_output=True,
-                                    text=True, check=False)
-            if cloned.returncode != 0:
-                raise FacadeError(f"git clone of {source} into {x} failed ({cloned.returncode}): {cloned.stderr.strip()[-300:]}")
-            git(x, "config", "gc.auto", "0")  # X is the campaign's own: no background maintenance races the harness's Git use
-            git(x, "config", "maintenance.auto", "false")
-            git(x, "checkout", "-q", "--detach", base)
-            break
-        except FacadeError:
-            shutil.rmtree(x, ignore_errors=True)
-            if attempt == 2:
-                raise
-            time.sleep(2)
-    for ref_name in git(x, "for-each-ref", "--format=%(refname)", "refs/shiploop-loop").splitlines():
-        git(x, "update-ref", "-d", ref_name)  # the clone starts with no other session's loop refs (plan row 10)
+    clone_at(source, x, base)
     layout = Layout(x)
     layout.state.mkdir(parents=True, exist_ok=True)
     write_json(layout.chain_file, {"schema": SCHEMA, "base": base, "released": released, "source": str(source), "created": now(),
@@ -436,19 +455,25 @@ GRACE_SECONDS, FORCE_SECONDS, POLL_SECONDS = 8.0, 4.0, 0.1  # a group gets this 
 def ps_rows(pids=None) -> dict:
     """pid -> {pid, ppid, pgid, started, command} from ps. `started` is the creation time ps prints: with the pid it names one
     process, because a recycled pid has another start time."""
-    command = ["ps", "-ww", "-o", "pid=,ppid=,pgid=,lstart=,command="]
+    command = ["ps", "-ww", "-o", "pid=,ppid=,pgid=,stat=,lstart=,command="]
     command += ["-p", ",".join(str(pid) for pid in pids)] if pids else ["-ax"]
     done = subprocess.run(command, capture_output=True, text=True, env=dict(os.environ, **PS_ENV), check=False)
     if done.returncode not in (0, 1):  # 1 is "nothing matched" for -p
         raise FacadeError(f"ps failed ({done.returncode}): {done.stderr.strip()[-200:]}")
     rows = {}
     for line in done.stdout.splitlines():
-        parts = line.split(None, 8)  # pid ppid pgid, then lstart's five words, then the command
-        if len(parts) < 8 or not all(part.isdigit() for part in parts[:3]):
+        parts = line.split(None, 9)  # pid ppid pgid stat, then lstart's five words, then the command
+        if len(parts) < 9 or not all(part.isdigit() for part in parts[:3]):
             continue
-        rows[int(parts[0])] = {"pid": int(parts[0]), "ppid": int(parts[1]), "pgid": int(parts[2]), "started": " ".join(parts[3:8]),
-                               "command": parts[8] if len(parts) > 8 else ""}
+        rows[int(parts[0])] = {"pid": int(parts[0]), "ppid": int(parts[1]), "pgid": int(parts[2]), "stat": parts[3],
+                               "started": " ".join(parts[4:9]), "command": parts[9] if len(parts) > 9 else ""}
     return rows
+
+
+def alive_in_group(table: dict, pgid: int) -> list:
+    """The members of a process group that are not zombies: a zombie is a dead process whose parent has not reaped it, and nothing can be
+    stopped in it."""
+    return [row for row in table.values() if row["pgid"] == pgid and not row["stat"].startswith("Z")]
 
 
 def identity_of(pid: int) -> dict | None:
@@ -488,7 +513,7 @@ def stop_group(ident: dict) -> tuple:
     group has a member, so a leader that is gone with members left means they are the worker's own descendants."""
     pgid = ident["pgid"]
     table = ps_rows()
-    members = [row for row in table.values() if row["pgid"] == pgid]
+    members = alive_in_group(table, pgid)
     if not members:
         return "gone", {}
     guarded = protected_pids(table)
@@ -503,9 +528,9 @@ def stop_group(ident: dict) -> tuple:
         end = time.monotonic() + wait
         while time.monotonic() < end:
             time.sleep(POLL_SECONDS)
-            if not any(row["pgid"] == pgid for row in ps_rows().values()):
+            if not alive_in_group(ps_rows(), pgid):
                 return "stopped", {"ended_by": name, "members": len(members)}
-    return "survived", {"members": [row["pid"] for row in ps_rows().values() if row["pgid"] == pgid]}
+    return "survived", {"members": [row["pid"] for row in alive_in_group(ps_rows(), pgid)]}
 
 
 def stop_processes(rows: list) -> list:
@@ -514,7 +539,8 @@ def stop_processes(rows: list) -> list:
     def live() -> list:
         table = ps_rows([row["pid"] for row in rows]) if rows else {}
         guarded = protected_pids(ps_rows())
-        return [row for row in rows if table.get(row["pid"], {}).get("started") == row["started"] and row["pid"] not in guarded]
+        return [row for row in rows if table.get(row["pid"], {}).get("started") == row["started"] and row["pid"] not in guarded
+                and not table[row["pid"]]["stat"].startswith("Z")]
 
     for number, wait in ((signal.SIGTERM, GRACE_SECONDS), (signal.SIGKILL, FORCE_SECONDS)):
         todo = live()
@@ -1272,7 +1298,7 @@ def worker_group(table: dict, worker) -> list:
     leader = table.get(worker["pid"])
     if leader is not None and leader["started"] != worker["started"]:
         return []
-    return [row for row in table.values() if row["pgid"] == worker["pgid"]]
+    return alive_in_group(table, worker["pgid"])
 
 
 def kill_step(layout: Layout, rec: dict) -> dict:
@@ -1416,6 +1442,274 @@ def cmd_worker(args) -> dict:
     return {"ok": True}
 
 
+# ------------------------------------------------------------------------------------------------------------------------ probes
+
+PLANTED_HARNESS = "test/shiploop_e2e/cases.json"  # a harness file the improver must not change (it names what is graded)
+PLANTED_CANDIDATE = "skills/shiploop/SKILL.md"  # a file the improver may change
+QUICK_TIER = ["bash", "test/run-all.sh", "--group", "quick"]
+SCORE_FLOORS = ("accuracy", "enterprise", "fidelity")
+
+
+def scratch_folder(layout: Layout, label: str) -> Path:
+    """A new empty folder for one probe, under the state folder (never inside X: a query or a probe must not write in the workspace)."""
+    base = layout.probes / label
+    base.mkdir(parents=True, exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix=time.strftime("%Y%m%dT%H%M%S") + "-", dir=str(base)))
+
+
+def probe_env() -> dict:
+    env = {name: value for name, value in os.environ.items() if name != "SHIPLOOP_E2E_RUNS_ROOT"}  # as for a step (see run_invocation)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    return env
+
+
+def build_plugins(clone: Path, into: Path) -> tuple:
+    """The harness's own build (`scripts/build-packages.py`) in a clone; (ok, last words of its output)."""
+    done = subprocess.run([sys.executable, "-B", str(clone / "scripts" / "build-packages.py"), str(into)], capture_output=True, text=True,
+                          timeout=900, check=False, cwd=str(clone), env=probe_env())
+    return done.returncode == 0, (done.stderr or done.stdout).strip()[-200:]
+
+
+def probe_cases_runs(layout: Layout, args, case: str) -> dict:
+    """One real run of the case, at the published build, in a clone under the state folder, through the harness's own single-run entry
+    (`run.py`); proven only when the run wrote its evidence, its result says the skill was invoked from the build under test, and the
+    lifecycle cleanup of its folder is verified (plan 3.6). Effectful: it starts a model session. The folder is kept for `grading.scores`."""
+    if case not in load_allowlist(layout):
+        raise FacadeError(f"cases.runs:{case} names a case that is not in the allowlist")
+    started = time.time()
+    tip = published_tip(layout)
+    scratch = scratch_folder(layout, f"runs-{case}")
+    clone = scratch / "x"
+    clone_at(layout.x, clone, tip)
+    built, words = build_plugins(clone, scratch / "build")
+    consumed = {"seconds": 0.0, "runs": 0}
+
+    def answer(state: str, evidence: str) -> dict:
+        consumed["seconds"] = round(time.time() - started, 1)
+        return {"state": state, "evidence": evidence, "consumed": consumed}
+    if not built:
+        return answer("declared", f"the plugin build failed in a clone of {tip[:12]}: {words}")
+    run_dir = scratch / "run"
+    argv = [sys.executable, "-B", str(clone / "test" / "shiploop_e2e" / "run.py"), "--case", case, "--output", str(run_dir), "--plugin-dir",
+            str(scratch / "build" / "plugins" / "skill-craft"), "--permission-mode", "auto"]
+    for flag in ("host", "model", "effort"):
+        if getattr(args, flag, None):
+            argv += [f"--{flag}", str(getattr(args, flag))]
+    with open(scratch / "run.log", "wb") as log:
+        done = subprocess.run(argv, cwd=str(clone), env=probe_env(), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, check=False)
+    consumed["runs"] = 1
+    result = read_optional(run_dir / "result.json")
+    present = [name for name in ("result.json", "metrics.json", "timeline.jsonl") if (run_dir / name).is_file()]
+    cleanup = run_lifecycle(layout, run_dir) if (run_dir / "invocation.json").is_file() else {"observed": False, "reason": "no invocation.json"}
+    problems = lifecycle_problems(cleanup)
+    invoked = isinstance(result, dict) and (result.get("invoked") or {}).get("pass") is True
+    loaded = isinstance(result, dict) and (result.get("plugin") or {}).get("pass") is True
+    ok = invoked and loaded and len(present) == 3 and not problems
+    write_json(run_dir / "facade-probe.json", {"claim": f"cases.runs:{case}", "ok": ok, "build": build_token(layout, tip), "at": now(),
+                                               "exit": done.returncode})
+    if not ok:
+        why = ([] if invoked else ["the skill was not invoked from the build under test"]) + ([] if loaded else ["the plugin under test was not loaded"]) \
+            + ([] if len(present) == 3 else [f"evidence missing: {sorted({'result.json', 'metrics.json', 'timeline.jsonl'} - set(present))}"]) + problems
+        return answer("declared", f"{case} did not prove it runs ({'; '.join(why)}); run exit {done.returncode}; log {scratch / 'run.log'}")
+    return answer("runs", f"{case} ran once at build {build_token(layout, tip)} (run exit {done.returncode}, {round(time.time() - started)} s) in a clone of "
+                          f"{tip[:12]}: the skill was invoked from the build under test, result.json, metrics.json and timeline.jsonl were written, "
+                          f"and the lifecycle cleanup of {run_dir.name} is verified (observed, none survived, unverified or protected). "
+                          f"Evidence kept in {run_dir}")
+
+
+def newest_probe_run(layout: Layout):
+    """The newest run folder a `cases.runs` probe proved, for the probes that read a stored real run."""
+    found = []
+    for marker in layout.probes.glob("runs-*/*/run/facade-probe.json") if layout.probes.is_dir() else []:
+        record = read_optional(marker)
+        if isinstance(record, dict) and record.get("ok") is True:
+            found.append((marker.stat().st_mtime, marker.parent))
+    return max(found)[1] if found else None
+
+
+def probe_scores(layout: Layout, args, _name: str) -> dict:
+    """`scorecard.py RUN --json` twice on a stored real run folder: both runs must succeed, print the same bytes, and the card must
+    hold the three floors, the validity block and the efficiency block (plan 3.6). Read-only."""
+    started = time.time()
+    run = newest_probe_run(layout)
+    if run is None:
+        return {"state": "declared", "evidence": "no stored real run folder: the cases.runs probe has not proven one", "consumed": {"seconds": 0.0}}
+    outputs = [subprocess.run([sys.executable, "-B", str(layout.harness / "scorecard.py"), str(run), "--json"], capture_output=True, text=True,
+                              cwd=str(layout.harness), check=False, env=probe_env(), timeout=300) for _ in range(2)]
+    seconds = {"seconds": round(time.time() - started, 1)}
+    if any(done.returncode != 0 for done in outputs):
+        return {"state": "declared", "evidence": f"scorecard.py failed on {run}: {(outputs[0].stderr or outputs[1].stderr).strip()[-200:]}", "consumed": seconds}
+    if outputs[0].stdout != outputs[1].stdout:
+        return {"state": "declared", "evidence": f"scorecard.py printed different cards for the same run {run}: not repeatable", "consumed": seconds}
+    try:
+        printed = json.loads(outputs[0].stdout)
+    except ValueError:
+        return {"state": "declared", "evidence": "scorecard.py did not print JSON", "consumed": seconds}
+    cards = printed.get("cards") if isinstance(printed, dict) else None  # `{"scorecard": "scorecard/N", "cards": [one card per run folder]}`
+    card = cards[0] if isinstance(cards, list) and len(cards) == 1 else None
+    floors = card.get("floors") if isinstance(card, dict) else None
+    missing = [name for name in SCORE_FLOORS if not isinstance(floors, dict) or name not in floors]
+    missing += [name for name in ("validity", "efficiency") if not isinstance(card, dict) or name not in card]
+    if missing:
+        return {"state": "declared", "evidence": f"the card for {run} lacks: {', '.join(missing)}", "consumed": seconds}
+    return {"state": "scores", "consumed": seconds,
+            "evidence": f"scorecard.py scored {run} twice with identical output; floors {json.dumps(floors, sort_keys=True)}; the validity and "
+                        "efficiency blocks are present"}
+
+
+def probe_bounded(layout: Layout, args, _name: str) -> dict:
+    """On a clone of the published tip: the plugin build passes, the quick tier passes (its receipt is kept for the build, which later
+    steps carry across iterations that leave the build unchanged), and a planted commit that edits a harness file beside a skill file
+    is caught by the harness's own rule (`boundary.candidate_path`, which `iterate.improve` applies to every changed path as
+    `out_of_scope`): the harness file is out of scope and the skill file is not. No model is called (plan 3.6)."""
+    started = time.time()
+    tip = published_tip(layout)
+    build = build_token(layout, tip)
+    scratch = scratch_folder(layout, "bounded")
+    clone = scratch / "x"
+    clone_at(layout.x, clone, tip)
+    parts = []
+    built, words = build_plugins(clone, scratch / "build")
+    parts.append("the plugin build passed" if built else f"the plugin build failed ({words})")
+    tier_green = False
+    if built:
+        log = scratch / "tier.log"
+        with open(log, "w") as handle:
+            tier = subprocess.run(QUICK_TIER, cwd=str(clone), stdout=handle, stderr=subprocess.STDOUT, check=False, timeout=3600, env=probe_env())
+        tier_green = tier.returncode == 0
+        write_json(layout.tier_file(build), {"green": tier_green, "build": build, "exit": tier.returncode, "at": now(), "command": " ".join(QUICK_TIER),
+                                             "seconds": round(time.time() - started, 1), "log": str(log)})
+        parts.append("the quick tier passed" if tier_green else f"the quick tier exited {tier.returncode} (log {log})")
+    caught = False
+    if (clone / PLANTED_HARNESS).is_file() and (clone / PLANTED_CANDIDATE).is_file():
+        for name in (PLANTED_HARNESS, PLANTED_CANDIDATE):
+            with open(clone / name, "a") as handle:
+                handle.write("\n")
+        git(clone, "-c", "user.name=facade", "-c", "user.email=facade@example.invalid", "commit", "-q", "-a", "-m", "planted edits")
+        changed = git(clone, "diff", "--name-only", tip, "HEAD").splitlines()
+        candidate = bridge(layout, "candidate_paths", {"paths": changed})["candidate"]
+        outside = [path for path in changed if path not in candidate]
+        caught = PLANTED_HARNESS in outside and PLANTED_CANDIDATE not in outside
+        parts.append(f"a planted edit to {PLANTED_HARNESS} beside one to {PLANTED_CANDIDATE} was " +
+                     (f"caught: out of scope {outside}" if caught else f"NOT separated by boundary.candidate_path (out of scope: {outside})"))
+    else:
+        parts.append(f"the planted-edit check needs {PLANTED_HARNESS} and {PLANTED_CANDIDATE} in the clone")
+    ok = built and tier_green and caught
+    return {"state": "bounded" if ok else "declared", "evidence": f"build {build} at {tip[:12]}: " + "; ".join(parts),
+            "consumed": {"seconds": round(time.time() - started, 1)}}
+
+
+def probe_calibrated(layout: Layout, args, profile: str) -> dict:
+    """The claim `grading.calibrated:HOST/MODEL/EFFORT` is proven by an A/A calibration report (`--calibration`) that is a calibration/1
+    document for that driver, covers cases of the catalog, and whose scoring digest still equals the scoring files' (the harness's own
+    `cycle.load_calibration` decides the last two; it does not look at the driver, so this does). Read-only."""
+    path = getattr(args, "calibration", None)
+    if not path:
+        return {"state": "unmeasured", "evidence": "no calibration report was given: run an A/A epoch (spread.py) for this profile first",
+                "consumed": {"seconds": 0.0}}
+    checked = bridge(layout, "calibration_check", {"path": str(Path(path).expanduser().resolve())})
+    driver = checked.get("driver") or {}
+    named = "/".join(str(driver.get(key)) for key in ("host", "model", "effort"))
+    if not checked.get("ok"):
+        return {"state": "unmeasured", "evidence": f"the report {path} is not a usable calibration: {checked.get('why')}", "consumed": {"seconds": 0.0}}
+    if named != profile:
+        return {"state": "unmeasured", "evidence": f"the report is for {named}, not {profile}", "consumed": {"seconds": 0.0}}
+    calibration = checked["calibration"]
+    return {"state": "calibrated", "consumed": {"seconds": 0.0},
+            "evidence": f"{path} is a calibration/1 report for {named} over {', '.join(checked['cases'])}; its scoring digest {calibration['sha256'][:12]} "
+                        f"equals the current scoring files'; it recommends {calibration['attempts']} attempts per arm at tolerance "
+                        f"{calibration['tolerance']} on {calibration['metric']}"}
+
+
+def cmd_probe(args) -> dict:
+    layout = layout_from_env()
+    kind, _, name = args.claim.partition(":")
+    handlers = {"cases.runs": probe_cases_runs, "grading.scores": probe_scores, "improver.bounded": probe_bounded,
+                "grading.calibrated": probe_calibrated}
+    if kind not in handlers or (kind in ("cases.runs", "grading.calibrated") and not name):
+        raise FacadeError(f"this adapter has no probe for {args.claim!r} (cases.runs:CASE, grading.scores, improver.bounded, "
+                          "grading.calibrated:HOST/MODEL/EFFORT)")
+    return handlers[kind](layout, args, name)
+
+
+# ------------------------------------------------------------------------------------------------------- the owner's decisions
+
+DECISIONS = {"accept": ("owner", {"outcome": "accept"}), "reject": ("owner", {"outcome": "reject"}), "defer": ("deferred", {}),
+             "reopen": ("reopened", {})}
+DONE_STATUSES = ("verified", "dropped", "refuted", "rejected")  # the orchestrator's resolved statuses (RESOLVED_STATUSES)
+
+
+def cmd_backlog(args) -> dict:
+    """The material ShipLoop records that are not resolved, as the owner's decision list (plan appendix A): what each is, why it waits, and
+    which decisions `decide` can record. Read-only."""
+    layout = layout_from_env()
+    folded = fold_ledger(layout, published_tip(layout))
+    scope = scope_cases()
+    items = []
+    for state in folded["records"]:
+        item = map_record(state, scope, tuple(folded["material_words"]))
+        if item["material"] and item["target"] == "subject" and item["status"] not in DONE_STATUSES:
+            options = {"owner": "accept (it becomes admitted) | reject | defer", "deferred": "reopen | accept | reject",
+                       "open": "accept | reject | defer", "admitted": "none needed: it waits for an exposing case in a scope",
+                       "in_candidate": "none: a cycle is, or died, between prediction and decision (reconcile it)",
+                       "unexplained_gain": "accept | reject | defer"}.get(state["status"], "accept | reject | defer")
+            items.append({**{key: item[key] for key in ("id", "title", "status", "engine_status", "cases", "reopen_when")},
+                          "reason": state.get("reason"), "options": options})
+    lines = ["| id | status | cases | title | decide |", "| --- | --- | --- | --- | --- |"]
+    lines += [f"| {item['id']} | {item['engine_status']} | {', '.join(item['cases']) or 'none (counts against every scope)'} | "
+              f"{item['title']} | {item['options']} |" for item in items]
+    return {"count": len(items), "records": items, "markdown": "\n".join(lines)}
+
+
+def cmd_decide(args) -> dict:
+    """Record the owner's decision on one record in the ledger at the published tip, as a new tip commit: the owner's `accept` is the only
+    way an `owner` record becomes admitted, and the loop reads the ledger at the tip, so a decision made elsewhere never reaches it. The
+    commit is built from Git objects (a private index; no checkout) and the tip ref moves from its current value only. Run by the operator
+    on the owner's words, never by the facade on its own."""
+    layout = layout_from_env()
+    if args.outcome not in DECISIONS:
+        raise FacadeError("--outcome must be one of " + ", ".join(DECISIONS))
+    if not (args.reason or "").strip():
+        raise FacadeError("--reason must carry the owner's words")
+    if args.outcome == "defer" and not (args.reopen_when or "").strip():
+        raise FacadeError("a deferral needs --reopen-when: the condition that brings the record back")
+    busy = live_keys(layout)
+    if busy:
+        raise FacadeError(f"step {busy[0]} is still running: a decision is recorded between steps")
+    tip = published_tip(layout)
+    known = {state["record"] for state in fold_ledger(layout, tip)["records"]}
+    if args.record not in known:
+        raise FacadeError(f"{args.record} is not a record of the ledger at the published tip")
+    event, fields = DECISIONS[args.outcome]
+    fields = {**fields, "reason": args.reason.strip()}
+    if event == "owner":
+        fields["owner_decision"] = args.reason.strip()
+    if args.reopen_when:
+        fields["reopen_when"] = args.reopen_when.strip()
+    with tempfile.TemporaryDirectory(prefix="facade-decide-") as folder:
+        ledger = read_ledger_at(layout, tip, Path(folder) / "learning-records.jsonl")
+        bridge(layout, "append_row", {"path": str(ledger), "event": event, "record": args.record, "fields": fields})
+        blob = git(layout.x, "hash-object", "-w", "--stdin", input_text=ledger.read_text())
+        mode = git(layout.x, "ls-tree", tip, "--", LEDGER_REL).split()[0]
+        env = dict(os.environ, GIT_INDEX_FILE=str(Path(folder) / "index"), GIT_AUTHOR_NAME="closed-loop facade", GIT_COMMITTER_NAME="closed-loop facade",
+                   GIT_AUTHOR_EMAIL="facade@example.invalid", GIT_COMMITTER_EMAIL="facade@example.invalid")
+
+        def plumbing(*parts, text=None):
+            done = subprocess.run(["git", "-C", str(layout.x), *parts], capture_output=True, text=True, input=text, env=env, check=False)
+            if done.returncode != 0:
+                raise FacadeError(f"git {' '.join(parts[:2])} failed: {done.stderr.strip()[-200:]}")
+            return done.stdout.strip()
+        plumbing("read-tree", tip)
+        plumbing("update-index", "--add", "--cacheinfo", f"{mode},{blob},{LEDGER_REL}")
+        tree = plumbing("write-tree")
+        commit = plumbing("commit-tree", tree, "-p", tip, text=f"owner decision on {args.record}: {args.outcome}\n\n{fields['reason']}\n")
+    ref = git(layout.x, "rev-parse", "--verify", "-q", TIP_REF, check=False)
+    if (ref or layout.chain()["base"]) != tip:
+        raise FacadeError("the tip moved while the decision was being recorded: nothing was changed; run it again")
+    git(layout.x, "update-ref", TIP_REF, commit, ref or "0" * 40)
+    return {"ok": True, "record": args.record, "event": event, "outcome": args.outcome, "tip": commit, "was": tip}
+
+
 # ------------------------------------------------------------------------------------------------------------- command line
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1447,6 +1741,18 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--out", required=True)
     for name in ("poll", "cancel"):
         actions.add_parser(name).add_argument("--handle", required=True)
+    probe = sub.add_parser("probe", help="prove one readiness claim; the profile flags come first (they are pinned in the manifest)")
+    probe.add_argument("--host")
+    probe.add_argument("--model")
+    probe.add_argument("--effort")
+    probe.add_argument("--calibration", help="an A/A calibration report (spread.py), for grading.calibrated")
+    probe.add_argument("claim")
+    sub.add_parser("backlog", help="the material records that wait for the owner, as a decision list")
+    decide = sub.add_parser("decide", help="record the owner's decision on one record in the ledger at the published tip")
+    decide.add_argument("--record", required=True)
+    decide.add_argument("--outcome", required=True, choices=sorted(DECISIONS))
+    decide.add_argument("--reason", required=True, help="the owner's words")
+    decide.add_argument("--reopen-when", help="for a deferral: the condition that brings the record back")
     cleanup = sub.add_parser("cleanup", help="end what the named steps may have left and prove it")
     cleanup.add_argument("--keys", required=True)
     worker = sub.add_parser("worker", help="internal: the detached process behind one step")
@@ -1457,7 +1763,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     handlers = {"setup": cmd_setup, "cases": cmd_cases, "records": cmd_records, "identity": cmd_identity, "step": cmd_step,
-                "cleanup": cmd_cleanup, "worker": cmd_worker}
+                "cleanup": cmd_cleanup, "worker": cmd_worker, "probe": cmd_probe, "backlog": cmd_backlog, "decide": cmd_decide}
     try:
         emit(handlers[args.verb](args))
     except FacadeError as error:

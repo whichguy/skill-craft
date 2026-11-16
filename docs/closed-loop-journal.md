@@ -251,6 +251,15 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
      `cleanup` for such a launch and has no recorded step to cancel).
   5. *The runs-root variable is removed from the engine's environment, never set* (commit 8493c5b9fc3b4fa6bac67588521e90912ff71592).
   6. *The strict outcome is the harness's own function, run in the bridge process* (not re-stated), so it cannot drift; a rename fails loudly.
+- **Second part of the round: the probes, the owner verbs, the manifest, a dress rehearsal.** `probe` proves four claims (`cases.runs:hello` by one
+  real run in a clone, `grading.scores` by two identical scorecards of the stored run, `improver.bounded` by a build, the quick tier and a caught
+  planted edit, `grading.calibrated:PROFILE` by a calibration report for that driver); `grading.sensitive` and `improver.invocable` are not
+  declared. `backlog` and `decide` are the only way the owner's decisions reach the ledger the loop reads. With fake hosts the real
+  `closed_loop.py` ran init, ratify, readiness (all four probes at the states the plan promised, start rule holding), steps until it recorded an
+  iteration it accepted, cleanup and the certificate, and nothing in the verbs' JSON had to change. Two more decisions: (7) the manifest's profile
+  is Codex `gpt-6.1-terra` at `high`, tolerance 0.45 and 3 attempts stated (D1 stays the owner's) and 2 attempts at once (the one measured
+  cycle pilot, commit 3301eae58c75e3afdc5e738656308d56df7467ee, ran PARALLEL=2 with 3 attempts per arm at effort xhigh); (8) a probe works in a clone under the
+  state folder, never in X.
 - **Open (unknown).** Orphaned model sessions after a worker that died unobserved (a reviewer, judge or improver session is in a session of its
   own and is in no lifecycle ledger; a cancel snapshots them, a SIGKILL of the worker alone does not); the owner-decision path (an `owner`
   accept must reach the tip's ledger: the `decide` verb of W3); D1 and D3 (the tolerance-and-attempts rule and the loop limits) are open
@@ -283,3 +292,4 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F21 | A step's liveness is a file lock its worker holds: the OS frees it however the worker ends, so no pid reuse or stale file can fake a live worker, and a worker killed alone is found dead by the next poll | firm | `ProcessTests.test_a_worker_killed_alone_...` |
 | F22 | Timing-invalid evidence still serves a token claim: only an attribution that is false makes a run's evidence invalid for it | firm (code and one calibration) | commit 3423e21801165d86c21e1d9e59d5c55d130bff66; `promotion._strict_comparable` |
 | F23 | A cancel must snapshot what runs below the worker before it signals anything: the harness starts model sessions in sessions of their own, found through parent links only while their parents live; a group kill and the lifecycle ledger together still miss a reviewer, judge or improver session | firm for the cancel path, a stated gap after an unobserved death | `ProcessTests.test_cancel_also_ends_the_sessions_below_the_worker_...` |
+| F24 | A probe's positive control can be wrong in the reader and right in the check: `grading.scores` parsed `scorecard.py --json` as a list when it prints `{"scorecard", "cards": [...]}`, which only a real run folder through the real scorecard showed; and a negative control must make the CHECK fail, not feed it bad input: a harness copy whose boundary rule accepts every path leaves `improver.bounded` declared while its build and tier parts pass | firm | `RealEngineTests.test_the_runs_and_scores_probes_...`; `RiggedBoundaryTests` |

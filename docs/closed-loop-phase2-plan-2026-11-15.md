@@ -11,6 +11,14 @@ nothing under `test/shiploop_e2e`, `skills/closed-loop`, `test/suite_catalog.py`
 `docs/closed-loop-journal.md`). Consumers: the owner (the decisions in section 6) and the session that builds it. Every fact has a
 command in section 9; what I have not verified is in section 8.
 
+**Built (2026-11-15, after the owner's "Approve, start W1"): W1 to W3 are in `test/shiploop_e2e/adapter/`** (facade, manifest, allowlist,
+README) with three test suites, one of which runs the REAL loop with fake hosts and one the real orchestrator through the facade. The build
+changed this plan in eight places, each a recorded decision in the journal's round R7: a failed or cancelled step publishes no tip; a cycle
+ends the step (3.3 said a promotion); only a false attribution makes evidence invalid (3.4 said "attribution or timing"); `cleanup` also stops a
+live step's worker; the runs-root variable is removed from the engine's environment; the strict outcome and the baseline predicate are the harness's
+own functions run in a bridge process (3.1 said re-stated); `grading.sensitive` and `improver.invocable` are not declared (3.6); and a probe works
+in a clone under the state folder. Read this plan for the reasons and the journal for what was built.
+
 ## 0. The recommendation in one screen
 
 **Keep the route: a thin program outside the scoring files (a *facade*) drives the E2E harness's existing qualified loop through its

@@ -73,6 +73,7 @@ def build_real_source(folder: Path):
     (src / ".gitignore").write_text(".claude/worktrees/\n__pycache__/\n")
     (src / facade.LEDGER_REL).write_text("")
     (src / facade.BASELINES_REL).write_text("")
+    (src / "test" / "run-all.sh").write_text("#!/bin/sh\nexit ${FAKE_TIER_EXIT:-0}\n")  # the quick tier is the repository's own suite: a stand-in
     git(src, "add", "-A")
     git(src, "commit", "-q", "-m", "base")
     return src, git(src, "rev-parse", "HEAD")
@@ -88,6 +89,12 @@ def setUpModule():
     (bin_dir / "lsof").write_text("#!/bin/sh\nexit 1\n")
     for name in ("codex", "lsof"):
         (bin_dir / name).chmod((bin_dir / name).stat().st_mode | stat.S_IXUSR)
+    broken = folder / "broken-bin"  # a host that cannot start: the negative control for the probe that runs a case
+    broken.mkdir()
+    shutil.copy2(bin_dir / "lsof", broken / "lsof")
+    (broken / "codex").write_text("#!/bin/sh\nexit 1\n")
+    (broken / "codex").chmod((broken / "codex").stat().st_mode | stat.S_IXUSR)
+    STATE["broken_bin"] = broken
     for name in ("codex-home", "home", "state", "leases"):
         (folder / name).mkdir()
     (folder / "codex-home" / "auth.json").write_text("{}")
@@ -200,6 +207,79 @@ class RealEngineTests(unittest.TestCase):
         by_id = {item["id"]: item for item in self.cli("records")["records"]}
         self.assertIn(first["loop"]["cycle"], by_id)
         self.assertEqual(self.cli("identity")["build"], it["build_after"])
+
+    def probe(self, claim, *flags, **extra):
+        return self.cli("probe", "--host", "codex", "--model", "fake-model", "--effort", "high", *flags, claim, **extra)
+
+    def test_the_runs_and_scores_probes_prove_a_real_run_and_fail_closed_without_one(self):
+        before = self.probe("grading.scores")
+        self.assertEqual(before["state"], "declared", before)
+        runs = self.probe("cases.runs:hello", FAKE_NO_DISCOVERY="1")
+        self.assertEqual(runs["state"], "runs", runs)
+        self.assertEqual(runs["consumed"]["runs"], 1)
+        for words in ("the skill was invoked from the build under test", "lifecycle cleanup", "is verified"):
+            self.assertIn(words, runs["evidence"])
+        scores = self.probe("grading.scores")
+        self.assertEqual(scores["state"], "scores", scores)
+        self.assertIn("twice with identical output", scores["evidence"])
+        self.assertIn('"fidelity"', scores["evidence"], "the three floors are on the card (fake hosts leave fidelity unobserved)")
+        self.assertEqual(git(self.x, "status", "--porcelain"), "", "a probe writes in a clone under the state folder, never in X")
+        self.assertEqual(git(self.x, "rev-parse", "HEAD"), STATE["base"])
+
+    def test_a_host_that_cannot_start_leaves_cases_runs_declared(self):
+        path = f"{STATE['broken_bin']}:{os.environ['PATH']}"  # the owner's real codex may be on PATH further along: the broken one comes first
+        runs = self.probe("cases.runs:hello", PATH=path)
+        self.assertEqual(runs["state"], "declared", runs)
+        self.assertIn("did not prove it runs", runs["evidence"])
+        self.assertEqual(self.probe("grading.scores")["state"], "declared", "a run that did not prove itself is not a stored real run")
+
+    def test_the_orchestrator_drives_a_smoke_campaign_through_the_facade(self):
+        """The dress rehearsal of the first real campaign, with fake hosts: init, ratify, readiness (every probe), then steps, until the
+        orchestrator has recorded an iteration it accepted; then its cleanup, status and certificate verbs."""
+        manifest = json.loads((HARNESS / "adapter" / "adapter.json").read_text())
+        manifest["execution"]["pin"] = [str(FACADE), str(HARNESS / "adapter" / "allowlist.json")]
+        manifest["execution"]["cwd"] = str(self.folder)
+        manifest["execution"]["env_allow"] = sorted({*manifest["execution"]["env_allow"], "FAKE_LOG", "FAKE_STORE_DIR", "FAKE_NO_DISCOVERY",
+                                                     "SHIPLOOP_E2E_LEASES", "SHIPLOOP_PROGRESS", "FAKE_TIER_EXIT"})
+        for name in ("cases", "records", "identity", "step", "probe"):
+            manifest["commands"][name][1] = str(FACADE)
+        manifest["execution"]["cleanup"][1] = str(FACADE)
+        path = self.folder / "adapter.json"
+        path.write_text(json.dumps(manifest, indent=2))
+        campaign = self.folder / "campaign"
+
+        def loop(*args, ok=(0,), **extra):
+            done = subprocess.run([sys.executable, "-B", str(ROOT / "skills" / "closed-loop" / "scripts" / "closed_loop.py"), *args],
+                                  capture_output=True, text=True, env=self.env(**extra), check=False)
+            self.assertIn(done.returncode, ok, f"closed_loop.py {' '.join(args)} exited {done.returncode}: {done.stdout[-600:]} {done.stderr[-300:]}")
+            return json.loads(done.stdout)
+        loop("init", "--manifest", str(path), "--campaign", str(campaign), "--workspace", str(self.x), "--cases", "hello",
+             "--budget", "seconds=3600,runs=50", "--quiet-window", "1")
+        loop("ratify", "--campaign", str(campaign), "--yes-owner-approved", "--note", "rehearsal: the test plays the owner")
+        ready = loop("readiness", "--manifest", str(path), "--campaign", str(campaign), "--workspace", str(self.x), "--require-start",
+                     FAKE_NO_DISCOVERY="1")
+        states = {claim: entry["state"] for claim, entry in ready["claims"].items()}
+        self.assertEqual(states, {"cases.runs:hello": "runs", "grading.scores": "scores", "improver.bounded": "bounded",
+                                  "grading.calibrated:codex/gpt-6.1-terra/high": "unmeasured"})
+        self.assertTrue(ready["start_ok"], ready)
+        self.assertIn("no quality claim is allowed yet", " ".join(ready["allowed_claims"]))
+        actions = []
+        for _ in range(60):
+            moved = loop("step", "--campaign", str(campaign), ok=(0, 1), FAKE_NO_DISCOVERY="1")
+            actions.append(moved["action"])
+            if moved["action"] in ("blocked", "stop") or loop("status", "--campaign", str(campaign), "--no-certificate")["iterations"]:
+                break
+            time.sleep(1.0)
+        status = loop("status", "--campaign", str(campaign), "--no-certificate")
+        self.assertEqual(status["iterations"], 1, (actions, status))
+        last = status["last_iteration"]
+        self.assertFalse(last.get("failed"), last)
+        self.assertIn("a scope case did not run or missed its floors", last["quiet_reasons"], "fake hosts leave fidelity unobserved: not quiet, and said so")
+        self.assertNotIn("the review was not valid and complete", last["quiet_reasons"])
+        cleaned = loop("cleanup", "--campaign", str(campaign))
+        self.assertTrue(cleaned["ok"], cleaned)
+        loop("certificate", "--campaign", str(campaign), ok=(0, 1))
+
 
     def engine_calls_with(self, role):
         rows = [json.loads(line) for line in self.log.read_text().splitlines()]

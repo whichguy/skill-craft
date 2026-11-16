@@ -16,6 +16,8 @@ Behaviour per case comes from the JSON file named by $FAKE_ENGINE, `{"<case>" or
   fault     "crash": exit 3 right after the worktree exists | "hang": stage a ledger row, then sleep for an hour
   sleep     seconds to wait before doing anything (a step that stays running)
   stray     leave an untracked file in the evaluator checkout
+  review_invalid  the exploration's review is not discovery-qualified (and no judge runs)
+  attribution     false: the run's card says it cannot be attributed to the build under test
   escape    "ledger": leave a harmless process in a session of its own, recorded in the run's resources.jsonl, as a model host is |
             "tree": the same without the record (only a process snapshot of the engine's children finds it)
   stop      the stop line to write instead of the ordinary one
@@ -47,13 +49,14 @@ def git(repo, *args):
     return subprocess.run(["git", "-C", str(repo), *CONFIG, *args], check=True, capture_output=True, text=True).stdout.strip()
 
 
-def card(oracle):
+def card(oracle, attribution=True):
     return {"floors": {"accuracy": "fail" if oracle == "fail" else "pass", "enterprise": "not_applicable", "fidelity": "pass"},
-            "validity": {"correctness": {"valid": True, "why": []}, "attribution": {"valid": True, "why": []},
+            "validity": {"correctness": {"valid": True, "why": []},
+                         "attribution": {"valid": attribution, "why": [] if attribution else ["the build under test was not what ran"]},
                          "timing": {"valid": True, "why": []}}}
 
 
-def run_folder(folder: Path, case: str, args, baselines: Path, oracle) -> Path:
+def run_folder(folder: Path, case: str, args, baselines: Path, oracle, attribution=True) -> Path:
     """One run folder as the harness leaves it (the keys the facade reads) and its row in a baseline file."""
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "invocation.json").write_text("{}\n")
@@ -61,7 +64,7 @@ def run_folder(folder: Path, case: str, args, baselines: Path, oracle) -> Path:
     (folder / "result.json").write_text(json.dumps({
         "case": case, "host": args.host, "model": args.model, "effort": args.effort, "source": "checkout", "prompt_sha256": "p1",
         "invoked": {"pass": True, "skill": "skill-craft:shiploop"}, "plugin": {"pass": True}}))
-    (folder / "card.json").write_text(json.dumps(card(oracle)))
+    (folder / "card.json").write_text(json.dumps(card(oracle, attribution)))
     row = {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": case, "style": None, "host": args.host, "model": args.model,
            "effort": args.effort, "source": "checkout", "planning_review": "stage", "prompt_sha256": "p1", "pass": True,
            "output": str(folder), "termination": {"engine_status": "done"}, "verdicts": {"shiploop": True}}
@@ -70,10 +73,13 @@ def run_folder(folder: Path, case: str, args, baselines: Path, oracle) -> Path:
     return folder
 
 
-def review_folders(run: Path) -> None:
-    (run / "review.json").write_text(json.dumps({"validity": {"status": "valid", "reason": None, "discovery_qualified": True}}))
-    (run / "review-judge").mkdir(exist_ok=True)
-    (run / "review-judge" / "verdict.json").write_text(json.dumps({"validity": {"status": "valid", "reason": None}}))
+def review_folders(run: Path, qualified=True) -> None:
+    """The review and the judge's verdict; a review that is not discovery-qualified ends the exploration before the judge, as in the loop."""
+    status = {"status": "valid" if qualified else "invalid", "reason": None if qualified else "the reviewer returned no usable document"}
+    (run / "review.json").write_text(json.dumps({"validity": {**status, "discovery_qualified": qualified}}))
+    if qualified:
+        (run / "review-judge").mkdir(exist_ok=True)
+        (run / "review-judge" / "verdict.json").write_text(json.dumps({"validity": {"status": "valid", "reason": None}}))
 
 
 def leave_a_child(run: Path, how: str) -> None:
@@ -141,8 +147,9 @@ def main() -> int:
     record = lr.select(ledger, args.case, args.generality_case)
     if record is None:
         explore = out / "explore-1"
-        run = run_folder(explore / "run", args.case, args, ROOT / "test" / "shiploop_e2e" / "baselines.jsonl", knob.get("oracle"))
-        review_folders(run)
+        run = run_folder(explore / "run", args.case, args, ROOT / "test" / "shiploop_e2e" / "baselines.jsonl", knob.get("oracle"),
+                         knob.get("attribution", True))
+        review_folders(run, not knob.get("review_invalid"))
         if knob.get("escape"):
             leave_a_child(run, knob["escape"])
         opened = []

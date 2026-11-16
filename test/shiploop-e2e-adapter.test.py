@@ -373,6 +373,126 @@ class RecordsTests(Fixture):
                 self.assertEqual(rec["status"] == "admitted", offered, (scope, rid, rec["status"]))
 
 
+class BacklogAndDecisionTests(Fixture):
+    """The owner's decisions: `backlog` lists what waits, `decide` writes the decision into the ledger at the published tip (plan appendix A)."""
+
+    UNRESOLVED = frozenset({"LR-20261101-000001", "LR-20261101-000002", "LR-20261101-000003", "LR-20261101-000007", "LR-20261101-000008",
+                            "LR-20261101-000010"})
+
+    def test_backlog_is_the_material_unresolved_subject_records(self):
+        found = run_facade("backlog", x=self.x)
+        self.assertEqual({item["id"] for item in found["records"]}, self.UNRESOLVED)
+        self.assertEqual(found["count"], 6)
+        self.assertEqual(len(found["markdown"].splitlines()), 2 + 6, "a header, a rule and one row each")
+        by_id = {item["id"]: item for item in found["records"]}
+        self.assertEqual(by_id["LR-20261101-000002"]["options"], "accept (it becomes admitted) | reject | defer")
+        self.assertEqual(by_id["LR-20261101-000003"]["reopen_when"], "it recurs")
+        for gone in ("LR-20261101-000004", "LR-20261101-000005", "LR-20261101-000006", "LR-20261101-000009", "LR-20261101-000011"):
+            self.assertNotIn(gone, by_id, "a verified, harness, minor, refuted or rejected record is not the owner's to decide")
+
+    def decide(self, record, outcome, reason="the owner's words", *more, check=True):
+        return run_facade("decide", "--record", record, "--outcome", outcome, "--reason", reason, *more, x=self.x, check=check)
+
+    def test_an_accept_reaches_the_ledger_at_the_tip_and_leaves_the_checkout_alone(self):
+        self.use_fresh_x()
+        before = self.x_snapshot()
+        done = self.decide("LR-20261101-000002", "accept", "Accepted: a real defect the next cycle may fix")
+        self.assertEqual(done["event"], "owner")
+        self.assertEqual(git(self.x, "rev-parse", facade.TIP_REF), done["tip"])
+        self.assertEqual(git(self.x, "rev-parse", f"{done['tip']}^"), self.base, "one commit on top of the tip it replaced")
+        self.assertEqual((git(self.x, "rev-parse", "HEAD"), git(self.x, "status", "--porcelain", "--untracked-files=all")), before[:2],
+                         "the commit is built from Git objects: no checkout, no index, no working file")
+        rows = [json.loads(line) for line in git(self.x, "show", f"{done['tip']}:{facade.LEDGER_REL}").splitlines()]
+        self.assertEqual((rows[-1]["event"], rows[-1]["outcome"]), ("owner", "accept"))
+        self.assertEqual(rows[-1]["owner_decision"], "Accepted: a real defect the next cycle may fix")
+        by_id = {item["id"]: item for item in run_facade("records", x=self.x)["records"]}
+        self.assertEqual(by_id["LR-20261101-000002"]["status"], "admitted", "an accepted record with no case can be offered to any scope")
+        self.assertEqual(learning_records.select(self.tip_ledger(done["tip"]), "hello", None), "LR-20261101-000002")
+        listed = {item["id"]: item for item in run_facade("backlog", x=self.x)["records"]}
+        self.assertEqual((listed["LR-20261101-000002"]["engine_status"], listed["LR-20261101-000002"]["options"]),
+                         ("admitted", "none needed: it waits for an exposing case in a scope"))
+
+    def tip_ledger(self, rev):
+        path = self.folder / f"ledger-{rev[:8]}.jsonl"
+        path.write_text(git(self.x, "show", f"{rev}:{facade.LEDGER_REL}") + "\n")
+        return path
+
+    def test_a_reject_is_resolved_with_the_owners_words_as_its_evidence(self):
+        self.use_fresh_x()
+        self.decide("LR-20261101-000010", "reject", "Not a defect: the behaviour is intended")
+        by_id = {item["id"]: item for item in run_facade("records", x=self.x)["records"]}
+        self.assertEqual((by_id["LR-20261101-000010"]["status"], by_id["LR-20261101-000010"]["evidence"]),
+                         ("rejected", "Not a defect: the behaviour is intended"))
+        self.assertNotIn("LR-20261101-000010", {item["id"] for item in run_facade("backlog", x=self.x)["records"]})
+
+    def test_a_deferral_needs_the_condition_that_brings_the_record_back(self):
+        self.use_fresh_x()
+        refused = self.decide("LR-20261101-000010", "defer", check=False)
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("--reopen-when", refused.stderr)
+        self.decide("LR-20261101-000010", "defer", "later", "--reopen-when", "a cycle can run on csv-report")
+        by_id = {item["id"]: item for item in run_facade("records", x=self.x)["records"]}
+        self.assertEqual(by_id["LR-20261101-000010"]["status"], "deferred")
+        self.assertEqual(by_id["LR-20261101-000010"]["reopen_when"], "a cycle can run on csv-report")
+
+    def test_decisions_that_cannot_be_recorded_are_refused_and_change_nothing(self):
+        self.use_fresh_x()
+        before = self.x_snapshot()
+        for args, text in ((("LR-20991231-ffffff", "accept"), "is not a record"), (("LR-20261101-000002", "accept", " "), "owner's words")):
+            with self.subTest(args=args):
+                refused = self.decide(*args, check=False)
+                self.assertEqual(refused.returncode, 2)
+                self.assertIn(text, refused.stderr)
+        self.assertEqual(self.x_snapshot(), before)
+        self.assertEqual(facade.published_tip(self.layout), self.base)
+
+
+class ManifestTests(unittest.TestCase):
+    """The manifest the owner ratifies: the orchestrator accepts it, it pins the facade and its allowlist, and every argument list it holds
+    parses with the facade's own command line."""
+
+    MANIFEST = HARNESS / "adapter" / "adapter.json"
+
+    def test_the_orchestrator_accepts_the_manifest(self):
+        done = subprocess.run([sys.executable, "-B", str(ROOT / "skills" / "closed-loop" / "scripts" / "closed_loop.py"), "adapter-check",
+                               "--manifest", str(self.MANIFEST)], capture_output=True, text=True, check=False)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertTrue(json.loads(done.stdout)["ok"])
+
+    def test_the_facade_and_its_allowlist_are_pinned_and_nothing_else_is_executed(self):
+        manifest = json.loads(self.MANIFEST.read_text())
+        self.assertEqual(manifest["execution"]["pin"], ["facade.py", "allowlist.json"])
+        for name in manifest["execution"]["pin"]:
+            self.assertTrue((self.MANIFEST.parent / name).is_file(), name)
+        argv_lists = [*manifest["commands"].values(), manifest["execution"]["cleanup"]]
+        self.assertTrue(all(argv[:2] == ["python3", "facade.py"] for argv in argv_lists), "every command is the one pinned program")
+
+    def test_every_argument_list_parses_with_the_facades_command_line(self):
+        manifest = json.loads(self.MANIFEST.read_text())
+        parser = facade.build_parser()
+        commands = manifest["commands"]
+        step = commands["step"][2:]
+        for tail in (["start", "--key", "k", "--scope", "s", "--cases", "hello", "--mode", "iterate", "--base", "b", "--out", "o"],
+                     ["poll", "--handle", "k"], ["cancel", "--handle", "k"]):
+            self.assertEqual(parser.parse_args(step + tail).verb, "step")
+        for claim in manifest["claims"]:
+            self.assertEqual(parser.parse_args(commands["probe"][2:] + [claim]).verb, "probe")
+        for verb in ("cases", "records", "identity"):
+            self.assertEqual(parser.parse_args(commands[verb][2:]).verb, verb)
+        self.assertEqual(parser.parse_args(manifest["execution"]["cleanup"][2:] + ["--keys", "a,b"]).verb, "cleanup")
+        profile = parser.parse_args(step + ["poll", "--handle", "k"])
+        self.assertEqual((profile.host, profile.model, profile.effort, profile.tolerance, profile.attempts, profile.parallel),
+                         ("codex", "gpt-6.1-terra", "high", 0.45, 3, 2))
+
+    def test_the_claims_are_the_ones_the_facade_can_prove_and_the_start_rule_needs(self):
+        claims = json.loads(self.MANIFEST.read_text())["claims"]
+        kinds = {claim.split(":")[0] for claim in claims}
+        self.assertTrue({"cases.runs", "grading.scores", "improver.bounded"} <= kinds, "the start rule needs these three")
+        self.assertEqual(claims["cases.runs:hello"]["effect"], "effectful")
+        self.assertEqual(claims["grading.scores"]["effect"], "read-only")
+        self.assertNotIn("grading.sensitive", " ".join(claims), "no whole-run measure has been shown to separate known-bad from known-good")
+
+
 class QueryTests(Fixture):
     def test_queries_write_nothing_and_move_nothing(self):
         campaign = self.campaign_with_scope(["hello"])
