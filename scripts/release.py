@@ -211,8 +211,9 @@ def e2e_round_missing(releases):
     last = next((sha for sha, _ in release_commits()), None)
     span = f"{last}..HEAD" if last else "HEAD"
     journal = git("log", "-1", "--format=%H", span, "--", E2E_JOURNAL).strip()
-    after = f"{journal}..HEAD" if journal else span
-    rows = git("log", "--no-merges", f"--format=%x1e%h %s%x00%(trailers:key={NO_ROUND},valueonly,unfold)", after, "--",
+    # Exclude journal ancestors without losing the last-release exclusion on merged branches.
+    after = [span, f"^{journal}"] if journal else [span]
+    rows = git("log", "--no-merges", f"--format=%x1e%h %s%x00%(trailers:key={NO_ROUND},valueonly,unfold)", *after, "--",
                f"skills/{E2E_LEAF}/", f"changes/{E2E_LEAF}/")
     uncovered = [head for head, _, reasons in (row.partition("\0") for row in rows.split("\x1e") if row.strip())
                  if not reasons.strip()]

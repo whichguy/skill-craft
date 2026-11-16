@@ -186,6 +186,50 @@ class ReleasePreflightTests(unittest.TestCase):
         self.git("merge", "-q", "--no-ff", "-m", "merge side", "side")
         self.assertRefused(self.release("--dry-run"))
 
+    def old_branch_journal_after_release(self):
+        """Merge a covered branch whose journal never contained the later main release."""
+        self.env.update(GIT_AUTHOR_DATE="2020-01-02T00:00:00+0000",
+                        GIT_COMMITTER_DATE="2020-01-02T00:00:00+0000")
+        self.git("switch", "-q", "-c", "side")
+        self.note("shiploop", subject="feat(shiploop): covered pending change")
+        pending = self.git("rev-parse", "HEAD")
+        self.env.update(GIT_AUTHOR_DATE="2020-01-03T00:00:00+0000",
+                        GIT_COMMITTER_DATE="2020-01-03T00:00:00+0000")
+        self.write(LEARNINGS, "# Learnings\n\n## Run covering the pending change\n")
+        self.commit("test(shiploop-e2e): old branch round")
+        journal = self.git("rev-parse", "HEAD")
+        self.git("switch", "-q", "main")
+        self.env.update(GIT_AUTHOR_DATE="2020-01-04T00:00:00+0000",
+                        GIT_COMMITTER_DATE="2020-01-04T00:00:00+0000")
+        self.write("skills/shiploop/SKILL.md", CARD.format(leaf="shiploop") + "Published content.\n")
+        self.git("add", "skills/shiploop/SKILL.md")
+        self.release_commit()
+        published = self.git("rev-parse", "HEAD")
+        self.assertIn("skills/shiploop/SKILL.md", self.git("diff-tree", "--no-commit-id", "--name-only", "-r", published))
+        self.assertNotIn(published, self.git("rev-list", journal).splitlines())
+        self.assertIn(pending, self.git("rev-list", journal).splitlines())
+        self.env.update(GIT_AUTHOR_DATE="2020-01-05T00:00:00+0000",
+                        GIT_COMMITTER_DATE="2020-01-05T00:00:00+0000")
+        self.git("merge", "-q", "--no-ff", "-m", "merge covered old branch", "side")
+        return published
+
+    def test_old_branch_journal_does_not_reintroduce_the_published_release(self):
+        self.old_branch_journal_after_release()
+        self.assertAccepted(self.release("--dry-run"))
+        self.untouched()
+
+    def test_old_branch_journal_still_refuses_only_new_uncovered_changes(self):
+        published = self.old_branch_journal_after_release()
+        self.change("skills/shiploop/scripts/new.py", "feat(shiploop): genuinely new uncovered change")
+        new = self.git("rev-parse", "--short", "HEAD")
+        message = self.assertRefused(self.release("--dry-run"))
+        self.assertIn("1 change(s) committed after its latest E2E round", message)
+        self.assertEqual(re.findall(r"^  ([0-9a-f]+) (.+)$", message, re.MULTILINE),
+                         [(new, "feat(shiploop): genuinely new uncovered change")])
+        self.assertNotIn(published[:7], message)
+        self.assertNotIn("release: baseline", message)
+        self.untouched()
+
     def change(self, path, subject, trailer=None):
         """A ShipLoop change: write one file under the skill and commit it, with an optional trailer."""
         self.write(path, f"print({subject!r})\n")
