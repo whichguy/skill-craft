@@ -407,6 +407,57 @@ publication recovery, authoritative epoch validation and safe escalation, and C 
 Outside the adapter (for the owner, or the session that owns the harness): `iterate.py` could refuse to start without a configured identity, and its git
 helper could keep git's stderr in the error. Both would have turned tonight's diagnosis into one line.
 
+### R11. Plan B, step 2: the prompt on stdin, landed by another session (2026-11-16)
+
+- **Decision.** The owner chose replan B ("Yes, plan B", 2026-11-16). Step 1 (this machine's git identity) stays the owner's: nothing in it was changed.
+- **What happened.** I built and verified a fix (Codex's command opens its prompt file as its own stdin and then becomes Codex, so no launcher
+  changes) and committed it locally. Before pushing I found that another session had pushed its own fix for the same failure to main an hour
+  earlier: ec2eae6978419034454580b7b96fe20e47a3d5d9, "send complete Codex helper prompts through buffered stdin" (`Host.prepare` returns the prompt
+  bytes, `run_agent` feeds them through a scoped temporary file; the reviewer, judge and improver opt in; subject and resume launches, the purpose
+  check, the fan-out study and the other hosts keep their argument). It touched the same five files. I dropped my unpushed commit
+  (29d47f09ec0bf3c6b744be52709891c587440653, never on main) rather than push an alternative over another session's validated work; its patch is kept
+  outside the repository only as a reference.
+- **Checks of main's fix, made independently here.** The real-engine adapter suite on ec2eae69 in the offline Linux container: 5 of 5 OK in 56.9 s
+  (3 of 5 failed before it). The real Codex CLI reads a `-` prompt from stdin: one session (codex-cli 0.169.0, `gpt-6.1-sol` at low) exited 0 in
+  4.8 s and replied `STDIN-OK`, the prompt in no argument. **Firm.**
+- **What stays open.** The paths main's fix leaves on the command line carry short prompts today; a large purpose-check prompt (it includes a diff)
+  could still meet the Linux limit. Nothing runs them on Linux now. Recorded, not changed.
+
+### R12. Plan B, step 3: the facade removes the four kinds of code (2026-11-16)
+
+- **Question.** Can the defects of rounds 3 to 5 be ended by removing the kinds of code they came from, rather than patching each?
+- **Changes, by kind** (`test/shiploop_e2e/adapter/facade.py` unless named).
+  - *Re-stated harness rules.* `epoch_evidence` asks the harness: a new bridge operation, `epoch_facts`, runs `epoch.state` and `epoch.events` in X's
+    harness and returns the last decision, each attempt's status, and the receipt of each attempt `epoch.state` calls reviewed. `epoch_reviewed`, the
+    re-statement, is deleted. An epoch folder that exists but cannot be read (a torn row, a changed registration) is reported invalid; an attempt the
+    harness calls `invalid_evidence` is reported invalid; a cycle that made no epoch has none. The stand-in engine now writes its epochs with the harness's
+    own `epoch.initialise`, `launch_intent`, `record_run`, `append` and `digest`, so the facade reads them exactly as it reads a real one.
+  - *Several publishers.* Only the step's worker, or a poll finishing what a dead worker prepared, publishes. `cancel` and `cleanup` settle a finished
+    but unpublished step `cancelled` (reversing R9 decision 12), so a cancel answers `cancelled`, as `closed_loop.py`'s `cmd_cancel` requires, and no
+    published fact can contradict what a kill found.
+  - *Receipts from one call's view.* `cleanup` answers from the stored kill evidence; an open problem in it is checked again on a fresh process table,
+    and resolved only by a check that finds the group gone or stopped.
+  - *Signals on inferred ownership.* `stop_group` decides ownership again before SIGKILL; a group that emptied during the grace counts as stopped, and a
+    group number now leading another session's group is not signalled.
+  - Beyond the four: `identity_problem` refuses `step start`, and answers the `cases.runs` probe `declared` before its model session, when the engine's
+    environment has no configured git identity (`git -c user.useConfigOnly=true var`), for the loop's commits and for the improver's view (only
+    `$HOME/.gitconfig`); a worker never settles a step `failed` once its publication is prepared, so a write that fails after the ref moved is reconciled
+    by the next poll; the calibration probe requires the cases it measured to be the cases its scoring digest covers.
+- **Tests** (`test/shiploop-e2e-adapter-steps.test.py` unless named). ReplanTests (identity refusal for a step, for the improver's view, and for the
+  probe before its run; a repeated cleanup that keeps an unresolved problem until a fresh check resolves it; no SIGKILL to a group recycled during the
+  grace; a write failing after the ref moved, finished by a poll). The cancel and cleanup of a finished step now answer `cancelled` and publish nothing;
+  the last-decision, torn-ledger and changed-sealed-evidence tests run through the stand-in's real epochs; a misbound calibration report is refused; the
+  simultaneous-start test reads before its barrier (so it fails without the admission lock in every schedule); the older kill-blocker test also calls
+  `cmd_cleanup`. The suite's home now carries a git identity, and the bare homes of the identity tests set `EMAIL`, so git could guess an identity on
+  any host and only `user.useConfigOnly` refuses it. The engine suite's parity assertion compares the facade's facts with `epoch.state` on the real
+  epoch and adds a changed-sealed-run control.
+- **Results.** Queries suite 29 OK (23.7 s); steps suite 78 OK (427.9 s; nine new tests); real-engine suite 5 OK (104.3 s), with the facade's
+  facts compared with `epoch.state` on the real epoch and a changed-sealed-run control. Mutation check (`g1d-mutations.py` in a throwaway clone):
+  15 of 15 caught, each by a failing assertion of its named test (78.8 s), removing `user.useConfigOnly` included (caught because the bare homes set
+  `EMAIL`). The real-engine suite on this tree in the offline Linux container: 5 of 5 (52.7 s). Boundary hash
+  1c1eb78b7fe966841b006af44017a173280813a19b62951f608329c3b59fb270 (its ratification is the owner's). **Firm** for what the tests cover.
+- **Open (unknown).** Whether removing the kinds ends the sibling pattern is what the verification of this diff measures.
+
 ## Findings
 
 | # | Finding | Status | Evidence |

@@ -210,14 +210,23 @@ class RealEngineTests(unittest.TestCase):
         by_id = {item["id"]: item for item in self.cli("records")["records"]}
         self.assertIn(first["loop"]["cycle"], by_id)
         self.assertEqual(self.cli("identity")["build"], it["build_after"])
-        epoch = self.work / "runs" / "s1" / "inv-1" / "cycle-1" / "epoch"
-        events = [json.loads(line) for line in (epoch / "events.jsonl").read_text().splitlines() if line.strip()]
+        out = self.work / "runs" / "s1" / "inv-1"
+        epoch = out / "cycle-1" / "epoch"
         harness = self.x / "test" / "shiploop_e2e"
         counted = subprocess.run([sys.executable, "-B", "-c", "import json, sys\nfrom pathlib import Path\nsys.path.insert(0, sys.argv[1])\nimport epoch\n"
-                                  "print(json.dumps(sorted(a['id'] for a in epoch.state(Path(sys.argv[2]))['attempts'] if a['status'] == 'reviewed')))",
+                                  "state = epoch.state(Path(sys.argv[2]))\nwanted = {a['id'] for a in state['decision']['result']['attempts']}\n"
+                                  "print(json.dumps(sorted(a['id'] for a in state['attempts'] if a['status'] == 'reviewed' and a['id'] in wanted)))",
                                   str(harness), str(epoch)], capture_output=True, text=True, check=True, cwd=str(harness))
-        self.assertEqual(sorted(facade.epoch_reviewed(epoch, events)), json.loads(counted.stdout.strip().splitlines()[-1]),
-                         "the facade counts an epoch's reviewed attempts as the harness's own epoch.state does")
+        reviewed = json.loads(counted.stdout.strip().splitlines()[-1])
+        found = facade.epoch_evidence(self.layout, out)
+        self.assertEqual((found["unreadable"], found["invalid_evidence"]), (None, []), found)
+        self.assertEqual(len(found["receipts"]), len(reviewed), "the facade's reviewed attempts are the ones the harness's own epoch.state counts")
+        # A sealed run whose evidence changes after it was recorded: the harness calls it invalid_evidence, and so does the facade.
+        sealed = epoch / "runs" / reviewed[0] / "result.json"
+        sealed.write_text(sealed.read_text() + "\n")
+        changed = facade.epoch_evidence(self.layout, out)
+        self.assertEqual(changed["invalid_evidence"], [reviewed[0]], changed)
+        self.assertEqual(len(changed["receipts"]), len(reviewed) - 1)
 
     def probe(self, claim, *flags, **extra):
         return self.cli("probe", "--host", "codex", "--model", "fake-model", "--effort", "high", *flags, claim, **extra)

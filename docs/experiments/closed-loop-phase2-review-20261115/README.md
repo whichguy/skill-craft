@@ -30,6 +30,10 @@ step, a group recycled between signals), `g1c-sol-witness-core.json` (a write fa
 barrier test with admission removed) and `g1c-sol-witness-evidence.json` (a changed sealed run, a misbound calibration report, a torn epoch ledger).
 Every finding was checked against the code and held; the journal's round R10 has them and the replan they led to.
 
+`g1d-mutations.py` and `g1d-mutations.txt` are the mutation check of replan B (journal R12): each fix broken on purpose, in a copy of the tree,
+with the test that guards it run alone. Unlike `g1b-mutations.py` (round 4), a mutant counts as caught only when its named test fails on an
+assertion, and the driver exits 1 when any mutant survives, is not applied, or ends in an error.
+
 `identity-failure-evidence.txt` is not a review: it is the controlled experiment and the system records behind the real-engine suite's failure of
 round 4 (a git identity the machine stopped being able to guess), journal round R10. `linux-ci-failure-evidence.txt` is the separate cause of the same
 suite's failures on GitHub CI (a 175 KB prompt passed as one argument, over Linux's 128 KiB limit), reproduced offline in a Linux container.

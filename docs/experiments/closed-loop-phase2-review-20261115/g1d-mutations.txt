@@ -1,0 +1,19 @@
+# python3 -B docs/experiments/closed-loop-phase2-review-20261115/g1d-mutations.py --root <a throwaway clone of the plan B tree>, 2026-11-16
+caught       no identity check before a step  [ReplanTests.test_a_step_without_a_configured_engine_identity_is_refused_before_anything_starts]
+caught       a guessed identity accepted  [ReplanTests.test_a_step_without_a_configured_engine_identity_is_refused_before_anything_starts]
+caught       the improver's own view not checked  [ReplanTests.test_the_improvers_identity_is_the_one_in_the_home_gitconfig]
+caught       the runs probe checks the identity only after its run  [ReplanTests.test_the_runs_probe_refuses_before_its_model_session]
+caught       a cancel publishes a finished step  [SecondReviewTests.test_a_cancel_of_a_finished_step_answers_cancelled_as_the_orchestrator_requires]
+caught       a cleanup publishes a finished step  [SecondReviewTests.test_cleanup_ends_a_finished_step_whose_worker_is_gone_and_publishes_nothing]
+caught       a stored kill problem never checked again  [ReplanTests.test_a_repeated_cleanup_answers_from_the_stored_evidence_until_a_check_resolves_it]
+caught       a cleanup answers from its own call only (round 4's code)  [ReplanTests.test_a_repeated_cleanup_answers_from_the_stored_evidence_until_a_check_resolves_it]
+caught       escalation without checking ownership again  [ReplanTests.test_a_group_recycled_during_the_grace_is_not_sent_sigkill]
+caught       a failure after preparing settled failed  [ReplanTests.test_a_write_that_fails_after_the_tip_moved_leaves_the_step_for_a_poll_to_finish]
+caught       an unreadable epoch read as empty  [SecondReviewTests.test_an_epoch_ledger_the_harness_cannot_read_makes_the_cycle_invalid]
+caught       changed sealed evidence not reported  [SecondReviewTests.test_sealed_run_evidence_changed_after_recording_makes_the_cycle_invalid]
+caught       the first decision read  [SecondReviewTests.test_the_last_decision_of_an_epoch_is_the_one_that_counts]
+caught       any reviewed row counted, seal or not  [SecondReviewTests.test_an_epoch_receipt_changed_after_its_review_is_not_a_review]
+caught       calibration not bound to its scoring  [ProbeTests.test_the_calibrated_claim_needs_a_report_for_this_profile_whose_digest_still_holds]
+15 of 15 caught
+driver-exit=0
+elapsed: 78.81 s
