@@ -10,7 +10,7 @@ inside its Markdown file, and there is no writable JSON mirror.
 
 | File or directory | Authority / purpose |
 |---|---|
-| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, the run's `delegation`, the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused) and the required run-level `backchain_passes` option (`one`, `converge` or `none`; a saved run without it is refused) and the required run-level `planning_review` option (`stage` or `none`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`; `revisions` counts how many times each work item went back to `step-plan` (at most 2). State version 5, the 8-stage inner loop, is the only supported `version`: a run saved by the 17-stage loop (version 4) is refused with a reason, never migrated. |
+| `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, the run's `delegation`, the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused) and the required run-level `planning_review` option (`stage` or `none`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`; `revisions` counts how many times each work item went back to `step-plan` (at most 2). State version 5, the 8-stage inner loop, is the only supported `version`: a run saved by the 17-stage loop (version 4) is refused with a reason, never migrated. |
 | `notes/` | Host-written run notes. ShipLoop creates the empty directory whenever it prints a packet, so a model never needs `mkdir`; the notes and the pass log stay the host's to write. Notes named in results' `evidence_refs` include the canonical `notes/environment-lifecycle.md`. `notes/<action>.md` is the optional pass log: the host creates it when a pass starts and appends what each pass checked and what is left. Every packet names this action's pass log with the same conditional rule (open it first after a reset if it exists; if it does not, nothing was logged) and the context index lists it under "In progress"; neither reads the file, so neither can say whether it exists. It is a recovery aid, never a completion gate and never evidence: ShipLoop's own test-run records are the evidence, and every inner stage keeps its iteration state in its Until Loop receipt. |
 | `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. It stays after acceptance for two uses: replay (a repeated `complete` of the same action is compared with `accepted`) and the pending draft after a kill. It is refused as a planning dependency because it is mutable. `inbox/<action>-improve-notes.md` is the optional plain-text file an Improve child writes its lessons for later steps to; the Improve stage's `complete` reads it through `--notes`. |
 | `results/<action>.md` | The accepted result for one action, written by the script in the same transaction as `state.md`, and the "Read first" copy a packet points at. `state.md` `accepted[<action>]` stays the authority. |
@@ -151,12 +151,9 @@ action is issued. See the [navigator guide](navigator.md#run-it).
 
 ## Backchain passes
 
-Every run records the run-level `backchain_passes` key: `none` (the default for new
-runs: no Backchain child), `one` or `converge`. It is set once, by `--backchain-passes` on `init` or
-`workspace start`, and no verb changes it: an `init` or `workspace start` retry that
-names another value is refused, and a saved run without the key is refused with the
-fresh-run hint like any other missing key. See the
-[skill guide](backchain-route.md#backchain-passes-option).
+No run records a `backchain_passes` key any longer: the option chose whether planning stages could call
+a Backchain child, and Backchain was retired on 2026-11-16. A saved run that records the key is refused
+with the fresh-run hint.
 
 ## Planning review
 

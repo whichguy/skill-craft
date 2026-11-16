@@ -91,7 +91,7 @@ function settleCall(dir, owner, attempt) {
 const REPLAN_INSTRUCTION = 'The parent verified that this step cannot be done as planned. This run starts no new work: claims, fresh starts and a retry of this attempt are refused. Finish, settle or retry (to retire) the in-flight attempts listed here first. Then return the blocker to planning: revise the plan with the blocker reason as input, and start a new run whose graph leaves out the accepted steps listed in replan.accepted, because their work is already integrated.';
 function requireContracts(graph) {
   if (!graph || !Array.isArray(graph.steps) || !graph.steps.length || graph.steps.some(s => !s.contract)) {
-    throw new Error('every graph step requires a task, ready and done contract; use the Backchain exporter or the documented graph format');
+    throw new Error('every graph step requires a task, ready and done contract; use the documented graph format');
   }
 }
 function outputPaths(dir, attempt) {

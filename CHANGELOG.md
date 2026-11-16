@@ -2,6 +2,25 @@
 
 Written by scripts/release.py.
 
+## 2026-11-16
+
+### skill-craft 2.43.0
+
+- Skills: plan-dispatcher 0.6.6, shiploop 1.38.0
+
+### plan-dispatcher 0.6.6
+
+- Plan Dispatcher no longer points at Backchain's exporter, retired with the Backchain skill on 2026-11-16: graphs come
+  in the documented graph format, and a done item's `Confirm by:` method keeps its meaning.
+
+### shiploop 1.38.0
+
+- Backchain is retired (owner decision 2026-11-16): ShipLoop no longer has a Backchain child or the `--backchain-passes`
+  option, and a saved run that still records `backchain_passes` is refused with the fresh-run hint. Default runs change
+  only by losing the sentences that said no Backchain child was requested. Every Backchain stage keeps the planning
+  guide's dependency audit and the record-only `backchain-check`, whose structural check now ships inside ShipLoop
+  (`scripts/backchain_graph.py`) and whose graph format is the planning guide's new "Plan graph format" section.
+
 ## 2026-11-15
 
 ### skill-craft 2.42.1

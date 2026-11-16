@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.37.1
+version: 1.38.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -49,7 +49,6 @@ purpose files; open one when its trigger holds, read it whole, once:
 
 - [Starting a run](references/run-start.md): before the first `workspace start` or `init`, and before a workspace return.
 - [Run options](references/run-options.md): choosing `--delegation`, `--lint` or `--planning-review`, or switching one mid-run.
-- [Backchain route](references/backchain-route.md): a planning packet names Backchain, or choosing `--backchain-passes`.
 - [Guides by stage](references/guide-map.md): discovery, research, spec and planning guides and the knowledge home.
 - [When Improve runs](references/improve-stages.md): which results an Improve stage reviews and how its passes end.
 - [The Improve child](references/improve-child.md): an Improve stage is current, or you recover or restart its child.
@@ -195,8 +194,7 @@ route rather than generating a replacement workflow.
 
 Run options are recorded at `workspace start` or `init` and refused on a saved run without them:
 `--delegation inline|ask-agent` (default `inline`: this conversation executes every assignment),
-`--lint fix|report|off`, `--planning-review stage|none` ([run options](references/run-options.md)) and
-`--backchain-passes none|one|converge` (default `none`: no Backchain child; [Backchain route](references/backchain-route.md)).
+`--lint fix|report|off` and `--planning-review stage|none` ([run options](references/run-options.md)).
 
 ## Inner stages
 

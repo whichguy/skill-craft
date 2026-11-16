@@ -1,6 +1,6 @@
 # Skill Craft
 
-Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent, Backchain and more) packaged as one plugin for Claude, Codex, Grok and Cursor.
+Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent and more) packaged as one plugin for Claude, Codex, Grok and Cursor.
 
 ## Install
 
@@ -17,7 +17,6 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [adversarial-review](skills/adversarial-review/SKILL.md) | `/skill-craft:adversarial-review` | 0.1.0 | Have an independent model try to break a proposed change and return its findings as testable hypotheses, each with the… |
 | [architect](skills/architect/SKILL.md) | `/skill-craft:architect` | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent… |
 | [ask-agent](skills/ask-agent/SKILL.md) | `/skill-craft:ask-agent` | 0.11.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main… |
-| [backchain](skills/backchain/SKILL.md) | `/skill-craft:backchain` | 0.8.0 | Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain /… |
 | [c-plan](skills/c-plan/SKILL.md) | `/skill-craft:c-plan` | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value… |
 | [closed-loop](skills/closed-loop/SKILL.md) | `/skill-craft:closed-loop` | 0.1.0 | Use to improve a subject (a skill, a prompt set, a tool) by running it on cases, grading each run, finding fixes… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | `/skill-craft:compare-prompts` | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results… |
@@ -25,7 +24,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [improve-agent](skills/improve-agent/SKILL.md) | `/skill-craft:improve-agent` | 0.1.3 | Run Improve in a fresh native agent |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | `/skill-craft:improve-system-prompt` | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the… |
 | [in-parallel](skills/in-parallel/SKILL.md) | `/skill-craft:in-parallel` | 0.1.1 | Use for "in parallel" or when one goal should be divided among independent native agents and returned as one verified… |
-| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.5 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
+| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.6 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
 | [plan-test](skills/plan-test/SKILL.md) | `/skill-craft:plan-test` | 0.1.3 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex… |
 | [prompt-align](skills/prompt-align/SKILL.md) | `/skill-craft:prompt-align` | 0.1.2 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring… |
 | [prompt-audit](skills/prompt-audit/SKILL.md) | `/skill-craft:prompt-audit` | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology… |
@@ -35,7 +34,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [review-coverage](skills/review-coverage/SKILL.md) | `/skill-craft:review-coverage` | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | `/skill-craft:review-fix-bench` | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external… |
 | [rubric-eval](skills/rubric-eval/SKILL.md) | `/skill-craft:rubric-eval` | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default)… |
-| [shiploop](skills/shiploop/SKILL.md) | `/skill-craft:shiploop` | 1.37.1 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit… |
+| [shiploop](skills/shiploop/SKILL.md) | `/skill-craft:shiploop` | 1.38.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | `/skill-craft:shiploop-e2e-audit` | 0.7.17 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use… |
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | `/skill-craft:shiploop-run-review` | 0.5.2 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice… |
 | [skill-interop](skills/skill-interop/SKILL.md) | `/skill-craft:skill-interop` | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a… |

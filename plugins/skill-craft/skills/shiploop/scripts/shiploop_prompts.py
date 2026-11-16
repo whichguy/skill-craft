@@ -519,18 +519,12 @@ to stop or pause runs Pause. Long form: reference#progress.
 """
 
 
-# An inline step-plan or carry-forward builds no execution graph, so it carries one optional audit line instead of the
-# Backchain caller guidance (owner, 2026-10-11); the guide and the audit resource are printed with the packet's
-# locators.
+# An inline step-plan or carry-forward builds no execution graph (owner, 2026-10-11), and product-acceptance edits
+# nothing (0 of 60 archived results used the route paragraph; stage-prompt review, 2026-10-31), so none of them prints
+# the Backchain route paragraph; the guide and the graph check print with the packet's locators.  Each once printed an
+# optional line requesting a read-only Backchain audit, gone with Backchain (owner decision, 2026-11-16).
 INLINE_AUDIT_STAGES = ("step-plan", "carry-forward")
-# Product-acceptance edits nothing, so it builds no graph on any route: it carries the same audit line (0 of 60 archived
-# results used the route paragraph; stage-prompt review, 2026-10-31).
 AUDIT_LINE_STAGES = ("product-acceptance",)
-INLINE_BACKCHAIN_AUDIT = """\
-Optional: for a material prerequisite ambiguity or acceptance gap, request one
-read-only Backchain review/audit (Backchain planning guide), then run the printed
-`backchain-check` on your candidate and cite its receipt in evidence_refs.
-"""
 
 
 # Stage-specific paragraphs, carried only by the stages the stage table names
@@ -777,8 +771,8 @@ _CARRY_FORWARD_ONE_STEP = """\
 """
 
 
-# Placeholders duty() fills from the run: the Backchain item of spec and plan (by the run's Backchain passes option)
-# and the item commit rule of document (by the run's execution mode).
+# Placeholders duty() fills: the Backchain item of spec and plan (by stage) and the item commit rule of document (by
+# the run's execution mode).
 # The result template's `summary` placeholder per producer stage (U25, rev 4 Step 8.2): it says what only this result
 # records, so a model fills the summary instead of restating the request, the spec or the files it wrote.  A stage whose
 # duty used to describe its summary carries that description here instead (printed once, in the template); the test
@@ -1738,8 +1732,8 @@ preparatory commit); a mismatch there is a send-back.
 6. Route each gap: missing product work, stale evidence, or a failed or missing due check goes to add-work with one
    corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for release-plan; blocked
    only when nothing can proceed. Acceptance executes no release and proves no remote consumer boundary.
-7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: request a Backchain
-   `review` / `audit` as the audit line below says; cite its receipt in `evidence_refs`.
+7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: check it with the
+   Backchain planning guide's dependency audit and route it as item 6 says.
 """,
     "release-plan": """\
 1. Revalidate the integrated test plan for the release target: the latest done system-test-author record after the
@@ -1997,391 +1991,70 @@ deploy to make a check available. A plan is not execution evidence. A material c
 configuration or target invalidates the observations it affects: rerun them through the authorized route, and reuse
 unaffected evidence only with its identity and relevance stated.
 """
-BACKCHAIN_NATIVE_CALLS = {
-    "plan": ("plan", "draft"),
-}
-BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
-
-# Run-level Backchain passes option (state key ``backchain_passes``): whether the run's packets offer a Backchain
-# child, and how many review passes it may take.  ``none`` (the default for new runs, owner decision 2026-11-15) offers
-# no Backchain child at any stage: no whole `plan`/`draft`, no read-only `review`/`audit` and no `repair`/`revise`.  The
-# planning guide's dependency audit and the record-only `backchain-check` stay.  Basis: the 2026-11-15 value study found
-# no meaningful plan-quality edge for Backchain on Grok 4.6 xhigh, Sol 6.1 medium or Sonnet 5.5 high, at 10-15x the
-# tokens (docs/experiments/backchain-value-20261115/RESULTS.md).  ``one`` opts in with one review/fix/check cycle;
-# ``converge`` opts in with Backchain's default gate, completing at the first trivial review (owner decision D-D,
-# 2026-11-01: the converge marker never reached a printed packet after Backchain 0.7.0, so converge already ran that
-# gate, and 0 of 18 confirming reviews changed anything).  The CLI, the state and SPEC S-10's carve-out name the same
-# three.
-BACKCHAIN_PASSES_MODES = ("one", "converge", "none")
-DEFAULT_BACKCHAIN_PASSES = "none"
-
-
-# Product-acceptance's audit item requests the Backchain audit its optional line offers, so a run with no Backchain child
-# (``none``, the default since 2026-11-15) prints neither: duty() puts the guide's own audit in the item's place, and
-# prompt() prints no line.
-_PRODUCT_ACCEPTANCE_AUDIT_ITEM_NONE = """\
-7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: check it with the
-   Backchain planning guide's dependency audit and route it as item 6 says.
-"""
-_PRODUCT_ACCEPTANCE_AUDIT_ITEM = """\
-7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: request a Backchain
-   `review` / `audit` as the audit line below says; cite its receipt in `evidence_refs`.
-"""
-
-
-def _require_backchain_passes(backchain_passes: str) -> None:
-    if backchain_passes not in BACKCHAIN_PASSES_MODES:
-        raise ValueError(f"unknown backchain passes option: {backchain_passes!r}")
-
-
-def offers_backchain_child(backchain_passes: str) -> bool:
-    """Whether a run with this option offers any Backchain child: a whole `plan`/`draft`, a read-only
-    `review`/`audit` or a `repair`/`revise`.  ``none``, the default, offers none (owner decision 2026-11-15)."""
-    _require_backchain_passes(backchain_passes)
-    return backchain_passes != "none"
-
-
-def offers_whole_backchain_loop(stage: str, backchain_passes: str) -> bool:
-    """Whether `stage` may request a whole `plan`/`draft` Backchain loop in a run with this option.
-
-    The one definition, used for the plan packet's loop text here and for the resource block the navigator
-    prints: a stage that does not offer the loop prints the read-only audit route and the loop-resource status.
-    """
-    _require_backchain_passes(backchain_passes)
-    return stage in BACKCHAIN_NATIVE_CALLS and backchain_passes != "none"
-
-
-# The resource the read-only audit needs (the `backchain-caller/v1` contract); the other seven serve a whole loop.
-BACKCHAIN_AUDIT_RESOURCE = "Backchain backchain-caller/v1 resource"
-
-
-def backchain_skills_root() -> Path:
-    """The skills directory of this plugin install: where Backchain and the Until Loop adapter sit."""
+def plugin_skills_root() -> Path:
+    """The skills directory of this plugin install: where the Improve card and its Until Loop runtime sit."""
     return Path(__file__).resolve().parent.parent.parent
 
 
 def installed_improve_card() -> Path:
     """The Improve card installed beside ShipLoop in this plugin install, by file location (never a name or PATH search).
 
-    The same skills directory as the Backchain and Until Loop resources.  Whether it is usable is
-    ``shiploop_standalone_improve.resolve_skill``'s decision, not this function's.
+    Whether it is usable is ``shiploop_standalone_improve.resolve_skill``'s decision, not this function's.
     """
-    return backchain_skills_root() / "improve" / "SKILL.md"
+    return plugin_skills_root() / "improve" / "SKILL.md"
 
 
-def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
-    """Resolve the fixed Backchain/Until Loop resources from this plugin install."""
-    skills_root = backchain_skills_root()
-    resources = (
-        ("Backchain SKILL.md", "backchain/SKILL.md"),
-        (BACKCHAIN_AUDIT_RESOURCE, "backchain/references/caller-contract.md"),
-        ("Backchain references/convergence.md", "backchain/references/convergence.md"),
-        (
-            "Backchain prompts/convergence-review.prompt.md",
-            "backchain/prompts/convergence-review.prompt.md",
-        ),
-        # Backchain 0.7.0's toolkit: the child's prepare, freeze, record, verify and finish (Round 10, W1)
-        ("Backchain scripts/backchain.py", "backchain/scripts/backchain.py"),
-        ("Until Loop ADAPTER.md", "improve/runtime/until-loop/ADAPTER.md"),
-        (
-            "Until Loop references/runtime-ephemeral.md",
-            "improve/runtime/until-loop/references/runtime-ephemeral.md",
-        ),
-        (
-            "Until Loop scripts/until_loop_ephemeral.py",
-            "improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
-        ),
-    )
-    resolved = []
-    for label, relative_path in resources:
-        path = skills_root / relative_path
-        value = (
-            str(path.resolve())
-            if path.is_file()
-            else f"MISSING: skills/{relative_path}"
-        )
-        resolved.append((label, value))
-    return tuple(resolved)
-
-
-# Record only: the navigator prints the command; nothing refuses a failing check.
-BACKCHAIN_CHECK = ("Run the printed `backchain-check` after each candidate revision; a failure is a loop finding; "
-                   "cite its receipt in `evidence_refs`.\n")
-# The same check in a run with no Backchain child (``none``, the default): there is no Backchain loop for a failure to
-# belong to, and nothing for the host to check unless it wrote a graph.  What the check reads is said in these words
-# wherever a run with no Backchain child tells the host to run it.  The 2026-11-15 default round (LEARNINGS.md): at spec the host ran
-# the check on docs/shiploop/spec.md ("after each candidate revision"), was refused as not JSON, then wrote a one-step
-# graph and re-ran that one file at plan, step-plan and product-acceptance only to have a receipt at each; the four
-# receipt folders hold the same candidate hash.
+# A Backchain stage prints ShipLoop's Backchain planning guide and the record-only `backchain-check`, and nothing else
+# about Backchain.  The standalone Backchain skill, and with it the run option `backchain_passes` and every Backchain
+# child it could offer (a whole `plan`/`draft`, a read-only `review`/`audit`, a `repair`/`revise`), was retired by owner
+# decision on 2026-11-16: the 2026-11-15 value study (docs/experiments/backchain-value-20261115/RESULTS.md) and the
+# premise review (docs/backchain-efficiency-journal-2026-11.md, Round 15) found current models plan as well without it,
+# at a tenth of the tokens.  The guide's dependency audit is ShipLoop's own and stays.
+#
+# What the check reads is said in these words wherever a packet tells the host to run it.  The 2026-11-15 default round
+# (LEARNINGS.md): at spec the host ran the check on docs/shiploop/spec.md ("after each candidate revision"), was refused
+# as not JSON, then wrote a one-step graph and re-ran that one file at plan, step-plan and product-acceptance only to have
+# a receipt at each; the four receipt folders hold the same candidate hash.
 _BACKCHAIN_CHECK_READS = (
-    "The printed `backchain-check` reads only a candidate graph in Backchain's plan schema, a JSON file\n"
-    "(Backchain SKILL.md, \"Plan document shape\"), never a spec, a Markdown note or a prose plan. Run it after each\n"
+    "The printed `backchain-check` reads only a candidate graph in the plan graph format, a JSON file (Backchain\n"
+    "planning guide, \"Plan graph format\"), never a spec, a Markdown note or a prose plan. Run it after each\n"
     "revision of a graph you wrote, and write none only to run it; a failure is a finding. Cite its receipt in\n"
     "`evidence_refs`.")
-_BACKCHAIN_CHECK_NONE = _BACKCHAIN_CHECK_READS + "\n"
-
-
+_BACKCHAIN_CHECK = _BACKCHAIN_CHECK_READS + "\n"
 _BACKCHAIN_ROUTE = """\
 Follow the packet's Backchain planning guide for this stage's scoped outcome,
 prerequisite and consumer review. Carry selected requirement sections and test
-locators through the plan and existing result/context fields. The only Backchain
-call route is `source-aware-native`; ShipLoop carries no embedded Backchain mode.
+locators through the plan and existing result/context fields.
 
 """
-# The route paragraph of a run that offers no Backchain child (``none``, the default): the planning guide and the
-# record-only check stay; no call route is named, because there is none to take.
-_BACKCHAIN_ROUTE_NONE = """\
-Follow the packet's Backchain planning guide for this stage's scoped outcome,
-prerequisite and consumer review. Carry selected requirement sections and test
-locators through the plan and existing result/context fields. This run requests
-no Backchain child (Backchain passes option `none`, the default).
-
-"""
-# Printed only where a whole loop may start (plan): the resource gate, the record rules, the child's scope.
-_BACKCHAIN_PLAN_CALL = """\
-A `source-aware-native` call needs every resource in the packet's printed
-"Selected Backchain and Until Loop resources" block below. A `MISSING: ...` entry
-blocks the route for that named resource: report it as the blocker, not as
-unverifiable, and never substitute a sibling, cache or other install. Record the
-binding id, candidate and receipt paths in `evidence_refs` and work-item `context`.
-A structural plan, planned check, or experiment that merely ran is not execution
-evidence or a passed experiment. Material findings remain visible and cannot clear
-ordinary Improve. The planning guide's Source-aware native caller section holds the
-capability check the host judges, the incompatibility of an old custom Backchain
-loop, and the no-fallback rule.
-
-The Until Loop child is plan-only when invoked by Backchain for dependency analysis:
-it may change the candidate plan and permitted planning companions, but may not
-commit, push, merge, execute the project, or broaden scope. These restrictions
-belong to that Backchain child, not the separate Improve executor's authority.
-
-"""
-_BACKCHAIN_AUDIT_HEAD = """\
-Request action `review` / stage `audit` only for a material prerequisite
-ambiguity, pending/corrective dependency or acceptance gap: a read-only, one-pass
-diagnostic that changes no candidate and completes no parent action. A material
-finding goes to the stage owner, who within explicit authorized edit bounds may
-request exactly one action `repair` / stage `revise`, a whole native operation
-that needs the loop resources named in the planning guide's Source-aware native
-caller section (the packet's "Loop resources" line reports them)."""
-# Mode one.  An instruction to write the marker line, not a gate field: the audit text never names
-# `required_trivial_reviews`; the child's gate and exit condition are the ones Backchain's convergence reference
-# defines for the marker line, and without a line a repair/revise child runs that reference's default (its first
-# trivial review completes, owner decision 2026-11-01).
-_BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle: put the line
-`Backchain passes: one` beside the binding marker in the child request, as Backchain's
-convergence reference defines it, and pass `--passes one` to `prepare`."""
-# Mode converge (owner decision D-D, 2026-11-01): Backchain's default gate, so the child request carries no marker line.
-_BACKCHAIN_AUDIT_CONVERGE = """ A repair/revise child runs Backchain's default gate and completes at
-its first trivial review: put no `Backchain passes:` line in the child request and pass no
-`--passes` to `prepare`."""
-_BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
-at `plan`."""
-_BACKCHAIN_AUDIT_TAIL = """ Start the child with Backchain SKILL.md step 1's `prepare` (`--run` the
-printed Backchain planning run directory, `--request`, `--caller` the repair/revise packet,
-`--draft` the candidate, `--binding`), then `freeze`, which writes its start contract. A MISSING loop resource blocks
-repair/revise; no other install substitutes. A forbidden revision, nonterminal child or unresolved finding stays
-incomplete and is not submitted as a completed parent action.
-"""
-_BACKCHAIN_IMPROVE_OWNER = """\
-Improve is a broader review than Backchain's diagnostic. It reads Backchain findings and the
-returned candidate as ordinary inputs; it does not request or count Backchain
-passes, and creates no `active_backchain` child, nested Until Loop, retry
-dispatcher or new callback. For a dependency diagnostic use a one-pass Backchain
-primitive, never a whole Backchain→Until Loop child. A Backchain child is
-plan-only (no commit, push, merge or project execution). These restrictions
-belong to that Backchain child, not the separate Improve executor's authority.
-A protected or out-of-scope change follows the existing blocked or recovery route.
-"""
 
 
-# The plan-stage gate sentence in `converge` mode (owner decision D-D, 2026-11-01): Backchain's default gate, which
-# completes at the first trivial review; the child request carries no marker line and freeze writes the contract.
-_BACKCHAIN_PLAN_GATE_CONVERGE = """\
-Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
-transition; Backchain and ShipLoop do not copy that runtime or create another controller.
-Put no `Backchain passes:` line in the child request: the child runs Backchain's default
-gate and completes at its first trivial review. Start it with Backchain SKILL.md step 1's
-`prepare` (`--run` the printed Backchain planning run directory, `--request`, `--caller` the
-plan/draft packet, `--binding`; no `--passes`), then `freeze`, which writes its start
-contract (never you).
-"""
-# In `one` mode the packet prints the gate and the exit condition Backchain's `freeze` writes for the marker line
-# (Backchain 0.7.0 writes the child's start contract; before it, the host copied them into a hand-written one).
-# Owner decision 2026-10-04 (docs/shiploop-fast-planning-plan-2026-10-04.md, "Backchain single pass: mechanism").
-# The vendored Until Loop completes at gate 0 on the first report that assesses the exit as satisfied, so the exit
-# text is what makes one cycle enough: under the two-review exit text Luna (skill-craft 1.16.1) reported
-# `unsatisfied` through pass 6. Backchain's convergence reference states the same clauses for the marker line;
-# test/shiploop-navigator-contract.test.py BackchainGateDocumentsTest keeps the two the same.
-_BACKCHAIN_PLAN_GATE_ONE = """\
-Until Loop owns the callback handle, progress, its review gate, recovery, and terminal
-transition; Backchain and ShipLoop do not copy that runtime or create another controller.
-Backchain passes: one. Put the line `Backchain passes: one` beside the binding marker in the
-child request; start the child with Backchain SKILL.md step 1's `prepare` (`--run` the
-printed Backchain planning run directory, `--request`, `--caller` the plan/draft packet,
-`--binding`, `--passes one`), then `freeze`, which writes its start contract (never you)
-with `required_trivial_reviews: 0` and this exit condition: One complete dependency
-review/fix/check cycle has run; every finding of that cycle is repaired within the edit
-bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's
-Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is
-cited; final candidate-specific domain evidence is saved. A pass that completes that cycle
-reports `exit_assessment: satisfied` even when it repaired the candidate; Until Loop then
-completes the child and no second review runs.
-"""
-
-
-# Printed with the one-pass gate only (it once followed "Write the child's start contract ... verbatim", which read as
-# an order; the converge gate never had that sentence).  Says what the script enforces (nothing refuses a plan without the child)
-# and what it cannot see; the dependency audit is the planning guide's duty either way.
-_BACKCHAIN_PLAN_CHOICE = """\
-The `plan`/`draft` request is your choice: nothing refuses a plan without it, and ShipLoop
-cannot see whether the child ran. The planning guide's dependency audit is not optional on
-either route. Say in this result's `summary` which route you took and why. The start
-commands below apply only if you request the child. The printed `backchain-check` reads
-a candidate graph in Backchain's plan schema (Backchain SKILL.md, "Plan document shape"),
-not a prose plan.
-"""
-
-
-def _one_pass(backchain_passes: str) -> bool:
-    """Whether a Backchain child's gate text is the one-pass text (mode `one`; `none` prints no child text at all)."""
-    return backchain_passes != "converge"
-
-
-def _backchain_guidance(stage: str, *, improve_owner: bool = False,
-                        backchain_passes: str = DEFAULT_BACKCHAIN_PASSES) -> str:
-    """Return host-mediated caller guidance without adding navigator state.
-
-    The loop text and the resource gate are printed only at the stage that may start a whole loop (plan);
-    the other Backchain stages print the read-only audit route and the rule that a material finding may
-    request one repair/revise.
-
-    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  The default ``none`` offers no Backchain
-    child (owner decision 2026-11-15), so every Backchain stage prints the planning guide's route without a call route,
-    and the record-only check.  ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at
-    the audit stages; ``converge`` prints Backchain's default gate, with no marker line.
-    """
-    _require_backchain_passes(backchain_passes)
-    if improve_owner:
-        return _BACKCHAIN_ROUTE + _BACKCHAIN_IMPROVE_OWNER
-    if stage in BACKCHAIN_STAGES and not offers_backchain_child(backchain_passes):
-        return _BACKCHAIN_ROUTE_NONE + _BACKCHAIN_CHECK_NONE
-    if offers_whole_backchain_loop(stage, backchain_passes):
-        action, operation = BACKCHAIN_NATIVE_CALLS[stage]
-        return _BACKCHAIN_ROUTE + _BACKCHAIN_PLAN_CALL + f"""\
-Through `source-aware-native`, the current stage host may
-request exactly one action `{action}` / stage `{operation}` within the packet's
-scope. Backchain invokes the selected actual Until Loop for its dependency-specific
-review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
-""" + (_BACKCHAIN_PLAN_CHOICE + _BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes)
-       else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
-Backchain returns opaque actual Until Loop terminal evidence only after the child reports
-`complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
-child leaves this parent action incomplete and must not be submitted as a completed parent
-action. Only that exact `complete` receipt plus final candidate identity and domain evidence
-permits Backchain planning convergence. The draft is a proposed candidate; ShipLoop still owns
-acceptance and lifecycle state.
-""" + BACKCHAIN_CHECK
-    if stage in BACKCHAIN_STAGES:  # an audit stage
-        audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes)
-                                          else _BACKCHAIN_AUDIT_CONVERGE)
-                 + _BACKCHAIN_AUDIT_WHOLE
-                 + _BACKCHAIN_AUDIT_TAIL)
-        return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK
-    return _BACKCHAIN_ROUTE + """\
-This stage has no native Backchain action. Keep relevant findings in ordinary
-notes and route a material planning gap through its authorized owner.
-"""
+def _backchain_guidance(stage: str) -> str:
+    """The route paragraph of a Backchain stage whose duty does not fold it in: the planning guide's route and the
+    record-only graph check."""
+    if stage not in BACKCHAIN_STAGES:
+        raise ValueError(f"not a Backchain stage: {stage!r}")
+    return _BACKCHAIN_ROUTE + _BACKCHAIN_CHECK
 
 
 # The Backchain item of the spec and plan duties (packet re-cut, 2026-10-11): the stages whose duty folds the Backchain
-# caller guidance, so prompt() prints no second copy of it.  The other Backchain stages still print _backchain_guidance.
+# route, so prompt() prints no second copy of it.  The other Backchain stages still print _backchain_guidance.
 BACKCHAIN_FOLDED_STAGES = ("spec", "plan")
-
-_BACKCHAIN_ITEM_AUDIT = """\
-Request a Backchain `review` / `audit` only for a material prerequisite ambiguity, a pending or corrective
-    dependency, or an acceptance gap (Backchain planning guide). It is read-only, one pass, changes no candidate and
-    completes no parent action. On a material finding you may request exactly one `repair` / `revise` within your
-    edit bounds:
-    - it needs every loop resource on the Loop resources line; a MISSING one blocks it, and no other install
-      substitutes;
-{marker}    - start the child with Backchain SKILL.md step 1's `prepare` (`--run` the printed Backchain planning run
-      directory, `--request`, `--caller` the repair/revise packet, `--draft` the candidate, `--binding`{passes}),
-      then `freeze`, which writes its start contract (never you);
-    - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
-      done.
-    Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
-    `evidence_refs`. The only call route is `source-aware-native`."""
-# The spec and plan items of a run that offers no Backchain child (``none``, the default since 2026-11-15): ShipLoop's
-# own dependency audit (plan) and the record-only graph check stay, and no child request is printed.
-_BACKCHAIN_ITEM_PLAN_NONE = (
+_BACKCHAIN_ITEM_PLAN = (
     """\
-Run the dependency audit of the Backchain planning guide. This run requests no Backchain child (Backchain
-    passes option `none`, the default).
+Run the dependency audit of the Backchain planning guide.
     """ + _BACKCHAIN_CHECK_READS.replace("\n", "\n    ") + """
     Keep material findings visible in `summary`. Carry the selected requirement sections and test locators through
     the plan and the items' `context`.""")
-_BACKCHAIN_ITEM_CHECK_NONE = (
+_BACKCHAIN_ITEM_CHECK = (
     """\
-Check outcomes and missing prerequisites with the Backchain planning guide. This run requests no Backchain child
-    (Backchain passes option `none`, the default).
+Check outcomes and missing prerequisites with the Backchain planning guide.
     """ + _BACKCHAIN_CHECK_READS.replace("\n", "\n    "))
-_BACKCHAIN_ITEM_MARKER = "    - put the line `Backchain passes: one` beside the binding marker in the child request;\n"
-# Mode converge (owner decision D-D, 2026-11-01): Backchain's default gate; the request carries no marker line.
-_BACKCHAIN_ITEM_DEFAULT_GATE = ("    - put no `Backchain passes:` line in the child request: it runs Backchain's default "
-                                "gate and completes\n      at its first trivial review;\n")
-_BACKCHAIN_ITEM_PLAN = """\
-Run the dependency audit of the Backchain planning guide on every route. You may also request one Backchain
-    `plan` / `draft` through `source-aware-native`, the only call route.{choice} If you request it:
-    - every resource in the printed "Selected Backchain and Until Loop resources" block is required. A `MISSING`
-      entry is the blocker to report; never substitute a sibling, cache or other install;
-    - Backchain runs the selected Until Loop with `Backchain standalone Until Loop binding: <binding-id>`. The child
-      is plan-only: it may change the candidate plan and permitted planning companions, and may not commit, push,
-      merge, run the project or broaden scope. {gate}
-    - record the binding id, candidate and receipt paths in `evidence_refs` and the affected items' `context`;
-    - report done only with the child's exact `complete` receipt saved, with the final candidate's identity and its
-      domain evidence. A nonterminal, unresolved or incompatible child leaves this stage incomplete. The draft is a
-      candidate; ShipLoop owns acceptance.
-    Run the printed `backchain-check` after each candidate revision. It reads a candidate graph in Backchain's plan
-    schema (Backchain SKILL.md, "Plan document shape"), not a prose plan. A failure is a finding; cite its receipt in
-    `evidence_refs`. A structural plan, a planned check or an experiment that merely ran is not execution evidence.
-    Keep material findings visible in `summary`. Carry the selected requirement sections and test locators through
-    the plan and the items' `context`."""
-_BACKCHAIN_PLAN_CHOICE_ITEM = (" Nothing refuses a plan without it and ShipLoop cannot see whether the child ran, "
-                               "so say in `summary` which route you took and why.")
-_BACKCHAIN_GATE_ONE_ITEM = """Until Loop owns the callback handle, progress, the review gate,
-      recovery and the terminal transition; copy none of it. Put the line `Backchain passes: one` beside the binding
-      marker in the child request; start the child with Backchain SKILL.md step 1's `prepare` (`--run` the printed
-      Backchain planning run directory, `--request`, `--caller` the plan/draft packet, `--binding`, `--passes one`),
-      then `freeze`, which writes its start contract (never you) with `required_trivial_reviews: 0` and this exit
-      condition: One complete dependency review/fix/check cycle has run; every finding of that cycle is
-      repaired within the edit bounds; every `Confirm by` clause on a step this cycle may change meets the planning
-      guide's Outcomes rule; the printed `backchain-check` is ok on the final candidate and its receipt is cited;
-      final candidate-specific domain evidence is saved. A pass that completes that cycle reports `exit_assessment:
-      satisfied` even when it repaired the candidate, and no second review runs;"""
-# Mode converge (owner decision D-D, 2026-11-01): until then this item said `required_trivial_reviews: 2` without the
-# marker line, so a host ran `prepare` without `--passes` and freeze wrote Backchain's default gate anyway.
-_BACKCHAIN_GATE_CONVERGE_ITEM = """Until Loop owns the callback handle, progress, the review gate,
-      recovery and the terminal transition; copy none of it. Put no `Backchain passes:` line in the child request:
-      the child runs Backchain's default gate and completes at its first trivial review. Start it with Backchain
-      SKILL.md step 1's `prepare` (`--run` the printed Backchain planning run directory, `--request`, `--caller` the
-      plan/draft packet, `--binding`; no `--passes`), then `freeze`, which writes its start contract (never you);"""
 
 
-def _backchain_item(stage: str, backchain_passes: str) -> str:
-    """The Backchain item text of the spec or plan duty, for the run's Backchain passes option."""
-    _require_backchain_passes(backchain_passes)
-    if not offers_backchain_child(backchain_passes):
-        return _BACKCHAIN_ITEM_PLAN_NONE if stage == "plan" else _BACKCHAIN_ITEM_CHECK_NONE
-    one = _one_pass(backchain_passes)
-    if stage == "plan":  # one and converge offer the whole loop at plan
-        return _BACKCHAIN_ITEM_PLAN.format(choice=_BACKCHAIN_PLAN_CHOICE_ITEM if one else "",
-                                           gate=_BACKCHAIN_GATE_ONE_ITEM if one else _BACKCHAIN_GATE_CONVERGE_ITEM)
-    return _BACKCHAIN_ITEM_AUDIT.format(marker=_BACKCHAIN_ITEM_MARKER if one else _BACKCHAIN_ITEM_DEFAULT_GATE,
-                                        passes=", `--passes one`" if one else "; no `--passes`")
-
-
-BACKCHAIN_GUIDANCE = _backchain_guidance("plan")
+def _backchain_item(stage: str) -> str:
+    """The Backchain item text of the spec or plan duty."""
+    return _BACKCHAIN_ITEM_PLAN if stage == "plan" else _BACKCHAIN_ITEM_CHECK
 
 
 def _require_stage(stage: str) -> None:
@@ -2445,15 +2118,14 @@ def _one_step_carry_forward(text: str, item: str) -> str:
 
 
 def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage",
-         backchain_passes: str = DEFAULT_BACKCHAIN_PASSES, execution_mode: str | None = None,
-         one_step_item: str | None = None, interactions: bool = True) -> str:
+         execution_mode: str | None = None, one_step_item: str | None = None, interactions: bool = True) -> str:
     """Return one stage duty with the run's implementation-route paragraph.
 
     ``planning_review`` is the run's option (see stage_spec.PLANNING_REVIEW_MODES): ``stage`` renders the
     text below unchanged, ``none`` swaps the sentences that promise an Improve stage the run will not start
     (see _NO_REVIEW_SWAPS).  The literal default ``stage`` keeps catalog renders independent of the option's
-    default.  ``backchain_passes`` picks the Backchain item of spec and plan; ``execution_mode`` (state key
-    ``execution_mode``) picks what the commit rule says about a file the item commit leaves.  ``one_step_item`` is the
+    default.  ``execution_mode`` (state key ``execution_mode``) picks what the commit rule says about a file the
+    item commit leaves.  ``one_step_item`` is the
     item's ID when the run has one work item with one step and no pending item (``shiploop_loops.one_step_run``): the
     carry-forward duty then prints items 2 and 3 short; every other stage ignores it.  ``interactions`` False (the
     navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves duty 9's interaction
@@ -2462,16 +2134,13 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     _require_stage(stage)
     _require_delegation(delegation)
     _require_planning_review(planning_review)
-    _require_backchain_passes(backchain_passes)
     text = DUTIES[stage]
     if stage == "carry-forward" and one_step_item:
         text = _one_step_carry_forward(text, one_step_item)
     if not interactions:
         text = text.replace(_PLAN_RECORD_INTERACTIONS, "")
     if _BACKCHAIN_ITEM in text:
-        text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage, backchain_passes))
-    if stage == "product-acceptance" and not offers_backchain_child(backchain_passes):
-        text = text.replace(_PRODUCT_ACCEPTANCE_AUDIT_ITEM, _PRODUCT_ACCEPTANCE_AUDIT_ITEM_NONE)
+        text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage))
     if _ITEM_COMMIT in text:
         text = text.replace(_ITEM_COMMIT, _item_commit_rule(execution_mode))
     if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
@@ -2553,28 +2222,26 @@ def common_text(planning_review: str = stage_spec.DEFAULT_PLANNING_REVIEW) -> st
 BACKCHAIN_STUB = "Backchain: the route's paragraph follows the result template."
 
 
-def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, planning_review: str,
+def _prompt_parts(stage: str, *, delegation: str, planning_review: str,
                   execution_mode: str | None, one_step_item: str | None = None,
                   interactions: bool = True) -> list[tuple[str, str]]:
     """The producer instruction as ``(kind, text)`` parts in print order; ``prompt`` joins them.
 
-    ``kind`` is ``duty``, ``audit`` (the inline route's short optional audit line), ``backchain`` (the route paragraph of a
-    stage that may call Backchain), ``craft`` or ``rules``.
+    ``kind`` is ``duty``, ``backchain`` (the route paragraph of a Backchain stage whose duty does not fold it in),
+    ``craft`` or ``rules``.
     """
     parts = [("duty", duty(stage, delegation=delegation, planning_review=planning_review,
-                           backchain_passes=backchain_passes, execution_mode=execution_mode,
-                           one_step_item=one_step_item, interactions=interactions))]
+                           execution_mode=execution_mode, one_step_item=one_step_item,
+                           interactions=interactions))]
     # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
     # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
     # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
     if stage in INLINE_AUDIT_STAGES and delegation == INLINE or stage in AUDIT_LINE_STAGES:
-        if offers_backchain_child(backchain_passes):  # the line requests an audit child; `none` prints no line
-            parts.append(("audit", INLINE_BACKCHAIN_AUDIT))
+        pass  # no route paragraph: the guide and the graph check print with the packet's locators
     elif stage in BACKCHAIN_FOLDED_STAGES:
-        pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
+        pass  # the Backchain item is folded into the duty
     elif stage in BACKCHAIN_STAGES:
-        parts.append(("backchain", _swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage,
-                                            planning_review)))
+        parts.append(("backchain", _swapped(_backchain_guidance(stage), stage, planning_review)))
     if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
         parts.append(("craft", CODE_CRAFT))
     parts.append(("rules", STAGE_RULES))
@@ -2582,39 +2249,34 @@ def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, plannin
 
 
 def prompt(stage: str, *, delegation: str = ASK_AGENT,
-           backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
            planning_review: str = "stage", execution_mode: str | None = None,
            one_step_item: str | None = None, interactions: bool = True) -> str:
     """Return the single current producer instruction for a navigator graph stage.
 
-    The navigator always passes the run's delegation, Backchain passes option and planning review
-    option; the ask-agent default keeps catalog renders identical to runs recorded before the
-    delegation setting existed, and the catalog renders the default of each option.
+    The navigator always passes the run's delegation and planning review option; the ask-agent default keeps
+    catalog renders identical to runs recorded before the delegation setting existed, and the catalog renders the
+    default of each option.
     """
     _require_stage(stage)
     _require_delegation(delegation)
-    _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
     return "\n\n".join(text for _, text in _prompt_parts(
-        stage, delegation=delegation, backchain_passes=backchain_passes, planning_review=planning_review,
+        stage, delegation=delegation, planning_review=planning_review,
         execution_mode=execution_mode, one_step_item=one_step_item, interactions=interactions))
 
 
 def prompt_split(stage: str, *, delegation: str = ASK_AGENT,
-                 backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
                  planning_review: str = "stage", execution_mode: str | None = None,
                  one_step_item: str | None = None, interactions: bool = True) -> tuple[str, str]:
     """``(prompt text, Backchain route paragraph)`` for a packet that prints the paragraph behind its result template.
 
     The first holds everything ``prompt`` returns, with ``BACKCHAIN_STUB`` where the paragraph stood; the second is the
-    paragraph, or "" for a stage without one (the inline route's short audit line stays in place).  Joined back in place
-    of the stub, the two are exactly ``prompt``.
+    paragraph, or "" for a stage without one.  Joined back in place of the stub, the two are exactly ``prompt``.
     """
     _require_stage(stage)
     _require_delegation(delegation)
-    _require_backchain_passes(backchain_passes)
     _require_planning_review(planning_review)
-    parts = _prompt_parts(stage, delegation=delegation, backchain_passes=backchain_passes,
+    parts = _prompt_parts(stage, delegation=delegation,
                           planning_review=planning_review, execution_mode=execution_mode, one_step_item=one_step_item,
                           interactions=interactions)
     moved = next((text for kind, text in parts if kind == "backchain"), "")
@@ -3025,11 +2687,9 @@ for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
 
 __all__ = (
     "ASK_AGENT",
-    "BACKCHAIN_PASSES_MODES",
     "COMMON",
     "common_text",
     "for_steps",
-    "DEFAULT_BACKCHAIN_PASSES",
     "DELEGATIONS",
     "DUTIES",
     "END_REVIEW_FOCUS",
