@@ -321,6 +321,74 @@ class InvokeLinesTests(Synthetic):
     def block(self, state: dict, stage: str | None = None) -> support.LoopBlock:
         return support.LoopBlock("\n".join(loops.invoke_lines(self.root, state)))
 
+    def test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd(self):
+        """R19: qualify the actual shell launch, including spaces, before changing its formatter."""
+        from unittest import mock
+
+        self.root = self.root.parent / "run with spaces"
+        (self.root / "loops").mkdir(parents=True)
+        state = self.state_for("document")
+        self.write(state)
+        receipt = loops.receipt_path(self.root, "A-document")
+        contract = self.root / loops.contract_path("A-document")
+        before = sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*"))
+        with mock.patch.object(subprocess, "run", side_effect=AssertionError("formatting executes a process")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("formatting executes a process")), \
+                mock.patch.object(Path, "mkdir", side_effect=AssertionError("formatting creates a directory")):
+            block = self.block(state)
+            absent = self.root / "not created" / "receipt.json"
+            loops.start_command(loops.runtime(state), absent, contract)
+        self.assertEqual(sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*")), before)
+        self.assertFalse(absent.parent.exists())
+        with tempfile.TemporaryDirectory(prefix="foreign cwd ") as elsewhere:
+            packet = block.run(Path(elsewhere))
+        backing = Path(packet["state_file"])
+        # Register only this launch's allocated file, with its inode, before the location assertion can fail.
+        owned = backing.stat()
+
+        def cleanup():
+            if backing.exists() and backing.stat().st_ino == owned.st_ino and backing.stat().st_dev == owned.st_dev:
+                backing.unlink()
+
+        self.addCleanup(cleanup)
+        self.assertEqual(packet["status"], "active")
+        self.assertEqual(json.loads(receipt.read_text()), packet)
+        self.assertEqual(backing.parent, receipt.parent, "live state must belong to the run's existing loops directory")
+
+    def test_distinct_actions_and_runs_keep_independent_live_state(self):
+        """Distinct receipts are isolated; this does not test concurrent starts on the same receipt."""
+        packets = []
+        for run, action in (("run", "A-document"), ("run", "A-document-2"), ("second run", "A-document")):
+            self.root = self.repo.parent / run
+            (self.root / "loops").mkdir(parents=True, exist_ok=True)
+            state = self.state_for("document")
+            state["inner_loops"]["W1"]["action"]["id"] = action
+            self.write(state)
+            packet = self.block(state).run(self.repo)
+            packets.append(packet)
+            self.assertEqual(Path(packet["state_file"]).parent, self.root / "loops")
+        self.assertEqual(len({p["state_file"] for p in packets}), 3)
+        self.assertEqual(len({p["receipt"] for p in packets}), 3)
+        self.assertEqual(len({p["done_argv"][-1] for p in packets}), 3)
+        before = {p["state_file"]: Path(p["state_file"]).read_bytes() for p in packets}
+        receipts = {p["receipt"]: Path(p["receipt"]).read_bytes() for p in packets}
+        crossed = [*packets[1]["done_argv"][:-1], packets[0]["done_argv"][-1]]
+        refused = subprocess.run(crossed, input=json.dumps(TRIVIAL), text=True, capture_output=True, timeout=30)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("action token does not match", refused.stdout + refused.stderr)
+        self.assertEqual({p: Path(p).read_bytes() for p in before}, before)
+        self.assertEqual({p: Path(p).read_bytes() for p in receipts}, receipts)
+        for index, report in enumerate((TRIVIAL, BLOCKED, TRIVIAL)):
+            terminal = subprocess.run(packets[index]["done_argv"], input=json.dumps(report), text=True,
+                                      capture_output=True, check=True, timeout=30)
+            self.assertEqual(json.loads(terminal.stdout)["status"], "stopped" if index == 1 else "complete")
+            self.assertFalse(Path(packets[index]["state_file"]).exists())
+            self.assertEqual(json.loads(Path(packets[index]["receipt"]).read_text()), json.loads(terminal.stdout))
+            for survivor in packets[index + 1:]:
+                resumed = subprocess.run(survivor["next_argv"], text=True, capture_output=True, check=True, timeout=30)
+                self.assertEqual(json.loads(resumed.stdout), survivor)
+                self.assertEqual(Path(survivor["state_file"]).read_bytes(), before[survivor["state_file"]])
+
     def test_the_block_runs_the_loop_first_and_shows_the_argument_between_two_markers(self):
         for stage in stage_spec.INNER:
             state = self.state_for(stage)
@@ -399,18 +467,23 @@ class InvokeLinesTests(Synthetic):
                 words = shlex.split(block.command)
                 self.assertEqual(words[:2][0], "python3")
                 self.assertTrue(words[1].endswith("until-loop/scripts/until_loop_ephemeral.py"))
-                self.assertEqual(words[2:], ["start", "--receipt", str(receipt), "<", str(contract_file)])
+                self.assertEqual(words[2:], ["start", "--receipt", str(receipt), "--directory", str(receipt.parent),
+                                             "<", str(contract_file)])
                 # The command and the argument name the same two files.
                 self.assertEqual(block.field("Contract: "), str(contract_file))
                 self.assertEqual(block.field("Receipt: "), str(receipt))
                 self.assertFalse(receipt.exists())
                 with tempfile.TemporaryDirectory(prefix="shiploop-cwd-") as elsewhere:
                     started = block.run(Path(elsewhere))
+                self.assertEqual(Path(started["state_file"]).parent, receipt.parent)
                 self.assertEqual(started["status"], "active", started)
                 self.assertEqual(started["receipt"], str(receipt))
                 self.assertEqual(json.loads(receipt.read_text()), started)
                 self.assertEqual(started["work"], json.loads(contract_file.read_text())["work"])
                 self.assertEqual([started["done_argv"][2], started["next_argv"][2]], ["done", "next"])
+                terminal = self.report(receipt, BLOCKED)
+                self.assertEqual(terminal["status"], "stopped")
+                self.assertFalse(Path(started["state_file"]).exists())
 
     def test_the_result_line_names_the_receipt_the_next_command_and_the_runtimes_five_report_fields(self):
         """What the finished loop leaves, what to do with it, and the report the runtime requires (SP-4)."""
@@ -679,6 +752,77 @@ class NavigatorLoopTests(fx.RunDriver):
 
     def receipt(self) -> Path:
         return loops.receipt_path(self.run_dir, self.action())
+
+    def test_emitted_launch_resumes_and_check_done_complete_accepts_once(self):
+        self.start()
+        self.drive_to("document")  # Synthetic predecessor setup; this action uses only the emitted launch below.
+        packet_text = self.packet()
+        action = self.action()
+        receipt = self.receipt()
+        active = support.LoopBlock(packet_text).run(self.base)
+        backing = Path(active["state_file"])
+        self.assertEqual(backing.parent, receipt.parent)
+        before_state = (self.run_dir / "state.md").read_bytes()
+        before_backing = backing.read_bytes()
+        resumed = subprocess.run(active["next_argv"], cwd=self.base, text=True, capture_output=True,
+                                 check=True, timeout=30)
+        self.assertEqual(json.loads(resumed.stdout), active)
+        self.assertEqual(backing.read_bytes(), before_backing)
+        command = callback_argv(packet_text)
+        result = dict(DOC_DONE, headline="Fixture documentation checked.", assumptions=[], evidence_refs=[str(receipt)])
+        store.write_record(callback_result_path(packet_text), result)
+        check = ["check" if word == "complete" else word for word in command]
+        checked = subprocess.run(check, cwd=self.base, text=True, capture_output=True, timeout=60)
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertIn("the check says yes for document", checked.stdout)
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before_state)
+        terminal = subprocess.run(active["done_argv"], input=json.dumps(TRIVIAL), cwd=self.base, text=True,
+                                  capture_output=True, check=True, timeout=30)
+        final = json.loads(terminal.stdout)
+        self.assertEqual((final["status"], final["progress"]["action_number"]), ("complete", 1))
+        self.assertFalse(backing.exists())
+        terminal_bytes = receipt.read_bytes()
+        self.assertEqual(json.loads(terminal_bytes), final)
+        revision = self.state()["revision"]
+        accepted = subprocess.run(command, cwd=self.base, text=True, capture_output=True, timeout=60)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        state = self.state()
+        self.assertEqual(state["revision"], revision + 1)
+        self.assertEqual(state["active_improve"]["action_id"], action)
+        self.assertEqual(state["active_improve"]["stage"], "document")
+        self.assertEqual(state["active_improve"]["seed_result"]["outcome"], "done")
+        self.assertIn(str(receipt), state["active_improve"]["seed_result"]["evidence_refs"])
+        self.assertEqual(receipt.read_bytes(), terminal_bytes)
+
+    def test_active_restart_and_lost_state_refuse_without_replacing_receipt(self):
+        self.start()
+        self.drive_to("document")  # Synthetic predecessor setup, not evidence for this launch.
+        block = support.LoopBlock(self.packet())
+        active = block.run(self.base)
+        receipt = self.receipt()
+        backing = Path(active["state_file"])
+        before_receipt = receipt.read_bytes()
+        before_state = (self.run_dir / "state.md").read_bytes()
+        for lost in (False, True):
+            with self.subTest(lost=lost):
+                if lost:
+                    backing.unlink()  # Intentional loss of this fixture's allocated state only.
+                    missing = subprocess.run(active["next_argv"], text=True, capture_output=True, timeout=30)
+                    self.assertNotEqual(missing.returncode, 0)
+                    self.assertEqual(json.loads(missing.stdout)["status"], "error")
+                    self.assertFalse(backing.exists())
+                    self.assertEqual(receipt.read_bytes(), before_receipt)
+                files = set(receipt.parent.iterdir())
+                restart = subprocess.run(block.command, shell=True, cwd=self.base, text=True,
+                                         capture_output=True, timeout=30)
+                self.assertNotEqual(restart.returncode, 0)
+                self.assertIn("receipt already exists and is not a finished Until Loop receipt",
+                              restart.stdout + restart.stderr)
+                self.assertEqual(set(receipt.parent.iterdir()), files)
+                self.assertEqual(receipt.read_bytes(), before_receipt)
+                with self.assertRaisesRegex(nav.NavigatorError, "loop is still active"):
+                    self.submit(dict(DOC_DONE, evidence_refs=[str(receipt)]))
+                self.assertEqual((self.run_dir / "state.md").read_bytes(), before_state)
 
     def run_loop(self, reports: list, *, contract_edit=None) -> dict:
         """Start the packet's printed command, submit ``reports`` in order; the runtime writes the receipt."""
@@ -1159,6 +1303,16 @@ class MissingContractTests(unittest.TestCase):
             self.assertTrue(contract.is_file())
             self.assertEqual(json.loads(contract.read_text()), loops.contract(run, state, action))
             self.assertNotIn("The loop contract is missing", (run / "packets" / (action + ".md")).read_text())
+            active = support.LoopBlock(printed.stdout).run(repo)
+            backing = Path(active["state_file"])
+            self.assertEqual(backing.parent, run / "loops")
+            self.assertEqual(active["receipt"], str(loops.receipt_path(run, action)))
+            resumed = subprocess.run(active["next_argv"], text=True, capture_output=True, check=True, timeout=30)
+            self.assertEqual(json.loads(resumed.stdout), active)
+            stopped = subprocess.run(active["done_argv"], input=json.dumps(BLOCKED), text=True,
+                                     capture_output=True, check=True, timeout=30)
+            self.assertEqual(json.loads(stopped.stdout)["status"], "stopped")
+            self.assertFalse(backing.exists())
 
 
     def test_a_check_inside_the_loop_accepts_the_prefilled_receipt_before_it_exists(self) -> None:
