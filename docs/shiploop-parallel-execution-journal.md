@@ -6,6 +6,8 @@ as an opt-in that is decided at run time from the plan and is the same on every 
 pure isolation, with synthetic plans and no change to any skill, agent or catalog file. Registration, apparatus and
 evidence: [docs/experiments/parallel-plan-execution-20261114/](experiments/parallel-plan-execution-20261114/README.md).
 
+Status: **closed on 2026-11-15 at the owner's word** (R13); nothing further is planned.
+
 Statuses: **firm** (measured, replicated or by construction), **interim** (measured once, small n), **exploratory**
 (a pilot or a reading), **superseded** (kept, with the date and reason).
 
@@ -628,6 +630,14 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 - If the owner wants write fan-out inside a stage, the measured shape is now: a worktree per attempt, a scripted merge in completion order, the project's tests on main after every merge with a red merge undone, and on a textual conflict or a red re-test a repair in place (the failed branch with main merged in, markers left, a fresh worker, completion refused while a marker remains), not a redo; a redo, if the queue ever offers one, should not leave the failed branch visible and should tell the worker that an existing test is not a requirement (E18 did not test that wording).
 - Still unmeasured: main moving under a redo; a real semantic conflict; whether the Claude miss generalises beyond T1 against T3's pinned test; a true redo with the failed branch removed; other conflict sizes; ShipLoop's commit stage and per-step lifecycle under any of this (F15).
 - Open owner decisions, unchanged: whether concurrent work belongs inside one stage or across build steps or work items; where the layer lives (R5's pick: C now, B's shape for in-stage fan-out added to In Parallel); whether `base_tests.py` should confirm a hang before judging (E18's oracle pass reran a hung check by default for this study only and met none; the harness file is untouched); whether to build the next measurement above.
+
+### R13 — 2026-11-15: the thread is closed at the owner's word (a reading; nothing adopted, nothing further planned)
+
+- What happened. Shown E18's finished result, the owner wrote: "this looks pretty terrible. There is no scenario in which this is actually providing value." Asked what to do with the E18 work, the owner chose to close the thread (the other choice was to revert the E18 commits). This entry closes it.
+- Why the owner is largely right. E18's only consumer was a decision nobody has made, write fan-out inside a ShipLoop stage (R10, R12), and the study's own numbers put that decision's ceiling at about 1%: only 27 of 750 recorded runs have two or more work items (3.6%) and the nine timed disjoint pairs could save at most 1.3% of recorded step time (E16, 292f1dade64464b38f7cb846eb62c80c99f35fd3); one context that overlaps its own waits beat fresh-worker fan-out in five of six cells (E14, ed2c1834ba562d35540a32311e31d975a9df574d); the ideal step-level saving over recorded plans is 11.6% of step time, concentrated in 21 plans (E0, 9061056c166ab56098bb0650a28a7d5035b28973). E17 and E18 then measured, at feature scale, the queue and the recovery rule such a feature would need. I proposed E18 myself as the next step with those numbers in view and did not say so; the owner's "yes, run it" did not waive that check. E18 cost about three hours, at least $12.75 of metered model spend (Codex reports none) and two commits of about 120,000 lines, mostly evidence.
+- What the thread produced. One shipped change, option C in Ask Agent (host detection and the measured bindings; R7, ask-agent 0.11.0); the measurements in E0 to E18; and the skill-layer contract, a proposal that stays a proposal.
+- What is kept, and what it does not need. Two lessons that do not depend on the 24 trials' apparatus: F88 (a redo from main can bend a new feature to an existing test that pins the old shape while the project's own tests stay green; not tested in ShipLoop's own retries) and F84 (a test run that hangs is the loopback port collision: a server on the IPv6 wildcard and another process on 127.0.0.1 holding the same port number).
+- What is not planned. No further measurements in this study: not a moving main under a redo, a real semantic conflict, a true redo with the failed branch removed, or a slower test suite. It reopens only if the owner decides to build write fan-out inside a stage, and then R12's shape is the starting point. R10's and R12's open owner decisions are closed with it.
 
 ## Findings
 
