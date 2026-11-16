@@ -3,7 +3,9 @@
 `test/marketplace-lifecycle-smoke.py` is an explicit native-CLI check. It is
 not part of `test/run-all.sh`, `test/run-integration.sh`, or CI. Run it only
 when a machine has the selected host CLI installed and it is appropriate to
-exercise that host's local plugin cache.
+exercise that host's local plugin cache. Use Python 3.15 or newer first on PATH;
+no new Python dependency or particular manager is required. The platform-specific
+Git prerequisite and lifecycle side effects are described below.
 
 ```sh
 python3 test/marketplace-lifecycle-smoke.py \
@@ -120,7 +122,7 @@ in the saved config.
 
 ## Preconditions and evidence boundary
 
-The harness needs Python 3.11+ for `tomllib`, an installed selected CLI, and
+The harness needs Python 3.15 or newer (including standard-library `tomllib`), an installed selected CLI, and
 `/Library/Developer/CommandLineTools/usr/bin/git`. It uses that Command Line
 Tools Git executable rather than accepting an Xcode license prompt. Claude
 uses a local checkout because its CLI rejects a `file://` marketplace source;

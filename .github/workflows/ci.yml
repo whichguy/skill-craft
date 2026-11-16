@@ -52,8 +52,7 @@ jobs:
   checks:
     name: ${{ needs.plan.outputs.tier }} / ${{ matrix.group }}
     needs: plan
-    # actions/setup-python has no CPython 3.9 build for ubuntu-latest (26.04 since 2026-11); 24.04 and 22.04 still do.
-    runs-on: ${{ matrix.group == 'python-floor' && 'ubuntu-24.04' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -67,8 +66,7 @@ jobs:
           fetch-depth: ${{ needs.plan.outputs.tier == 'quick' && '0' || '1' }}
       - uses: actions/setup-python@v7
         with:
-          # The python-floor group runs on the oldest Python ShipLoop declares (shiploop_pyfloor.FLOOR); the rest on the latest.
-          python-version: ${{ matrix.group == 'python-floor' && '3.9' || '3.x' }}
+          python-version: '3.x'
           check-latest: true
       - uses: actions/setup-node@v7
         with:
@@ -135,6 +133,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.source_sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+          check-latest: true
       - uses: actions/setup-node@v7
         with:
           node-version: '*'

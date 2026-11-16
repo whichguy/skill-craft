@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""The shipped ShipLoop package, run the way a stranger's machine would run it (portability audit, Round 5).
+"""The source-built ShipLoop package in a scrubbed environment (portability audit, Round 5).
 
-Every other ShipLoop suite runs the source tree inside a developer's own environment: a PATH with Homebrew and the
-newest python3, a configured git identity, a home directory full of settings.  This one runs the *built package copy*
-(``package_build``, the same bytes the marketplace ships) with a scrubbed environment and the interpreter under test (the
-floor, 3.9, in CI's python-floor leg): ``shiploop --help`` and ``workspace start`` on a repository with no git identity,
-and every hook entry with ``python3`` absent from PATH, where each must exit 0 and print nothing.  It is the hermetic
-form of ``docs/experiments/clean-install-20261101/probes.sh``, minus the network install and the containers; the live
-sessions that check the rest are in that folder's README.
+This suite runs the package copy built by ``package_build`` with the interpreter under test: the supported minimum is
+Python 3.15, and CI uses the latest stable Python. It checks ``shiploop --help`` and ``workspace start`` on a repository
+with no git identity, plus every hook entry with ``python3`` absent from PATH, where each hook must exit 0 and print
+nothing. It performs no network install, container run or model call.
+
+The historical probe and live-session evidence in ``docs/experiments/clean-install-20261101/`` remain dated 2026-11-01.
+The current no-model published-install probe is ``test/published-install-smoke.py``; this source-built package check
+does not establish that the already-published tree passes that probe.
 
 The progress observer is switched off (``SHIPLOOP_PROGRESS=off``): it starts a detached process, which a hermetic suite
 must not leave behind.

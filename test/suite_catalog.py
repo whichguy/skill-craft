@@ -258,9 +258,8 @@ _COMPOSITION_PATHS = frozenset({
 })
 
 
-# The python-floor group is every ShipLoop suite except the E2E apparatus's (shiploop-e2e*): the CI job that runs it uses the
-# oldest Python ShipLoop declares (shiploop_pyfloor.FLOOR), so a change that needs a newer one fails there.  The apparatus is
-# developer tooling for live model runs and needs 3.10+ (os.waitid, sys.stdlib_module_names).
+# python-floor is a legacy local component selector: every ShipLoop suite except shiploop-e2e*.
+# It uses the caller's interpreter and has no duplicate CI leg; the five normal full groups already cover these suites.
 def _shiploop(path: str) -> Suite:
     groups: set[str] = set()
     if path in _QUICK_PATHS:

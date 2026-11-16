@@ -3,17 +3,21 @@
 
 Prompt and reference edits reach models through links a script or card names;
 nothing else checks that those links still resolve or that every reference is
-still reachable.  These checks read files only: no model, host or run.
+still reachable.  The integrity checks read files; probe fixtures use fake host CLIs and a built
+package, with no model, real host install or network.
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -288,6 +292,361 @@ class CardSplitSensitivityTests(unittest.TestCase):
         self.assertIn("SKILL.md: a 'newest' fallback is named", problems)
         self.assertTrue(any(problem.startswith("SKILL.md: ") and "> " + str(json.loads((ROOT / "test/fixtures/shiploop-card-ledger.json").read_text())["card_max_bytes"]) in problem for problem in problems))
         self.assertTrue(any(problem.startswith("run-start.md: ") and "> 8192" in problem for problem in problems))
+
+
+class PublishedInstallProbeTests(unittest.TestCase):
+    """Hermetic bootstrap/error checks; fake host commands never install a real plugin."""
+
+    def setUp(self) -> None:
+        from package_build import plugins
+
+        tmp = tempfile.TemporaryDirectory(prefix="published probe fixture ")
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.fixture = self.root / "fixture package"
+        shutil.copytree(plugins() / "skill-craft", self.fixture,
+                        ignore=shutil.ignore_patterns("__pycache__"))
+        # Keep the built payload, but replace only this fixture's CLI with a bounded stand-in.
+        # Production help/workspace behavior belongs to its own suites and the real manual probe.
+        entry = self.fixture / "skills/shiploop/scripts/shiploop"
+        entry.write_text("#!/usr/bin/env python3\nimport os, pathlib, sys\n"
+                         f"assert pathlib.Path(sys.executable).resolve() == pathlib.Path({sys.executable!r}).resolve()\n"
+                         "assert 'PROBE_INHERITED_SENTINEL' not in os.environ\n"
+                         "assert 'CLAUDE_CONFIG_DIR' not in os.environ\n"
+                         "assert os.environ['SHIPLOOP_PROGRESS'] == 'off'\n"
+                         "assert os.environ['PYTHONDONTWRITEBYTECODE'] == '1'\n"
+                         "print('help' if '--help' in sys.argv else 'fixture workspace packet')\n")
+        entry.chmod(0o755)
+        self.bin = self.root / "fake bin"
+        self.bin.mkdir()
+        self.calls = self.root / "claude calls"
+        self.fault = self.root / "fault"
+        # Embed absolute fixture paths: no host CLI is discovered or invoked by these shims.
+        common = (f"#!{sys.executable}\nimport json, os, pathlib, shutil, sys, tarfile\n"
+                  f"fixture = pathlib.Path({str(self.fixture)!r})\n"
+                  f"fault = pathlib.Path({str(self.fault)!r})\n")
+        self.stub("claude", common + f"calls = pathlib.Path({str(self.calls)!r})\n" + r'''
+with calls.open('a') as stream:
+    stream.write(json.dumps(sys.argv[1:]) + '\n')
+if sys.argv[1:3] == ['plugin', 'marketplace']:
+    print('installer stdout before failure')
+    if fault.exists() and fault.read_text() == 'installer':
+        print('installer stderr retained', file=sys.stderr)
+        sys.exit(42)
+elif sys.argv[1:3] == ['plugin', 'install']:
+    destination = pathlib.Path(os.environ['CLAUDE_CONFIG_DIR']) / 'plugins/cache/whichguy/skill-craft/fixture'
+    shutil.copytree(fixture, destination)
+    if fault.exists() and fault.read_text() == 'tree':
+        (destination / 'README.md').write_text('corrupted installed bytes')
+elif sys.argv[1:] == ['plugin', 'list', '--json']:
+    print(json.dumps([{'id': 'skill-craft@whichguy', 'version': 'fixture', 'enabled': True}]))
+else:
+    sys.exit('unexpected fake Claude command')
+''')
+        self.stub("git", common + '''
+args = sys.argv[1:]
+if 'rev-parse' in args:
+    print('fixture-origin-main')
+elif 'archive' in args:
+    with tarfile.open(fileobj=sys.stdout.buffer, mode='w|') as stream:
+        stream.add(fixture, arcname='plugins/skill-craft')
+elif args[:2] == ['init', '-q']:
+    pathlib.Path(args[2]).mkdir()
+elif 'commit' not in args:
+    sys.exit('unexpected fake Git command')
+''')
+        self.stub("docker", f"#!{sys.executable}\nimport sys\nsys.exit(1)\n")
+        self.python = self.bin / "selected Python"
+        self.python.symlink_to(sys.executable)
+        self.scratch = self.root / "scratch output"
+        self.env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.defpath,
+                        PYTHON=str(self.python), PYTHONDONTWRITEBYTECODE="1",
+                        SKILL_CRAFT_CHECKOUT=str(self.root / "fake checkout"),
+                        PROBE_INHERITED_SENTINEL="must disappear")
+
+    def stub(self, name: str, source: str) -> None:
+        compile(source, "fake " + name, "exec")
+        target = self.bin / name
+        target.write_text(source)
+        target.chmod(0o755)
+
+    def run_probe(self) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, "-B", str(ROOT / "test/published-install-smoke.py"),
+                               str(self.scratch)], env=self.env, capture_output=True, text=True, timeout=60)
+
+    def test_spaced_paths_selected_python_clean_environment_and_optional_skip(self) -> None:
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertIn("PASS five hooks quiet without Python", done.stdout)
+        self.assertIn("SKIP real old-interpreter check: Docker daemon unavailable", done.stdout)
+        self.assertNotIn("PASS real old-interpreter", done.stdout)
+        self.assertIn("PASS required published clean-install checks", done.stdout)
+        commands = [json.loads(p.read_text()) for p in sorted(self.scratch.glob("*.command.json"))]
+        cli = [args for args in commands if len(args) > 2 and args[1] == "-B"]
+        self.assertEqual(len(cli), 2)
+        self.assertTrue(all(Path(args[0]).resolve() == Path(sys.executable).resolve() for args in cli))
+        self.assertEqual(len(self.calls.read_text().splitlines()), 3)
+
+    def test_installer_failure_is_not_hidden_and_both_streams_are_retained(self) -> None:
+        self.fault.write_text("installer")
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("exit 42", done.stderr)
+        self.assertEqual((self.scratch / "01.exit").read_text(), "42\n")
+        self.assertIn("installer stdout", (self.scratch / "01.stdout").read_text())
+        self.assertIn("installer stderr", (self.scratch / "01.stderr").read_text())
+        self.assertEqual(len(self.calls.read_text().splitlines()), 1)
+
+    def test_installed_tree_corruption_fails_before_cli_checks(self) -> None:
+        self.fault.write_text("tree")
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("installed package differs", done.stderr)
+        self.assertNotIn("PASS clean environment", done.stdout)
+
+    def test_existing_scratch_is_preserved_without_calling_host(self) -> None:
+        self.scratch.mkdir()
+        marker = self.scratch / "keep"
+        marker.write_text("user data")
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertEqual(marker.read_text(), "user data")
+        self.assertFalse(self.calls.exists())
+
+    def test_missing_python_override_fails_before_calling_host(self) -> None:
+        self.env["PYTHON"] = str(self.root / "absent Python")
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("unavailable", done.stderr)
+        self.assertFalse(self.calls.exists())
+        self.assertFalse(self.scratch.exists())
+
+    def test_installed_modes_are_checked(self) -> None:
+        (self.fixture / "skills/shiploop/scripts/shiploop-drive").chmod(0o644)
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("shiploop-drive mode 644", done.stderr)
+
+    def test_published_guard_and_card_must_agree_and_meet_current_minimum(self) -> None:
+        guard = self.fixture / "skills/shiploop/scripts/shiploop_pyfloor.py"
+        guard.write_text("FLOOR = (3, 9)\n")
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("current project minimum 3.15", done.stderr)
+        shutil.rmtree(self.scratch)  # Only this test's newly created scratch.
+        guard.write_text("FLOOR = (3, 15)\n")
+        card = self.fixture / "skills/shiploop/SKILL.md"
+        card.write_text("needs `python3` 3.14 or newer and `git` on PATH\n")
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("card and published guard disagree", done.stderr)
+
+    def test_empty_workspace_packet_is_a_required_failure(self) -> None:
+        entry = self.fixture / "skills/shiploop/scripts/shiploop"
+        entry.write_text("#!/usr/bin/env python3\n")
+        done = self.run_probe()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("empty packet", done.stderr)
+
+
+    @contextmanager
+    def retained_failure(self):
+        """Keep new regression fixtures/logs when an assertion fails, including RED."""
+        try:
+            yield
+        except BaseException as exc:
+            if isinstance(exc, subprocess.TimeoutExpired):
+                for suffix, data in (("stdout", exc.stdout), ("stderr", exc.stderr)):
+                    if isinstance(data, bytes):
+                        data = data.decode(errors="replace")
+                    (self.root / ("outer-timeout." + suffix)).write_text(data or "")
+            retained = Path(tempfile.mkdtemp(prefix="published-probe-failure-"))
+            shutil.copytree(self.root, retained / "fixture", symlinks=True)
+            print("Retained failed probe: %s" % retained, file=sys.stderr)
+            raise
+
+    def deadline_probe(self, target: str = "claude-marketplace") -> subprocess.CompletedProcess:
+        # Shorten only the deliberate stall, leaving setup commands at 180 seconds.
+        # Wrap either implementation locally inside this disposable driver process.
+        driver = r"""
+import importlib.util, pathlib, subprocess, sys
+spec = importlib.util.spec_from_file_location('manual_probe', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+target = sys.argv[3]
+if target not in ('claude-marketplace', 'docker-run'):
+    raise ValueError('unknown deadline target: %s' % target)
+original = getattr(module, 'owned_run', subprocess.run)
+def bounded(args, *positional, **kwargs):
+    argv = [str(arg) for arg in args]
+    command = pathlib.Path(argv[0]).name if argv else ''
+    matches = (target == 'claude-marketplace' and command == 'claude'
+               and argv[1:3] == ['plugin', 'marketplace']
+               or target == 'docker-run' and command == 'docker'
+               and argv[1:2] == ['run'])
+    if matches:
+        kwargs['timeout'] = 0.7
+    return original(args, *positional, **kwargs)
+if hasattr(module, 'owned_run'):
+    module.owned_run = bounded
+else:
+    subprocess.run = bounded
+sys.argv = [sys.argv[1], sys.argv[2]]
+try:
+    module.main()
+except (ValueError, OSError, subprocess.SubprocessError) as exc:
+    print('FAIL: %s' % exc, file=sys.stderr)
+    sys.exit(1)
+"""
+        done = subprocess.run([sys.executable, "-B", "-c", driver,
+                               str(ROOT / "test/published-install-smoke.py"), str(self.scratch), target],
+                              env=self.env, capture_output=True, text=True, timeout=10)
+        (self.root / "driver.stdout").write_text(done.stdout)
+        (self.root / "driver.stderr").write_text(done.stderr)
+        return done
+
+    def pid_executing(self, pid: int) -> bool:
+        state = subprocess.run(["/bin/ps", "-o", "stat=", "-p", str(pid)],
+                               capture_output=True, text=True, timeout=1)
+        # A zombie cannot execute or write the marker; kill(pid, 0) alone is misleading.
+        return bool(state.stdout.strip()) and not state.stdout.strip().startswith("Z")
+
+    def test_timeout_stops_owned_descendant_and_preserves_unrelated_sentinel(self) -> None:
+        child_pid = self.root / "owned child.pid"
+        marker = self.root / "delayed marker"
+        child = ("import pathlib, time\n"
+                 "time.sleep(2)\n"
+                 f"pathlib.Path({str(marker)!r}).write_text('leaked')\n"
+                 "time.sleep(2)\n")
+        compile(child, "fake-claude-child", "exec")
+        self.stub("claude", f"#!{sys.executable}\n" +
+                  "import pathlib, subprocess, sys, time\n" +
+                  f"child = subprocess.Popen([{sys.executable!r}, '-B', '-c', {child!r}], "
+                  "stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n" +
+                  f"pathlib.Path({str(child_pid)!r}).write_text(str(child.pid))\n" +
+                  "print('timeout stdout retained', flush=True)\n"
+                  "print('timeout stderr retained', file=sys.stderr, flush=True)\n"
+                  "time.sleep(5)\n")
+        sentinel = subprocess.Popen([sys.executable, "-B", "-c", "import time; time.sleep(9)"],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            with self.retained_failure():
+                done = self.deadline_probe()
+                self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
+                self.assertIn("timed out", done.stderr)
+                self.assertEqual((self.scratch / "01.exit").read_text(), "TIMEOUT\n")
+                self.assertIn("timeout stdout retained", (self.scratch / "01.stdout").read_text())
+                self.assertIn("timeout stderr retained", (self.scratch / "01.stderr").read_text())
+                self.assertTrue(child_pid.is_file(), "fake Claude never started its child")
+                self.assertFalse(self.pid_executing(int(child_pid.read_text())), "owned child survived timeout")
+                self.assertFalse(marker.exists(), "owned child wrote after probe timeout")
+                self.assertIsNone(sentinel.poll(), "unrelated sentinel was stopped")
+        finally:
+            # Even intentional RED cleans only the explicitly recorded test PID.
+            if child_pid.is_file():
+                pid = int(child_pid.read_text())
+                if self.pid_executing(pid):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+            if sentinel.poll() is None:
+                sentinel.kill()
+            sentinel.wait(timeout=1)
+
+    def test_python_wrapper_is_selected_once_and_cli_uses_actual_interpreter(self) -> None:
+        launches = self.root / "wrapper launches"
+        wrapper = self.bin / "Python wrapper"
+        self.stub(wrapper.name, f"#!{sys.executable}\n" +
+                  "import os, pathlib, sys\n" +
+                  f"counter = pathlib.Path({str(launches)!r})\n" +
+                  "count = int(counter.read_text()) + 1 if counter.exists() else 1\n"
+                  "counter.write_text(str(count))\n"
+                  "if count > 3: sys.exit('wrapper selection loop')\n" +
+                  f"os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])\n")
+        self.env["PYTHON"] = str(wrapper)
+        with self.retained_failure():
+            done = subprocess.run([sys.executable, "-B", str(ROOT / "test/published-install-smoke.py"),
+                                   str(self.scratch)], env=self.env, capture_output=True, text=True, timeout=9)
+            (self.root / "driver.stdout").write_text(done.stdout)
+            (self.root / "driver.stderr").write_text(done.stderr)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            self.assertIn("PASS required published clean-install checks", done.stdout)
+            self.assertEqual(launches.read_text(), "1")
+            commands = [json.loads(p.read_text()) for p in self.scratch.glob("*.command.json")]
+            cli = [args for args in commands if len(args) > 2 and args[1] == "-B"]
+            self.assertEqual(len(cli), 2)
+            self.assertTrue(all(Path(args[0]) == Path(sys.executable).resolve() for args in cli))
+
+    def test_invalid_python_wrapper_fails_clearly_before_install(self) -> None:
+        self.stub("invalid Python", f"#!{sys.executable}\nprint('not an interpreter path')\n")
+        self.env["PYTHON"] = str(self.bin / "invalid Python")
+        with self.retained_failure():
+            done = subprocess.run([sys.executable, "-B", str(ROOT / "test/published-install-smoke.py"),
+                                   str(self.scratch)], env=self.env, capture_output=True, text=True, timeout=9)
+            (self.root / "driver.stdout").write_text(done.stdout)
+            (self.root / "driver.stderr").write_text(done.stderr)
+            self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
+            self.assertIn("invalid PYTHON interpreter selection", done.stderr)
+            self.assertFalse(self.calls.exists())
+            self.assertFalse(self.scratch.exists())
+
+    def test_docker_timeout_removes_only_recorded_owned_container(self) -> None:
+        calls = self.root / "docker calls"
+        cid = "a" * 64
+        self.stub("docker", f"#!{sys.executable}\n" +
+                  "import json, pathlib, sys, time\n" +
+                  f"calls = pathlib.Path({str(calls)!r})\n" + r"""
+args = sys.argv[1:]
+with calls.open('a') as stream:
+    stream.write(json.dumps(args) + '\n')
+if args[0] == 'run':
+    if '--cidfile' in args:
+        pathlib.Path(args[args.index('--cidfile') + 1]).write_text('a' * 64 + '\n')
+    print('fake container stdout', flush=True)
+    print('fake container stderr', file=sys.stderr, flush=True)
+    time.sleep(5)
+elif args[0] not in ('info', 'image', 'rm'):
+    sys.exit('unexpected fake Docker command')
+""")
+        with self.retained_failure():
+            done = self.deadline_probe("docker-run")
+            self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
+            self.assertIn("TIMEOUT\n", [p.read_text() for p in self.scratch.glob("*.exit")])
+            commands = [json.loads(line) for line in calls.read_text().splitlines()]
+            self.assertEqual([args for args in commands if args[0] == "rm"], [["rm", "--force", cid]])
+            run = next(args for args in commands if args[0] == "run")
+            self.assertIn("--pull=never", run)
+            self.assertIn("--network=none", run)
+            self.assertTrue(Path(run[run.index("--cidfile") + 1]).resolve().is_relative_to(self.scratch.resolve()))
+            cleanup = json.loads((self.scratch / "container-cleanup.json").read_text())
+            self.assertEqual(cleanup, {"cid": cid, "returncode": 0})
+            self.assertTrue(any("fake container stdout" in p.read_text() for p in self.scratch.glob("*.stdout")))
+            self.assertTrue(any("fake container stderr" in p.read_text() for p in self.scratch.glob("*.stderr")))
+
+
+    def test_failed_docker_without_owned_cid_never_removes_a_container(self) -> None:
+        calls = self.root / "docker calls"
+        self.stub("docker", f"#!{sys.executable}\n" +
+                  "import json, pathlib, sys\n" +
+                  f"calls = pathlib.Path({str(calls)!r})\n" + r"""
+args = sys.argv[1:]
+with calls.open('a') as stream:
+    stream.write(json.dumps(args) + '\n')
+if args[0] == 'run':
+    print('fake Docker failed before recording CID', file=sys.stderr)
+    sys.exit(42)
+""")
+        with self.retained_failure():
+            done = self.deadline_probe()
+            self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
+            self.assertIn("old-interpreter container failed", done.stderr)
+            commands = [json.loads(line) for line in calls.read_text().splitlines()]
+            self.assertTrue(any(args[0] == "run" for args in commands))
+            self.assertFalse(any(args[0] == "rm" for args in commands))
+            self.assertFalse((self.scratch / "old-interpreter.cid").exists())
+            self.assertFalse((self.scratch / "container-cleanup.json").exists())
+            self.assertIn("42\n", [p.read_text() for p in self.scratch.glob("*.exit")])
 
 if __name__ == "__main__":
     unittest.main()

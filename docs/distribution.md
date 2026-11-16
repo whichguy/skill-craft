@@ -352,22 +352,36 @@ prerequisites; packaging does not manufacture unavailable capabilities.
 
 ### ShipLoop's prerequisites
 
-ShipLoop's scripts and hooks need `python3` 3.9 or newer and `git` on PATH, on Linux or macOS (they use `fcntl`; there
-is no Windows support). The floor is `shiploop_pyfloor.FLOOR`; the `python-floor` CI group runs the ShipLoop suites
-(not the E2E apparatus, which needs 3.10+) on that version. Below the floor the CLI exits 2 with one line naming the
+ShipLoop's scripts and hooks need `python3` 3.15 or newer and `git` on PATH, on Linux or macOS (they use `fcntl`; there
+is no Windows support). The E2E apparatus has the same Python minimum. Install a supported Python locally and put
+its `python3` first on PATH; no particular dependency manager or new third-party package is required. The floor is
+`shiploop_pyfloor.FLOOR`. CI qualifies latest stable Python (`3.x`, `check-latest: true`), not an ongoing fixed-minimum
+job: once latest stable advances to 3.16, CI no longer tests 3.15. The local `python-floor` selector retains its
+76-suite legacy component subset using the caller's `python3`, without selecting another interpreter.
+Below the floor the CLI exits 2 with one line naming the
 requirement, and a host hook event does nothing; with no `python3`, the hook entries exit 0 silently. Setting
-`SHIPLOOP_KEEPALIVE=off` turns the hooks off whatever the interpreter. Evidence:
+`SHIPLOOP_KEEPALIVE=off` turns the hooks off whatever the interpreter. Historical behavior measurements:
 [the portability audit](shiploop-portability-audit-journal.md).
 
 ### Smoke checks after a release
 
 A release is not proven by CI alone: CI runs the source and the built package, not what a stranger installs. After
-`scripts/release-push.py`, run these from a checkout at `origin/main` (about 20 minutes, one machine):
+`scripts/release-push.py`, use a checkout at `origin/main` and Python 3.15 or newer first on PATH.
+Step 1 needs the Claude CLI, Git on PATH, and network access to `github.com/whichguy/skill-craft`.
+It creates a fresh disposable `CLAUDE_CONFIG_DIR`, downloads the published plugin there, and writes a temporary Git
+repository, ShipLoop workspace state and complete command logs under a new scratch directory. The directory must not
+exist; the probe leaves it for inspection and never removes existing directories. `PYTHON` may select a supported
+interpreter; otherwise it resolves the currently selected `python3`. That absolute interpreter is retained in the clean
+environment. Automatic progress observation is disabled so the probe leaves no observer process. Docker is optional:
+the old-interpreter check uses only an already-local `node:14` image, without pulling or container network access.
+Steps 2 and 3 require the selected authenticated host and network access and launch live model work;
+run them only with authorization for that work and its spend (historically about 20 minutes on one machine).
 
 ```sh
-# 1. No model: install the published plugin into a disposable Claude config and probe it (needs the claude CLI, network;
-#    docker is optional and adds the Python 3.7 check). The scratch directory must not exist yet.
-git fetch origin && SKILL_CRAFT_CHECKOUT="$PWD" sh docs/experiments/clean-install-20261101/probes.sh /tmp/skill-craft-probes-$(date +%s)
+# 1. No model: install and probe the published plugin in a new disposable Claude config.
+#    Use a checkout whose origin/main names the release being checked; the output directory must not exist.
+SKILL_CRAFT_CHECKOUT="$PWD" python3 -B test/published-install-smoke.py \
+  /tmp/skill-craft-published-install-$(date +%s)
 
 # 2. A live ShipLoop session on the Claude host, on Anthropic's Sonnet 5.5, the harness's default for that host
 #    (16 to 21 minutes and $4 to $6 in the two runs so far):
@@ -377,10 +391,21 @@ python3 test/shiploop_e2e/run.py --case hello --host claude --source marketplace
 python3 test/shiploop_e2e/run.py --case hello --host codex --source marketplace
 ```
 
-Read `PASS ... every verdict passed` and the `versions` line, which names the skill-craft and ShipLoop versions the run
-installed; it must match the release. What each one proves: step 1 the released tree, its modes, the 3.9 floor and the
-hooks without Python; step 2 a real session on the Claude host, but through `--plugin-dir` on an export of the published
-tree, not a native Claude install; step 3 a real session from a native Codex marketplace install. The Claude host's
+For step 1, require `PASS required published clean-install checks` and inspect the scratch directory's numbered
+command, stdout, stderr and exit logs. The checks cover native Claude install, installed bytes against the recorded
+`origin/main` commit's `plugins/skill-craft`, all eight entry modes, the installed guard/card agreement (minimum 3.15),
+CLI help and workspace start in a clean environment, and all five hooks quiet without Python. The optional real
+old-interpreter check requires CLI refusal exit 2 and quiet hook exit 0; absent Docker, daemon or local image is an
+explicit `SKIP`, not a pass of that check. A failed required check exits nonzero. This is a no-model install check;
+it does not prove a live session or other hosts. These instructions do not record a new host-install result.
+The [2026-11-01 probe and results](experiments/clean-install-20261101/README.md) remain dated evidence only;
+the historical script retains its old interpreter and 3.9 prerequisite and is not the current release check.
+The separate [marketplace lifecycle procedure](marketplace-e2e-testing.md) checks local-fixture install, upgrade and
+removal; it does not replace the published-package checks above.
+For steps 2 and 3, read `PASS ... every verdict passed` and the `versions` line, which names the skill-craft and
+ShipLoop versions installed; they must match the release. Step 2 proves a real session on the Claude host, but through
+`--plugin-dir` on an export of the published tree, not a native Claude install; step 3 proves a real session from a
+native Codex marketplace install. The Claude host's
 default backend is Anthropic since 2026-11-01; Ollama's monthly usage cap had blocked runs (2026-10-29, 2026-11-01), and
 `--backend ollama` still selects it.
 

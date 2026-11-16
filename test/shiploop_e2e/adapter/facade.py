@@ -15,7 +15,7 @@ writes a durable intent first and publishes the new tip last, in two phases (pla
 Harness code is never imported here: a small bridge process runs the few harness functions that are needed (the qualification
 snapshot, `candidate_path`, the ledger fold, the baseline predicate) from X, so a test can point it at any checkout.
 
-Python 3.9 floor. Standard library only.
+Python 3.15 floor. Standard library only.
 """
 
 from __future__ import annotations

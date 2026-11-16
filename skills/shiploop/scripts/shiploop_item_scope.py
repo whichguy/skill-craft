@@ -132,7 +132,7 @@ def inline_code_paths(command: str) -> List[str]:
     except ValueError:
         words = command.split()
     paths = []
-    for flag, code in zip(words, words[1:]):  # not itertools.pairwise: the floor is Python 3.9
+    for flag, code in zip(words, words[1:]):  # Inspect each flag with the following argument.
         if flag not in _INLINE_CODE:
             continue
         for match in _INLINE_PATH.findall(_without_paths_elsewhere(code)):

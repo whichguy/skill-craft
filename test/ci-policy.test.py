@@ -5,6 +5,7 @@ import io
 import itertools
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -206,13 +207,18 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("EXPECTED_SHA: ${{ github.sha }}", workflow)
         self.assertIn("ref: ${{ needs.plan.outputs.source_sha }}", workflow)
         self.assertIn("fromJSON(needs.plan.outputs.groups)", workflow)
-        self.assertIn("python-version: '3.x'", workflow)
+        # Check every Python setup, rather than accepting one floating block while another stays pinned.
+        setups = workflow.split("      - uses: actions/setup-python@v7\n")[1:]
+        self.assertEqual(len(setups), 4)
+        for setup in setups:
+            settings = setup.split("      - ", 1)[0]
+            self.assertEqual(re.findall(r"(?m)^          python-version: (.+)$", settings), ["'3.x'"])
+            self.assertEqual(re.findall(r"(?m)^          check-latest: (.+)$", settings), ["true"])
         self.assertIn("node-version: '*'", workflow)
-        self.assertEqual(workflow.count("check-latest: true"), 6)
-        # CI runs on the latest runner image. The one pin is the python-floor leg, which exists to run the oldest Python
-        # ShipLoop declares and setup-python has no build of it for ubuntu-latest.
-        self.assertEqual(workflow.count("ubuntu-24.04"), 1)
-        self.assertIn("matrix.group == 'python-floor' && 'ubuntu-24.04' || 'ubuntu-latest'", workflow)
+        self.assertEqual(workflow.count("check-latest: true"), 7)
+        runners = re.findall(r"(?m)^    runs-on: (.+)$", workflow)
+        self.assertEqual(len(runners), 5)
+        self.assertEqual(set(runners), {"ubuntu-latest"})
         self.assertIn("fail-fast: false", workflow)
         self.assertIn('--output "$RUNNER_TEMP/hermetic-$TEST_GROUP"', workflow)
         # Stand-in host markers, so the state-home guard sees keepalive and Until Loop leaks on CI too.
@@ -273,7 +279,7 @@ class CIPolicyTests(unittest.TestCase):
         self.assertEqual(planned["groups"], ["quick-1", "quick-2"])
         self.assertEqual(planned["base"], self.base)
         self.assertEqual(policy.FULL_GROUPS,
-                         ["core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus", "python-floor"])
+                         ["core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus"])
 
     def test_checks_job_turns_git_background_maintenance_off_before_it_runs_the_suites(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -326,6 +332,7 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn('node --version | tee', job)
         self.assertIn('playwright-version.log', job)
         self.assertIn('ci_policy.py guard --expected-sha "$EXPECTED_SHA"', job)
+        self.assertLess(job.index("uses: actions/setup-python@v7"), job.index("run: python3 -B"))
         self.assertIn("name: browser-fixtures-${{ matrix.fixture }}", job)
         self.assertIn("if: ${{ always() }}", job.split("name: Checkout unchanged", 1)[1])
         self.assertIn("if-no-files-found: error", job)
@@ -401,6 +408,8 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("tier=full", output.read_text())
         self.assertIn('groups=["core",', output.read_text())
         self.assertEqual(json.loads(result.stdout)["source_sha"], self.base)
+        self.assertEqual(json.loads(result.stdout)["groups"],
+                         ["core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus"])
         output.unlink()
         result = subprocess.run([*command, "f" * 40], cwd=self.root, env=env, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)

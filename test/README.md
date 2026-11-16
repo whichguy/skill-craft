@@ -3,7 +3,9 @@
 Use `bash test/run-all.sh --group quick --changed-from origin/main` for fast,
 targeted feedback and `bash test/run-all.sh` for complete hermetic regression. Local runs and GitHub CI
 use the same [suite catalog](suite_catalog.py). A pass means the selected checks
-passed; offline fixtures do not establish live model or host behavior.
+passed; offline fixtures do not establish live model or host behavior. Use Python
+3.15 or newer for local checks, installing it locally and putting its `python3`
+first on PATH if needed; no particular Python manager or new dependency is required.
 
 The hermetic runner sets `SHIPLOOP_PROGRESS=off` for ordinary suites so disposable
 run fixtures do not leave background HTML observers. The progress integration
@@ -83,8 +85,10 @@ exceeds 600 seconds. That scheduling threshold is neither a timeout nor a test c
 Above it, `quick-1` and `quick-2` partition exactly the same selection using
 committed duration estimates (60 seconds for missing costs), with no duplicates
 at the same runtime. Both receive the planned change base and run concurrently;
-the full groups and all 76 Python-floor suites retain their membership. This is
-a scheduling pilot; projected times do not establish a measured CI speedup.
+the ordinary full groups retain their membership. This is a scheduling pilot;
+projected times do not establish a measured CI speedup. The local `python-floor`
+selector retains all 76 legacy component suites using the caller's `python3`;
+it does not select a separate interpreter or establish minimum-version qualification.
 
 Checks and browser fixtures start independently after planning; release-boundary
 runs independently of planning. Four browser matrix jobs run the fixed delayed-setup, setup-save-boundary,
@@ -98,7 +102,10 @@ Server-side merge protection is a separate repository setting; this workflow
 does not enable it.
 
 CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
-fresh versions through setup actions. Node uses `node-version: '*'` with
+fresh versions through setup actions. Every Python setup, including browser fixtures,
+uses `python-version: '3.x'` with `check-latest: true`. The declared minimum is
+3.15; when latest stable advances to 3.16, CI no longer exercises that minimum.
+Node uses `node-version: '*'` with
 `check-latest: true`; a source-owned guard after every setup rejects prereleases.
 Receipts record the versions actually used. Summary counts distinguish selected affected targets, policy-deferred targets and suites assigned to the other quick shard. The summary CLI independently verifies the planned base and change paths before catalog selection. Full runs discard the change base, so their affected change scope is UNAVAILABLE.
 Chain and integration suites use the repository's own Plan Dispatcher package
@@ -501,8 +508,10 @@ CI selects its tier with `test/ci_policy.py`, as described at the top of this
 guide: known ordinary PR/main ranges run `quick`; release-containing pushes,
 unknown ranges, exact CI infrastructure changes and weekly schedules run full. It ignores tag and feature-branch pushes. A manual dispatch accepts
 `tier=quick` (the default, promoted to full for unknown ranges or CI infrastructure edits) or `tier=full`. Full runs
-`core`, the three deterministic ShipLoop shards, `python-floor` and `e2e-apparatus`, one job per
-group. Select qualification by changed behavior and dependencies:
+`core`, the three deterministic ShipLoop shards and `e2e-apparatus`: five jobs
+covering all 207 unique suites once, plus the four parallel browser fixtures.
+The 76-suite local `python-floor` component selector is not a repeated CI group.
+Select qualification by changed behavior and dependencies:
 runtime, state, graph, callback and recovery changes need their affected suites.
 Use full dispatch only when a concrete cross-subsystem risk cannot be covered by
 narrower checks, and record that reason. Start it against the candidate branch with:
@@ -554,7 +563,8 @@ generated in temporary directories, not rewritten into source fixtures. The guar
 is not a sandbox: it inspects only the checkout, after the suites finish.
 CI does not inject secret values or make any integration target mandatory.
 The small Linux-only CI footprint is intentional; it is not macOS or live-host
-certification. Local checks may use other Python/Node versions.
+certification. Local checks may use other supported Python versions (3.15 or newer)
+and other Node versions; record the actual runtimes used.
 
 Explicit runtime setup follows [GitHub's Python guidance](https://docs.github.com/en/actions/tutorials/build-and-test-code/python#specifying-a-python-version)
 and [setup-node's version guidance](https://github.com/actions/setup-node#usage).

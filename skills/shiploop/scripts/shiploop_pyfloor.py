@@ -7,7 +7,7 @@ modules subscript ``os.PathLike`` and call ``str.removeprefix``, both Python 3.9
 
 import sys
 
-FLOOR = (3, 9)
+FLOOR = (3, 15)
 
 
 def require(hook_event=False):

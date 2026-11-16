@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import json
 import os
 from pathlib import Path
@@ -160,14 +161,19 @@ class TestGroupTests(unittest.TestCase):
         self.assertIn(pilot, suite_catalog.quick((changed_fixture,)))
 
     def test_the_python_floor_group_is_every_shiploop_suite_except_the_e2e_apparatus(self) -> None:
-        # The CI job that runs it uses the oldest Python ShipLoop declares (shiploop_pyfloor.FLOOR, 2026-10-31 audit).
+        # Legacy local selector: use the caller's interpreter, without a repeated CI leg.
         selected = suite_catalog.select(("python-floor",))
         self.assertEqual(selected, tuple(suite for suite in suite_catalog.SHIPLOOP_SUITES
                                          if not suite.id.startswith("shiploop-e2e")))
         self.assertEqual({suite.family for suite in selected}, {"shiploop"})
         self.assertIn("shiploop-python-floor", {suite.id for suite in selected})
         self.assertIn("shiploop-clean-consumer", {suite.id for suite in selected})
-        self.assertIn("python-floor", ci_policy.FULL_GROUPS)
+        self.assertNotIn("python-floor", ci_policy.FULL_GROUPS)
+        self.assertEqual(len(selected), 76)
+        covered = Counter(suite.id for group in ci_policy.FULL_GROUPS
+                          for suite in suite_catalog.select((group,)))
+        self.assertTrue({suite.id for suite in selected} <= set(covered))
+        self.assertTrue(all(covered[suite.id] == 1 for suite in selected))
 
     def test_full_ci_components_are_the_complete_deduplicated_union(self) -> None:
         full = suite_catalog.select(("all",))
@@ -176,6 +182,10 @@ class TestGroupTests(unittest.TestCase):
         ))
         self.assertEqual(components, full)
         self.assertEqual(suite_catalog.select(ci_policy.FULL_GROUPS), full)
+        # select(groups) deduplicates: flatten the actual CI jobs to expose repeated execution.
+        executed = Counter(suite.id for group in ci_policy.FULL_GROUPS
+                           for suite in suite_catalog.select((group,)))
+        self.assertEqual(executed, Counter(suite.id for suite in suite_catalog.SUITES))
         self.assertEqual(len({suite.id for suite in full}), len(full))
         self.assertEqual(full[-1].family, "e2e-apparatus")
         self.assertEqual({suite.family for suite in full}, {"core", "shiploop", "e2e-apparatus"})
@@ -1440,9 +1450,8 @@ class SuiteGroupOwnershipTest(unittest.TestCase):
     def test_completion_ends_closed_pipe_descendants_and_preserves_result_without_waitid(self):
         import contextlib
         import importlib.util
-        # Darwin's supported libc fallback is required where stock macOS 3.9
-        # lacks Python waitid. Linux 3.9 has waitid; masking it there is an
-        # unsupported build, not the Darwin ABI. Never fake sys.platform.
+        # Exercise Darwin's libc fallback independently of the caller's waitid capability.
+        # Masking waitid on Linux does not exercise the Darwin ABI. Never fake sys.platform.
         @contextlib.contextmanager
         def without_waitid():
             absent = object()
@@ -1998,9 +2007,9 @@ class SuiteGroupOwnershipTest(unittest.TestCase):
     def test_constructor_interrupt_after_actual_pid_before_child_created_reaps_and_closes(self):
         import inspect
         self.assertEqual(os.name, "posix")
-        self.assertGreaterEqual(sys.version_info[:2], (3, 9))
+        self.assertGreaterEqual(sys.version_info[:2], (3, 15))
         self.assertTrue(callable(os.waitpid), "native positive-PID teardown requires waitpid")
-        self.assertTrue(callable(os.waitstatus_to_exitcode), "native Python 3.9 floor supplies status conversion")
+        self.assertTrue(callable(os.waitstatus_to_exitcode), "supported Python supplies native status conversion")
         execute = self.real_popen._execute_child
         source, first = inspect.getsourcelines(execute)
         assignments = [first + offset for offset, line in enumerate(source)
