@@ -54,9 +54,11 @@ unchanged reviewed execution graph.
 
 This guide is not a call to Backchain's standalone skill, generator, elaborator,
 or harness. Only a `source-aware-native` call binds the current host to the
-standalone skill and caller resources the packet prints: the full set at `plan`
-(not when the run's Backchain passes option is `none`), the audit resource and a status
-line for the loop resources at the other Backchain stages and at `plan` in a `none` run.
+standalone skill and caller resources the packet prints in a run that opts in to a
+Backchain child (`--backchain-passes one` or `converge`): the full set at `plan`, the audit
+resource and a status line for the loop resources at the other Backchain stages. A run
+whose Backchain passes option is `none`, the default, calls no Backchain child and prints
+none of them; this guide's dependency audit and the record-only graph check still apply.
 Read only the sections selected by the current packet. Perform that one action
 and submit its exact callback; a planning review never authorizes implementation,
 deployment, a new credential, or a different writer.
@@ -234,7 +236,8 @@ request criteria and meaningful checks remains necessary.
 
 `source-aware-native` is the only Backchain route. At `plan` the packet's printed
 "Selected Backchain and Until Loop resources" block is the selection (a run whose
-Backchain passes option is `none` prints no such block): ShipLoop
+Backchain passes option is `none`, the default, calls no Backchain child and prints no such
+block): ShipLoop
 resolves these paths from its own installed plugin. It lists Backchain `SKILL.md`,
 the `backchain-caller/v1` resource in `references/caller-contract.md`,
 `references/convergence.md`, `prompts/convergence-review.prompt.md`, `scripts/backchain.py`, and the
@@ -274,15 +277,15 @@ infers a root from CWD or a neighboring package.
 The Until Loop child is plan-only: it may change the candidate plan and permitted planning
 companions, but may not commit, push, merge, execute the project, or broaden scope.
 
-The plan-stage owner may request one whole `plan`/`draft` operation (not when the run's
-Backchain passes option is `none`: its packet requests none). A material
-audit finding may be routed to the authorized current stage owner for one bounded
+In a run that opts in, the plan-stage owner may request one whole `plan`/`draft`
+operation (a run whose Backchain passes option is `none` requests no Backchain child at
+any stage). A material audit finding may be routed to the authorized current stage owner for one bounded
 whole `repair`/`revise` operation. Each whole operation lets Backchain invoke the
 selected actual Until Loop for its dependency-specific review/fix/check cycle. Until
 Loop alone owns callback progress, its review gate (the packet's printed gate for the
 run's Backchain passes option: in `one` the `required_trivial_reviews` and the exit condition
 Backchain's `freeze` writes, in `converge` Backchain's default gate with no marker line; a
-`repair`/`revise` packet in `one` and `none` points to Backchain's convergence reference for
+`repair`/`revise` packet in `one` points to Backchain's convergence reference for
 the gate), recovery, and
 terminal state. The host starts each child with Backchain's own commands, `prepare --run`
 the printed Backchain planning run directory and then `freeze`, which writes the child's

@@ -1,0 +1,1693 @@
+{
+  "head": "163f21f2e9724ff61611f71a3311bc360ed25a41",
+  "post_review_status": "",
+  "python": "3.15.1 (main, Oct 21 2026, 05:55:12) [Clang 21.0.0 (clang-2100.3.34.2)]",
+  "source_files": {
+    "parent_probes": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-second-review-jrgystun/probes.json",
+    "parent_extra_probes": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-second-extra-26d3nusp/probes.json",
+    "runtime_fingerprints": "/private/tmp/closed-loop-runtime-review-20261115-summary.json",
+    "runtime_snapshot_race": "/private/tmp/closed-loop-runtime-review-20261115-race.json",
+    "runtime_external_pin": "/private/tmp/closed-loop-runtime-review-20261115-external-pin.json",
+    "operator_probes": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-operator-review-czuwdzix/operator-probes.json",
+    "quota_packets": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-operator-review-czuwdzix/quota-one-packet-per-iteration.json",
+    "suite_result": "/private/tmp/closed-loop-suite-upsz6nul/result.json"
+  },
+  "evidence": {
+    "parent_probes": {
+      "malformed_record_cases": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-fmrpdmqt",
+        "certificate": {
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "9db8652ca74f6ea9",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "checks": {
+            "C1": {
+              "detail": {
+                "actionable": [],
+                "adapter_backlog": [],
+                "blocking": [],
+                "outside_scope": [
+                  "R-string"
+                ],
+                "owner_gated": []
+              },
+              "id": "C1",
+              "pass": true,
+              "reasons": []
+            },
+            "C2": {
+              "detail": {
+                "k": 2,
+                "window": [
+                  2,
+                  3
+                ]
+              },
+              "id": "C2",
+              "pass": true,
+              "reasons": []
+            },
+            "C3": {
+              "detail": {},
+              "id": "C3",
+              "pass": true,
+              "reasons": []
+            },
+            "C4": {
+              "detail": {
+                "not_covered": {
+                  "style=beta": "outside this scope: a widening candidate",
+                  "style=gamma": "outside this scope: a widening candidate"
+                }
+              },
+              "id": "C4",
+              "pass": true,
+              "reasons": []
+            },
+            "C5": {
+              "detail": {},
+              "id": "C5",
+              "pass": true,
+              "reasons": []
+            },
+            "C6": {
+              "detail": {
+                "note": null,
+                "promoted": [
+                  "h-d1-b1"
+                ]
+              },
+              "id": "C6",
+              "pass": true,
+              "reasons": []
+            },
+            "C7": {
+              "detail": {},
+              "id": "C7",
+              "pass": true,
+              "reasons": []
+            }
+          },
+          "claims": {
+            "allowed": [
+              "efficiency under a stated tolerance, labelled 'stated, not measured'",
+              "no quality claim is allowed yet: sensitivity is unknown for every property"
+            ],
+            "note": null,
+            "recorded": true
+          },
+          "quota": {
+            "budget": {
+              "seconds": 100000,
+              "turns": 100000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "reasons": [],
+          "status": "converged"
+        }
+      },
+      "malformed_persisted_evidence": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-d8nhcvw8",
+        "certificate": {
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "efbc085067bd0a2c",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "checks": {
+            "C1": {
+              "detail": {
+                "actionable": [],
+                "adapter_backlog": [],
+                "blocking": [],
+                "outside_scope": [],
+                "owner_gated": []
+              },
+              "id": "C1",
+              "pass": true,
+              "reasons": []
+            },
+            "C2": {
+              "detail": {
+                "k": 2,
+                "window": [
+                  2,
+                  3
+                ]
+              },
+              "id": "C2",
+              "pass": true,
+              "reasons": []
+            },
+            "C3": {
+              "detail": {},
+              "id": "C3",
+              "pass": true,
+              "reasons": []
+            },
+            "C4": {
+              "detail": {
+                "not_covered": {
+                  "style=beta": "outside this scope: a widening candidate",
+                  "style=gamma": "outside this scope: a widening candidate"
+                }
+              },
+              "id": "C4",
+              "pass": true,
+              "reasons": []
+            },
+            "C5": {
+              "detail": {},
+              "id": "C5",
+              "pass": true,
+              "reasons": []
+            },
+            "C6": {
+              "detail": {
+                "note": null,
+                "promoted": [
+                  "h-d1-b1"
+                ]
+              },
+              "id": "C6",
+              "pass": true,
+              "reasons": []
+            },
+            "C7": {
+              "detail": {},
+              "id": "C7",
+              "pass": true,
+              "reasons": []
+            }
+          },
+          "claims": {
+            "allowed": [
+              "efficiency under a stated tolerance, labelled 'stated, not measured'",
+              "no quality claim is allowed yet: sensitivity is unknown for every property"
+            ],
+            "note": null,
+            "recorded": true
+          },
+          "quota": {
+            "budget": {
+              "seconds": 100000,
+              "turns": 100000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "reasons": [],
+          "status": "converged"
+        }
+      },
+      "readiness_revocation": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-6jbr1l81",
+        "readiness": [
+          1,
+          {
+            "allowed_claims": [],
+            "blocked": [
+              "no improver.bounded claim has reached 'bounded'"
+            ],
+            "boundary_sha256": "1067f63733287390faee87d3abe2547f79b1ad5f9d2edca0f1953b275454944a",
+            "claims": {
+              "cases.runs:A1": {
+                "effect": "effectful",
+                "evidence": "A1 ran at 1 and cleaned up",
+                "state": "runs"
+              },
+              "grading.scores": {
+                "effect": "effectful",
+                "evidence": "evaluate returned floors for a real run",
+                "state": "scores"
+              },
+              "improver.bounded": {
+                "effect": "effectful",
+                "evidence": null,
+                "state": "declared"
+              }
+            },
+            "note": "invocable proves plumbing only, never improvement quality",
+            "ratified": true,
+            "start_ok": false
+          },
+          ""
+        ],
+        "certificate": {
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "052da6fed8757c5a",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "checks": {
+            "C1": {
+              "detail": {
+                "actionable": [],
+                "adapter_backlog": [],
+                "blocking": [],
+                "outside_scope": [],
+                "owner_gated": []
+              },
+              "id": "C1",
+              "pass": true,
+              "reasons": []
+            },
+            "C2": {
+              "detail": {
+                "k": 2,
+                "window": [
+                  2,
+                  3
+                ]
+              },
+              "id": "C2",
+              "pass": true,
+              "reasons": []
+            },
+            "C3": {
+              "detail": {},
+              "id": "C3",
+              "pass": true,
+              "reasons": []
+            },
+            "C4": {
+              "detail": {
+                "not_covered": {
+                  "style=beta": "outside this scope: a widening candidate",
+                  "style=gamma": "outside this scope: a widening candidate"
+                }
+              },
+              "id": "C4",
+              "pass": true,
+              "reasons": []
+            },
+            "C5": {
+              "detail": {},
+              "id": "C5",
+              "pass": true,
+              "reasons": []
+            },
+            "C6": {
+              "detail": {
+                "note": null,
+                "promoted": [
+                  "h-d1-b1"
+                ]
+              },
+              "id": "C6",
+              "pass": true,
+              "reasons": []
+            },
+            "C7": {
+              "detail": {},
+              "id": "C7",
+              "pass": true,
+              "reasons": []
+            }
+          },
+          "claims": {
+            "allowed": [],
+            "note": null,
+            "recorded": true
+          },
+          "quota": {
+            "budget": {
+              "seconds": 100000,
+              "turns": 100000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "reasons": [],
+          "status": "converged"
+        },
+        "next": {
+          "action": "widen",
+          "add_cases": [
+            "B1"
+          ],
+          "covers": [
+            "style=beta"
+          ],
+          "reason": "the scope is converged; B1 is the cheapest case that covers style=beta",
+          "rung": "E1"
+        }
+      },
+      "quota_scope_completion": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-ufnsiyr9",
+        "certificate": {
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "83008eabf87412d0",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "checks": {
+            "C1": {
+              "detail": {
+                "actionable": [],
+                "adapter_backlog": [],
+                "blocking": [],
+                "outside_scope": [],
+                "owner_gated": []
+              },
+              "id": "C1",
+              "pass": true,
+              "reasons": []
+            },
+            "C2": {
+              "detail": {
+                "k": 2,
+                "window": [
+                  2,
+                  3
+                ]
+              },
+              "id": "C2",
+              "pass": true,
+              "reasons": []
+            },
+            "C3": {
+              "detail": {},
+              "id": "C3",
+              "pass": true,
+              "reasons": []
+            },
+            "C4": {
+              "detail": {
+                "not_covered": {
+                  "style=beta": "outside this scope: a widening candidate",
+                  "style=gamma": "outside this scope: a widening candidate"
+                }
+              },
+              "id": "C4",
+              "pass": true,
+              "reasons": []
+            },
+            "C5": {
+              "detail": {},
+              "id": "C5",
+              "pass": true,
+              "reasons": []
+            },
+            "C6": {
+              "detail": {
+                "note": null,
+                "promoted": [
+                  "h-d1-b1"
+                ]
+              },
+              "id": "C6",
+              "pass": true,
+              "reasons": []
+            },
+            "C7": {
+              "detail": {},
+              "id": "C7",
+              "pass": true,
+              "reasons": []
+            }
+          },
+          "claims": {
+            "allowed": [
+              "efficiency under a stated tolerance, labelled 'stated, not measured'",
+              "no quality claim is allowed yet: sensitivity is unknown for every property"
+            ],
+            "note": null,
+            "recorded": true
+          },
+          "quota": {
+            "budget": {
+              "seconds": 25
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": true,
+            "over": [
+              "seconds"
+            ]
+          },
+          "reasons": [],
+          "status": "converged"
+        },
+        "next": {
+          "action": "stop",
+          "quota": {
+            "budget": {
+              "seconds": 25
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": true,
+            "over": [
+              "seconds"
+            ]
+          },
+          "reason": "budget used: seconds",
+          "status": "incomplete"
+        }
+      },
+      "poll_quota_and_retry": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-fxz3wdfw",
+        "started": {
+          "action": "start",
+          "handle": "h-a84ace74",
+          "key": "e51a0e7d87-S0-1",
+          "status": "running"
+        },
+        "errors": [
+          [
+            2,
+            null,
+            "{\"error\": \"adapter step did not finish within 0.2 s (execution.timeout_seconds)\"}\n"
+          ],
+          [
+            2,
+            null,
+            "{\"error\": \"adapter step did not finish within 0.2 s (execution.timeout_seconds)\"}\n"
+          ],
+          [
+            2,
+            null,
+            "{\"error\": \"adapter step did not finish within 0.2 s (execution.timeout_seconds)\"}\n"
+          ],
+          [
+            2,
+            null,
+            "{\"error\": \"adapter step did not finish within 0.2 s (execution.timeout_seconds)\"}\n"
+          ]
+        ],
+        "quota": {
+          "budget": {
+            "seconds": 0.3
+          },
+          "consumed": {
+            "seconds": 0.816
+          },
+          "exhausted": true,
+          "over": [
+            "seconds"
+          ]
+        },
+        "next": {
+          "action": "poll",
+          "handle": "h-a84ace74",
+          "key": "e51a0e7d87-S0-1"
+        }
+      },
+      "crash_replay_base": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-0zh9m0ns",
+        "steps": [
+          {
+            "action": "start",
+            "handle": "h-71dd4ada",
+            "key": "d8e0e3f18f-S0-1",
+            "status": "running"
+          },
+          {
+            "action": "poll",
+            "key": "d8e0e3f18f-S0-1",
+            "status": "running"
+          },
+          {
+            "action": "poll",
+            "iteration": 1,
+            "key": "d8e0e3f18f-S0-1",
+            "quiet": false,
+            "status": "done"
+          }
+        ],
+        "starts": [
+          "d8e0e3f18f-S0-1"
+        ],
+        "iteration": {
+          "acceptance": {
+            "candidate": "h-d1-b1",
+            "evidence": "d1 checked in b1"
+          },
+          "build_after": "b1",
+          "build_before": "b0",
+          "candidate": {
+            "hash": "h-d1-b1",
+            "id": "C-d1",
+            "outcome": "PROMOTE"
+          },
+          "cases": {
+            "A1": {
+              "baseline": "comparable",
+              "floors_met": false,
+              "ran": true
+            }
+          },
+          "cleanup": {
+            "receipt": "cleanup-d8e0e3f18f-S0-1",
+            "verified": true
+          },
+          "consumed": {
+            "seconds": 10,
+            "turns": 5
+          },
+          "discoveries": [
+            {
+              "id": "D-d1",
+              "material": true,
+              "repeat": false
+            }
+          ],
+          "ended": "2026-11-15T22:06:50Z",
+          "failed": false,
+          "index": 1,
+          "invalid": [
+            "the iteration ran on build b0 but the base was b1"
+          ],
+          "judge": {
+            "complete": true,
+            "valid": true
+          },
+          "key": "d8e0e3f18f-S0-1",
+          "mode": "iterate",
+          "quiet": false,
+          "quiet_reasons": [
+            "invalid or incomplete evidence was recorded",
+            "a material discovery, new or repeated",
+            "a candidate outcome is present",
+            "a scope case did not run or missed its floors"
+          ],
+          "requested": [
+            "A1"
+          ],
+          "review": {
+            "complete": true,
+            "valid": true
+          },
+          "scope": "S0",
+          "scoring": "score-1",
+          "tier": {
+            "build": "b1",
+            "green": true
+          }
+        }
+      },
+      "task_after_stop": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-dpg6y7ik",
+        "initial_stop": {
+          "action": "stop",
+          "at": "2026-11-15T22:06:51Z",
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "5ce0eb6ef1ab9bdd",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+          "report": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-dpg6y7ik/campaign/report.md",
+          "rung": "E5",
+          "scope_certificate": "converged",
+          "status": "converged"
+        },
+        "added_task": {
+          "ok": true,
+          "task": {
+            "id": "T2",
+            "kind": "diagnose",
+            "needs_owner": true,
+            "opened": "2026-11-15T22:06:51Z",
+            "status": "open",
+            "text": "Material A1 risk needs owner decision"
+          }
+        },
+        "next": {
+          "action": "stop",
+          "at": "2026-11-15T22:06:51Z",
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "5ce0eb6ef1ab9bdd",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+          "rung": "E5",
+          "scope_certificate": "converged",
+          "status": "converged"
+        },
+        "report": {
+          "adapter_backlog": [],
+          "allowed_claims": [
+            "efficiency under a stated tolerance, labelled 'stated, not measured'",
+            "no quality claim is allowed yet: sensitivity is unknown for every property"
+          ],
+          "at": "2026-11-15T22:06:51Z",
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "5ce0eb6ef1ab9bdd",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "campaign_status": "converged",
+          "claims_note": null,
+          "iterations": 3,
+          "not_covered": {},
+          "outside_scope": [],
+          "quota": {
+            "budget": {
+              "seconds": 100000,
+              "turns": 100000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "reasons": [],
+          "schema": "closed-loop-report/1",
+          "scope": "S0",
+          "scope_cases": [
+            "A1"
+          ],
+          "scope_certificate": "converged",
+          "scopes": [
+            {
+              "cases": [
+                "A1"
+              ],
+              "id": "S0",
+              "reason": "start"
+            }
+          ],
+          "stop": {
+            "at": "2026-11-15T22:06:51Z",
+            "binds": {
+              "build": "b1",
+              "campaign_identity": "5ce0eb6ef1ab9bdd",
+              "candidates": [
+                "h-d1-b1"
+              ],
+              "scope": "S0",
+              "scoring": "score-1"
+            },
+            "reason": "the declared catalog is covered and the blind-spot hunt is recorded; this is not a claim that no material problem remains outside what the evaluation can see",
+            "rung": "E5",
+            "scope_certificate": "converged",
+            "status": "converged"
+          },
+          "subject": "fake",
+          "unknowns": [],
+          "unresolved": []
+        },
+        "certificate": {
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "5ce0eb6ef1ab9bdd",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "checks": {
+            "C1": {
+              "detail": {
+                "actionable": [],
+                "adapter_backlog": [],
+                "blocking": [],
+                "outside_scope": [],
+                "owner_gated": []
+              },
+              "id": "C1",
+              "pass": true,
+              "reasons": []
+            },
+            "C2": {
+              "detail": {
+                "k": 2,
+                "window": [
+                  2,
+                  3
+                ]
+              },
+              "id": "C2",
+              "pass": true,
+              "reasons": []
+            },
+            "C3": {
+              "detail": {},
+              "id": "C3",
+              "pass": true,
+              "reasons": []
+            },
+            "C4": {
+              "detail": {
+                "not_covered": {}
+              },
+              "id": "C4",
+              "pass": true,
+              "reasons": []
+            },
+            "C5": {
+              "detail": {},
+              "id": "C5",
+              "pass": true,
+              "reasons": []
+            },
+            "C6": {
+              "detail": {
+                "note": null,
+                "promoted": [
+                  "h-d1-b1"
+                ]
+              },
+              "id": "C6",
+              "pass": true,
+              "reasons": []
+            },
+            "C7": {
+              "detail": {},
+              "id": "C7",
+              "pass": true,
+              "reasons": []
+            }
+          },
+          "claims": {
+            "allowed": [
+              "efficiency under a stated tolerance, labelled 'stated, not measured'",
+              "no quality claim is allowed yet: sensitivity is unknown for every property"
+            ],
+            "note": null,
+            "recorded": true
+          },
+          "quota": {
+            "budget": {
+              "seconds": 100000,
+              "turns": 100000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "reasons": [],
+          "status": "converged"
+        }
+      },
+      "stale_sensitivity_claim": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-gl1t8238",
+        "certificate": {
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "83bbf0f49e686cf0",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-2"
+          },
+          "checks": {
+            "C1": {
+              "detail": {
+                "actionable": [],
+                "adapter_backlog": [],
+                "blocking": [],
+                "outside_scope": [],
+                "owner_gated": []
+              },
+              "id": "C1",
+              "pass": true,
+              "reasons": []
+            },
+            "C2": {
+              "detail": {
+                "k": 2,
+                "window": [
+                  4,
+                  5
+                ]
+              },
+              "id": "C2",
+              "pass": true,
+              "reasons": []
+            },
+            "C3": {
+              "detail": {},
+              "id": "C3",
+              "pass": true,
+              "reasons": []
+            },
+            "C4": {
+              "detail": {
+                "not_covered": {
+                  "style=beta": "outside this scope: a widening candidate",
+                  "style=gamma": "outside this scope: a widening candidate"
+                }
+              },
+              "id": "C4",
+              "pass": true,
+              "reasons": []
+            },
+            "C5": {
+              "detail": {},
+              "id": "C5",
+              "pass": true,
+              "reasons": []
+            },
+            "C6": {
+              "detail": {
+                "note": null,
+                "promoted": [
+                  "h-d1-b1"
+                ]
+              },
+              "id": "C6",
+              "pass": true,
+              "reasons": []
+            },
+            "C7": {
+              "detail": {},
+              "id": "C7",
+              "pass": true,
+              "reasons": []
+            }
+          },
+          "claims": {
+            "allowed": [
+              "efficiency under a stated tolerance, labelled 'stated, not measured'",
+              "quality claims about d1"
+            ],
+            "note": null,
+            "recorded": true
+          },
+          "quota": {
+            "budget": {
+              "seconds": 100000,
+              "turns": 100000
+            },
+            "consumed": {
+              "seconds": 50,
+              "turns": 25
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "reasons": [],
+          "status": "converged"
+        },
+        "readiness": {
+          "allowed_claims": [
+            "efficiency under a stated tolerance, labelled 'stated, not measured'",
+            "quality claims about d1"
+          ],
+          "at": "2026-11-15T22:06:52Z",
+          "blocked": [],
+          "boundary_sha256": "1ffd0cd180bafd34ea6ca894493e3077ab08a33335b808bbb8e93962a024070d",
+          "claims": {
+            "cases.runs:A1": "runs",
+            "grading.calibrated:fake": "unmeasured",
+            "grading.scores": "scores",
+            "grading.sensitive:d1": "sensitive",
+            "improver.bounded": "bounded",
+            "improver.invocable": "invocable"
+          },
+          "start_ok": true
+        }
+      }
+    },
+    "parent_extra_probes": {
+      "pending_run_converges": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-u_55frwk",
+        "start": {
+          "action": "start",
+          "handle": "h-d804afc6",
+          "key": "90f40d9204-S0-4",
+          "status": "running"
+        },
+        "certificate": {
+          "binds": {
+            "build": "b1",
+            "campaign_identity": "a0df1d43f9c3ecd9",
+            "candidates": [
+              "h-d1-b1"
+            ],
+            "scope": "S0",
+            "scoring": "score-1"
+          },
+          "checks": {
+            "C1": {
+              "detail": {
+                "actionable": [],
+                "adapter_backlog": [],
+                "blocking": [],
+                "outside_scope": [],
+                "owner_gated": []
+              },
+              "id": "C1",
+              "pass": true,
+              "reasons": []
+            },
+            "C2": {
+              "detail": {
+                "k": 2,
+                "window": [
+                  2,
+                  3
+                ]
+              },
+              "id": "C2",
+              "pass": true,
+              "reasons": []
+            },
+            "C3": {
+              "detail": {},
+              "id": "C3",
+              "pass": true,
+              "reasons": []
+            },
+            "C4": {
+              "detail": {
+                "not_covered": {
+                  "style=beta": "outside this scope: a widening candidate",
+                  "style=gamma": "outside this scope: a widening candidate"
+                }
+              },
+              "id": "C4",
+              "pass": true,
+              "reasons": []
+            },
+            "C5": {
+              "detail": {},
+              "id": "C5",
+              "pass": true,
+              "reasons": []
+            },
+            "C6": {
+              "detail": {
+                "note": null,
+                "promoted": [
+                  "h-d1-b1"
+                ]
+              },
+              "id": "C6",
+              "pass": true,
+              "reasons": []
+            },
+            "C7": {
+              "detail": {},
+              "id": "C7",
+              "pass": true,
+              "reasons": []
+            }
+          },
+          "claims": {
+            "allowed": [
+              "efficiency under a stated tolerance, labelled 'stated, not measured'",
+              "no quality claim is allowed yet: sensitivity is unknown for every property"
+            ],
+            "note": null,
+            "recorded": true
+          },
+          "quota": {
+            "budget": {
+              "seconds": 100000,
+              "turns": 100000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "reasons": [],
+          "status": "converged"
+        },
+        "running_steps": {
+          "90f40d9204-S0-4": {
+            "base": "b1",
+            "cases": [
+              "A1"
+            ],
+            "handle": "h-d804afc6",
+            "index": 4,
+            "mode": "iterate",
+            "scope": "S0",
+            "started": "2026-11-15T22:09:39Z",
+            "status": "running"
+          }
+        },
+        "next": {
+          "action": "poll",
+          "handle": "h-d804afc6",
+          "key": "90f40d9204-S0-4"
+        }
+      },
+      "partial_probes_undercharged": {
+        "dir": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-cxdtwf33",
+        "readiness": [
+          2,
+          null,
+          "{\"error\": \"adapter probe exited 1: probe scores failed\"}\n"
+        ],
+        "state": {
+          "approved_cases": [],
+          "budget": {
+            "seconds": 100000,
+            "turns": 100000
+          },
+          "consumed": {
+            "seconds": 0.032
+          },
+          "created": "2026-11-15T22:09:39Z",
+          "events": [
+            {
+              "at": "2026-11-15T22:09:39Z",
+              "cases": [
+                "A1"
+              ],
+              "event": "init",
+              "scope": "S0"
+            },
+            {
+              "at": "2026-11-15T22:09:39Z",
+              "boundary_sha256": "84ed1955047f5d4929a79395df3cec1583526c582659301d57a4956a14557929",
+              "event": "ratify"
+            },
+            {
+              "at": "2026-11-15T22:09:39Z",
+              "event": "failed-calls",
+              "seconds": 0.032
+            }
+          ],
+          "id": "46e568e649",
+          "iterations": [],
+          "manifest": {
+            "boundary_sha256": "84ed1955047f5d4929a79395df3cec1583526c582659301d57a4956a14557929",
+            "path": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-cxdtwf33/manifest.json",
+            "sha256": "52c027e692f74b1711d9fd895a219a636a720e133ed4088a39306ac369c6d6c9"
+          },
+          "quiet_window": 2,
+          "ratification": {
+            "at": "2026-11-15T22:09:39Z",
+            "boundary_sha256": "84ed1955047f5d4929a79395df3cec1583526c582659301d57a4956a14557929",
+            "note": ""
+          },
+          "readiness": null,
+          "regression_ack": null,
+          "schema": "closed-loop-campaign/1",
+          "scope": "S0",
+          "scopes": [
+            {
+              "cases": [
+                "A1"
+              ],
+              "id": "S0",
+              "not_covered": {
+                "style=beta": "outside this scope: a widening candidate",
+                "style=gamma": "outside this scope: a widening candidate"
+              },
+              "opened": "2026-11-15T22:09:39Z",
+              "opened_iteration": 0,
+              "reason": "start",
+              "sweep_pending": false,
+              "values": [
+                "style=alpha"
+              ]
+            }
+          ],
+          "start_failures": {},
+          "steps": {},
+          "stop": null,
+          "subject": "fake",
+          "tasks": [],
+          "tip": "b0",
+          "unknowns": [],
+          "updated": "2026-11-15T22:09:39Z",
+          "workspace": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-cxdtwf33/ws"
+        }
+      }
+    },
+    "runtime_fingerprints": [
+      {
+        "mode": "ordinary",
+        "temporary_directory": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-j5ttc2kb",
+        "verify_exit": 0,
+        "verify_all_passed": true,
+        "recorded_tree": "add3aa163b590e9fe34515833ff56f09a4688bad",
+        "certificate_before": "converged",
+        "certificate_after": "incomplete",
+        "campaign_files_changed": [
+          "campaign.json"
+        ],
+        "done_exit": 2,
+        "done_status": "error",
+        "done_error": "the workspace changed after the recorded verify run: run this packet's verify_script again after the last change, then report again"
+      },
+      {
+        "mode": "ignored_state",
+        "temporary_directory": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-qbd1c_i9",
+        "verify_exit": 0,
+        "verify_all_passed": true,
+        "recorded_tree": "812a8a26395699c86788aef9297ca25da7897601",
+        "certificate_before": "converged",
+        "certificate_after": "incomplete",
+        "campaign_files_changed": [
+          "campaign.json"
+        ],
+        "done_exit": 0,
+        "done_status": "complete",
+        "done_error": null
+      },
+      {
+        "mode": "fingerprint_error",
+        "temporary_directory": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kv6c8c5g",
+        "verify_exit": 0,
+        "verify_all_passed": true,
+        "recorded_tree": null,
+        "certificate_before": "converged",
+        "certificate_after": "incomplete",
+        "campaign_files_changed": [
+          "campaign.json"
+        ],
+        "done_exit": 0,
+        "done_status": "complete",
+        "done_error": null
+      },
+      {
+        "mode": "recovery_queries",
+        "temporary_directory": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-9xyh28kv",
+        "verify_exit": 0,
+        "verify_all_passed": true,
+        "recorded_tree": "870d3ea602a1e727cb7d30498a1fdba2537dbe66",
+        "certificate_before": "converged",
+        "certificate_after": "converged",
+        "campaign_files_changed": [],
+        "done_exit": 0,
+        "done_status": "complete",
+        "done_error": null
+      }
+    ],
+    "runtime_snapshot_race": {
+      "temporary_directory": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-npcurk4t",
+      "barrier": "after all check outputs reached record, before _workspace_tree takes its snapshot",
+      "verify_script_modified": false,
+      "verify_exit": 0,
+      "verify_all_passed": true,
+      "all_recorded_checks_passed": true,
+      "recorded_tree": "58a06ae32764e4514a094322de797e20a8b8cf5a",
+      "certificate_after_sanctioned_mutation": "incomplete",
+      "certificate_reasons": [
+        "C7: an unknown lies inside the scope's claim: added after checks finished but before their fingerprint"
+      ],
+      "done_exit": 0,
+      "done_status": "complete"
+    },
+    "runtime_external_pin": {
+      "temporary_directory": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-8lmy1mtq",
+      "verify_all_passed": true,
+      "changed_path": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-8lmy1mtq/adapter.py",
+      "path_outside_subject_workspace": true,
+      "certificate_exit": 2,
+      "certificate_error": "{\"error\": \"the adapter manifest, its commands or a pinned file changed since init: its identity differs, start a new campaign\"}",
+      "done_exit": 0,
+      "done_status": "complete"
+    },
+    "operator_probes": {
+      "unratified_cleanup": {
+        "ratification": null,
+        "iterations": [],
+        "reply": [
+          0,
+          {
+            "covered": [],
+            "ok": true,
+            "receipt": "cleanup-e3b0c442"
+          },
+          ""
+        ],
+        "effect_exists": true
+      },
+      "budget_certificate": {
+        "quota": {
+          "budget": {
+            "seconds": 25,
+            "turns": 1000
+          },
+          "consumed": {
+            "seconds": 30,
+            "turns": 15
+          },
+          "exhausted": true,
+          "over": [
+            "seconds"
+          ]
+        },
+        "certificate": "converged",
+        "check_passes": {
+          "C1": true,
+          "C2": true,
+          "C3": true,
+          "C4": true,
+          "C5": true,
+          "C6": true,
+          "C7": true
+        },
+        "verify_rc": 0,
+        "verify_stdout": "=== until-loop check C1\n{\n  \"campaign_identity\": \"2e689eedfc5a0c17\",\n  \"clause\": \"C1\",\n  \"detail\": {\n    \"actionable\": [],\n    \"adapter_backlog\": [],\n    \"blocking\": [],\n    \"outside_scope\": [],\n    \"owner_gated\": []\n  },\n  \"id\": \"C1\",\n  \"pass\": true,\n  \"reasons\": [],\n  \"script_sha256\": \"2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b\"\n}\n\nUNTIL-LOOP-CHECK C1 exit=0\n=== until-loop check C2\n{\n  \"campaign_identity\": \"2e689eedfc5a0c17\",\n  \"clause\": \"C2\",\n  \"detail\": {\n    \"k\": 2,\n    \"window\": [\n      2,\n      3\n    ]\n  },\n  \"id\": \"C2\",\n  \"pass\": true,\n  \"reasons\": [],\n  \"script_sha256\": \"2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b\"\n}\n\nUNTIL-LOOP-CHECK C2 exit=0\n=== until-loop check C3\n{\n  \"campaign_identity\": \"2e689eedfc5a0c17\",\n  \"clause\": \"C3\",\n  \"detail\": {},\n  \"id\": \"C3\",\n  \"pass\": true,\n  \"reasons\": [],\n  \"script_sha256\": \"2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b\"\n}\n\nUNTIL-LOOP-CHECK C3 exit=0\n=== until-loop check C4\n{\n  \"campaign_identity\": \"2e689eedfc5a0c17\",\n  \"clause\": \"C4\",\n  \"detail\": {\n    \"not_covered\": {\n      \"style=beta\": \"outside this scope: a widening candidate\",\n      \"style=gamma\": \"outside this scope: a widening candidate\"\n    }\n  },\n  \"id\": \"C4\",\n  \"pass\": true,\n  \"reasons\": [],\n  \"script_sha256\": \"2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b\"\n}\n\nUNTIL-LOOP-CHECK C4 exit=0\n=== until-loop check C5\n{\n  \"campaign_identity\": \"2e689eedfc5a0c17\",\n  \"clause\": \"C5\",\n  \"detail\": {},\n  \"id\": \"C5\",\n  \"pass\": true,\n  \"reasons\": [],\n  \"script_sha256\": \"2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b\"\n}\n\nUNTIL-LOOP-CHECK C5 exit=0\n=== until-loop check C6\n{\n  \"campaign_identity\": \"2e689eedfc5a0c17\",\n  \"clause\": \"C6\",\n  \"detail\": {\n    \"note\": null,\n    \"promoted\": [\n      \"h-d1-b1\"\n    ]\n  },\n  \"id\": \"C6\",\n  \"pass\": true,\n  \"reasons\": [],\n  \"script_sha256\": \"2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b\"\n}\n\nUNTIL-LOOP-CHECK C6 exit=0\n=== until-loop check C7\n{\n  \"campaign_identity\": \"2e689eedfc5a0c17\",\n  \"clause\": \"C7\",\n  \"detail\": {},\n  \"id\": \"C7\",\n  \"pass\": true,\n  \"reasons\": [],\n  \"script_sha256\": \"2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b\"\n}\n\nUNTIL-LOOP-CHECK C7 exit=0\nUNTIL-LOOP-RECORDED 7 checks for this action: all passed\n",
+        "done_rc": 0,
+        "done_result": {
+          "status": "complete",
+          "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign.work/until/innerloop-f7ovzxtb.json",
+          "workspace": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign",
+          "work": "Run one closed-loop iteration at scope S0: run `closed_loop.py step --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign` until a step finishes (poll while one runs; do any open task it prints), then run `status` and apply the campaign checkpoint: read the whole backlog, reconcile related findings, and choose the smallest discriminating next investigation.",
+          "conditions": {
+            "exit": "Scope S0 is converged on the current build: Every material in-scope record is resolved with evidence; a deferred, owner-held or unresolved material record keeps the scope incomplete. The last K iterations at this scope, build and scoring identity were quiet: valid complete reviews, no material discovery, no candidate pending. Every scope case meets its floors on the current build against a comparable baseline. Every dimension value and declared combination the scope covers has a run on the current build, and every catalog value outside it is listed as not covered. Every run the campaign started was cleaned up with positive evidence, and a green quick-tier receipt exists for the current build. A promoted candidate's acceptance evidence names the same candidate; with nothing promoted there is no candidate to accept. No invalid, incomplete or missing evidence in the quiet window, and no unknown inside the scope's claim. Report satisfied only after every frozen check passed after the iteration's last change, and never when `step` printed a stop.",
+            "repeat": "Another iteration is allowed while `step` reports start, poll, task or widen; stop incomplete when it reports a stop or blocked, the budget is used, or an owner decision is needed."
+          },
+          "progress": {
+            "action_number": 1,
+            "trivial_streak": 1,
+            "required_trivial_reviews": 0
+          },
+          "context": {
+            "request": "Run a closed-loop campaign on fake: improve it by running cases, grading, trying fixes and repeating, and report convergence only within the named scope.",
+            "scope": "Scope S0: cases A1; not covered: style=beta, style=gamma",
+            "authority": "Routine: run cases; investigate. Owner only: hosted cases. Budget {\"seconds\": 25, \"turns\": 1000}; ratified: True. A script stop is not convergence.",
+            "environment": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py; adapter manifest /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/manifest.json; campaign folder /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign (the workspace); subject workspace /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/ws; bulky files in /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign.work. Call the adapter only through this script. Script sha256 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b; campaign identity 2e689eedfc5a0c17.",
+            "resources": [
+              {
+                "purpose": "campaign state",
+                "locator": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign/campaign.json"
+              },
+              {
+                "purpose": "adapter manifest",
+                "locator": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/manifest.json"
+              },
+              {
+                "purpose": "orchestrator script",
+                "locator": "/Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py"
+              }
+            ]
+          },
+          "status_semantics": {
+            "active": "Execute exactly one complete returned work iteration, then submit its exact done callback.",
+            "complete": "The exit assessment and numeric review gate were accepted; report once with no callback.",
+            "stopped": "The run ended incomplete because it was cancelled or blocked; report once with no callback.",
+            "error": "No success or advancement may be inferred; use only a returned read-only next command when available."
+          },
+          "last_report": {
+            "classification": "trivial",
+            "exit_assessment": "satisfied",
+            "continuation_assessment": "allowed",
+            "evidence": "three iterations; all checks passed; certificate converged",
+            "handoff": "budget overshoot probe; inspect campaign.json"
+          },
+          "receipt": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign.work/receipt.json",
+          "exit_checks": [
+            {
+              "id": "C1",
+              "clause": "Every material in-scope record is resolved with evidence; a deferred, owner-held or unresolved material record keeps the scope incomplete.",
+              "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py check --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign --clause C1 --expect-sha 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b --expect-scope S0 --expect-identity 2e689eedfc5a0c17"
+            },
+            {
+              "id": "C2",
+              "clause": "The last K iterations at this scope, build and scoring identity were quiet: valid complete reviews, no material discovery, no candidate pending.",
+              "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py check --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign --clause C2 --expect-sha 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b --expect-scope S0 --expect-identity 2e689eedfc5a0c17"
+            },
+            {
+              "id": "C3",
+              "clause": "Every scope case meets its floors on the current build against a comparable baseline.",
+              "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py check --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign --clause C3 --expect-sha 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b --expect-scope S0 --expect-identity 2e689eedfc5a0c17"
+            },
+            {
+              "id": "C4",
+              "clause": "Every dimension value and declared combination the scope covers has a run on the current build, and every catalog value outside it is listed as not covered.",
+              "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py check --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign --clause C4 --expect-sha 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b --expect-scope S0 --expect-identity 2e689eedfc5a0c17"
+            },
+            {
+              "id": "C5",
+              "clause": "Every run the campaign started was cleaned up with positive evidence, and a green quick-tier receipt exists for the current build.",
+              "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py check --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign --clause C5 --expect-sha 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b --expect-scope S0 --expect-identity 2e689eedfc5a0c17"
+            },
+            {
+              "id": "C6",
+              "clause": "A promoted candidate's acceptance evidence names the same candidate; with nothing promoted there is no candidate to accept.",
+              "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py check --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign --clause C6 --expect-sha 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b --expect-scope S0 --expect-identity 2e689eedfc5a0c17"
+            },
+            {
+              "id": "C7",
+              "clause": "No invalid, incomplete or missing evidence in the quiet window, and no unknown inside the scope's claim.",
+              "command": "/opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dadleet/src/skill-craft/.claude/worktrees/closed-loop-p1-ce82cb/skills/closed-loop/scripts/closed_loop.py check --campaign /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/campaign --clause C7 --expect-sha 2ab3871f4a2f61abeb093e93b19e8e6f161a5c67985741168b1f80c10ba3c14b --expect-scope S0 --expect-identity 2e689eedfc5a0c17"
+            }
+          ],
+          "last_check_results": [
+            {
+              "exit_code": 0,
+              "id": "C1",
+              "output_tail": "",
+              "passed": true
+            },
+            {
+              "exit_code": 0,
+              "id": "C2",
+              "output_tail": "",
+              "passed": true
+            },
+            {
+              "exit_code": 0,
+              "id": "C3",
+              "output_tail": "",
+              "passed": true
+            },
+            {
+              "exit_code": 0,
+              "id": "C4",
+              "output_tail": "",
+              "passed": true
+            },
+            {
+              "exit_code": 0,
+              "id": "C5",
+              "output_tail": "",
+              "passed": true
+            },
+            {
+              "exit_code": 0,
+              "id": "C6",
+              "output_tail": "",
+              "passed": true
+            },
+            {
+              "exit_code": 0,
+              "id": "C7",
+              "output_tail": "",
+              "passed": true
+            }
+          ],
+          "check_repairs": [],
+          "instruction": "This run is complete: the semantic exit assessment is satisfied and the review gate is met. Do not perform further work for this run and do not invoke another callback of this run. The retained context and last_report are sufficient to report this terminal result once after the state file has been deleted. A handoff is prior evidence, not new authority. Communicate the terminal result once in clear, thoughtfully formatted Markdown, grounded in this returned status, reason, script-reported progress, last_report, and observed evidence. Explain what was accomplished, whether the whole run completed or stopped incomplete, and any prerequisite for future work. Distinguish reported claims from verified outcomes; do not invent a future step, percentage, ETA, wait, or retry. This terminal stop ends this loop invocation. If nested, return this exact terminal packet through the recorded reporting-owner handoff so the parent can resume its own still-active run; that handoff does not reopen this loop. End this invocation.",
+          "next_argv": null,
+          "done_argv": null,
+          "report_schema": null,
+          "verify_script": null
+        },
+        "next": {
+          "action": "stop",
+          "quota": {
+            "budget": {
+              "seconds": 25,
+              "turns": 1000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": true,
+            "over": [
+              "seconds"
+            ]
+          },
+          "reason": "budget used: seconds",
+          "status": "incomplete"
+        }
+      },
+      "proposal_absolute_root": {
+        "errors": [],
+        "value": {
+          "candidate_paths": [
+            "/"
+          ],
+          "withheld_paths": [
+            "held/"
+          ],
+          "evaluator_paths": [
+            "graders/",
+            "adapter.json"
+          ],
+          "verify": [
+            "true"
+          ]
+        }
+      },
+      "proposal_abs_rel_alias": {
+        "errors": [],
+        "value": {
+          "candidate_paths": [
+            "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/closed-loop-test-kdbt7q81/graders/score.py"
+          ],
+          "withheld_paths": [
+            "held/"
+          ],
+          "evaluator_paths": [
+            "graders/"
+          ],
+          "verify": [
+            "true"
+          ]
+        }
+      },
+      "proposal_no_values_null_evidence": {
+        "errors": [],
+        "slots": {
+          "mission": {
+            "status": "found",
+            "evidence": [
+              null
+            ]
+          },
+          "cases": {
+            "status": "found",
+            "evidence": [
+              null
+            ]
+          },
+          "steps": {
+            "status": "found",
+            "evidence": [
+              null
+            ]
+          },
+          "evaluation": {
+            "status": "found",
+            "evidence": [
+              null
+            ]
+          },
+          "improvement": {
+            "status": "found",
+            "evidence": [
+              null
+            ]
+          },
+          "authority": {
+            "status": "found",
+            "evidence": [
+              null
+            ]
+          },
+          "records": {
+            "status": "found",
+            "evidence": [
+              null
+            ]
+          }
+        }
+      },
+      "readiness_after_exhaustion": {
+        "budget": {
+          "seconds": 10
+        },
+        "first_consumed": {
+          "seconds": 21
+        },
+        "second_consumed": {
+          "seconds": 42
+        },
+        "second_start_ok": true
+      }
+    },
+    "quota_packets": {
+      "rounds": [
+        {
+          "iteration": 1,
+          "action": {
+            "action": "start",
+            "iteration": 1,
+            "key": "1071e61880-S0-1"
+          },
+          "quota": {
+            "budget": {
+              "seconds": 25,
+              "turns": 1000
+            },
+            "consumed": {
+              "seconds": 10,
+              "turns": 5
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "certificate": "incomplete",
+          "checks": {
+            "C1": true,
+            "C2": false,
+            "C3": false,
+            "C4": false,
+            "C5": true,
+            "C6": true,
+            "C7": false
+          },
+          "runtime_status": "active",
+          "runtime_action_number": 2
+        },
+        {
+          "iteration": 2,
+          "action": {
+            "action": "start",
+            "iteration": 2,
+            "key": "1071e61880-S0-2"
+          },
+          "quota": {
+            "budget": {
+              "seconds": 25,
+              "turns": 1000
+            },
+            "consumed": {
+              "seconds": 20,
+              "turns": 10
+            },
+            "exhausted": false,
+            "over": []
+          },
+          "certificate": "incomplete",
+          "checks": {
+            "C1": true,
+            "C2": false,
+            "C3": true,
+            "C4": true,
+            "C5": true,
+            "C6": true,
+            "C7": true
+          },
+          "runtime_status": "active",
+          "runtime_action_number": 3
+        },
+        {
+          "iteration": 3,
+          "action": {
+            "action": "start",
+            "iteration": 3,
+            "key": "1071e61880-S0-3"
+          },
+          "quota": {
+            "budget": {
+              "seconds": 25,
+              "turns": 1000
+            },
+            "consumed": {
+              "seconds": 30,
+              "turns": 15
+            },
+            "exhausted": true,
+            "over": [
+              "seconds"
+            ]
+          },
+          "certificate": "converged",
+          "checks": {
+            "C1": true,
+            "C2": true,
+            "C3": true,
+            "C4": true,
+            "C5": true,
+            "C6": true,
+            "C7": true
+          },
+          "runtime_status": "complete",
+          "runtime_action_number": 3
+        }
+      ],
+      "next": {
+        "action": "stop",
+        "quota": {
+          "budget": {
+            "seconds": 25,
+            "turns": 1000
+          },
+          "consumed": {
+            "seconds": 30,
+            "turns": 15
+          },
+          "exhausted": true,
+          "over": [
+            "seconds"
+          ]
+        },
+        "reason": "budget used: seconds",
+        "status": "incomplete"
+      }
+    },
+    "suite_result": {
+      "result": "PASS",
+      "exit_code": 0,
+      "test_count": 110,
+      "suite_seconds": 65.385,
+      "duration_seconds": 69.228,
+      "complete_success": true,
+      "source_unchanged": true,
+      "before_head": "163f21f2e9724ff61611f71a3311bc360ed25a41",
+      "after_head": "163f21f2e9724ff61611f71a3311bc360ed25a41",
+      "before_status": "",
+      "after_status": "",
+      "added_checkout_paths": [],
+      "removed_checkout_paths": [],
+      "changed_checkout_paths": [],
+      "evidence_dir": "/private/tmp/closed-loop-suite-upsz6nul",
+      "log": "/private/tmp/closed-loop-suite-upsz6nul/test.log"
+    }
+  }
+}

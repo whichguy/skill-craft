@@ -167,30 +167,39 @@ class CliTests(unittest.TestCase):
 
 class PacketLineTests(unittest.TestCase):
     def test_the_line_is_in_backchain_producer_routes_only(self):
-        for stage in prompts.DUTIES:
-            for delegation in prompts.DELEGATIONS:
-                with self.subTest(stage=stage, delegation=delegation):
-                    # An inline step-plan builds no execution graph: it carries the one optional audit line
-                    # (INLINE_BACKCHAIN_AUDIT), which names the printed `backchain-check` itself, instead of
-                    # the full BACKCHAIN_CHECK line (2026-10-11 dedupe).
-                    # Product-acceptance edits nothing, so it carries that line on every route (AUDIT_LINE_STAGES,
-                    # stage-prompt review 2026-10-31).
-                    inline_step_plan = (stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
-                                        or stage in prompts.AUDIT_LINE_STAGES)
-                    # The spec and plan duties fold the Backchain item (packet re-cut, 2026-10-11): the check
-                    # instruction is a duty item there, and prompt() prints no second BACKCHAIN_CHECK line.
-                    folded = stage in prompts.BACKCHAIN_FOLDED_STAGES
-                    expected = int(stage in prompts.BACKCHAIN_STAGES and not inline_step_plan and not folded)
-                    packet = prompts.prompt(stage, delegation=delegation)
-                    self.assertEqual(packet.count(prompts.BACKCHAIN_CHECK), expected)
-                    if folded:
-                        self.assertIn("Run the printed `backchain-check` after each candidate revision", packet)
-                        self.assertIn("receipt", packet)
-                    if inline_step_plan:
-                        self.assertEqual(packet.count(prompts.INLINE_BACKCHAIN_AUDIT), 1)
-                        self.assertIn("`backchain-check`", prompts.INLINE_BACKCHAIN_AUDIT)
-                        self.assertIn("evidence_refs", prompts.INLINE_BACKCHAIN_AUDIT)
-                    self.assertNotIn("backchain-check", prompts.improve_prompt(stage, delegation=delegation))
+        """In a run that opts in to a Backchain child (`one`, `converge`), every Backchain producer route carries the
+        check line. In the default `none` (owner decision 2026-11-15, no Backchain child) the routes whose check stands
+        on its own keep it, and the optional audit line, whose check only followed the audit child, is not printed."""
+        for mode in prompts.BACKCHAIN_PASSES_MODES:
+            child = prompts.offers_backchain_child(mode)
+            check = prompts.BACKCHAIN_CHECK if child else prompts._BACKCHAIN_CHECK_NONE
+            for stage in prompts.DUTIES:
+                for delegation in prompts.DELEGATIONS:
+                    with self.subTest(mode=mode, stage=stage, delegation=delegation):
+                        # An inline step-plan builds no execution graph: it carries the one optional audit line
+                        # (INLINE_BACKCHAIN_AUDIT), which names the printed `backchain-check` itself, instead of
+                        # the full BACKCHAIN_CHECK line (2026-10-11 dedupe).
+                        # Product-acceptance edits nothing, so it carries that line on every route (AUDIT_LINE_STAGES,
+                        # stage-prompt review 2026-10-31).
+                        inline_step_plan = (stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
+                                            or stage in prompts.AUDIT_LINE_STAGES)
+                        # The spec and plan duties fold the Backchain item (packet re-cut, 2026-10-11): the check
+                        # instruction is a duty item there, and prompt() prints no second BACKCHAIN_CHECK line.
+                        folded = stage in prompts.BACKCHAIN_FOLDED_STAGES
+                        expected = int(stage in prompts.BACKCHAIN_STAGES and not inline_step_plan and not folded)
+                        packet = prompts.prompt(stage, delegation=delegation, backchain_passes=mode)
+                        self.assertEqual(packet.count(check), expected)
+                        if folded:
+                            # a run with no child says what the check reads (2026-11-15 default round)
+                            self.assertIn("Run the printed `backchain-check` after each candidate revision" if child
+                                          else "The printed `backchain-check` reads only a candidate graph",
+                                          " ".join(packet.split()))
+                            self.assertIn("receipt", packet)
+                        if inline_step_plan:
+                            self.assertEqual(packet.count(prompts.INLINE_BACKCHAIN_AUDIT), int(child))
+                            self.assertIn("`backchain-check`", prompts.INLINE_BACKCHAIN_AUDIT)
+                            self.assertIn("evidence_refs", prompts.INLINE_BACKCHAIN_AUDIT)
+                        self.assertNotIn("backchain-check", prompts.improve_prompt(stage, delegation=delegation))
 
     def test_the_line_size_is_pinned(self):
         self.assertEqual(prompts.BACKCHAIN_CHECK.count("\n"), 1)

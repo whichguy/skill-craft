@@ -1,0 +1,791 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e0198fa..173a2a1 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,16 @@
+ # Changelog
+ 
++## 1.6.0
++
++- Ticket assignment. `PUT /tickets/:id/assignee` with `{"assignee": "<agent>"}` assigns an open or in-progress ticket
++  to an agent (a name of at most 64 characters), `{"assignee": null}` unassigns it. The agent is notified
++  (`ticket.assigned`); assigning the agent a ticket already has changes nothing. A ticket shows its `assignee`.
++- `GET /tickets?assignee=<agent>` lists an agent's tickets, `assignee=` the unassigned ones.
++- Fixed: filters of `GET /tickets` combine as documented, a ticket must match every filter given (it matched any).
++- The command line shows the assignee (`list`, `show`, `--assignee`); `list --raw` has it as a fifth column.
++- `ASSIGNEES=on` makes a ticket nobody is assigned to show `assignee: null`; until then it has no `assignee` field, as
++  before 1.6.0, and an assigned ticket shows its assignee.
++
+ ## 1.5.0
+ 
+ - Due times ([decision 9](docs/decisions/0009-due-times.md)). Every ticket gets a due time, `due`: the time it was created
+diff --git a/README.md b/README.md
+index c4fce6e..0830f81 100644
+--- a/README.md
++++ b/README.md
+@@ -33,7 +33,7 @@ Every setting is an environment variable. Unset or empty means the default.
+ | `LOG_REQUESTS` | off | `1` logs one line per request on standard error |
+ | `DUE_TIMES` | off | `on` shows each ticket's due time (`due`) and enables `?overdue=true`; anything else keeps the API as it was before 1.5.0 (the data file holds the due times either way) |
+ | `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, `DUE_HOURS_LOW` | `4`, `24`, `72`, `168` | the hours a new ticket of that priority has to be answered: its due time is its creation time plus these; a whole number from 1 |
+-
++| `ASSIGNEES` | off | `on` makes a ticket nobody is assigned to show `assignee: null`; until then it has no `assignee` field, as before 1.6.0 (an assigned ticket always shows its assignee) |
+ A value the service cannot use (`PORT=http`, say) stops it at start with a message naming the variable.
+ [docs/operations.md](docs/operations.md) covers the data file, the worker and what to do with dead notifications.
+ 
+@@ -70,7 +70,7 @@ node bin/tickets.js --data data/tickets.json show T-0042
+ ```
+ 
+ `list` prints a table. `list --raw` prints one ticket per line with the columns separated by tabs: id, status, priority,
+-title. `scripts/weekly-report.js` runs `list --raw` and reads these columns by position, so they must keep their
++title, assignee (empty when unassigned). `scripts/weekly-report.js` runs `list --raw` and reads these columns by position, so they must keep their
+ positions.
+ 
+ ```sh
+diff --git a/bin/tickets.js b/bin/tickets.js
+index 3996701..3bf70b4 100644
+--- a/bin/tickets.js
++++ b/bin/tickets.js
+@@ -4,7 +4,7 @@
+ /**
+  * The operators' command line. It reads the service's data file, DATA_FILE or --data FILE, and never writes it.
+  *
+- *   tickets list [--status S] [--priority P] [--raw]
++ *   tickets list [--status S] [--priority P] [--assignee A] [--raw]
+  *   tickets show <id>
+  *
+  * README.md, "Command line", has examples. Exit codes: 0 done, 1 no such ticket, 2 usage or data file problem.
+@@ -18,7 +18,7 @@ const { TicketStore } = require('../src/store');
+ const { parseListQuery } = require('../src/tickets/query');
+ 
+ const USAGE = [
+-  'usage: tickets [--data FILE] list [--status STATUS] [--priority PRIORITY] [--raw]',
++  'usage: tickets [--data FILE] list [--status STATUS] [--priority PRIORITY] [--assignee AGENT] [--raw]',
+   '       tickets [--data FILE] show ID',
+ ].join('\n');
+ 
+@@ -30,7 +30,7 @@ function parseArgs(argv, env) {
+     const arg = argv[index];
+     if (arg === '--raw') options.raw = true;
+     else if (arg === '-h' || arg === '--help') options.help = true;
+-    else if (arg === '--data' || arg === '--status' || arg === '--priority') {
++    else if (arg === '--data' || arg === '--status' || arg === '--priority' || arg === '--assignee') {
+       const value = argv[index + 1];
+       if (value === undefined) throw new UsageError(`${arg} needs a value`);
+       index += 1;
+diff --git a/docs/api.md b/docs/api.md
+index 06fcf7d..2736a6e 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -53,6 +53,7 @@ The message is for people; clients branch on `code`.
+ | `status` | `open`, `in_progress`, `resolved` or `closed` |
+ | `created` | when it was opened |
+ | `updated` | when it last changed; a request that changes nothing leaves it as it was |
++| `assignee` | the agent the ticket is assigned to, or null. An unassigned ticket shows no `assignee` field unless the service runs with `ASSIGNEES=on` |
+ | `due` | when the help desk promises to have answered it: `created` plus the hours of the priority it had then (4 urgent, 24 high, 72 normal, 168 low by default). Set once: a later change of the priority or of the hours does not move it. Present only while the service runs with `DUE_TIMES=on` |
+ 
+ ## Endpoints
+@@ -85,6 +86,7 @@ order of the items. The body may be up to 16 MiB, whatever `MAX_BODY_BYTES` says
+ |---|---|
+ | `status` | only tickets with this status |
+ | `priority` | only tickets with this priority |
++| `assignee` | only tickets assigned to this agent; an empty `assignee=` keeps the unassigned tickets |
+ | `limit` | how many tickets a page holds: a whole number from 1 to 100, 20 when absent |
+ | `cursor` | the `next` of the previous page, to get the page after it |
+ | `overdue` | `true`: only the `open` and `in_progress` tickets whose `due` has passed; it combines with the other filters and pages like them. Any other value is `invalid`. Known only with `DUE_TIMES=on`; without it the parameter is ignored |
+@@ -114,6 +116,18 @@ Answers 200 with the ticket, or 404 `not_found`.
+ Either field, or both. Answers 200 with the ticket. A closed ticket can no longer change (409 `conflict`). Sending the
+ values the ticket already has changes nothing: no audit entry, and `updated` stays.
+ 
++### Assign a ticket: `PUT /tickets/:id/assignee`
++
++```json
++{ "assignee": "dana" }
++```
++
++Assigns the ticket to that agent, a non-empty name of at most 64 characters, or unassigns it with `{ "assignee": null }`.
++Answers 200 with the ticket. Only `open` and `in_progress` tickets can be assigned or unassigned (409 `conflict`
++otherwise); a missing or invalid `assignee` is 400 `invalid`. The agent is notified that the ticket was assigned to them.
++Assigning the agent the ticket already has (or unassigning an unassigned ticket) changes nothing: no audit entry, no
++notification, and `updated` stays. Audit actions: `ticket.assigned`, `ticket.unassigned`.
++
+ ### Move a ticket along its lifecycle: `POST /tickets/:id/transition`
+ 
+ ```json
+@@ -146,7 +160,7 @@ Every change to the ticket, oldest first ([decision 7](decisions/0007-append-onl
+ ```
+ 
+ `seq` numbers the entries of the whole log. `changes` holds, for each field the change touched, its value before and
+-after. Actions so far: `ticket.created`, `ticket.updated`, `ticket.transitioned`.
++after. Actions so far: `ticket.created`, `ticket.updated`, `ticket.transitioned`, `ticket.assigned`, `ticket.unassigned`.
+ 
+ ### The outbox: `GET /admin/outbox`
+ 
+diff --git a/package.json b/package.json
+index d469dd7..5ba36cd 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "helpdesk-tickets",
+-  "version": "1.5.0",
++  "version": "1.6.0",
+   "private": true,
+   "description": "The IT help desk's ticket service: an HTTP API, an audit log, requester notifications and an operator command line.",
+   "license": "UNLICENSED",
+diff --git a/src/app.js b/src/app.js
+index 724a538..6f539ff 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -43,6 +43,11 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+     return { status: 200, body: store.update(params.id, patch, actorOf(req)) };
+   });
+ 
++  router.put('/tickets/:id/assignee', async ({ req, params }) => {
++    const assignee = validate.assignment(await body(req));
++    return { status: 200, body: store.assign(params.id, assignee, actorOf(req)) };
++  });
++
+   router.post('/tickets/:id/transition', async ({ req, params }) => {
+     const to = validate.transition(await body(req));
+     return { status: 200, body: store.transition(params.id, to, actorOf(req)) };
+diff --git a/src/config.js b/src/config.js
+index 2c0b844..f51e10e 100644
+--- a/src/config.js
++++ b/src/config.js
+@@ -57,6 +57,7 @@ function loadConfig(env = process.env) {
+     logRequests: env.LOG_REQUESTS === '1',
+     dueHours: dueHours(env),
+     dueTimes: (env.DUE_TIMES ?? '').trim() === 'on',
++    assignees: (env.ASSIGNEES ?? '').trim() === 'on',
+   });
+ }
+ 
+diff --git a/src/format.js b/src/format.js
+index 07b3e3d..3d45d6c 100644
+--- a/src/format.js
++++ b/src/format.js
+@@ -6,10 +6,10 @@
+  */
+ 
+ /**
+- * The columns of `list --raw`, tab-separated, in this order. scripts/weekly-report.js reads them by position
+- * (README.md, "Command line").
++ * The columns of `list --raw`, tab-separated, in this order, the assignee last and empty when there is none. scripts/weekly-report.js
++ * reads them by position (README.md, "Command line"), so a new column only goes at the end.
+  */
+-const RAW_COLUMNS = Object.freeze(['id', 'status', 'priority', 'title']);
++const RAW_COLUMNS = Object.freeze(['id', 'status', 'priority', 'title', 'assignee']);
+ 
+ /** One ticket as a line of `list --raw`. */
+ function rawLine(ticket) {
+@@ -24,6 +24,7 @@ const TABLE_COLUMNS = Object.freeze([
+   { title: 'STATUS', value: (ticket) => ticket.status },
+   { title: 'PRIORITY', value: (ticket) => ticket.priority },
+   { title: 'REQUESTER', value: (ticket) => ticket.requester },
++  { title: 'ASSIGNEE', value: (ticket) => ticket.assignee ?? '-' },
+   { title: 'UPDATED', value: (ticket) => minute(ticket.updated) },
+   { title: 'TITLE', value: (ticket) => ticket.title },
+ ]);
+@@ -45,10 +46,10 @@ function describeChanges(changes) {
+ 
+ /** One ticket in full, then its history. */
+ function details(ticket, history) {
+-  const fields = ['status', 'priority', 'requester', 'created', 'updated'];
++  const fields = ['status', 'priority', 'requester', 'assignee', 'created', 'updated'];
+   const width = Math.max(...fields.map((field) => field.length));
+   const lines = [`${ticket.id}  ${ticket.title}`];
+-  for (const field of fields) lines.push(`  ${field.padEnd(width)}  ${ticket[field]}`);
++  for (const field of fields) lines.push(`  ${field.padEnd(width)}  ${field === 'assignee' ? ticket.assignee ?? '-' : ticket[field]}`);
+   lines.push('', 'History');
+   for (const entry of history) {
+     lines.push(`  ${minute(entry.at)}  ${entry.actor}  ${entry.action}  ${describeChanges(entry.changes)}`);
+diff --git a/src/persistence.js b/src/persistence.js
+index d0ba402..bcc7300 100644
+--- a/src/persistence.js
++++ b/src/persistence.js
+@@ -107,6 +107,8 @@ function ticketRecord(ticket) {
+     // Added in 1.5.0. Release 1.4.0 loads files that hold it (it keeps only the fields it knows), so the format
+     // stays at version 1. Left out when a ticket has none, which is how files written before 1.5.0 look.
+     ...(ticket.due === undefined ? {} : { due: ticket.due }),
++    // Added in 1.6.0, likewise left out when the ticket is not assigned, so files stay as they were.
++    ...(ticket.assignee === undefined || ticket.assignee === null ? {} : { assignee: ticket.assignee }),
+   };
+ }
+ 
+@@ -148,6 +150,7 @@ function readTicket(record, where, fail) {
+   time(ticket.created, `${where}.created`, fail);
+   time(ticket.updated, `${where}.updated`, fail);
+   if (ticket.due !== undefined) time(ticket.due, `${where}.due`, fail);
++  if (ticket.assignee !== undefined) text(ticket.assignee, `${where}.assignee`, fail);
+   return ticket;
+ }
+ 
+diff --git a/src/server.js b/src/server.js
+index 2900f4b..9557e42 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -17,7 +17,8 @@ const { Worker, deliverOutbox } = require('./worker');
+ function createService(config, { clock = systemClock, log = createLogger() } = {}) {
+   const persistence = config.dataFile ? createPersistence(config.dataFile, { clock }) : null;
+   // Due times are stored (and old tickets given theirs) whatever DUE_TIMES says; that setting only shows them.
+-  const store = TicketStore.open({ clock, persistence, dueHours: config.dueHours || DEFAULT_DUE_HOURS, dueTimes: config.dueTimes === true });
++  const store = TicketStore.open({ clock, persistence, dueHours: config.dueHours || DEFAULT_DUE_HOURS, dueTimes: config.dueTimes === true,
++    assignees: config.assignees === true });
+   const notifier = createNotifier({ file: config.notifyFile, clock });
+   const worker = new Worker({
+     intervalMs: config.workerIntervalMs,
+diff --git a/src/store.js b/src/store.js
+index ac1de91..41fd7c9 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -7,7 +7,7 @@ const { paginate } = require('./pagination');
+ const { compareIds, formatId, parseId } = require('./tickets/ids');
+ const { dueFor, isOverdue } = require('./tickets/due');
+ const { matchesFilters } = require('./tickets/query');
+-const { canTransition, isFinal, nextStatuses } = require('./tickets/states');
++const { canTransition, isActive, isFinal, nextStatuses } = require('./tickets/states');
+ 
+ /** The fields a new ticket's audit entry lists, from null. */
+ const CREATED_FIELDS = Object.freeze(['title', 'priority', 'requester', 'status']);
+@@ -31,13 +31,16 @@ class TicketStore {
+    *   every new ticket gets a due time, and so does every ticket of `state` that has none, which is then saved. Without
+    *   it tickets have no due time, as before release 1.5.0.
+    * @param {boolean} [options.dueTimes] whether tickets show their due time (`due`) and the listing takes `overdue`
++   * @param {boolean} [options.assignees] whether a ticket nobody is assigned to shows `assignee: null`. An assigned
++   *   ticket always shows its assignee; until this is on, an unassigned one has no `assignee` field, as before 1.6.0.
+    */
+-  constructor({ clock, persistence = null, state = null, dueHours = null, dueTimes = false }) {
++  constructor({ clock, persistence = null, state = null, dueHours = null, dueTimes = false, assignees = false }) {
+     const initial = state || { nextNumber: 1, tickets: [], audit: [], outbox: {} };
+     this.clock = clock;
+     this.persistence = persistence;
+     this.dueHours = dueHours;
+     this.dueTimes = dueTimes;
++    this.assignees = assignees;
+     this.nextNumber = initial.nextNumber;
+     this.tickets = new Map(initial.tickets.map((ticket) => [ticket.id, { ...ticket }]));
+     this.audit = new AuditLog(initial.audit);
+@@ -46,8 +49,8 @@ class TicketStore {
+   }
+ 
+   /** A store holding what `persistence` saved (nothing on a first start), saving back to it. */
+-  static open({ clock, persistence = null, dueHours = null, dueTimes = false }) {
+-    return new TicketStore({ clock, persistence, state: persistence ? persistence.load() : null, dueHours, dueTimes });
++  static open({ clock, persistence = null, dueHours = null, dueTimes = false, assignees = false }) {
++    return new TicketStore({ clock, persistence, state: persistence ? persistence.load() : null, dueHours, dueTimes, assignees });
+   }
+ 
+   // Reads
+@@ -140,6 +143,22 @@ class TicketStore {
+     });
+   }
+ 
++  /**
++   * Assign a ticket to the agent `assignee`, or unassign it (null). Only an open or in-progress ticket can be assigned
++   * or unassigned. The agent is told they were assigned; assigning the agent the ticket already has changes nothing.
++   */
++  assign(id, assignee, actor) {
++    const ticket = this.find(id);
++    if (!isActive(ticket.status)) throw new ConflictError(`ticket ${id} is ${ticket.status}; only an open or in-progress ticket can be assigned`);
++    const from = ticket.assignee ?? null;
++    const changes = from === assignee ? {} : { assignee: { from, to: assignee } };
++    const action = assignee === null ? 'ticket.unassigned' : 'ticket.assigned';
++    // One key per agent: a pending notice to one agent must not swallow the notice to the next.
++    return this.apply(ticket, action, changes, actor, (at) => {
++      if (assignee !== null) this.notify(ticket, 'ticket.assigned', assignee, at, `ticket.assigned:${ticket.id}:${assignee}`);
++    });
++  }
++
+   // The worker's side of the outbox
+ 
+   /** The outbox events due now. */
+@@ -163,10 +182,15 @@ class TicketStore {
+     return ticket;
+   }
+ 
+-  /** A copy of `ticket` as the API shows it: its `due` only while due times are on. */
++  /**
++   * A copy of `ticket` as the API shows it: its `due` only while due times are on, its `assignee` when it has one (and
++   * as null when it has none, once `assignees` is on).
++   */
+   present(ticket) {
+-    const { due, ...shown } = ticket;
+-    return this.dueTimes && due !== undefined ? { ...shown, due } : shown;
++    const { due, assignee = null, ...shown } = ticket;
++    if (assignee !== null || this.assignees) shown.assignee = assignee;
++    if (this.dueTimes && due !== undefined) shown.due = due;
++    return shown;
+   }
+ 
+   /** Give every ticket without a due time one, from its own creation time and priority. Whether any was given. */
+diff --git a/src/templates.js b/src/templates.js
+index 2368b3e..5513da0 100644
+--- a/src/templates.js
++++ b/src/templates.js
+@@ -10,6 +10,10 @@ const TEMPLATES = Object.freeze({
+     subject: `[${event.ticket}] We received your request`,
+     body: `Your request "${event.data.title}" is ticket ${event.ticket}. The help desk will be in touch.`,
+   }),
++  'ticket.assigned': (event) => ({
++    subject: `[${event.ticket}] Assigned to you`,
++    body: `Ticket ${event.ticket} "${event.data.title}" was assigned to you.`,
++  }),
+   'ticket.resolved': (event) => ({
+     subject: `[${event.ticket}] Resolved`,
+     body: `Ticket ${event.ticket} "${event.data.title}" was resolved. Reply within 7 days to reopen it.`,
+diff --git a/src/tickets/query.js b/src/tickets/query.js
+index 0d9a0e1..9ce7eb9 100644
+--- a/src/tickets/query.js
++++ b/src/tickets/query.js
+@@ -8,7 +8,7 @@ const { STATUSES, isStatus } = require('./states');
+ /**
+  * The listing's query (docs/api.md, "List tickets"): its filters, the page size and where the page starts.
+  *
+- *   GET /tickets?status=open&priority=high&limit=20&cursor=<next of the previous page>
++ *   GET /tickets?status=open&priority=high&assignee=dana&limit=20&cursor=<next of the previous page>
+  */
+ 
+ const DEFAULT_LIMIT = 20;
+@@ -27,6 +27,8 @@ function parseListQuery(params, { dueTimes = false } = {}) {
+     if (!isPriority(priority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
+     filters.priority = priority;
+   }
++  // The agent's name as given; an empty value asks for the tickets nobody is assigned to.
++  if (params.has('assignee')) filters.assignee = params.get('assignee');
+   const query = { filters, limit: parseLimit(params), after: params.has('cursor') ? decodeCursor(params.get('cursor')) : null };
+   // Only with due times on; until then `overdue` is a parameter the service does not know, and is ignored like any other.
+   if (dueTimes && params.has('overdue')) {
+@@ -48,7 +50,8 @@ function parseLimit(params) {
+ function matchesFilters(ticket, filters) {
+   const given = Object.entries(filters).filter(([, value]) => value !== undefined);
+   if (given.length === 0) return true;
+-  return given.some(([field, value]) => ticket[field] === value);
++  // A ticket must match every filter given. An unassigned ticket has no assignee (or null), which `assignee=` asks for.
++  return given.every(([field, value]) => (field === 'assignee' ? (ticket.assignee ?? '') === value : ticket[field] === value));
+ }
+ 
+ module.exports = { DEFAULT_LIMIT, MAX_LIMIT, matchesFilters, parseListQuery };
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index 025963d..d2b06f9 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -9,7 +9,7 @@ const { STATUSES, isStatus } = require('./states');
+  * values the store needs, or throws InvalidError (400) naming the field that is wrong.
+  */
+ 
+-const LIMITS = Object.freeze({ title: 200, requester: 64 });
++const LIMITS = Object.freeze({ title: 200, requester: 64, assignee: 64 });
+ // Tabs and line breaks would break the command line's tab-separated output (README.md, "Command line").
+ const CONTROL = /[\u0000-\u001f\u007f]/;
+ 
+@@ -84,4 +84,12 @@ function transition(body) {
+   return body.to;
+ }
+ 
+-module.exports = { IMPORT_LIMIT, LIMITS, importTickets, newTicket, onlyFields, text, ticketPatch, transition };
++/** PUT /tickets/:id/assignee: { assignee }, an agent's name or null to unassign. */
++function assignment(body) {
++  onlyFields(body, ['assignee']);
++  if (body.assignee === undefined) throw new InvalidError('assignee must be an agent name or null');
++  if (body.assignee === null) return null;
++  return text(body, 'assignee', LIMITS.assignee);
++}
++
++module.exports = { IMPORT_LIMIT, LIMITS, assignment, importTickets, newTicket, onlyFields, text, ticketPatch, transition };
+diff --git a/test/assignment.test.js b/test/assignment.test.js
+new file mode 100644
+index 0000000..71d9f76
+--- /dev/null
++++ b/test/assignment.test.js
+@@ -0,0 +1,391 @@
++'use strict';
++
++const { describe, test } = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const { main } = require('../bin/tickets');
++const { loadConfig } = require('../src/config');
++const { InvalidError } = require('../src/errors');
++const { rawLine } = require('../src/format');
++const { render } = require('../src/templates');
++const { matchesFilters, parseListQuery } = require('../src/tickets/query');
++const { assignment } = require('../src/tickets/validate');
++const { ticketBody, withService } = require('./helpers');
++
++const assign = (api, id, assignee, headers) => api.put(`/tickets/${id}/assignee`, { assignee }, headers);
++const ids = (response) => response.body.items.map((ticket) => ticket.id);
++
++function folder(t) {
++  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'assign-'));
++  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
++  return dir;
++}
++
++describe('PUT /tickets/:id/assignee', () => {
++  test('assigns an open ticket, and the ticket shows its assignee', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      const response = await assign(api, 'T-0001', 'dana');
++      assert.equal(response.status, 200);
++      assert.equal(response.body.assignee, 'dana');
++      assert.equal((await api.get('/tickets/T-0001')).body.assignee, 'dana');
++      assert.equal((await api.get('/tickets')).body.items[0].assignee, 'dana');
++    });
++  });
++
++  test('unassigns with null, and the ticket shows null (with ASSIGNEES on, an unassigned ticket always does)', async () => {
++    await withService({ assignees: true }, async (api) => {
++      const created = (await api.post('/tickets', ticketBody())).body;
++      assert.equal(created.assignee, null);
++      await assign(api, 'T-0001', 'dana');
++      const response = await assign(api, 'T-0001', null);
++      assert.equal(response.status, 200);
++      assert.equal(response.body.assignee, null);
++      assert.equal((await api.get('/tickets/T-0001')).body.assignee, null);
++      assert.equal((await api.get('/tickets')).body.items[0].assignee, null);
++    });
++  });
++
++  test('works on an in-progress ticket, and reassigns to another agent', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      await api.post('/tickets/T-0001/transition', { to: 'in_progress' });
++      assert.equal((await assign(api, 'T-0001', 'dana')).body.assignee, 'dana');
++      assert.equal((await assign(api, 'T-0001', 'lee')).body.assignee, 'lee');
++    });
++  });
++
++  test('refuses a ticket that is resolved or closed (409), assigning or unassigning', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      await assign(api, 'T-0001', 'dana');
++      await api.post('/tickets/T-0001/transition', { to: 'in_progress' });
++      await api.post('/tickets/T-0001/transition', { to: 'resolved' });
++      for (const assignee of ['lee', null]) {
++        const response = await assign(api, 'T-0001', assignee);
++        assert.equal(response.status, 409);
++        assert.equal(response.body.error.code, 'conflict');
++      }
++      assert.equal((await api.get('/tickets/T-0001')).body.assignee, 'dana');
++      await api.post('/tickets/T-0001/transition', { to: 'closed' });
++      assert.equal((await assign(api, 'T-0001', 'lee')).status, 409);
++    });
++  });
++
++  test('answers 404 for a ticket that does not exist', async () => {
++    await withService({}, async (api) => {
++      const response = await assign(api, 'T-0099', 'dana');
++      assert.equal(response.status, 404);
++      assert.equal(response.body.error.code, 'not_found');
++    });
++  });
++
++  test('refuses a body that is not an agent name or null (400)', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      for (const body of [{}, { assignee: '' }, { assignee: '   ' }, { assignee: 7 }, { assignee: ['dana'] }, { assignee: 'x'.repeat(65) },
++        { assignee: 'da\nna' }, { assignee: 'dana', extra: 1 }, { agent: 'dana' }]) {
++        const response = await api.put('/tickets/T-0001/assignee', body);
++        assert.equal(response.status, 400, JSON.stringify(body));
++        assert.equal(response.body.error.code, 'invalid');
++      }
++      assert.equal((await assign(api, 'T-0001', 'x'.repeat(64))).status, 200);
++    });
++  });
++
++  test('does not take other methods', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      assert.equal((await api.post('/tickets/T-0001/assignee', { assignee: 'dana' })).status, 404);
++    });
++  });
++
++  test('assigning the agent the ticket already has changes nothing', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      const first = (await assign(api, 'T-0001', 'dana')).body;
++      const again = await assign(api, 'T-0001', 'dana');
++      assert.equal(again.status, 200);
++      assert.deepEqual(again.body, first);
++      const history = (await api.get('/tickets/T-0001/audit')).body.items;
++      assert.equal(history.length, 2, 'created, assigned: nothing more');
++      assert.equal((await api.get('/admin/outbox')).body.pending.filter((event) => event.type === 'ticket.assigned').length, 1);
++    });
++  });
++
++  test('unassigning a ticket nobody has changes nothing', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      const before = (await api.get('/tickets/T-0001')).body;
++      const response = await assign(api, 'T-0001', null);
++      assert.equal(response.status, 200);
++      assert.deepEqual(response.body, before);
++      assert.equal((await api.get('/tickets/T-0001/audit')).body.items.length, 1);
++    });
++  });
++
++  test('is audited with its actor, and moves `updated`', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      await assign(api, 'T-0001', 'dana', { 'x-actor': 'kim' });
++      await assign(api, 'T-0001', null, { 'x-actor': 'kim' });
++      const history = (await api.get('/tickets/T-0001/audit')).body.items;
++      assert.deepEqual(history.slice(1).map((entry) => [entry.action, entry.actor, entry.changes]), [
++        ['ticket.assigned', 'kim', { assignee: { from: null, to: 'dana' } }],
++        ['ticket.unassigned', 'kim', { assignee: { from: 'dana', to: null } }],
++      ]);
++    });
++  });
++});
++
++describe('the assignment notification', () => {
++  test('tells the agent the ticket was assigned to them, through the outbox', async () => {
++    await withService({}, async (api, service) => {
++      await api.post('/tickets', ticketBody({ title: 'VPN drops' }));
++      await assign(api, 'T-0001', 'dana');
++      const pending = (await api.get('/admin/outbox')).body.pending;
++      assert.deepEqual(pending.map((event) => [event.type, event.to, event.ticket]), [
++        ['ticket.created', 'maria@example.com', 'T-0001'],
++        ['ticket.assigned', 'dana', 'T-0001'],
++      ]);
++      const message = render(service.store.dueNotifications()[1]);
++      assert.match(message.subject, /T-0001/);
++      assert.match(message.body, /VPN drops/);
++      assert.match(message.body, /assigned to you/);
++    });
++  });
++
++  test('is sent by the worker to the agent', async () => {
++    await withService({ workerIntervalMs: 0 }, async (api, service) => {
++      await api.post('/tickets', ticketBody());
++      await assign(api, 'T-0001', 'dana');
++      for (const event of service.store.dueNotifications()) service.notifier.deliver(event);
++      assert.deepEqual(service.notifier.delivered.map((line) => [line.type, line.to]), [
++        ['ticket.created', 'maria@example.com'],
++        ['ticket.assigned', 'dana'],
++      ]);
++    });
++  });
++
++  test('goes to each agent assigned, even while the first agent\'s is still pending, and not on unassigning', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      await assign(api, 'T-0001', 'dana');
++      await assign(api, 'T-0001', 'lee');
++      await assign(api, 'T-0001', null);
++      const assigned = (await api.get('/admin/outbox')).body.pending.filter((event) => event.type === 'ticket.assigned');
++      assert.deepEqual(assigned.map((event) => event.to), ['dana', 'lee']);
++    });
++  });
++
++  test('is not queued by a refused request', async () => {
++    await withService({}, async (api) => {
++      await api.post('/tickets', ticketBody());
++      await api.post('/tickets/T-0001/transition', { to: 'in_progress' });
++      await api.post('/tickets/T-0001/transition', { to: 'resolved' });
++      await assign(api, 'T-0001', 'dana');
++      await api.put('/tickets/T-0001/assignee', { assignee: '' });
++      assert.equal((await api.get('/admin/outbox')).body.pending.filter((event) => event.type === 'ticket.assigned').length, 0);
++    });
++  });
++});
++
++describe('GET /tickets?assignee=', () => {
++  async function seed(api) {
++    for (const [priority, agent] of [['urgent', 'dana'], ['urgent', null], ['low', 'dana'], ['urgent', 'lee'], ['low', null]]) {
++      const { body } = await api.post('/tickets', ticketBody({ priority }));
++      if (agent) await assign(api, body.id, agent);
++    }
++    await api.post('/tickets/T-0003/transition', { to: 'in_progress' });
++  }
++
++  test('keeps the tickets of one agent', async () => {
++    await withService({}, async (api) => {
++      await seed(api);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=dana')), ['T-0001', 'T-0003']);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=lee')), ['T-0004']);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=nobody')), []);
++    });
++  });
++
++  test('an empty assignee keeps the unassigned tickets', async () => {
++    await withService({}, async (api) => {
++      await seed(api);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=')), ['T-0002', 'T-0005']);
++      await assign(api, 'T-0002', 'dana');
++      await assign(api, 'T-0002', null);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=')), ['T-0002', 'T-0005']);
++    });
++  });
++
++  test('a ticket must match every filter given', async () => {
++    await withService({}, async (api) => {
++      await seed(api);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=dana&priority=urgent')), ['T-0001']);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=dana&status=in_progress')), ['T-0003']);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=&priority=low')), ['T-0005']);
++      assert.deepEqual(ids(await api.get('/tickets?status=open&priority=urgent')), ['T-0001', 'T-0002', 'T-0004']);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=dana&status=open&priority=low')), []);
++    });
++  });
++
++  test('pages with the filter', async () => {
++    await withService({}, async (api) => {
++      await seed(api);
++      const first = (await api.get('/tickets?assignee=dana&limit=1')).body;
++      assert.deepEqual(first.items.map((ticket) => ticket.id), ['T-0001']);
++      const second = (await api.get(`/tickets?assignee=dana&limit=1&cursor=${first.next}`)).body;
++      assert.deepEqual(second.items.map((ticket) => ticket.id), ['T-0003']);
++      assert.equal(second.next, null);
++    });
++  });
++});
++
++describe('the unit pieces', () => {
++  test('parseListQuery reads assignee, empty included', () => {
++    assert.deepEqual(parseListQuery(new URLSearchParams('assignee=dana')).filters, { assignee: 'dana' });
++    assert.deepEqual(parseListQuery(new URLSearchParams('assignee=')).filters, { assignee: '' });
++    assert.deepEqual(parseListQuery(new URLSearchParams('')).filters, {});
++  });
++
++  test('matchesFilters needs every filter, and treats a missing assignee as unassigned', () => {
++    const ticket = { id: 'T-0001', status: 'open', priority: 'high', assignee: 'dana' };
++    assert.equal(matchesFilters(ticket, { status: 'open', priority: 'high' }), true);
++    assert.equal(matchesFilters(ticket, { status: 'open', priority: 'low' }), false);
++    assert.equal(matchesFilters(ticket, { status: 'closed', priority: 'high' }), false);
++    assert.equal(matchesFilters(ticket, { assignee: 'dana', status: 'open' }), true);
++    assert.equal(matchesFilters(ticket, { assignee: '' }), false);
++    assert.equal(matchesFilters({ ...ticket, assignee: null }, { assignee: '' }), true);
++    const bare = { id: 'T-0002', status: 'open', priority: 'high' };
++    assert.equal(matchesFilters(bare, { assignee: '' }), true);
++    assert.equal(matchesFilters(bare, { assignee: 'dana' }), false);
++  });
++
++  test('assignment checks the body', () => {
++    assert.equal(assignment({ assignee: ' dana ' }), 'dana');
++    assert.equal(assignment({ assignee: null }), null);
++    assert.throws(() => assignment({}), InvalidError);
++    assert.throws(() => assignment({ assignee: '' }), InvalidError);
++  });
++
++  test('ASSIGNEES=on is read from the environment', () => {
++    assert.equal(loadConfig({}).assignees, false);
++    assert.equal(loadConfig({ ASSIGNEES: 'on' }).assignees, true);
++    assert.equal(loadConfig({ ASSIGNEES: 'yes' }).assignees, false);
++  });
++
++  test('a ticket that is not assigned shows no assignee until ASSIGNEES is on, as before 1.6.0', async () => {
++    await withService({}, async (api) => {
++      const created = (await api.post('/tickets', ticketBody())).body;
++      assert.equal('assignee' in created, false);
++    });
++    await withService({ assignees: true }, async (api) => {
++      const created = (await api.post('/tickets', ticketBody())).body;
++      assert.equal(created.assignee, null);
++    });
++  });
++});
++
++describe('the data file', () => {
++  test('keeps assignees across a restart, and the audit entries', async (t) => {
++    const dataFile = path.join(folder(t), 'tickets.json');
++    await withService({ dataFile }, async (api) => {
++      await api.post('/tickets', ticketBody());
++      await api.post('/tickets', ticketBody());
++      await assign(api, 'T-0001', 'dana');
++      await assign(api, 'T-0002', 'lee');
++      await assign(api, 'T-0002', null);
++    });
++    await withService({ dataFile }, async (api) => {
++      assert.equal((await api.get('/tickets/T-0001')).body.assignee, 'dana');
++      assert.deepEqual(ids(await api.get('/tickets?assignee=dana')), ['T-0001']);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=')), ['T-0002']);
++      assert.equal((await api.get('/tickets/T-0002/audit')).body.items.length, 3);
++    });
++  });
++
++  test('loads a file written before 1.6.0, whose tickets have no assignee', async (t) => {
++    const dataFile = path.join(folder(t), 'tickets.json');
++    await withService({ dataFile }, async (api) => {
++      await api.post('/tickets', ticketBody());
++    });
++    const saved = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
++    assert.equal('assignee' in saved.tickets[0], false, 'an unassigned ticket is saved as it always was');
++    await withService({ dataFile, assignees: true }, async (api) => {
++      assert.equal((await api.get('/tickets/T-0001')).body.assignee, null);
++      assert.deepEqual(ids(await api.get('/tickets?assignee=')), ['T-0001']);
++      assert.equal((await assign(api, 'T-0001', 'dana')).status, 200);
++    });
++  });
++
++  test('refuses a file whose assignee is not a name', async (t) => {
++    const dataFile = path.join(folder(t), 'tickets.json');
++    await withService({ dataFile }, async (api) => {
++      await api.post('/tickets', ticketBody());
++      await assign(api, 'T-0001', 'dana');
++    });
++    const saved = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
++    saved.tickets[0].assignee = 5;
++    fs.writeFileSync(dataFile, JSON.stringify(saved));
++    assert.throws(() => require('../src/persistence').createPersistence(dataFile).load(), /assignee/);
++  });
++});
++
++describe('the command line', () => {
++  async function dataFileWithTickets(t) {
++    const dataFile = path.join(folder(t), 'tickets.json');
++    await withService({ dataFile }, async (api) => {
++      await api.post('/tickets', ticketBody({ title: 'First' }));
++      await api.post('/tickets', ticketBody({ title: 'Second' }));
++      await assign(api, 'T-0001', 'dana');
++    });
++    return dataFile;
++  }
++
++  function run(argv) {
++    let out = '';
++    let err = '';
++    const code = main(argv, { env: {}, out: { write: (s) => (out += s) }, err: { write: (s) => (err += s) } });
++    return { code, out, err };
++  }
++
++  test('list shows each ticket\'s assignee', async (t) => {
++    const dataFile = await dataFileWithTickets(t);
++    const { code, out } = run(['--data', dataFile, 'list']);
++    assert.equal(code, 0);
++    const [header, first, second] = out.trim().split('\n');
++    assert.match(header, /ASSIGNEE/);
++    assert.match(first, /T-0001\s.*\sdana\s/);
++    assert.doesNotMatch(second, /dana/);
++    assert.match(second, /\s-\s/);
++  });
++
++  test('list --raw keeps its first four columns and adds the assignee last', async (t) => {
++    const dataFile = await dataFileWithTickets(t);
++    const { out } = run(['--data', dataFile, 'list', '--raw']);
++    assert.deepEqual(out.replace(/\n$/, '').split('\n').map((line) => line.split('\t')), [
++      ['T-0001', 'open', 'normal', 'First', 'dana'],
++      ['T-0002', 'open', 'normal', 'Second', ''],
++    ]);
++  });
++
++  test('list --assignee filters, and an empty one lists the unassigned', async (t) => {
++    const dataFile = await dataFileWithTickets(t);
++    const ofDana = run(['--data', dataFile, 'list', '--raw', '--assignee', 'dana']).out.trim().split('\n');
++    assert.deepEqual(ofDana.map((line) => line.split('\t')[0]), ['T-0001']);
++    const none = run(['--data', dataFile, 'list', '--raw', '--assignee', '']).out.trim().split('\n');
++    assert.deepEqual(none.map((line) => line.split('\t')[0]), ['T-0002']);
++  });
++
++  test('show names the assignee', async (t) => {
++    const dataFile = await dataFileWithTickets(t);
++    assert.match(run(['--data', dataFile, 'show', 'T-0001']).out, /assignee\s+dana/);
++    assert.match(run(['--data', dataFile, 'show', 'T-0002']).out, /assignee\s+-/);
++  });
++
++  test('rawLine writes an empty column for an unassigned ticket', () => {
++    assert.equal(rawLine({ id: 'T-0001', status: 'open', priority: 'low', title: 'x', assignee: null }), 'T-0001\topen\tlow\tx\t');
++  });
++});

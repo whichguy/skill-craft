@@ -1,0 +1,51 @@
+bash test/run-all.sh --group quick --changed-from 20ec94e273fa88266c2b18a7b22cbb8a066ba6e0   (tree 2512e16c85c83d573ed98a60b0d85565f1b7f893)
+==> [core] backchain-toolkit
+OK   backchain-toolkit
+==> [core] test-groups
+OK   test-groups
+==> [core] ci-summary
+OK   ci-summary
+==> [core] ci-policy
+OK   ci-policy
+==> [core] skill-frontmatter
+OK   skill-frontmatter
+==> [core] until-loop-vendor
+OK   until-loop-vendor
+==> [core] closed-loop
+OK   closed-loop
+==> [shiploop] shiploop-no-model-launch
+OK   shiploop-no-model-launch
+==> [shiploop] shiploop-navigator-contract
+OK   shiploop-navigator-contract
+==> [shiploop] shiploop-navigator-v4
+OK   shiploop-navigator-v4
+==> [shiploop] shiploop-stopped-improve
+OK   shiploop-stopped-improve
+==> [shiploop] shiploop-packet-bounds
+OK   shiploop-packet-bounds
+==> [shiploop] shiploop-guidance
+OK   shiploop-guidance
+==> [shiploop] shiploop-navigator-dry-run
+OK   shiploop-navigator-dry-run
+==> [shiploop] shiploop-status-display
+OK   shiploop-status-display
+==> [shiploop] shiploop-narrative
+OK   shiploop-narrative
+==> [shiploop] shiploop-stage-spec
+OK   shiploop-stage-spec
+==> [shiploop] shiploop-keepalive
+OK   shiploop-keepalive
+==> [shiploop] shiploop-planning-handoff
+OK   shiploop-planning-handoff
+==> [shiploop] shiploop-e2e-fidelity
+OK   shiploop-e2e-fidelity
+==> [shiploop] shiploop-e2e-baseline
+OK   shiploop-e2e-baseline
+==> [shiploop] shiploop-e2e-lifecycle
+OK   shiploop-e2e-lifecycle
+==> [e2e-apparatus] shiploop-mock-replay
+OK   shiploop-mock-replay
+run-all.sh: 23 suites in 282.1 s wall (--jobs 8); slowest: shiploop-navigator-contract 282.0 s, shiploop-keepalive 175.7 s, closed-loop 155.8 s
+run-all.sh: PASS (quick hermetic group selection)
+exit=0
+closed-loop suite inside the tier: Ran 165 tests in 155.586s, OK

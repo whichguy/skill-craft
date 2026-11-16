@@ -1,0 +1,126 @@
+{
+  "empty_directory": true,
+  "shell_bindings": true,
+  "result": {
+    "S0": [
+      "active",
+      "active",
+      "complete"
+    ],
+    "S1": [
+      "active",
+      "active",
+      "active",
+      "complete"
+    ],
+    "stop": {
+      "action": "stop",
+      "at": "2026-11-15T23:14:41Z",
+      "binds": {
+        "build": "b2",
+        "campaign_identity": "91b7181bb620b694",
+        "candidates": [
+          "h-d1-b1",
+          "h-d2-b2"
+        ],
+        "scope": "S1",
+        "scoring": "score-1"
+      },
+      "owner_gated_cases": [
+        "C1"
+      ],
+      "reason": "an owner decision is needed to widen: C1 (covers style=gamma)",
+      "report": "/private/tmp/closed-loop-operator-99n4afvb/literal-drill/campaign/report.md",
+      "rung": "E5",
+      "scope_certificate": "converged",
+      "status": "incomplete"
+    },
+    "report": {
+      "adapter_backlog": [],
+      "allowed_claims": [
+        "efficiency under a stated tolerance, labelled 'stated, not measured'",
+        "no quality claim is allowed yet: sensitivity is unknown for every property"
+      ],
+      "at": "2026-11-15T23:14:41Z",
+      "binds": {
+        "build": "b2",
+        "campaign_identity": "91b7181bb620b694",
+        "candidates": [
+          "h-d1-b1",
+          "h-d2-b2"
+        ],
+        "scope": "S1",
+        "scoring": "score-1"
+      },
+      "campaign_status": "incomplete",
+      "claims_note": null,
+      "iterations": 7,
+      "not_covered": {
+        "style=gamma": "outside this scope: a widening candidate"
+      },
+      "outside_scope": [],
+      "quota": {
+        "budget": {
+          "seconds": 1000,
+          "turns": 400
+        },
+        "consumed": {
+          "seconds": 70,
+          "turns": 35
+        },
+        "exhausted": false,
+        "over": [],
+        "running_seconds": 0
+      },
+      "reasons": [],
+      "schema": "closed-loop-report/1",
+      "scope": "S1",
+      "scope_cases": [
+        "A1",
+        "B1"
+      ],
+      "scope_certificate": "converged",
+      "scopes": [
+        {
+          "cases": [
+            "A1"
+          ],
+          "id": "S0",
+          "reason": "start"
+        },
+        {
+          "cases": [
+            "A1",
+            "B1"
+          ],
+          "id": "S1",
+          "reason": "the scope is converged; B1 is the cheapest case that covers style=beta"
+        }
+      ],
+      "stop": {
+        "at": "2026-11-15T23:14:41Z",
+        "binds": {
+          "build": "b2",
+          "campaign_identity": "91b7181bb620b694",
+          "candidates": [
+            "h-d1-b1",
+            "h-d2-b2"
+          ],
+          "scope": "S1",
+          "scoring": "score-1"
+        },
+        "owner_gated_cases": [
+          "C1"
+        ],
+        "reason": "an owner decision is needed to widen: C1 (covers style=gamma)",
+        "rung": "E5",
+        "scope_certificate": "converged",
+        "status": "incomplete"
+      },
+      "subject": "fake",
+      "unknowns": [],
+      "unresolved": []
+    },
+    "receipt_recovery": "passed"
+  }
+}

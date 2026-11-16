@@ -4,6 +4,34 @@ Written by scripts/release.py.
 
 ## 2026-11-15
 
+### skill-craft 2.42.1
+
+- Skills: shiploop 1.37.1
+
+### shiploop 1.37.1
+
+- In a run with no Backchain child (the default `--backchain-passes none`), the spec, plan and delegated step-plan and carry-forward packets now say what the printed `backchain-check` reads: only a candidate graph in Backchain's plan schema, a JSON file, never a spec, a Markdown note or a prose plan. They tell the host to run it after each revision of a graph it wrote, and not to write a graph only to run it. In the 2026-11-15 default run the host had run the check on the spec Markdown, was refused as not JSON, then wrote one graph and re-ran it at four stages to have a receipt at each. The `one` and `converge` packets are unchanged.
+
+### skill-craft 2.42.0
+
+- Skills: shiploop 1.37.0
+
+### shiploop 1.37.0
+
+- New runs call no Backchain child by default. `--backchain-passes` now defaults to `none`, and `none` offers no Backchain child at any stage: no whole `plan`/`draft`, no read-only `review`/`audit` and no `repair`/`revise`. The planning guide's dependency audit and the record-only `backchain-check` stay. Opt in at `init` or `workspace start` with `--backchain-passes one` (one review/fix/check cycle) or `converge` (Backchain's default gate); both behave as before. Basis: the 2026-11-15 value study found no meaningful plan-quality edge for Backchain on Grok 4.6 xhigh, Sol 6.1 medium or Sonnet 5.5 high, at 10-15 times the tokens. `--planning-review none` in a default run now leaves the plan with no model-run second look.
+
+### skill-craft 2.41.2
+
+- Release output regenerated; no skill changed.
+
+### skill-craft 2.41.1
+
+- Skills: closed-loop 0.1.0
+
+### closed-loop 0.1.0
+
+- New skill: improve a subject by running it on cases, grading the runs, finding fixes and repeating until a script-checked certificate says nothing material is left in a named scope, then widening to more cases when stuck. An adapter holds everything subject-specific; readiness checks prove that cases, a way to grade and a way to call the improvement stage exist before any run is spent, and nothing runs until the owner has ratified the execution boundary; a reviewer can propose the missing parts, and a script validates the proposal. v0 is tested on a fake subject and the vendored Until Loop runtime; the ShipLoop adapter comes next.
+
 ### skill-craft 2.41.0
 
 - Skills: backchain 0.8.0, plan-dispatcher 0.6.5, shiploop 1.36.3, shiploop-run-review 0.5.2

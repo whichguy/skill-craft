@@ -460,3 +460,33 @@ Backchain is much less valuable than its cost. Four questions stay open:
 - whether a Backchain plan changes what gets built;
 - whether a cheaper Backchain path (one pass, or a lighter review) keeps quality at a fraction of the cost;
 - a rerun of R12-4 without the naming prime.
+
+## Round 13 — Backchain becomes opt-in in ShipLoop (owner decision, 2026-11-15)
+
+Question (owner, after Round 12):
+- "Those gains are so small that they're not worth actually including Backchain at all at this point."
+- Then "Not by default."
+- Then "Correct me if I'm wrong, or determine if the cases were just too simplistic."
+- Asked for the scope, the owner chose "No child calls": default runs offer no plan/draft loop and no review/audit or
+  repair/revise child; the script-only graph check stays.
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R13-1 | The cases were mostly too simple to show value. Requests run 360-738 characters and final plans 1-8 steps. No-skill scores have a median of 94.2: 25 of 30 attempts scored 90 or more and 9 of 30 scored 100. Only 5 of 30 model-case cells left headroom below 90. Backchain lifted 1 of them (Sol, legacy-draft-discovers-mapping, 83.9 to 100) and changed the others by 0, +1.9, -1.7 and 0. So Round 12 supports "not by default" (no measured gain at 10-15x the tokens) but not "Backchain has no value": harder planning is unmeasured. | firm (descriptive, 30 pairs) | `experiments/backchain-value-20261115/evidence/analysis.json`, `plans.json`; the cases pinned in `evidence/freeze.json` |
+| R13-2 | Decision, implemented in 27fa9c9278255dd544e5e844d135b374ba5aba7c. `--backchain-passes` defaults to `none`, and `none` offers no Backchain child at any stage. Every Backchain stage keeps the planning guide's dependency audit and the record-only `backchain-check`. `one` and `converge` opt in unchanged. Packet text per stage, `one` to `none`: plan 15,819 to 13,489 bytes, spec 9,311 to 8,429, delegated step-plan and carry-forward -1,298 each, the inline routes -238, product-acceptance -253. The navigator's eight-path resource block (about 1.5 KB at plan) and the audit and status lines no longer print. | firm (hermetic tests) | the commit's message; `test/shiploop-navigator-dry-run.test.py` and `test/shiploop-navigator-contract.test.py` |
+| R13-3 | The live round, a default `csv-report` run on Codex Terra xhigh, recorded `none` and started no Backchain child; none of its 63 saved packets offers one. It ended done with 5 of 5 checks passing in 1,280 s. One refused call: at spec the host first ran `backchain-check` on the spec Markdown, was refused (not JSON), then built a JSON graph that passed. The no-child spec item states the check on its own, and a follow-up should name what the check reads. | firm (n = 1) | `test/shiploop_e2e/LEARNINGS.md` entry of 2026-11-15 (default run) |
+
+The correction the owner asked for: Round 12 measured small, well-specified planning tasks. On those, current models
+do not need Backchain, and that is the reading this decision rests on. Backchain stays installed and one flag away. A
+study of harder cases, with the naming prime of R12-4 removed, is proposed as a separate session.
+
+## Round 14 — the no-child spec check says what it reads, without a live round (2026-11-15)
+
+Question (owner): fix the spec check wording that the default round of Round 13 exposed. The owner then waived the live
+round: "I don't need to run a live round for this."
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R14-1 | In the default round the check instruction was "Run the printed `backchain-check` after each candidate revision". The host read the spec as the candidate, ran the check on `docs/shiploop/spec.md` and was refused (not JSON). It then wrote a one-step graph (`spec-graph.json`, goal "A tested sales report CLI is delivered locally") and re-ran that one file at plan, step-plan and product-acceptance to have a receipt at each: the four receipt folders under `RUN/backchain/` hold the same candidate hash, 33852e5d4870. The spec stage took 127 s and 21 tool calls (Improve child 81.5 s), against 72 s and 11 tool calls (Improve 52.5 s) in release A's forced-child round (`/Users/dadleet/e2e-runs/2026-11-15/backchain-child-csv-729a1e/metrics.json`); the prompts differ and part of the gap is the spec review, so it is a pointer to the cost and not a measurement of the wording. | firm (one run; the receipts are the evidence) | `/Users/dadleet/e2e-runs/2026-11-15/backchain-default-none-csv-8df4c5/`; learnings entry of 2026-11-15 |
+| R14-2 | In my own `none` rewrite I had dropped the sentence that commit 4c2a8a98453e4aa2e8b2397962f785221e19b20a gave the opt-in plan item ("reads a candidate graph in Backchain's plan schema ... not a prose plan"), so the no-child spec and plan items stated the check with no word about its input. The fix uses one sentence (`_BACKCHAIN_CHECK_READS`) in the three places a no-child packet tells the host to run the check: it says what the check reads (a JSON graph in Backchain's plan schema, never a spec, a Markdown note or a prose plan), to run it after each revision of a graph the host wrote, and not to write a graph only to run it. The `one` and `converge` texts are unchanged. | firm (hermetic pins, red then green) | `BackchainStageTextTests.test_none_says_what_the_printed_check_reads_and_not_to_write_a_graph_only_to_run_it` and the guard `test_the_opt_in_modes_keep_their_own_check_text` |
+| R14-3 | Prediction, registered here and not measured: in the next default live run the host makes no refused check call at spec and writes a graph only if the work needs one. Verification is hermetic only, because the owner waived the live round. | open (prediction) | the next default run's `RUN/backchain/` folders and tool calls |

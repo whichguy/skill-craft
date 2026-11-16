@@ -1,0 +1,34 @@
+[
+  {
+    "mutation": "stale converged stop kept",
+    "classes": [
+      "EvidenceTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "report not resilient to a broken adapter",
+    "classes": [
+      "QuotaTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "live base off",
+    "classes": [
+      "ResumeTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  },
+  {
+    "mutation": "outside change not recorded",
+    "classes": [
+      "ResumeTests"
+    ],
+    "result": "killed",
+    "tail": "FAILED (failures=1)"
+  }
+]

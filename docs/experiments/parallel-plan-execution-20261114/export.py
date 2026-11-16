@@ -41,7 +41,7 @@ def trim(obj):
 def export(trial: Path, dest_root: Path) -> Path:
     dest = dest_root / trial.name
     dest.mkdir(parents=True, exist_ok=False)
-    for name in ("packet.md", "invocation.json", "score.json", "timeline.txt", "gantt.txt"):
+    for name in ("packet.md", "invocation.json", "score.json", "timeline.txt", "gantt.txt", *sorted(p.name for p in trial.glob("score.pass*.json"))):   # earlier oracle passes of an unjudged tree (A15) are kept
         if (trial / name).is_file():
             shutil.copy(trial / name, dest / name)
     for src, name in (("work/run/ledger.jsonl", "ledger.jsonl"), ("work/plan.json", "plan.json")):
@@ -91,9 +91,10 @@ def export_real(trial: Path, dest: Path) -> None:
     subprocess.run(git + ["add", "-A"], capture_output=True)
     (dest / "final.diff").write_text(subprocess.run(git + ["diff", "--cached", "--no-color", base], capture_output=True, text=True).stdout)
     ledger = [json.loads(line) for line in (trial / "work" / "run" / "ledger.jsonl").read_text().splitlines() if line.strip()]
+    seeded = next((e["seq"] for e in ledger if e["kind"] == "replay_seed"), 0)   # A15: attempts before the seed are E17's, and their branches are not in this trial's repository
     for e in ledger:
         d = e["detail"]
-        if e["kind"] == "workspace" and d.get("mode") == "isolated" and d.get("branch"):
+        if e["seq"] > seeded and e["kind"] == "workspace" and d.get("mode") == "isolated" and d.get("branch"):
             (dest / "attempts").mkdir(exist_ok=True)
             diff = subprocess.run(git + ["diff", "--no-color", d["base"], d["branch"]], capture_output=True, text=True).stdout
             (dest / "attempts" / f"{e['step']}-{d['attempt']}.diff").write_text(diff)

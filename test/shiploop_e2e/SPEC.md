@@ -218,8 +218,9 @@ condition, a true blocker or a user stop.
 and the Luna 1.16.1 battleship run were the basis for the one-cycle gate and
 the relaxation of S-9 and S-10 for this child.
 
-The run option (state option `backchain_passes`) retains the default
-`backchain_passes: one`. At `plan`, the host may omit the whole `plan`/`draft`
+The run option (state option `backchain_passes`) has the default
+`backchain_passes: none` since the 2026-11-15 amendment below; until then this sentence
+said it retains the default `one`. At `plan`, the host may omit the whole `plan`/`draft`
 Backchain child. The planning guide's dependency audit is required on both
 routes. The plan result's `summary` states the route taken and why. Evaluate
 the audit on its own evidence.
@@ -229,7 +230,8 @@ consecutive distinct complete trivial/no-change dependency reviews (superseded 2
 the owner's decision recorded in the amendment below: converge runs Backchain's default gate,
 which completes at the first trivial review).
 `--backchain-passes none` uses the audit route at `plan` without a whole
-`plan`/`draft` child. A material finding from a read-only `review`/`audit`
+`plan`/`draft` child (superseded 2026-11-15: `none` offers no audit and no repair child either).
+A material finding from a read-only `review`/`audit`
 may lead the stage owner to request one `repair`/`revise` within authorized
 edit bounds. That child uses the one-cycle gate in `one` and `none`, and the
 two-review gate in `converge` (superseded 2026-11-15: Backchain's default gate, as above).
@@ -288,6 +290,19 @@ behavior. `39af8ce04222fb49aa6d612e08b4dbabd73e5db3` records the native
 contract freeze and explicit converge markers. This amendment applies to new
 runs registered against this revision. Earlier frozen obligations and verdicts
 retain their original interpretation.
+
+Amended 2026-11-15, owner decision. After the Backchain value study the owner said "Those gains
+are so small that they're not worth actually including Backchain at all at this point", then
+"Not by default", and chose "No child calls" for the scope. So the default is
+`backchain_passes: none`, and `none` offers no Backchain child at any stage: no whole
+`plan`/`draft`, no read-only `review`/`audit` and no `repair`/`revise`. The planning guide's
+dependency audit stays required, and the record-only structural `backchain-check` stays printed.
+`one` and `converge` keep the child, its gates and the obligations above as opt-ins chosen at
+`init` or `workspace start` with `--backchain-passes one` or `--backchain-passes converge`. Basis: `docs/experiments/backchain-value-20261115/RESULTS.md`. On
+Grok 4.6 xhigh, Sol 6.1 medium and Sonnet 5.5 high it found no meaningful plan-quality edge, at
+10-15 times the tokens, on cases near the score ceiling, so Backchain's value on harder planning
+is unmeasured. This amendment applies to new runs registered against this revision. Earlier
+frozen obligations and verdicts retain their original interpretation.
 
 **S-10 carve-out, owner decision 2026-10-05** (reconciled 2026-10-29 to the
 later accepted review schedule). The run option (state option `planning_review`)

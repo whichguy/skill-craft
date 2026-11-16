@@ -632,12 +632,15 @@ class NavigatorContractTests(unittest.TestCase):
                 ["python3", "shiploop", "backchain-check", "--run-dir", str(root), "--candidate"])
                 + " <your candidate file>")
             self.assertEqual(producer_packet.count(check), int(stage in backchain_stages))
-            # Only `plan` selects the full loop resource set; the other four print the audit resource and the loop status.
-            self.assertEqual("Selected Backchain and Until Loop resources" in producer_packet, stage == "plan")
+            # In a run that opts in, only `plan` selects the full loop resource set and the other four print the audit
+            # resource and the loop status; this default run (`none`, owner decision 2026-11-15) prints none of them.
+            child = prompts.offers_backchain_child(navigator.recorded_backchain_passes(state))
+            self.assertFalse(child)
+            self.assertEqual("Selected Backchain and Until Loop resources" in producer_packet, child and stage == "plan")
             self.assertEqual("Backchain audit resource (" in producer_packet,
-                             stage in backchain_stages - {"plan"})
+                             child and stage in backchain_stages - {"plan"})
             self.assertEqual("Loop resources for a repair or send-back request, under " in producer_packet,
-                             stage in backchain_stages - {"plan"})
+                             child and stage in backchain_stages - {"plan"})
             # The requirement and handoff rules are no longer in the packet (re-cut, 2026-10-11): its RULES paragraph
             # points at reference#rules, and the long text (evidence_refs carry the requirement sections and test
             # locators; the Reference handoff policy sentence) is in the run reference file.
@@ -993,18 +996,22 @@ class NavigatorContractTests(unittest.TestCase):
         }
         for stage in EXPECTED_STAGES:
             with self.subTest(stage=stage):
-                producer = " ".join(prompts.prompt(stage).split())
+                producer = " ".join(prompts.prompt(stage, backchain_passes="one").split())
                 improve = " ".join(prompts.improve_prompt(stage).split())
                 self.assertEqual(
                     [name for name, selectors in operations.items() if any(sel in producer for sel in selectors)],
                     expected.get(stage, []),
                 )
+                # the default `none` offers no Backchain operation at any stage (owner decision 2026-11-15)
+                default = " ".join(prompts.prompt(stage).split())
+                self.assertEqual(
+                    [name for name, selectors in operations.items() if any(sel in default for sel in selectors)], [])
                 self.assertEqual(
                     [name for name, selectors in operations.items() if any(sel in improve for sel in selectors)],
                     [],
                 )
-        plan = " ".join(prompts.prompt("plan").split())
-        audit = " ".join(prompts.prompt("step-plan").split())
+        plan = " ".join(prompts.prompt("plan", backchain_passes="one").split())
+        audit = " ".join(prompts.prompt("step-plan", backchain_passes="one").split())
         for required in (
             "Backchain standalone Until Loop binding:",
             'every resource in the printed "Selected Backchain and Until Loop resources" block is required',
@@ -1021,7 +1028,7 @@ class NavigatorContractTests(unittest.TestCase):
         ):
             with self.subTest(required=required):
                 self.assertIn(required, plan)
-        # The review gate the packet prints follows the run's Backchain passes option (default one); the
+        # The review gate the packet prints follows the run's Backchain passes option (here the opt-in one); the
         # text is pinned by content per mode, never as a whole.
         self.assertIn("`required_trivial_reviews: 0`", plan)
         self.assertNotIn("two consecutive distinct complete trivial/no-change dependency reviews", plan)
@@ -1078,7 +1085,7 @@ class NavigatorContractTests(unittest.TestCase):
         skills_root = ROOT / "skills"
         for _, relative_path in BACKCHAIN_RESOURCE_PATHS:
             self.assertTrue((skills_root / relative_path).is_file(), relative_path)
-        packet = navigator.render(None, self.repo / ".shiploop", self._at_plan())
+        packet = navigator.render(None, self.repo / ".shiploop", self._at_plan(self._state_in("one")))
         self.assertIn(self._expected_backchain_resource_block(skills_root), packet)
 
     def test_plan_packet_names_missing_backchain_resource_as_route_blocker(self) -> None:
@@ -1102,7 +1109,7 @@ class NavigatorContractTests(unittest.TestCase):
             path.touch()
 
         with patch.object(prompts, "__file__", str(fake_source)):
-            packet = navigator.render(None, self.repo / ".shiploop", self._at_plan())
+            packet = navigator.render(None, self.repo / ".shiploop", self._at_plan(self._state_in("one")))
 
         missing_line = (
             f"  {missing_label}: MISSING: skills/{missing_relative.as_posix()}"
@@ -1132,7 +1139,7 @@ class NavigatorContractTests(unittest.TestCase):
 
     def test_the_audit_stages_print_the_audit_resource_and_the_loop_status_not_the_list(self) -> None:
         """A non-loop stage names the one resource its audit needs and reports the files a repair or send-back needs."""
-        packet = navigator.render(None, self.repo / ".shiploop", self._at_spec())
+        packet = navigator.render(None, self.repo / ".shiploop", self._at_spec(self._state_in("one")))
         contract = (ROOT / "skills" / BACKCHAIN_RESOURCE_PATHS[1][1]).resolve()
         self.assertIn(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {contract}", packet)
         self.assertIn(f"Loop resources for a repair or send-back request, under {(ROOT / 'skills').resolve()}: all present", packet)
@@ -1147,7 +1154,7 @@ class NavigatorContractTests(unittest.TestCase):
     def test_the_loop_status_line_names_a_missing_loop_file(self) -> None:
         """The script reports which loop resource is absent; the audit resource stays resolved."""
         missing = (3, 6)
-        packet, root = self._render_spec_with_files_missing(missing)
+        packet, root = self._render_spec_with_files_missing(missing, state=self._at_spec(self._state_in("one")))
         labels = ", ".join(BACKCHAIN_RESOURCE_PATHS[index][0] for index in missing)
         self.assertIn(f"Loop resources for a repair or send-back request, under {root}: MISSING: {labels}", packet)
         self.assertNotIn("operation review/audit): MISSING", packet)
@@ -1155,7 +1162,7 @@ class NavigatorContractTests(unittest.TestCase):
     def test_the_audit_line_names_a_missing_audit_resource(self) -> None:
         """The audit resource is also a loop resource, so the status line names it too."""
         missing_label, missing_relative = BACKCHAIN_RESOURCE_PATHS[1]
-        packet, root = self._render_spec_with_files_missing((1,))
+        packet, root = self._render_spec_with_files_missing((1,), state=self._at_spec(self._state_in("one")))
         self.assertIn(f"operation review/audit): MISSING: skills/{missing_relative.as_posix()}", packet)
         self.assertIn(f"under {root}: MISSING: {missing_label}", packet)
 
@@ -1163,41 +1170,38 @@ class NavigatorContractTests(unittest.TestCase):
         return navigator.new_state(str(self.repo), "Build a small synthetic capability.", improve_skill="",
                                    delegation="ask-agent", backchain_passes=mode)
 
-    def test_mode_none_prints_the_audit_resource_and_the_loop_status_at_plan_not_the_six_file_block(self) -> None:
-        """No whole loop is offered at plan in `none`; modes one and converge keep the block and drop the status line."""
+    def test_mode_none_prints_only_the_guide_and_the_check_at_plan_and_the_opt_in_modes_keep_the_block(self) -> None:
+        """`none`, the default (owner decision 2026-11-15), offers no Backchain child, so plan prints no resource line;
+        modes one and converge keep the whole-loop block."""
         skills_root = ROOT / "skills"
         root = self.repo / ".shiploop"
-        contract = (skills_root / BACKCHAIN_RESOURCE_PATHS[1][1]).resolve()
         loop_only = [label for index, (label, _) in enumerate(BACKCHAIN_RESOURCE_PATHS) if index != 1]
         for mode in navigator.BACKCHAIN_PASSES_MODES:
             packet = navigator.render(None, root, self._at_plan(self._state_in(mode)))
+            flat = " ".join(packet.split())
             whole = mode != "none"
             with self.subTest(mode=mode):
                 self.assertEqual("Selected Backchain and Until Loop resources" in packet, whole)
-                self.assertEqual("Backchain audit resource (" in packet, not whole)
-                self.assertEqual("Loop resources for a repair or send-back request, under " in packet, not whole)
+                self.assertNotIn("Backchain audit resource (", packet)  # plan prints the block or nothing
+                self.assertNotIn("Loop resources for a repair or send-back request, under ", packet)
                 for label in loop_only:  # the seven files only a whole loop reads
                     self.assertEqual(f"  {label}: " in packet, whole, label)
                 self.assertEqual(self._expected_backchain_resource_block(skills_root) in packet, whole)
                 self.assertEqual("You may also request one Backchain `plan` / `draft` through `source-aware-native`"
-                                 in " ".join(packet.split()), whole)
-                self.assertEqual(
-                    f"Loop resources for a repair or send-back request, under {skills_root.resolve()}: all present" in packet,
-                    not whole)
-                self.assertEqual(
-                    f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {contract}" in packet,
-                    not whole)
+                                 in flat, whole)
+                self.assertEqual("Backchain planning run directory: " in packet, whole)
+                self.assertEqual("This run requests no Backchain child" in flat, not whole)
                 self._assert_backchain_planning_locator(packet, expected=True)
                 self.assertEqual(packet.count("Backchain graph check: "), 1)  # record-only, in every mode
 
-    def test_mode_none_status_line_at_plan_names_a_missing_loop_file(self) -> None:
-        """A repair or send-back can still start a loop in `none`, so the script reports which loop file is absent."""
-        missing = (1, 3, 6)
-        packet, root = self._render_spec_with_files_missing(missing, state=self._at_plan(self._state_in("none")))
-        labels = ", ".join(BACKCHAIN_RESOURCE_PATHS[index][0] for index in missing)
-        self.assertIn(f"Loop resources for a repair or send-back request, under {root}: MISSING: {labels}", packet)
-        self.assertIn(f"operation review/audit): MISSING: skills/{BACKCHAIN_RESOURCE_PATHS[1][1].as_posix()}", packet)
-        self.assertNotIn("Selected Backchain and Until Loop resources", packet)
+    def test_mode_none_reports_no_backchain_resource_even_when_loop_files_are_missing(self) -> None:
+        """With no child to start, a `none` run has no resource to report: no status line, audit line or block."""
+        packet, _ = self._render_spec_with_files_missing((1, 3, 6), state=self._at_plan(self._state_in("none")))
+        for line in ("Loop resources for a repair or send-back request", "operation review/audit)",
+                     "Selected Backchain and Until Loop resources", "MISSING: skills/"):
+            with self.subTest(line=line):
+                self.assertNotIn(line, packet)
+        self.assertEqual(packet.count("Backchain graph check: "), 1)
 
     def test_source_aware_native_is_the_only_backchain_route(self) -> None:
         """The frozen embedded Backchain adaptation is retired (no mode, default or pin)."""
@@ -1208,7 +1212,8 @@ class NavigatorContractTests(unittest.TestCase):
             + (SCRIPTS.parent / "references" / "backchain-route.md").read_text(encoding="utf-8"),
         }
         for stage in EXPECTED_STAGES:
-            texts["prompt " + stage] = prompts.prompt(stage)
+            texts["prompt " + stage] = prompts.prompt(stage, backchain_passes="one")
+            texts["prompt " + stage + " (none)"] = prompts.prompt(stage)
             texts["improve " + stage] = prompts.improve_prompt(stage)
         for label, text in texts.items():
             flat = " ".join(text.split())
@@ -1243,11 +1248,12 @@ class NavigatorContractTests(unittest.TestCase):
         }
         self.assertEqual(prompts.BACKCHAIN_STAGES, frozenset(planning_stages))
         for stage in EXPECTED_STAGES:
-            with self.subTest(stage=stage):
-                expected = stage in planning_stages
-                self.assertEqual(
-                    "Backchain planning guide" in prompts.prompt(stage), expected
-                )
+            for mode in ("none", "one"):
+                with self.subTest(stage=stage, mode=mode):
+                    expected = stage in planning_stages
+                    self.assertEqual(
+                        "Backchain planning guide" in prompts.prompt(stage, backchain_passes=mode), expected
+                    )
                 # An Improve review never mentions Backchain (owner, 2026-10-11).
                 self.assertNotIn("Backchain planning guide", prompts.improve_prompt(stage))
                 for legacy in legacy_carriers:
@@ -3076,16 +3082,17 @@ class BackchainPassesOptionTest(unittest.TestCase):
     def recorded(run: Path) -> object:
         return store.read_record(run / "state.md").get("backchain_passes")
 
-    def test_new_runs_record_one_by_default_and_each_named_mode(self) -> None:
+    def test_new_runs_record_none_by_default_and_each_named_mode(self) -> None:
+        """Owner decision 2026-11-15: a new run calls no Backchain child unless it opts in."""
         self.assertEqual(navigator.BACKCHAIN_PASSES_MODES, ("one", "converge", "none"))
-        self.assertEqual(navigator.DEFAULT_BACKCHAIN_PASSES, "one")
+        self.assertEqual(navigator.DEFAULT_BACKCHAIN_PASSES, "none")
         for mode in (None, *navigator.BACKCHAIN_PASSES_MODES):
             with self.subTest(mode=mode):
                 run = self.base / ("run-" + (mode or "default"))
                 started = self.init(run, *(("--backchain-passes", mode) if mode else ()))
                 self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
-                self.assertEqual(self.recorded(run), mode or "one")
-        self.assertEqual(navigator.new_state(str(self.repo), "Default.")["backchain_passes"], "one")
+                self.assertEqual(self.recorded(run), mode or "none")
+        self.assertEqual(navigator.new_state(str(self.repo), "Default.")["backchain_passes"], "none")
 
     def test_an_unknown_value_is_refused_by_the_cli_and_by_the_state_api(self) -> None:
         run = self.base / "run-unknown"
@@ -3947,6 +3954,12 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                 for mode in prompts.BACKCHAIN_PASSES_MODES:
                     with self.subTest(stage=stage, delegation=delegation, mode=mode):
                         text = " ".join(prompts.prompt(stage, delegation=delegation, backchain_passes=mode).split())
+                        if not prompts.offers_backchain_child(mode):
+                            # the default `none` (owner decision 2026-11-15) starts no child, so no start route prints
+                            for absent in ("Backchain SKILL.md step 1's `prepare`", "printed Backchain planning run directory",
+                                           "`--passes one`", "Backchain passes: one", "writes its start contract"):
+                                self.assertNotIn(absent, text)
+                            continue
                         # the whole start route of Backchain SKILL.md step 1 (review round 1: `prepare --run` alone exits
                         # 3 without `--request`, and without `--caller`/`--draft` a bounded repair re-plans unbounded)
                         for required in ("Backchain SKILL.md step 1's `prepare`", "`--request`", "`--caller`",
@@ -3955,7 +3968,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                             self.assertIn(required, text)
                         # the gate comes from `prepare --passes`, never from the marker line (backchain.py prepare)
                         self.assertIn("no `--passes`" if mode == "converge" else "`--passes one`", text)
-                        if stage == "spec" or mode == "none":  # a repair/revise child revises the inherited candidate
+                        if stage == "spec":  # a repair/revise child revises the inherited candidate
                             self.assertIn("`--draft` the candidate", text)
                         for stale in ("Write the child's start contract", "required_trivial_reviews: 2",
                                       "two consecutive", "Backchain passes: converge"):
@@ -4026,7 +4039,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                     self.assertIn("`none`", paragraph)
         skill = (self.SHIPLOOP / "references" / "backchain-route.md").read_text(encoding="utf-8")  # moved by U22
         option = " ".join(skill.split("## Backchain passes option", 1)[1].split("\n## ", 1)[0].split())
-        for required in ("`none`", "no whole `plan`/`draft` is requested"):
+        for required in ("`none`", "offers no Backchain child at any stage", "(default `none`)"):
             with self.subTest(required=required):
                 self.assertIn(required, option)
 
@@ -4036,7 +4049,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
             return " ".join(prompts._backchain_guidance(stage, backchain_passes=mode).split())
         self.assertNotIn("exit condition", guidance("plan", "converge"))  # converge prints the gate alone
         self.assertIn("exit condition", guidance("plan", "one"))
-        for mode, pointer in (("one", True), ("none", True), ("converge", False)):
+        for mode, pointer in (("one", True), ("none", False), ("converge", False)):
             with self.subTest(mode=mode):
                 self.assertEqual("Backchain passes: one" in guidance("spec", mode), pointer)
         for path in (self.SHIPLOOP / "references" / "backchain-route.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
@@ -4049,7 +4062,7 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                         self.assertIn("`one`", sentence)  # the packet prints an exit condition in `one` only
                 if "points to Backchain's convergence reference" in sentence:
                     with self.subTest(path=path.name, text=sentence[:80]):
-                        for mode in ("`one`", "`none`", "`converge`"):
+                        for mode in ("`one`", "`converge`"):  # `none` starts no repair/revise child
                             self.assertIn(mode, sentence)
 
     def test_the_terminal_evidence_set_is_one_record_and_the_check_receipt_for_the_marker(self) -> None:

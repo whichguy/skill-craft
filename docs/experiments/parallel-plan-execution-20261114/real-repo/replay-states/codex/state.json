@@ -1,0 +1,31 @@
+{
+ "host": "codex",
+ "source_trial": "e17-codex-qp",
+ "step": "T3",
+ "failed_attempt": 1,
+ "next_attempt": 2,
+ "branch": "w-T3-1",
+ "main_commit": "e07a22fd6fff5a7434d9777cc8985a97371344bb",
+ "failed_commit": "177bb45532ab22358654be838e86467dfb517f76",
+ "root_commit": "b59e354f7e69ed9e5d78f97b0b071e6575a20166",
+ "cause": "conflict",
+ "paths": [
+  "CHANGELOG.md",
+  "bin/tickets.js",
+  "docs/decisions/README.md",
+  "src/format.js",
+  "src/store.js",
+  "src/tickets/query.js"
+ ],
+ "main_holds": [
+  "T1",
+  "T2"
+ ],
+ "retry_event_seq": 45,
+ "prefix_events": 45,
+ "plan_sha": "eaa7f6bf55cc80c0661bca85d5737d7dc59f7271e74e84e425ba19b2f941323b",
+ "bundle_sha256": "b20fc2bc8d9d66bcc4ce2b9e52a5fba4e325c5534d13a174344bcc1144843285",
+ "prefix_sha256": "14d1db88b489b581a261c4583dc5a086ce809536e22cbcacedd16606f16ded05",
+ "e17_next_attempt_seconds": 50.5,
+ "known_answer_branch": "w-T3-2"
+}

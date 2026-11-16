@@ -1,0 +1,27 @@
+{
+ "source": "claude stream (system task events)",
+ "agents": [
+  {
+   "id": "a4bf097c9a7a1229a",
+   "actor": "agent:RwuDnJ",
+   "kind": "general-purpose",
+   "start": 1794787917.754,
+   "end": 1794788067.358,
+   "background": false,
+   "depth": 1,
+   "tokens": 90916,
+   "success": true
+  },
+  {
+   "id": "a3d21322e35cf9319",
+   "actor": "agent:tVD8sD",
+   "kind": "general-purpose",
+   "start": 1794788074.475,
+   "end": 1794788220.15,
+   "background": false,
+   "depth": 1,
+   "tokens": 90288,
+   "success": true
+  }
+ ]
+}

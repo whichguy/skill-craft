@@ -151,8 +151,8 @@ action is issued. See the [navigator guide](navigator.md#run-it).
 
 ## Backchain passes
 
-Every run records the run-level `backchain_passes` key: `one` (the default for new
-runs), `converge` or `none`. It is set once, by `--backchain-passes` on `init` or
+Every run records the run-level `backchain_passes` key: `none` (the default for new
+runs: no Backchain child), `one` or `converge`. It is set once, by `--backchain-passes` on `init` or
 `workspace start`, and no verb changes it: an `init` or `workspace start` retry that
 names another value is refused, and a saved run without the key is refused with the
 fresh-run hint like any other missing key. See the
