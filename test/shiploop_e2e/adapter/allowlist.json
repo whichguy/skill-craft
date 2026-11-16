@@ -1,0 +1,22 @@
+{
+  "contract": "shiploop-adapter-allowlist/1",
+  "note": "The cases a campaign may run, with the median minutes of a passing run as `cost` (it orders widening: cheapest first). Pinned by the manifest, so the owner ratifies it. Every case must exist in the base commit's cases.json with the same style.",
+  "cases": {
+    "hello": {
+      "style": "smoke",
+      "cost": 12
+    },
+    "csv-report": {
+      "style": "cli-files",
+      "cost": 18
+    },
+    "seat-reservations": {
+      "style": "stateful-service",
+      "cost": 20
+    },
+    "battleship": {
+      "style": "web-service",
+      "cost": 26
+    }
+  }
+}
