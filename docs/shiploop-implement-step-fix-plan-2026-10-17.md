@@ -1,10 +1,19 @@
 Execute: ask
 
-# Implement-step improvement plan — R05 qualified; R07, R08 and R21 implemented
+# Implement-step improvement plan — remaining work after R05 qualification
 
-**R05 qualification found no inherited-procedure semantic miss: retain the current prompts. R07, R08 and R21 remain implemented for their scoped contracts. R19 run-owned loop state is next.**
+**Next: qualify and implement R19's run-owned stage-loop state. Then address R16's actual-state checks, R15's scoped test authority and R17's return message as separate small changes. R05 needs no added prompt wording; R07/R08/R21 remain implemented within their recorded contracts.**
 
-Current source: `59d4af8524f24c3c20a9dd90aa194167342663e1`, integrating published-main checkpoint `4df66f687caf24b9919238c63ba579a2d871eaef`. R05 subjects used frozen `e596e6734f59590e2b4c6e65bea71a868675924f`; every pre-existing skill file remains unchanged after integration. Of 43 previously anchored files, 42 are byte-identical; the background E18 registration README retains its cited excerpt with a refreshed file hash. The [R05 evidence](shiploop-implement-prompt-audit-evidence/r05-20261115/README.md) separates 16/16 diagnosis/disposition passes from twelve protocol passes and four original protocol-incomplete results, with separately registered fresh follow-ups that pass 4/4. It adds no production code or prompt wording. The pre-R07 qualification baseline is `781d5eca4b82dd3b9783147271f8281bfbc2e9a8`. Thirteen full affected suites passed 1,204 executions at frozen `9ae4fc221e6876545be8b9a33a60eb6d6bf096db`; R07's earlier `5d2e978614e4a100ffa04ee32e49ff054ce52dd2` main merge separately passed six full suites (350 executions) and all twenty R07 definitions. Both R07 revisions have independent static approval and clean source/output audits. Ten of twelve R07-owned paths remain byte-identical, and all R07 admission functions are AST-identical. The [R07 evidence](shiploop-implement-prompt-audit-evidence/r07-20261115/README.md) retains original reproductions, repair attempts, both integration identities and exact check revisions. All source spans below are refreshed against current code. The original audit, R08 and R21 evidence remain frozen in their own directories.
+Current code checked at `7fbc8b29345a1531706f3510a79eb8314298c6df`, integrating published-main checkpoint `5b93207807a33e1610c89282031726e18285c021` (skill-craft 2.41.2). The latest upstream change moves an unrelated skill; ShipLoop, Improve and Until Loop code is unchanged from the prior plan. [This replan's source check](shiploop-implement-prompt-audit-evidence/replan-20261115.json) verifies all 211 retained spans across 46 files against current bytes. The existing anchor map and all R05/R07/R08/R21 acceptance evidence stay frozen at their actual revisions.
+
+| Achieved | Scope that remains qualified |
+|---|---|
+| R05 | Inherited-procedure diagnosis/disposition passes 16/16 local cases; original callbacks remain 12 PASS / 4 INCOMPLETE, with four independently passing fresh follow-ups. No prompt repair. |
+| R07 | Recorded pending outcomes need explicit attributed settlement when removed; declarations do not prove their own truth or initial completeness. |
+| R08 | Recognized runner errors cannot certify a pass; obsolete candidate/Proof receipts rerun. |
+| R21 | Declared external inputs bypass reuse; hidden dependencies and general authority expiry remain outside this contract. |
+
+The [R05 qualification](shiploop-implement-prompt-audit-evidence/r05-20261115/README.md), [R07 checks and review](shiploop-implement-prompt-audit-evidence/r07-20261115/README.md), [R08 closure](shiploop-implement-prompt-audit-evidence/r08-20261115/README.md) and [R21 closure](shiploop-implement-prompt-audit-evidence/r21-20261115/README.md) retain the actual test counts, source identities, failed attempts and limits. This is a plan refresh; none of the remaining changes below is implemented by this replan.
 
 All 22 recommendation IDs, eight considerations, fourteen Code craft rules and T1–T52 references remain accounted for. The October 25 plan and Chess/Battleship analyses remain historical in archive commit `a8537de752bf925244f22c1dfed98097fc8180f2`; that archive is not a branch to merge wholesale. The unrelated September `shiploop-remaining-recommendations-plan.md` is a completed historical plan with different IDs.
 
@@ -33,24 +42,40 @@ Published main also removed the HEAD-only knowledge-baseline fallback and releas
 
 | Priority | IDs | Smallest warranted next action |
 |---|---|---|
-| P1 | R19 | Create a run-owned backing-state directory and pass the existing option at ordinary stage start; retain current receipt recovery. |
-| P2 | R15, R16 | Align already-authorized test scope and replace forced-absence language with actual current-state observations plus independent observer controls. |
-| P2 | R17 | Delete the misleading “no action needed” parenthetical; preserve the existing keep/exclude review. |
-| P3 | R01, R13 | Correct stale path-reader documentation and qualify cold-host locator use. Retain paths and full emission. |
-| Qualification only | R10 | Retain local reuse; probe base identity, ignored dependencies or mutation semantics before proposing further cache changes. |
-| Optional / conditional | R04, R09, R22 | Defer broad rubric expansion, keep remote mutation excluded, and pilot Work shortening only if quality holds. |
+| P1 | R19 | First reproduce the ordinary stage's temporary backing-state location. Use the existing run-owned directory option, then prove fresh-process recovery and honest refusal after state loss. |
+| P2, first | R16 | Correct the four forced-absence instructions together. Qualify observation of absent, already-current and wrong-revision targets without changing a target merely to make it absent. |
+| P2, next | R15 | Qualify a concrete already-authorized test route across producer, Improve opening and frozen contract. Repair only a reproduced authority mismatch; retain the separate release-effect guard. |
+| P2, independent | R17 | Remove the misleading parenthetical. Exercise pending and fully reviewed return states through the real CLI; preserve existing keep/exclude decisions. |
+| P3 | R01 | Correct the stale path-reader comment after tracing its existing consumers; no new parser format or runtime gate. |
+| Qualification only | R13, R10 | Qualify cold-host locator use or a concrete cache gap only when the claim requires it. Retain full packets, current file references and local reuse. |
+| Deferred / conditional | R04, R09, R22 | No broad rubric expansion, remote mutation machinery or Work shortening without a reproduced need and the applicable acceptance comparison. |
+
+The order reflects impact and certainty, not a new dependency graph: R17 can land independently. R16 is a direct four-copy contradiction; R15 still needs a concrete granted route to establish the behavioral gap. Keep them separate so fixing observation wording never grants authority.
+
+## Execution and acceptance for the next changes
+
+Work one recommendation at a time. Record the baseline and the specific failed observation before a behavioral repair, add a regression for that failure, then rerun the positive control and affected existing suites. Check the actual callback or consumer boundary, not only a prompt substring or source search. Preserve failed attempts and unavailable observations. Source anchors locate responsibility; they are not delivery evidence.
+
+| Order | First check and smallest edit | Evidence required to close |
+|---|---|---|
+| 1 — R19 | Run an ordinary stage's emitted start command and inspect `state_file`; compare with Improve's existing run-owned startup. Add only `--directory RUN/until-loop` and any necessary script-owned directory creation at stage setup. | Fresh-process `next_argv` resumes the same action; exact `done_argv` closes a qualifying pass. Missing state preserves an honest incomplete result and the active receipt. A second run stays isolated. The generated check → done → complete chain advances once when valid; failed/stale checks and missing/copied/active receipts refuse. [Launcher](../skills/shiploop/scripts/shiploop_loops.py#L481), [existing Improve pattern](../skills/shiploop/scripts/shiploop_navigator.py#L9950). |
+| 2 — R16 | Render and exercise the current four instructions against controlled local targets. Replace forced absence with the observed state, candidate identity and remaining delta; qualify the observer with independent positive/negative controls. | Absent, already-current and wrong-revision targets are reported correctly; an observer accepting both revisions fails. No deletion to manufacture absence or repeated release solely because the candidate is already present. All four copies agree. [Producer/check duties](../skills/shiploop/scripts/shiploop_prompts.py#L1773), [shared reference](../skills/shiploop/references/testing-and-documentation.md#L251), [selected platform copy](../skills/shiploop/references/platforms/salesforce.md#L55). |
+| 3 — R15 | Present the same explicit test grant to the producer, normal bound Improve opening and frozen contract, then exercise its isolated route. If the blanket prohibition alone blocks it, align the existing authority text. | Granted target/setup/access limits survive every handoff; no grant, wrong target, withdrawn authority and a release effect remain refused. A recorded command grants nothing. Keep existing grant representation and release guard; add no permission service or expiry schema. [Opening](../skills/shiploop/scripts/shiploop_navigator.py#L9877), [contract](../skills/shiploop/scripts/shiploop_navigator.py#L9261), [release guard](../skills/shiploop/scripts/shiploop_prompts.py#L2882). |
+| 4 — R17 | Drive `plan-return` with both product configuration and an unignored tool-state file; remove only the premature “no action needed” phrase. | Pending decisions still refuse return. After explicit keep/exclude review, only the reviewed delta returns; completed review does not gain a false pending warning. Check behavior/output together. [Message and dispatch](../skills/shiploop/scripts/shiploop_protocol.py#L323), [return validation](../skills/shiploop/scripts/shiploop_workspace.py#L1442). |
+
+For each implementation, the concrete code locations and full accept/reject controls below remain its acceptance contract. Use isolated owned fixtures first. Package-specific live checks are required only for a claim that needs that boundary and its existing authority. A static suite, local model fixture or code inspection must not be described as a deployed or person-observed result.
 
 ## Each recommendation, its code and acceptance
 
-The linked source is the implementation or exact edit target. The adjacent acceptance checks are requirements for closing the remaining work, not claims that all those checks ran today. The [current source map](shiploop-implement-prompt-audit-evidence/r05-20261115/source-map.json) retains every supporting span, excerpt hash and relevant decision commit.
+The linked source is the implementation or exact edit target. The adjacent acceptance checks are requirements for closing the remaining work, not claims that all those checks ran today. The [retained source map](shiploop-implement-prompt-audit-evidence/r05-20261115/source-map.json) holds every supporting span, excerpt hash and relevant decision commit; [this replan](shiploop-implement-prompt-audit-evidence/replan-20261115.json) verifies all of them against current code without rewriting the frozen evidence.
 
 ### R01 — Step-specific executable checks
 
 **present with clarification.** Every route has a step-bound Proof. The planner now rejects known unwritten-test and later-step inputs; inline test paths and generic-suite/criterion mismatches are also checked. Per-step paths remain optional in parsing but now feed proof-order validation; the comment saying nothing reads them is stale. Four criteria/three product files remains planning guidance, not a numeric CLI gate.
 
-**Next:** Retain per-step paths on both routes and correct the stale parser comment. Clarify prompt expectations versus compatibility parsing without adding a new path schema or arbitrary gate.
+**Next:** Retain the consumed per-step paths on both routes and correct the stale parser comment. Use the current format; add no compatibility layer, new path schema or arbitrary gate.
 
-**Acceptance:** Reject a Proof that needs an absent test or a file produced only by a later step; accept an existing test or an earlier producer, and the documented all-tests-item exception. Verify both routes bind one step and its due criteria; omission-compatible legacy input must not be described as providing path-order evidence.
+**Acceptance:** Reject a Proof that needs an absent test or a file produced only by a later step; accept an existing test or an earlier producer, and the documented all-tests-item exception. Verify both routes bind one step and its due criteria; a plan omitting optional paths must not be described as providing path-order evidence.
 
 **Code:** [shiploop_navigator.py:3112 — _check_step_sizing](../skills/shiploop/scripts/shiploop_navigator.py#L3112); [shiploop_navigator.py:2712 — _normalise_steps](../skills/shiploop/scripts/shiploop_navigator.py#L2712); [shiploop_item_scope.py:178 — proof_order_refusal](../skills/shiploop/scripts/shiploop_item_scope.py#L178); [shiploop_prompts.py:1326 — DUTIES[step-plan]](../skills/shiploop/scripts/shiploop_prompts.py#L1326)
 
@@ -208,7 +233,7 @@ The linked source is the implementation or exact edit target. The adjacent accep
 
 **partial.** The conflict remains. Producer guidance permits authorized prerequisite setup and remote test routes, while the script-generated Improve opening still says 'No push, deploy, install or credential access.' The contract incorporates that Authority section. A separate release-effect prohibition remains and must stay separate from any bounded test-route correction.
 
-**Next:** Retain the narrow correction as open work for a concrete authorized test route. Preserve the independent release-effect guard.
+**Next:** Qualify a concrete already-authorized test route through the actual producer/Improve handoff. Apply the narrow authority-text correction only for a reproduced mismatch. Preserve the independent release-effect guard; add no grant or expiry mechanism.
 
 **Acceptance:** Accept: Render producer, Improve opening and frozen contract for one explicit test grant. Verify all preserve its target, allowed operations, identity and limits; then exercise the permitted route against an isolated controlled target. Reject/challenge: With identical command text but no grant, expired authority, a narrower target or a release operation, verify no authority is inferred and no prohibited operation occurs.
 
@@ -256,7 +281,7 @@ The linked source is the implementation or exact edit target. The adjacent accep
 
 **partial.** The stage-loop launcher still omits --directory. Because --receipt selects isolated operation and start passes directory=None to tempfile.mkstemp, backing state defaults to temporary storage. Improve child startup already supplies RUN/until-loop, so the missing option is specific to ordinary stage-loop launches. Receipt recovery and terminal validation exist, but a receipt cannot reconstruct missing live state.
 
-**Next:** Add the existing --directory option to ordinary stage startup, creating the run-owned directory first; reuse the Improve startup pattern. Preserve exact next_argv recovery, active-receipt protection and intentional terminal backing-state deletion.
+**Next:** Qualify the current ordinary-stage launch first, then add the existing --directory option and any necessary run-owned directory creation at script-owned stage setup; reuse the Improve startup pattern. Preserve exact next_argv recovery, active-receipt protection and intentional terminal backing-state deletion.
 
 **Acceptance:** Accept: Start an ordinary stage in a disposable run and verify state_file is beneath that run's until-loop directory. In a fresh process, execute the receipt's exact next_argv to recover the same action, then submit its exact done_argv once. Reject/challenge: Delete only the fixture backing state: recovery must remain unverified, must not overwrite the active receipt and must not create replacement success. A concurrent run must retain separate state and receipt identity. Accept: Write the result and evidence-grounded report, then execute check && done_argv < report && complete. Verify one accepted stage transition and matching terminal receipt. Reject/challenge: Make check fail: neither the satisfied report nor complete may execute. Change a gate input after check: complete must not blindly reuse the old yes. Missing, copied or still-active receipts must not satisfy completion.
 
@@ -290,7 +315,7 @@ The linked source is the implementation or exact edit target. The adjacent accep
 
 **optional simplification.** The Work template remains 364 characters. Stage Until Loop owns producing the stage result, and Improve reviews the completed step after test/document. Existing completion and recovery contracts already carry the stopping conditions.
 
-**Next:** Pilot shortening only the duplicated Work sentence. Do not add a loop per consideration or claim code anchors alone establish completion.
+**Next:** Defer shortening until a measured inner-loop cost warrants the pilot. Then compare only the duplicated Work sentence, preserving the existing Exit/Repeat and callbacks. Do not add a loop per consideration or claim code anchors alone establish completion.
 
 **Acceptance:** Compare emitted Work plus Exit/Repeat and callback on both routes, preserving scope, after-edit evidence, regression protection and recovery. Paired representative tasks must preserve acceptance quality before reporting token or time gains; 364 to 161 characters is only a template measurement.
 
@@ -315,6 +340,20 @@ Write no tests and start no later step.
 ```
 
 Keep the existing Exit/Repeat clauses: every assigned criterion shown after the last edit, other requirements preserved, no later work, Proof/lint, criterion-based send-back and honest blocked/pause recovery. Keep the current review after the step’s test/document work. The character reduction is 55.8%; no token, speed or quality improvement is established. R22 anchors and checks govern this pilot.
+
+### Ordinary stage startup: R19 is a script change
+
+**Before — current emitted launch shape:**
+```sh
+python3 RUNTIME start --receipt RECEIPT < CONTRACT
+```
+
+**After — proposed, after script-owned directory preparation:**
+```sh
+python3 RUNTIME start --directory RUN/until-loop --receipt RECEIPT < CONTRACT
+```
+
+These placeholders illustrate the one argv change; execute only the generated command. Keep the stage's Work, Exit/Repeat, receipt and callback wording unchanged. The [current formatter](../skills/shiploop/scripts/shiploop_loops.py#L481) and [existing Improve startup](../skills/shiploop/scripts/shiploop_navigator.py#L9950) locate the change. A rendered `--directory` alone is insufficient: acceptance must observe the resulting state path and resume it in a fresh process.
 
 ### Closing a stage: already changed in code
 
@@ -548,9 +587,9 @@ These are stable acceptance references, not 52 passing tests. Each points to the
 
 ## Simplicity and completion
 
-Use one stage directive, one bound Until contract, current Improve review, and script-owned state/callbacks. Preserve the per-step lifecycle, existing field files and existing receipts. Avoid another ledger, schema, symbol language, review quota or distributed cache. Shorten repeated wording only while preserving scope, authority, observation and recovery. A code anchor proves where an obligation is handled; it does not prove the software satisfies it.
+Use one stage directive, one bound Until contract, current Improve review, and script-owned state/callbacks. R19 is an argv/state-location correction; R16/R15/R17 are separate bounded wording corrections, not a new orchestration layer. Preserve the per-step lifecycle, existing field files and existing receipts. Use one current format and roll forward; add no backward adapters or migration. Avoid another ledger, schema, symbol language, review quota or distributed cache. Shorten repeated wording only while preserving scope, authority, observation and recovery. A code anchor proves where an obligation is handled; it does not prove the software satisfies it.
 
-Close a recommendation when its required behavior has valid evidence at the final candidate, or when a later recorded decision supersedes it. Keep optional items explicitly deferred with a reopening condition. Recheck intervening main changes affecting the cited code before implementation; unrelated commits do not justify rerunning the entire historical audit.
+Close each implementation only when its stated positive and rejection controls pass at the final candidate and its source/evidence anchors are updated, or when a later recorded decision supersedes it. A qualification that reproduces no gap can close with the existing code retained, as R05 did. Keep optional items explicitly deferred with a reopening condition. Recheck intervening main changes affecting the cited code before implementation; unrelated commits do not justify rerunning the entire historical audit.
 
 ## Verification and limits
 
