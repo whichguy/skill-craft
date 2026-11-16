@@ -46,18 +46,12 @@ def write_hard_timeout_evidence(
     args: argparse.Namespace,
     started: float,
 ) -> bool:
-    """Write timeout evidence through the descriptor that won path creation."""
-    path = run_dir / "hard-timeout.json"
-    try:
-        fd = open_exclusive_private(path)
-    except OSError as exc:
-        print(
-            "test-harness hard supervisor: refusing to replace timeout "
-            f"evidence at {path.name}: {exc}",
-            file=sys.stderr,
-        )
-        return False
+    """Publish complete private bytes without replacing an existing destination.
 
+    A hard alarm may leave the private staging name. This does not guarantee
+    completion on a blocked filesystem or durability across power loss.
+    """
+    path = run_dir / "hard-timeout.json"
     payload = (
         json.dumps(
             {
@@ -71,14 +65,34 @@ def write_hard_timeout_evidence(
         )
         + "\n"
     ).encode("utf-8")
+    staging = run_dir / f".hard-timeout.{secrets.token_hex(8)}.tmp"
+    fd: int | None = None
+    published = False
     try:
+        fd = open_exclusive_private(staging)
         write_all(fd, payload)
         os.fsync(fd)
-    except OSError:
-        return False
+        # Same-directory link installs the completed inode atomically and
+        # refuses both regular-file and symlink collisions at the final name.
+        os.link(staging, path)
+        published = True
+    except OSError as exc:
+        print(
+            "test-harness hard supervisor: refusing to replace timeout "
+            f"evidence at {path.name}: {exc}",
+            file=sys.stderr,
+        )
     finally:
-        os.close(fd)
-    return True
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                published = False
+            try:
+                staging.unlink()
+            except OSError:
+                published = False
+    return published
 
 
 def parse_args() -> argparse.Namespace:
@@ -337,6 +351,9 @@ def main() -> int:
             if leader_rc is not None:
                 break
             timed_out = True
+            # Attempt evidence before cleanup can consume the hard deadline.
+            # elapsed_ms samples payload construction, not completed cleanup.
+            write_hard_timeout_evidence(run_dir, args, started)
             cleanup_group(hard_deadline)
             leader_rc = proc.poll()
             break
@@ -363,7 +380,6 @@ def main() -> int:
         pass
 
     if timed_out:
-        write_hard_timeout_evidence(run_dir, args, started)
         print(
             "test-harness hard timeout: enclosing lifecycle exceeded "
             f"{args.timeout_secs}s; owned process group terminated",
