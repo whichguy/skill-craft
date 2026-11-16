@@ -9135,3 +9135,62 @@ in, and `--backchain-passes` defaults to `none` (owner decision 2026-11-15; jour
   a spec or prose plan) or scope it at spec, and that change needs its own live round.
 - **Harness note.** The retired term "terminal packet" counted 6 again; it comes from the shared Until Loop runtime,
   as in release A's round.
+
+## 2026-11-16 — R19/R16 checkout qualification: one local CSV-tool delivery passes every verdict and all five independent case checks
+
+This is a full repository-harness round, not a mock or a comparison. The existing `csv-report` literal prompt ran once
+from `d5142e5f502179cda135a3da405c3117d7f6fba3` (tree `a056d02869a53cb0de8de42aa4bf6d07b95dd496`), after the
+R19/R16 source changes and the owner-approved Backchain retirement. It used `test/shiploop_e2e/run.py --case csv-report
+--host codex --model gpt-6.1-sol --effort medium --source checkout`, a new external output and baseline, and no added
+turn, timeout, budget or resume cap. The builder received the catalog request without coaching or operator callbacks.
+
+The checkout build carried labels skill-craft 2.43.0 / ShipLoop 1.38.0, but contained our unpublished source. This is
+not a marketplace/publication result for those labels. Its exact whole-plugin fingerprint is
+`abaf1e116df3976ca27232c9e00b3595029d3614044388bb7c38cf7f81ce4a77`. Both the source-built and actually installed
+plugin have 529 matching entries, with complete byte/executable-mode/symlink agreement and no exclusions. The frozen
+source's 14,111 tracked entries, index, HEAD/tree and ordinary/ignored status remain identical and clean.
+
+| Boundary | Observed result | Scope |
+|---|---|---|
+| Builder | Codex CLI 0.169.0; gpt-6.1-sol / medium; matching default-child flags; one fresh session, zero resumes | Actual retained launch controls, not provider-served model attestation |
+| Terminal delivery | invoked, plugin, process, shiploop and committed all pass; engine done with report | 30 accepted actions, one completed work item |
+| Independent product checks | unit, totals, invalid, missing, empty: five of five pass | Unit checker requires a positive executed unittest count; case declares no held-out or quality measure |
+| Returned source | clean committed product `0df9ccc2b378861f35accadb8f9d2a1c08ec0365`, tree `3791b5fadd0190412b753c90062113a9fd4eb9c6` | Local CLI/source delivery, not an external deployment |
+| Recovery and limits | eleven internal check refusals recovered within the original session | Retained as failures/refusals, not erased by terminal PASS |
+| Mutation record | two later conditional skips: no changed product line matched an operator | Not passes of mutation checks and not required independent case checks |
+| Cleanup | no observed surviving owned processes or listeners | Retained PID/group and listener observations; no universal containment claim |
+
+The run started at 2026-11-16T17:01:50Z and ended at 18:41:22Z. Metrics record 627 turns, 547 model calls and ten
+Improve children; these are this run's observations, not a saving, total provider cost or controlled efficiency result.
+Seven script-verification records include six passing records and an earlier unsuccessful record, with 26 command
+runs. Focused/regression counts are measured and positive; the final accepted checks remain distinct from earlier
+refused submissions. Fidelity flags one `host-owner.md` creation. The source contract assigns this append-only launch/handle/collection
+record to the parent, explicitly separate from runtime state and success receipts ([parent contract](../../skills/ask-agent/references/consumer-owned-workspace.md#L112),
+[ShipLoop instruction](../../skills/shiploop/references/improve-context.md#L416)). The
+resulting note and add/append events follow that purpose. No repair is indicated. The original patch body is absent
+from normalized events; this limitation and the source excerpts remain in `host-owner-audit.json`. The heuristic
+label is not evidence that engine code changed; actual installed engine bytes remain identical.
+
+This round covers the R19/R16 source in the named d514 checkout, not every intervening commit on main. While it ran,
+main adopted the separately authorized Python 3.15 minimum in `7a04fc044edb4418e92551c5619c48192862575b`, with its
+explicit prerequisite-only `No-E2E-Round` reason, and two fixture repairs in `a94cbd844d4e68831c2a971dbd430e1ec445e6e4`.
+That owning session closed source qualification: 207/207 local suites and exact-source full GitHub CI
+[43917017353](https://github.com/whichguy/skill-craft/actions/runs/43917017353), 12 jobs and four browser fixtures.
+Its original failed local/GitHub attempts stay retained. Our combined merge `9b73ed18a291a43d4822e1a15a0f3ab0cbce4154`
+separately passes 25 selected floor, R19 and R16 methods on Python 3.15.1, with unchanged complete source identity.
+Neither result is relabelled as a model round on that combined source. Exact-release CI and published-package checks
+remain required after the forward release cut.
+
+Preflight correctly refused the older unpublished generated release `850aa2d5b93df54711ccbc7f432065b2d8e793e8`,
+retained outside newer release ancestry. This entry records the actual subsequent live round; it is not a dummy journal
+touch or a historical-trailer rewrite. The earlier release-range intersection repair in
+`6df738c6c36a13676eb623adbab5954756cfedfa` remains independently qualified by two actual RED graph assertions,
+24 GREEN methods and read-only review. All per-commit reasons and the owner's separate retirement waiver remain.
+The 75 focused behavior checks and 39 zero-model mock checks at d514 remain their own evidence, not this live round.
+
+Limits: one local package, one host and one builder configuration. No promotion comparison, general semantic-uptake,
+other-package, authenticated UI, live-org, personal-host refresh or performance claim. R15/R17 remain proposals.
+Evidence root: `/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-r16-publication-20261116/`:
+`retirement-live-csv-report/handoff.json`, original result/metrics/native events and product bundle, complete source and
+installed-package inventories, cleanup records, `python315-merged-local-qualification/handoff.json`, and the copied
+`upstream-python-qualification/handoff.json`. Final publication/readback evidence will be recorded separately.
