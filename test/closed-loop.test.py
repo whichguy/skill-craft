@@ -2263,13 +2263,15 @@ class CardTests(unittest.TestCase):
     docs = "\n".join(path.read_text() for path in sorted((SKILL / "references").glob("*.md")))
 
     def test_the_frontmatter_names_the_skill_and_matches_its_first_change_note(self):
+        import re
         front = self.card.split("\n---\n", 1)[0]
         self.assertTrue(front.startswith("---\nname: closed-loop\n"))
-        self.assertIn("version: 0.1.0", front)
+        version = re.search(r"^version:[ \t]*(\S+)[ \t]*$", front, re.MULTILINE)
+        self.assertIsNotNone(version)
         self.assertIn("kind: script-backed", front)
         note = ROOT / "changes" / "closed-loop" / "initial.md"
         if note.is_file():  # release.py consumes the first change note, so it exists only before the release
-            self.assertIn("version: 0.1.0", note.read_text())
+            self.assertIn(f"version: {version.group(1)}", note.read_text())
         for other in ("improve", "improve-loop"):  # the description must separate this skill from its neighbours
             self.assertIn(other, front)
 
