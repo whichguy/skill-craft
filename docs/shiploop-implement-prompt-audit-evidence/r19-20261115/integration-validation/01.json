@@ -1,0 +1,23 @@
+{
+  "id": 1,
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-backchain-check.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T02:17:09.989491+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/01.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/01.stderr.log",
+  "attempt": 1,
+  "selected_count": null,
+  "pid": 31621,
+  "exit": 0,
+  "end": "2026-11-16T02:17:23.682332+00:00",
+  "completed_count": 10,
+  "skips_detected": false,
+  "status": "PASS"
+}

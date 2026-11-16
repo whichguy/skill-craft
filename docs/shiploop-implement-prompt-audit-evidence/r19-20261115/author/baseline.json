@@ -1,0 +1,11 @@
+{
+  "head": "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+  "status": "",
+  "sha256": {
+    "skills/shiploop/scripts/shiploop_loops.py": "60b008e4fedb8e1f1d0ccc6b0a20f4c820160bf6dc9119214d80377984bb00fe",
+    "test/shiploop-loops.test.py": "dcc7310f5674d5464df02fe8b79713433c9588d53816053c47db953c00b7a702",
+    "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py": "fad65999c57893b43f2e308cc967746f90fcf3c14261d6d649ba0c002185ceb4",
+    "skills/improve/runtime/until-loop/scripts/until_loop_recover.py": "bae7c5fd50e550f107d1e84645e2e49c48eb68e4dc05521ea076e0cec3f09af1",
+    "skills/improve/runtime/until-loop/scripts/until_loop_session.py": "c79c030b79bf34373a265969eadf6a5dbf3dc286a5e5ec4b17746b1a0c91c430"
+  }
+}

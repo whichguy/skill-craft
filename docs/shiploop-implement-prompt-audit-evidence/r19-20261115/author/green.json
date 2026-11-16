@@ -1,0 +1,43 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/author/run_focused.py",
+    "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+    "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+    "-v"
+  ],
+  "equivalent_direct_argv": [
+    "python3",
+    "-B",
+    "test/shiploop-loops.test.py",
+    "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+    "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "exit": 0,
+  "seconds": 10.926464875003148,
+  "tests": [
+    "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+    "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan"
+  ],
+  "counts": {
+    "run": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  "process_trace": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/author/green-processes.jsonl"
+}

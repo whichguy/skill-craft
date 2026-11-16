@@ -1,0 +1,474 @@
+{
+  "attempts_per_command": 1,
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-loops.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T01:59:20.371869+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 1,
+      "observed_unittest_counts": [
+        67
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T01:55:00.586084+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-01/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-01/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-fidelity.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T01:55:30.533612+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 2,
+      "observed_unittest_counts": [
+        149
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T01:55:00.589340+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-02/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-02/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-callback-contract.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:12:16.442807+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 3,
+      "observed_unittest_counts": [
+        117
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T01:56:32.559927+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-03/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-03/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-actual-improve-cli.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:07:38.089326+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 4,
+      "observed_unittest_counts": [
+        104
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T02:00:22.835128+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-04/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-04/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-rehydration.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:08:51.793406+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 5,
+      "observed_unittest_counts": [
+        17
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T02:08:47.603977+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-05/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-05/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-head-order.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:11:53.904731+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 6,
+      "observed_unittest_counts": [
+        36
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T02:10:08.318242+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-06/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-06/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-packet-bounds.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:12:31.488610+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 7,
+      "observed_unittest_counts": [
+        21
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T02:12:29.001751+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-07/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-07/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "test/improve-runtime.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:12:31.625006+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 8,
+      "observed_unittest_counts": [
+        13
+      ],
+      "skipped_required": false,
+      "start": "2026-11-16T02:12:29.008432+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-08/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-08/stdout.log",
+      "terminal_ok": true
+    },
+    {
+      "argv": [
+        "ruff",
+        "check",
+        "--no-cache",
+        "--select",
+        "F,E9",
+        "skills/shiploop/scripts/shiploop_loops.py",
+        "test/shiploop-loops.test.py",
+        "test/shiploop-e2e-fidelity.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:12:52.846297+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 9,
+      "observed_unittest_counts": [],
+      "skipped_required": false,
+      "start": "2026-11-16T02:12:52.782757+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-09/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-09/stdout.log",
+      "terminal_ok": false
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-20261115",
+        "diff",
+        "--check",
+        "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+        "HEAD",
+        "--",
+        "skills/shiploop/scripts/shiploop_loops.py",
+        "test/shiploop-loops.test.py",
+        "test/shiploop-e2e-fidelity.test.py",
+        "changes/shiploop/r19-run-owned-loop-state.md"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "end": "2026-11-16T02:12:52.783487+00:00",
+      "env_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+      "index": 10,
+      "observed_unittest_counts": [],
+      "skipped_required": false,
+      "start": "2026-11-16T02:12:52.728929+00:00",
+      "status": "PASS",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-10/stderr.log",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-10/stdout.log",
+      "terminal_ok": false
+    }
+  ],
+  "completed_at": "2026-11-16T02:13:47.225652+00:00",
+  "completed_commands": 10,
+  "completed_modules": 8,
+  "deadline_utc": "2026-11-16T02:23:14Z",
+  "earlier_qualification_failures": "outside this bank; not overwritten",
+  "generated_source_outputs_expected": [],
+  "identity_unchanged": true,
+  "logs": [
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-01/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 215,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-01/stderr.log",
+      "sha256": "0a62bbd64c7686e07fa542fda54e0a5c5a3ffc1cd83e3113cf2cedde2f39827a"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-02/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 250,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-02/stderr.log",
+      "sha256": "ed0010a7eca6791cad378e87b5248be09c1c978c2b3c1e34d740b1d43ed2cfb3"
+    },
+    {
+      "bytes": 49645,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-03/stdout.log",
+      "sha256": "c800637fe28fda7d9b8893f104a078105eb204a4f0880d0fb3325dfe8c2152aa"
+    },
+    {
+      "bytes": 219,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-03/stderr.log",
+      "sha256": "832d6522dc06f7b9bed53a7b424c9eb3b6fec89d8b74834517ec3d613aecb3d9"
+    },
+    {
+      "bytes": 1291,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-04/stdout.log",
+      "sha256": "a3a6f90a954c817872a60f5089055996c22f050a7b008cd6db15be099867871f"
+    },
+    {
+      "bytes": 206,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-04/stderr.log",
+      "sha256": "046680ee6b50acca127db265a1af118e6e921b83a810a212c0162f199fd8c1b6"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-05/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 116,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-05/stderr.log",
+      "sha256": "a822cb2c10b138babc0d54a27324e8ef69c2c6638de246e16205e1cb423db184"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-06/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 137,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-06/stderr.log",
+      "sha256": "d24d4aab93c50891dd4852c0827b0114f008041025b4290de5174c9d93cfd1e9"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-07/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 120,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-07/stderr.log",
+      "sha256": "fe099bbc2a7078c239911eda64532f1aab2f1555fc093aa4f1ac327dea23d0f3"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-08/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 112,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-08/stderr.log",
+      "sha256": "b3b58ee37642819d9ee11136568ba7bbf8b343ce1878dec41c9959d9fd71013b"
+    },
+    {
+      "bytes": 19,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-09/stdout.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-09/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-10/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-10/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "post": {
+    "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+    "ignored_status_hex": "",
+    "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+    "status_hex": "",
+    "timestamp": "2026-11-16T02:13:46.768103+00:00"
+  },
+  "pre": {
+    "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+    "ignored_status_hex": "",
+    "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+    "status_hex": "",
+    "timestamp": "2026-11-16T01:54:52.558407+00:00"
+  },
+  "preexisting_ignored_path_count": 0,
+  "preexisting_ignored_paths": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/preexisting-ignored-paths.z",
+  "raw_terminal_summaries": [
+    {
+      "index": 1,
+      "line": "Ran 67 tests in 259.227s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 1,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 2,
+      "line": "Ran 149 tests in 29.241s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 2,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 3,
+      "line": "Ran 117 tests in 942.207s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 3,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 4,
+      "line": "Ran 104 tests in 432.814s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 4,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 5,
+      "line": "Ran 17 tests in 3.827s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 5,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 6,
+      "line": "Ran 36 tests in 102.291s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 6,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 7,
+      "line": "Ran 21 tests in 2.047s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 7,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 8,
+      "line": "Ran 13 tests in 2.442s",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 8,
+      "line": "OK",
+      "stream": "stderr.log"
+    },
+    {
+      "index": 9,
+      "line": "All checks passed!",
+      "stream": "stdout.log"
+    }
+  ],
+  "remaining_checks": [],
+  "required_commands": 10,
+  "retry_policy": "none",
+  "selected_modules": 8,
+  "source": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "status": "PASS",
+  "total_tests": 524
+}

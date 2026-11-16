@@ -1,0 +1,10 @@
+{
+  "skills/shiploop/scripts/shiploop_loops.py": "26d60ef453416988a94ccb9cfce72b8813f8785ac128405934a9f806d227cfa7",
+  "test/shiploop-loops.test.py": "61f5209bf4a8770c93d5f1029189b5740b00a780fa7f55151ea44e52e1c2be1d",
+  "test/shiploop-e2e-fidelity.test.py": "3ec8396ccc739b9caeebea7451a0ce5daaf1edd8f3444b1c07366a0857662801",
+  "changes/shiploop/r19-run-owned-loop-state.md": "63794e23bb29de9c28edd6eb1d4ad0d92cef573b858129f92ad3e86dd7a97fbb",
+  "test/shiploop_loop_support.py": "32497a47c66c66e4054e5f3fae4eb44ca6b6cafbada94f95e93ef461f5d45822",
+  "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py": "fad65999c57893b43f2e308cc967746f90fcf3c14261d6d649ba0c002185ceb4",
+  "skills/improve/runtime/until-loop/scripts/until_loop_recover.py": "bae7c5fd50e550f107d1e84645e2e49c48eb68e4dc05521ea076e0cec3f09af1",
+  "skills/improve/runtime/until-loop/scripts/until_loop_session.py": "c79c030b79bf34373a265969eadf6a5dbf3dc286a5e5ec4b17746b1a0c91c430"
+}

@@ -1,0 +1,30 @@
+{
+  "id": 5,
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-loops.test.py",
+    "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+    "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T02:18:05.718502+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/05.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/05.stderr.log",
+  "attempt": 1,
+  "selected_count": 6,
+  "pid": 38502,
+  "exit": 0,
+  "end": "2026-11-16T02:18:21.549592+00:00",
+  "completed_count": 6,
+  "skips_detected": false,
+  "status": "PASS"
+}

@@ -1,0 +1,52 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-e2e-fidelity.test.py",
+    "LoopCommandsTest",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "expected_tests": 2,
+  "deadline": "2026-11-16T01:46:24+00:00",
+  "retries": 0,
+  "pre": {
+    "head": {
+      "exit": 0,
+      "stdout": "f4055d2dff72bab8c27d4e500d876bbd2f22e190\n",
+      "stderr": ""
+    },
+    "status": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "started_at": "2026-11-16T01:43:09.851844+00:00",
+  "exit_code": 1,
+  "post": {
+    "head": {
+      "exit": 0,
+      "stdout": "f4055d2dff72bab8c27d4e500d876bbd2f22e190\n",
+      "stderr": ""
+    },
+    "status": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "test_count": 2,
+  "failure_count": 1,
+  "error_count": 0,
+  "skip_count": 0,
+  "status": "FAIL",
+  "finished_at": "2026-11-16T01:43:10.535521+00:00",
+  "logs": {
+    "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/reader-pin-probe/stdout.log",
+    "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/reader-pin-probe/stderr.log"
+  }
+}

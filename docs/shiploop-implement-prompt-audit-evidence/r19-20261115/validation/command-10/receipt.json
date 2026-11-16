@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r19-20261115",
+    "diff",
+    "--check",
+    "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+    "HEAD",
+    "--",
+    "skills/shiploop/scripts/shiploop_loops.py",
+    "test/shiploop-loops.test.py",
+    "test/shiploop-e2e-fidelity.test.py",
+    "changes/shiploop/r19-run-owned-loop-state.md"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "end": "2026-11-16T02:12:52.783487+00:00",
+  "env_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "exit_code": 0,
+  "expected_head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+  "index": 10,
+  "observed_unittest_counts": [],
+  "skipped_required": false,
+  "start": "2026-11-16T02:12:52.728929+00:00",
+  "status": "PASS",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-10/stderr.log",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/validation/command-10/stdout.log",
+  "terminal_ok": false
+}

@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+  "anchors": 222,
+  "source_files": 48,
+  "recommendations": 22,
+  "considerations": 8,
+  "code_craft_rules": 14,
+  "crosswalk_rows": 52,
+  "checked_local_links": 243,
+  "source_links_covered_by_map": 188,
+  "frozen_bank_executions": 524,
+  "integration_test_executions": 113,
+  "original_integration_bank_status": "FAIL",
+  "integration_test_status": "PASS",
+  "frozen_prior_evidence_unchanged": true,
+  "rendered_markdown_inspected": false,
+  "plan_sha256": "ea8b4270eff4e3b0141897609a5f47623270926ad276e975ac6d6104beba4350",
+  "readme_sha256": "5dc48179a28a2a57d0cd0897e7c8aecbb67d8fa8a9aa0afb2430d6cca3da1d3c",
+  "source_map_sha256": "1a9ab007af386c0713561ae7c8dd49c1185dbc7c14d386979553aec028a1719d",
+  "checker_path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/check_documents.py",
+  "checker_sha256": "dac13dea91b161edc4ab04ae8b28a7baa9040a37f3e18ece7ed753254a67e24e",
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/check_documents.py",
+    "/Users/dadleet/src/skill-craft-r19-20261115"
+  ],
+  "scope": "Read-only source/evidence/Markdown structure and links; no runtime tests or render inspection"
+}

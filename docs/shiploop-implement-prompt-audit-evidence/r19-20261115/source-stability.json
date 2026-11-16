@@ -1,0 +1,151 @@
+{
+  "source": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+  "tracked_inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+  "snapshots": [
+    {
+      "path": "validation/after/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T02:13:46.768103+00:00"
+      },
+      "sha256": "99bdec92611f80f18a6f9be26825ec7250947cf7fc5c1c86da59bba3f8e905de"
+    },
+    {
+      "path": "validation/after-01/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T02:00:22.542002+00:00"
+      },
+      "sha256": "6b63f8ebcb4053a8c8e0f870da939f60d6a991f18d10f25a5b82d8e61a57810a"
+    },
+    {
+      "path": "validation/after-02/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T01:56:32.379224+00:00"
+      },
+      "sha256": "41aaac7e032a00dd8e204e0e4af919aca332a4d15f76edc8708f5bf319ea96f3"
+    },
+    {
+      "path": "validation/after-05/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T02:10:07.810359+00:00"
+      },
+      "sha256": "b2887b399ad9c2f0422d56055dde88f185eb2e09eb4148bf91d8cab9eadd88a5"
+    },
+    {
+      "path": "validation/after-06/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T02:12:28.625963+00:00"
+      },
+      "sha256": "0ad01fae3b331cbdeb72511d3d798853d2d7840fda12be1638b52c23bf2e491a"
+    },
+    {
+      "path": "validation/after-08/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T02:12:51.254632+00:00"
+      },
+      "sha256": "5a4c475f22b7ad1acc10fd06f6b9fd21668d4f0c3141aac7c1894738ed39acb3"
+    },
+    {
+      "path": "validation/before/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T01:54:52.558407+00:00"
+      },
+      "sha256": "19371ff05dc1aad5305c9edaf6552cc35850f7f8658ff0fd9cc9471bdecfac4e"
+    },
+    {
+      "path": "validation/checkpoint-0203/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T02:02:50.762351+00:00"
+      },
+      "sha256": "fb53c4e156f299b54d9d6b84b471bcdf3602d1d5108e9918f7fb4ad5ab40808f"
+    },
+    {
+      "path": "validation/checkpoint-0207/identity.json",
+      "identity": {
+        "head": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+        "ignored_status_hex": "",
+        "inventory_sha256": "f447a67f56882b61d0799b62c9c78bf3a3b15a8d534eaf6ca66a44a2f74deb7e",
+        "status_hex": "",
+        "timestamp": "2026-11-16T02:07:37.445202+00:00"
+      },
+      "sha256": "e3505c911f94d10289dbe9cddad0b11817b6964fdfe4a4ea1ed3800f9057bdbc"
+    }
+  ],
+  "frozen_prior_evidence": [
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r05-20261115",
+      "baseline_tree": "e563153e4dde7cdee6f5deb9a3ac14c8ba0123e5",
+      "candidate_tree": "e563153e4dde7cdee6f5deb9a3ac14c8ba0123e5",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r07-20261115",
+      "baseline_tree": "3c754f223fefb154f988cdfa30c86e70a03c432a",
+      "candidate_tree": "3c754f223fefb154f988cdfa30c86e70a03c432a",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r08-20261115",
+      "baseline_tree": "5dd061552ce99704449212ffb1d4c6211362bf21",
+      "candidate_tree": "5dd061552ce99704449212ffb1d4c6211362bf21",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r21-20261115",
+      "baseline_tree": "3dbfefb943ac1fc45d2f1204c84c57ce55602020",
+      "candidate_tree": "3dbfefb943ac1fc45d2f1204c84c57ce55602020",
+      "unchanged": true
+    }
+  ],
+  "independent_review_unchanged": true,
+  "merged_source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+  "integration_identity_unchanged": true,
+  "integration_tracked_entries": 13828,
+  "reviewed_r19_path_hashes": {
+    "skills/shiploop/scripts/shiploop_loops.py": "26d60ef453416988a94ccb9cfce72b8813f8785ac128405934a9f806d227cfa7",
+    "test/shiploop-loops.test.py": "61f5209bf4a8770c93d5f1029189b5740b00a780fa7f55151ea44e52e1c2be1d",
+    "test/shiploop-e2e-fidelity.test.py": "3ec8396ccc739b9caeebea7451a0ce5daaf1edd8f3444b1c07366a0857662801",
+    "skills/shiploop/scripts/shiploop_navigator.py": "0dc2f9cc462a707bd81847d80073afc0c7e8510f102a752999f49df4790d5a0a",
+    "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+    "test/shiploop-actual-improve-cli.test.py": "9ba15b039bb99046d062d058e9c722a77e9c495a2f1cc9a2fea7f18472db21e9",
+    "test/shiploop-rehydration.test.py": "1a3f499bc414da36176693c149adf6b542bfee3f6389f50145676c4e2c5f1796",
+    "test/shiploop-head-order.test.py": "a118d3c5b1830e2d2fd4eba7ec2711d5d4c2c070a7ea375e515152244d7e9243",
+    "test/shiploop-packet-bounds.test.py": "4b6c486170e4dc0be0058179affd636bcde4f0ca985a13c6adf1db8d6f50f5fd",
+    "test/improve-runtime.test.py": "b0f53520710e63840dded17ef2af3d1d976291441e1d148d6a7371d1b7fc6154",
+    "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py": "fad65999c57893b43f2e308cc967746f90fcf3c14261d6d649ba0c002185ceb4",
+    "skills/improve/runtime/until-loop/scripts/until_loop_recover.py": "bae7c5fd50e550f107d1e84645e2e49c48eb68e4dc05521ea076e0cec3f09af1",
+    "skills/improve/runtime/until-loop/scripts/until_loop_session.py": "c79c030b79bf34373a265969eadf6a5dbf3dc286a5e5ec4b17746b1a0c91c430"
+  },
+  "integration_review_unchanged": true
+}

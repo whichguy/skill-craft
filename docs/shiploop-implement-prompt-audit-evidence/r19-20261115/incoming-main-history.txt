@@ -1,0 +1,240 @@
+commit 477542e047f8dcbadcfc4b5767d956c85017631c
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 17:51:23 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 17:51:23 2026 -0800
+
+    docs(closed-loop): plan Phase 2, the ShipLoop adapter, as a facade outside the scoring files, after two Sol max reviews that each said "not ready" (sixteen findings, each checked against the code and folded in)
+    
+    Learning. Reading the E2E harness as it is today changed the first plan (docs/closed-loop-plan-2026-11-15.md, first committed as
+    b0285785374570c88f534480cf361778030018ac) in one important way and exposed how easily a plan's claims go wrong. The important change: a
+    loop can continue across invocations WITHOUT a harness edit. `iterate.new_worktree` starts every loop from the HEAD of the checkout that
+    runs it, but the improver cannot touch the files that fix the scoring identity (boundary.CANDIDATE_PREFIXES and HARNESS_PREFIXES) and the
+    files a loop commits (ledger, LEARNINGS, evidence) are outside it (boundary.qualification_snapshot, the learning_records header), so a
+    dedicated evaluator checkout positioned at the loop tip continues the loop under the same identity. That removes the first plan's decision 6 (one
+    batched harness change with a new scoring identity and a re-baseline) from the critical path; it returns only on a named, measurable trigger
+    (plan 3.8). Plain Git confirmed the mechanics in a scratch repository, and Sol reproduced them with the real worktree functions and stubbed models.
+    The exposure: draft 1, which I wrote from reading the harness, was "not ready for real compute" by Sol's first max review, and version 2, which
+    fixed that review's nine findings, was "not ready" again by the second. The findings were not subtle taste: three of draft 1's six readiness claims
+    did not exist in the skill's own vocabulary (closed_loop.py CLAIM_LADDERS); two derived facts could never let the certificate converge (every
+    quiet exploration reported baseline none, which check_c3 rejects; acceptance null contradicts check_c6 for every PROMOTE); a smoke that "could
+    converge" was impossible because records that name no case count against every scope (check_c1); and version 2's two-iteration smoke was
+    unreachable because the orchestrator stops a campaign `blocked` after one iteration when only owner-gated records remain (analyze, plan_next).
+    Every one of these is the kind of defect a walk of the planned scenario through the certificate's checks finds and a read of the prose does not.
+    
+    What this commit adds (documentation only; no skill, test, harness or package file changes)
+    - docs/closed-loop-phase2-plan-2026-11-15.md, version 3 (416 lines): the recommendation, 17 verified facts with their commands, goal and done
+      criteria, the facade's design (continuation, one step, the facts it derives, record mapping, readiness, scopes), work packages and gates, a
+      repriced cost model, nine decisions for the owner, risks, what is not yet verified, and two appendices (the 14 unresolved material ShipLoop
+      records as the owner's decision list; what each review changed).
+    - docs/experiments/closed-loop-phase2-review-20261115/: both briefs, both answers, both run records, and the reviewer's SIGKILL witness.
+    - docs/closed-loop-journal.md: entry R6 and findings F15 to F18.
+    
+    The route, in one paragraph. A thin facade under test/shiploop_e2e/adapter/ (a subdirectory, so outside the scoring digest) drives
+    `iterate.py --qualify --iterations 1` from an evaluator checkout that is its own clone (a worktree would share refs, and the improver's context
+    reads every refs/shiploop-loop/*), derives the orchestrator's per-iteration facts from the harness's artifacts, captures baseline rows from both
+    places they land, archives everything a killed step produced before cleaning, cleans model processes through the engine's own lifecycle cleanup
+    (the harness starts host processes in their own sessions), and publishes each new tip in two phases. No real compute until a list of model-free
+    tests passes (gate G1), including a Sol review of the facade's contract with code in front of it.
+    
+    The reviews. Codex gpt-6.1-sol, effort max, read-only, one attempt, no fallback; the second on version 2 at origin/main
+    579af232f25dcc93fcf0ad9a21d5f1915701c73a. Round 1: 792 s, nine findings (seven marked verified bug, one verified bug or judgement, one
+    judgement). Round 2: 882 s, seven findings (five verified bug, one likely bug, one judgement). I checked each finding against the code before
+    accepting it; the ones that changed the design: claim vocabulary (CLAIM_LADDERS, readiness.md); the certificate checks (check_c1, check_c3, check_c6)
+    and navigation (analyze, plan_next, cmd_init); process ownership (hosts.run_agent start_new_session, lifecycle.cleanup and its CLI that exits
+    0 with unverified or protected groups); baseline destinations (run.py, epoch.py line 444) and the one comparability predicate (run.row_matches);
+    shared loop refs (review.py); the candidate path set (boundary.candidate_path); serial reviews (cycle.review_all). Two were softened rather than
+    accepted whole: Sol's kill witness uses a stubbed cycle, so the plan says the window exists, not that every real kill falls in it; and
+    the relabelling of a PROMOTE as UNDECIDED, which I had proposed, failed validate_facts, so it is dropped and an engine PROMOTE is always reported as one.
+    
+    Decisions made in this session (routine under AGENTS.md; the reasons)
+    - Keep the facade-only route. Two adversarial reviews attacked the continuation claim and neither broke it; a harness edit would cost a new scoring
+      identity and fresh baselines for the cases and profiles it touches (not all 237 rows, as draft 1 overstated) while other sessions commit to the
+      harness daily.
+    - The smoke campaign is one iteration at a quiet window of 1, because the orchestrator stops `blocked` once only owner-gated records remain; the two
+      records that name campaign 2's cases and the three that name no case are the owner's first decisions, and they cost no compute.
+    - No third plan review. The findings left after round 2 are implementation details that gate G1 reviews against code and tests; each further round of
+      a plan returns less than the first two did. The plan says plainly that version 3 has not been reviewed again.
+    - Nothing is built, run or released here; the plan is for the owner's decisions (its section 6) and for the session that builds it.
+    
+    Measurements and checks
+    - Facts verified by command, each in the plan's section 9: 24 ledger records, 14 unresolved material ShipLoop records (9 owner, 2 deferred, 2 admitted,
+      1 open), three of them with no case; scoring digest for csv-report and seat-reservations 7888015a... now against fccc62fe... in the October calibration
+      (Codex Terra high, 16 attempts, k = 3, tolerance 0.45 on tokens); 237 baseline rows; run medians (hello 10.6 and 11.6 and 12.2 minutes, csv-report 16.2 and
+      17.8, user-listing 10.8 and 16.4, battleship 26.1 on Sonnet); Terra high rows by case (hello 22, user-listing 13, csv-report 4, seat-reservations 0); the
+      quick tier is not run in the qualified path (iterate.py line 497 only); the continuation mechanics in a scratch Git repository.
+    - Main moved twice while this was written (579af232f25dcc93fcf0ad9a21d5f1915701c73a, then 19d01d5048113c8b44f328aa99b85f1facb32887 with skill-craft 2.42.1);
+      git diff --stat on test/shiploop_e2e, skills/closed-loop, test/suite_catalog.py and .gitignore showed nothing changed, so the facts hold.
+    - No test was run: no code changed.
+    
+    Contrary evidence and what is not known
+    - Two reviews each said "not ready", and the second found defects the first round's fixes did not cover; version 3 is unreviewed, so a defect in it is
+      plausible. The plan's gate G1 and its section 8 exist for that.
+    - The central claim is verified for committed history; it is not yet shown on the real engine (the plan's W5), and whether killed real steps lose
+      findings is shown only by a stubbed witness.
+    - A redo-versus-repair study (3cbf8f05fcdf4d66a3b4fa3b8afb844214b8ef20, E18) is cited as a hint about kill and resume; the owner has since closed that study
+      line (3070bde1273d92b3c369c2ccb120a848ed8f6c78), so nothing here depends on it.
+    - Calibration, sensitivity and the browser case are unproven; the plan says the certificate then allows no quality claim.
+    
+    Related commits that took part in the decision
+    - b0285785374570c88f534480cf361778030018ac: the first plan; 1562e8a99fe2b1cc930d48b57176f8549db0def8: the release of closed-loop 0.1.0 that this plan builds on;
+      17bf59f78bc8d6ff691725e9e7c829a2046651df: the last fix round of the skill, whose scenario-walk lesson this plan repeats (F16).
+    - e0d4ec65b1f27c56a4ee9703abca69d4a52cb36d and 27fa9c9278255dd544e5e844d135b374ba5aba7c: skill-craft 2.42.0 and the change that made new ShipLoop runs call no
+      Backchain child, which fixes the plan's minimum base.
+
+commit 19d01d5048113c8b44f328aa99b85f1facb32887
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 17:46:03 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 17:46:03 2026 -0800
+
+    docs(shiploop): correct the journal's R22 reading of E18 against E17, which set two host lists against each other by position (Codex's paired ratio is below E17's, not above it)
+    
+    Key learning
+    Drawing a by-host slope chart for an illustrated account of E18 (the owner asked for one) showed Codex's redo-over-repair ratio going down from E17's unpaired figure to E18's paired one, which the journal had said could not happen. The E18 entry (3cbf8f05fcdf4d66a3b4fa3b8afb844214b8ef20) read R22 as "the replay's paired ratios (4.4, 9.9, 2.6) are at least as large as E17's unpaired ones (2.2, 3.8, 3.1), so E17's Qr minus Qp gap is consistent with a per-attempt difference of this size". The two lists were in different host orders: E17's (F76, from 9dd67bdfaf07ed40d7b40b6a65f0fe636f303567) is Claude, Codex, Grok, with fix attempts of 40, 27 and 79 s and redo attempts of 86, 103 and 246 s; the replay's (R20) is Claude, Grok, Codex. Set by host: Claude 2.15 unpaired against 4.44 paired, Grok 3.11 against 9.87 (both larger in the replay), Codex 3.81 against 2.60 (smaller). So E17's gap is consistent with a per-attempt difference of the replay's size on Claude and Grok, and only partly on Codex, where E17's own per-attempt ratio was the larger. The positional comparison paired Grok's figure with Codex's and the reverse.
+    
+    Measurements and checks
+    E17 ratios from F76's whole-second medians: 86/40 = 2.15, 246/79 = 3.11, 103/27 = 3.81. Replay ratios from the unrounded ledger times (medians of four paired ratios, `replay_table.py`, evidence/e18-tables.txt): Claude 4.44, Grok 9.87, Codex 2.60. A search of the journal, the study README (A15), skill-layer-contract.md and replay_table.py found the "at least as large" claim once, in the journal's E18 "Decision rules" bullet. Nothing else uses it: R20, R20b, R20c, R21 and P85 to P94 are inside the replay; A15's P86 note computes E17's own-repair ratios (2.9, 2.0 and 7.8) in E17's own host order, which pairs correctly; the R22 printout in `replay_table.py` prints per host and is unaffected.
+    
+    Decision
+    Correct in place with a dated note, as the journal's rule asks (a claim is marked superseded with the date and the reason, not deleted). The corrected sentence names the hosts, gives E17's ratios as approximate (whole-second medians) and says what the numbers support per host. R23 stands: no product claim, nothing adopted, and the thread stays closed (3070bde1273d92b3c369c2ccb120a848ed8f6c78); this does not reopen it. No finding was added, since F87 and F88 do not rest on the comparison. This is a retained learning about comparing per-host lists (set them against each other by host name, never by position, and let a by-host chart check the prose) and not a generic ShipLoop improvement.
+    
+    Contrary evidence and limits
+    The corrected reading is weaker than the first: it no longer says E17's whole gap can be explained by a per-attempt difference. E17's ratios come from rounded medians (86/40 is 2.15, between 2.1 and 2.2), but the Codex difference (3.8 against 2.6) is far outside that rounding. E17's cells were unpaired launches with their own noise, so the Codex difference may be noise and not a property of the rule.
+    
+    What this leaves unknown
+    Why Codex's E17 per-attempt ratio was larger than the paired one: main moving under the redo in E17's live queue (which a frozen state cannot show) and the noise of unpaired launches are both untested. The thread is closed, so nothing is planned.
+    
+    Evidence
+    docs/shiploop-parallel-execution-journal.md (the E18 entry's "Decision rules" bullet, R22; F76 for E17's medians), docs/experiments/parallel-plan-execution-20261114/evidence/e18-tables.txt (R20 per host).
+    
+    Related commits
+    3cbf8f05fcdf4d66a3b4fa3b8afb844214b8ef20 (E18's result and the first wording), 4df66f687caf24b9919238c63ba579a2d871eaef (E18's registration: R22 "magnitudes only, no share of E17's gap attributed to main moving"), 3070bde1273d92b3c369c2ccb120a848ed8f6c78 (the closing note, R13), 9dd67bdfaf07ed40d7b40b6a65f0fe636f303567 (E17's result and F76).
+    
+    No-Change-Note: study documentation only; no shipped skill or agent changes.
+
+commit 084db6aa3336b41cf38dae33d62c93506bcb98d3
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 17:27:55 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 17:27:55 2026 -0800
+
+    release: skill-craft 2.42.1, shiploop 1.37.1
+    
+    Skill-Craft-Release: skill-craft@2.42.1, shiploop@1.37.1
+
+commit 73ee5e74f2c11de22f7f9e599af85978a56adb54
+Merge: 2fca58df 3070bde1
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 17:27:45 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 17:27:45 2026 -0800
+
+    Merge published main into the spec check wording fix without rewriting its tested source
+
+commit 2fca58dffe6220d8c5844ae0946f5400e688d79c
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 17:27:36 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 17:27:36 2026 -0800
+
+    fix(shiploop): a run with no Backchain child says what the printed backchain-check reads, so the spec stage no longer checks the spec or writes a graph only to run the check
+    
+    Key learning, from the live round of 23e2b481f80f8058e37c9ec8f64d278041fc15da (a default `csv-report` run on Codex Terra
+    xhigh, built from 27fa9c9278255dd544e5e844d135b374ba5aba7c). The check instruction of a no-child run read "Run the
+    printed `backchain-check` after each candidate revision", and the host took the spec as the candidate:
+    - At spec it ran the check on docs/shiploop/spec.md and was refused: "not JSON ... the candidate is the Backchain plan
+      graph as a JSON file, not a Markdown plan note and not a prose plan".
+    - It then wrote a one-step graph, run/scratch/spec-graph.json (goal "A tested sales report CLI is delivered locally"),
+      and checked that file 4 times.
+    - It re-ran that same file at plan, step-plan and product-acceptance to have a receipt at each. This is measured: the
+      four folders under RUN/backchain/ each hold candidate-33852e5d4870.json and check-33852e5d4870.json, one candidate
+      hash.
+    - Spec took 127 s and 21 tool calls in that run, of which the Improve child took 81.5 s. Release A's forced-child round
+      (run folder /Users/dadleet/e2e-runs/2026-11-15/backchain-child-csv-729a1e, metrics.json) took 72 s and 11 tool calls
+      at spec, of which Improve took 52.5 s. The two prompts differ and part of the gap is the spec review, so this is a
+      pointer to the cost and not a measurement of the wording.
+    So the wording did more than cause one refused call: it made hosts write a graph only to have something to check.
+    
+    Cause, found in my own earlier change. In `none` I rewrote the plan item and added a spec item without the sentence that
+    4c2a8a98453e4aa2e8b2397962f785221e19b20a (batch 1009 BC1) had given the opt-in plan item ("reads a candidate graph in
+    Backchain's plan schema ... not a prose plan"). That commit's lesson was the same one: hosts ran backchain-check on prose
+    plans, so a packet must say what the script reads. Its sentence sat in the opt-in plan item only, and I did not carry it
+    into the no-child items.
+    
+    What changes (text only; no state key, gate, result field, exit code or opt-in text):
+    - One sentence, _BACKCHAIN_CHECK_READS, is now what every no-child packet says where it tells the host to run the
+      check: "The printed `backchain-check` reads only a candidate graph in Backchain's plan schema, a JSON file (Backchain
+      SKILL.md, "Plan document shape"), never a spec, a Markdown note or a prose plan. Run it after each revision of a graph
+      you wrote, and write none only to run it; a failure is a finding. Cite its receipt in `evidence_refs`."
+    - It stands in the no-child spec item, the no-child plan item, and the check line that the delegated step-plan and
+      carry-forward print after the route paragraph.
+    - Inline step-plan and carry-forward print no instruction sentence in `none`, only the navigator's check line, so they
+      are unchanged. The navigator's line and BACKCHAIN_CHECK (131 bytes, pinned) are untouched.
+    - The `one` and `converge` packets are byte-identical: a live round proved them (release A, d40084dbee064847852b894c90cceef9ca754a97),
+      and the failure was seen only in `none`.
+    - Docs: references/backchain-route.md says it. Change note changes/shiploop/backchain-check-reads-a-graph.md (patch).
+      Journal Round 14 (R14-1 to R14-3).
+    
+    Judgment made here, which the owner can reverse: "write none only to run it" tells a host that has no graph to skip the
+    check, so in a default run the check is run only when the host wrote a graph for its own reasons. The owner's scope on
+    2026-11-15 ("No child calls") kept the check printed because it "costs one script call and never gates". That still
+    holds. What goes is the receipt ritual, which cost a refused call and a graph file, and then one more call per later
+    stage. If the owner wants a receipt at every stage, the answer is a different sentence, not this one.
+    
+    Verification, hermetic only; the live round was waived:
+    - Fail first: with the new tests and the unmodified prompts, 17 subtests fail across two suites: 13 in
+      shiploop-navigator-dry-run and 4 in shiploop-backchain-check. They are red in every no-child route that prints the
+      check instruction, including the dry-run CLI route at spec and plan.
+    - After the change: dry-run (38 tests) and backchain-check (10 tests) pass.
+    - The new pins:
+      - test_none_says_what_the_printed_check_reads_and_not_to_write_a_graph_only_to_run_it: the sentence prints once in each
+        of six routes and the old sentence is gone;
+      - the guard test_the_opt_in_modes_keep_their_own_check_text, which passes on the unchanged tree and pins that `one` and
+        `converge` keep the old sentence and gain none of the new.
+    - The quick tier, `--changed-from 579af232f25dcc93fcf0ad9a21d5f1915701c73a`, selected 33 suites.
+      - The first run had two failures, both in my own wording, and no failure in a prompt behaviour. The retired-terms scan
+        (`shiploop-retired-terms`) matched its pattern `child packet` in a prompts comment that said "no-child packet", so
+        I reworded it to "a run with no Backchain child". `test-groups` objected because the new test's comment named the
+        learnings data file, and a suite that names it must be listed for it, so the comment now says "the learnings
+        journal's entry".
+      - Both suites then passed alone, and the whole tier was rerun on the final edits: 33 of 33 pass in 151 s.
+    - Ruff (E9, F63, F7, F82, F401, F811, F841) on the three changed Python files: all checks passed.
+    
+    Unknowns:
+    - Whether hosts now skip the check or write the graph anyway. The prediction (R14-3) is a registered open item for the
+      next default live run: no refused check call at spec and no graph written only to run it.
+    - Whether a host that skips the check ever loses a structural catch it would have wanted. In the one run seen, the graph was
+      a single step with one initial fact, so the check had nothing to validate.
+    
+    The owner waived the live round for this change ("I don't need to run a live round for this", 2026-11-15), after being
+    told that it would need one before a patch release. This is that waiver, recorded in the trailer below.
+    
+    No-E2E-Round: owner waived the live round for this wording-only change on 2026-11-15; verified by hermetic packet pins, effect on host behaviour unmeasured
+
+commit 3070bde1273d92b3c369c2ccb120a848ed8f6c78
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Sun Nov 15 17:20:16 2026 -0800
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Sun Nov 15 17:20:16 2026 -0800
+
+    docs(shiploop): close the parallel-plan-execution thread at the owner's word (journal R13): E18 had no consumer, and the study's own numbers put the fan-out decision's ceiling at about 1% of step time
+    
+    Key learning
+    Shown E18's finished result (3cbf8f05fcdf4d66a3b4fa3b8afb844214b8ef20, with its registration 4df66f687caf24b9919238c63ba579a2d871eaef), the owner wrote: "this looks pretty terrible. There is no scenario in which this is actually providing value." The owner is largely right. E18's only consumer was a decision nobody has made, write fan-out inside a ShipLoop stage, and the study's own measurements had already put that decision's ceiling at about 1%: 27 of 750 recorded runs have two or more work items (3.6%) and the nine timed disjoint pairs could save at most 1.3% of recorded step time (E16, 292f1dade64464b38f7cb846eb62c80c99f35fd3); one context that overlaps its own waits beat fresh-worker fan-out in five of six cells (E14, ed2c1834ba562d35540a32311e31d975a9df574d); the ideal step-level saving over recorded plans is 11.6% of step time, concentrated in 21 plans (E0, 9061056c166ab56098bb0650a28a7d5035b28973). I proposed E18 myself as the next step, with those numbers in view, and did not say so; the owner's "yes, run it" did not waive that check. E18 cost about three hours, at least $12.75 of metered model spend (Codex reports none) and two commits of about 120,000 lines, mostly evidence. Asked what to do with the E18 work, the owner chose to close the thread rather than revert the commits.
+    
+    Decision (the owner's): close the thread. This commit adds journal entry R13, a "closed" status line at the head of the journal, and one line each in the study's README and the skill-layer contract; the E18 and earlier evidence and entries stay as they are. Nothing is a skill, agent or default change. The thread's one shipped change stays as it was (option C in Ask Agent, ask-agent 0.11.0, journal R7). Two lessons are kept because they do not need the 24 trials' apparatus: F88 (a redo from main can bend a new feature to an existing test that pins the old shape while the project's own tests stay green; not tested in ShipLoop's own retries) and F84 (a hung test run is the loopback port collision). No further measurements are planned; the thread reopens only if the owner decides to build write fan-out inside a stage, with R12's shape as the starting point. R10's and R12's open owner decisions close with it. This is a retained learning about proposing follow-up experiments (name the decision, read its ceiling off the study's own numbers) and not a generic ShipLoop improvement.
+    
+    Contrary evidence and limits
+    E17 did measure a 30% wall-clock win for a script-owned queue at feature scale (0.71 and 0.69 of one context on two hosts), so the idea is not worthless in a project with many multi-feature requests; recorded ShipLoop runs are not that workload (96% have one work item). E18's two findings may matter beyond fan-out and were measured only inside it.
+    
+    What this leaves unknown
+    Whether ShipLoop's own retries show F88's bending; nothing else is planned.
+    
+    Evidence
+    docs/shiploop-parallel-execution-journal.md (R13 and the status line), docs/experiments/parallel-plan-execution-20261114/README.md and skill-layer-contract.md (one line each).
+    
+    Related commits
+    3cbf8f05fcdf4d66a3b4fa3b8afb844214b8ef20 (E18's result and R12), 4df66f687caf24b9919238c63ba579a2d871eaef (E18's registration), 292f1dade64464b38f7cb846eb62c80c99f35fd3 (E16), ed2c1834ba562d35540a32311e31d975a9df574d (E14), 9061056c166ab56098bb0650a28a7d5035b28973 (E0).
+    
+    No-Change-Note: study documentation only; no shipped skill or agent changes.

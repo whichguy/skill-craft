@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-loops.test.py",
+    "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+    "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "exit": 1,
+  "seconds": 10.587919666999369,
+  "counts": {
+    "run": 6,
+    "failures": 1,
+    "errors": 0
+  },
+  "classification": "Fixture expectation failure: document complete starts Improve and increments revision rather than appending history. Corrected assertion to the existing documented transition; no production broadening."
+}

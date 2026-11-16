@@ -1,0 +1,108 @@
+{
+  "status": "IMPLEMENTED_SCOPED",
+  "recommendation": "R19",
+  "baseline_source": "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+  "accepted_source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+  "integrated_upstream": "477542e047f8dcbadcfc4b5767d956c85017631c",
+  "production_delta": "start_command appends --directory receipt.parent; existing RUN/loops is reused",
+  "production_paths": [
+    "skills/shiploop/scripts/shiploop_loops.py"
+  ],
+  "new_regression_methods": 4,
+  "extended_regression_methods": 2,
+  "consumer_pin_methods_unchanged": 2,
+  "before_red": {
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "runtime_formatter_unchanged": true
+  },
+  "first_focused_attempt": {
+    "tests": 6,
+    "failures": 1,
+    "errors": 0,
+    "classification": "fixture history expectation, preserved separately"
+  },
+  "focused_green": {
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  "consumer_probe": {
+    "tests": 2,
+    "failures": 1,
+    "errors": 0,
+    "skips": 0
+  },
+  "consumer_pin_green": {
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "full_bank": {
+    "modules": 8,
+    "test_executions": 524,
+    "deduplicated": false,
+    "skips": 0,
+    "retries": 0,
+    "receipts": [
+      "validation/command-01/receipt.json",
+      "validation/command-02/receipt.json",
+      "validation/command-03/receipt.json",
+      "validation/command-04/receipt.json",
+      "validation/command-05/receipt.json",
+      "validation/command-06/receipt.json",
+      "validation/command-07/receipt.json",
+      "validation/command-08/receipt.json"
+    ]
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "scoped_whitespace": "PASS",
+    "independent_source_review": "APPROVE",
+    "merged_source_review": "APPROVE"
+  },
+  "source_unchanged": true,
+  "prior_evidence_unchanged": true,
+  "scope": [
+    "Executed ordinary-stage launch keeps private state in RUN/loops, including spaced paths and foreign cwd",
+    "Exact next_argv resumes in a fresh process",
+    "Real check/done/complete admits producer once and opens required Improve",
+    "Active/lost state and crossed tokens refuse without replacing success",
+    "Distinct live receipts/actions/runs preserve independent resume and owned terminal cleanup"
+  ],
+  "not_claimed": [
+    "Lost-state reconstruction or relocation survival",
+    "Same-receipt concurrent-start atomicity",
+    "Completion of the required Improve checkpoint by producer admission",
+    "Live-host or deployed-package acceptance, full repository/CI, model reliability or performance"
+  ],
+  "next": "R16",
+  "frozen_bank_source": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+  "integration": {
+    "source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+    "original_bank_status": "FAIL",
+    "unittest_status": "PASS",
+    "test_executions": 113,
+    "four_full_modules_and_selected_methods": [
+      10,
+      38,
+      36,
+      21,
+      6,
+      2
+    ],
+    "skips": 0,
+    "retries": 0,
+    "release_boundary": "PASS",
+    "hygiene": "PASS",
+    "tracked_entries": 13828,
+    "original_whitespace_failure": "Incoming docs/closed-loop-phase2-plan-2026-11-15.md:416 new blank line at EOF; not edited by R19",
+    "disposition": "Preserve original FAIL; source tests pass, and check only R19 authored source/plan/metadata paths for whitespace separately. Preserve raw transcript/log bytes and all earlier evidence.",
+    "handoff": "integration-validation/handoff.json",
+    "review": "APPROVE",
+    "reviewed_path_hashes_unchanged": 13
+  },
+  "limits_on_whitespace": "The original integration broad diff-check failed on an upstream plan. R19 does not repair or normalize unrelated documents or frozen raw evidence."
+}

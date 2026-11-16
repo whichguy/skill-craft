@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/Users/dadleet/.codex/skills/ask/scripts/ask.sh",
+    "astra",
+    "review-plan",
+    "--file",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/design-brief.md",
+    "--cwd",
+    "/Users/dadleet/src/skill-craft-r19-20261115",
+    "--effort",
+    "high",
+    "--no-tools",
+    "--json"
+  ],
+  "source_head": "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+  "started_utc": "2026-11-16T01:17:26.732423+00:00"
+}

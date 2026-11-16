@@ -1,0 +1,52 @@
+{
+  "frozen_source": "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+  "merged_source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+  "retained_excerpts": 220,
+  "changed_excerpts": 0,
+  "relocations": [
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "old_start": 2672,
+      "new_start": 2682
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "_prompt_parts",
+      "old_start": 2547,
+      "new_start": 2557
+    },
+    {
+      "path": "docs/experiments/parallel-plan-execution-20261114/README.md",
+      "symbol": "A14 / E17 registration",
+      "old_start": 508,
+      "new_start": 509
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "END_REVIEW_FOCUS_HEAD",
+      "old_start": 2635,
+      "new_start": 2645
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "IMPLEMENT_STEP_REVIEW_FOCUS_HEAD",
+      "old_start": 2653,
+      "new_start": 2663
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "release_guard construction",
+      "old_start": 2927,
+      "new_start": 2937
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "symbol": "END_REVIEW_FOCUS_HEAD",
+      "old_start": 2639,
+      "new_start": 2649
+    }
+  ],
+  "new_anchors": 2,
+  "frozen_source_map_sha256": "8386286e7d736ca0b14da179cbcfca9cf600853582f94fe0d16f6a5d9abd5568"
+}

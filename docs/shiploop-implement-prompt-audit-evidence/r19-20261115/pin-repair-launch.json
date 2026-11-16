@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "codex",
+    "exec",
+    "--profile",
+    "shiploop",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "--sandbox",
+    "danger-full-access",
+    "-c",
+    "approval_policy=\"never\"",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r19-20261115",
+    "--json",
+    "-o",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/pin-repair-final.md",
+    "-"
+  ],
+  "source": "f4055d2dff72bab8c27d4e500d876bbd2f22e190",
+  "input_sha256": "d29ac20cb908d4edf34e9cf4dd11198b8c2bca2e27ed3f4ae598bc7b4de6cc83",
+  "started_utc": "2026-11-16T01:50:17.180193+00:00"
+}

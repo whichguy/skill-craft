@@ -1,0 +1,17 @@
+**APPROVE**
+
+No material correctness issue or unwarranted scope found in `4ec9ac4..053195a`. I verified the checkout is clean at the requested HEAD. No correction is required.
+
+- **Placement is valid in normal and recovered emission.** [start_command:484](/Users/dadleet/src/skill-craft-r19-20261115/skills/shiploop/scripts/shiploop_loops.py:484) appends `--directory receipt.parent` while retaining quoting and the `start --receipt` prefix. Normal transitions write the contract beneath `RUN/loops`; missing-contract emission recreates it through a writer that creates its parent ([recovery:2104](/Users/dadleet/src/skill-craft-r19-20261115/skills/shiploop/scripts/shiploop_navigator.py:2104)). No additional directory lifecycle is necessary.
+
+- **Shared placement does not introduce fingerprint or cleanup interference.** ShipLoop’s snapshots exclude the run directory ([exclusions:481](/Users/dadleet/src/skill-craft-r19-20261115/skills/shiploop/scripts/shiploop_lint.py:481)); the vendored runtime also excludes `innerloop-*.json` from its workspace fingerprint. Allocation uses unique private files, and terminal deletion checks the specific file’s device/inode rather than sweeping the directory ([runtime cleanup:572](/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py:572)).
+
+- **The regressions exercise the intended boundary.** The spaced-path/foreign-cwd test executes the emitted shell command and checks the returned backing path, independently of the expected command string ([test:324](/Users/dadleet/src/skill-craft-r19-20261115/test/shiploop-loops.test.py:324)). Distinct-action/run tests exercise crossed tokens and survivor resumability. The parent test uses actual CLI `check`, returned `done_argv`, then CLI `complete` ([test:756](/Users/dadleet/src/skill-craft-r19-20261115/test/shiploop-loops.test.py:756)). Synthetic predecessors remain fixture setup.
+
+- **The fixture correction preserves meaningful acceptance.** Revision increment, bound action/stage and seed-result assertions correctly establish opening the required Improve checkpoint. They do not establish completed review or duplicate-callback idempotence. Replacing the history-count expectation matches the existing transition in [apply:4455](/Users/dadleet/src/skill-craft-r19-20261115/skills/shiploop/scripts/shiploop_navigator.py:4455).
+
+- **Active/lost state stays fail-closed.** Runtime start rejects an active receipt before allocating replacement state; missing backing state does not authorize restart. The parent rejects the active receipt independently of backing-file existence. [The new refusal test:796](/Users/dadleet/src/skill-craft-r19-20261115/test/shiploop-loops.test.py:796) exercises both cases. The [consumer-pin correction:1389](/Users/dadleet/src/skill-craft-r19-20261115/test/shiploop-e2e-fidelity.test.py:1389) retains all classification assertions.
+
+I inspected the retained evidence: the author reports the location red, six focused passes, and the separate two-test pin repair. Their recorded final source hashes match this candidate. **I ran no tests and make no eight-module pass claim.**
+
+Material limits remain unchanged: same-receipt concurrent-start race, misleading “second start resets” wording, and loss of resumability if the whole run is removed or relocated. This review establishes no live-host, model-reliability or performance result.

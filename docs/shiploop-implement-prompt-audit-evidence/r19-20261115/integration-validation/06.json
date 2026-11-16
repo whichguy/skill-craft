@@ -1,0 +1,25 @@
+{
+  "id": 6,
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-e2e-fidelity.test.py",
+    "LoopCommandsTest",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T02:18:05.718870+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/06.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/06.stderr.log",
+  "attempt": 1,
+  "selected_count": 2,
+  "pid": 38503,
+  "exit": 0,
+  "end": "2026-11-16T02:18:06.369260+00:00",
+  "completed_count": 2,
+  "skips_detected": false,
+  "status": "PASS"
+}

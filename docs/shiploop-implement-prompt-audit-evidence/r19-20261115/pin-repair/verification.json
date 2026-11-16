@@ -1,0 +1,25 @@
+{
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "head": "f4055d2dff72bab8c27d4e500d876bbd2f22e190",
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-e2e-fidelity.test.py",
+    "LoopCommandsTest",
+    "-v"
+  ],
+  "exit_code": 0,
+  "tests": 2,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "wall_seconds": 0.8115899580006953,
+  "changed_tracked_files": [
+    "test/shiploop-e2e-fidelity.test.py"
+  ],
+  "original_probe_unchanged": true,
+  "target_pre_sha256": "358794fdfbeade1cf2f1bbf400a5b742712a0d183e04efb78453c633151ff674",
+  "target_post_sha256": "3ec8396ccc739b9caeebea7451a0ce5daaf1edd8f3444b1c07366a0857662801",
+  "formatter_pre_sha256": "26d60ef453416988a94ccb9cfce72b8813f8785ac128405934a9f806d227cfa7",
+  "formatter_post_sha256": "26d60ef453416988a94ccb9cfce72b8813f8785ac128405934a9f806d227cfa7"
+}

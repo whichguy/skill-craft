@@ -1,0 +1,28 @@
+{
+  "id": 8,
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r19-20261115",
+    "diff",
+    "--check",
+    "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+    "HEAD"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T02:18:30.060236+00:00",
+  "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/08.stdout.log",
+  "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/08.stderr.log",
+  "attempt": 1,
+  "selected_count": null,
+  "pid": 42139,
+  "exit": 2,
+  "end": "2026-11-16T02:18:30.090005+00:00",
+  "completed_count": null,
+  "skips_detected": false,
+  "status": "FAIL",
+  "failure_excerpt": "docs/closed-loop-phase2-plan-2026-11-15.md:416: new blank line at EOF.\n"
+}

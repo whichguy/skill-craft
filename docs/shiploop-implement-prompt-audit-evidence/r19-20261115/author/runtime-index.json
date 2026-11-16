@@ -1,0 +1,617 @@
+[
+  {
+    "trace_line": 2,
+    "test": "__main__.InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-tffxw8kg/run with spaces/loops/A-document-terminal.json' --directory '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-tffxw8kg/run with spaces/loops' < '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-tffxw8kg/run with spaces/loops/A-document-contract.json'",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-tffxw8kg/run with spaces/loops/innerloop-y6jl0c93.json",
+    "error": null
+  },
+  {
+    "trace_line": 4,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/A-document-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/A-document-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-cgsxampx.json",
+    "error": null
+  },
+  {
+    "trace_line": 5,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/A-document-2-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/A-document-2-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-c5r4b89e.json",
+    "error": null
+  },
+  {
+    "trace_line": 6,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/A-document-terminal.json' --directory '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops' < '/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/A-document-contract.json'",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/innerloop-_uvjquor.json",
+    "error": null
+  },
+  {
+    "trace_line": 7,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-c5r4b89e.json",
+      "--action=UijDCTsjl-mUYhh3m_AvaKpj:1"
+    ],
+    "exit": 2,
+    "status": "error",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-c5r4b89e.json",
+    "error": "action token does not match the current run and action"
+  },
+  {
+    "trace_line": 8,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-cgsxampx.json",
+      "--action=UijDCTsjl-mUYhh3m_AvaKpj:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-cgsxampx.json",
+    "error": null
+  },
+  {
+    "trace_line": 9,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "next",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-c5r4b89e.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-c5r4b89e.json",
+    "error": null
+  },
+  {
+    "trace_line": 10,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "next",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/innerloop-_uvjquor.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/innerloop-_uvjquor.json",
+    "error": null
+  },
+  {
+    "trace_line": 11,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-c5r4b89e.json",
+      "--action=vOoNrqAiHaOxjp-6OPeUp8SJ:1"
+    ],
+    "exit": 0,
+    "status": "stopped",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/run/loops/innerloop-c5r4b89e.json",
+    "error": null
+  },
+  {
+    "trace_line": 12,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "next",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/innerloop-_uvjquor.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/innerloop-_uvjquor.json",
+    "error": null
+  },
+  {
+    "trace_line": 13,
+    "test": "__main__.InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/innerloop-_uvjquor.json",
+      "--action=cBPzj3vNE7-MLUQz60eF83QX:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-2a007b5t/second run/loops/innerloop-_uvjquor.json",
+    "error": null
+  },
+  {
+    "trace_line": 15,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-step-plan-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-step-plan-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-o9lttf77.json",
+    "error": null
+  },
+  {
+    "trace_line": 16,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-o9lttf77.json",
+      "--action=NXvMhhMl9hkI8ieBoBTcZL3c:1"
+    ],
+    "exit": 0,
+    "status": "stopped",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-o9lttf77.json",
+    "error": null
+  },
+  {
+    "trace_line": 17,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-test-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-test-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-ds68d7hm.json",
+    "error": null
+  },
+  {
+    "trace_line": 18,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-ds68d7hm.json",
+      "--action=-uu6aCscue_6nC59Bjf3UzO_:1"
+    ],
+    "exit": 0,
+    "status": "stopped",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-ds68d7hm.json",
+    "error": null
+  },
+  {
+    "trace_line": 19,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-document-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-document-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-l9894omv.json",
+    "error": null
+  },
+  {
+    "trace_line": 20,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-l9894omv.json",
+      "--action=qUiYO4VFuHEI6XcuyIu0bBDf:1"
+    ],
+    "exit": 0,
+    "status": "stopped",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-l9894omv.json",
+    "error": null
+  },
+  {
+    "trace_line": 21,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-carry-forward-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/A-carry-forward-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-4mu3v31l.json",
+    "error": null
+  },
+  {
+    "trace_line": 22,
+    "test": "__main__.InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-4mu3v31l.json",
+      "--action=K8PXz5OYl8dbb6xJideNeexo:1"
+    ],
+    "exit": 0,
+    "status": "stopped",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-loops-wdt8h62u/run/loops/innerloop-4mu3v31l.json",
+    "error": null
+  },
+  {
+    "trace_line": 141,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/nav-6113b688978f44819f697239cfd09049-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-cq63nr02.json",
+    "error": null
+  },
+  {
+    "trace_line": 142,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-cq63nr02.json",
+      "--action=jr70BOp_-eixpR15o3TnD_br:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-cq63nr02.json",
+    "error": null
+  },
+  {
+    "trace_line": 157,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/nav-0acc879068f44fd1a3cab8c201830ea2-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-oktizs7p.json",
+    "error": null
+  },
+  {
+    "trace_line": 158,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-oktizs7p.json",
+      "--action=ixY1rSSYiPIJPMdWp7PMKM1g:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-oktizs7p.json",
+    "error": null
+  },
+  {
+    "trace_line": 192,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/nav-d2a7f14eb81c4e1bbdaf39d9b71b5825-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-1ycmyq57.json",
+    "error": null
+  },
+  {
+    "trace_line": 193,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-1ycmyq57.json",
+      "--action=y-tfGSrm81tHC_OX7ETDHPkt:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-1ycmyq57.json",
+    "error": null
+  },
+  {
+    "trace_line": 213,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/nav-34250eb3c867486e9841f64c94101dd8-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-on571czk.json",
+    "error": null
+  },
+  {
+    "trace_line": 214,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-on571czk.json",
+      "--action=I3o5Se9P7nQUFwJyU4AATfXJ:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-on571czk.json",
+    "error": null
+  },
+  {
+    "trace_line": 248,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/nav-fff854bf51d14826b8518a2917521b25-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/nav-fff854bf51d14826b8518a2917521b25-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/innerloop-2zv3tm8i.json",
+    "error": null
+  },
+  {
+    "trace_line": 249,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "next",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/innerloop-2zv3tm8i.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/innerloop-2zv3tm8i.json",
+    "error": null
+  },
+  {
+    "trace_line": 251,
+    "test": "__main__.NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/innerloop-2zv3tm8i.json",
+      "--action=Sd-gDjVI7LANzEoJDTn357TZ:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-snjpa8dg/repo/runs/r1/loops/innerloop-2zv3tm8i.json",
+    "error": null
+  },
+  {
+    "trace_line": 371,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-82beca833344466692794a1aacc0a9c4-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-utxbl1ux.json",
+    "error": null
+  },
+  {
+    "trace_line": 372,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-utxbl1ux.json",
+      "--action=Bb2qVTeznyf1c6rCJgKKJsAB:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-utxbl1ux.json",
+    "error": null
+  },
+  {
+    "trace_line": 387,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-c03d4f5c267d452daaa24b68ab5a4f4a-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-gf1ywz6y.json",
+    "error": null
+  },
+  {
+    "trace_line": 388,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-gf1ywz6y.json",
+      "--action=SRA6eab5iXmNo4G3ZfXTI2Nw:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-gf1ywz6y.json",
+    "error": null
+  },
+  {
+    "trace_line": 422,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-2d7a2c83b90c485c89b28c295e873861-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-zodl_1oy.json",
+    "error": null
+  },
+  {
+    "trace_line": 423,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-zodl_1oy.json",
+      "--action=K-wELx9FZfqd0gKEmlsME9rd:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-zodl_1oy.json",
+    "error": null
+  },
+  {
+    "trace_line": 443,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "start",
+      "--receipt",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fab464d36d14448ca22706192d6966a6-terminal.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-r8rs3gua.json",
+    "error": null
+  },
+  {
+    "trace_line": 444,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-r8rs3gua.json",
+      "--action=OqegpPoGznqwx296F5b80Bgn:1"
+    ],
+    "exit": 0,
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-r8rs3gua.json",
+    "error": null
+  },
+  {
+    "trace_line": 478,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/innerloop-3msuzgfz.json",
+    "error": null
+  },
+  {
+    "trace_line": 479,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-contract.json",
+    "exit": 2,
+    "status": "error",
+    "state_file": null,
+    "error": "receipt already exists and is not a finished Until Loop receipt: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-terminal.json. Nothing was started and the file is unchanged. For this run's active receipt, read its next_argv to resume; for a separate child run, use a distinct receipt path."
+  },
+  {
+    "trace_line": 481,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "next",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/innerloop-3msuzgfz.json"
+    ],
+    "exit": 2,
+    "status": "error",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/innerloop-3msuzgfz.json",
+    "error": "state file is unavailable: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/innerloop-3msuzgfz.json"
+  },
+  {
+    "trace_line": 482,
+    "test": "__main__.NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-contract.json",
+    "exit": 2,
+    "status": "error",
+    "state_file": null,
+    "error": "receipt already exists and is not a finished Until Loop receipt: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-inner-3spvga3n/repo/runs/r1/loops/nav-fc831f0fa1bb4c34a1f9dd630bc5e834-terminal.json. Nothing was started and the file is unchanged. For this run's active receipt, read its next_argv to resume; for a separate child run, use a distinct receipt path."
+  },
+  {
+    "trace_line": 486,
+    "test": "__main__.MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+    "argv": "python3 /Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops/nav-b929767ad8234f1490b58ddd98dbaafb-terminal.json --directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops < /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops/nav-b929767ad8234f1490b58ddd98dbaafb-contract.json",
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops/innerloop-fdkd8951.json",
+    "error": null
+  },
+  {
+    "trace_line": 487,
+    "test": "__main__.MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "next",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops/innerloop-fdkd8951.json"
+    ],
+    "exit": 0,
+    "status": "active",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops/innerloop-fdkd8951.json",
+    "error": null
+  },
+  {
+    "trace_line": 488,
+    "test": "__main__.MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+    "argv": [
+      "/opt/homebrew/opt/python@3.15/bin/python3.15",
+      "/Users/dadleet/src/skill-craft-r19-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+      "done",
+      "--state",
+      "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops/innerloop-fdkd8951.json",
+      "--action=4eis9-jQ0tOMF38FkrflBUzG:1"
+    ],
+    "exit": 0,
+    "status": "stopped",
+    "state_file": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-missing-contract-srr7m7p0/run/loops/innerloop-fdkd8951.json",
+    "error": null
+  }
+]

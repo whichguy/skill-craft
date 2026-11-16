@@ -1,0 +1,315 @@
+{
+  "schema": "r19-integration-validation-v1",
+  "status": "FAIL",
+  "source_repo": "/Users/dadleet/src/skill-craft-r19-20261115",
+  "required_head": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+  "base": "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+  "deadline_utc": "2026-11-16T02:38:00Z",
+  "model_route": "parent supplied fixed test-runner gpt-6.1-sol medium; no override",
+  "start": "2026-11-16T02:17:09.989491+00:00",
+  "end": "2026-11-16T02:18:49.273347+00:00",
+  "required_commands": 8,
+  "completed_commands": 8,
+  "pending_commands": [],
+  "unittest_status": "PASS",
+  "unittest_executions": 113,
+  "observed_counts": [
+    10,
+    38,
+    36,
+    21,
+    6,
+    2
+  ],
+  "hygiene_status": "PASS",
+  "pre_identity": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/pre.json",
+  "post_identity": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/post.json",
+  "tracked_inventory_count": 13828,
+  "tracked_changes": [],
+  "expected_source_outputs": [],
+  "unexpected_source_artifacts": [],
+  "external_output_directory": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation",
+  "commands": [
+    {
+      "id": 1,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-backchain-check.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:17:09.989491+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/01.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/01.stderr.log",
+      "attempt": 1,
+      "selected_count": 10,
+      "pid": 31621,
+      "exit": 0,
+      "end": "2026-11-16T02:17:23.682332+00:00",
+      "completed_count": 10,
+      "skips_detected": false,
+      "status": "PASS",
+      "selection": "entire module",
+      "selected_count_basis": "observed completed full-module selection, no reported skips",
+      "log_sha256": {
+        "stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "2f6b560cf98a691f0d5976b15f9da9a36e1fb8dae4924445ea9bf99eeffff09d"
+      }
+    },
+    {
+      "id": 2,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-navigator-dry-run.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:17:09.989933+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/02.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/02.stderr.log",
+      "attempt": 1,
+      "selected_count": 38,
+      "pid": 31622,
+      "exit": 0,
+      "end": "2026-11-16T02:17:37.234203+00:00",
+      "completed_count": 38,
+      "skips_detected": false,
+      "status": "PASS",
+      "selection": "entire module",
+      "selected_count_basis": "observed completed full-module selection, no reported skips",
+      "log_sha256": {
+        "stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "cdd091441c5aae5930720e311cb204309cda9f462b38efc9e0c126723e29ccc5"
+      }
+    },
+    {
+      "id": 3,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-head-order.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:17:43.096843+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/03.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/03.stderr.log",
+      "attempt": 1,
+      "selected_count": 36,
+      "pid": 36115,
+      "exit": 0,
+      "end": "2026-11-16T02:17:58.632551+00:00",
+      "completed_count": 36,
+      "skips_detected": false,
+      "status": "PASS",
+      "selection": "entire module",
+      "selected_count_basis": "observed completed full-module selection, no reported skips",
+      "log_sha256": {
+        "stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "5a5296a87f44d858a9107e395b0a7bed9fc5f68ac6dd776ec1e0bbd161259c39"
+      }
+    },
+    {
+      "id": 4,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-packet-bounds.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:17:43.097260+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/04.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/04.stderr.log",
+      "attempt": 1,
+      "selected_count": 21,
+      "pid": 36116,
+      "exit": 0,
+      "end": "2026-11-16T02:17:45.516886+00:00",
+      "completed_count": 21,
+      "skips_detected": false,
+      "status": "PASS",
+      "selection": "entire module",
+      "selected_count_basis": "observed completed full-module selection, no reported skips",
+      "log_sha256": {
+        "stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "b2da1218c521a80652f6c300ed12e272b3854766b9f1ccb77f3c33cdf39450e6"
+      }
+    },
+    {
+      "id": 5,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-loops.test.py",
+        "InvokeLinesTests.test_emitted_start_owns_state_in_existing_loops_from_foreign_cwd",
+        "InvokeLinesTests.test_distinct_actions_and_runs_keep_independent_live_state",
+        "InvokeLinesTests.test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop",
+        "NavigatorLoopTests.test_emitted_launch_resumes_and_check_done_complete_accepts_once",
+        "NavigatorLoopTests.test_active_restart_and_lost_state_refuse_without_replacing_receipt",
+        "MissingContractTests.test_next_writes_the_contract_of_a_run_seeded_at_step_plan",
+        "-v"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:18:05.718502+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/05.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/05.stderr.log",
+      "attempt": 1,
+      "selected_count": 6,
+      "pid": 38502,
+      "exit": 0,
+      "end": "2026-11-16T02:18:21.549592+00:00",
+      "completed_count": 6,
+      "skips_detected": false,
+      "status": "PASS",
+      "selection": "explicit selectors",
+      "log_sha256": {
+        "stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "75286d1aef860f3d2f81a56528153ca0da38472581e192fbe36d736435f18583"
+      }
+    },
+    {
+      "id": 6,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-fidelity.test.py",
+        "LoopCommandsTest",
+        "-v"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:18:05.718870+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/06.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/06.stderr.log",
+      "attempt": 1,
+      "selected_count": 2,
+      "pid": 38503,
+      "exit": 0,
+      "end": "2026-11-16T02:18:06.369260+00:00",
+      "completed_count": 2,
+      "skips_detected": false,
+      "status": "PASS",
+      "selection": "explicit selectors",
+      "log_sha256": {
+        "stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "aefcfa9ed48261fcb8210246952dfe150d8fe99b807b21c469c00734ff36829b"
+      }
+    },
+    {
+      "id": 7,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+        "--head",
+        "541422e1e0b243579cb030cb09fc6422b28e7a4b"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:18:30.059788+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/07.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/07.stderr.log",
+      "attempt": 1,
+      "selected_count": null,
+      "pid": 42138,
+      "exit": 0,
+      "end": "2026-11-16T02:18:37.719858+00:00",
+      "completed_count": null,
+      "skips_detected": false,
+      "status": "PASS",
+      "log_sha256": {
+        "stdout": "65671a7fca99626a2b3240e068565e697e0853ff675a8f6b293296b74d86236c",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "id": 8,
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r19-20261115",
+        "diff",
+        "--check",
+        "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
+        "HEAD"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r19-20261115",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T02:18:30.060236+00:00",
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/08.stdout.log",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/integration-validation/08.stderr.log",
+      "attempt": 1,
+      "selected_count": null,
+      "pid": 42139,
+      "exit": 2,
+      "end": "2026-11-16T02:18:30.090005+00:00",
+      "completed_count": null,
+      "skips_detected": false,
+      "status": "FAIL",
+      "failure_excerpt": "docs/closed-loop-phase2-plan-2026-11-15.md:416: new blank line at EOF.\n",
+      "log_sha256": {
+        "stdout": "1377c6174bd7c2785ea02ba6c7e42dec5be3d52cb7580cc85202cd0f7337b85a",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "retries": 0,
+  "max_concurrent_commands": 2,
+  "prior_evidence": "Parent-reported 053195a 524-execution bank and static approval remain separate; not executed or relabeled at this SHA.",
+  "scope_limits": [
+    "No live-org, host, performance, or model effectiveness claims.",
+    "No source edits, repair, commit, release, or network/service actions performed."
+  ],
+  "output_files": [
+    "01.json",
+    "01.stderr.log",
+    "01.stdout.log",
+    "02.json",
+    "02.stderr.log",
+    "02.stdout.log",
+    "03.json",
+    "03.stderr.log",
+    "03.stdout.log",
+    "04.json",
+    "04.stderr.log",
+    "04.stdout.log",
+    "05.json",
+    "05.stderr.log",
+    "05.stdout.log",
+    "06.json",
+    "06.stderr.log",
+    "06.stdout.log",
+    "07.json",
+    "07.stderr.log",
+    "07.stdout.log",
+    "08.json",
+    "08.stderr.log",
+    "08.stdout.log",
+    "collector.py",
+    "post.json",
+    "pre.json",
+    "handoff.json"
+  ]
+}
