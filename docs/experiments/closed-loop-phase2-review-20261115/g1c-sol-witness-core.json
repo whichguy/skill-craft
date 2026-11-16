@@ -1,0 +1,46 @@
+{
+  "post_ref_write_failure": {
+    "worker_exit": 0,
+    "tip_moved": true,
+    "record_state": "failed",
+    "poll_status": "failed",
+    "error": "unexpected error: st/mock.py\", line 1180, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/lib/python3.15/unittest/mock.p"
+  },
+  "spawn_after_cancel": {
+    "cancel_reply": "cancelled",
+    "poll_reply": [
+      {
+        "status": "running"
+      }
+    ],
+    "spawn_calls": [
+      "spawn",
+      0
+    ],
+    "record_state": "cancelled",
+    "errors": []
+  },
+  "two_stale_polls": {
+    "spawns": [
+      2
+    ],
+    "count_recorded": 2,
+    "replies": [
+      {
+        "status": "running"
+      },
+      {
+        "status": "running"
+      }
+    ],
+    "errors": []
+  },
+  "barrier_test_mutant_can_pass": {
+    "responses": {
+      "a": "running",
+      "b": "step a has not finished: poll it, or run cleanup for it, before another begins (one step at a time)"
+    },
+    "errors": [],
+    "test_assertions_pass": true
+  }
+}

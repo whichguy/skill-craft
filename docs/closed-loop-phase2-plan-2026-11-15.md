@@ -20,6 +20,11 @@ own functions run in a bridge process (3.1 said re-stated); `grading.sensitive` 
 in a clone under the state folder. Read this plan for the reasons and the journal for what was built. Gate G1's review (round 3 in
 `docs/experiments/closed-loop-phase2-review-20261115/`) said "not ready" about the first build: eleven findings, all fixed with tests (journal round R8).
 Round 4 verified those fixes and said "not ready" again: seven more defects, all fixed with mutation-checked tests (journal round R9).
+Round 5 verified those and said "not ready" a third time (six defects, one a regression of round 4). **A replan is proposed in the journal (round R10,
+"Replan after round 5") and waits on the owner**: remove the four kinds of code the defects keep coming from instead of patching each one, check the
+engine's git identity before any step (a real step on this machine would have failed after its subject run), then one verification of that diff.
+Separately, the real-engine suite has failed on Linux CI from its first push: the harness passes its 175 KB reviewer prompt as one argument, over
+Linux's 128 KiB limit (journal R10; the replan's step 2).
 
 ## 0. The recommendation in one screen
 

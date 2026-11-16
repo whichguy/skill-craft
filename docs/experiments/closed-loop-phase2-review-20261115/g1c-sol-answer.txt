@@ -1,0 +1,56 @@
+**Verdict: not ready for the first real compute sequence.** One clear regression remains, alongside several residual verification gaps.
+
+Reviewed `4e36b3ad486b30fce972e697096fcfa158c29e3d`. The query suite passed **29 tests in 23.6 seconds**. Neither prohibited suite ran. All witness writes stayed under `/tmp`; the checkout remains clean.
+
+The seven previous defects, numbered as the prior review’s requested changes, assess as follows. Symbols in this table refer to [facade.py](/private/tmp/g1c-sol.cg4JNw/checkout/test/shiploop_e2e/adapter/facade.py).
+
+| Previous defect | Assessment | Code and remaining gap |
+|---|---|---|
+| 1. Free lock mistaken for terminated processes; discarded kill results | **PARTLY** | `end_leftovers` fixes the immediate-lock case, and `cmd_cleanup` checks the current kill regardless of state. Repeated cleanup now discards stored negative evidence; published iteration facts can also contradict the kill. |
+| 2. Unsynchronized publication and record rewrites | **FIXED** | `advance` obtains `Exclusive(wait=False)`, reloads, and calls `finish_publication` under ownership. Publication’s separate failure protocol remains defective below. |
+| 3. Tip read before unsettled-step reconciliation | **FIXED** | `step_start_admitted` checks `unsettled_keys` before `published_tip`, while admission excludes competing starts/decisions. Cleanup normally publishes a prepared step and releases admission. |
+| 4. Concurrent polls consume renewed boot grace | **FIXED** | `advance` rechecks the reloaded `spawned_epoch` under ownership. `MAX_SPAWNS` is evaluated there too. |
+| 5. Authoritative epoch receipts and decisions | **PARTLY** | `epoch_reviewed` verifies the latest reviewed receipt’s digest; `epoch_evidence` selects the last decision. It still omits the harness’s sealed-run validation. |
+| 6. Descendant signaling before ownership refusal; timezone-dependent age | **PARTLY** | `group_verdict` precedes descendant collection; `identity_of.at` fixes timezone/DST dependence. Ownership is not revalidated before force-kill escalation, and recent leaderless ownership remains heuristic. |
+| 7. Invalid calibration recommendations | **FIXED** | `probe_calibrated` requires positive integer attempts; the bridge recomputes tolerance through `spread.recommend`. A separate coverage-binding gap remains. |
+
+For **`advance`’s concurrency paths**, I found no duplicate engine execution or publication. If the worker dies after a positive liveness probe, one poll can return `running`; subsequent polling reconciles it. If ownership changes before acquisition, the nonwaiting lock refuses action; if state changes before acquisition, the reload selects the current branch. Two stale polls produced one respawn in my witness. A spawn delayed until after cancellation still launched a process, but `worker_main` found `cancelled` under its lock and ran no engine. Signaling through `Exclusive(stop_live=True)` remains outside ownership while it stops the lock holder.
+
+The concrete changes, in priority order:
+
+1. **Verified bug — preserve unresolved kill evidence across cleanup retries. New regression.**  
+   `cmd_cleanup` changed from checking `rec["kill"]` to checking only the current `killed`. `end_leftovers` returns nothing for terminal records. My unchanged synthetic stale group produced: first cleanup **false**, state `cancelled`; second cleanup **true**, with **zero process snapshots**, while stored `kill.group` remained `unverified`. Revalidate/retry terminal leftovers safely, and retain unresolved negative evidence until resolved. See `end_leftovers`, `cmd_cleanup`, and `kill_problems` in the facade.
+
+2. **Verified bug — reconcile cleanup facts before publishing or replying.**  
+   A prepared cancellation recorded `kill.group="unverified"`, then published and returned `done` with `iteration.cleanup.verified=true`. Prepared cleanup returned **false**, but the subsequent poll returned that same **true** iteration fact. `reply_for` merely returns the stale iteration; it does not reconcile adverse evidence.
+
+   There is also a residual consumer mismatch: the facade returns `done`, while [closed_loop.py — `cmd_cancel`](/private/tmp/g1c-sol.cg4JNw/checkout/skills/closed-loop/scripts/closed_loop.py) requires `cancelled` and otherwise leaves the campaign step recorded as running. Publishing completed work is a defensible **judgement**, but its cancellation semantics must be agreed and implemented consistently.
+
+3. **Verified bug — publication can move the tip and then record failure. Residual.**  
+   With actual scratch Git, I injected one transient `ENOSPC` when saving `published`, after `publish` successfully updated the ref. `worker_main`’s generic exception handler called `settle`: polling reported **failed**, while the published tip was the result commit. Expected ref conflicts through `finish_publication` are handled; post-ref I/O failure is not. Preserve a recoverable publication state and reconcile against the authoritative ref before declaring failure.
+
+4. **Verified bugs — complete epoch validation and reject unreadable evidence. Residual.**  
+   [epoch.py — `state`, `sealed_run`](/private/tmp/g1c-sol.cg4JNw/checkout/test/shiploop_e2e/epoch.py) validate recorded run evidence separately from the reviewed receipt. In a genuinely registered epoch, appending a newline to sealed `result.json` changed the harness’s status to `invalid_evidence`; the facade still counted both reviews and reported `incomplete:0`.
+
+   Separately, `epoch_evidence` swallows malformed event JSON and returns zero expected/incomplete attempts. With completed exploration evidence, `invocation_evidence` then reported review/judge complete and `invalid:[]` despite a torn cycle ledger. This establishes false review completeness, not an end-to-end false QUIET certificate. Validate authoritative seals and make parse failures explicitly invalid/incomplete.
+
+5. **Verified bug — revalidate group identity before escalation. Residual.**  
+   My intercepted-signal witness replaced the owned group with a recycled leader after SIGTERM. `stop_group` observed membership and sent SIGKILL, although `group_verdict` on that snapshot returned `reused`. Recheck identity during waiting and before escalation.
+
+   Matching zombie leaders with live members are reasonably accepted: their unreaped PID prevents reuse. An entirely zombie group is correctly `gone`. The twelve-hour rule remains a **judgement**: a recent `at` does not prove uninterrupted group ownership.
+
+6. **Verified bug — bind calibration coverage to its digest. Residual.**  
+   A report calculated through real [spread.py — `calibrate`, `case_spread`, `recommend`](/private/tmp/g1c-sol.cg4JNw/checkout/test/shiploop_e2e/spread.py) passed. Renaming `cases.hello` to an unknown case, while retaining `scoring.cases=["hello"]`, also passed. [cycle.py — `_load_calibration`](/private/tmp/g1c-sol.cg4JNw/checkout/test/shiploop_e2e/cycle.py) validates the independently supplied scoring case set. Require matching coverage sets and catalog membership before claiming calibration.
+
+The changed tests are useful, but narrower than the claimed guarantees:
+
+- [SecondReviewTests](/private/tmp/g1c-sol.cg4JNw/checkout/test/shiploop-e2e-adapter-steps.test.py) meaningfully check orphan termination, the first negative cleanup verdict, locked publication, prepared reconciliation, stale-grace rechecking, check ordering, receipt rewriting, and the last decision. They omit repeated cleanup, adverse cleanup facts during publication, and post-ref write failures.
+- The simultaneous-start barrier precedes the shared-state read. It is **not fully deterministic**: my valid forced schedule passed its assertions with admission removed. Synchronize after capturing both empty snapshots.
+- Stale-group/no-time tests meaningfully detect the intended refusals, but do not establish ownership of recent groups.
+- Both calibration negatives can independently fail when their respective guard is removed. Numeric judge retry selection also matches the real convention.
+- The [real-engine parity assertion — `RealEngineTests`](/private/tmp/g1c-sol.cg4JNw/checkout/test/shiploop-e2e-adapter-engine.test.py) covers unchanged artifacts. Removing receipt validation would still pass it; add corrupted receipt/run controls.
+- The nine [mutation edits](/private/tmp/g1c-sol.cg4JNw/checkout/docs/experiments/closed-loop-phase2-review-20261115/g1b-mutations.py) are plausible guard removals. However, the group mutant retains the later signaling guard and fails on collection count. Any nonzero test exit counts as caught, including setup failure. **The mutation driver itself succeeds even if every mutant is missed.** The older cleanup-blocker test still never calls `cmd_cleanup`, so it cannot detect an always-verified cleanup implementation.
+
+Evidence: [lifecycle witnesses](/tmp/g1c-ownership-results.json), [publication/concurrency witnesses](/tmp/g1c-core-verification-1_bynx7_/results.json), [epoch/calibration witnesses](/tmp/g1c-evidence-review/run-ekyqnjcp/results.json), [suite log](/tmp/query-suite-2cilkezc/output.log).
+
+I would not start model-running readiness or smoke without truthful repeatable cleanup, coherent publication recovery, authoritative epoch validation, and safe signal escalation. Calibration can remain explicitly unmeasured. Automated kill/recovery campaigns additionally need durable ownership of reviewer, judge, and improver sessions.
