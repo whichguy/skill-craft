@@ -27,8 +27,45 @@ def tempdir():
 
 def git(root, *args):
     env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
-    return subprocess.check_output(["git", "-C", str(root), *args], env=env,
-                                   stderr=subprocess.PIPE, text=True).strip()
+    command = ["git", "-c", "maintenance.auto=false", "-C", str(root), *args]
+    try:
+        return subprocess.check_output(command, env=env,
+                                       stderr=subprocess.PIPE, text=True).strip()
+    except subprocess.CalledProcessError as error:
+        raise RuntimeError(
+            f"Git failed: argv={command!r}; root={str(root)!r}; returncode={error.returncode}\n"
+            f"stdout:\n{error.stdout}\nstderr:\n{error.stderr}") from error
+
+
+class GitDiagnostics(unittest.TestCase):
+    def test_nonzero_git_preserves_command_streams_and_cause(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "fixture root"
+            root.mkdir()
+            fake_git = Path(folder) / "git"
+            fake_git.write_text(
+                f"#!{Path(sys.executable).resolve()}\n"
+                "import sys\n"
+                "sys.stdout.write('synthetic stdout marker\\n')\n"
+                "sys.stderr.write('synthetic stderr marker\\n')\n"
+                "sys.exit(128)\n")
+            fake_git.chmod(0o700)
+            args = ("worktree", "add", "--detach", str(root / "work"))
+            with patch.dict(os.environ, {"PATH": folder}):
+                with self.assertRaises((RuntimeError, subprocess.CalledProcessError)) as raised:
+                    git(root, *args)
+            message = str(raised.exception)
+            self.assertIn("synthetic stdout marker\n", message)
+            self.assertIn("synthetic stderr marker\n", message)
+            self.assertIn(str(root), message)
+            self.assertIn("128", message)
+            cause = raised.exception.__cause__
+            self.assertIsInstance(cause, subprocess.CalledProcessError)
+            self.assertEqual(cause.returncode, 128)
+            self.assertEqual(cause.stdout, "synthetic stdout marker\n")
+            self.assertEqual(cause.stderr, "synthetic stderr marker\n")
+            self.assertEqual(cause.cmd[-len(args):], list(args))
+            self.assertIn(repr(cause.cmd), message)
 
 
 class NativeScope(unittest.TestCase):

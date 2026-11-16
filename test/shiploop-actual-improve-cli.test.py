@@ -99,6 +99,9 @@ class ImproveCliFixture(unittest.TestCase):
         self.base = Path(self.temp.name).resolve()
         self.repo = self.base / "repo"
         self.run = self.base / "run"
+        python_bin = self.base / "bin"
+        python_bin.mkdir()
+        (python_bin / "python3").symlink_to(sys.executable)
         self.environment = {
             # No host session markers and a keepalive home of its own: the Improve stage's complete asks the hooks'
             # record about the host session it runs in, and a suite run inside a Claude Code or Grok session must not
@@ -112,7 +115,7 @@ class ImproveCliFixture(unittest.TestCase):
             # run must not depend on it.
             "SHIPLOOP_PROGRESS": "off",
             "SHIPLOOP_KEEPALIVE_HOME": str(self.base / "keepalive"),
-            "PATH": "/Library/Developer/CommandLineTools/usr/bin:" + os.environ.get("PATH", ""),
+            "PATH": str(python_bin) + ":/Library/Developer/CommandLineTools/usr/bin:" + os.environ.get("PATH", ""),
             "PYTHONDONTWRITEBYTECODE": "1",
             "PYTHONNOUSERSITE": "1",
             "GIT_CONFIG_NOSYSTEM": "1",
