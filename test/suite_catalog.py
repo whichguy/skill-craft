@@ -160,6 +160,9 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-intent-continuity.test.py",
     "test/shiploop-e2e-learning-records.test.py",
     "test/shiploop-e2e-cycle.test.py",
+    "test/shiploop-e2e-adapter.test.py",
+    "test/shiploop-e2e-adapter-steps.test.py",
+    "test/shiploop-e2e-adapter-engine.test.py",
     "test/shiploop-e2e-runrecord.test.py",
     "test/shiploop-e2e-slice.test.py",
     "test/shiploop-e2e-fidelity.test.py",
@@ -491,6 +494,9 @@ _FULL_ONLY_IDS = frozenset({
     "plan-dispatcher-mutants", "shiploop-full-runtime", "shiploop-workspace",
     "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-directory",
     "shiploop-e2e-apparatus",
+    # The ShipLoop adapter's contract tests (plan 3.1): a test that fails other sessions' quick tier whenever they touch the harness is a cost
+    # they did not ask for, so these run in the full tier only; the facade reads harness code through a bridge, and a break shows there.
+    "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine",
 })
 # These previously eligible suites exceeded the old two-minute estimate in the
 # full CI receipt recorded in suite_durations.json. Keep their coverage, explicitly.

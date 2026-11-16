@@ -225,6 +225,37 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 - **Measurements.** Reviews: 792 s and 882 s (their run records). Plan: 416 lines. No code, test or skill file changed.
 - **Open (unknown).** The plan's section 8; your decisions on the five records of its appendix A and on section 6.
 
+### R7. Phase 2 build, first round: the facade's step machinery, the fact derivations, and a real-engine check (2026-11-15)
+
+- **Question.** Can the plan's step contract (plan 3.2 to 3.5) be built so that every fact the orchestrator needs is read from what the
+  harness writes, and shown against the real loop and not only against the facade's idea of it? Owner decision before this round:
+  "Approve, start W1" (the plan's picks, route facade-only, no harness edit; the five record decisions of appendix A stay the owner's).
+- **What was built** (`test/shiploop_e2e/adapter/facade.py`, 1,450 lines, stdlib only, Python 3.9 grammar): the step verbs `step start|poll|cancel`
+  and `cleanup`, a detached worker whose liveness is an OS file lock, write-ahead step records, hygiene of the evaluator clone with
+  baseline capture from both destinations, a process snapshot taken before a cancel signals anything, kill salvage, two-phase tip
+  publication with replay, and the derivations of plan 3.4 (cases, review and judge, discoveries by ledger diff, candidate, acceptance, tier
+  receipts, cleanup receipt, consumed).
+- **Tests.** 32 step tests on a stand-in engine (`test/fixtures/closed-loop-adapter/fake_iterate.py`: the loop's observable contract, with
+  knobs), and 2 tests that run the **real** `iterate.py --qualify` through the facade with one fake `codex` answering every role
+  (`fake_codex.py`; a research subagent built the recipe). The orchestrator's own `validate_facts` checks every iteration a test receives.
+- **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.**
+  1. *A failed or cancelled step publishes no tip.* The engine's INTERRUPTED path commits a deferred record before it re-raises (commit
+     ba51c3f4e74ea8731ac03959675d6e47b5d91c37), so publishing after a failure would move the loop on to other records and hide a repeated
+     failure; the orchestrator's own rule (three identical failures stop the campaign) is the owner's stop-and-report rule, so the redo
+     stays visible. The interrupted ledger is in the archive.
+  2. *A cycle ends the step* (not only a promotion, as plan 3.3 said), because the iteration object carries one candidate.
+  3. *Timing validity is not evidence validity.* Plan 3.4 sent "attribution or timing not true" to `invalid`; promotion needs timing only for
+     minutes, and the October calibration's sixteen timing-invalid attempts still served the token claim (commit
+     3423e21801165d86c21e1d9e59d5c55d130bff66). Only an attribution that is false is reported as invalid.
+  4. *`cleanup` also stops a live step's worker*, because a launch whose handle was lost can be ended only there (the orchestrator calls
+     `cleanup` for such a launch and has no recorded step to cancel).
+  5. *The runs-root variable is removed from the engine's environment, never set* (commit 8493c5b9fc3b4fa6bac67588521e90912ff71592).
+  6. *The strict outcome is the harness's own function, run in the bridge process* (not re-stated), so it cannot drift; a rename fails loudly.
+- **Open (unknown).** Orphaned model sessions after a worker that died unobserved (a reviewer, judge or improver session is in a session of its
+  own and is in no lifecycle ledger; a cancel snapshots them, a SIGKILL of the worker alone does not); the owner-decision path (an `owner`
+  accept must reach the tip's ledger: the `decide` verb of W3); D1 and D3 (the tolerance-and-attempts rule and the loop limits) are open
+  owner decisions that plan section 6 does not list.
+
 ## Findings
 
 | # | Finding | Status | Evidence |
@@ -247,3 +278,8 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F16 | Walk the planned scenario through the certificate's checks and the navigation before promising its outcome: draft 1's smoke could never converge (records that name no case block every scope) and version 2's two-iteration smoke could never run (the orchestrator stops `blocked` after one) | firm | `check_c1`, `analyze`, `plan_next`; the Phase 2 review folder |
 | F17 | A facade that kills a step's process group does not reach the model: the harness starts host processes in their own sessions. Use the engine's own cleanup per run folder, and reject `unverified` and `protected` results that its CLI reports with exit 0 | firm | `hosts.run_agent`, `lifecycle.cleanup`; the Phase 2 plan row 15 |
 | F18 | Archive everything a step produced before any cleanup: a killed step's ledger rows can be staged, so copy the whole worktree and bundle its branch, not a diff | firm that the window exists, not shown for real kills | `round1-sol-kill-witness.json`; the Phase 2 plan row 13 |
+| F19 | A derivation tested only against the facade's own idea of the harness's files can pass while the real loop differs: run the real `iterate.py --qualify` with one fake host program for every role (14 to 64 seconds) and read the real artifacts, the real strict-outcome function and the real baseline predicate | firm | `test/shiploop-e2e-adapter-engine.test.py` (2 tests); the facts it printed |
+| F20 | A wait on a kill window must wait for content, not for a file name: while `git worktree add` fills a worktree its index is empty and every file looks staged; and the last side effect a fake produces must be the one the test waits for | firm (one instance) | `ProcessTests.hung` in `test/shiploop-e2e-adapter-steps.test.py` |
+| F21 | A step's liveness is a file lock its worker holds: the OS frees it however the worker ends, so no pid reuse or stale file can fake a live worker, and a worker killed alone is found dead by the next poll | firm | `ProcessTests.test_a_worker_killed_alone_...` |
+| F22 | Timing-invalid evidence still serves a token claim: only an attribution that is false makes a run's evidence invalid for it | firm (code and one calibration) | commit 3423e21801165d86c21e1d9e59d5c55d130bff66; `promotion._strict_comparable` |
+| F23 | A cancel must snapshot what runs below the worker before it signals anything: the harness starts model sessions in sessions of their own, found through parent links only while their parents live; a group kill and the lifecycle ledger together still miss a reviewer, judge or improver session | firm for the cancel path, a stated gap after an unobserved death | `ProcessTests.test_cancel_also_ends_the_sessions_below_the_worker_...` |

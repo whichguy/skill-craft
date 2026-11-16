@@ -30,14 +30,17 @@ spec = importlib.util.spec_from_file_location("shiploop_facade", FACADE)
 facade = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(facade)
 
-# What a test copy of the harness leaves out at its top level: logs, prose and data the facade never reads, and the adapter itself.
-SKIP = ("LEARNINGS.md", "README.md", "baselines.jsonl", "learning-records.jsonl", "flow_viewer.html", "live_run_card.html",
-        "GROK_CHAT.md", "GROK_CHAT_FULL.md", "GYM_MEMBERSHIP.md", "adapter", "evidence")
+# What a test copy of the harness leaves out at its top level: the logs, documents and data the facade never reads (every top-level
+# .md, .jsonl and .html file except SPEC.md, which is inside the qualification snapshot), and the adapter itself. The suites do not read
+# these files' real content, so none is named here: a file name in a suite's source makes the catalog list the suite as its reader.
+KEEP = ("SPEC.md",)
+SKIP_FOLDERS = ("adapter", "evidence")
 
 
 def harness_ignore(directory, names):
     top = Path(directory) == HARNESS
-    return [name for name in names if name == "__pycache__" or (top and name in SKIP)]
+    return [name for name in names if name == "__pycache__"
+            or (top and (name in SKIP_FOLDERS or (name.endswith((".md", ".jsonl", ".html")) and name not in KEEP)))]
 CONFIG = ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false"]
 
 
@@ -113,7 +116,7 @@ def build_source(folder: Path, version="2.42.1"):
     (src / "catalog" / "skill-craft-plugin.json").write_text(json.dumps({"version": version}))
     (src / ".gitignore").write_text(".claude/worktrees/\n")
     build_ledger(src / "test" / "shiploop_e2e" / "learning-records.jsonl")
-    (src / "test" / "shiploop_e2e" / "baselines.jsonl").write_text("")
+    (src / facade.BASELINES_REL).write_text("")
     return src, commit_all(src, "base")
 
 
@@ -254,8 +257,9 @@ class IdentityTests(Fixture):
         self.use_fresh_x()
         before = run_facade("identity", x=self.x)["build"]
         self.assertTrue(before.startswith("b-"))
-        # A learning commit (ledger and LEARNINGS) and a harness edit are not the candidate.
-        (self.x / "test" / "shiploop_e2e" / "LEARNINGS.md").write_text("# a learning\n")
+        # A learning commit (the ledger and the loop's journal, whose path is the harness's own constant) and a harness edit are not the candidate.
+        import cycle
+        (self.x / cycle.JOURNAL).write_text("# a learning\n")
         (self.x / "test" / "shiploop_e2e" / "cycle.py").write_text((self.x / "test" / "shiploop_e2e" / "cycle.py").read_text() + "\n# harness\n")
         learned = commit_all(self.x, "learning and a harness edit")
         git(self.x, "update-ref", facade.TIP_REF, learned)
