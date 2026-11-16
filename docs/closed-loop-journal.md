@@ -199,6 +199,32 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
   Nothing has driven the card with a model operator on a real subject. An active file-system monitor daemon was not exercised. The
   vendored runtime's null-tree behaviour is unchanged (guarded on this side by the written-tree requirement).
 
+### R6. Phase 2 plan (the ShipLoop adapter) and two Sol reviews of it (2026-11-15)
+
+- **Question.** After the release, what is the cheapest safe route from `closed-loop` 0.1.0 to a real campaign on ShipLoop's E2E harness,
+  and what must be true before any real run is spent? The first plan (R0) had assumed one batched harness change (decision 6: a new
+  scoring identity and a re-baseline) and a two-operator drill. Plan: `docs/closed-loop-phase2-plan-2026-11-15.md`.
+- **What reading the harness showed** (cited in the plan's section 1): the harness already has a qualified loop and a durable epoch
+  controller; a loop can continue from a positioned checkout without an engine edit, because the improver cannot touch the scoring files and
+  the loop's commits are outside the identity; the October calibration no longer matches the scoring files; 14 material ShipLoop records are
+  unresolved and three of them name no case, which blocks every scope; and baseline rows, model processes and staged ledger rows each
+  escape a naive facade.
+- **Reviews.** Codex `gpt-6.1-sol` at max, read-only, one attempt, no fallback (`docs/experiments/closed-loop-phase2-review-20261115/`).
+  Round 1 (13 minutes, draft 1): "not ready for real compute", nine findings, each checked against the code and folded into version 2.
+  Round 2 (15 minutes, version 2): "not ready", seven findings (a smoke the orchestrator stops after one iteration; model processes that
+  survive a kill; staged ledger additions a plain diff misses; a relabelled PROMOTE that fails validation; incomplete baseline semantics;
+  publication replay and import roots; unbounded coverage claims), checked and folded into version 3. Version 3 has not been reviewed
+  again; its gate G1 puts a review of the facade's contract, with code and tests in front of the reviewer, before any compute.
+- **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.**
+  1. *Keep the facade-only route.* Two reviews attacked the continuation claim and neither broke it; a harness edit would cost a new
+     identity and fresh baselines while other sessions commit to the harness daily; each trigger that would justify one is measurable.
+  2. *No real compute before model-free tests (G1).* Both reviews found contract mismatches that only code and tests expose.
+  3. *The smoke is one iteration at a quiet window of 1,* because the orchestrator stops `blocked` once only owner-gated records remain.
+  4. *No third plan review.* The remaining findings are implementation details that G1 reviews against code; a third round of a plan
+     returns less than the first two did.
+- **Measurements.** Reviews: 792 s and 882 s (their run records). Plan: 416 lines. No code, test or skill file changed.
+- **Open (unknown).** The plan's section 8; your decisions on the five records of its appendix A and on section 6.
+
 ## Findings
 
 | # | Finding | Status | Evidence |
@@ -217,3 +243,7 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F12 | A step that ends must not erase what it spent, and what a running step already accounts for must not be charged again: charge at least the wall time since start at every terminal transition | firm | `QuotaTests`; `round4-sol-answer.txt` |
 | F13 | A re-derivation compared by list order breaks when the saved file sorts its keys: derive in one canonical order, and test the reload of the richest state (every optional claim proven) | firm | `ReadinessTests`; `round4-sol-answer.txt` |
 | F14 | A test whose assertion two guards both satisfy proves neither; assert the guard's own words. A mutation check finds this, a green suite does not | firm (one instance) | `mutations-round6-batch1.txt`, `-batch2.txt` |
+| F15 | A plan that names a skill's claims must use the skill's own vocabulary and ladders: three of the first draft's six claims did not exist (`improvement.callable`, `calibration`, `baseline`); check names against `CLAIM_LADDERS` | firm | `docs/closed-loop-phase2-plan-2026-11-15.md` appendix B; `references/readiness.md` |
+| F16 | Walk the planned scenario through the certificate's checks and the navigation before promising its outcome: draft 1's smoke could never converge (records that name no case block every scope) and version 2's two-iteration smoke could never run (the orchestrator stops `blocked` after one) | firm | `check_c1`, `analyze`, `plan_next`; the Phase 2 review folder |
+| F17 | A facade that kills a step's process group does not reach the model: the harness starts host processes in their own sessions. Use the engine's own cleanup per run folder, and reject `unverified` and `protected` results that its CLI reports with exit 0 | firm | `hosts.run_agent`, `lifecycle.cleanup`; the Phase 2 plan row 15 |
+| F18 | Archive everything a step produced before any cleanup: a killed step's ledger rows can be staged, so copy the whole worktree and bundle its branch, not a diff | firm that the window exists, not shown for real kills | `round1-sol-kill-witness.json`; the Phase 2 plan row 13 |
