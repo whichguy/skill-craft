@@ -102,30 +102,6 @@ GLOBAL_PLATFORM_TESTING_CLAUSE = (
 INNER_PLATFORM_TESTING_CLAUSE = (
     "Revalidate harness, suite and browser tools for the changed surfaces (Repeatable test-suite guide)"
 )
-BACKCHAIN_RESOURCE_PATHS = (
-    ("Backchain SKILL.md", Path("backchain/SKILL.md")),
-    (
-        "Backchain backchain-caller/v1 resource",
-        Path("backchain/references/caller-contract.md"),
-    ),
-    ("Backchain references/convergence.md", Path("backchain/references/convergence.md")),
-    (
-        "Backchain prompts/convergence-review.prompt.md",
-        Path("backchain/prompts/convergence-review.prompt.md"),
-    ),
-    ("Backchain scripts/backchain.py", Path("backchain/scripts/backchain.py")),
-    ("Until Loop ADAPTER.md", Path("improve/runtime/until-loop/ADAPTER.md")),
-    (
-        "Until Loop references/runtime-ephemeral.md",
-        Path("improve/runtime/until-loop/references/runtime-ephemeral.md"),
-    ),
-    (
-        "Until Loop scripts/until_loop_ephemeral.py",
-        Path("improve/runtime/until-loop/scripts/until_loop_ephemeral.py"),
-    ),
-)
-
-
 # The fixture prompts are one sentence, so the default summary cites S1: a done intake must (IN1).
 def result(*, outcome: str = "done", summary: str = "Synthetic producer result for S1.", **extra):
     return {"outcome": outcome, "summary": summary, **extra}
@@ -304,17 +280,6 @@ class NavigatorContractTests(unittest.TestCase):
             + "#navigator-planning"
         )
         self.assertEqual(symbols.guides_expanded(packet).count(locator), 1 if expected else 0, packet)
-
-    def _expected_backchain_resource_block(self, skills_root: Path) -> str:
-        lines = [
-            "Selected Backchain and Until Loop resources "
-            "(resolved by ShipLoop from its installed plugin):"
-        ]
-        lines.extend(
-            f"  {label}: {(skills_root / relative_path).resolve()}"
-            for label, relative_path in BACKCHAIN_RESOURCE_PATHS
-        )
-        return "\n".join(lines)
 
     def _assert_initial_baseline_locator(self, packet: str) -> None:
         """Assert packet routing for the shared initial-baseline policy."""
@@ -632,15 +597,11 @@ class NavigatorContractTests(unittest.TestCase):
                 ["python3", "shiploop", "backchain-check", "--run-dir", str(root), "--candidate"])
                 + " <your candidate file>")
             self.assertEqual(producer_packet.count(check), int(stage in backchain_stages))
-            # In a run that opts in, only `plan` selects the full loop resource set and the other four print the audit
-            # resource and the loop status; this default run (`none`, owner decision 2026-11-15) prints none of them.
-            child = prompts.offers_backchain_child(navigator.recorded_backchain_passes(state))
-            self.assertFalse(child)
-            self.assertEqual("Selected Backchain and Until Loop resources" in producer_packet, child and stage == "plan")
-            self.assertEqual("Backchain audit resource (" in producer_packet,
-                             child and stage in backchain_stages - {"plan"})
-            self.assertEqual("Loop resources for a repair or send-back request, under " in producer_packet,
-                             child and stage in backchain_stages - {"plan"})
+            # No stage offers a Backchain child (Backchain retired, owner decision 2026-11-16), so no packet prints the
+            # loop resource set, the audit resource, the loop status or a Backchain planning run directory.
+            for retired in ("Selected Backchain and Until Loop resources", "Backchain audit resource (",
+                            "Loop resources for a repair or send-back request, under ", "Backchain planning run directory"):
+                self.assertNotIn(retired, producer_packet)
             # The requirement and handoff rules are no longer in the packet (re-cut, 2026-10-11): its RULES paragraph
             # points at reference#rules, and the long text (evidence_refs carry the requirement sections and test
             # locators; the Reference handoff policy sentence) is in the run reference file.
@@ -976,257 +937,46 @@ class NavigatorContractTests(unittest.TestCase):
             prompts.IMPROVE_SCOPES["spec"],
         )
 
-    def test_native_backchain_operations_reuse_selected_until_loop_subcall(self) -> None:
-        """Backchain owns dependency work; Until Loop owns its runtime and terminal."""
-        # spec and plan fold the Backchain guidance into their duty (re-cut, 2026-10-11) and word each operation
-        # as "`plan` / `draft`"; the other stages print the guidance as "action `plan` / stage `draft`".
-        operations = {
-            "draft": ("action `plan` / stage `draft`", "`plan` / `draft`"),
-            "audit": ("action `review` / stage `audit`", "`review` / `audit`"),
-            "revise": ("action `repair` / stage `revise`", "`repair` / `revise`"),
-        }
-        expected = {
-            "spec": ["audit", "revise"],
-            "plan": ["draft"],
-            "step-plan": ["audit", "revise"],
-            "carry-forward": ["audit", "revise"],
-            # Product-acceptance edits nothing, so it prints the one-line optional audit, never a repair (stage-prompt
-            # review, 2026-10-31: 0 of 60 results used the route paragraph).
-            "product-acceptance": ["audit"],
-        }
+    def test_no_stage_offers_a_backchain_child(self) -> None:
+        """Backchain is retired (owner decision 2026-11-16): no producer packet, on either route, requests or describes a
+        Backchain child, and each Backchain stage that prints its item or route paragraph says once what the check reads."""
+        retired = ("source-aware-native", "request one Backchain", "`review` / `audit`", "`repair` / `revise`",
+                   "Backchain passes", "This run requests no Backchain child", "Backchain standalone Until Loop binding",
+                   "Selected Backchain and Until Loop resources", "Backchain SKILL.md")
+        reads = " ".join(prompts._BACKCHAIN_CHECK_READS.split())
         for stage in EXPECTED_STAGES:
-            with self.subTest(stage=stage):
-                producer = " ".join(prompts.prompt(stage, backchain_passes="one").split())
-                improve = " ".join(prompts.improve_prompt(stage).split())
-                self.assertEqual(
-                    [name for name, selectors in operations.items() if any(sel in producer for sel in selectors)],
-                    expected.get(stage, []),
-                )
-                # the default `none` offers no Backchain operation at any stage (owner decision 2026-11-15)
-                default = " ".join(prompts.prompt(stage).split())
-                self.assertEqual(
-                    [name for name, selectors in operations.items() if any(sel in default for sel in selectors)], [])
-                self.assertEqual(
-                    [name for name, selectors in operations.items() if any(sel in improve for sel in selectors)],
-                    [],
-                )
-        plan = " ".join(prompts.prompt("plan", backchain_passes="one").split())
-        audit = " ".join(prompts.prompt("step-plan", backchain_passes="one").split())
-        for required in (
-            "Backchain standalone Until Loop binding:",
-            'every resource in the printed "Selected Backchain and Until Loop resources" block is required',
-            "A `MISSING` entry is the blocker to report",
-            "never substitute a sibling, cache or other install",
-            "record the binding id, candidate and receipt paths",
-            "is not execution evidence",
-            # The capability check, old-loop incompatibility and no-fallback rule stay in the guide section the
-            # duty cites (checked on the guide below), not in the duty (fidelity map, plan.md).
-            "Run the dependency audit of the Backchain planning guide on every route",
-            "report done only with the child's exact `complete` receipt saved",
-            "leaves this stage incomplete",
-            "The child is plan-only",
-        ):
-            with self.subTest(required=required):
-                self.assertIn(required, plan)
-        # The review gate the packet prints follows the run's Backchain passes option (here the opt-in one); the
-        # text is pinned by content per mode, never as a whole.
-        self.assertIn("`required_trivial_reviews: 0`", plan)
-        self.assertNotIn("two consecutive distinct complete trivial/no-change dependency reviews", plan)
-        # converge is Backchain's default gate (owner decision D-D, 2026-11-01): the first trivial review completes the
-        # child; it printed `required_trivial_reviews: 2` without the marker line freeze reads, so it already ran that gate
-        converge = " ".join(prompts.prompt("plan", backchain_passes="converge").split())
-        self.assertIn("completes at its first trivial review", converge)
-        self.assertNotIn("required_trivial_reviews: 2", converge)
-        self.assertNotIn("two consecutive distinct complete trivial/no-change dependency reviews", converge)
-        self.assertNotIn("required_trivial_reviews: 0", converge)
-        # What the plan packet points to instead of restating (the capability check, an old custom loop, the
-        # no-fallback rule) is in the guide section it names; the audit stages say where a whole loop is allowed.
-        self.assertIn("read-only, one-pass diagnostic", audit)
-        self.assertIn("A whole `plan`/`draft` is requested only at `plan`", audit)
-        self.assertIn("A MISSING loop resource blocks repair/revise; no other install substitutes", audit)
-        self.assertIn("the final candidate's identity and its domain evidence", plan)
-        # An Improve review never mentions Backchain (owner, 2026-10-11).
-        self.assertNotRegex(prompts.improve_prompt("plan"), r"[Bb]ackchain")
-        self.assertNotIn("Backchain standalone Improve binding:", plan)
-        self.assertNotIn("selected physical Improve root", plan)
-        self.assertNotIn("run notes identify", plan)
-        self.assertNotIn("Until Loop `SKILL.md`", plan)
-        self.assertNotIn("convergence_policy.max_passes", plan)
-        self.assertNotIn("default maximum of six assessment passes", plan)
-        # The card's Backchain section moved to references/backchain-route.md (unit U22, the entry-card split).
-        for source in (self.backchain_planning_guide, SCRIPTS.parent / "references" / "backchain-route.md"):
-            with self.subTest(source=source):
-                source_text = " ".join(source.read_text(encoding="utf-8").split())
-                for requirement in (
-                    "`references/convergence.md`",
-                    "`prompts/convergence-review.prompt.md`",
-                    "sole CLI caller",
-                    "old custom Backchain loop",
-                ):
-                    self.assertIn(requirement, source_text)
-        guide_text = " ".join(
-            self.backchain_planning_guide.read_text(encoding="utf-8").split()
-        )
-        self.assertIn(
-            'packet\'s printed "Selected Backchain and Until Loop resources" block',
-            guide_text,
-        )
-        self.assertIn("## Source-aware native caller", self.backchain_planning_guide.read_text(encoding="utf-8"))
-        self.assertIn("`references/caller-contract.md`", guide_text)
-        self.assertIn("Until Loop `ADAPTER.md`", guide_text)
-        for field in ("terminal_receipt", "domain_evidence", "planning_gaps", "execution_blockers", "next_action"):
-            self.assertIn(f"`{field}`", guide_text)
-        self.assertNotIn("run notes identify", guide_text)
-        self.assertNotIn("Until Loop `SKILL.md`", guide_text)
+            for delegation in (prompts.INLINE, prompts.ASK_AGENT):
+                text = " ".join(prompts.prompt(stage, delegation=delegation).split())
+                with self.subTest(stage=stage, delegation=delegation):
+                    for phrase in retired:
+                        self.assertNotIn(phrase, text)
+                    no_paragraph = (stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
+                                    or stage in prompts.AUDIT_LINE_STAGES)
+                    self.assertEqual(text.count(reads), int(stage in prompts.BACKCHAIN_STAGES and not no_paragraph))
 
+    def test_a_saved_run_that_records_the_retired_backchain_option_is_refused(self) -> None:
+        """A new run records no `backchain_passes`; a saved one that does is refused with its own reason and the fresh-run
+        hint, for each value the retired option had (ShipLoop never migrates a saved run)."""
+        state = navigator.new_state(str(self.repo), "Build a small synthetic capability.", improve_skill="",
+                                    delegation="ask-agent")
+        self.assertNotIn("backchain_passes", state)
+        for value in ("none", "one", "converge"):
+            with self.subTest(value=value):
+                with self.assertRaises(navigator.NavigatorError) as refused:
+                    navigator.validate(dict(state, backchain_passes=value))
+                self.assertIn(navigator.BACKCHAIN_PASSES_REASON, str(refused.exception))
+                self.assertIn(navigator.FRESH_RUN_HINT, str(refused.exception))
 
-    def test_plan_packet_prints_resolved_backchain_and_until_loop_resources(self) -> None:
-        """The plan packet reports the actual paths selected from this plugin install."""
-        skills_root = ROOT / "skills"
-        for _, relative_path in BACKCHAIN_RESOURCE_PATHS:
-            self.assertTrue((skills_root / relative_path).is_file(), relative_path)
-        packet = navigator.render(None, self.repo / ".shiploop", self._at_plan(self._state_in("one")))
-        self.assertIn(self._expected_backchain_resource_block(skills_root), packet)
-
-    def test_plan_packet_names_missing_backchain_resource_as_route_blocker(self) -> None:
-        """A missing resolved file is named in the packet and blocks that route."""
-        fake_skills_root = Path(self.temp.name) / "fake-plugin" / "skills"
-        fake_source = (
-            fake_skills_root
-            / "shiploop"
-            / "scripts"
-            / "shiploop_prompts.py"
-        )
-        fake_source.parent.mkdir(parents=True)
-        fake_source.touch()
-        missing_index = 3
-        missing_label, missing_relative = BACKCHAIN_RESOURCE_PATHS[missing_index]
-        for index, (_, relative_path) in enumerate(BACKCHAIN_RESOURCE_PATHS):
-            if index == missing_index:
-                continue
-            path = fake_skills_root / relative_path
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.touch()
-
-        with patch.object(prompts, "__file__", str(fake_source)):
-            packet = navigator.render(None, self.repo / ".shiploop", self._at_plan(self._state_in("one")))
-
-        missing_line = (
-            f"  {missing_label}: MISSING: skills/{missing_relative.as_posix()}"
-        )
-        self.assertIn(missing_line, packet)
-        # The plan duty's Backchain item (packet re-cut, 2026-10-11) words the same blocker rule.
-        self.assertIn(
-            'A `MISSING` entry is the blocker to report; never substitute a sibling, cache or other install',
-            " ".join(packet.split()),
-        )
-
-
-    def _render_spec_with_files_missing(self, missing: tuple[int, ...], state: dict | None = None) -> tuple[str, Path]:
-        """Render the spec packet (or the packet of `state`) from a fake plugin install that lacks the listed BACKCHAIN_RESOURCE_PATHS."""
-        fake_skills_root = Path(self.temp.name) / "fake-plugin" / "skills"
-        fake_source = fake_skills_root / "shiploop" / "scripts" / "shiploop_prompts.py"
-        fake_source.parent.mkdir(parents=True)
-        fake_source.touch()
-        for index, (_, relative_path) in enumerate(BACKCHAIN_RESOURCE_PATHS):
-            if index not in missing:
-                path = fake_skills_root / relative_path
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.touch()
-        with patch.object(prompts, "__file__", str(fake_source)):
-            packet = navigator.render(None, self.repo / ".shiploop", self._at_spec() if state is None else state)
-        return packet, fake_skills_root.resolve()
-
-    def test_the_audit_stages_print_the_audit_resource_and_the_loop_status_not_the_list(self) -> None:
-        """A non-loop stage names the one resource its audit needs and reports the files a repair or send-back needs."""
-        packet = navigator.render(None, self.repo / ".shiploop", self._at_spec(self._state_in("one")))
-        contract = (ROOT / "skills" / BACKCHAIN_RESOURCE_PATHS[1][1]).resolve()
-        self.assertIn(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {contract}", packet)
-        self.assertIn(f"Loop resources for a repair or send-back request, under {(ROOT / 'skills').resolve()}: all present", packet)
-        self.assertNotIn("Selected Backchain and Until Loop resources", packet)
-        self.assertNotIn("MISSING: skills/", packet)
-        guide = " ".join(self.backchain_planning_guide.read_text(encoding="utf-8").split())
-        for root in ("`backchain/`", "`improve/runtime/until-loop/`", 'one "Loop resources" line'):
-            self.assertIn(root, guide)
-        for _, relative_path in BACKCHAIN_RESOURCE_PATHS:  # the guide's roots reach every listed resource
-            self.assertTrue(str(relative_path).startswith(("backchain/", "improve/runtime/until-loop/")), relative_path)
-
-    def test_the_loop_status_line_names_a_missing_loop_file(self) -> None:
-        """The script reports which loop resource is absent; the audit resource stays resolved."""
-        missing = (3, 6)
-        packet, root = self._render_spec_with_files_missing(missing, state=self._at_spec(self._state_in("one")))
-        labels = ", ".join(BACKCHAIN_RESOURCE_PATHS[index][0] for index in missing)
-        self.assertIn(f"Loop resources for a repair or send-back request, under {root}: MISSING: {labels}", packet)
-        self.assertNotIn("operation review/audit): MISSING", packet)
-
-    def test_the_audit_line_names_a_missing_audit_resource(self) -> None:
-        """The audit resource is also a loop resource, so the status line names it too."""
-        missing_label, missing_relative = BACKCHAIN_RESOURCE_PATHS[1]
-        packet, root = self._render_spec_with_files_missing((1,), state=self._at_spec(self._state_in("one")))
-        self.assertIn(f"operation review/audit): MISSING: skills/{missing_relative.as_posix()}", packet)
-        self.assertIn(f"under {root}: MISSING: {missing_label}", packet)
-
-    def _state_in(self, mode: str) -> dict:
-        return navigator.new_state(str(self.repo), "Build a small synthetic capability.", improve_skill="",
-                                   delegation="ask-agent", backchain_passes=mode)
-
-    def test_mode_none_prints_only_the_guide_and_the_check_at_plan_and_the_opt_in_modes_keep_the_block(self) -> None:
-        """`none`, the default (owner decision 2026-11-15), offers no Backchain child, so plan prints no resource line;
-        modes one and converge keep the whole-loop block."""
-        skills_root = ROOT / "skills"
-        root = self.repo / ".shiploop"
-        loop_only = [label for index, (label, _) in enumerate(BACKCHAIN_RESOURCE_PATHS) if index != 1]
-        for mode in navigator.BACKCHAIN_PASSES_MODES:
-            packet = navigator.render(None, root, self._at_plan(self._state_in(mode)))
-            flat = " ".join(packet.split())
-            whole = mode != "none"
-            with self.subTest(mode=mode):
-                self.assertEqual("Selected Backchain and Until Loop resources" in packet, whole)
-                self.assertNotIn("Backchain audit resource (", packet)  # plan prints the block or nothing
-                self.assertNotIn("Loop resources for a repair or send-back request, under ", packet)
-                for label in loop_only:  # the seven files only a whole loop reads
-                    self.assertEqual(f"  {label}: " in packet, whole, label)
-                self.assertEqual(self._expected_backchain_resource_block(skills_root) in packet, whole)
-                self.assertEqual("You may also request one Backchain `plan` / `draft` through `source-aware-native`"
-                                 in flat, whole)
-                self.assertEqual("Backchain planning run directory: " in packet, whole)
-                self.assertEqual("This run requests no Backchain child" in flat, not whole)
-                self._assert_backchain_planning_locator(packet, expected=True)
-                self.assertEqual(packet.count("Backchain graph check: "), 1)  # record-only, in every mode
-
-    def test_mode_none_reports_no_backchain_resource_even_when_loop_files_are_missing(self) -> None:
-        """With no child to start, a `none` run has no resource to report: no status line, audit line or block."""
-        packet, _ = self._render_spec_with_files_missing((1, 3, 6), state=self._at_plan(self._state_in("none")))
-        for line in ("Loop resources for a repair or send-back request", "operation review/audit)",
-                     "Selected Backchain and Until Loop resources", "MISSING: skills/"):
-            with self.subTest(line=line):
-                self.assertNotIn(line, packet)
+    def test_plan_packet_prints_only_the_guide_and_the_graph_check(self) -> None:
+        """The plan packet names the planning guide and the record-only check, and no Backchain resource of any kind."""
+        packet = navigator.render(None, self.repo / ".shiploop", self._at_plan(navigator.new_state(
+            str(self.repo), "Build a small synthetic capability.", improve_skill="", delegation="ask-agent")))
+        self._assert_backchain_planning_locator(packet, expected=True)
         self.assertEqual(packet.count("Backchain graph check: "), 1)
-
-    def test_source_aware_native_is_the_only_backchain_route(self) -> None:
-        """The frozen embedded Backchain adaptation is retired (no mode, default or pin)."""
-        texts = {
-            "guide": self.backchain_planning_guide.read_text(encoding="utf-8"),
-            # The card and the purpose file its Backchain section moved to (unit U22).
-            "card": (SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8")
-            + (SCRIPTS.parent / "references" / "backchain-route.md").read_text(encoding="utf-8"),
-        }
-        for stage in EXPECTED_STAGES:
-            texts["prompt " + stage] = prompts.prompt(stage, backchain_passes="one")
-            texts["prompt " + stage + " (none)"] = prompts.prompt(stage)
-            texts["improve " + stage] = prompts.improve_prompt(stage)
-        for label, text in texts.items():
-            flat = " ".join(text.split())
-            with self.subTest(source=label):
-                for retired in ("`embedded` mode", "embedded adaptation", "compatibility default",
-                                "8278e27", "select embedded", "retain `embedded`",
-                                "Existing runs retain their recorded mode"):
-                    self.assertNotIn(retired, flat)
-        for label in ("guide", "card", "prompt plan"):
-            with self.subTest(source=label):
-                # The plan duty (packet re-cut, 2026-10-11) says it as "the only call route".
-                self.assertIn("only call route" if label == "prompt plan" else "only Backchain",
-                              " ".join(texts[label].split()))
+        for retired in ("Selected Backchain and Until Loop resources", "Backchain audit resource (",
+                        "Loop resources for a repair or send-back request", "Backchain planning run directory",
+                        "MISSING: skills/"):
+            self.assertNotIn(retired, packet)
 
     def test_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
         """Producer and actual Improve prompts use the guide only for planning decisions."""
@@ -1248,12 +998,8 @@ class NavigatorContractTests(unittest.TestCase):
         }
         self.assertEqual(prompts.BACKCHAIN_STAGES, frozenset(planning_stages))
         for stage in EXPECTED_STAGES:
-            for mode in ("none", "one"):
-                with self.subTest(stage=stage, mode=mode):
-                    expected = stage in planning_stages
-                    self.assertEqual(
-                        "Backchain planning guide" in prompts.prompt(stage, backchain_passes=mode), expected
-                    )
+            with self.subTest(stage=stage):
+                self.assertEqual("Backchain planning guide" in prompts.prompt(stage), stage in planning_stages)
                 # An Improve review never mentions Backchain (owner, 2026-10-11).
                 self.assertNotIn("Backchain planning guide", prompts.improve_prompt(stage))
                 for legacy in legacy_carriers:
@@ -3049,169 +2795,10 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(store.read_record(state_path)), "discovery")
 
 
-class BackchainPassesOptionTest(unittest.TestCase):
-    """The run option `backchain_passes`: recorded, validated, refused when missing or changed, threaded to the packet.
-
-    The refusals go through the real CLI gate; the option has no mid-run verb, so a retry that names a
-    different value must be refused and a saved run without the key must be refused with the fresh-run hint.
-    """
-
-    SPEC = ROOT / "test" / "shiploop_e2e" / "SPEC.md"
-
-    def setUp(self) -> None:
-        self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-backchain-passes-")
-        self.addCleanup(self._temporary.cleanup)
-        self.base = Path(self._temporary.name).resolve()
-        self.env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
-                        GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
-        self.repo = self.base / "repo"
-        self.repo.mkdir()
-        (self.repo / "a.txt").write_text("x\n")
-        for argv in (["init", "-q"], ["add", "."],
-                     ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
-            subprocess.run(["git", *argv], cwd=self.repo, env=self.env, check=True)
-
-    def cli(self, *argv: str) -> subprocess.CompletedProcess:
-        return subprocess.run([sys.executable, "-B", str(SCRIPTS / "shiploop"), *argv], cwd=self.base,
-                              env=self.env, capture_output=True, text=True, timeout=60)
-
-    def init(self, run: Path, *extra: str, prompt: str = "add hello") -> subprocess.CompletedProcess:
-        return self.cli("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=" + prompt, *extra)
-
-    @staticmethod
-    def recorded(run: Path) -> object:
-        return store.read_record(run / "state.md").get("backchain_passes")
-
-    def test_new_runs_record_none_by_default_and_each_named_mode(self) -> None:
-        """Owner decision 2026-11-15: a new run calls no Backchain child unless it opts in."""
-        self.assertEqual(navigator.BACKCHAIN_PASSES_MODES, ("one", "converge", "none"))
-        self.assertEqual(navigator.DEFAULT_BACKCHAIN_PASSES, "none")
-        for mode in (None, *navigator.BACKCHAIN_PASSES_MODES):
-            with self.subTest(mode=mode):
-                run = self.base / ("run-" + (mode or "default"))
-                started = self.init(run, *(("--backchain-passes", mode) if mode else ()))
-                self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
-                self.assertEqual(self.recorded(run), mode or "none")
-        self.assertEqual(navigator.new_state(str(self.repo), "Default.")["backchain_passes"], "none")
-
-    def test_an_unknown_value_is_refused_by_the_cli_and_by_the_state_api(self) -> None:
-        run = self.base / "run-unknown"
-        refused = self.init(run, "--backchain-passes", "two")
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertIn("invalid choice", refused.stderr)
-        self.assertFalse(run.exists())
-        with self.assertRaisesRegex(navigator.NavigatorError, "backchain passes must be one of"):
-            navigator.new_state(str(self.repo), "Bad.", backchain_passes="two")
-        state = navigator.new_state(str(self.repo), "Good.")
-        with self.assertRaisesRegex(navigator.NavigatorError, "unsupported backchain passes option"):
-            navigator.validate(dict(state, backchain_passes="two"))
-
-    def test_a_retry_naming_another_value_is_refused_and_a_plain_retry_recovers(self) -> None:
-        run = self.base / "run-retry"
-        self.assertEqual(self.init(run, "--backchain-passes", "converge").returncode, 0)
-        before = (run / "state.md").read_bytes()
-        for other in ("none", "one"):
-            with self.subTest(other=other):
-                refused = self.init(run, "--backchain-passes", other)
-                self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-                self.assertIn("recorded", refused.stderr)
-                self.assertIn("converge", refused.stderr)
-                self.assertIn("fresh --run-dir", refused.stderr)  # there is no mid-run switch to offer
-                self.assertIn("only the owner starts a fresh run", refused.stderr)
-                self.assertNotIn("--set", refused.stderr)
-                self.assertEqual((run / "state.md").read_bytes(), before)
-        for same in (("--backchain-passes", "converge"), ()):
-            with self.subTest(same=same):
-                recovered = self.init(run, *same)
-                self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
-        self.assertEqual(self.recorded(run), "converge")
-
-    def test_workspace_start_records_the_value_and_refuses_a_changed_retry(self) -> None:
-        root = self.base / "workspace"
-        args = ("workspace", "start", "--repo", str(self.repo), "--workspace-root", str(root),
-                "--prompt", "Workspace fixture.")
-        started = self.cli(*args, "--backchain-passes", "none")
-        self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
-        self.assertEqual(self.recorded(root / "run"), "none")
-        before = (root / "run" / "state.md").read_bytes()
-        refused = self.cli(*args, "--backchain-passes", "converge")
-        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
-        self.assertIn("none", refused.stderr)
-        # the workspace wrapper forbids creating a replacement run to bypass a refusal, so the refusal must not
-        # tell the host to start one: it names the owner as the one who does
-        self.assertIn("create a replacement run", refused.stderr)
-        self.assertIn("only the owner starts a fresh run", refused.stderr)
-        self.assertEqual((root / "run" / "state.md").read_bytes(), before)
-        self.assertEqual(self.cli(*args).returncode, 0)
-        self.assertEqual(self.recorded(root / "run"), "none")
-
-    def test_a_saved_run_without_the_key_is_refused_with_the_fresh_run_hint(self) -> None:
-        run = self.base / "run-old"
-        self.assertEqual(self.init(run).returncode, 0)
-        saved = store.read_record(run / "state.md")
-        del saved["backchain_passes"]
-        store.write_record(run / "state.md", saved, title="Saved ShipLoop state")
-        before = (run / "state.md").read_bytes()
-        with self.assertRaises(navigator.NavigatorError) as caught:
-            navigator.validate(saved)
-        self.assertIn("missing: backchain_passes", str(caught.exception))
-        self.assertIn(navigator.FRESH_RUN_HINT, str(caught.exception))
-        for argv in (("next", "--run-dir", str(run)), ("report", "--run-dir", str(run)),
-                     ("init", "--repo", str(self.repo), "--run-dir", str(run), "--prompt=add hello")):
-            with self.subTest(command=argv[0]):
-                refused = self.cli(*argv)
-                output = refused.stdout + refused.stderr
-                self.assertEqual(refused.returncode, 2, output)
-                self.assertIn("missing: backchain_passes", output)
-                self.assertIn("fresh --run-dir", output)
-                self.assertNotIn("Traceback", output)
-                self.assertEqual((run / "state.md").read_bytes(), before)
-
-    def test_the_recorded_mode_reaches_the_guidance_the_packet_is_rendered_from(self) -> None:
-        for mode in navigator.BACKCHAIN_PASSES_MODES:
-            with self.subTest(mode=mode):
-                state = navigator.new_state(str(self.repo), "Thread it.", backchain_passes=mode)
-                with patch.object(navigator.guidance, "prompt", wraps=prompts.prompt) as rendered:
-                    navigator.render(None, self.base / "run", state)
-                rendered.assert_called_once()
-                self.assertEqual(rendered.call_args.kwargs["backchain_passes"], mode)
-
-    def test_the_prompt_catalog_takes_the_mode_and_refuses_an_unknown_one(self) -> None:
-        self.assertEqual(prompts.BACKCHAIN_PASSES_MODES, navigator.BACKCHAIN_PASSES_MODES)
-        self.assertEqual(prompts.DEFAULT_BACKCHAIN_PASSES, navigator.DEFAULT_BACKCHAIN_PASSES)
-        for stage in prompts.BACKCHAIN_STAGES:
-            with self.subTest(stage=stage):
-                # The catalog renders the default mode; naming it changes nothing.
-                self.assertEqual(prompts.prompt(stage, backchain_passes=prompts.DEFAULT_BACKCHAIN_PASSES),
-                                 prompts.PROMPTS[stage])
-                for mode in prompts.BACKCHAIN_PASSES_MODES:
-                    self.assertTrue(prompts.prompt(stage, backchain_passes=mode).strip())
-        for call in (lambda: prompts.prompt("plan", backchain_passes="two"),
-                     lambda: prompts._backchain_guidance("plan", backchain_passes="two")):
-            with self.assertRaises(ValueError):
-                call()
-
-    def test_the_spec_carve_out_names_the_option_the_code_defines(self) -> None:
-        """Parity, not prose: the carve-out's option name, default and values equal the code's constants."""
-        spec = " ".join(self.SPEC.read_text(encoding="utf-8").split())
-        carve = spec.split("**S-10 carve-out", 1)[1].split("**S-11", 1)[0]
-        key = "backchain_passes"
-        self.assertIn("(state option `" + key + "`)", carve)
-        self.assertIn(key, navigator.new_state(str(self.repo), "Key."))
-        flag = "--" + key.replace("_", "-")
-        named = set(re.findall(re.escape(flag) + r" (\w+)", carve))
-        default = re.search(rf"`{re.escape(key)}: (\w+)`", carve)
-        self.assertIsNotNone(default, carve)
-        self.assertEqual(default.group(1), navigator.DEFAULT_BACKCHAIN_PASSES)
-        self.assertEqual(named | {default.group(1)}, set(navigator.BACKCHAIN_PASSES_MODES))
-        accepted = self.init(self.base / "run-spec", flag, sorted(named)[0])
-        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
-
-
 class PlanningReviewOptionTest(unittest.TestCase):
     """The run option `planning_review`: recorded, validated, refused when missing or changed, threaded to the packet.
 
-    Same shape as BackchainPassesOptionTest, through the shipped CLI, the real run-directory load and the real retry
+    Same shape as the retired Backchain passes option's test (removed with Backchain, 2026-11-16), through the shipped CLI, the real run-directory load and the real retry
     gates at both sites. Naming `stage` never changes a printed packet; what `none` prints is PlanningReviewNoneTest's.
     """
 
@@ -3385,24 +2972,10 @@ class PlanningReviewOptionTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 call()
 
-    def test_the_backchain_retry_messages_are_what_they_were(self) -> None:
-        """GUARD, passes on the unchanged code: moving the guard onto the shared helper must not reword it."""
-        import shiploop_protocol as protocol
-        existing = {"backchain_passes": "converge"}
-        with self.assertRaises(protocol.ProtocolError) as refused:
-            protocol._require_retry_backchain_passes(existing, "none", Path("/unused"))
-        self.assertEqual(
-            str(refused.exception),
-            "--backchain-passes none differs from this run's recorded Backchain passes option converge; rerun "
-            "without --backchain-passes to recover the run. The option cannot change mid-run: only the owner "
-            "starts a fresh run (a fresh --run-dir or --workspace-root) to use none")
-        self.assertIsNone(protocol._require_retry_backchain_passes(existing, None, Path("/unused")))
-        self.assertIsNone(protocol._require_retry_backchain_passes(existing, "converge", Path("/unused")))
-
     def test_both_options_use_the_one_retry_helper(self) -> None:
         """S-12: one implementation of the fixed-option retry guard; the wrappers name their own flag and label."""
         import shiploop_protocol as protocol
-        existing = {"backchain_passes": "converge", "planning_review": "stage"}
+        existing = {"planning_review": "stage"}
         run = Path("/unused")
         with self.assertRaises(protocol.ProtocolError) as refused:
             protocol._require_retry_planning_review(existing, "none", run)
@@ -3414,10 +2987,8 @@ class PlanningReviewOptionTest(unittest.TestCase):
         self.assertIsNone(protocol._require_retry_planning_review(existing, None, run))   # no flag named: recovery
         self.assertIsNone(protocol._require_retry_planning_review(existing, "stage", run))  # the recorded value named
         with patch.object(protocol, "_require_retry_fixed_option") as shared:
-            protocol._require_retry_backchain_passes(existing, "none", run)
             protocol._require_retry_planning_review(existing, "none", run)
-        self.assertEqual([call.args[1] for call in shared.call_args_list],
-                         ["--backchain-passes", "--planning-review"])
+        self.assertEqual([call.args[1] for call in shared.call_args_list], ["--planning-review"])
 
     def test_the_documents_the_host_reads_name_the_option(self) -> None:
         skill = ROOT / "skills" / "shiploop"
@@ -3593,19 +3164,18 @@ class PlanningReviewNoneTest(unittest.TestCase):
         found = set()
         for delegation in prompts.DELEGATIONS:
             for stage in self.CHOICE:
-                for passes in ("one", "converge") if stage == "plan" else ("one",):
-                    with self.subTest(delegation=delegation, stage=stage, backchain_passes=passes):
-                        packet = self.packet(stage, "none", delegation, backchain_passes=passes)
-                        for block in re.split(r"\n\s*\n", packet):
-                            for sentence in re.split(r"(?<=[.!?]) (?=[A-Z(`\"'])", self.flat(block)):
-                                if not re.search(r"\bImprove\b", sentence):
-                                    continue
-                                allowed = [key for key in self.ALLOWED if key in sentence]
-                                self.assertTrue(allowed, "unreviewed sentence naming Improve in the none packet "
-                                                "at " + stage + ": " + sentence[:300])
-                                found.update(allowed)
+                with self.subTest(delegation=delegation, stage=stage):
+                    packet = self.packet(stage, "none", delegation)
+                    for block in re.split(r"\n\s*\n", packet):
+                        for sentence in re.split(r"(?<=[.!?]) (?=[A-Z(`\"'])", self.flat(block)):
+                            if not re.search(r"\bImprove\b", sentence):
+                                continue
+                            allowed = [key for key in self.ALLOWED if key in sentence]
+                            self.assertTrue(allowed, "unreviewed sentence naming Improve in the none packet "
+                                            "at " + stage + ": " + sentence[:300])
+                            found.update(allowed)
         self.assertEqual(found, set(self.ALLOWED), "an allowlist entry matched no sentence: "
-                         + str(sorted(set(self.ALLOWED) - found)))
+                     + str(sorted(set(self.ALLOWED) - found)))
 
     def test_the_review_focus_lead_of_a_none_run_names_no_improve(self) -> None:
         """Owner rule: a packet mentions Improve only where its stage runs an Improve child, as a directive.  Since the
@@ -3681,19 +3251,12 @@ class PlanningReviewNoneTest(unittest.TestCase):
         self.assertIn("in the producer result or Improve final_result", staged)
 
     def test_the_backchain_plan_text_does_not_name_the_review_a_none_run_lacks(self) -> None:
-        for passes in ("one", "converge"):
-            with self.subTest(backchain_passes=passes):
-                none = self.flat(self.packet("plan", "none", backchain_passes=passes))
-                staged = self.flat(self.packet("plan", "stage", backchain_passes=passes))
-                # Re-cut (2026-10-11): one Backchain item serves both modes and names no Improve review.
-                for text in (none, staged):
-                    self.assertIn("The child is plan-only: it may change the candidate plan and permitted planning "
-                                  "companions, and may not commit, push, merge, run the project or broaden scope.",
-                                  text)
-                    self.assertNotIn("ordinary Improve", text)
-                    self.assertNotIn("separate Improve executor", text)
-        # a run with no whole Backchain loop at plan names no Improve line either
-        self.assertNotIn(self.NONE_LINE, self.flat(self.packet("plan", "none", backchain_passes="none")))
+        none = self.flat(self.packet("plan", "none"))
+        staged = self.flat(self.packet("plan", "stage"))
+        for text in (none, staged):  # the Backchain item names no Improve review in either mode
+            self.assertNotIn("ordinary Improve", text)
+            self.assertNotIn("separate Improve executor", text)
+        self.assertNotIn(self.NONE_LINE, none)
 
     def test_the_test_facility_sentence_drops_the_child_only_where_none_starts_none(self) -> None:
         """The facility sentence named the Improve child in stage mode and dropped it in none.  Re-cut (2026-10-11):
@@ -3872,7 +3435,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         self.assertIn("`planning_review`", when)
         self.assertIn("`none`", when)
         for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `carry-forward`",
-                       "`improve-reconcile`", "plan-time experiments", "no Improve review covers", "`--backchain-passes none`",
+                       "`improve-reconcile`", "plan-time experiments", "no Improve review covers",
                        "its first `implement` step starts an Improve stage", "docs/shiploop", "`--improve-skill=<absolute selected Improve SKILL.md>`",
                        "refuse `--planning-review none` without"):
             with self.subTest(stated=stated):
@@ -3900,249 +3463,6 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
                     self.assertIn(needle, text)
         mock = " ".join((self.AUDIT / "harness" / "MOCK-REPLAY.md").read_text(encoding="utf-8").split())
         self.assertIn("planning_review", mock)
-
-
-class BackchainGateDocumentsTest(unittest.TestCase):
-    """The Backchain gate is caller-selected, and no document the host reads contradicts the printed gate.
-
-    The plan packet (one pass by default) and Backchain's own references used to tell the host two consecutive
-    reviews. A host copies whichever it reads last, so the Luna 1.16.1 plan loop ran seven passes under a gate
-    the packet had changed. These are content pins and a scan, never whole-text goldens.
-    """
-
-    BACKCHAIN = ROOT / "skills" / "backchain"
-    SHIPLOOP = ROOT / "skills" / "shiploop"
-    ONE = "`Backchain passes: one`"
-    CONVERGE = "`Backchain passes: converge`"
-    # A statement of the two-review gate counts as scoped when its paragraph names one of these.  Since 2026-11-01
-    # two reviews are no longer Backchain's default (owner decision D1): only the converge marker or mode asks for them.
-    SCOPE = ("by default", "the default", "`converge`", "Backchain passes: converge", "Backchain passes: one",
-             "packet's printed gate")
-    TWO_REVIEW = re.compile(r"two consecutive|two-consecutive|both original qualifying|two clean|two reviews|"
-                            r"two trivial|required_trivial_reviews: 2")
-    # Mentions that are not a Backchain gate statement, each with its reason (none since harness.md states the gate).
-    NOT_A_GATE: dict = {}
-
-    @staticmethod
-    def flat(path: Path) -> str:
-        return " ".join(path.read_text(encoding="utf-8").split())
-
-    @staticmethod
-    def printed_exit_clauses() -> list[str]:
-        """The exit clauses the printed plan packet states for the one-pass marker (Backchain's freeze writes them)."""
-        text = " ".join(prompts.prompt("plan", backchain_passes="one").split())
-        exit_text = re.search(r"this exit condition: (.+?)\. A pass that completes", text)
-        assert exit_text is not None, text
-        return exit_text.group(1).split("; ")
-
-    @classmethod
-    def convergence_exit_clauses(cls) -> list[str]:
-        """The exit clauses Backchain's convergence reference states for the marker line."""
-        text = cls.flat(cls.BACKCHAIN / "references" / "convergence.md")
-        exit_text = re.search(r"this exit condition: (.+?)\. (?:\(|A pass that completes)", text)
-        assert exit_text is not None, text
-        return exit_text.group(1).split("; ")
-
-    def test_the_printed_spec_and_plan_packets_start_the_child_with_backchains_commands(self) -> None:
-        """Round 10 (W1): the packets a host reads are prompt()'s, not _backchain_guidance("plan"), which the folded spec
-        and plan stages never print. They told the host to write the child's start contract by hand, though Backchain
-        0.7.0's `freeze` writes it, and in `converge` mode said `required_trivial_reviews: 2` without the marker line,
-        so `prepare` ran without `--passes` and freeze wrote Backchain's default gate. Owner decision D-D (2026-11-01):
-        converge is that default gate, the first trivial review."""
-        for stage in ("spec", "plan"):
-            for delegation in prompts.DELEGATIONS:
-                for mode in prompts.BACKCHAIN_PASSES_MODES:
-                    with self.subTest(stage=stage, delegation=delegation, mode=mode):
-                        text = " ".join(prompts.prompt(stage, delegation=delegation, backchain_passes=mode).split())
-                        if not prompts.offers_backchain_child(mode):
-                            # the default `none` (owner decision 2026-11-15) starts no child, so no start route prints
-                            for absent in ("Backchain SKILL.md step 1's `prepare`", "printed Backchain planning run directory",
-                                           "`--passes one`", "Backchain passes: one", "writes its start contract"):
-                                self.assertNotIn(absent, text)
-                            continue
-                        # the whole start route of Backchain SKILL.md step 1 (review round 1: `prepare --run` alone exits
-                        # 3 without `--request`, and without `--caller`/`--draft` a bounded repair re-plans unbounded)
-                        for required in ("Backchain SKILL.md step 1's `prepare`", "`--request`", "`--caller`",
-                                         "`--binding`", "`freeze`", "printed Backchain planning run directory",
-                                         "writes its start contract (never you)"):
-                            self.assertIn(required, text)
-                        # the gate comes from `prepare --passes`, never from the marker line (backchain.py prepare)
-                        self.assertIn("no `--passes`" if mode == "converge" else "`--passes one`", text)
-                        if stage == "spec":  # a repair/revise child revises the inherited candidate
-                            self.assertIn("`--draft` the candidate", text)
-                        for stale in ("Write the child's start contract", "required_trivial_reviews: 2",
-                                      "two consecutive", "Backchain passes: converge"):
-                            self.assertNotIn(stale, text)
-                        if mode == "converge":
-                            self.assertNotIn("Backchain passes: one", text)
-                            self.assertIn("put no `Backchain passes:` line", text.replace("Put no", "put no"))
-                            self.assertIn("first trivial review", text)
-                        else:
-                            self.assertIn(self.ONE, text)
-        self.assertIn("Backchain scripts/backchain.py", dict(prompts.resolved_backchain_resources()))
-
-    def test_the_references_state_the_printed_exit_condition_for_the_one_pass_marker(self) -> None:
-        clauses = self.printed_exit_clauses()
-        self.assertGreaterEqual(len(clauses), 4)
-        # The host copies the packet's clauses verbatim and a standalone caller reads the reference: the two lists
-        # must be the same in both directions (a clause only the reference states would bind a standalone caller
-        # to a stricter exit than the one ShipLoop hosts copy).
-        self.assertEqual(self.convergence_exit_clauses(), clauses)
-        convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
-        for required in (self.ONE, "`required_trivial_reviews: 0`", "beside the binding marker",
-                         "reports `exit_assessment: satisfied` even when it repaired the candidate"):
-            with self.subTest(required=required):
-                self.assertIn(required, convergence)
-        # the default is the first trivial review (owner decision D1, 2026-11-01) and says it is the default; two
-        # consecutive reviews belong to the converge marker, which ShipLoop's converge packets print
-        for default in ("by default", "`required_trivial_reviews: 1`", self.CONVERGE, "`required_trivial_reviews: 2`",
-                        "two consecutive distinct complete trivial/no-change dependency reviews"):
-            with self.subTest(default=default):
-                self.assertIn(default, convergence)
-        # ShipLoop's converge mode is Backchain's default gate (owner decision D-D, 2026-11-01): no marker line; the
-        # converge marker above stays Backchain's own option for a direct caller
-        converge = " ".join(prompts.prompt("plan", backchain_passes="converge").split())
-        self.assertNotIn("Backchain passes: converge", converge)
-        self.assertIn("first trivial review", converge)
-
-    def test_the_confirm_by_clause_is_scoped_to_the_steps_the_cycle_may_change(self) -> None:
-        """An exit clause on every step could not be met where the cycle may not repair: that finding is advisory."""
-        scoped = "on a step this cycle may change"
-        convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
-        for source, clauses in (("packet", self.printed_exit_clauses()),
-                                ("convergence reference", self.convergence_exit_clauses())):
-            confirm = [clause for clause in clauses if "`Confirm by`" in clause]
-            with self.subTest(source=source):
-                self.assertEqual(len(confirm), 1, clauses)
-                self.assertIn(scoped, confirm[0])
-        # the same reference defines such a step and says a weak clause anywhere else is only advisory
-        self.assertIn("A step this cycle may change is one whose exact ID is provisional", convergence)
-        self.assertRegex(convergence, r"On any other step it is advisory; it is not a planning gap")
-        # a standalone caller can resolve the Outcomes rule: the reference names the ShipLoop guide that defines it
-        self.assertIn("references/backchain-planning.md", convergence)
-        self.assertIn("\n## Outcomes\n", (self.SHIPLOOP / "references" / "backchain-planning.md").read_text(encoding="utf-8"))
-
-    @staticmethod
-    def sentences(text: str) -> list[str]:
-        return re.split(r"(?<=\.) (?=[A-Z`])", " ".join(text.split()))
-
-    def test_the_planning_guide_and_skill_scope_the_loop_text_and_the_resource_block_to_the_modes_that_print_them(self) -> None:
-        """`none` prints no whole-loop text and no seven-file block, so a document saying the packet does is false."""
-        planning = (self.SHIPLOOP / "references" / "backchain-planning.md").read_text(encoding="utf-8")
-        paragraphs = [" ".join(block.split()) for block in re.split(r"\n\s*\n", planning)]
-        for statement in ("the full set at `plan`", 'Selected Backchain and Until Loop resources" block',
-                          "Only `plan` prints that block", "may request one whole `plan`/`draft`"):
-            holders = [paragraph for paragraph in paragraphs if statement in paragraph]
-            with self.subTest(statement=statement):
-                self.assertTrue(holders, statement)
-                for paragraph in holders:
-                    self.assertIn("`none`", paragraph)
-        skill = (self.SHIPLOOP / "references" / "backchain-route.md").read_text(encoding="utf-8")  # moved by U22
-        option = " ".join(skill.split("## Backchain passes option", 1)[1].split("\n## ", 1)[0].split())
-        for required in ("`none`", "offers no Backchain child at any stage", "(default `none`)"):
-            with self.subTest(required=required):
-                self.assertIn(required, option)
-
-    def test_the_docs_say_which_modes_print_an_exit_condition_and_a_repair_pointer(self) -> None:
-        """What each mode prints is what the render shows; a document may not credit a mode with more."""
-        def guidance(stage: str, mode: str) -> str:
-            return " ".join(prompts._backchain_guidance(stage, backchain_passes=mode).split())
-        self.assertNotIn("exit condition", guidance("plan", "converge"))  # converge prints the gate alone
-        self.assertIn("exit condition", guidance("plan", "one"))
-        for mode, pointer in (("one", True), ("none", False), ("converge", False)):
-            with self.subTest(mode=mode):
-                self.assertEqual("Backchain passes: one" in guidance("spec", mode), pointer)
-        for path in (self.SHIPLOOP / "references" / "backchain-route.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
-            for sentence in self.sentences(path.read_text(encoding="utf-8")):
-                if "exit condition" in sentence and "`converge`" in sentence:
-                    with self.subTest(path=path.name, text=sentence[:80]):
-                        self.assertIn("convergence reference", sentence)  # converge: the host takes it from there
-                if "exit condition" in sentence and "Backchain passes option" in sentence:
-                    with self.subTest(path=path.name, text=sentence[:80]):
-                        self.assertIn("`one`", sentence)  # the packet prints an exit condition in `one` only
-                if "points to Backchain's convergence reference" in sentence:
-                    with self.subTest(path=path.name, text=sentence[:80]):
-                        for mode in ("`one`", "`converge`"):  # `none` starts no repair/revise child
-                            self.assertIn(mode, sentence)
-
-    def test_the_terminal_evidence_set_is_one_record_and_the_check_receipt_for_the_marker(self) -> None:
-        convergence = self.flat(self.BACKCHAIN / "references" / "convergence.md")
-        evidence = convergence.split("## Terminal evidence and recovery", 1)[1]
-        for required in ("both original qualifying review records", "With " + self.ONE,
-                         "the one review record of the cycle and the `backchain-check` receipt on the final candidate"):
-            with self.subTest(required=required):
-                self.assertIn(required, evidence)
-        # the caller contract's two-record rule is the converge marker's only, and names the default, the one-pass
-        # marker and its check receipt
-        contract = (self.BACKCHAIN / "references" / "caller-contract.md").read_text(encoding="utf-8")
-        rule = next(paragraph for paragraph in re.split(r"\n\s*\n", contract)
-                    if "both original qualifying review records" in paragraph)
-        for required in ("By default", self.ONE, "`backchain-check` receipt", self.CONVERGE):
-            with self.subTest(required=required):
-                self.assertIn(required, " ".join(rule.split()))
-
-    def test_the_backchain_skill_names_the_marker_in_its_description_and_the_gate_step(self) -> None:
-        text = (self.BACKCHAIN / "SKILL.md").read_text(encoding="utf-8")
-        description = " ".join(text.split("---", 2)[1].split())
-        self.assertIn("by default until the first trivial/no-change review", description)
-        self.assertIn(self.ONE, description)
-        self.assertIn(self.CONVERGE, description)
-        step = " ".join(text.split("4. **Loop.**", 1)[1].split("\n5.", 1)[0].split())
-        for required in ("by default the first trivial review completes", self.ONE, self.CONVERGE,
-                         "references/convergence.md"):
-            with self.subTest(required=required):
-                self.assertIn(required, step)
-
-    def test_the_shiploop_documents_point_to_the_packets_printed_gate(self) -> None:
-        for path in (self.SHIPLOOP / "references" / "backchain-route.md", self.SHIPLOOP / "references" / "backchain-planning.md"):
-            flat = self.flat(path)
-            with self.subTest(path=path.name):
-                self.assertIn("packet's printed gate", flat)
-                self.assertNotIn("its `required_trivial_reviews: 2` gate for two consecutive", flat)
-
-    def test_no_document_the_host_reads_tells_it_two_reviews_without_naming_the_default_or_the_other_modes(self) -> None:
-        documents = [*sorted((self.BACKCHAIN).rglob("*.md")), *sorted((ROOT / "agents").glob("*.md")),
-                     *sorted(self.SHIPLOOP.glob("*.md")), *sorted((self.SHIPLOOP / "references").rglob("*.md"))]
-        self.assertGreater(len(documents), 20)
-        found = 0
-        for path in documents:
-            if str(path.relative_to(ROOT)) in self.NOT_A_GATE:
-                continue
-            in_backchain = self.BACKCHAIN in path.parents
-            for block in re.split(r"\n\s*\n", path.read_text(encoding="utf-8")):
-                paragraph = " ".join(block.split())  # a statement may wrap across lines
-                if not self.TWO_REVIEW.search(paragraph):
-                    continue
-                if not in_backchain and "Backchain" not in paragraph:
-                    continue  # Improve's own two-pass gate
-                found += 1
-                with self.subTest(path=str(path.relative_to(ROOT)), text=paragraph[:90]):
-                    self.assertTrue(any(marker.lower() in paragraph.lower() for marker in self.SCOPE),
-                                    "states the two-review gate without saying it is the default, the converge mode "
-                                    "or the packet's gate:\n" + paragraph)
-        self.assertGreaterEqual(found, 7)  # the scan finds the statements it is meant to police
-        # the rendered default packets (mode one) carry no two-review statement at any Backchain stage
-        for stage in prompts.BACKCHAIN_STAGES:
-            with self.subTest(stage=stage):
-                packet = " ".join(prompts.prompt(stage).split())
-                self.assertIsNone(self.TWO_REVIEW.search(packet))
-
-    def test_the_evals_cover_the_default_and_the_marker_path(self) -> None:
-        cases = json.loads((self.BACKCHAIN / "evals" / "evals.json").read_text(encoding="utf-8"))["evals"]
-        ids = [case["id"] for case in cases]
-        self.assertEqual(len(ids), len(set(ids)))
-        by_name = {case.get("name"): case for case in cases}
-        default = " ".join(json.dumps(by_name["until-loop-binding-default-first-trivial"]).split())
-        self.assertIn("required_trivial_reviews: 1", default)  # the standalone default: the first trivial review
-        converge = " ".join(json.dumps(by_name["until-loop-binding-missing-review-history"]).split())
-        for required in ("Backchain passes: converge", "both original qualifying review records"):
-            with self.subTest(required=required):
-                self.assertIn(required, converge)  # the converge marker keeps two
-        marker = " ".join(json.dumps(by_name["until-loop-binding-one-pass-marker"]).split())
-        for required in ("Backchain passes: one", "required_trivial_reviews", "backchain-check"):
-            with self.subTest(required=required):
-                self.assertIn(required, marker)
-
 
 
 class EightStageInnerLoopCliTests(unittest.TestCase):

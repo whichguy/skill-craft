@@ -1,10 +1,9 @@
 """The answer of ``shiploop check``: would ShipLoop accept this step now? (phases B and C plan, 2026-10-28)
 
 The check and ``complete`` run one evaluator (``shiploop_navigator._evaluate``).  A check records its answer here, yes
-or no with the reason, tied to local reuse inputs (``answer_key``), which do not bind external state.  ``complete`` takes a recorded yes whose key
-equals the key it computes now, when the current commands are eligible for checkout-bound reuse
-(``test_loop.reuse_eligible``). Otherwise it runs the gates again, including all release verification and declared
-external checks; a refusal comes from gates run now.
+or no with the reason, tied to everything the gates read (``answer_key``).  ``complete`` takes a recorded yes whose key
+equals the key it computes now, instead of running the gates again (``matching_yes``), and runs them when anything
+changed since; so a matching yes cannot be refused, and a refusal always comes from gates run on the current files.
 
 The key: the state revision, this package's version, the inner stage's loop contract, the result draft's bytes, the
 candidate's working tree, the item's base (its lint base tree and any preparatory commit), the counted runs the
@@ -42,8 +41,8 @@ def _sha(data: bytes) -> str:
 
 def answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str | None, work_item: str | None,
                draft: Path, *, lint_option: str) -> dict[str, Any]:
-    """Local reuse inputs, excluding external state, as one comparable value; computed after the check's gates ran,
-    since a test run may leave an untracked file, and again by ``complete`` before it takes a yes."""
+    """Everything the gates read, as one comparable value; computed after the check's gates ran, since a test run may
+    leave an untracked file, and again by ``complete`` before it takes a yes."""
     root = Path(root)
     contract = None
     if stage in loops.STAGES:
@@ -59,7 +58,6 @@ def answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str 
     return {
         "revision": state.get("revision"),
         "version": reference.package_version(),
-        "test_schema": test_loop.SCHEMA,
         "contract": contract,
         "draft": draft_sha,
         "tree": test_loop.working_tree(root, Path(str(state["repo"]))) or None,
@@ -100,7 +98,7 @@ def record_answer(root: Path, action_id: str, stage: str | None, key: Mapping[st
 
 
 def matching_yes(root: Path, action_id: str, key: Mapping[str, Any]) -> Mapping[str, Any] | None:
-    """This action's recorded yes for matching local reuse inputs, else None; does not bind external state."""
+    """This action's recorded yes when its key equals ``key`` (nothing the gates read changed since), else None."""
     path = Path(root) / answer_path(action_id)
     try:
         answer = store.read_record(path) if path.is_file() else None

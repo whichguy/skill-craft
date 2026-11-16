@@ -16,6 +16,8 @@ appendix B; this folder holds the evidence.
 
 | 5 | the fixes of round 4 (main at 4e36b3ad486b30fce972e697096fcfa158c29e3d) | not ready (four of round 4's seven fixed, three partly; six verified bugs, one a regression) | 645 s | `g1c-sol-brief.txt`, `g1c-sol-answer.txt`, `g1c-sol-run.json`, `g1c-sol-witness-*.json` |
 
+| 6 | replan B, the one verification (the diff 4e36b3ad..c154c44fee46a6c5c852ce158e818d3237d3f121) | not ready (two of round 5's six fixed, four partly; four blocking verified bugs, two non-blocking, test limits) | 704 s | `g1e-sol-brief.txt`, `g1e-sol-answer.txt`, `g1e-sol-run.json`, `g1e-sol-witness-*.json` (a full name git guessed is masked) |
+
 Round 3 is the plan's gate G1: Codex `gpt-6.1-sol` at max effort, one attempt, no fallback, `workspace-write` sandbox, in a neutral clone of the branch
 under `/tmp` (its origin remote removed; the clone's status was identical before and after). The reviewer could not run `ps` in its sandbox, so
 the steps and real-engine suites timed out for it (only the 28 queries tests ran there); the behaviours it reports were reproduced with its own

@@ -67,12 +67,6 @@ def _require_retry_fixed_option(requested: "str | None", flag: str, label: str, 
          f"(a fresh --run-dir or --workspace-root) to use {requested}")
 
 
-def _require_retry_backchain_passes(existing: dict, requested: "str | None", run_dir: Path) -> None:
-    """Recovery retries keep the recorded Backchain passes option; no verb changes it mid-run."""
-    _require_retry_fixed_option(requested, "--backchain-passes", "Backchain passes option",
-                                navigator.recorded_backchain_passes(existing))
-
-
 def _require_retry_planning_review(existing: dict, requested: "str | None", run_dir: Path) -> None:
     """Recovery retries keep the recorded planning review option; no verb changes it mid-run."""
     _require_retry_fixed_option(requested, "--planning-review", "planning review option",
@@ -234,8 +228,6 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                        help="new run: inline (default) or ask-agent delegation")
     start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                        help="new run: script-owned advisory lint fix (default), report or off")
-    start.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
-                       help="new run: Backchain planning child, none (default: no child), one (one pass) or converge")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
                        help="new run: which planning results start an Improve stage, stage (default) or none")
     for name in ("plan-return", "review-return", "return"):
@@ -280,7 +272,6 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                      "cannot retrofit delivery-contract on an existing run")
                 _require_retry_delegation(existing, args.delegation, root / "run")
                 _require_retry_lint(existing, args.lint, root / "run")
-                _require_retry_backchain_passes(existing, args.backchain_passes, root / "run")
                 _require_retry_planning_review(existing, args.planning_review, root / "run")
                 # Identical re-entry is recovery, not another capture of the
                 # source after product work or a completed integration.
@@ -307,8 +298,6 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                 init += ["--delegation", args.delegation]
             if args.lint:
                 init += ["--lint", args.lint]
-            if args.backchain_passes:
-                init += ["--backchain-passes", args.backchain_passes]
             if args.planning_review:
                 init += ["--planning-review", args.planning_review]
             return main(core, init)
@@ -590,7 +579,7 @@ def _carried_options(args: Any) -> list:
         carried.append("--bound-plan=" + shlex.quote(str(Path(args.bound_plan).resolve())))
     if args.delivery_contract:
         carried.append("--delivery-contract")
-    for name in ("delegation", "lint", "backchain_passes", "planning_review"):
+    for name in ("delegation", "lint", "planning_review"):
         value = getattr(args, name, None)
         if value:
             carried.append("--" + name.replace("_", "-") + "=" + shlex.quote(str(value)))
@@ -744,8 +733,6 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                              help="new run: inline (default) or ask-agent delegation")
             sub.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                              help="new run: script-owned advisory lint fix (default), report or off")
-            sub.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
-                             help="new run: Backchain planning child, none (default: no child), one (one pass) or converge")
             sub.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
                              help="new run: which planning results start an Improve stage, stage (default) or none")
         if name == "delegation":
@@ -872,7 +859,6 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                     _count_callback_attempt(root)
                 _require_retry_delegation(existing, getattr(args, "delegation", None), root)
                 _require_retry_lint(existing, getattr(args, "lint", None), root)
-                _require_retry_backchain_passes(existing, getattr(args, "backchain_passes", None), root)
                 _require_retry_planning_review(existing, getattr(args, "planning_review", None), root)
                 if args.command in ("init", "next"):
                     # Recovery may restore only a snapshot's bound HEAD; never capture a resumed run's current bytes.
@@ -929,7 +915,6 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                 worktree=args.execution_mode == "navigator-worktree",
                 delegation=args.delegation or navigator.DEFAULT_DELEGATION,
                 lint_option=args.lint or navigator.DEFAULT_LINT,
-                backchain_passes=args.backchain_passes or navigator.DEFAULT_BACKCHAIN_PASSES,
                 planning_review=args.planning_review or navigator.DEFAULT_PLANNING_REVIEW,
             )
             navigator.save(root, state)

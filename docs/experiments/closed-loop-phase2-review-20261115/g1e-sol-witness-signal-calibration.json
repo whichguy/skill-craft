@@ -1,0 +1,142 @@
+{
+  "recycled_leader_present": {
+    "group_verdict_after": "reused",
+    "how": "reused",
+    "detail": {
+      "now": {
+        "pid": 610001,
+        "command": "sleep"
+      }
+    },
+    "sent": [
+      [
+        610001,
+        15
+      ]
+    ]
+  },
+  "recycled_leader_already_gone": {
+    "group_verdict_after": "ok",
+    "how": "survived",
+    "detail": {
+      "members": [
+        610003
+      ]
+    },
+    "sent": [
+      [
+        610001,
+        15
+      ],
+      [
+        610001,
+        9
+      ]
+    ]
+  },
+  "group_emptied": {
+    "group_verdict_after": "gone",
+    "how": "stopped",
+    "detail": {
+      "ended_by": "SIGTERM",
+      "members": 2
+    },
+    "sent": [
+      [
+        610001,
+        15
+      ]
+    ]
+  },
+  "calibration_valid": {
+    "bridge": {
+      "ok": true,
+      "calibration": {
+        "attempts": 3,
+        "tolerance": 0.45,
+        "metric": "tokens",
+        "sha256": "9cdc4b2ec9bf9803bf4f7bb5dce9cced56581ce544d10263ce81e49c13627cc4",
+        "measured": true,
+        "basis": "9cdc4b2ec9bf9803bf4f7bb5dce9cced56581ce544d10263ce81e49c13627cc4"
+      },
+      "driver": {
+        "host": "codex",
+        "model": "fake-model",
+        "effort": "high"
+      },
+      "cases": [
+        "hello"
+      ],
+      "per_case": {
+        "hello": {
+          "attempts": 6,
+          "compared": 20
+        }
+      },
+      "recomputed_tolerance": 0.45,
+      "scoring_cases": [
+        "hello"
+      ]
+    },
+    "probe": {
+      "state": "calibrated",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "/tmp/g1e-signal-calibration-i90la3s7/valid.json is a calibration/1 report for codex/fake-model/high over hello; its scoring digest 9cdc4b2ec9bf equals the current scoring files'; it recommends 3 attempts per arm at tolerance 0.45 on tokens"
+    }
+  },
+  "calibration_misbound": {
+    "bridge": {
+      "ok": true,
+      "calibration": {
+        "attempts": 3,
+        "tolerance": 0.45,
+        "metric": "tokens",
+        "sha256": "9cdc4b2ec9bf9803bf4f7bb5dce9cced56581ce544d10263ce81e49c13627cc4",
+        "measured": true,
+        "basis": "9cdc4b2ec9bf9803bf4f7bb5dce9cced56581ce544d10263ce81e49c13627cc4"
+      },
+      "driver": {
+        "host": "codex",
+        "model": "fake-model",
+        "effort": "high"
+      },
+      "cases": [
+        "unknown-case"
+      ],
+      "per_case": {
+        "unknown-case": {
+          "attempts": 6,
+          "compared": 20
+        }
+      },
+      "recomputed_tolerance": 0.45,
+      "scoring_cases": [
+        "hello"
+      ]
+    },
+    "probe": {
+      "state": "unmeasured",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "the report /tmp/g1e-signal-calibration-i90la3s7/misbound.json measured noise over unknown-case but its scoring digest covers hello: its measurements are not bound to the scoring they claim"
+    }
+  },
+  "calibration_unknown-scored": {
+    "bridge": {
+      "ok": false,
+      "why": "/tmp/g1e-signal-calibration-i90la3s7/unknown-scored.json is a malformed calibration report: KeyError('unknown-case')",
+      "driver": null,
+      "cases": []
+    },
+    "probe": {
+      "state": "unmeasured",
+      "evidence": "the report /tmp/g1e-signal-calibration-i90la3s7/unknown-scored.json is not a usable calibration: /private/tmp/g1e-signal-calibration-i90la3s7/unknown-scored.json is a malformed calibration report: KeyError('unknown-case')",
+      "consumed": {
+        "seconds": 0.0
+      }
+    }
+  }
+}

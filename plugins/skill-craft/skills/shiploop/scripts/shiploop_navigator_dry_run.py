@@ -148,7 +148,6 @@ def _completed_instances(state: Mapping[str, Any]) -> list[Any]:
 
 
 def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAULT_DELEGATION,
-                 backchain_passes: str = navigator.DEFAULT_BACKCHAIN_PASSES,
                  planning_review: str = navigator.DEFAULT_PLANNING_REVIEW) -> dict[str, Any]:
     """Simulate one scenario (no work is executed) and return its report: events, stages reached and ``ok``."""
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
@@ -166,7 +165,7 @@ def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAUL
             'Inspect the SDLC graph with synthetic declarations.',
             # What `init` records: the improve card installed beside ShipLoop.  The real bundled card, so every inner
             # packet resolves its Until Loop runtime and shows the RUN until-loop block, as a run's packet does.
-            improve_skill=str(stage_loops.BUNDLED_IMPROVE_CARD), delegation=delegation, backchain_passes=backchain_passes,
+            improve_skill=str(stage_loops.BUNDLED_IMPROVE_CARD), delegation=delegation,
             planning_review=planning_review,
         )
         for index, step in enumerate(rows, 1):
@@ -229,8 +228,6 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--format', choices=('summary', 'json', 'markdown'), default='summary')
     parser.add_argument('--delegation', choices=navigator.DELEGATIONS, default=None,
                         help='execution delegation to simulate; default follows new runs (inline)')
-    parser.add_argument('--backchain-passes', choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
-                        help='Backchain passes option to simulate; default follows new runs (none)')
     parser.add_argument('--planning-review', choices=navigator.PLANNING_REVIEW_MODES, default=None,
                         help='planning review option to simulate; default follows new runs (stage)')
     parser.add_argument('--list', action='store_true')
@@ -248,10 +245,8 @@ def run(args: argparse.Namespace) -> int:
             choices = scenarios(args.planning_review or navigator.DEFAULT_PLANNING_REVIEW)
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
         delegation = args.delegation or navigator.DEFAULT_DELEGATION
-        backchain_passes = args.backchain_passes or navigator.DEFAULT_BACKCHAIN_PASSES
         planning_review = args.planning_review or navigator.DEFAULT_PLANNING_REVIEW
-        reports = [run_scenario(name, value, delegation=delegation, backchain_passes=backchain_passes,
-                                planning_review=planning_review)
+        reports = [run_scenario(name, value, delegation=delegation, planning_review=planning_review)
                    for name, value in selected.items()]
     except (OSError, ValueError) as exc:
         print(f'Graph dry-run input error: {exc}')

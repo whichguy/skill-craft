@@ -1,0 +1,28 @@
+{
+  "gitdir_false_pass": {
+    "preflight_problem": null,
+    "x_ident": {
+      "rc": 0,
+      "out": "Test <test@example.invalid> 1794844757 -0800",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead"
+    },
+    "actual_loop_worktree_ident": {
+      "rc": 128,
+      "out": "",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nCommitter identity unknown\n\n*** Please tell me who you are.\n\nRun\n\n  git config --global user.email \"you@example.com\"\n  git config --global user.name \"Your Name\"\n\nto set your account's default identity.\nOmit --global to set the identity only in this repository.\n\nfatal: no email was given and auto-detection is disabled"
+    },
+    "config": "[user]\nuseConfigOnly = true\n[includeIf \"gitdir:/private/tmp/g1e-identity-cwd-rd8j2ii_/x/.git\"]\npath = identity\n"
+  },
+  "config_only_control": {
+    "ordinary_ident": {
+      "rc": 0,
+      "out": "<the machine user's full name> <guess@example.invalid> 1794844744 -0800",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead"
+    },
+    "configured_only_ident": {
+      "rc": 128,
+      "out": "",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nAuthor identity unknown\n\n*** Please tell me who you are.\n\nRun\n\n  git config --global user.email \"you@example.com\"\n  git config --global user.name \"Your Name\"\n\nto set your account's default identity.\nOmit --global to set the identity only in this repository.\n\nfatal: no email was given and auto-detection is disabled"
+    }
+  }
+}

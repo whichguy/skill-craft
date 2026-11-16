@@ -56,11 +56,8 @@ or profile visibility that shows them. Confirm the tab with
 `sf org list metadata --metadata-type CustomTab --target-org <alias>` and look
 for its API name. The Tooling `CustomTab` query returns no rows for a Lightning
 component tab and would stay red after a good deploy. Run that confirm once at
-release-check, beside `sf project deploy validate` (the dry-run). Record actual org state,
-not forced absence. The metadata query provides presence evidence only; obtain separate
-identity evidence for the requested revision. Apply the
-[shared release-state/check rule](../testing-and-documentation.md#release-entry-and-release-check).
-At release-plan,
+release-check, beside `sf project deploy validate` (the dry-run), so its
+"not there yet" output is on record before the real deploy. At release-plan,
 `consumer_entry.how` names the App Launcher entry and its URL path
 (`/lightning/n/<TabApiName>` for a component tab), and `sources` lists the tab
 and app files.

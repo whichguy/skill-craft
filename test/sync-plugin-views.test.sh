@@ -280,8 +280,7 @@ expect_fail() {
   printf '%s\n' "$out" | grep -Fq -- "$needle" || fail "$label did not report '$needle': $out"
 }
 
-# Backchain and Plan Dispatcher are both bundled skills in the one plugin.
-[[ -d "$BASE/skills/backchain" ]] || fail "$BASE/skills/backchain missing"
+# Plan Dispatcher is a bundled skill in the one plugin (Backchain, its former sibling, was retired on 2026-11-16).
 [[ -d "$BASE/skills/plan-dispatcher" ]] || fail "$BASE/skills/plan-dispatcher missing"
 source_agent_cards="$(printf '%s\n' agents/*.md | sed 's|^agents/||' | LC_ALL=C sort)"
 bundle_agent_cards="$(printf '%s\n' "$BASE"/agents/* | sed "s|^$BASE/agents/||" | LC_ALL=C sort)"

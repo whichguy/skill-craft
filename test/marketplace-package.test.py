@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Package acceptance must fail closed before a host tries to load a skill."""
 import importlib.util
-import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -22,39 +21,16 @@ SPEC.loader.exec_module(CHECK)
 
 
 class PackageTests(unittest.TestCase):
-    def test_backchain_command_line_runs_from_built_package(self):
-        # The command line imports backchain_graph beside it; a package that dropped the library would fail here.
-        cli = PLUGINS / "skill-craft/skills/backchain/scripts/backchain.py"
-        plan = ROOT / "test/fixtures/backchain-export/confirmed.plan.json"
-        checked = subprocess.run([sys.executable, "-I", "-B", str(cli), "check", str(plan)],
-                                 cwd=self.temp.name, capture_output=True, text=True)
-        self.assertEqual(checked.returncode, 0, checked.stderr)
-        self.assertEqual((json.loads(checked.stdout)["schema"], json.loads(checked.stdout)["completion"]),
-                         ("backchain-check/v1", "complete"))
-        exported = subprocess.run([sys.executable, "-I", "-B", str(cli), "export", str(plan)],
-                                  cwd=self.temp.name, capture_output=True, text=True)
-        self.assertEqual(exported.returncode, 0, exported.stderr)
-        self.assertEqual(json.loads(exported.stdout),
-                         json.loads((ROOT / "test/fixtures/backchain-export/confirmed.graph.json").read_text()))
-
-    def test_backchain_preservation_helper_runs_from_built_package(self):
-        helper = PLUGINS / "skill-craft/skills/backchain/scripts/check_preservation.py"
-        plan = json.loads((ROOT / "test/fixtures/backchain-chunks/mixed.json").read_text())["plan"]
-        baseline = Path(self.temp.name) / "baseline.json"
-        candidate = Path(self.temp.name) / "candidate.json"
-        baseline.write_text(json.dumps(plan))
-        candidate.write_bytes(baseline.read_bytes())
-        command = [sys.executable, "-I", "-B", str(helper), "--baseline", str(baseline),
-                   "--baseline-sha256", hashlib.sha256(baseline.read_bytes()).hexdigest(),
-                   "--candidate", str(candidate), "--mode", "legacy"]
-        result = subprocess.run(command, cwd=self.temp.name, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["confirmation_differences"], [])
-        del plan["goal_needs"]
-        candidate.write_text(json.dumps(plan))
-        result = subprocess.run(command, cwd=self.temp.name, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["errors"], ["goal_needs presence/value changed"])
+    def test_shiploop_graph_check_library_ships_beside_its_verb(self):
+        # backchain_graph moved from the retired Backchain skill into ShipLoop (2026-11-16); the backchain-check verb
+        # imports it from its own directory, so a package that dropped the library would fail here.
+        scripts = PLUGINS / "skill-craft/skills/shiploop/scripts"
+        loaded = subprocess.run([sys.executable, "-I", "-B", "-c",
+                                 "import sys; sys.path.insert(0, sys.argv[1]); import shiploop_backchain_graph as check; "
+                                 "print(check.graph.__file__)", str(scripts)],
+                                cwd=self.temp.name, capture_output=True, text=True)
+        self.assertEqual(loaded.returncode, 0, loaded.stderr)
+        self.assertEqual(Path(loaded.stdout.strip()).resolve(), (scripts / "backchain_graph.py").resolve())
 
     def test_generated_agent_routers_bind_the_selected_installed_card(self):
         for name in ("shiploop", "skill-interop"):

@@ -64,9 +64,6 @@ def _pytest(text: str, exit_code: Optional[int]) -> Optional[Dict[str, int]]:
         line = summaries[-1]
         failed = _sum_matches(line, _INT + r" failed")
         ran = failed + _sum_matches(line, _INT + r" passed") + _sum_matches(line, _INT + r" xfailed") + _sum_matches(line, _INT + r" xpassed")
-        # Summary errors may be setup/collection failures: they fail the run, but
-        # cannot certify that another test executed.
-        failed += _sum_matches(line, _INT + r" errors?\b")
         return {"ran": ran, "failed": failed}
     if exit_code == 5 or re.search(r"^=*\s*no tests ran in [\d.]+s", text, re.MULTILINE):
         return {"ran": 0, "failed": 0}

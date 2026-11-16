@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Improve's bundled Until Loop runtime: the review gates the Backchain packet and Improve rely on.
+"""Improve's bundled Until Loop runtime: the review gates Improve relies on.
 
 Owner decision 2026-09-26. The runtime records the workspace's Git content tree
 at start and, for a gate of two or more trivial reviews, completes after a
 trivial, satisfied first report only when that tree is unchanged.
 
-Owner decision 2026-10-04 (fast planning, increment I2). The ShipLoop plan packet's one-pass text tells the host
-to write `required_trivial_reviews: 0` for the Backchain planning child. OnePassGateTests reads the gate from the
-printed text and drives this runtime with it, so the one-pass exit is proved through the real gate.
+The one-pass gate tests of the Backchain planning child (OnePassGateTests, owner decision 2026-10-04) left with
+Backchain, retired on 2026-11-16.
 """
 from __future__ import annotations
 
 import importlib.util
-import re
 import subprocess
 import sys
 import tempfile
@@ -25,8 +23,6 @@ sys.dont_write_bytecode = True  # never leave __pycache__ inside the shipped run
 spec = importlib.util.spec_from_file_location("until_loop_ephemeral", SCRIPT)
 runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
-sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
-import shiploop_prompts as prompts  # noqa: E402
 
 TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
            "evidence": "Full review; nothing worth changing; checks pass.", "handoff": "Nothing remains."}
@@ -131,102 +127,6 @@ class UnchangedFirstPassTests(unittest.TestCase):
                 self.assertEqual(result["status"], expected_status)
                 self.assertEqual(result["progress"]["trivial_streak"], expected_streak)
                 self.assertNotIn("unchanged_first_pass", result["progress"])
-
-
-class OnePassGateTests(unittest.TestCase):
-    """The gate the plan packet names for the Backchain child, started on the real runtime.
-
-    The packet text, not a constant in this test, supplies the gate: in `one` mode it prints the
-    `required_trivial_reviews` and exit condition Backchain's `freeze` writes for the marker line; in `converge` it
-    prints no marker line, so freeze writes Backchain's default gate (owner decision D-D, 2026-11-01), read here from
-    Backchain's own script.
-    """
-
-    def setUp(self) -> None:
-        temp = tempfile.TemporaryDirectory(prefix="one-pass-gate-")
-        self.addCleanup(temp.cleanup)
-        self.workspace = Path(temp.name).resolve() / "plan"
-        self.state_dir = Path(temp.name).resolve() / "state"
-        self.workspace.mkdir()
-        self.state_dir.mkdir()
-        (self.workspace / "candidate.json").write_text("{}\n")
-
-    @staticmethod
-    def printed(mode: str) -> tuple[int, str]:
-        """The gate and exit condition the printed plan packet of `mode` makes Backchain's freeze write."""
-        text = " ".join(prompts.prompt("plan", backchain_passes=mode).split())
-        gates = re.findall(r"`required_trivial_reviews: (\d+)`", text)
-        if not gates:  # no marker line: freeze writes Backchain's default gate and exit condition
-            assert "Put no `Backchain passes:` line in the child request" in text, text
-            spec = importlib.util.spec_from_file_location("backchain_cli", ROOT / "skills/backchain/scripts/backchain.py")
-            cli = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(cli)
-            return cli.GATES["default"], cli.EXIT_CONDITIONS["default"]
-        assert len(gates) == 1, (mode, gates)
-        exit_text = re.search(r"this exit condition: (.+?)\. A pass that completes", text)
-        assert exit_text is not None, text
-        return int(gates[0]), exit_text.group(1)
-
-    def start(self, mode: str) -> dict:
-        gate, exit_condition = self.printed(mode)
-        contract = {"workspace": str(self.workspace), "work": "One dependency review/fix/check cycle.",
-                    "exit_condition": exit_condition, "repeat_condition": "Repeat for a named open gap.",
-                    "required_trivial_reviews": gate,
-                    "context": {"request": "r", "scope": "s", "authority": "a", "environment": "e",
-                                "resources": []}}
-        return runtime.start(contract, self.state_dir)
-
-    @staticmethod
-    def report(packet: dict, **fields: str) -> dict:
-        token = next(arg.split("=", 1)[1] for arg in packet["done_argv"] if arg.startswith("--action="))
-        report = dict(TRIVIAL, **fields)
-        return runtime.done(packet["state_file"], token, report)
-
-    def test_the_one_pass_text_prints_gate_zero_and_converge_names_backchains_default_gate(self) -> None:
-        self.assertEqual(self.printed("one")[0], 0)
-        self.assertEqual(self.printed("converge")[0], 1)
-
-    def test_a_repairing_first_pass_that_assesses_the_exit_satisfied_completes_after_one_action(self) -> None:
-        packet = self.start("one")
-        self.assertEqual(packet["progress"]["required_trivial_reviews"], 0)
-        terminal = self.report(packet, classification="non-trivial", exit_assessment="satisfied")
-        self.assertEqual(terminal["status"], "complete")
-        self.assertEqual(terminal["progress"]["action_number"], 1)
-        self.assertEqual(terminal["progress"]["trivial_streak"], 0)
-
-    def test_an_unsatisfied_report_continues_and_the_next_satisfied_report_completes(self) -> None:
-        packet = self.start("one")
-        active = self.report(packet, classification="non-trivial", exit_assessment="unsatisfied")
-        self.assertEqual(active["status"], "active")
-        self.assertEqual(active["progress"]["action_number"], 2)  # no ceiling: the open gap keeps the loop going
-        terminal = self.report(active, classification="trivial", exit_assessment="satisfied")
-        self.assertEqual(terminal["status"], "complete")
-        self.assertEqual(terminal["progress"]["action_number"], 2)
-
-    def test_an_unresolved_report_cannot_claim_a_satisfied_exit(self) -> None:
-        packet = self.start("one")
-        with self.assertRaisesRegex(runtime.StateError, "unresolved report cannot claim a satisfied exit"):
-            self.report(packet, classification="unresolved", exit_assessment="satisfied")
-        # the refusal changed nothing: the same action still takes a valid report
-        self.assertEqual(self.report(packet, classification="trivial", exit_assessment="satisfied")["status"],
-                         "complete")
-
-    def test_a_blocked_report_stops_the_loop(self) -> None:
-        # A runtime pin (the SPEC's "a blocker ends the loop as before"): it holds at any printed gate, so it
-        # shows the stop route stays open under gate 0, not that the packet text changed.
-        packet = self.start("one")
-        stopped = self.report(packet, classification="unresolved", exit_assessment="unsatisfied",
-                              continuation_assessment="blocked")
-        self.assertEqual(stopped["status"], "stopped")
-
-    def test_the_converge_gate_completes_at_the_first_trivial_review(self) -> None:
-        """Owner decision D-D (2026-11-01): converge is Backchain's default gate; a repairing pass is followed by one
-        fresh review, and that review's trivial result completes the child."""
-        packet = self.start("converge")
-        active = self.report(packet, classification="non-trivial", exit_assessment="satisfied")
-        self.assertEqual(active["status"], "active")
-        self.assertEqual(self.report(active, classification="trivial", exit_assessment="satisfied")["status"],
-                         "complete")
 
 
 if __name__ == "__main__":

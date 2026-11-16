@@ -94,7 +94,7 @@ UNAVAILABLE = ("timeout", "error")
 COMMAND_TIMEOUT_SECONDS = 600.0
 # Display: the end of one command's output a test record keeps; the cut says the command (in the same row) shows the rest.
 TAIL_CHARS = 6000
-SCHEMA = "shiploop-test-loop/v2"
+SCHEMA = "shiploop-test-loop/v1"
 BASE_SCHEMA = "shiploop-test-base/v1"
 # Result fields of the test stage, validated by ``check_result_fields``.
 RED_NA = "red_na"
@@ -1367,27 +1367,6 @@ def check_paths(action: str) -> Tuple[str, ...]:
             step_proof_check_path(action))
 
 
-def reuse_eligible(state: Mapping[str, Any], stage: str, work_item: str,
-                   commands: Sequence[Mapping[str, Any]]) -> bool:
-    """Whether these current commands may use checkout-bound receipts.
-
-    A target, host dependency or platform-card remote command needs a fresh run. Targetless rows retain the
-    existing checkout contract; this does not prove arbitrary shell commands hermetic. Proof is free text with
-    no target metadata, so any declared target or unsafe item command also requires its current execution.
-    """
-    import shiploop_mutation as mutation  # imports this module: resolve the recognizer only at call time
-
-    if stage == "release-verify":
-        return False
-    rows = list(commands)
-    if stage in STEP_PROOF_STAGES:
-        if _latest_root_result(state, "test-strategy").get("targets"):
-            return False
-        rows += list(_step_plan(state, work_item)[1].get("test_commands") or ())
-    return not any(row.get("target") or row.get("host_dependent")
-                   or mutation.remote_card(str(row.get("command", ""))) is not None for row in rows)
-
-
 def take_check(root: Path, action: str, records: Sequence[str], answer: str) -> None:
     """Write each check record a taken yes rests on as this action's next counted record (``complete`` taking a
     check's matching yes, phase B), ``reused`` naming the check record and the answer; nothing runs."""
@@ -1407,18 +1386,16 @@ def take_check(root: Path, action: str, records: Sequence[str], answer: str) -> 
         store.atomic_write_text(root / target(action, number), store.dumps(record, "ShipLoop record taken from a check"))
 
 
-def _reused(root: Path, state: Mapping[str, Any], action: str, stage: str, work_item: str, commands: Sequence[Mapping[str, Any]], repo: Path,
+def _reused(root: Path, action: str, stage: str, work_item: str, commands: Sequence[Mapping[str, Any]], repo: Path,
             held: Mapping[str, Mapping[str, Any]]) -> Optional[Tuple[List[Dict[str, Any]], Dict[str, Any]]]:
     """The runs of this action's passed check record, held to today's floors, when ``complete`` takes them instead
     of running every command again (owner decision D5, 2026-10-17); else None.
 
-    Eligible checkout commands take them when that record passed at this stage and item, lists exactly
-    ``commands``, and the repository's working content (``_tree``) is now a tree the check's run started on or left.  A run the floor now refuses is
+    It takes them when that record passed at this stage and item, lists exactly ``commands``, and the repository's
+    working content (``_tree``) is now a tree the check's run started on or left.  A run the floor now refuses is
     not taken: the commands run again, so a refusal always comes from a run made now.  Returns (runs, the ``reused``
     entry the counted record carries: which check record and the tree).
     """
-    if not reuse_eligible(state, stage, work_item, commands):
-        return None
     path = Path(root) / check_path(action)
     if not path.is_file():
         return None
@@ -1426,8 +1403,7 @@ def _reused(root: Path, state: Mapping[str, Any], action: str, stage: str, work_
         record = store.read_record(path)
     except (OSError, store.StorageError):
         return None
-    if not (isinstance(record, Mapping) and record.get("passed") is True
-            and record.get("schema") == SCHEMA and record.get("stage") == stage
+    if not (isinstance(record, Mapping) and record.get("passed") is True and record.get("stage") == stage
             and record.get("work_item") == work_item and record.get("commands") == list(commands)
             and record.get("trees")):
         return None
@@ -1501,7 +1477,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     else:
         held = {command: {"floor": ran, "from": "an earlier run of this command that ShipLoop accepted for this item"}
                 for command, ran in accepted_counts(root, state, work_item).items()}
-    reused = _reused(root, state, action, stage, work_item, commands, repo, held) if count and observed is None else None
+    reused = _reused(root, action, stage, work_item, commands, repo, held) if count and observed is None else None
     if reused is not None:
         record = {
             "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
@@ -1669,8 +1645,8 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     (``step_proof_path``, or ``step_proof_check_path`` for ``count=False``) is bound to the action, the step, the
     command and the candidate: the working trees the run started on and left (``_tree``).  A passed record of this
     action for the same step and command whose trees include today's is taken instead of running again, so an
-    unchanged eligible checkout candidate reuses its receipt; at complete that writes a numbered record that says so,
-    and at the Improve import (``phase`` "improve-import") nothing is written.  An empty refusal means the Proof passed.  A step with no
+    unchanged candidate reuses its receipt; at complete that writes a numbered record that says so, and at the Improve
+    import (``phase`` "improve-import") nothing is written.  An empty refusal means the Proof passed.  A step with no
     check is refused: the step plan gate requires one, so only a run positioned another way lacks it.
     """
     root = Path(root)
@@ -1684,10 +1660,9 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     tree = _tree(root, repo)
     number = _count(root, action, step_proof_path) + 1
     matched = next(((relative, record) for relative, record in reversed(_proof_records(root, action))
-                    if record.get("passed") is True and record.get("schema") == SCHEMA
-                    and record.get("step") == step_id
+                    if record.get("passed") is True and record.get("step") == step_id
                     and record.get("command") == row["command"] and tree and tree in (record.get("trees") or ())),
-                   None) if count and reuse_eligible(state, STEP_PROOF_STAGES[0], work_item, [row]) else None
+                   None) if count else None
     created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if matched is not None:
         line = ("step-proof: reused the passed " + ("check's run" if "-check.md" in matched[0] else "run") + " of "

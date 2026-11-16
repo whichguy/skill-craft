@@ -254,20 +254,8 @@ A done `release-plan` records `consumer_entry`: how a person reaches the result
 and the repository files that create that entry. ShipLoop refuses the release plan
 without one or when those files do not exist, so a component with no navigation
 entry is caught before release rather than at `release-verify`. `release-check`
-runs the dry-run deploy and each post-release confirm command once. Record actual
-target state, requested and observed candidate identities and remaining delta in
-`summary`, with output in `evidence_refs`: absent, requested candidate present,
-or different revision are legitimate observations. Failed, unreadable or
-inconclusive observation is indeterminate, never absence. Qualify what each check
-claims with independent positive and negative controls through an existing
-authorized isolated route; an identity check must reject a different revision.
-Presence or behavior checks may pass on several revisions and establish no identity
-themselves. A single current-target observation does not prove discrimination;
-unavailable controls leave discrimination unverified and waive no required check.
-Never mutate or delete the target to manufacture absence or infer a grant or setup workaround.
-At release, execute each still-required authorized operation once, citing current
-evidence for satisfied effects; an already-present artifact leaves remaining access,
-visibility, publication and promotion obligations due.
+runs the dry-run deploy and each post-release confirm command once, recording
+their "not there yet" output before the real deploy.
 
 ## Test cases
 

@@ -79,7 +79,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified", "settled", "follow_on",
+    "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified", "follow_on",
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
@@ -129,7 +129,7 @@ BLOCKED_RULE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers", "unverified", "settled", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
+    "red_na", "lint_waivers", "unverified", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
     "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions",
 )
@@ -162,7 +162,6 @@ _STATE_KEYS = frozenset(
         "planning_reconciliations",
         "revisions",
         "lint",
-        "backchain_passes",
         "planning_review",
         "owner_notes",
     )
@@ -176,11 +175,6 @@ DEFAULT_DELEGATION = guidance.INLINE
 # ``lint-mode --set`` changes it mid-run.
 LINT_MODES = lint.MODES
 DEFAULT_LINT = lint.DEFAULT_MODE
-# Run-level Backchain passes option: how many review passes the Backchain planning child may take
-# (see shiploop_prompts.BACKCHAIN_PASSES_MODES).  New CLI-created runs record ``one``; a saved run
-# without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
-BACKCHAIN_PASSES_MODES = guidance.BACKCHAIN_PASSES_MODES
-DEFAULT_BACKCHAIN_PASSES = guidance.DEFAULT_BACKCHAIN_PASSES
 # Run-level planning review option: which planning results start an Improve stage (see
 # shiploop_stage_spec.PLANNING_REVIEW_MODES: ``stage`` or ``none``).  New CLI-created runs record
 # DEFAULT_PLANNING_REVIEW; a saved run without the key is refused (one supported version), never
@@ -190,6 +184,11 @@ DEFAULT_PLANNING_REVIEW = stage_spec.DEFAULT_PLANNING_REVIEW
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
+# A saved run that records the retired run option ``backchain_passes`` is refused with this reason, never read without
+# it: Backchain, and every Backchain child the option offered, was retired by owner decision on 2026-11-16.
+BACKCHAIN_PASSES_REASON = ("this run was saved with the run option backchain_passes, which chose whether its planning "
+                           "stages could call a Backchain child; Backchain is retired and ShipLoop no longer records "
+                           "the option. " + FRESH_RUN_HINT)
 # A run saved before each implementation step recorded its Proof (the implement-step fix plan's step `check`): its step
 # plans have none, implement now runs one at done, and ShipLoop never makes one up for an old run.
 V6_REASON = ("this run was saved before each implementation step recorded its Proof (state version 6): its step plans "
@@ -229,7 +228,6 @@ __all__ = [
     "dispatch",
     "lint_mode",
     "lint_view",
-    "recorded_backchain_passes",
     "recorded_delegation",
     "recorded_planning_review",
     "new_state",
@@ -247,11 +245,6 @@ __all__ = [
 def recorded_delegation(state: Mapping[str, Any]) -> str:
     """Return the recorded delegation for newly issued actions."""
     return state["delegation"]
-
-
-def recorded_backchain_passes(state: Mapping[str, Any]) -> str:
-    """Return the run's Backchain passes option (every supported run records one)."""
-    return state["backchain_passes"]
 
 
 def recorded_planning_review(state: Mapping[str, Any]) -> str:
@@ -1304,10 +1297,6 @@ def _canonical_result(
             result["unverified"] = unverified.canonical(value["unverified"])
         except unverified.UnverifiedError as exc:
             raise NavigatorError(str(exc)) from exc
-    if "settled" in value:
-        _need((stage in unverified.STAGES or stage in unverified.due_stages()) and outcome == "done",
-              "settled is allowed only on a done product-acceptance or later result")
-        result["settled"] = unverified.canonical_settled(value["settled"])
     if "follow_on" in value:
         # Shape only, like unverified: the exact fields, the class and the sources are checked at the CLI gates.
         _need(stage in follow_on.STAGES and outcome == "done", "follow_on is allowed only on a done handoff result")
@@ -1471,15 +1460,13 @@ def new_state(
     improve_skill: str = "",
     delegation: str = DEFAULT_DELEGATION,
     lint_option: str | None = None,
-    backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
     planning_review: str = DEFAULT_PLANNING_REVIEW,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route (inline or ask-agent).
     ``lint_option`` records the script-owned lint option; ``None`` records off,
-    and the CLI passes DEFAULT_LINT for new runs. ``backchain_passes`` records
-    how many passes the Backchain planning child may take. ``planning_review``
+    and the CLI passes DEFAULT_LINT for new runs. ``planning_review``
     records which planning results start an Improve stage.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
@@ -1487,8 +1474,6 @@ def new_state(
     _need(delegation in DELEGATIONS, "delegation must be inline or ask-agent")
     _need(lint_option is None or lint_option in LINT_MODES,
           "lint must be one of " + ", ".join(LINT_MODES))
-    _need(backchain_passes in BACKCHAIN_PASSES_MODES,
-          "backchain passes must be one of " + ", ".join(BACKCHAIN_PASSES_MODES))
     _need(planning_review in PLANNING_REVIEW_MODES,
           "planning review must be one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(repo, "repo")
@@ -1530,7 +1515,6 @@ def new_state(
     # Every run records its lint option; a caller that chooses none records off
     # (the CLI always passes its fix default).
     state["lint"] = lint_option if lint_option is not None else "off"
-    state["backchain_passes"] = backchain_passes
     state["planning_review"] = planning_review
     validate(state)
     return state
@@ -1567,6 +1551,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "routed such runs through ask-agent. " + FRESH_RUN_HINT)
     # Refused before the key check: a version-10 run may carry the retired chain_bindings key, and its reason is this one.
     _need(state.get("version") != 10, V10_REASON)
+    _need("backchain_passes" not in keys, BACKCHAIN_PASSES_REASON)
     unexpected = sorted(keys - allowed)
     _need("lint" in keys,
           "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
@@ -1728,8 +1713,6 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "invalid owner notes record")
     _need(state["lint"] in LINT_MODES,
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
-    _need(state["backchain_passes"] in BACKCHAIN_PASSES_MODES,
-          "unsupported backchain passes option; expected one of " + ", ".join(BACKCHAIN_PASSES_MODES))
     _need(state["planning_review"] in PLANNING_REVIEW_MODES,
           "unsupported planning review option; expected one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
@@ -1935,8 +1918,7 @@ def _named_text(state: Mapping[str, Any], stage: str | None, route: str) -> str:
     """The stage text a packet prints, to decide which policy locators it needs ("" when there is no stage text)."""
     if stage is None or state["status"] in ("done", "halted"):
         return ""
-    return guidance.prompt(stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
-                           planning_review=recorded_planning_review(state),
+    return guidance.prompt(stage, delegation=route, planning_review=recorded_planning_review(state),
                            execution_mode=state.get("execution_mode") or None,
                            one_step_item=_one_step_item(state, stage), interactions=_interactions(state, stage))
 
@@ -2359,7 +2341,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     route = delegation(state)
     stage_text = _named_text(state, stage, route)  # rendered once: the run rules read it, the producer prints it
     duties, backchain = guidance.prompt_split(
-        stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
+        stage, delegation=route,
         planning_review=recorded_planning_review(state), execution_mode=state.get("execution_mode") or None,
         one_step_item=_one_step_item(state, stage), interactions=_interactions(state, stage))
     _need(isinstance(duties, str) and bool(duties.strip()), f"navigator prompt is unavailable for {stage}")
@@ -3697,11 +3679,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, c
     if not isinstance(result, Mapping):
         return
     missing = []
-    refs = list(result.get("evidence_refs") or ())
-    for row in result.get("settled", []) if isinstance(result.get("settled", []), list) else ():
-        if isinstance(row, Mapping) and isinstance(row.get("evidence_refs"), list):
-            refs.extend(row["evidence_refs"])
-    for ref in refs:
+    for ref in result.get("evidence_refs") or ():
         if not isinstance(ref, str) or not ref.startswith("/"):
             continue
         path = Path(_EVIDENCE_SUFFIX.sub("", ref))
@@ -5541,14 +5519,10 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
              "reason": "...", "due_item": "W1"},
         ]
     if stage in unverified.STAGES:
-        latest = unverified.current_list(state)[2]
-        result["unverified"] = ([dict(unverified.TEMPLATE_ROW)] if latest is None
-                                else [dict(row) for row in latest])
-        if latest is not None:
-            result["settled"] = []
+        result["unverified"] = [dict(unverified.TEMPLATE_ROW)]
     elif unverified.must_restate(state, stage):
+        # The current list, to carry forward: drop what this stage observed, move what it could not, keep the rest.
         result["unverified"] = [dict(row) for row in unverified.current_list(state)[2] or ()]
-        result["settled"] = []
     if stage in follow_on.STAGES:
         result["follow_on"] = [dict(follow_on.TEMPLATE_ROW)]
     assessment = consumer_delivery.template_assessment(state, stage)
@@ -6241,41 +6215,16 @@ def _platform_testing_lines(core: Any, state: Mapping[str, Any], stage: str) -> 
 
 
 def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
-    """The Backchain planning guide, the resources (or the audit resource and the loop-resource status) and the graph
-    check command, at a Backchain stage; what the stage's Backchain paragraph or line cites.  A run that offers no
-    Backchain child (``none``, the default) prints only the guide and the graph check."""
+    """The Backchain planning guide and the graph check command at a Backchain stage: what the stage's Backchain item or
+    paragraph cites.  No stage offers a Backchain child or prints its resources: Backchain is retired (owner decision
+    2026-11-16)."""
     if stage not in guidance.BACKCHAIN_STAGES:
         return []
     lines = ["Backchain planning guide: " + str(_reference_dir(core) / "backchain-planning.md") + "#navigator-planning"]
-    passes = recorded_backchain_passes(state)
-    child = guidance.offers_backchain_child(passes)  # `none`, the default, offers no child (owner, 2026-11-15)
-    resources = guidance.resolved_backchain_resources()
-    if guidance.offers_whole_backchain_loop(stage, passes) and not state.get("active_improve"):
-        # Only the stage that may start a whole loop selects its full resource set: plan, in a run that opts in.
-        lines.append(
-            "Selected Backchain and Until Loop resources "
-            "(resolved by ShipLoop from its installed plugin):"
-        )
-        lines.extend(f"  {label}: {path}" for label, path in resources)
-    elif child:
-        audit_resource = dict(resources)[guidance.BACKCHAIN_AUDIT_RESOURCE]
-        lines.append(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {audit_resource}")
-        if not state.get("active_improve"):
-            # S-5: the script reports what the host would otherwise have to check by hand.
-            missing = [label for label, path in resources if path.startswith("MISSING:")]
-            lines.append("Loop resources for a repair or send-back request, under "
-                         + str(guidance.backchain_skills_root()) + ": "
-                         + ("MISSING: " + ", ".join(missing) if missing else "all present"))
     if state["status"] == "active" and not state.get("active_improve"):
         lines.append("Backchain graph check: " + shlex.join(
             ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
             + " <your candidate file>")
-        # Backchain 0.7.0 keeps a planning run's records in the one directory its `prepare` creates; naming it gives every
-        # host the same place and lets the run review find the child's receipt and cycles (Round 10, W1).  A run with
-        # no Backchain child has no such directory to name.
-        if child:
-            lines.append("Backchain planning run directory: "
-                         + str(root / "backchain" / current_action(state)["id"] / "run"))
     return lines
 
 
@@ -7557,14 +7506,23 @@ def _unverified_rule(state: Mapping[str, Any], stage: str) -> list[str]:
     """The one sentence a stage that restates ``unverified`` acts on, for the head; ``_unverified_lines`` lists the rows."""
     if state["status"] != "active" or state.get("active_improve"):
         return []
-    _action, source, entries = unverified.current_list(state)
-    if entries is None or not (stage == "product-acceptance" or unverified.must_restate(state, stage)):
-        return []
-    routing = ("At product-acceptance revisit an early observation or explicit user correction may settle a row. "
-               if stage == "product-acceptance" else
-               "Only rows whose previous due_stage is " + stage + " may be removed here. ")
-    return ["Restate `unverified` from " + str(source) + " (prefilled); [] when none stays open. "
-            + routing + unverified.SETTLEMENT_RULE, ""]
+    if stage == "handoff":
+        _action, source, entries = unverified.current_list(state)
+        if entries is None:
+            return []
+        if not entries:
+            return ["Restate `unverified` as [] in your result: no request outcome stays unverified (" + str(source)
+                    + "'s list).", ""]
+        return ["Restate `unverified` in your result from the list " + str(source) + " left (your template's unverified "
+                "holds it): drop an outcome you observed here (name the observation in summary) and copy every other "
+                "entry unchanged.", ""]
+    if stage in unverified.due_stages() and unverified.must_restate(state, stage):
+        _action, source, _entries = unverified.current_list(state)
+        return ["Restate `unverified` in your result from the list " + str(source) + " left (your template's unverified "
+                "holds it): drop an entry due: " + stage + " that you observed here (name the observation in summary), "
+                "move the due_stage of one you could not observe to a later stage, copy every other entry unchanged; [] "
+                "when none stays open.", ""]
+    return []
 
 
 def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -7590,7 +7548,7 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
         if entries:
             lines.append("The request outcomes still unverified, as " + str(source) + " left the list (ShipLoop's "
                          "report lists them too). Restate the list in your result's unverified: drop one you observed "
-                         "here with a settled record and carry every other one:")
+                         "here (name the observation in summary) and copy every other one unchanged:")
             lines.extend(_unverified_row(row) for row in entries)
         elif entries is None:
             lines.append("No unverified list is recorded for product-acceptance (unmeasured, not zero).")
@@ -7599,16 +7557,12 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                          "unverified): restate it as [].")
         lines.append("That is the request-outcome list only: open items another stage recorded are in that stage's "
                      "own result; read them before stating the limits.")
-    elif ((stage == "product-acceptance" and unverified.current_list(state)[2] is not None)
-          or (stage in unverified.due_stages() and unverified.must_restate(state, stage))):
+    elif stage in unverified.due_stages() and unverified.must_restate(state, stage):
         _action, source, entries = unverified.current_list(state)
-        if stage == "product-acceptance":
-            lines.append("Latest pending request outcomes, as " + str(source) + " left the list (prefilled):")
-        else:
-            lines.append("Request outcomes still unverified, as " + str(source) + " left the list. Restate the list in "
-                         "your result's unverified: drop an entry due: " + stage + " with a settled record, move "
-                         "the due_stage of one you could not observe to a later stage, and carry every other entry; "
-                         "[] when none stays open:")
+        lines.append("Request outcomes still unverified, as " + str(source) + " left the list. Restate the list in "
+                     "your result's unverified: drop an entry due: " + stage + " that you observed here (name the "
+                     "observation in summary), move the due_stage of one you could not observe to a later stage, and "
+                     "copy every other entry unchanged; [] when none stays open:")
         lines.extend(_unverified_row(row) for row in entries or ())
     return lines
 
@@ -9142,8 +9096,8 @@ def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core:
                         child: Path | None = None) -> Any:
     """``result`` with a leading KNOWLEDGE, RUN, WORKTREE, GUIDES (or ``child``'s CHILD) of each evidence path written as its absolute path.
 
-    The lists read are ``evidence_refs``, ``settled[].evidence_refs`` and ``assumptions[].evidence``;
-    anything else, and a result that is not a mapping, is
+    The lists read are ``evidence_refs`` and each ``assumptions[].evidence`` (the only evidence fields a result has: an
+    ``unverified`` row holds exactly its seven text fields); anything else, and a result that is not a mapping, is
     returned as it is.  Raises ``NavigatorError`` for an unknown root.  The expanded text is what the gates check and
     what the run stores.
     """
@@ -9164,12 +9118,6 @@ def expand_result_roots(result: Any, root: Path, state: Mapping[str, Any], core:
         expanded["assumptions"] = [dict(row, evidence=listed(row["evidence"], f"assumptions[{number}].evidence"))
                                    if isinstance(row, Mapping) and "evidence" in row else row
                                    for number, row in enumerate(rows)]
-    rows = expanded.get("settled")
-    if isinstance(rows, list):
-        expanded["settled"] = [dict(row, evidence_refs=listed(row["evidence_refs"],
-                                  f"settled[{number}].evidence_refs"))
-                              if isinstance(row, Mapping) and "evidence_refs" in row else row
-                              for number, row in enumerate(rows)]
     return expanded
 
 
@@ -10209,10 +10157,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     not_enforced = _skill_call_gate(core, root, state, child)
                     receipt = _derived_improve_receipt(child, args, root, state, core)
                     final_result = receipt.get("final_result")
-                    effective_result = child["seed_result"] if final_result is None else final_result
-                    _check_submitted_evidence(effective_result, None)
-                    _check_submitted_unverified(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
+                    if final_result is not None:
+                        _check_submitted_evidence(final_result, None)
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -10310,15 +10256,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         submitted = _submitted_result(root, args, state=state, core=core)
         if action_id in state["accepted"]:
             submitted = _replay_with_receipt(root, state, action_id, submitted)
-        if command == "check":
-            if action_id in state["accepted"]:
-                print("ShipLoop check: action " + str(action_id) + " is already accepted; no gates ran and "
-                      "acceptance is unchanged.")
-                return 0
-            _need(state["status"] == "active",
-                  "ShipLoop check: run is " + str(state["status"]) + "; no gates ran. Recover through "
-                  + _callback(core, root, "next") + "; paused or blocked runs use "
-                  + _callback(core, root, "resume") + " before checking the pending action.")
         cursor_stage, _, cursor_item = _active_cursor(state)
         preparatory: list[str] = []
         # `shiploop check` (phases B and C plan, 2026-10-28): the same gates on a draft, recorded as one answer, with
@@ -10343,8 +10280,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
             draft = _result_input_path(root, action_id)
-            reusable = test_loop.reuse_eligible(
-                state, cursor_stage, cursor_item, test_loop.stage_commands(state, cursor_stage, cursor_item)[0])
             if checking:
                 # The check: the same gates, recorded as one answer complete can take (phases B and C plan).
                 started = datetime.now(timezone.utc).timestamp()
@@ -10365,18 +10300,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     records=shiploop_check.written_since(root, action_id, started))
             else:
                 taken = shiploop_check.matching_yes(
-                    root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft)) if reusable else None
+                    root, action_id, _answer_key(root, state, action_id, cursor_stage, cursor_item, draft))
                 if taken is not None:
-                    # Run-local evidence can disappear without changing the key; same-version answers can predate
-                    # the settlement rule. Recheck cheap admission in evaluator order before consuming a yes.
-                    try:
-                        _check_submitted_evidence(
-                            submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))
-                        _check_submitted_unverified(state, cursor_stage, submitted)
-                    except NavigatorError as exc:
-                        shiploop_check.record_answer(
-                            root, action_id, cursor_stage, taken["key"], yes=False, reason=str(exc))
-                        raise
                     # Nothing the gates read changed since the check said yes: take its answer, run nothing again.
                     test_loop.take_check(root, action_id, taken["records"], shiploop_check.answer_path(action_id))
                     gate_lines = (["Gates: taken from the check of " + str(taken["created_at"]) + " ("
@@ -10392,10 +10317,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                   "result now. Nothing was accepted, counted or committed"
                   + ("; the Until Loop receipt is checked by the callback, once the loop says complete or stopped"
                      if cursor_stage in loops.STAGES else "")
-                  + (". The callback takes this answer (" + str(root / shiploop_check.answer_path(action_id))
-                     + ") instead of running the gates again while the result and the files stay as they are now; any "
-                     "change makes it run them again." if reusable else
-                     ". Completion will run the gates again: these checks require fresh execution."))
+                  + ". The callback takes this answer (" + str(root / shiploop_check.answer_path(action_id))
+                  + ") instead of running the gates again while the result and the files stay as they are now; any "
+                  "change makes it run them again.")
             if (cursor_stage == expectations.TEST_SPEC_STAGE and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 # Counted notices (a criterion nothing confirms): said where the model can still fix them, never a refusal.

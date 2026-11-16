@@ -21,10 +21,7 @@ python3 "$CLI" graph-dry-run --scenario delivery --delegation ask-agent --format
 
 `--delegation inline|ask-agent` selects the simulated run's
 [delegation](navigator.md#run-it). It defaults to `inline`, as for a new run;
-`ask-agent` renders the opt-in delegated packets. `--backchain-passes none|one|converge`
-likewise selects the simulated run's
-[Backchain passes option](backchain-route.md#backchain-passes-option), default `none`, and changes the
-Backchain stage packets the trace prints. `--planning-review stage|none` selects the simulated run's
+`ask-agent` renders the opt-in delegated packets. `--planning-review stage|none` selects the simulated run's
 [planning review option](run-options.md#planning-review-option), default `stage`: `stage` changes no
 packet; `--planning-review none` simulates a run with no Improve stage at `spec`, `test-strategy`,
 `plan`, `step-plan` or `test-spec`, and the built-in scenarios are then the none schedule (the

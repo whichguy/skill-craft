@@ -10,7 +10,7 @@
     {
       "name": "skill-craft",
       "source": "./plugins/skill-craft",
-      "description": "Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent, Backchain and more) packaged as one plugin for Claude, Codex, Grok and Cursor."
+      "description": "Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent and more) packaged as one plugin for Claude, Codex, Grok and Cursor."
     }
   ]
 }

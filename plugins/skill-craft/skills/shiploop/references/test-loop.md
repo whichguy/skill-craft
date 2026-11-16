@@ -58,8 +58,8 @@ runs the base check without completing. A draft result's `red_na` and `retired_t
 never counts toward the refused runs: exit 0 when no new test ID passes on the
 base, 1 when one does or a test did not run, 3 when the check cannot run.
 
-`document` reruns affected commands; outer stages run recorded commands.
-Unchanged checkout checks may reuse receipts; external and `release-verify` checks rerun.
+`document` reruns what its edits affect on `done`; the outer `system-test`
+and `release-verify` rerun their own recorded commands.
 No count of refused runs
 stops `done` (the packet shows the tally; at `test`, base, candidate and
 mutation runs share one). When the plan or a recorded command is what is wrong,
@@ -94,20 +94,18 @@ delivered (`consumer-check`, never your checkout), else in the work area
 needs its `_na` reason. The run records under `tests/` are the evidence; a
 result's summary is not.
 
-Unobserved: a done `product-acceptance` lists it in `unverified`
-(outcome, requirement, reason, lower-layer check, settle, owner, due stage);
-`[]` says no outcome remains listed. Missing/incomplete/placeholder lists, unknown spec IDs or non-later due stages
-refuse. Completeness is not judged. For `primary`, `lower_layer_check` names a test ShipLoop passed for that
-requirement; else add-work adds it.
-
-Revisited acceptance, due stages and `handoff` restate the latest list.
-Each removal needs exactly one `settled`: `requirement`, `outcome`, `basis`,
-`evidence_refs`. Basis: `observed` (current required-surface observation) or
-`user-correction` (explicit user correction), with nonempty references.
-Acceptance may settle early; otherwise remove only due rows. Carry others;
-defer due rows, or carry at handoff. Missing restatements, unmatched
-settlements or kept due rows before handoff refuse. References: host claims,
-not proof of truth, currency or authority; delivery-contract gates still apply.
+A request outcome no executed check observed is neither confirmed nor hidden: a
+done `product-acceptance` lists it in `unverified` (outcome, requirement, reason,
+lower-layer check, settle, owner, due stage), and `[]` says every outcome was observed.
+ShipLoop refuses a missing list, an incomplete or placeholder entry, a requirement
+with no entry in the spec and a due stage that is not a later stage; it cannot judge
+that the list is complete. An outcome of a requirement the spec lists in `primary`
+is accepted only when its `lower_layer_check` is the ID of a test ShipLoop ran and saw
+pass in a case for that requirement; else add-work adds that test. The stage an
+entry is due at, and `handoff`, restate the current list in their own `unverified`:
+drop an entry due there once observed (the summary says how), move one not observed
+to a later stage, copy the rest; `[]` once none is open. ShipLoop refuses a missing
+restatement, a dropped later entry or a kept due one. The report shows what settled.
 
 ## Tests pass or the step stops
 

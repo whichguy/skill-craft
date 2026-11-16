@@ -1,0 +1,16 @@
+{
+ "model_used": "gpt-6.1-sol",
+ "fallback": false,
+ "exit": 0,
+ "profile": "agent",
+ "persona": "codex-sol",
+ "effort": "max",
+ "sandbox": "workspace-write",
+ "tool_restrictions": "none",
+ "error": null,
+ "elapsed_seconds": 704,
+ "text_file": "g1e-sol-answer.txt",
+ "reviewed_commit": "c154c44fee46a6c5c852ce158e818d3237d3f121",
+ "diff_base": "4e36b3ad486b30fce972e697096fcfa158c29e3d",
+ "checkout": "a neutral clone of main under /tmp with its origin remote removed; status unchanged before and after"
+}

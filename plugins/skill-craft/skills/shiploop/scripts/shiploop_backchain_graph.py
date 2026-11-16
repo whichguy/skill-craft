@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """ShipLoop's record-only ``backchain-check`` verb over Backchain's structural check.
 
-The check is Backchain's own (``skills/backchain/scripts/backchain_graph.py``, the port of the Backchain
-checkout's ``harness/lib.js``), found beside this skill in the plugin install.  ``shiploop backchain-check
+The check is ``backchain_graph.py`` beside this script: Backchain's structural check, the port of the Backchain
+research checkout's ``harness/lib.js``, which moved into ShipLoop when the Backchain skill was retired (owner decision
+2026-11-16).  ``shiploop backchain-check
 --candidate PATH`` records only: it prints a receipt, writes a snapshot of the bytes checked and the receipt under
 ``<run>/backchain/<action>/``, and never changes run state.
 """
@@ -18,10 +19,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# Backchain sits beside ShipLoop in the plugin install: the location rule of shiploop_prompts.backchain_skills_root.
-BACKCHAIN_SCRIPTS = Path(__file__).resolve().parents[2] / "backchain" / "scripts"
-if str(BACKCHAIN_SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(BACKCHAIN_SCRIPTS))
+# The structural check is the library beside this script.
+SCRIPTS = Path(__file__).resolve().parent
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 import backchain_graph as graph  # noqa: E402
 
 SCHEMA = "shiploop-backchain-check/v1"
@@ -153,10 +154,9 @@ def main(core: Any, argv: Optional[List[str]] = None) -> int:
         hint = ""
         if str(exc).startswith("not JSON"):
             # Both round-1 runs passed the Markdown plan note; say what the candidate is and where its shape is defined.
-            from shiploop_prompts import backchain_skills_root
-            hint = ("; the candidate is the Backchain plan graph as a JSON file, not a Markdown plan note and not a prose plan (its shape: "
-                    "Backchain SKILL.md, \"Plan document shape\"; schema in "
-                    f"{backchain_skills_root() / 'backchain' / 'prompts' / 'generator.v1.md'})")
+            guide = Path(__file__).resolve().parents[1] / "references" / "backchain-planning.md"
+            hint = ("; the candidate is the plan graph as a JSON file, not a Markdown plan note and not a prose plan (its "
+                    f"shape: the Backchain planning guide, \"Plan graph format\": {guide}#plan-graph-format)")
         print(f"ShipLoop backchain-check could not run: {exc}{hint}; this is not a finding", file=sys.stderr)
         return EXIT_UNAVAILABLE
     sys.stdout.write(receipt_text(record_))

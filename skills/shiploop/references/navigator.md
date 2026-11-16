@@ -220,8 +220,6 @@ python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROV
 python3 "$CLI" workspace start --repo="$REPO" --delegation=ask-agent --prompt='requested outcome'
 # Change an existing run's delegation for its future assignments:
 python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
-# Choose how many passes the Backchain planning child may take (one is the default; fixed for the run):
-python3 "$CLI" workspace start --repo="$REPO" --backchain-passes=converge --prompt='requested outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
 python3 "$CLI" complete --run-dir="$RUN_DIR" --action="$ACTION"   # reads $RUN_DIR/inbox/$ACTION.md; --result takes only that path
 ```
@@ -262,15 +260,9 @@ or done run. Setting the recorded value is a no-op. The
 setting selects packet text; no script verifies who executed an assignment, and
 the Improve stage's `complete` imports a child the same way on both routes.
 
-Every run also records its `backchain_passes` option (`none`, `one` or `converge`;
-`none` unless `--backchain-passes` says otherwise), which the Backchain stage
-packets are rendered with. No verb changes it mid-run, a retry of `init` or
-`workspace start` cannot change it, and a saved run without it is refused with the
-fresh-run hint. `none` offers no Backchain child at any stage: no whole `plan`/`draft`, no
-read-only `review`/`audit` and no `repair`/`revise`. Its Backchain stage packets print the
-planning guide and the record-only graph check, and not the audit resource, the
-loop-resource status line, the Backchain planning run directory, or the eight-file
-"Selected Backchain and Until Loop resources" block that `one` and `converge` print at `plan`. See [Backchain passes option](backchain-route.md#backchain-passes-option).
+Backchain stage packets print the planning guide and the record-only graph check. A saved run that
+still records the retired `backchain_passes` option (Backchain, and every Backchain child it chose, was
+retired on 2026-11-16) is refused with the fresh-run hint.
 
 Every run also records its `planning_review` option (`stage` or `none`; `stage` unless
 `--planning-review` says otherwise), which selects the planning results that start an

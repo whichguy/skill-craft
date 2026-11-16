@@ -1,0 +1,101 @@
+{
+  "scratch": "/private/tmp/g1e-epoch-status-vbtzug4q",
+  "state": {
+    "decision": null,
+    "attempts": [
+      {
+        "id": "control-hello-1",
+        "arm": "control",
+        "case": "hello",
+        "status": "not_launched"
+      },
+      {
+        "id": "control-hello-2",
+        "arm": "control",
+        "case": "hello",
+        "status": "unknown_launch"
+      },
+      {
+        "id": "candidate-hello-1",
+        "arm": "candidate",
+        "case": "hello",
+        "status": "recorded"
+      },
+      {
+        "id": "candidate-hello-2",
+        "arm": "candidate",
+        "case": "hello",
+        "status": "reviewed"
+      }
+    ]
+  },
+  "bridge": {
+    "ok": true,
+    "decision": null,
+    "receipts": {
+      "candidate-hello-2": {
+        "review": {
+          "validity": {
+            "status": "valid",
+            "discovery_qualified": true
+          }
+        },
+        "judge": {
+          "validity": {
+            "status": "valid"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "attempts": [
+      {
+        "id": "control-hello-1",
+        "status": "not_launched"
+      },
+      {
+        "id": "control-hello-2",
+        "status": "unknown_launch"
+      },
+      {
+        "id": "candidate-hello-1",
+        "status": "recorded"
+      },
+      {
+        "id": "candidate-hello-2",
+        "status": "reviewed"
+      }
+    ]
+  },
+  "facade": {
+    "decision": null,
+    "receipts": [],
+    "incomplete": 0,
+    "expected": 0,
+    "unreadable": null,
+    "invalid_evidence": []
+  },
+  "facts": {
+    "review": {
+      "valid": true,
+      "complete": true
+    },
+    "judge": {
+      "valid": true,
+      "complete": true
+    },
+    "invalid": [],
+    "unreconciled": false,
+    "candidate": {
+      "id": "LR-witness",
+      "hash": "cccccccccccccccccccccccccccccccccccccccc",
+      "outcome": "DROP"
+    }
+  },
+  "next_action": {
+    "action": "launch",
+    "attempt_id": "control-hello-1",
+    "arm": "control",
+    "case": "hello"
+  }
+}

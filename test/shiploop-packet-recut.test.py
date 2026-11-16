@@ -39,8 +39,7 @@ from shiploop_packet_view import assert_top_block  # noqa: E402
 CORE = types.SimpleNamespace(PACKAGE_ROOT=ROOT / "skills/shiploop", REF_DIR=ROOT / "skills/shiploop/references")
 CASES = {name: case for name, case in json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text()).items()
          if not name.startswith("_")}
-MODES = [(delegation, review, passes) for delegation in prompts.DELEGATIONS for review in ("stage", "none")
-         for passes in prompts.BACKCHAIN_PASSES_MODES]
+MODES = [(delegation, review) for delegation in prompts.DELEGATIONS for review in ("stage", "none")]
 # Ceilings in characters for the offline node-fix-bug inner loop, set from its sizes when the re-cut landed plus about
 # 10% headroom: a packet that grows past one is the repetition the re-cut removed coming back. Raise one only with
 # a recorded reason (a new obligation), never to make room for a restatement.
@@ -178,10 +177,9 @@ class ImprovePacketTests(unittest.TestCase):
 class NoAdvanceImproveTests(unittest.TestCase):
     def test_no_producer_prompt_mentions_improve(self) -> None:
         for stage in prompts.STAGES:
-            for delegation, review, passes in MODES:
-                with self.subTest(stage=stage, delegation=delegation, review=review, passes=passes):
-                    text = prompts.prompt(stage, delegation=delegation, planning_review=review,
-                                          backchain_passes=passes)
+            for delegation, review in MODES:
+                with self.subTest(stage=stage, delegation=delegation, review=review):
+                    text = prompts.prompt(stage, delegation=delegation, planning_review=review)
                     self.assertNotRegex(text, r"\bImprove\b")
 
     def test_no_producer_packet_announces_an_improve_child(self) -> None:

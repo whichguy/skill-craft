@@ -162,7 +162,6 @@ _STATE_KEYS = frozenset(
         "planning_reconciliations",
         "revisions",
         "lint",
-        "backchain_passes",
         "planning_review",
         "owner_notes",
     )
@@ -176,11 +175,6 @@ DEFAULT_DELEGATION = guidance.INLINE
 # ``lint-mode --set`` changes it mid-run.
 LINT_MODES = lint.MODES
 DEFAULT_LINT = lint.DEFAULT_MODE
-# Run-level Backchain passes option: how many review passes the Backchain planning child may take
-# (see shiploop_prompts.BACKCHAIN_PASSES_MODES).  New CLI-created runs record ``one``; a saved run
-# without the key is refused (one supported version), never migrated, and no verb changes it mid-run.
-BACKCHAIN_PASSES_MODES = guidance.BACKCHAIN_PASSES_MODES
-DEFAULT_BACKCHAIN_PASSES = guidance.DEFAULT_BACKCHAIN_PASSES
 # Run-level planning review option: which planning results start an Improve stage (see
 # shiploop_stage_spec.PLANNING_REVIEW_MODES: ``stage`` or ``none``).  New CLI-created runs record
 # DEFAULT_PLANNING_REVIEW; a saved run without the key is refused (one supported version), never
@@ -190,6 +184,11 @@ DEFAULT_PLANNING_REVIEW = stage_spec.DEFAULT_PLANNING_REVIEW
 # Printed for any saved run this navigator cannot load.
 FRESH_RUN_HINT = ("Preserve it; this ShipLoop cannot resume it. Start new work with init or "
                   "workspace start in a fresh --run-dir.")
+# A saved run that records the retired run option ``backchain_passes`` is refused with this reason, never read without
+# it: Backchain, and every Backchain child the option offered, was retired by owner decision on 2026-11-16.
+BACKCHAIN_PASSES_REASON = ("this run was saved with the run option backchain_passes, which chose whether its planning "
+                           "stages could call a Backchain child; Backchain is retired and ShipLoop no longer records "
+                           "the option. " + FRESH_RUN_HINT)
 # A run saved before each implementation step recorded its Proof (the implement-step fix plan's step `check`): its step
 # plans have none, implement now runs one at done, and ShipLoop never makes one up for an old run.
 V6_REASON = ("this run was saved before each implementation step recorded its Proof (state version 6): its step plans "
@@ -229,7 +228,6 @@ __all__ = [
     "dispatch",
     "lint_mode",
     "lint_view",
-    "recorded_backchain_passes",
     "recorded_delegation",
     "recorded_planning_review",
     "new_state",
@@ -247,11 +245,6 @@ __all__ = [
 def recorded_delegation(state: Mapping[str, Any]) -> str:
     """Return the recorded delegation for newly issued actions."""
     return state["delegation"]
-
-
-def recorded_backchain_passes(state: Mapping[str, Any]) -> str:
-    """Return the run's Backchain passes option (every supported run records one)."""
-    return state["backchain_passes"]
 
 
 def recorded_planning_review(state: Mapping[str, Any]) -> str:
@@ -1471,15 +1464,13 @@ def new_state(
     improve_skill: str = "",
     delegation: str = DEFAULT_DELEGATION,
     lint_option: str | None = None,
-    backchain_passes: str = DEFAULT_BACKCHAIN_PASSES,
     planning_review: str = DEFAULT_PLANNING_REVIEW,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item.
 
     ``delegation`` records the run's execution route (inline or ask-agent).
     ``lint_option`` records the script-owned lint option; ``None`` records off,
-    and the CLI passes DEFAULT_LINT for new runs. ``backchain_passes`` records
-    how many passes the Backchain planning child may take. ``planning_review``
+    and the CLI passes DEFAULT_LINT for new runs. ``planning_review``
     records which planning results start an Improve stage.
     """
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
@@ -1487,8 +1478,6 @@ def new_state(
     _need(delegation in DELEGATIONS, "delegation must be inline or ask-agent")
     _need(lint_option is None or lint_option in LINT_MODES,
           "lint must be one of " + ", ".join(LINT_MODES))
-    _need(backchain_passes in BACKCHAIN_PASSES_MODES,
-          "backchain passes must be one of " + ", ".join(BACKCHAIN_PASSES_MODES))
     _need(planning_review in PLANNING_REVIEW_MODES,
           "planning review must be one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(repo, "repo")
@@ -1530,7 +1519,6 @@ def new_state(
     # Every run records its lint option; a caller that chooses none records off
     # (the CLI always passes its fix default).
     state["lint"] = lint_option if lint_option is not None else "off"
-    state["backchain_passes"] = backchain_passes
     state["planning_review"] = planning_review
     validate(state)
     return state
@@ -1567,6 +1555,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "routed such runs through ask-agent. " + FRESH_RUN_HINT)
     # Refused before the key check: a version-10 run may carry the retired chain_bindings key, and its reason is this one.
     _need(state.get("version") != 10, V10_REASON)
+    _need("backchain_passes" not in keys, BACKCHAIN_PASSES_REASON)
     unexpected = sorted(keys - allowed)
     _need("lint" in keys,
           "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
@@ -1728,8 +1717,6 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "invalid owner notes record")
     _need(state["lint"] in LINT_MODES,
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
-    _need(state["backchain_passes"] in BACKCHAIN_PASSES_MODES,
-          "unsupported backchain passes option; expected one of " + ", ".join(BACKCHAIN_PASSES_MODES))
     _need(state["planning_review"] in PLANNING_REVIEW_MODES,
           "unsupported planning review option; expected one of " + ", ".join(PLANNING_REVIEW_MODES))
     _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
@@ -1935,8 +1922,7 @@ def _named_text(state: Mapping[str, Any], stage: str | None, route: str) -> str:
     """The stage text a packet prints, to decide which policy locators it needs ("" when there is no stage text)."""
     if stage is None or state["status"] in ("done", "halted"):
         return ""
-    return guidance.prompt(stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
-                           planning_review=recorded_planning_review(state),
+    return guidance.prompt(stage, delegation=route, planning_review=recorded_planning_review(state),
                            execution_mode=state.get("execution_mode") or None,
                            one_step_item=_one_step_item(state, stage), interactions=_interactions(state, stage))
 
@@ -2359,7 +2345,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     route = delegation(state)
     stage_text = _named_text(state, stage, route)  # rendered once: the run rules read it, the producer prints it
     duties, backchain = guidance.prompt_split(
-        stage, delegation=route, backchain_passes=recorded_backchain_passes(state),
+        stage, delegation=route,
         planning_review=recorded_planning_review(state), execution_mode=state.get("execution_mode") or None,
         one_step_item=_one_step_item(state, stage), interactions=_interactions(state, stage))
     _need(isinstance(duties, str) and bool(duties.strip()), f"navigator prompt is unavailable for {stage}")
@@ -6241,41 +6227,16 @@ def _platform_testing_lines(core: Any, state: Mapping[str, Any], stage: str) -> 
 
 
 def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
-    """The Backchain planning guide, the resources (or the audit resource and the loop-resource status) and the graph
-    check command, at a Backchain stage; what the stage's Backchain paragraph or line cites.  A run that offers no
-    Backchain child (``none``, the default) prints only the guide and the graph check."""
+    """The Backchain planning guide and the graph check command at a Backchain stage: what the stage's Backchain item or
+    paragraph cites.  No stage offers a Backchain child or prints its resources: Backchain is retired (owner decision
+    2026-11-16)."""
     if stage not in guidance.BACKCHAIN_STAGES:
         return []
     lines = ["Backchain planning guide: " + str(_reference_dir(core) / "backchain-planning.md") + "#navigator-planning"]
-    passes = recorded_backchain_passes(state)
-    child = guidance.offers_backchain_child(passes)  # `none`, the default, offers no child (owner, 2026-11-15)
-    resources = guidance.resolved_backchain_resources()
-    if guidance.offers_whole_backchain_loop(stage, passes) and not state.get("active_improve"):
-        # Only the stage that may start a whole loop selects its full resource set: plan, in a run that opts in.
-        lines.append(
-            "Selected Backchain and Until Loop resources "
-            "(resolved by ShipLoop from its installed plugin):"
-        )
-        lines.extend(f"  {label}: {path}" for label, path in resources)
-    elif child:
-        audit_resource = dict(resources)[guidance.BACKCHAIN_AUDIT_RESOURCE]
-        lines.append(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {audit_resource}")
-        if not state.get("active_improve"):
-            # S-5: the script reports what the host would otherwise have to check by hand.
-            missing = [label for label, path in resources if path.startswith("MISSING:")]
-            lines.append("Loop resources for a repair or send-back request, under "
-                         + str(guidance.backchain_skills_root()) + ": "
-                         + ("MISSING: " + ", ".join(missing) if missing else "all present"))
     if state["status"] == "active" and not state.get("active_improve"):
         lines.append("Backchain graph check: " + shlex.join(
             ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
             + " <your candidate file>")
-        # Backchain 0.7.0 keeps a planning run's records in the one directory its `prepare` creates; naming it gives every
-        # host the same place and lets the run review find the child's receipt and cycles (Round 10, W1).  A run with
-        # no Backchain child has no such directory to name.
-        if child:
-            lines.append("Backchain planning run directory: "
-                         + str(root / "backchain" / current_action(state)["id"] / "run"))
     return lines
 
 

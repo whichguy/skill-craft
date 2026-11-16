@@ -81,10 +81,10 @@ install receive released packages, never work in progress. The plugin updates
 when its `version` (in `catalog/skill-craft-plugin.json`) changes, which happens
 at every release; each skill keeps its own `version:` for the changelog.
 
-Backchain and Plan Dispatcher are ordinary skills here (`skills/backchain`,
-`skills/plan-dispatcher`), shipped in the skill-craft plugin like every other skill. Backchain's
-research harness, schema, fixtures and samples stay in the separate Backchain
-development checkout and are not shipped.
+Plan Dispatcher is an ordinary skill here (`skills/plan-dispatcher`), shipped in the skill-craft
+plugin like every other skill. Backchain, its former planning sibling, was retired on 2026-11-16
+(docs/backchain-efficiency-journal-2026-11.md, Round 16); its research harness stays in the
+separate Backchain development checkout.
 Improve remains owned here and includes its own compatible runtime; the standalone
 Until Loop entry does not replace Improve's selected source.
 

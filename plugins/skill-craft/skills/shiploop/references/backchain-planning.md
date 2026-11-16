@@ -2,10 +2,9 @@
 
 ## Navigator planning
 
-This guide is ShipLoop's planning checklist, not a standalone Backchain
-invocation or a result schema. A Backchain call uses only the caller contract in
-[Source-aware native caller](#source-aware-native-caller) below; there is no
-embedded Backchain mode. Read the selected
+This guide is ShipLoop's planning checklist, not a call to another skill or a
+result schema. (The standalone Backchain skill was retired on 2026-11-16; its
+backward-planning method is this guide's.) Read the selected
 product clauses using [reference handoffs and destinations](project-knowledge.md#reference-handoffs-and-destinations)
 alongside the new request and current-run spec. Preserve unaffected conditions
 and map each required outcome to its own expected observation/test locator.
@@ -14,17 +13,14 @@ At `spec`, check outcomes and missing prerequisites without authoring future
 receipts. At `plan`, apply [the dependency audit](#dependency-audit) to order
 producers before consumers. At `step-plan`, apply it to the scoped local
 microplan and its suppliers. At `carry-forward` and `product-acceptance`, use it
-only for affected pending/corrective work and newly exposed dependencies. In a
-native call, a whole `plan`/`draft` or authorized `repair`/`revise`
-operation owns its internal convergence; the ordinary Improve handoff, where the stage has one, remains a
-separate broader review.
+only for affected pending/corrective work and newly exposed dependencies. The
+ordinary Improve handoff, where the stage has one, is the separate broader review.
 
 After the initial steps are created, both `plan` and `step-plan` must complete
 their actual Improve handoff before consumers use the plan, when the run has one: in a
 `planning_review: none` run neither stage has an Improve stage, so the graph's only checks before
 consumers use it are ShipLoop's at `complete` and the structural `backchain-check`. Include any
-execution graph in that review's candidate and evidence locators;
-Backchain's result does not bypass this broader planning review.
+execution graph in that review's candidate and evidence locators.
 
 Use [question-driven history investigation](project-knowledge.md#investigate-git-history-for-planning)
 when a decision depends on prior rationale. Continue relevant history as needed,
@@ -33,7 +29,7 @@ specific plan constraints, prerequisites or checks rather than a citation invent
 
 Retain the audit in ordinary plan notes, result `evidence_refs` and work-item
 `context`. Use the current callback and allowed result fields; do not import
-legacy result fields, frozen-plan certificates, a Backchain JSON schema, or
+legacy result fields, frozen-plan certificates, the plan graph format, or
 another counter/dispatcher. The sections below describe the shared five lenses.
 A saved run from a retired protocol or mode is refused rather than read with
 older field names. A source path, matched label, or completed supplier declaration
@@ -47,27 +43,22 @@ user prompt. Register every generated planning file in that producer's ordinary
 `evidence_refs`.
 Keep external local documents as explicit references and URLs as citations until
 their material is supplied locally. This is planning context for the immutable
-chain manifest, not a new Backchain review machine or a substitute for the
+chain manifest, not a new review machine or a substitute for the
 unchanged reviewed execution graph.
 
 ## Owner binding
 
-This guide is not a call to Backchain's standalone skill, generator, elaborator,
-or harness. Only a `source-aware-native` call binds the current host to the
-standalone skill and caller resources the packet prints in a run that opts in to a
-Backchain child (`--backchain-passes one` or `converge`): the full set at `plan`, the audit
-resource and a status line for the loop resources at the other Backchain stages. A run
-whose Backchain passes option is `none`, the default, calls no Backchain child and prints
-none of them; this guide's dependency audit and the record-only graph check still apply.
-Read only the sections selected by the current packet. Perform that one action
-and submit its exact callback; a planning review never authorizes implementation,
-deployment, a new credential, or a different writer.
+This guide is ShipLoop's own and calls no other skill. Read only the sections
+selected by the current packet. Perform that one action and submit its exact
+callback; a planning review never authorizes implementation, deployment, a new
+credential, or a different writer.
 
 ShipLoop owns traversal; actual Improve owns its independent review cycle. Use
 ordinary notes, `evidence_refs` and work-item `context` as described in
-[Navigator planning](#navigator-planning). Do not add Backchain's `goal_needs`,
-`parallel_groups`, `match`, or `artifact` fields to a navigator result. No second
-scheduler, per-row cursor, state file, or model dependency is needed.
+[Navigator planning](#navigator-planning). Do not add the plan graph format's
+`goal_needs`, `parallel_groups`, `match`, or `artifact` fields to a navigator
+result. No second scheduler, per-row cursor, state file, or model dependency is
+needed.
 
 ## Outcomes
 
@@ -97,7 +88,7 @@ re-observed rather than recalled. Mark a criterion that no available check can
 confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
 than dropping it. When a check relies on an external oracle (golden, fixture, or
 snapshot), confirm that the oracle agrees with the task. This applies to every
-work step's `produces`/`contract.done`, not only sinks; a Backchain step
+work step's `produces`/`contract.done`, not only sinks; a plan graph step's
 `confirm` entry records the same confirmation in structured form.
 
 "The suite passes" alone is not per-outcome evidence. Use the existing
@@ -223,7 +214,7 @@ corrective work; do not edit accepted state or declare a missing prerequisite
 satisfied. A prerequisite that blocks the active step needs resolution or a
 pause now, not a journal entry that permits premature completion. Preserve
 running/completed definitions, accepted receipts, exact goal and initial-state
-baseline; incompatible changes need explicit replanning authority. No Backchain
+baseline; incompatible changes need explicit replanning authority. No planning
 rule permits silently repairing or deleting accepted edges outside that path.
 
 ## Limits
@@ -232,87 +223,67 @@ ShipLoop's gates validate shapes, identities, links and receipts—not the
 semantic truth or exhaustiveness of this reasoning. Review against independent
 request criteria and meaningful checks remains necessary.
 
-## Source-aware native caller
+## Plan graph format
 
-`source-aware-native` is the only Backchain route. At `plan` the packet's printed
-"Selected Backchain and Until Loop resources" block is the selection (a run whose
-Backchain passes option is `none`, the default, calls no Backchain child and prints no such
-block): ShipLoop
-resolves these paths from its own installed plugin. It lists Backchain `SKILL.md`,
-the `backchain-caller/v1` resource in `references/caller-contract.md`,
-`references/convergence.md`, `prompts/convergence-review.prompt.md`, `scripts/backchain.py`, and the
-Until Loop `ADAPTER.md`, `references/runtime-ephemeral.md`, and
-`scripts/until_loop_ephemeral.py`. A planning host may call the route only when
-every listed resource is resolved. A `MISSING: ...` entry blocks it for that
-specifically named resource; retain that missing-resource reason instead of
-calling the route only unverifiable. Read the Backchain convergence resources:
-they must support the direct natural-language handoff under
-`Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
-actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
-exact final receipt. This is host-mediated prompt guidance, not navigator state, a
-callback, a controller, or a scheduler. Caller/v1 alone does not establish this
-capability; an observed old custom Backchain loop is incompatible even when an Until
-Loop package is installed. Do not guess a sibling, cache, or ambient package, or
-substitute a different Backchain/Until Loop install than the one printed in the packet.
+The record-only `backchain-check` reads a candidate graph in this shape, as a JSON
+file. Write one only when the work needs a graph, never only to run the check; it
+never replaces the navigator result's own fields.
 
-Only `plan` prints that block, and not in a `none` run. The other Backchain stages, and
-`plan` in a `none` run, print the `backchain-caller/v1` audit resource (`review`/`audit`; its template is
-`prompts/audit.prompt.md` beside `references/`) and one "Loop resources" line that
-reports, under the skills root it names (`backchain/` and `improve/runtime/until-loop/`),
-whether every file listed above is present for a `repair`/`revise` request or which are
-MISSING, and a MISSING file blocks that route for that named resource.
+**Top-level keys.** Required: `goal`, `initial_state`, `steps`, `parallel_groups`,
+`unresolved`. Optional: `goal_needs`.
 
-The whole `plan`/`draft` request is the host's choice: nothing refuses a plan without it
-and ShipLoop cannot see whether it ran; the default (`one`) plan packet asks the plan's
-`summary` to name the route taken. The dependency audit above is not optional on either
-route.
+- `goal`: one sentence describing the end state, not a task title or a verb-first
+  to-do ("User authentication works end-to-end", not "Add auth").
+- `initial_state`: concrete facts already true and evidenced before any step runs
+  (supplied by the request or found by inspection while planning), never guesses.
+- `steps`: at least one step; every step's `produces` has at least one non-empty
+  string.
+- `parallel_groups`: the steps of each dependency depth, derived from the inputs.
+  The check packages a copy, so `[]` is fine.
+- `unresolved`: the open needs the plan cannot close (shape below); `[]` when none
+  remain.
+- `goal_needs`: the request's terminal needs. Each must appear in some step's
+  `produces` or in `initial_state` for the graph to be complete. Never invent an
+  entry; `[]` means no terminal constraint.
 
-Record the binding id, candidate and receipt locators in ordinary run notes,
-`evidence_refs` and compact work-item `context`, and keep Backchain's
-`review.convergence` record (`terminal_receipt`, `domain_evidence`, `planning_gaps`,
-`execution_blockers`, `next_action`) unchanged. ShipLoop owns no counter or retry and
-never completes from an intermediate plan; recovery rereads these records and never
-infers a root from CWD or a neighboring package.
+**Steps.** Every step has five required fields, `id`, `statement`, `produces`,
+`inputs` and `origin` (`seed` or `discovered`), plus an optional `confirm`, and no
+other field. `statement` and every `produces` entry are postconditions (a state or
+conclusion), never actions or commands. A new graph's steps are `S1`, `S2`, … with
+`origin: "seed"`; steps added to an inherited graph are `D1`, `D2`, … with
+`origin: "discovered"`. A `confirm` entry is `{"produces": "<exact text of one of
+this step's produces>", "by": "<command, observation or inspection>; pass when
+<expected result>", "level": "execute" | "inspect" | "unconfirmable"}`, at most one
+per produce: the [Outcomes](#outcomes) `Confirm by` clause in structured form.
 
-The Until Loop child is plan-only: it may change the candidate plan and permitted planning
-companions, but may not commit, push, merge, execute the project, or broaden scope.
+**Inputs and open needs.** Each input is `{"need": ..., "from": ...}`: `from: null`
+when the need is already true (it must then also appear, word for word, in
+`initial_state`), or the id of the step whose `produces` supplies it; never a
+placeholder such as `"initial"`. Optional: `artifact` (the concrete carrier) and
+`match` (only for a wording difference that is not obvious). Each `unresolved`
+entry is `{"step": ..., "need": ..., "reason": "residual-risk"}`, or `"reason":
+"circular"` with a `cycle` array of at least two step ids naming the refused loop
+(that edge stays out of `inputs`). Never drop a genuine need silently.
 
-In a run that opts in, the plan-stage owner may request one whole `plan`/`draft`
-operation (a run whose Backchain passes option is `none` requests no Backchain child at
-any stage). A material audit finding may be routed to the authorized current stage owner for one bounded
-whole `repair`/`revise` operation. Each whole operation lets Backchain invoke the
-selected actual Until Loop for its dependency-specific review/fix/check cycle. Until
-Loop alone owns callback progress, its review gate (the packet's printed gate for the
-run's Backchain passes option: in `one` the `required_trivial_reviews` and the exit condition
-Backchain's `freeze` writes, in `converge` Backchain's default gate with no marker line; a
-`repair`/`revise` packet in `one` points to Backchain's convergence reference for
-the gate), recovery, and
-terminal state. The host starts each child with Backchain's own commands, `prepare --run`
-the printed Backchain planning run directory and then `freeze`, which writes the child's
-start contract; no packet asks the host to write that contract. Backchain returns only after the child reports `complete`
-and the exact terminal evidence is saved; a blocked, stopped, unresolved, or
-incompatible child leaves the parent action incomplete and must not be submitted as
-completed. Only that exact `complete` receipt plus final candidate identity and domain
-evidence permits planning convergence. `review`/`audit` remains a read-only one-pass diagnostic: it neither
-mutates a candidate nor starts an Until Loop child. Improve's ordinary ShipLoop review
-remains independent. It must not launch a nested whole Backchain→Until Loop subcall;
-use a one-pass Backchain primitive for any relevant diagnostic.
+**Structural invariants.** A valid graph satisfies all seven:
+1. only the fields above, and each `confirm` names the exact text of one of its
+   step's produces, at most once, with a non-blank `by` and a valid `level`;
+2. no cycle among committed edges;
+3. every non-null `from` names an existing step;
+4. every `discovered` step supplies another step's input or a `goal_needs` entry;
+5. no need is both an input and an unresolved entry of the same step;
+6. every step id in `unresolved` and `cycle` exists, and a non-empty
+   `parallel_groups` matches the dependency depths;
+7. every `from: null` need appears in `initial_state` (exact match after trimming
+   and collapsing whitespace).
 
-
-An unavailable, stale, ambiguous, superseded-without-inspection, or incompatible
-material source/card/contract/resource is incomplete or blocked; there is no
-fallback route. Host reasoning evaluates capability and packet compatibility:
-the direct-handoff compatibility judgment remains host-judged and the script does not
-claim to enforce those semantic facts. A native output with invalid identity is
-unchanged/rejected/unresolved; no digest is invented. A revised plan starts with
-structural status unknown and empty `parallel_groups` until its exact output digest and
-structural check are independently recorded.
+A valid graph with entries in `unresolved` is valid but incomplete; with
+`goal_needs`, every entry must also be covered for the graph to be complete.
 
 ## Experiment-informed planning
 
 In [experiment-informed planning](planning-experiments.md), the provisional delivery plan exposes
 assumptions to its existing Plan Improve owner (a `planning_review: none` run has none). That child may run bounded
 experiments and revise the candidate or return an upstream-reconciliation need.
-Native Backchain remains plan-only; do not launch another Backchain/Until loop
-inside Plan Improve. Bind the accepted graph to the dispatcher only after the
+Do not launch a separate planning loop inside Plan Improve. Bind the accepted graph to the dispatcher only after the
 renewed planning suffix and preparation complete.

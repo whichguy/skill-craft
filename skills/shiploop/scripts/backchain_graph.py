@@ -6,8 +6,8 @@ port reproduces each one, failure messages and details included.  Every function
 same name; JS semantics that Python does not share are explicit: missing properties (``_MISSING``),
 insertion-ordered sets (dicts), object key order, ECMAScript whitespace, JS number text and JSON.stringify.
 
-Library only: ``backchain.py`` is the command line, and ShipLoop's ``backchain-check`` verb builds its receipts
-from these functions.
+Library only: ShipLoop's ``backchain-check`` verb (``shiploop_backchain_graph.py``) builds its receipts from these
+functions.  It moved here from the Backchain skill, with ``backchain.py`` retired, on 2026-11-16.
 """
 
 from __future__ import annotations

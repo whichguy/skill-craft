@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Hermetic tests for Backchain's port of its structural check (skills/backchain/scripts/backchain_graph.py).
+"""Hermetic tests for Backchain's structural check, the library ShipLoop's backchain-check verb uses
+(skills/shiploop/scripts/backchain_graph.py; it moved there from the Backchain skill, retired on 2026-11-16).
 
 test/fixtures/backchain-check holds verdicts that make_corpus.js recorded from the Backchain checkout's
 harness/lib.js, the arbiter; the port must reproduce every one exactly.
@@ -15,7 +16,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills/backchain/scripts"
+SCRIPTS = ROOT / "skills/shiploop/scripts"
 CORPUS = ROOT / "test/fixtures/backchain-check"
 sys.path.insert(0, str(SCRIPTS))
 import backchain_graph as graph  # noqa: E402
