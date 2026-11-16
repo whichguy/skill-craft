@@ -1,0 +1,27 @@
+{
+ "host": "grok",
+ "source_trial": "e17-grok-qp",
+ "step": "T1",
+ "failed_attempt": 2,
+ "next_attempt": 3,
+ "branch": "w-T1-2",
+ "main_commit": "c6326b355eca48633f20673244adb9b55bf3dd08",
+ "failed_commit": "93a8b1e56c157338b7486a2aa9d34f8204ae9dc2",
+ "root_commit": "2de144234ad212ecf9a98c2743cff5fdbe820c2f",
+ "cause": "conflict",
+ "paths": [
+  "src/store.js",
+  "src/tickets/validate.js"
+ ],
+ "main_holds": [
+  "T2",
+  "T3"
+ ],
+ "retry_event_seq": 51,
+ "prefix_events": 51,
+ "plan_sha": "eaa7f6bf55cc80c0661bca85d5737d7dc59f7271e74e84e425ba19b2f941323b",
+ "bundle_sha256": "bb0c3b1313fa2441cd54473d5ef53c1f2345b66e7b670c5f3dbe78f84e3bd685",
+ "prefix_sha256": "12bb03f099d3a9ff7fb73b007ebb5cbaa5289152703671d02d4e6f654a1a54f1",
+ "e17_next_attempt_seconds": 31.4,
+ "known_answer_branch": "w-T1-3"
+}

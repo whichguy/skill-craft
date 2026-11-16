@@ -31,7 +31,7 @@ aborted and logged and the task is offered again from the updated main (a retry)
 Events: workspace, commit, merged, conflict, retry, mergefail.
 
 Real-repository runs (README Amendment A14), all off unless asked for at init and only with ``--workspace isolated``:
-``--retest CMD`` runs the project's own tests (CMD, split without a shell) on main after every clean merge: a red run undoes the merge
+``--retest CMD`` runs the project's own tests (CMD, split without a shell, in a process group of its own) on main after every clean merge, again when it shows a network-error string, at most twice (and with ``--retest-reruns-hang`` also when it does not end in ``--retest-timeout`` seconds, killed with everything it started): a red run undoes the merge
 (``reset --hard`` to where main was) and counts as an integration failure (events ``retest``, ``redtest``). ``--land PATCH`` applies a
 prepared unified diff to main, as one commit, just before the first completed branch is merged: a teammate's change landing while the
 workers were working from the old base (event ``landed``). ``--on-failure redo|fix`` is the recovery rule for an integration failure (a
@@ -60,6 +60,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import signal
 import subprocess
 import sys
 import time
@@ -231,6 +232,8 @@ def cmd_init(args) -> int:
         meta.update(repo=str(Path(args.repo).resolve()), workspace=args.workspace, max_attempts=args.max_attempts or MAX_ATTEMPTS)
         if args.retest:
             meta.update(retest=args.retest, retest_timeout=args.retest_timeout)
+            if args.retest_reruns_hang:
+                meta.update(retest_reruns_hang=True)
         if args.land:
             meta.update(land=str(Path(args.land).resolve()), land_message=args.land_message)
         if args.on_failure:
@@ -250,6 +253,23 @@ def _workspace_of(run: Run, step_id: str) -> dict | None:
     return found[-1] if found else None
 
 
+def _run_tests(argv: list, cwd: Path, timeout: float) -> tuple[int, str]:
+    """The project's tests in a process group of their own: (the exit code, stdout and stderr). Tests that do not end in ``timeout`` are killed with everything they started, a
+    server a test left listening included (it would hold its port for good), and give 124 with a note (README A15)."""
+    proc = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        out, err = proc.communicate(timeout=timeout)
+        return proc.returncode, out + err
+    except subprocess.TimeoutExpired:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
+            os.killpg(proc.pid, signal.SIGKILL)
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            proc.wait(timeout=10)
+        for pipe in (proc.stdout, proc.stderr):
+            pipe.close()
+        return 124, "the tests did not finish within the time limit"
+
+
 def _retest(run: Run, meta: dict, repo: Path, step: str | None, landing: bool = False) -> tuple[bool, str]:
     """Under the lock: run the project's own tests (``--retest``) on main's current tree and log a ``retest`` event; (ok, the output's tail).
     With no ``--retest`` it is a pass that logs nothing."""
@@ -258,14 +278,10 @@ def _retest(run: Run, meta: dict, repo: Path, step: str | None, landing: bool = 
         return True, ""
     began = time.time()
     earlier = []
-    for tries in (1, 2, 3):   # an error string of the machine's network in a test (a port taken, a connection reset) is run again, at most twice; every earlier output is kept
-        try:
-            done = subprocess.run(shlex.split(command), cwd=repo, capture_output=True, text=True, stdin=subprocess.DEVNULL,
-                                  timeout=meta.get("retest_timeout", 300))
-            rc, text = done.returncode, done.stdout + done.stderr
-        except subprocess.TimeoutExpired:
-            rc, text = 124, "the tests did not finish within the time limit"
-        if rc == 0 or not TRANSIENT.search(text) or tries == 3:
+    for tries in (1, 2, 3):   # an error string of the machine's network in a test (a port taken, a connection reset) is run again, at most twice; so are tests that do not end when
+        #                       ``--retest-reruns-hang`` asks (a client that reached another process's server on the same port number is never answered: README A15); every earlier output is kept
+        rc, text = _run_tests(shlex.split(command), repo, meta.get("retest_timeout", 300))
+        if rc == 0 or not (TRANSIENT.search(text) or (meta.get("retest_reruns_hang") and rc == 124)) or tries == 3:
             break
         earlier.append({"rc": rc, "tail": text[-300:]})
     seconds = round(time.time() - began, 3)
@@ -758,6 +774,7 @@ def main(argv=None) -> int:
             p.add_argument("--workspace", choices=("shared", "isolated"))
             p.add_argument("--retest", help="isolated write runs: the project's own tests (a command, split without a shell), run on main after every clean merge")
             p.add_argument("--retest-timeout", type=int, default=300)
+            p.add_argument("--retest-reruns-hang", action="store_true", help="run a re-test that does not end in --retest-timeout seconds again, at most twice, like a network-error string (A15)")
             p.add_argument("--land", help="isolated write runs: a unified diff applied to main as one commit just before the first completed branch is merged")
             p.add_argument("--land-message", default="landing: a teammate's change lands on main")
             p.add_argument("--on-failure", choices=("redo", "fix"), help="the recovery rule for a conflict or a red re-test (default redo)")
