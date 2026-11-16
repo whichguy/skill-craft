@@ -300,7 +300,7 @@ if argv[:2] == ["plugin", "list"]:
 assert argv[:2] == ["exec", "--json"], argv
 os.chdir(argv[argv.index("-C") + 1])
 resumed = argv[argv.index("resume") + 1] if "resume" in argv else None
-prompt = argv[-1]
+prompt = sys.stdin.buffer.read().decode("utf-8") if argv[-1] == "-" else argv[-1]
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{"argv": argv, "prompt": prompt, "resumed": resumed,
     "cwd_listing": os.listdir("."), "codex_home": str(home),
     "auth_is_symlink": (home / "auth.json").is_symlink()}}))

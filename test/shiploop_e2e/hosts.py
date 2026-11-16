@@ -16,12 +16,14 @@ with the user's Anthropic credentials scrubbed from its environment (SPEC "The C
 
 from __future__ import annotations
 
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -191,16 +193,24 @@ def last_json_object(text: str) -> dict | None:
 
 
 def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_path: Path,
-              timeout: int, translate=None) -> dict:
+              timeout: int, translate=None, *, stdin_payload: bytes | None = None) -> dict:
     """Run one headless host process to completion (or kill it at `timeout`).
 
     ``translate`` (a host's ``translator()``) rewrites each stdout line into the
-    shared event shape as it is written.
+    shared event shape as it is written. A non-None ``stdin_payload`` is buffered
+    in a scoped binary regular file, including when empty; None keeps DEVNULL.
     """
     start = time.time()
     translate = translate or (lambda raw: [raw])
-    with events_path.open("wb") as out, stderr_path.open("wb") as err:
-        proc = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=err,
+    with ExitStack() as stack:
+        out = stack.enter_context(events_path.open("wb"))
+        err = stack.enter_context(stderr_path.open("wb"))
+        stdin = subprocess.DEVNULL
+        if stdin_payload is not None:
+            stdin = stack.enter_context(tempfile.TemporaryFile("w+b"))
+            stdin.write(stdin_payload)
+            stdin.seek(0)
+        proc = subprocess.Popen(argv, cwd=cwd, stdin=stdin, stdout=subprocess.PIPE, stderr=err,
                                 env=env, start_new_session=True)
 
         def pump():
@@ -317,6 +327,10 @@ class Host:
 
     def argv(self, **kw) -> list[str]:
         raise NotImplementedError
+
+    def prepare(self, **kwargs) -> tuple[list[str], bytes | None]:
+        """Prepare a buffered helper launch, preserving legacy argv by default."""
+        return self.argv(**kwargs), None
 
     def install_marketplace(self, env: dict, source: str = MARKETPLACE_SOURCE) -> dict:
         raise NotImplementedError
@@ -497,7 +511,7 @@ class CodexHost(Host):
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=None, plugin_dir=None, resume=None, allow=()):
         # `allow` is not used: this host runs with approval_policy "never", so no action waits for a permission.
-        prompt_file.write_text(prompt)
+        prompt_file.write_bytes(prompt.encode("utf-8"))
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",
                 "-s", "danger-full-access", "-c", 'approval_policy="never"',
                 "--dangerously-bypass-hook-trust", "-C", str(cwd),
@@ -506,6 +520,13 @@ class CodexHost(Host):
         if effort:
             argv += ["-c", f"model_reasoning_effort={effort}", "-c", f"agents.default_subagent_reasoning_effort={effort}"]
         return argv + (["resume", resume, prompt] if resume else [prompt])
+
+    def prepare(self, **kwargs) -> tuple[list[str], bytes | None]:
+        """Keep the full prompt as evidence and send helper input through stdin."""
+        argv = self.argv(**kwargs)
+        payload = kwargs["prompt"].encode("utf-8")
+        argv[-1] = "-"
+        return argv, payload
 
     def install_marketplace(self, env, source=MARKETPLACE_SOURCE):
         added = subprocess.run([self.binary, "plugin", "marketplace", "add", source], env=env,

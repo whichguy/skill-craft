@@ -253,7 +253,7 @@ def judge(run_dir: Path, review: dict, *, host: str | None = None, model: str | 
     stage.mkdir(exist_ok=False)
     prompt_file = stage / "prompt.txt"
     env = agent.env(stage / "home")
-    argv = agent.argv(prompt=judge_prompt(run_dir, review, identity), prompt_file=prompt_file, cwd=run_dir,
+    argv, stdin_payload = agent.prepare(prompt=judge_prompt(run_dir, review, identity), prompt_file=prompt_file, cwd=run_dir,
                       model=role["model"], effort=role["effort"], permission_mode="read-only", max_turns=None)
     try:
         sandbox_index = argv.index("-s")
@@ -261,7 +261,7 @@ def judge(run_dir: Path, review: dict, *, host: str | None = None, model: str | 
         raise RuntimeError("CodexHost.argv did not provide the sandbox option required by the judge")
     argv[sandbox_index + 1] = "read-only"
     process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
-                              translate=agent.translator())
+                              translate=agent.translator(), stdin_payload=stdin_payload)
     parsed = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
     checked = validity(parsed, process, review, identity)
     result = {"review_sha256": identity, "assessments": parsed.get("assessments", []) if isinstance(parsed, dict) else [],

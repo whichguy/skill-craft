@@ -42,7 +42,7 @@ if argv[:2] == ["plugin", "list"]:
 assert argv[:2] == ["exec", "--json"], argv
 cwd = argv[argv.index("-C") + 1]
 os.chdir(cwd)
-prompt = argv[-1]
+prompt = sys.stdin.buffer.read().decode("utf-8") if argv[-1] == "-" else argv[-1]
 
 def finish(text):
     emit({"type": "thread.started", "thread_id": "fake-thread"})

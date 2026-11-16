@@ -724,6 +724,293 @@ class CodexRunTest(HarnessCase):
         self.assertTrue(all(c["pass"] for c in regraded["checks"]), regraded["checks"])
 
 
+@unittest.skipUnless(os.name == "posix", "local executable/shebang and /dev/null checks require POSIX")
+class CodexBufferedInputTest(unittest.TestCase):
+    """Real local subprocesses, with no model, network, auth or host installation."""
+
+    TAIL = "\nTAIL-preserved-雪-🙂\n"
+    FAKE = r'''
+import hashlib, json, os, sys
+from pathlib import Path
+def emit(event):
+    print(json.dumps(event), flush=True)
+emit({"type": "thread.started", "thread_id": "buffered-local"})
+# More than pipe capacity BEFORE reading stdin catches write-input-then-drain deadlocks.
+for i in range(256):
+    emit({"type": "item.completed", "item": {"id": str(i), "type": "reasoning", "text": "x" * 8192}})
+data = sys.stdin.buffer.read() if sys.argv[-1] == "-" else sys.argv[-1].encode("utf-8")
+Path("received.bin").write_bytes(data)
+answer = {"length": len(data), "sha256": hashlib.sha256(data).hexdigest(),
+          "argv": sys.argv[1:], "tail": data.decode("utf-8")[-64:]}
+emit({"type": "item.completed", "item": {"id": "answer", "type": "agent_message", "text": json.dumps(answer)}})
+emit({"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}})
+print("fake stderr only", file=sys.stderr, flush=True)
+sys.exit(int(os.environ.get("FAKE_RC", "0")))
+'''
+
+    @classmethod
+    def payload(cls, size):
+        unit = "review 雪🙂 café\nnext line\n".encode("utf-8")
+        tail = cls.TAIL.encode("utf-8")
+        count, padding = divmod(size - len(tail), len(unit))
+        return unit * count + b" " * padding + tail
+
+    def fake(self, folder, source):
+        binary = folder / "fake-codex"
+        binary.write_text(f"#!{sys.executable} -B\n" + source, encoding="utf-8")
+        binary.chmod(0o755)
+        return binary
+
+    def kwargs(self, folder, prompt):
+        return dict(prompt=prompt, prompt_file=folder / "prompt.txt", cwd=folder,
+                    model="local-test-model", effort="medium", permission_mode="auto", max_turns=None)
+
+    def prepared(self, agent, kwargs):
+        # Old code must reach the real oversized execve, not fail on the missing new API.
+        prepare = getattr(agent, "prepare", None)
+        return prepare(**kwargs) if prepare else (agent.argv(**kwargs), None)
+
+    @contextlib.contextmanager
+    def file_spy(self):
+        handles = []
+        original = tempfile.TemporaryFile
+
+        def opened(*args, **kwargs):
+            handle = original(*args, **kwargs)
+            handles.append(handle)
+            return handle
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(tempfile, "TemporaryFile", side_effect=opened))
+            if hasattr(hosts, "TemporaryFile"):
+                stack.enter_context(mock.patch.object(hosts, "TemporaryFile", side_effect=opened))
+            try:
+                yield handles
+            finally:
+                for handle in handles:
+                    handle.close()  # Clean up even when a deliberately broken implementation leaks.
+
+    def invoke(self, folder, argv, payload, *, timeout=5, translate=None, env=None, ready_path=None):
+        processes, spawn_errors = [], []
+        real_popen = subprocess.Popen
+        finished, watchdog_fired = threading.Event(), threading.Event()
+
+        def popen(*args, **kwargs):
+            try:
+                proc = real_popen(*args, **kwargs)
+            except OSError as exc:
+                spawn_errors.append(exc)
+                raise
+            processes.append(proc)
+            if ready_path is not None:
+                deadline = time.monotonic() + 3
+                while not ready_path.exists() and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertTrue(ready_path.exists(), "child did not publish readiness before timeout measurement")
+            return proc
+
+        def watchdog():
+            if not finished.wait(12):
+                watchdog_fired.set()
+                for proc in processes:
+                    if proc.returncode is None:
+                        if os.name == "posix":
+                            listeners.end_group(proc.pid)
+                        else:
+                            proc.kill()
+
+        guard = threading.Thread(target=watchdog, daemon=True)
+        guard.start()
+        try:
+            with mock.patch.object(hosts.subprocess, "Popen", side_effect=popen):
+                options = {} if payload is None else {"stdin_payload": payload}
+                result = hosts.run_agent(argv, folder, dict(os.environ, PYTHONDONTWRITEBYTECODE="1", **(env or {})),
+                                         folder / "events.jsonl", folder / "stderr.txt", timeout,
+                                         translate=translate, **options)
+            self.assertFalse(watchdog_fired.is_set(), "input/output deadlocked beyond run_agent's own timeout")
+            for proc in processes:
+                self.assertIsNotNone(proc.returncode, "run_agent must reap its own leader before returning")
+                self.assertTrue(proc.stdout.closed, "run_agent must close its output stream")
+            return result
+        finally:
+            primary = sys.exc_info()[1]
+            finished.set()
+            guard.join(timeout=2)
+            self.processes, self.spawn_errors = processes, spawn_errors
+            cleanup_errors = []
+            for proc in processes:
+                try:
+                    if proc.returncode is None:
+                        if os.name == "posix":
+                            listeners.end_group(proc.pid)
+                        else:
+                            proc.kill()
+                    proc.wait(timeout=3)
+                except Exception as exc:
+                    cleanup_errors.append(exc)
+                finally:
+                    if proc.stdout:
+                        try:
+                            proc.stdout.close()
+                        except Exception as exc:
+                            cleanup_errors.append(exc)
+            if cleanup_errors:
+                if primary is None:
+                    raise cleanup_errors[0]
+                for exc in cleanup_errors:
+                    primary.add_note(f"invoke cleanup failed: {exc!r}")
+
+    def check_delivery(self, payload, rc):
+        import hashlib
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            agent = hosts.host("codex", str(self.fake(folder, self.FAKE)))
+            argv, stdin = self.prepared(agent, self.kwargs(folder, payload.decode("utf-8")))
+            with self.file_spy() as handles:
+                result = self.invoke(folder, argv, stdin, translate=agent.translator(), env={"FAKE_RC": str(rc)})
+                self.assertEqual(bool(handles), stdin is not None, "only buffered input needs a temporary file")
+                self.assertTrue(all(handle.closed for handle in handles))
+            self.assertEqual((result["status"], result["returncode"]), ("failed" if rc else "exited", rc))
+            self.assertEqual((folder / "prompt.txt").read_bytes(), payload)
+            self.assertEqual((folder / "received.bin").read_bytes(), payload)
+            events = [json.loads(line) for line in (folder / "events.jsonl").read_bytes().splitlines()]
+            thoughts = [event for event in events if event["type"] == "thought"]
+            self.assertEqual(len(thoughts), 256)
+            self.assertTrue(all(event["data"] == "x" * 8192 for event in thoughts))
+            answers = [event["data"] for event in events if event["type"] == "text"]
+            self.assertEqual(len(answers), 1)
+            answer = json.loads(answers[0])
+            self.assertEqual((answer["length"], answer["sha256"]), (len(payload), hashlib.sha256(payload).hexdigest()))
+            self.assertEqual(answer["argv"], argv[1:])
+            self.assertEqual(answer["argv"][-1], "-" if stdin is not None else payload.decode("utf-8"))
+            self.assertTrue(answer["tail"].endswith(self.TAIL))
+            self.assertEqual(events[0]["sessionId"], "buffered-local")
+            self.assertEqual((events[-1]["type"], events[-1]["stopReason"]), ("end", "end_turn"))
+            self.assertEqual((folder / "stderr.txt").read_bytes(), b"fake stderr only\n")
+            self.assertNotIn(b"fake stderr only", (folder / "events.jsonl").read_bytes())
+
+    def test_two_mib_utf8_prompt_survives_output_before_input_and_nonzero_exit(self):
+        payload = self.payload(2 * 1024 * 1024)
+        self.assertEqual(len(payload), 2 * 1024 * 1024)
+        self.check_delivery(payload, 23)
+
+    def test_short_utf8_prompt_positive_control(self):
+        self.check_delivery(("short café 🙂\n" + self.TAIL).encode("utf-8"), 0)
+
+    def test_default_prepare_delegates_and_non_codex_hosts_keep_argv(self):
+        class RecordingHost(hosts.Host):
+            def argv(self, **kwargs):
+                self.received = kwargs
+                return ["custom", kwargs["prompt"]]
+
+        custom = RecordingHost()
+        self.assertEqual(custom.prepare(prompt="雪", extra=7), (["custom", "雪"], None))
+        self.assertEqual(custom.received, {"prompt": "雪", "extra": 7})
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("grok", "claude"):
+                with self.subTest(host=name):
+                    agent = hosts.host(name, "fake-" + name)
+                    kwargs = self.kwargs(Path(tmp), "short 雪\n")
+                    self.assertEqual(agent.prepare(**kwargs), (agent.argv(**kwargs), None))
+
+    def test_none_is_devnull_but_empty_bytes_is_a_regular_file(self):
+        source = ('import json, os, stat, sys\n'
+                  'mode = os.fstat(0).st_mode\n'
+                  'print(json.dumps({"regular": stat.S_ISREG(mode), "character": stat.S_ISCHR(mode), '
+                  '"bytes": len(sys.stdin.buffer.read())}))\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            binary = self.fake(folder, source)
+            for payload in (None, b""):
+                with self.subTest(payload=payload), self.file_spy() as handles:
+                    result = self.invoke(folder, [str(binary)], payload)
+                    self.assertEqual(result["returncode"], 0)
+                    record = json.loads((folder / "events.jsonl").read_text())
+                    self.assertEqual(record, {"regular": payload is not None, "character": payload is None, "bytes": 0})
+                    self.assertEqual(bool(handles), payload is not None)
+                    self.assertTrue(all(handle.closed for handle in handles))
+
+    def test_temporary_stdin_closes_on_success_nonzero_timeout_and_spawn_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            for mode in ("success", "nonzero", "timeout", "spawn-failure"):
+                with self.subTest(mode=mode):
+                    source = {"success": "pass\n", "nonzero": "raise SystemExit(17)\n",
+                              "timeout": "import time\ntime.sleep(30)\n"}.get(mode, "pass\n")
+                    binary = self.fake(folder, source) if mode != "spawn-failure" else folder / "does-not-exist"
+                    with self.file_spy() as handles:
+                        if mode == "spawn-failure":
+                            with self.assertRaises(OSError) as raised:
+                                self.invoke(folder, [str(binary)], b"payload", timeout=1)
+                            self.assertEqual(len(self.spawn_errors), 1)
+                            self.assertIs(raised.exception, self.spawn_errors[0], "preserve the original exec failure")
+                        else:
+                            result = self.invoke(folder, [str(binary)], b"payload", timeout=1)
+                            self.assertEqual(result["status"], {"success": "exited", "nonzero": "failed",
+                                                                "timeout": "timeout"}[mode])
+                            if mode != "timeout":
+                                self.assertEqual(result["returncode"], 17 if mode == "nonzero" else 0)
+                        self.assertTrue(handles)
+                        self.assertTrue(all(handle.closed for handle in handles), mode)
+
+    @unittest.skipUnless(os.name == "posix" and hasattr(os, "waitid"), "POSIX process-group ownership checks")
+    def test_nonreading_child_times_out_reaps_leader_and_ends_only_its_group(self):
+        # A member holding stdout open also tests that the sole output pump reaches EOF after group cleanup.
+        source = r'''
+import json, os, subprocess, sys, time
+from pathlib import Path
+member = subprocess.Popen([sys.executable, "-B", "-c", "import time; time.sleep(15)", str(Path.cwd())])
+Path("ready.tmp").write_text(json.dumps({"leader": os.getpid(), "member": member.pid, "group": os.getpgrp()}))
+Path("ready.tmp").replace("ready.json")
+time.sleep(30)
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            control = subprocess.Popen([sys.executable, "-B", "-c", "import time; time.sleep(30)"],
+                                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL, start_new_session=True)
+            try:
+                binary = self.fake(folder, source)
+                with self.file_spy() as handles, mock.patch.object(listeners, "end_group", wraps=listeners.end_group) as end:
+                    result = self.invoke(folder, [str(binary)], self.payload(2 * 1024 * 1024 + 4096), timeout=2,
+                                         ready_path=folder / "ready.json")
+                    self.assertTrue((folder / "ready.json").exists(), "leader must start before timeout")
+                    ready = json.loads((folder / "ready.json").read_text())
+                    member = ready["member"]
+                    self.assertEqual(result["status"], "timeout")
+                    self.assertLess(result["returncode"], 0)
+                    self.assertEqual(ready["leader"], ready["group"])
+                    end.assert_called_once_with(ready["leader"])
+                    self.assertTrue(handles)
+                    self.assertTrue(all(handle.closed for handle in handles))
+                self.assertEqual(self.processes[0].returncode, result["returncode"])
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(ready["leader"], os.WNOHANG)
+                # An orphan can remain a zombie until the system reaper runs, but must not be running.
+                deadline = time.monotonic() + 2
+                while True:
+                    state = subprocess.run(["ps", "-o", "stat=", "-p", str(member)],
+                                           capture_output=True, text=True, timeout=2).stdout.strip()
+                    if not state or state.startswith("Z") or time.monotonic() >= deadline:
+                        break
+                    time.sleep(0.02)
+                self.assertTrue(not state or state.startswith("Z"), f"own group member survived: {state}")
+                self.assertIsNone(control.poll(), "unrelated process must survive timeout cleanup")
+            finally:
+                # The member self-bounds at 15s if group cleanup is broken. Its parent is the
+                # killed leader, so we cannot reap it or safely signal its PID after leader reap.
+                # Command-line/group observations cannot close the PID-reuse race.
+                primary = sys.exc_info()[1]
+                try:
+                    if control.poll() is None:
+                        control.kill()
+                    control.wait(timeout=3)
+                except Exception as exc:
+                    if primary is None:
+                        raise
+                    primary.add_note(f"control cleanup failed: {exc!r}")
+
+
 class CodexHostTest(unittest.TestCase):
     """Codex runs through the same host interface; its stream is translated to Grok's shape."""
 

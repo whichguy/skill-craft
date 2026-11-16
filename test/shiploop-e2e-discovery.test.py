@@ -66,6 +66,11 @@ class ReviewDiscoveryContractTest(unittest.TestCase):
                     mock.patch.object(review.hosts, "final_text", return_value=json.dumps(review_payload([]))):
                 verdict = review.review(run_dir, skill_root=ROOT / "skills" / "shiploop")
             argv = launch.call_args.args[0]
+            self.assertEqual(argv[-1], "-")
+            stdin_payload = launch.call_args.kwargs["stdin_payload"]
+            self.assertIsInstance(stdin_payload, bytes)
+            self.assertTrue(stdin_payload)
+            self.assertEqual(stdin_payload, (run_dir / "review" / "prompt.txt").read_bytes())
             self.assertEqual(argv[argv.index("-s") + 1], "read-only")
             self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-astra")
             self.assertIn("model_reasoning_effort=high", argv)
@@ -223,7 +228,11 @@ class JudgeContractTest(unittest.TestCase):
 
         agent = judge.hosts.CodexHost("fake-codex")
 
-        def fake_run_agent(argv, cwd, env, events_path, stderr_path, timeout, translate=None):
+        def fake_run_agent(argv, cwd, env, events_path, stderr_path, timeout, translate=None, *, stdin_payload=None):
+            self.assertEqual(argv[-1], "-")
+            self.assertIsInstance(stdin_payload, bytes)
+            self.assertTrue(stdin_payload)
+            self.assertEqual(stdin_payload, Path(events_path).with_name("prompt.txt").read_bytes())
             launched.append((list(argv), dict(env), Path(events_path), Path(stderr_path)))
             Path(events_path).write_text("")
             Path(stderr_path).write_text("offline failure")
@@ -266,10 +275,13 @@ class JudgeContractTest(unittest.TestCase):
                 Path(kwargs["prompt_file"]).write_text(kwargs["prompt"])
                 return ["fake-reviewer", "-s", "danger-full-access"]
 
+            def prepare(self, **kwargs):
+                return self.argv(**kwargs), None
+
             def translator(self):
                 return None
 
-        def fake_run_agent(_argv, _cwd, _env, events_path, stderr_path, _timeout, translate=None):
+        def fake_run_agent(_argv, _cwd, _env, events_path, stderr_path, _timeout, translate=None, *, stdin_payload=None):
             Path(events_path).write_text("")
             Path(stderr_path).write_text("")
             return exited()
