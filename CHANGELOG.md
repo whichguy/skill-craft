@@ -4,6 +4,10 @@ Written by scripts/release.py.
 
 ## 2026-11-15
 
+### skill-craft 2.41.2
+
+- Release output regenerated; no skill changed.
+
 ### skill-craft 2.41.1
 
 - Skills: closed-loop 0.1.0
