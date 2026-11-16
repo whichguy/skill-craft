@@ -1,0 +1,115 @@
+{
+  "scratch": "/private/tmp/g1c-ownership-sslh4zjb",
+  "repeat_cleanup": {
+    "first": {
+      "verified": false,
+      "receipt": "repeat_cleanup (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected; the worker's process group unverified"
+    },
+    "second": {
+      "verified": true,
+      "receipt": "repeat_cleanup (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "first_ps_reads": 1,
+    "second_ps_reads": 0,
+    "stored_kill": {
+      "at": "2026-11-16T05:39:34Z",
+      "detail": {
+        "members": [
+          610002
+        ],
+        "reason": "the leader is gone and the record is more than 12 hours old: the group number may belong to another process now"
+      },
+      "group": "unverified",
+      "sessions": 0,
+      "survivors": []
+    },
+    "state": "cancelled",
+    "member_still_present": true
+  },
+  "prepared_cancel": {
+    "reply": {
+      "status": "done",
+      "iteration": {
+        "cleanup": {
+          "receipt": "prepared evidence said clean",
+          "verified": true
+        },
+        "consumed": {
+          "runs": 0,
+          "seconds": 0
+        }
+      }
+    },
+    "stored_kill": {
+      "at": "2026-11-16T05:39:35Z",
+      "detail": {
+        "members": [
+          610002
+        ],
+        "reason": "the leader is gone and the record is more than 12 hours old: the group number may belong to another process now"
+      },
+      "group": "unverified",
+      "sessions": 0,
+      "survivors": []
+    },
+    "state": "published",
+    "member_still_present": true
+  },
+  "prepared_cleanup": {
+    "cleanup": {
+      "verified": false,
+      "receipt": "prepared_cleanup (published): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected; the worker's process group unverified"
+    },
+    "poll": {
+      "status": "done",
+      "iteration": {
+        "cleanup": {
+          "receipt": "prepared evidence said clean",
+          "verified": true
+        },
+        "consumed": {
+          "runs": 0,
+          "seconds": 0
+        }
+      }
+    },
+    "stored_kill": {
+      "at": "2026-11-16T05:39:35Z",
+      "detail": {
+        "members": [
+          610002
+        ],
+        "reason": "the leader is gone and the record is more than 12 hours old: the group number may belong to another process now"
+      },
+      "group": "unverified",
+      "sessions": 0,
+      "survivors": []
+    }
+  },
+  "recycled_between_signals": {
+    "outcome": [
+      "survived",
+      {
+        "members": [
+          610001
+        ]
+      }
+    ],
+    "signals": [
+      {
+        "pgid": 610001,
+        "signal": "SIGTERM",
+        "new_leader_present": false
+      },
+      {
+        "pgid": 610001,
+        "signal": "SIGKILL",
+        "new_leader_present": true
+      }
+    ],
+    "verdict_if_rechecked": "reused"
+  },
+  "zombie_leader": {
+    "verdict": "ok"
+  }
+}

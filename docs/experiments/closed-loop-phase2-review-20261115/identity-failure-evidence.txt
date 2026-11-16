@@ -1,0 +1,51 @@
+Why the real-engine adapter suite failed 3 of 5 on 2026-11-15, and what else the same cause breaks
+================================================================================================
+Recorded 2026-11-15 (local time, UTC-8). Names of the machine and network are masked: <identifier> is the dotless
+name the machine was given, <local name> the `.local` name git had used before.
+
+1. Timeline (each line from a primary record)
+- 19:54:16  commit a9d40c307a9edec62d2a487d810e30e630710821 authored with the git-guessed email user@<local name> (every earlier
+            commit in the repository carries the same guessed email; ~/.gitconfig sets no user.email or user.name).
+- 20:44:57  configd (IPMonitor): setting hostname to "<identifier>"   [log show, process configd, subsystem
+            com.apple.SystemConfiguration]. `scutil --get HostName`: not set, so macOS takes the hostname from the network.
+- 21:25:17  the round-4 suite run ends: queries 29 OK, steps 69 OK, real engine 3 of 5 FAILED ("the engine exited 1 on hello").
+- 21:30:59  another session's `git commit` fails with the same message (its own work, recovered with an explicit -c user.email).
+- 21:33     this session's commit of round 4 fails the same way; committed with -c user.email=<the guessed email of every earlier commit>.
+
+2. Mechanism
+- The home router's reverse-DNS answer for the Mac's address lists three names, the first a dotless <identifier>
+  (`dscacheutil -q host -a ip_address`: name: <identifier>); IPMonitor took it as the hostname.
+- git 2.54.0 (Apple Git-157), with no configured email, guesses user@hostname. The hostname has no dot and
+  getaddrinfo(hostname, AI_CANONNAME) fails (EAI_NONAME), so git appends ".(none)" and refuses to commit:
+  "fatal: unable to auto-detect email address (got 'user@<identifier>.(none)')"   [git var GIT_COMMITTER_IDENT, empty home]
+
+3. Controlled experiment (only the identity differs)
+- Variant A: a local clone of 4e36b3ad486b30fce972e697096fcfa158c29e3d with the three lines of setUpModule that give the suite's
+  throwaway home its own .gitconfig removed (and its temporary folder kept for reading).
+  python3 -B test/shiploop-e2e-adapter-engine.test.py -v: Ran 5 tests in 59.0 s, FAILED (failures=3)
+    FAIL test_a_quiet_exploration_then_a_second_one_compared_with_the_first_row
+    FAIL test_an_exploration_that_finds_something_goes_on_to_a_cycle_the_facade_reports
+    FAIL test_the_orchestrator_drives_a_smoke_campaign_through_the_facade (the dress rehearsal)
+    ok   test_a_host_that_cannot_start_leaves_cases_runs_declared
+    ok   test_the_runs_and_scores_probes_prove_a_real_run_and_fail_closed_without_one
+- Variant B: the same tree with the identity (the committed suite): Ran 5 tests in 96.8 s, OK.
+- All three variant-A engine logs (inv-1.log) end in test/shiploop_e2e/iterate.py record_learnings -> git -> subprocess.run:
+  CalledProcessError: Command ['git', '-C', '<x>/.claude/worktrees/shiploop-loop-*', 'commit', '-q', '-F', '.../learnings-commit.txt'].
+  (The harness's git helper does not print git's stderr, so the log does not show the reason.)
+- Exact replay, per failed test: a fresh worktree of the case's evaluator clone at HEAD, the staged learnings from the facade's
+  salvage archive (staged.diff: 1, 1 and 2 paths), the same learnings-commit.txt and the same throwaway home:
+    without an identity -> fatal: unable to auto-detect email address (got 'user@<identifier>.(none)')   (3 of 3)
+    with an identity    -> the commit is created: "test(shiploop): record E2E iteration 0 learnings (hello, codex ..."   (3 of 3)
+
+4. What else the cause reaches (measured or read)
+- Test suites, run on this machine in this state: shiploop-e2e-analysis 299 OK, -cycle 63 OK, -lifecycle 45 OK, -quality 156 OK,
+  -resources 133 OK, -sdlc-probes 29 OK (725 tests, 0 identity errors); the adapter's queries (29) and steps (69) suites passed at
+  21:13-21:24, after the change. Only the real-engine adapter suite depended on the guess (now fixed in 4e36b3ad).
+- Real runs, read from the harness: the loop commits its learnings with the caller's identity (iterate.record_learnings;
+  cycle.py's learnings commit), and the improver is handed ~/.gitconfig as GIT_CONFIG_GLOBAL (iterate.improve), so all three fail on
+  this machine now. Subject, judge and reviewer sessions get a throwaway identity (hosts._isolated_env) and are not affected.
+- The adapter's readiness probes do not reach those commits: probe_cases_runs runs run.py alone (the probe test passed in variant
+  A). A first real step would fail only after its subject run, at record_learnings.
+- Every other commit on this machine that names no email (other sessions, any skill committing in a repository without a local
+  identity) fails until the identity is configured or the hostname is fixed.
+- No code under skills/, scripts/ or test/ reads the hostname itself (grep for gethostname, getfqdn, platform.node, os.uname, hostname).

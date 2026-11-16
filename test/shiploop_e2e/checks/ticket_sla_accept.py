@@ -17,6 +17,10 @@ own and does not inherit the second link's. Three checks are fail-to-pass and re
 * ``sla-second-not-immediate``: a ticket three hours old is escalated at once with the default wait of 60 minutes, and is not
   escalated a second time within seconds: the second waits twice the wait since the first. The data file is written by hand, in the
   base's format, so no delivery's own record of an escalation is assumed.
+
+``cleanup(base_url)`` closes only this thread and base URL in this module's own helper pool, before the main server
+finishes. ``quality.acceptance`` calls it once; an ordinary failure is a separate ``cleanup_error`` diagnostic
+qualifying cleanup as INCOMPLETE while preserving every behavioral observation.
 """
 
 from __future__ import annotations
@@ -115,6 +119,10 @@ def sla_second_not_immediate(base: str, product) -> tuple[bool, str]:
         if count != 1:
             wrong.append(f"{ONCALL} was told about T-0001 {count} times within seconds; the second escalation waits twice the wait since the first")
     return A.verdict(wrong, "a ticket old enough is escalated at once and is not escalated a second time within seconds")
+
+
+# The exact helper instance used by this loaded module owns its pooled clients.
+cleanup = E.cleanup
 
 
 CHECKS = {

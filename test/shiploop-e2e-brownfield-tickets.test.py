@@ -31,10 +31,13 @@ import json
 import os
 from pathlib import Path
 import re
+import select
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -53,6 +56,7 @@ def _load(name: str, filename: str):
 
 # The fake hosts and the harness cases of the main harness suite; only classes defined in this file are tests of this file.
 e2e = _load("shiploop_e2e_main_tests", "shiploop-e2e.test.py")
+fixture_process = _load("fixture_process", "fixture_process.py")
 run = e2e.run
 
 import boundary  # noqa: E402
@@ -179,9 +183,356 @@ def committed(folder: Path) -> Path:
     return folder
 
 
-def base_tests(delivery: Path, subcommand: str) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, str(BASE_TESTS), subcommand, "node-tickets"], cwd=delivery, capture_output=True,
-                          text=True, timeout=600, stdin=subprocess.DEVNULL)
+def base_tests(delivery: Path, subcommand: str, timeout: float = 600) -> subprocess.CompletedProcess:
+    return fixture_process.run_owned([sys.executable, str(BASE_TESTS), subcommand, "node-tickets"],
+                                     cwd=delivery, timeout=timeout)
+
+
+@unittest.skipUnless(os.name == "posix", "owned-process regression needs POSIX process identities")
+class BaseTestsProcessOwnershipTest(unittest.TestCase):
+    @staticmethod
+    def process_identity(pid: int):
+        try:
+            done = subprocess.run(["ps", "-p", str(pid), "-o", "stat=", "-o", "lstart=", "-o", "command="],
+                                  capture_output=True, text=True, timeout=2, check=False)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise fixture_process.CleanupError(f"cannot inspect owned worker {pid}") from error
+        if done.stderr.strip():
+            raise fixture_process.CleanupError(f"cannot inspect owned worker {pid}: {done.stderr.strip()}")
+        if done.returncode:
+            # ps returns 1 with no output for an absent PID. Confirm that case;
+            # a live or permission-uncertain PID is not evidence of exit.
+            if done.returncode == 1 and not done.stdout.strip():
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    return None
+                except OSError as error:
+                    raise fixture_process.CleanupError(f"cannot confirm owned worker {pid} absent") from error
+            raise fixture_process.CleanupError(f"cannot inspect owned worker {pid}: ps rc {done.returncode}")
+        fields = done.stdout.strip().split(None, 1)
+        if len(fields) != 2:
+            raise fixture_process.CleanupError(f"cannot parse owned worker {pid} identity")
+        return fields
+
+    def owned_worker_alive(self, record: dict) -> bool:
+        observed = self.process_identity(record["pid"])
+        return bool(observed and observed[1] == record["identity"] and not observed[0].startswith("Z"))
+
+    def cleanup_owned_worker(self, record_file: Path) -> None:
+        # Registered before base_tests launches anything. Never signal by name,
+        # process group, ancestry alone, or a PID whose start/command changed.
+        if not record_file.exists():
+            return
+        record = json.loads(record_file.read_text())
+        if self.owned_worker_alive(record):
+            try:
+                os.kill(record["pid"], signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        deadline = time.monotonic() + 5
+        while self.owned_worker_alive(record) and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertFalse(self.owned_worker_alive(record), "test fallback cleanup failed")
+
+    @staticmethod
+    def cleanup_control(control: subprocess.Popen) -> None:
+        if control.poll() is None:
+            control.kill()
+        control.wait(timeout=5)
+        control.stdout.close()
+
+    def assert_owned_worker_stopped(self, returncode: int, subcommand: str) -> None:
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        delivery = Path(folder.name)
+        record_file = delivery / "owned-worker.json"
+        self.addCleanup(self.cleanup_owned_worker, record_file)
+        worker = (
+            "import json,os,signal,subprocess,sys\n"
+            "identity=subprocess.run(['ps','-p',str(os.getpid()),'-o','stat=','-o','lstart=','-o','command='],"
+            "capture_output=True,text=True,check=True).stdout.strip().split(None,1)[1]\n"
+            "with open(sys.argv[1], 'w') as f: json.dump({'pid':os.getpid(),'identity':identity},f)\n"
+            "print('worker-ready',flush=True)\n"
+            "os.close(1)\n"
+            "signal.pause()\n"
+        )
+        helper = delivery / "base-helper.py"
+        helper.write_text(
+            "import select,subprocess,sys\n"
+            f"worker=subprocess.Popen([sys.executable,'-B','-c',{worker!r},{str(record_file)!r}],"
+            "stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)\n"
+            "try:\n"
+            "    assert select.select([worker.stdout],[],[],10)[0], 'worker readiness timed out'\n"
+            "    assert worker.stdout.readline() == 'worker-ready\\n'\n"
+            "except BaseException:\n"
+            "    worker.kill(); worker.wait(); raise\n"
+            "finally:\n"
+            "    worker.stdout.close()\n"
+            "print('original-stdout')\n"
+            "print('original-stderr',file=sys.stderr)\n"
+            f"sys.exit({returncode})\n"
+        )
+        control = subprocess.Popen(
+            [sys.executable, "-B", "-c", "import signal; print('control-ready',flush=True); signal.pause()"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        self.addCleanup(self.cleanup_control, control)
+        self.assertTrue(select.select([control.stdout], [], [], 10)[0], "control readiness timed out")
+        self.assertEqual(control.stdout.readline(), "control-ready\n")
+        with mock.patch.dict(globals(), BASE_TESTS=helper):
+            done = base_tests(delivery, subcommand)
+        self.assertEqual(done.returncode, returncode)
+        self.assertEqual(done.stdout, "original-stdout\n")
+        self.assertEqual(done.stderr, "original-stderr\n")
+        self.assertEqual(done.args, [sys.executable, str(helper), subcommand, "node-tickets"])
+        self.assertIsNone(control.poll(), "unrelated control process was stopped")
+        self.assertTrue(record_file.exists(), "worker must acknowledge readiness before helper exits")
+        record = json.loads(record_file.read_text())
+        self.assertFalse(self.owned_worker_alive(record), "base_tests returned while its owned worker was still alive")
+
+    def test_success_stops_owned_worker_and_preserves_result(self) -> None:
+        self.assert_owned_worker_stopped(0, "suite")
+
+    def test_nonzero_stops_owned_worker_and_preserves_result(self) -> None:
+        self.assert_owned_worker_stopped(23, "pristine")
+
+    def owned_fixture(self, *, ignore_term=False, retain_pipes=False, wait=False, node=False):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        delivery = Path(folder.name)
+        record = delivery / "worker.json"
+        self.addCleanup(self.cleanup_owned_worker, record)
+        group_record = delivery / "owned-group"
+        self.addCleanup(self.cleanup_fixture_group, group_record)
+        helper = delivery / "helper.py"
+        if node:
+            # Real node --test runner and test worker, without a network server.
+            test_file = delivery / "worker.test.cjs"
+            test_file.write_text(
+                "const fs = require('node:fs');\n"
+                "process.on('SIGTERM', () => {});\n"
+                f"fs.writeFileSync({json.dumps(str(delivery / 'node-pid.tmp'))}, String(process.pid));\n"
+                f"fs.renameSync({json.dumps(str(delivery / 'node-pid.tmp'))}, {json.dumps(str(delivery / 'node-pid'))});\n"
+                "setInterval(() => {}, 1000);\n")
+            launch = f"[{shutil.which('node')!r}, '--test', {str(test_file)!r}]"
+            ready = (
+                "deadline=time.monotonic()+10\n"
+                f"while not os.path.exists({str(delivery / 'node-pid')!r}):\n"
+                "    assert worker.poll() is None, 'node exited before readiness'\n"
+                "    assert time.monotonic()<deadline, 'node readiness timed out'\n"
+                "    time.sleep(0.01)\n"
+                f"pid=int(open({str(delivery / 'node-pid')!r}).read())\n"
+                "identity=subprocess.run(['ps','-p',str(pid),'-o','stat=','-o','lstart=','-o','command='],"
+                "capture_output=True,text=True,check=True).stdout.strip().split(None,1)[1]\n"
+                f"with open({str(record)!r},'w') as f: json.dump(dict(pid=pid,identity=identity),f)\n")
+        else:
+            worker = (
+                "import os,signal\n"
+                + ("signal.signal(signal.SIGTERM,signal.SIG_IGN)\n" if ignore_term else "")
+                + "print('worker-ready',flush=True)\n"
+                + ("" if retain_pipes else "os.close(1); os.close(2)\n")
+                + "signal.pause()\n")
+            launch = f"[sys.executable,'-B','-c',{worker!r}]"
+            ready = (
+                "assert select.select([worker.stdout],[],[],10)[0], 'readiness timed out'\n"
+                "assert worker.stdout.readline() == 'worker-ready\\n'\n"
+                "pid=worker.pid\n"
+                "identity=subprocess.run(['ps','-p',str(pid),'-o','stat=','-o','lstart=','-o','command='],"
+                "capture_output=True,text=True,check=True).stdout.strip().split(None,1)[1]\n"
+                f"with open({str(record)!r},'w') as f: json.dump(dict(pid=pid,identity=identity),f)\n")
+        helper.write_text(
+            "import json,os,select,signal,subprocess,sys,time\n"
+            "assert os.getpgrp()==os.getpid(), 'fixture requires its own group'\n"
+            f"with open({str(group_record)!r},'w') as f: f.write(str(os.getpgrp()))\n"
+            f"worker=subprocess.Popen({launch},stdout=subprocess.PIPE,"
+            f"stderr={'None' if retain_pipes else 'subprocess.DEVNULL'},text=True)\n"
+            + ready
+            + "print('helper-ready',flush=True)\n"
+            + ("signal.pause()\n" if wait else ""))
+        return delivery, helper, record
+
+    @staticmethod
+    def cleanup_fixture_group(record):
+        # The helper records its newly created group before spawning workers.
+        # This fallback also owns the Node runner if a readiness assertion fails.
+        if record.exists():
+            pgid = int(record.read_text())
+            if pgid == os.getpgrp():
+                raise AssertionError("refusing cleanup of the test parent's group")
+            fixture_process.stop_group(pgid)
+
+    def assert_fixture_stopped(self, record):
+        self.assertTrue(record.exists(), "fixture must acknowledge readiness")
+        self.assertFalse(self.owned_worker_alive(json.loads(record.read_text())), "owned worker remains live")
+
+    @staticmethod
+    def cleanup_launched(child):
+        try:
+            fixture_process.stop_group(child.pid)
+            child.wait(timeout=2)
+        finally:
+            child.stdout.close()
+            child.stderr.close()
+
+    def test_term_ignoring_worker_requires_kill_after_leader_exit(self):
+        delivery, helper, record = self.owned_fixture(ignore_term=True)
+        with mock.patch.dict(globals(), BASE_TESTS=helper):
+            done = base_tests(delivery, "suite")
+        self.assertEqual((done.returncode, done.stdout), (0, "helper-ready\n"))
+        self.assert_fixture_stopped(record)
+
+    def test_timeout_preserves_timeout_and_stops_descendants(self):
+        delivery, helper, record = self.owned_fixture(ignore_term=True, wait=True)
+        with mock.patch.dict(globals(), BASE_TESTS=helper):
+            # Start the deadline only after an explicit readiness handshake.
+            original = fixture_process.subprocess.Popen
+
+            def launch(argv, **kwargs):
+                child = original(argv, **kwargs)
+                if argv[0] == sys.executable:
+                    self.addCleanup(self.cleanup_launched, child)
+                    self.assertTrue(select.select([child.stdout], [], [], 10)[0])
+                    self.assertEqual(child.stdout.readline(), "helper-ready\n")
+                return child
+
+            with mock.patch.object(fixture_process.subprocess, "Popen", launch):
+                started = time.monotonic()
+                with self.assertRaises(subprocess.TimeoutExpired) as caught:
+                    base_tests(delivery, "suite", timeout=0.1)
+        self.assertEqual(caught.exception.timeout, 0.1)
+        self.assertLess(time.monotonic() - started, 10)
+        self.assert_fixture_stopped(record)
+
+    def test_retained_outer_pipes_after_leader_exit_are_drained(self):
+        # stderr inherits the outer pipe independently of readiness stdout.
+        delivery, helper, record = self.owned_fixture(ignore_term=True, retain_pipes=True)
+        started = time.monotonic()
+        with mock.patch.dict(globals(), BASE_TESTS=helper):
+            done = base_tests(delivery, "pristine", timeout=5)
+        self.assertLess(time.monotonic() - started, 10)
+        self.assertEqual(done.returncode, 0)
+        self.assert_fixture_stopped(record)
+
+    def test_exception_and_interruption_after_launch_cleanup_before_propagation(self):
+        for error in (RuntimeError("injected communicate failure"), KeyboardInterrupt()):
+            with self.subTest(exception=type(error).__name__):
+                delivery, helper, record = self.owned_fixture(ignore_term=True, wait=True)
+                original = fixture_process.subprocess.Popen
+
+                def launch(argv, **kwargs):
+                    child = original(argv, **kwargs)
+                    if argv[0] == sys.executable:
+                        self.addCleanup(self.cleanup_launched, child)
+                        self.assertTrue(select.select([child.stdout], [], [], 10)[0])
+                        self.assertEqual(child.stdout.readline(), "helper-ready\n")
+                        communicate = child.communicate
+
+                        def interrupted(*args, **kw):
+                            child.communicate = communicate
+                            raise error
+
+                        child.communicate = interrupted
+                    return child
+
+                with mock.patch.dict(globals(), BASE_TESTS=helper), mock.patch.object(
+                        fixture_process.subprocess, "Popen", launch):
+                    with self.assertRaises(type(error)) as caught:
+                        base_tests(delivery, "suite")
+                self.assertIs(caught.exception, error)
+                self.assert_fixture_stopped(record)
+
+    @needs_node
+    def test_actual_node_test_worker_stopped_after_helper_exits(self):
+        delivery, helper, record = self.owned_fixture(node=True)
+        with mock.patch.dict(globals(), BASE_TESTS=helper):
+            done = base_tests(delivery, "suite")
+        self.assertEqual((done.returncode, done.stdout), (0, "helper-ready\n"))
+        self.assert_fixture_stopped(record)
+
+    def test_launch_failure_never_signals_a_group(self):
+        with mock.patch.object(fixture_process.subprocess, "Popen", side_effect=OSError("launch failed")), \
+                mock.patch.object(fixture_process.os, "killpg") as kill:
+            with self.assertRaisesRegex(OSError, "launch failed"):
+                base_tests(ROOT, "suite")
+        kill.assert_not_called()
+
+    def test_already_gone_and_zombie_only_group_cleanup_is_idempotent(self):
+        for state in ("", "123 123 Z\n"):
+            with self.subTest(state=state), mock.patch.object(fixture_process.subprocess, "run", return_value=
+                    subprocess.CompletedProcess([], 0, state, "")), mock.patch.object(fixture_process.os, "killpg") as kill:
+                fixture_process.stop_group(123)
+                fixture_process.stop_group(123)
+                kill.assert_not_called()
+
+    def test_permission_error_with_live_workers_reports_uncertainty(self):
+        with mock.patch.object(fixture_process, "live_members", return_value=[123]), \
+                mock.patch.object(fixture_process.os, "killpg", side_effect=PermissionError("denied")), \
+                mock.patch.object(fixture_process.time, "monotonic", side_effect=range(20)):
+            with self.assertRaisesRegex(fixture_process.CleanupError, "still live.*denied"):
+                fixture_process.stop_group(123)
+
+    def test_process_state_inspection_failure_is_not_success(self):
+        with mock.patch.object(fixture_process.subprocess, "run", return_value=
+                subprocess.CompletedProcess([], 1, "", "")):
+            with self.assertRaisesRegex(fixture_process.CleanupError, "cannot inspect"):
+                fixture_process.stop_group(123)
+
+    def test_permission_error_is_accepted_only_after_observed_exit(self):
+        with mock.patch.object(fixture_process, "live_members", side_effect=[[123], []]), \
+                mock.patch.object(fixture_process.os, "killpg", side_effect=PermissionError("denied")):
+            fixture_process.stop_group(123)
+
+    def test_inspection_failure_still_terminates_and_reaps_direct_child(self):
+        original = fixture_process.subprocess.Popen
+        launched = []
+
+        def launch(argv, **kwargs):
+            child = original(argv, **kwargs)
+            # Register immediately, before even readiness can fail. unittest runs
+            # this only after both patches below have restored the real helpers.
+            self.addCleanup(self.cleanup_launched, child)
+            launched.append(child)
+            self.assertTrue(select.select([child.stdout], [], [], 10)[0],
+                            "direct child readiness timed out")
+            self.assertEqual(child.stdout.readline(), "helper-ready\n")
+            return child
+
+        argv = [sys.executable, "-B", "-c",
+                "import signal; print('helper-ready',flush=True); signal.pause()"]
+        with mock.patch.object(fixture_process.subprocess, "Popen", launch), \
+                mock.patch.object(fixture_process, "stop_group", side_effect=
+                                  fixture_process.CleanupError("cannot inspect owned process group")):
+            # run_owned starts its 0.1-second deadline after launch returns,
+            # therefore after the explicit handshake, without a startup sleep.
+            with self.assertRaisesRegex(fixture_process.CleanupError, "cannot inspect") as caught:
+                fixture_process.run_owned(argv, cwd=ROOT, timeout=0.1)
+        self.assertIsInstance(caught.exception.__context__, subprocess.TimeoutExpired)
+        self.assertEqual(len(launched), 1)
+        # Do not poll/wait/communicate here: returncode must already have been
+        # populated by run_owned's own reaping, before fallback cleanup runs.
+        self.assertIsNotNone(launched[0].returncode,
+                             "run_owned left its direct child alive or unreaped")
+        self.assertLess(launched[0].returncode, 0, "sleeping direct child was not terminated")
+
+    def test_identity_query_failure_is_loud_for_live_or_permission_uncertain_worker(self):
+        record = {"pid": os.getpid(), "identity": "recorded-worker-identity"}
+        for diagnostic, liveness_error in (("ps: inspection error", None),
+                                            ("", PermissionError("liveness denied"))):
+            with self.subTest(diagnostic=diagnostic, liveness_error=liveness_error), \
+                    mock.patch.object(subprocess, "run", return_value=
+                                      subprocess.CompletedProcess([], 1, "", diagnostic)), \
+                    mock.patch.object(os, "kill", return_value=None, side_effect=liveness_error):
+                # kill(pid, 0), if used to disambiguate absence, is fully mocked:
+                # success means known-live; permission denial means uncertainty.
+                with self.assertRaises(fixture_process.CleanupError):
+                    self.owned_worker_alive(record)
+
+    def test_identity_query_confirmed_absence_is_not_alive(self):
+        record = {"pid": os.getpid(), "identity": "recorded-worker-identity"}
+        with mock.patch.object(subprocess, "run", return_value=
+                               subprocess.CompletedProcess([], 1, "", "")), \
+                mock.patch.object(os, "kill", side_effect=ProcessLookupError("gone")):
+            self.assertFalse(self.owned_worker_alive(record))
 
 
 def failing(done: subprocess.CompletedProcess) -> str:
@@ -662,6 +1013,126 @@ class ThroughMainTest(e2e.CaseRunCase):
         card = scorecard.score(out)
         self.assertEqual(card["accuracy"]["floor"], scorecard.FAIL)
         self.assertTrue(card["accuracy"]["acceptance_required"])
+
+
+
+
+import contextlib
+
+
+class BrownfieldSocketCleanupTest(unittest.TestCase):
+    """Exact loaded delegation instances, real HTTP keepalive, and owner-scoped closure."""
+
+    @contextlib.contextmanager
+    def server(self):
+        import http.server
+        import threading
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(10)
+
+            def do_GET(self):
+                body = b'{"owned": true}'
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(body)
+                self.wfile.flush()
+
+            def log_message(self, *args):
+                pass
+
+        class Server(http.server.ThreadingHTTPServer):
+            daemon_threads = False
+            block_on_close = False
+
+            def __init__(self):
+                self.accepted = 0
+                self.workers = []
+                super().__init__(("127.0.0.1", 0), Handler)
+
+            def get_request(self):
+                client, address = super().get_request()
+                self.accepted += 1
+                return client, address
+
+            def process_request_thread(self, request, address):
+                self.workers.append(threading.current_thread())
+                super().process_request_thread(request, address)
+
+        server = Server()
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.02))
+        thread.start()
+        try:
+            yield server, f"http://127.0.0.1:{server.server_port}"
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(3)
+            for worker in server.workers:
+                worker.join(3)
+            self.assertFalse(thread.is_alive(), "test-owned HTTP listener did not stop")
+            self.assertFalse(any(t.is_alive() for t in server.workers), "test-owned HTTP handler did not stop")
+
+    def test_actual_four_module_aliases_close_only_their_own_thread_and_base_pool(self):
+        import threading
+        modules = [quality.load_checks(name, quality.HERE / "checks") for name in (
+            "ticket_assignment_accept", "ticket_import_accept", "ticket_escalation_accept", "ticket_sla_accept")]
+        owners = [modules[0], modules[1].A, modules[2].A, modules[3].E.A]
+        self.assertIs(modules[3].A, modules[3].E.A)
+        self.assertEqual(len({id(owner) for owner in owners}), 4, "each loader must retain its exact helper instance")
+        separate = quality.load_checks("ticket_assignment_accept", quality.HERE / "checks")
+        with self.server() as (server, base), self.server() as (_other_server, other):
+            key = (threading.get_ident(), base)
+            other_key = (threading.get_ident(), other)
+            sockets, other_sockets = [], []
+            try:
+                for owner in owners:
+                    self.assertEqual(owner.call(base, "GET", "/"), (200, {"owned": True}))
+                    client = owner._connections[key]
+                    sock, fd = client.sock, client.sock.fileno()
+                    self.assertGreaterEqual(fd, 0)
+                    self.assertEqual(owner.call(base, "GET", "/"), (200, {"owned": True}))
+                    self.assertIs(owner._connections[key], client)
+                    self.assertIs(client.sock, sock)
+                    self.assertEqual(client.sock.fileno(), fd)
+                    sockets.append(sock)
+                    self.assertEqual(owner.call(other, "GET", "/")[0], 200)
+                    other_sockets.append(owner._connections[other_key].sock)
+                self.assertEqual(server.accepted, 4, "two GETs per owner must use exactly one connection each")
+                self.assertEqual(separate.call(base, "GET", "/")[0], 200)
+                separate_socket = separate._connections[key].sock
+                for index, (module, owner, sock) in enumerate(zip(modules, owners, sockets)):
+                    with self.subTest(module=module.__name__, owner=id(owner), fd=sock.fileno()):
+                        cleanup = getattr(module, "cleanup", None)
+                        if callable(cleanup):
+                            cleanup(base)
+                        # Exercise live unrelated controls before the expected RED closure assertion.
+                        for live_owner, live_socket in zip(owners[index + 1:], sockets[index + 1:]):
+                            self.assertEqual(live_owner.call(base, "GET", "/")[0], 200)
+                            self.assertIs(live_owner._connections[key].sock, live_socket)
+                        for other_owner, other_socket in zip(owners, other_sockets):
+                            self.assertEqual(other_owner.call(other, "GET", "/")[0], 200)
+                            self.assertIs(other_owner._connections[other_key].sock, other_socket)
+                        self.assertEqual(separate.call(base, "GET", "/")[0], 200)
+                        self.assertIs(separate._connections[key].sock, separate_socket)
+                        self.assertEqual(sock.fileno(), -1, "real module cleanup must close its actual helper's retained socket")
+                        self.assertNotIn(key, owner._connections, "real module cleanup must remove its actual pool entry")
+                        self.assertTrue(callable(cleanup), "acceptance module must export its optional cleanup hook")
+            finally:
+                # Fallbacks own all created pools, including old-source runs with no public hook.
+                for owner in owners + [separate]:
+                    owner.hang_up(base)
+                    owner.hang_up(other)
+                self.assertTrue(all(sock.fileno() == -1 for sock in sockets + other_sockets))
+                for owner in owners + [separate]:
+                    self.assertNotIn(key, owner._connections)
+                    self.assertNotIn(other_key, owner._connections)
 
 
 if __name__ == "__main__":

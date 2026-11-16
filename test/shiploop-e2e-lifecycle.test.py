@@ -365,6 +365,7 @@ class StopTest(LifecycleCase):
                   "time.sleep(float(sys.argv[3]))\n")
         starter = subprocess.Popen([sys.executable, "-c", script, str(run_dir), instance, str(starter_seconds)],
                                    stdout=subprocess.PIPE, text=True)
+        self.addCleanup(starter.stdout.close)
         self.addCleanup(starter.wait)
         pid = int(starter.stdout.readline())
         self.spawned.add(pid)

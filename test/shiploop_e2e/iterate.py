@@ -138,14 +138,14 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args, prompt: str
     git_config = Path.home() / ".gitconfig"
     env = agent.env(stage / "home", git_config if git_config.is_file() else None)
     base = git(worktree, "rev-parse", "HEAD")
-    argv = agent.argv(prompt=prompt or improver_prompt(worktree, findings, base, reviewer.last_commit_messages(worktree)),
+    argv, stdin_payload = agent.prepare(prompt=prompt or improver_prompt(worktree, findings, base, reviewer.last_commit_messages(worktree)),
                       prompt_file=stage / "prompt.txt", cwd=worktree, model=profile["model"],
                       effort=profile["effort"], permission_mode=args.permission_mode,
                       max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
     held_out = boundary.held_out_files(cases)
     with boundary.withheld(worktree, held_out) as withheld:
         process = hosts.run_agent(argv, worktree, env, stage / "events.jsonl", stage / "stderr.txt",
-                                  args.improve_timeout, translate=agent.translator())
+                                  args.improve_timeout, translate=agent.translator(), stdin_payload=stdin_payload)
     report = hosts.last_json_object(hosts.final_text(stage / "events.jsonl")) or {}
     graded_after = boundary.fingerprint(HERE, json.loads(runner.CASES.read_text()).get(args.case))
     commits = git(worktree, "rev-list", f"{base}..HEAD").split()

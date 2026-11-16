@@ -19,6 +19,10 @@ files an earlier version wrote (0008), and the raw columns (README.md).
 
 The checks that start servers of their own set WORKER_INTERVAL_MS (0 for none, 25 ms when they wait for a delivery), so they
 wait on the product's own interval, never on a fixed sleep longer than a second, and every wait is bounded.
+
+``cleanup(base_url)`` closes only this thread and base URL in this module's own helper pool, before the main server
+finishes. ``quality.acceptance`` calls it once; an ordinary failure is a separate ``cleanup_error`` diagnostic
+qualifying cleanup as INCOMPLETE while preserving every behavioral observation.
 """
 
 from __future__ import annotations
@@ -731,6 +735,10 @@ def cli_shows_assignee(base: str, product) -> tuple[bool, str]:
           and "dana.k" not in rows[made[2]] and not ({"dana.k", "priya.n"} & set(rows[made[1]].split())))
     return ok, ("tickets list shows each ticket's assignee" if ok else
                 f"tickets list (rc {code}, assigned with HTTP {answers}): {[rows[tid] for tid in made]}")
+
+
+# The exact helper instance used by this loaded module owns its pooled clients.
+cleanup = hang_up
 
 
 CHECKS = {

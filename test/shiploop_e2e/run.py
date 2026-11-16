@@ -1479,7 +1479,8 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
         done = subprocess.run([sys.executable, "-c", SEED_SCRIPT, str(cli.parent), str(run_dir), to, json.dumps(item),
                                json.dumps(records or {})], capture_output=True, text=True, env=git_env)
         if done.returncode:
-            raise SystemExit(f"seed: could not advance the run to {to}: {done.stderr[-2000:]}")
+            raise SystemExit(f"seed: could not advance the run to {to}: child returncode {done.returncode}; "
+                             f"stderr: {done.stderr[-2000:]}\nstdout: {done.stdout[-2000:]}")
         return json.loads(done.stdout)
 
     # A release slice stops at the item's first stage once: the item's base is recorded there (what it started from is the

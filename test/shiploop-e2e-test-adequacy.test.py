@@ -9,6 +9,7 @@ but insufficient: useful tests reject binding violations and accept valid edits.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -16,6 +17,8 @@ import os
 from pathlib import Path
 import re
 import shutil
+import socket
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,6 +29,8 @@ HARNESS = ROOT / "test" / "shiploop_e2e"
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
 sys.path.insert(0, str(HARNESS))
 sys.path.insert(0, str(HARNESS / "checks"))
+
+from fixture_process import run_owned  # noqa: E402
 
 import boundary  # noqa: E402
 import brownfield  # noqa: E402
@@ -38,6 +43,38 @@ CASE = json.loads((HARNESS / "cases.json").read_text())[CASE_ID]
 STRONG = ROOT / "test" / "fixtures" / "quality" / "ticket_adequacy_strong.test.js"
 ALTERNATIVE = STRONG.with_name("ticket_adequacy_alternative.test.js")
 REFERENCE_PATH = ROOT / "test" / "fixtures" / "quality" / "reference_ticket_assignment.py"
+
+
+# Private to this calibration module: no oracle, fixture or runtime default changes.
+_LOOPBACK_PRELOAD = ROOT / "test" / "fixture_loopback.cjs"
+_NODE_OPTIONS_BEFORE_MODULE = None
+
+
+@contextlib.contextmanager
+def _calibration_node_options(helper=_LOOPBACK_PRELOAD):
+    helper = Path(helper)
+    if not helper.is_file():
+        raise FileNotFoundError("private calibration preload is missing")
+    old = os.environ.get("NODE_OPTIONS", "")
+    options = old + (" " if old else "") + "--require " + json.dumps(str(helper), ensure_ascii=False)
+    with mock.patch.dict(os.environ, {"NODE_OPTIONS": options}):
+        yield
+
+
+def _start_calibration_scope(register_cleanup):
+    scope = _calibration_node_options()
+    scope.__enter__()
+    try:
+        register_cleanup(scope.__exit__, None, None, None)
+    except BaseException:
+        scope.__exit__(*sys.exc_info())
+        raise
+
+
+def setUpModule():
+    global _NODE_OPTIONS_BEFORE_MODULE
+    _NODE_OPTIONS_BEFORE_MODULE = ("NODE_OPTIONS" in os.environ, os.environ.get("NODE_OPTIONS"))
+    _start_calibration_scope(unittest.addModuleCleanup)
 
 
 def reference_module():
@@ -422,6 +459,303 @@ class BehavioralCalibration(unittest.TestCase):
         self.assertTrue(mutant["timeout"])
         self.assertEqual(mutant["status"], "invalid")
         self.assertEqual(mutant["network_reruns"], 0)
+
+
+# Real owned HTTP/socket controls adapted from the external validated driver.
+# Report actual Node versions; CI's latest-stable selection remains untouched.
+_LOOPBACK_PROGRAM = r'''
+'use strict';
+const assert = require('node:assert/strict');
+const http = require('node:http');
+const fs = require('node:fs');
+const cfg = JSON.parse(process.argv[2]);
+const report = {node: process.version, platform: process.platform, events: [], cleanup: []};
+async function exercise(form) {
+  let callbacks = 0, returned = false, request;
+  const server = http.createServer((req, res) => res.end('owned-body'));
+  const callback = () => { callbacks++; };
+  let options = form === 'options' ? {port: 0} : {port: 0, backlog: 7};
+  if (form === 'ipcOptions') options = {path: cfg.ipc};
+  if (form === 'ambiguousOptions') options = {path: cfg.ipc, port: 0};
+  const before = JSON.stringify(options);
+  let args;
+  const proxyTraps = {ownKeys: 0, getPrototypeOf: 0};
+  if (form === 'numeric') args = [0];
+  if (form === 'callback') args = [0, callback];
+  if (form === 'backlog') args = [0, 7];
+  if (form === 'backlogCallback') args = [0, 7, callback];
+  if (form === 'options') args = [options];
+  if (form === 'optionsCallback') args = [options, callback];
+  if (form === 'ipv4') args = [0, '127.0.0.1', callback];
+  if (form === 'proxyIpv4') args = [new Proxy({port: 0, host: '127.0.0.1'}, {
+    ownKeys() { proxyTraps.ownKeys++; throw new Error('proxy ownKeys sentinel'); },
+    getPrototypeOf(target) { proxyTraps.getPrototypeOf++; return Reflect.getPrototypeOf(target); }
+  }), callback];
+  if (form === 'ipv6') args = [{port: 0, host: '::1', ipv6Only: true}, callback];
+  if (form === 'ipv6Intent') args = [{port: 0, ipv6Only: true}, callback];
+  if (form === 'ipc') args = [cfg.ipc, callback];
+  if (form === 'ipcOptions' || form === 'ambiguousOptions') args = [options, callback];
+  if (form === 'fd') args = [{fd: cfg.fd}, callback];
+  if (form === 'refusal') args = [cfg.blocked, '127.0.0.1', callback];
+  try {
+    let timer;
+    let error;
+    try {
+      await new Promise((resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('listen deadline')), 3000);
+        server.once('error', reject);
+        server.once('listening', resolve);
+        returned = server.listen(...args) === server;
+      });
+    } catch (caught) { error = caught; }
+    finally { clearTimeout(timer); }
+    const address = server.address();
+    const event = {form, address, callbacks, returned, error: error && {code: error.code, message: error.message}};
+    report.events.push(event);
+    if (form === 'proxyIpv4') {
+      event.proxyTraps = proxyTraps;
+      // Node itself may enumerate. Compare this actual delegation outcome with
+      // a separate original-mode child; never assume that error is baseline RED.
+      if (error && error.message === 'proxy ownKeys sentinel') return;
+    }
+    if (form === 'refusal') {
+      assert.equal(error && error.code, 'EADDRINUSE');
+      assert.equal(address, null);
+      assert.equal(server.listening, false);
+      assert.equal(callbacks, 0);
+      assert.equal(returned, true);
+      return;
+    }
+    if (error && form === 'fd' && ['ENOTSUP', 'ENOSYS'].includes(error.code)) {
+      event.unsupportedOS = error.code;
+      return;
+    }
+    if (error && ['ipv6', 'ipv6Intent'].includes(form) &&
+        ['EAFNOSUPPORT', 'EADDRNOTAVAIL', 'EPROTONOSUPPORT', 'ENODEV'].includes(error.code)) {
+      event.unsupportedOS = error.code;
+      return;
+    }
+    if (error) throw error;
+    event.body = await new Promise((resolve, reject) => {
+      request = http.get(typeof address === 'string' ? {socketPath: address, path: '/', agent: false} :
+        {host: address.family === 'IPv6' ? '::1' : '127.0.0.1', port: address.port, path: '/', agent: false}, res => {
+          let body = ''; res.setEncoding('utf8');
+          res.on('data', part => { body += part; });
+          res.on('error', reject); res.on('end', () => resolve(body));
+        });
+      request.setTimeout(3000, () => request.destroy(new Error('HTTP deadline')));
+      request.on('error', reject);
+    });
+    assert.equal(event.body, 'owned-body');
+    assert.equal(returned, true);
+    assert.equal(callbacks, args.includes(callback) ? 1 : 0);
+    event.optionsUnchanged = JSON.stringify(options) === before;
+    assert.equal(event.optionsUnchanged, true, 'caller options mutated');
+    if (form.startsWith('ipc')) assert.equal(address, cfg.ipc);
+    else if (form === 'ambiguousOptions') {
+      assert.ok(address && typeof address === 'object', 'path+port must select TCP');
+      assert.ok((address.address === '::' && address.family === 'IPv6') ||
+                (address.address === '0.0.0.0' && address.family === 'IPv4'), 'expected TCP wildcard');
+    }
+    else if (form === 'ipv6') assert.equal(address.address, '::1');
+    else if (form === 'ipv6Intent') assert.equal(address.address, '::');
+    else assert.equal(address.address, '127.0.0.1');
+  } finally {
+    if (request) request.destroy();
+    if (server.listening) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    report.cleanup.push({form, listening: server.listening, address: server.address(),
+                         ipcAbsent: !fs.existsSync(cfg.ipc)});
+  }
+}
+(async () => {
+  try { for (const form of cfg.forms) await exercise(form); }
+  catch (error) { report.failure = {message: error.message, stack: error.stack}; process.exitCode = 1; }
+  finally { console.log(JSON.stringify(report)); }
+})();
+'''
+
+
+class LoopbackBindingTests(unittest.TestCase):
+    def run_case(self, forms, *, spaced=False, blocked=None, fd=None, original=False):
+        # Short POSIX-owned path fits the macOS 104-byte Unix socket bound.
+        with tempfile.TemporaryDirectory(prefix="sl-lb-", dir="/tmp" if os.name == "posix" else None) as raw:
+            return self._run_case(Path(raw), forms, spaced=spaced, blocked=blocked, fd=fd, original=original)
+
+    def _run_case(self, directory, forms, *, spaced, blocked, fd, original):
+        self.assertEqual(os.name, "posix", "FD/IPC ownership controls require POSIX")
+        helper = _LOOPBACK_PRELOAD
+        if spaced:
+            folder = directory / "preload space ü"
+            folder.mkdir()
+            helper = folder / "loopback ü.cjs"
+            shutil.copyfile(_LOOPBACK_PRELOAD, helper)
+        program = directory / "case.cjs"
+        program.write_text(_LOOPBACK_PROGRAM, encoding="utf-8")
+        cfg = {"forms": forms, "ipc": str(directory / "owned.sock"), "blocked": blocked, "fd": fd}
+        self.assertLess(len(os.fsencode(cfg["ipc"])), 104, "owned IPC path too long")
+        inherited = dict(os.environ)
+        # setUpModule is already active. Reconstruct only its prior NODE_OPTIONS,
+        # preserving unrelated inherited preloads; do not parse or strip tokens.
+        self.assertIsNotNone(_NODE_OPTIONS_BEFORE_MODULE, "module setup must run")
+        present, value = _NODE_OPTIONS_BEFORE_MODULE
+        base = dict(inherited)
+        if present:
+            base["NODE_OPTIONS"] = value
+        else:
+            base.pop("NODE_OPTIONS", None)
+        with mock.patch.dict(os.environ, base, clear=True):
+            scope = contextlib.nullcontext() if original else _calibration_node_options(helper)
+            with scope:
+                env = quality.child_env(quality.JS.guard_env([blocked] if blocked else [], directory / "refusals.log"))
+        self.assertTrue(dict(os.environ) == inherited, "control environment not restored (values redacted)")
+        env.update(PYTHONDONTWRITEBYTECODE="1", SHIPLOOP_PROGRESS="off", XDG_STATE_HOME=str(directory / "state"))
+        argv = ["node", str(program), json.dumps(cfg, ensure_ascii=False)]
+        popen = subprocess.Popen
+
+        def owned_popen(*args, **kwargs):
+            # Same narrow FD adaptation as validated external driver.
+            if kwargs.get("start_new_session"):
+                kwargs["pass_fds"] = (fd,)
+            return popen(*args, **kwargs)
+
+        fd_scope = mock.patch.object(subprocess, "Popen", owned_popen) if fd is not None else contextlib.nullcontext()
+        try:
+            with mock.patch.dict(os.environ, env, clear=True), fd_scope:
+                proc = run_owned(argv, cwd=directory, timeout=15)
+        finally:
+            self.assertTrue(dict(os.environ) == inherited, "launch environment not restored (values redacted)")
+        try:
+            behavior = json.loads(proc.stdout.strip().splitlines()[-1])
+        except (ValueError, IndexError):
+            self.fail("missing behavior JSON (child output redacted)")
+        print("loopback control Node:", behavior["node"], behavior["platform"])
+        self.assertTrue(behavior["cleanup"], "missing owned cleanup evidence")
+        for row in behavior["cleanup"]:
+            self.assertFalse(row["listening"], "owned server still listening")
+            self.assertTrue(row["ipcAbsent"], "owned Unix socket file remains")
+            if row["form"] in ("ipc", "ipcOptions"):
+                self.assertIn(row["address"], (None, cfg["ipc"]), "unexpected closed IPC metadata")
+            else:
+                self.assertIsNone(row["address"], "closed TCP address must be null")
+        self.assertFalse(Path(cfg["ipc"]).exists(), "owned socket remains")
+        self.assertFalse(any("unsupportedOS" in event for event in behavior["events"]),
+                         "required IPv6/FD control unsupported on this host")
+        if blocked:
+            self.assertTrue(any(line.split()[1:] == ["listen", str(blocked)]
+                                for line in (directory / "refusals.log").read_text().splitlines()),
+                            "fixed-port refusal guard log proof missing")
+        self.assertEqual(proc.returncode, 0, behavior)
+        return behavior
+
+    def test_default_numeric(self):
+        self.run_case(['numeric', 'callback', 'backlog', 'backlogCallback'])
+
+    def test_default_options(self):
+        self.run_case(['options', 'optionsCallback'])
+
+    def test_explicit_ipv4(self):
+        self.run_case(['ipv4'])
+
+    def test_proxy_explicit_ipv4(self):
+        original = self.run_case(['proxyIpv4'], original=True)['events'][0]
+        delegated = self.run_case(['proxyIpv4'])['events'][0]
+        def outcome(event):
+            value = dict(event)
+            if isinstance(value.get('address'), dict):
+                value['address'] = {key: val for key, val in value['address'].items() if key != 'port'}
+            return value
+        self.assertEqual(outcome(delegated), outcome(original), 'Proxy delegation differs from original Node')
+
+    def test_ambiguity_delegation(self):
+        original = self.run_case(['ambiguousOptions'], original=True)['events'][0]
+        delegated = self.run_case(['ambiguousOptions'])['events'][0]
+        def outcome(event):
+            value = dict(event)
+            if isinstance(value.get('address'), dict):
+                value['address'] = {key: val for key, val in value['address'].items() if key != 'port'}
+            return value
+        self.assertEqual(outcome(delegated), outcome(original),
+                         'path+port delegation differs from original Node')
+
+    def test_explicit_ipv6_and_intent(self):
+        self.run_case(['ipv6', 'ipv6Intent'])
+
+    def test_ipc_path_and_options(self):
+        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as handle:
+            handle.bind(('127.0.0.1', 0))
+            handle.listen(1)
+            self.run_case(['ipc', 'ipcOptions', 'fd'], fd=handle.fileno())
+
+    def test_fixed_port_refusal(self):
+        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as reservation:
+            reservation.bind(('127.0.0.1', 0))
+            reservation.listen(1)
+            self.run_case(['refusal'], blocked=reservation.getsockname()[1])
+
+    def test_preload_space_utf8_path(self):
+        self.run_case(['callback'], spaced=True)
+
+    def test_callback_backlog_shape(self):
+        self.run_case(['backlogCallback', 'optionsCallback'])
+
+
+class LoopbackEnvironmentTests(unittest.TestCase):
+    def test_environment_normal_restoration(self):
+        for value in (None, "", "  --trace-warnings  "):
+            with self.subTest(state="absent" if value is None else "empty" if not value else "nonempty"):
+                base = dict(os.environ)
+                if value is None:
+                    base.pop("NODE_OPTIONS", None)
+                else:
+                    base["NODE_OPTIONS"] = value
+                with mock.patch.dict(os.environ, base, clear=True):
+                    before = dict(os.environ)
+                    with _calibration_node_options():
+                        expected = (value or "") + (" " if value else "") + "--require " + json.dumps(str(_LOOPBACK_PRELOAD), ensure_ascii=False)
+                        self.assertTrue(os.environ["NODE_OPTIONS"] == expected, "preload prefix/quoting differs (redacted)")
+                    self.assertTrue(dict(os.environ) == before, "normal scope restoration differs (redacted)")
+                    cleanups = []
+                    _start_calibration_scope(lambda *args: cleanups.append(args))
+                    self.assertEqual(len(cleanups), 1)
+                    cleanup, *args = cleanups.pop()
+                    cleanup(*args)
+                    self.assertTrue(dict(os.environ) == before, "module cleanup restoration differs (redacted)")
+
+    def test_environment_body_and_setup_failure_restoration(self):
+        class ExpectedFailure(Exception):
+            pass
+        for value in (None, "", "  --trace-warnings  "):
+            with self.subTest(state="absent" if value is None else "empty" if not value else "nonempty"):
+                base = dict(os.environ)
+                if value is None:
+                    base.pop("NODE_OPTIONS", None)
+                else:
+                    base["NODE_OPTIONS"] = value
+                with mock.patch.dict(os.environ, base, clear=True):
+                    before = dict(os.environ)
+                    with self.assertRaises(ExpectedFailure):
+                        with _calibration_node_options():
+                            raise ExpectedFailure("body sentinel")
+                    self.assertTrue(dict(os.environ) == before, "body failure restoration differs (redacted)")
+                    with self.assertRaises(ExpectedFailure):
+                        _start_calibration_scope(mock.Mock(side_effect=ExpectedFailure("registration sentinel")))
+                    self.assertTrue(dict(os.environ) == before, "registration failure restoration differs (redacted)")
+                    # Simulate failure after immediate module cleanup registration.
+                    cleanups = []
+                    with self.assertRaises(ExpectedFailure):
+                        try:
+                            _start_calibration_scope(lambda *args: cleanups.append(args))
+                            raise ExpectedFailure("later module setup sentinel")
+                        finally:
+                            while cleanups:
+                                cleanup, *args = cleanups.pop()
+                                cleanup(*args)
+                    self.assertTrue(dict(os.environ) == before, "setup failure restoration differs (redacted)")
+                    with tempfile.TemporaryDirectory() as raw:
+                        with self.assertRaises(FileNotFoundError):
+                            with _calibration_node_options(Path(raw) / "missing.cjs"):
+                                self.fail("missing helper entered scope")
+                    self.assertTrue(dict(os.environ) == before, "missing helper changed environment (redacted)")
 
 
 if __name__ == "__main__":

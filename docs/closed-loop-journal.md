@@ -329,6 +329,84 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
   The residual gaps the reviewer named remain stated: reviewer, judge and improver sessions of a worker that died unobserved are in no ledger; recent group
   ownership is shown by the record's age, not proven.
 
+### R10. A failure that was not the code, Sol's third verification, and a replan (2026-11-15)
+
+- **Question.** Did round R9's changes cause the real-engine suite's three failures, and what does the verification of R9 (review round 5) say about
+  readiness for the first real compute?
+- **Experiment: the git identity, controlled** (`docs/experiments/closed-loop-phase2-review-20261115/identity-failure-evidence.txt`). A clone of
+  4e36b3ad486b30fce972e697096fcfa158c29e3d with only the suite home's git identity removed fails the same three tests (59.0 s) and passes the other two;
+  with the identity, 5 of 5 (96.8 s). Each failed engine log ends in `iterate.record_learnings` at `git commit` (the harness's git helper drops git's
+  stderr, so the log names the command, not the reason). Replaying each failed loop's staged learnings, taken from the facade's salvage archive, with the
+  same message and home: refused without an identity, committed with one, 3 of 3 each way. Cause: `~/.gitconfig` names no email, so git guesses one from
+  the hostname; the Mac has no fixed hostname, and at 20:44:57 macOS took a dotless one from the home router's reverse-DNS answer (`configd`, IPMonitor),
+  which git refuses. **Firm.** Not a facade defect.
+- **Measured reach.** On this machine in this state six loop-related E2E suites pass (725 tests), and the adapter's queries and steps suites passed after the
+  change: only the real-engine suite relied on the guess (fixed in 4e36b3ad). Real runs do not pass: the loop's learnings commits (`iterate.record_learnings`,
+  the cycle's) and the improver's commits (`iterate.improve` hands it `~/.gitconfig` as `GIT_CONFIG_GLOBAL`) use the owner's identity; subject, judge and
+  reviewer sessions get throwaway ones (`hosts._isolated_env`). The readiness probes never reach those commits (`probe_cases_runs` runs `run.py` alone; that
+  probe test passed with no identity), so readiness would have passed and the first real step failed after its subject run. **Firm.**
+- **A second, separate cause: Linux CI** (`docs/experiments/closed-loop-phase2-review-20261115/linux-ci-failure-evidence.txt`). GitHub's full runs on
+  a9d40c30 and on 4e36b3ad failed the same three tests, and neither failure message lists an archive (the macOS identity failure always left one staged
+  path), so the loop ended earlier. In a Debian container already on the machine (offline, non-root, node lent from a local image) the same three fail and
+  the same two pass; every engine log ends `OSError: [Errno 7] Argument list too long: 'codex'` where the reviewer is launched. The Codex host passes its
+  prompt as one argument, the reviewer prompt is 174,858 bytes (the 164,262-byte E2E spec is in it), and Linux caps one argument at 128 KiB (macOS caps the
+  whole command line at 1 MiB). So the suite has never passed on CI, the harness's reviewer cannot launch on Linux at all, and the identity fix (mine in
+  4e36b3ad and the same four lines another session added in fd314f5c9329cdfbe5811d045d0ed472a1068a27) does not touch it. I had not read CI's result after
+  the a9d40c30 push. **Firm.**
+- **Review, round 5.** Codex `gpt-6.1-sol` at max on 4e36b3ad, one attempt, no fallback, a neutral clone; 645 s; verdict **not ready**
+  (`docs/experiments/closed-loop-phase2-review-20261115/g1c-sol-*`). Of R9's seven: four FIXED, three PARTLY. Six verified bugs, each checked against the code
+  before acceptance; all held. (1) A repeated cleanup answers from its own call only: once a step is terminal, `end_leftovers` returns nothing, so a second
+  cleanup over an unverified group says verified (a regression of R9's change to `cmd_cleanup`). (2) A cancel or cleanup that publishes a prepared step
+  returns the worker's clean cleanup facts whatever the kill found, and the cancel answers `done` where `closed_loop.py`'s `cmd_cancel` requires `cancelled`
+  (R9 decision 12 broke the consumer's contract). (3) A write failure after the tip ref moved records the step `failed`. (4) The facade's re-stated epoch rule
+  omits the harness's `sealed_run` check and reads a torn event line as "nothing expected". (5) `stop_group` escalates to SIGKILL without re-checking that the
+  group is still the worker's. (6) The calibration probe does not bind the report's case set to its scoring cases. Test gaps: the mutation driver exits 0 when
+  mutants survive and counts any non-zero exit as caught; the simultaneous-start barrier precedes the shared read; an older cleanup test never calls
+  `cmd_cleanup`; the parity assertion has no corrupted control. Its other answers: no duplicate engine run or publication on any `advance` path.
+- **What rounds 3 to 5 show together.** 11, 7 and 6 verified defects. They come from four kinds of code: (a) re-statements of a harness rule (epoch reviews:
+  rounds 4 and 5); (b) more than one actor that may rewrite or publish a step (poll, cancel, cleanup: rounds 3 to 5); (c) receipts computed from one call's
+  view instead of the stored evidence (R9's fix made round 5's regression); (d) signals to process groups whose ownership is inferred (rounds 3 to 5).
+  Patching each finding where it is reported adds a path, and the next round finds its sibling. **Interim.**
+
+### Replan after round 5 (proposed 2026-11-15; waits on the owner)
+
+Recommended (B): remove the four kinds of code, then verify once.
+
+1. **The host (the owner's).** Configure a git identity on this machine (`git config --global user.email` and `user.name`, the identity every earlier
+   commit carries), or give it a fixed hostname (`sudo scutil --set HostName`). Every real loop, and every commit on this machine that names no email,
+   fails until then.
+2. **Main's CI (urgent: every full run, so every release, fails on this suite).** Recommended: the harness hands each host its prompt on stdin (`codex
+   exec` reads it there when no prompt argument is given; the Codex host already writes the prompt file), a generic E2E apparatus fix with no change to
+   what any model reads. Interim alternative: the engine suite skips its three reviewer-reaching tests off macOS, naming the measured limit. Either way it
+   is coordinated with the session repairing CI fixtures, which attributed the GitHub failure to the identity.
+3. **Facade, routine.**
+   1. An identity precondition: `step start` and the readiness answer refuse, naming the fix, when the engine's environment has no configured identity
+      (`git -c user.useConfigOnly=true var GIT_COMMITTER_IDENT` and `GIT_AUTHOR_IDENT` in X with the engine's environment, and again with the improver's
+      `GIT_CONFIG_GLOBAL`). Configured, not guessed: a campaign runs for hours and the guess changed with the network tonight. The negative test is
+      deterministic on any host through `user.useConfigOnly`.
+   2. One publisher: only `poll` publishes a prepared step; `cancel` and `cleanup` settle it cancelled and answer `cancelled`, as `cmd_cancel` requires.
+      This reverses R9 decision 12 (publish on cancel) for the consumer's contract and removes finding 2.
+   3. Receipts from stored evidence: a step's kill problems stay in its record until a later check shows them resolved; a cleanup of a terminal step with
+      open problems checks the group again on a fresh process table and answers from that. Finding 1.
+   4. Ownership re-checked before every escalation: `stop_group` runs `group_verdict` again after each wait and before SIGKILL, and stops when it is not
+      `ok`. Finding 5.
+   5. The harness owns its epoch rule: the facade asks `epoch.state` through the bridge instead of re-stating it, the stand-in engine writes its epochs with
+      the harness's own epoch functions, and an unreadable ledger is invalid, not empty. Finding 4 and the parity assertion's blind spot.
+   6. Publication reconciled with the ref: a worker that fails after the ref moved records `published` when the ref holds the prepared result. Finding 3.
+   7. Calibration stays unmeasured for the smoke; the coverage binding (finding 6) comes before any calibrated claim.
+   8. Tests: the mutation driver fails when a mutant survives and counts only a failing assertion of the named test; the barrier sits after both
+      snapshots; the cleanup tests call `cmd_cleanup`.
+4. **One verification** of that diff only (Sol at max), asking whether the four kinds are gone. The owner sets the bar: "ready with documented limits"
+   when only judgements on rare paths remain, or "ready".
+5. **The owner's decisions, then compute.** The records, the boundary hash, the budget, D1 and D3; then readiness and the one-iteration smoke on `hello`.
+
+Alternatives. (A) Fix the six where they were reported and review again: the trend says a sixth round finds their siblings. (C) After steps 1 and 2 and items
+3.1, 3.2 and 3.4 only, an attended smoke with the rest as documented limits: the reviewer would not start without truthful repeated cleanup, coherent
+publication recovery, authoritative epoch validation and safe escalation, and C leaves two of the four open.
+
+Outside the adapter (for the owner, or the session that owns the harness): `iterate.py` could refuse to start without a configured identity, and its git
+helper could keep git's stderr in the error. Both would have turned tonight's diagnosis into one line.
+
 ## Findings
 
 | # | Finding | Status | Evidence |
@@ -370,5 +448,14 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F35 | Decide ownership before collecting anything below a process group, and take a record's age from an epoch time stored with it, not from `ps`'s local-time text (a time-zone change turned 16 hours into 8) | firm | `group_verdict`; `PureTests.test_a_group_whose_leader_is_gone_...` |
 | F36 | Where the facade re-states a harness rule, mirror it exactly and keep a parity test against the harness's own function on real data: the facade took the first epoch decision and ignored receipt seals, while `epoch.state` takes the last and demotes a broken seal | firm | `epoch_reviewed`; the real-engine parity assertion |
 | F37 | A recommendation must follow from the report's own measurements: recompute it with the harness's function (`spread.recommend`); a zero attempt count had turned the sample check into 0 >= 0 | firm | `ProbeTests` (two new negatives) |
-| F38 | A test named for a guarantee must fail when the guarantee is removed: break each fix on purpose and run its test (9 of 9 caught here; in R8 the simultaneous-start and the kill tests could not have failed for some mutants) | firm | `docs/experiments/closed-loop-phase2-review-20261115/g1b-mutations.py` and `g1b-mutations.txt` |
+| F38 | A test named for a guarantee must fail when the guarantee is removed: break each fix on purpose and run its test (9 of 9 caught here; in R8 the simultaneous-start and the kill tests could not have failed for some mutants) | firm as a method; the 9 of 9 is qualified by F45 (2026-11-15: the driver counted any non-zero exit) | `docs/experiments/closed-loop-phase2-review-20261115/g1b-mutations.py` and `g1b-mutations.txt` |
 | F39 | A throwaway home must carry every piece of global configuration the code under test relies on: git's fallback identity depends on the hostname, so a suite that passed earlier in the day failed once the hostname lost its dot | firm | `setUpModule` in `test/shiploop-e2e-adapter-engine.test.py`; R9 |
+| F40 | On a Mac with no fixed hostname, git's guessed identity follows the network: the hostname came from the router's reverse-DNS answer and lost its dot mid-session, and every commit that relied on the guess failed. Configure an identity; never depend on the guess | firm | `identity-failure-evidence.txt` (timeline, mechanism, controlled experiment, exact replays) |
+| F41 | Readiness must exercise every environment dependency of the loop's own steps, not only the subject's: the probes ran a case (whose sessions use a throwaway identity) but never the learnings or improver commits, so readiness would pass and the first step fail after its subject run | firm | `identity-failure-evidence.txt` section 4; the probe test passed with no identity |
+| F42 | An error that names the command but not the reason costs a replay: the harness's git helper drops git's stderr, so the engine log showed `git commit` failing, not why | firm | `identity-failure-evidence.txt` section 3 |
+| F43 | Fixes made where a review points add paths, and the next round finds their siblings (11, 7, 6 verified defects in rounds 3 to 5). The defects come from four kinds of code: re-stated harness rules, several writers or publishers of one step, receipts from one call's view, signals to groups whose ownership is inferred. Remove the kind, not the instance | interim | R8 to R10; `g1c-sol-answer.txt` |
+| F44 | A decision that changes what a reply means must be checked against the consumer's code: publishing on cancel answered `done`, which `closed_loop.py`'s `cmd_cancel` refuses | firm | `g1c-sol-answer.txt` change 2; `cmd_cancel` |
+| F45 | A mutation check is evidence only if its driver fails when a mutant survives and counts only the named test's failing assertion; R9's driver did neither, so its 9 of 9 is weaker than it read | firm | `g1b-mutations.py`; `g1c-sol-answer.txt` |
+| F46 | The same symptom on two machines can have two causes: compare the failure's details (CI's messages listed no staged path, the Mac's always one) and reproduce on the CI's operating system before attributing | firm | `linux-ci-failure-evidence.txt`; R10 |
+| F47 | A prompt passed as one command-line argument fails on Linux above 128 KiB; the harness's reviewer prompt is 175 KB because it carries the whole E2E spec, so its reviewer cannot launch on Linux, and macOS's 1 MiB limit is about six times away and shrinks as the spec grows. Hand prompts over on stdin | firm | `linux-ci-failure-evidence.txt` sections 2 and 3 |
+| F48 | Read CI's result after every push, not only its start: the engine suite failed CI from its first push (a9d40c30) and was noticed two pushes later | firm | CI runs 43801628143 and 43811121318 |

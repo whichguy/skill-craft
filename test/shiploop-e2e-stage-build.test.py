@@ -1124,5 +1124,228 @@ class Boundary(unittest.TestCase):
             self.assertNotIn(copied, text)
 
 
+class SeedEffectDiagnostics(unittest.TestCase):
+    """Execute the embedded seed's record path; fake only its three engine dependencies."""
+
+    def seed_effect(self, mode, *, diagnostic_sink_fails=False):
+        with tempfile.TemporaryDirectory(prefix="stage-seed-diagnostics-") as temp:
+            root = Path(temp).resolve()
+            scripts = lay(root / "scripts", {
+                "__init__.py": "",
+                "shiploop_lint.py": "def read_base(run_dir, ident):\n    return None\n",
+                "shiploop_store.py": (
+                    "import json\n"
+                    "def read_record(path):\n    return json.loads(path.read_text())\n"),
+                "shiploop_navigator.py": '''import json
+import sys
+
+class SeedEffectError(RuntimeError):
+    pass
+
+def current_stage(state):
+    return state["stage"]
+
+def current_action(state):
+    return {"id": "diagnostic-action"}
+
+def apply(before, action, result):
+    assert action == "diagnostic-action"
+    assert result["diagnostic_record"] == "actual-record-path"
+    return {**before, "stage": "diagnostic-target",
+            "history": before["history"] + [{"stage": before["stage"]}]}
+
+def accept_effects(core, run_dir, before, after, *, action_id):
+    global last_error
+    (run_dir / "effect-call.json").write_text(json.dumps({
+        "stage": before["stage"], "action": action_id,
+        "after_stage": after["stage"], "package_root": str(core.PACKAGE_ROOT)}))
+    mode = (run_dir / "mode.txt").read_text()
+    if mode != "quiet-success":
+        print("SEED-EFFECT-STDOUT-MARKER", flush=True)
+        print("SEED-EFFECT-STDERR-MARKER", file=sys.stderr, flush=True)
+    if mode == "numeric-exit":
+        raise SystemExit(1)
+    if mode == "exception":
+        last_error = SeedEffectError("SEED-EFFECT-EXCEPTION-CAUSE")
+        raise last_error
+    return after
+''',
+            })
+            run_dir = lay(root / "run", {
+                "mode.txt": mode,
+                "state.md": json.dumps({"stage": "diagnostic-stage", "history": [], "active_improve": None}),
+            })
+            # -I ignores PYTHON* environment controls, so -B must be an explicit child flag.
+            env = {key: value for key, value in os.environ.items()
+                   if key not in (sb.WORKTREE_ENV, sb.ROUTE_ENV)}
+            script = sb.SEAM_SEED_SCRIPT
+            if diagnostic_sink_fails:
+                script = '''import sys
+original_stderr = sys.stderr
+class BrokenDiagnosticStream:
+    def write(self, text):
+        raise OSError("DIAGNOSTIC-WRITE-FAILED")
+    def flush(self):
+        pass
+sys.stderr = BrokenDiagnosticStream()
+try:
+    exec(compile(SEED_SOURCE, "<actual-seam-seed>", "exec"))
+except BaseException as error:
+    sys.stderr = original_stderr
+    import shiploop_navigator as nav
+    assert error is nav.last_error, "the original exception object was replaced"
+    frames = []
+    tb = error.__traceback__
+    while tb is not None:
+        frames.append(tb.tb_frame.f_code)
+        tb = tb.tb_next
+    assert nav.accept_effects.__code__ in frames, "the original traceback was lost"
+    raise
+'''.replace("SEED_SOURCE", repr(script))
+            done = subprocess.run(
+                [sys.executable, "-I", "-B", "-c", script, str(scripts), str(run_dir),
+                 "diagnostic-target", json.dumps({"id": "diagnostic-item", "title": "Diagnostic control"}),
+                 json.dumps({"diagnostic-stage": {"diagnostic_record": "actual-record-path"}})],
+                cwd=root, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, check=False, timeout=30)
+            self.assertEqual(json.loads((run_dir / "effect-call.json").read_text()), {
+                "stage": "diagnostic-stage", "action": "diagnostic-action",
+                "after_stage": "diagnostic-target", "package_root": str(root)})
+            self.assertEqual(list(root.rglob("__pycache__")), [])
+            return done
+
+    def assert_failure_diagnostics(self, done, exception_type):
+        self.assertEqual(done.returncode, 1, done.stderr)
+        self.assertEqual(done.stdout, "", "Failure diagnostics must use stderr, not the JSON result stream")
+        for marker in ("SEED-EFFECT-STDOUT-MARKER", "SEED-EFFECT-STDERR-MARKER",
+                       "diagnostic-stage", "diagnostic-action", exception_type):
+            with self.subTest(diagnostic=marker):
+                self.assertIn(marker, done.stderr)
+
+    def test_numeric_system_exit_replays_both_streams_with_stage_action_and_type(self):
+        self.assert_failure_diagnostics(self.seed_effect("numeric-exit"), "SystemExit")
+
+    def test_ordinary_exception_replays_both_streams_and_preserves_its_type_and_cause(self):
+        done = self.seed_effect("exception")
+        self.assert_failure_diagnostics(done, "SeedEffectError")
+        self.assertEqual(done.stderr.rstrip().splitlines()[-1],
+                         "shiploop_navigator.SeedEffectError: SEED-EFFECT-EXCEPTION-CAUSE")
+
+    def test_diagnostic_write_failure_preserves_the_original_exception_and_traceback(self):
+        done = self.seed_effect("exception", diagnostic_sink_fails=True)
+        self.assertEqual(done.returncode, 1, done.stderr)
+        self.assertEqual(done.stdout, "")
+        self.assertEqual(done.stderr.rstrip().splitlines()[-1],
+                         "shiploop_navigator.SeedEffectError: SEED-EFFECT-EXCEPTION-CAUSE")
+        self.assertNotIn("DIAGNOSTIC-WRITE-FAILED", done.stderr)
+        self.assertNotIn("AssertionError", done.stderr)
+
+    def assert_success_result(self, done):
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(done.stderr, "")
+        expected = {"skipped": ["diagnostic-stage"], "stage": "diagnostic-target", "action": "diagnostic-action",
+                    "delegation": None, "item_bases": [], "settled": False, "history_length": 1}
+        self.assertEqual(json.loads(done.stdout), expected)
+        self.assertEqual(done.stdout, json.dumps(expected) + "\n")
+
+    def test_noisy_success_emits_only_one_json_result(self):
+        self.assert_success_result(self.seed_effect("noisy-success"))
+
+    def test_quiet_success_emits_only_one_json_result(self):
+        self.assert_success_result(self.seed_effect("quiet-success"))
+
+
+class SeedAdvanceDiagnostics(unittest.TestCase):
+    """Exercise seed_run's outer diagnostics without launching any child process."""
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix="stage-seed-advance-diagnostics-")
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name).resolve()
+        self.work = self.root / "work"
+        self.out = self.root / "out"
+        self.work.mkdir()
+        self.out.mkdir()
+        self.cli = self.root / "scripts" / "shiploop.py"
+        self.run_dir = self.out / ".shiploop-runs" / "seed" / "run"
+        self.head = "a" * 40
+        self.item = {"id": "W1", "title": "Diagnostic seed control"}
+        self.records = {"spec": {"summary": "Diagnostic control"}}
+
+    def seed_advance(self, returncode, stdout="", stderr=""):
+        # Whitelist every command: an unexpected subprocess is a setup failure, never a real launch.
+        identity = ["-c", "user.name=ShipLoop E2E seed", "-c",
+                    "user.email=shiploop-e2e-seed@example.invalid"]
+        expected = [
+            ["git", "-C", str(self.work), "init", "-q"],
+            ["git", "-C", str(self.work), "add", "-A"],
+            ["git", "-C", str(self.work), *identity, "commit", "-qm", "seed: baseline"],
+            ["git", "-C", str(self.work), "rev-parse", "HEAD"],
+            [sys.executable, str(self.cli), "workspace", "start", f"--repo={self.work}",
+             f"--workspace-root={self.run_dir.parent}", "--delegation=ask-agent",
+             "--prompt=Diagnostic seed control"],
+            [sys.executable, "-c", run.SEED_SCRIPT, str(self.cli.parent), str(self.run_dir),
+             "implement", json.dumps(self.item), json.dumps(self.records)],
+        ]
+        calls = []
+
+        def child(argv, **kwargs):
+            index = len(calls)
+            self.assertLess(index, len(expected), "unexpected extra subprocess")
+            self.assertEqual(argv, expected[index])
+            self.assertTrue(kwargs["capture_output"])
+            self.assertTrue(kwargs["text"])
+            calls.append(argv)
+            if index == len(expected) - 1:
+                return subprocess.CompletedProcess(argv, returncode, stdout=stdout, stderr=stderr)
+            return subprocess.CompletedProcess(argv, 0, stdout=self.head + "\n" if index == 3 else "", stderr="")
+
+        with mock.patch.object(run.subprocess, "run", side_effect=child):
+            try:
+                return run.seed_run(self.cli, self.work, self.out, "Diagnostic seed control", "implement",
+                                    home=False, work_item=self.item, records=self.records)
+            finally:
+                self.assertEqual(calls, expected, "the failure must come from the final Python seed child")
+
+    def assert_advance_failure(self, returncode, *, stdout="", stderr="", cause=None):
+        with self.assertRaises(SystemExit) as caught:
+            self.seed_advance(returncode, stdout=stdout, stderr=stderr)
+        message = str(caught.exception)
+        self.assertTrue(message.startswith("seed: could not advance the run to implement:"), message)
+        with self.subTest(diagnostic="child returncode"):
+            self.assertRegex(message, rf"(?<!\d){returncode}(?!\d)")
+        if cause is not None:
+            with self.subTest(diagnostic="retained cause"):
+                self.assertIn(cause, message)
+
+    def test_negative_returncode_with_empty_streams_retains_target_and_returncode(self):
+        self.assert_advance_failure(-9)
+
+    def test_numeric_nonzero_retains_target_returncode_and_stderr_cause(self):
+        self.assert_advance_failure(23, stderr="SEED-ADVANCE-STDERR-CAUSE", cause="SEED-ADVANCE-STDERR-CAUSE")
+
+    def test_nonzero_with_stdout_only_retains_target_returncode_and_stdout_cause(self):
+        self.assert_advance_failure(23, stdout="SEED-ADVANCE-STDOUT-CAUSE", cause="SEED-ADVANCE-STDOUT-CAUSE")
+
+    def test_nonzero_retains_bounded_tails_of_both_streams(self):
+        with self.assertRaises(SystemExit) as caught:
+            self.seed_advance(23, stdout="STDOUT-DISCARDED" + "o" * 3000 + "STDOUT-TAIL",
+                              stderr="STDERR-DISCARDED" + "e" * 3000 + "STDERR-TAIL")
+        message = str(caught.exception)
+        self.assertTrue(message.startswith("seed: could not advance the run to implement:"), message)
+        self.assertIn("child returncode 23", message)
+        self.assertIn("stderr: " + "e" * 1989 + "STDERR-TAIL", message)
+        self.assertIn("stdout: " + "o" * 1989 + "STDOUT-TAIL", message)
+        self.assertNotIn("STDOUT-DISCARDED", message)
+        self.assertNotIn("STDERR-DISCARDED", message)
+        self.assertLessEqual(len(message), 4200)
+
+    def test_success_returns_the_seed_json_and_outer_metadata(self):
+        reached = {"skipped": ["spec"], "stage": "implement", "action": "diagnostic-action",
+                   "delegation": "ask-agent", "item_bases": ["W1"], "settled": False, "history_length": 1}
+        result = self.seed_advance(0, stdout=json.dumps(reached) + "\n")
+        self.assertEqual(result, {"run_dir": str(self.run_dir), "start_head": self.head, "home": [], **reached})
+        self.assertFalse((self.work / run.SEED_HOME).exists(), "home=False must skip knowledge-home writes")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,39 @@
+Why the real-engine adapter suite fails on GitHub CI (Linux), a cause separate from the macOS git identity
+=========================================================================================================
+Recorded 2026-11-15 (UTC-8).
+
+1. CI results (gh run list / gh run view --log-failed)
+- Run 43801628143 on a9d40c307a9edec62d2a487d810e30e630710821 (the first push that carried the suite): "full / shiploop-3" failed,
+  shiploop-e2e-adapter-engine 3 of 5: the two exploration tests ('failed' != 'done', "the engine exited 1 on hello", consumed runs 1,
+  about 10 s) and the dress rehearsal.
+- Run 43811121318 on 4e36b3ad486b30fce972e697096fcfa158c29e3d (the suite's home has a git identity): "full / shiploop-2" failed, the same
+  three tests, the same message (about 9 s). Every other suite of both full runs passed.
+- Unlike the macOS identity failure, whose messages always list an archive with one staged learnings path, neither CI message lists an
+  archive: the loop ended before it staged anything.
+
+2. Reproduction on Linux, offline
+- Image ghcr.io/astral-sh/uv:0.11.6-python3.13-trixie, already on the machine (--pull never, --network none), user 1001, a local clone of
+  4e36b3ad with only its teardown changed to keep the temporary folder. Python 3.13.13, git 2.47.3, procps-ng 4.0.4.
+- Without node: 5 of 5 fail, at the package build (scripts/sync-plugin-views.sh: "node: command not found"); CI has node, so this is the
+  image's gap. With node v14.21.3 lent from the local node:14 image (the build script is plain CommonJS): Ran 5 tests in 35.2 s,
+  FAILED (failures=3), the same three as CI; the other two pass, as on CI.
+- Each failed engine log (inv-1.log) ends:
+    cycle.py explore -> review.py review -> hosts.py run_agent -> subprocess.Popen
+    OSError: [Errno 7] Argument list too long: 'codex'
+
+3. Mechanism
+- hosts.py's Codex host writes the prompt to its prompt file and also passes it inline as the last argument (`argv + [prompt]`); the
+  Claude host passes it inline too (`-p prompt`); the Grok host passes `--prompt-file`.
+- The reviewer prompt of the exploration is 174,858 bytes (the macOS run's review/prompt.txt), almost all of it the E2E spec
+  (test/shiploop_e2e/SPEC.md, 164,262 bytes): "Rules for the harness itself" 66,642, "Mission, discovery and amendment authority" 31,067,
+  "The promotion contract" 27,435, "How the harness checks the clauses" 18,780 bytes, and smaller sections.
+- Linux limits one argument to 128 KiB (MAX_ARG_STRLEN, 131,072 bytes); macOS limits arguments plus environment together to 1 MiB
+  (getconf ARG_MAX: 1,048,576) and has no per-argument limit. So on Linux the reviewer can never be launched this way, with fake or real
+  hosts; on macOS it fits with about six times headroom, which shrinks as the spec grows.
+- `codex exec [PROMPT]`: when the prompt is not given or is `-`, Codex reads it from stdin (codex exec --help), so the prompt file the
+  host already writes can be the launch's stdin.
+
+4. What this means
+- The suite has never passed on CI; the identity fix (4e36b3ad, and the same four lines another session added in
+  fd314f5c9329cdfbe5811d045d0ed472a1068a27) is right for macOS and does not touch this.
+- A full CI run fails on this suite until the harness passes prompts on stdin or the suite stops running the reviewer on Linux.

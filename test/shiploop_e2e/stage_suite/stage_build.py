@@ -663,8 +663,20 @@ def record(stage, extra):  # record the current stage with a synthetic result, `
     state = nav.apply(before, action, result)
     if state["active_improve"] is not None:
         state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt from the stage suite's seed."})
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):  # what the effects print
-        state = nav.accept_effects(core, run_dir, before, state, action_id=action)
+    effect_stdout, effect_stderr = io.StringIO(), io.StringIO()
+    diagnostic_stderr = sys.stderr
+    try:
+        with contextlib.redirect_stdout(effect_stdout), contextlib.redirect_stderr(effect_stderr):
+            state = nav.accept_effects(core, run_dir, before, state, action_id=action)
+    except BaseException as error:
+        # Replay only after the redirects unwind; diagnostic failures must not replace the original failure.
+        try:
+            print(f"seed: stage {stage}, action {action}: {type(error).__name__}", file=diagnostic_stderr)
+            diagnostic_stderr.write(effect_stdout.getvalue())
+            diagnostic_stderr.write(effect_stderr.getvalue())
+        except BaseException:
+            pass
+        raise
     skipped.append(stage)
     return before
 

@@ -421,10 +421,13 @@ class FakeReviewer:
     def argv(self, **kwargs):
         return ["offline-probe", "-s", "danger-full-access"]
 
+    def prepare(self, **kwargs):
+        return self.argv(**kwargs), None
+
     def translator(self):
         return None
 
-    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None):
+    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None, *, stdin_payload=None):
         status, self.text = self.replies.pop(0)
         Path(events_path).write_text("")
         Path(stderr_path).write_text("")
@@ -661,9 +664,10 @@ class FakeImprover(FakeReviewer):
     def env(self, home, git_config=None):  # the improver passes the user's git config too
         return {"HOME": str(home)}
 
-    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None):
+    def run_agent(self, argv, cwd, env, events_path, stderr_path, timeout, translate=None, *, stdin_payload=None):
         if Path(cwd) != self.worktree:
-            return super().run_agent(argv, cwd, env, events_path, stderr_path, timeout, translate)
+            return super().run_agent(argv, cwd, env, events_path, stderr_path, timeout, translate,
+                                     stdin_payload=stdin_payload)
         Path(events_path).write_text("")
         Path(stderr_path).write_text("")
         self.seen["files"] = sorted(path.relative_to(cwd).as_posix() for path in Path(cwd).rglob("*.py")

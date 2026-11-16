@@ -18,6 +18,9 @@ import time
 import unittest
 from unittest import mock
 
+# This suite and its Python fixtures suppress bytecode writes.
+sys.dont_write_bytecode = True
+
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_DIR = ROOT / "test"
@@ -1263,6 +1266,861 @@ class SuiteEnvironmentIsolationTest(unittest.TestCase):
         for removed in ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "UNTIL_LOOP_STATE_DIR"):
             self.assertNotIn(removed, environment)
         self.assertIn("PATH", environment, "everything else is inherited")
+
+
+@unittest.skipUnless(os.name == "posix", "private process-group contract is POSIX")
+class SuiteGroupOwnershipTest(unittest.TestCase):
+    """Real children, bounded race gates, and identity-checked fallback cleanup.
+
+    No waitid/procfs dependency: ps exposes birth, group, state and the unique
+    argv marker on both supported POSIX hosts. Zombies count as stopped.
+    """
+
+    def setUp(self) -> None:
+        import threading
+        self.threading = threading
+        self.temporary = tempfile.TemporaryDirectory(prefix="suite-owner-")
+        self.root = Path(self.temporary.name).resolve()
+        self.real_popen = subprocess.Popen
+        self.real_popen_init = self.real_popen.__init__
+        self.owned = []
+        self.processes = []
+        self.releases = []
+        self.threads = []
+        self.addCleanup(self._cleanup)
+        self.child = self.root / "child.py"
+        self.child.write_text(textwrap.dedent('''\
+            import json, os, signal, sys, time
+            sys.dont_write_bytecode = True
+            from pathlib import Path
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            with open(os.devnull, 'wb') as stream:
+                os.dup2(stream.fileno(), 1)
+                os.dup2(stream.fileno(), 2)
+            ready = Path(sys.argv[1])
+            temporary = ready.with_suffix('.tmp')
+            temporary.write_text(json.dumps({'pid': os.getpid(), 'pgid': os.getpgrp(), 'marker': sys.argv[2]}))
+            temporary.replace(ready)
+            time.sleep(120)
+        '''), encoding="utf-8")
+        self.leader = self.root / "leader.py"
+        self.leader.write_text(textwrap.dedent('''\
+            import os, subprocess, sys, time
+            sys.dont_write_bytecode = True
+            from pathlib import Path
+            child, ready, gate, marker, mode = sys.argv[1:]
+            subprocess.Popen([sys.executable, '-B', child, ready, marker + '-child'])
+            deadline = time.monotonic() + 45
+            while not Path(gate).exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+            if not Path(gate).exists():
+                raise SystemExit(91)
+            os.write(1, b'suite-owner-out\\n')
+            os.write(2, b'suite-owner-err\\n')
+            if mode == 'sleep':
+                time.sleep(120)
+            else:
+                raise SystemExit(int(mode))
+        '''), encoding="utf-8")
+
+    def _until(self, predicate, seconds=10):
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            if predicate():
+                return True
+            time.sleep(.01)
+        return bool(predicate())
+
+    def _identity(self, pid, *, timeout=10):
+        # Use the original Popen: race injection targets suite launches only.
+        observer = self.real_popen(
+            ["ps", "-ww", "-p", str(pid), "-o", "lstart=", "-o", "pgid=", "-o", "stat=", "-o", "args="],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="replace",
+        )
+        output, error = observer.communicate(timeout=timeout)
+        if observer.returncode != 0 or not output.strip():
+            return None
+        fields = output.strip().split(None, 7)
+        self.assertEqual(len(fields), 8, output + error)
+        return (" ".join(fields[:5]), int(fields[5]), fields[6], fields[7])
+
+    def _remember(self, pid, marker, group):
+        self.assertIsInstance(pid, int, "actual fixture PID must be numeric")
+        self.assertGreater(pid, 0, "actual fixture PID must be positive")
+        self.assertIsInstance(group, int, "actual fixture PGID must be numeric")
+        self.assertGreater(group, 0, "actual fixture PGID must be positive")
+        # Popen can return before ps exposes exec's full argv on macOS.
+        # Capture only a fully visible identity, while the launch gate is closed.
+        deadline = time.monotonic() + 10
+        identity, visible = None, False
+        while time.monotonic() < deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            identity = self._identity(pid, timeout=remaining)
+            visible = bool(identity and identity[0] and identity[1] == group
+                           and marker in identity[3])
+            if visible:
+                break
+            time.sleep(min(.01, max(0, deadline - time.monotonic())))
+        self.assertTrue(visible, "fixture identity visibility deadline expired: %r" % (identity,))
+        self.assertIsNotNone(identity, "ready process disappeared before identity capture")
+        self.assertTrue(identity[0], "actual fixture birth must be nonempty")
+        self.assertIn(marker, identity[3])
+        self.assertEqual(identity[1], group)
+        record = (pid, marker, identity[0], group)
+        self.owned.append(record)
+        return record
+
+    def _alive(self, record):
+        pid, marker, birth, group = record
+        identity = self._identity(pid)
+        return bool(identity and identity[0] == birth and identity[1] == group
+                    and marker in identity[3] and not identity[2].startswith("Z"))
+
+    def _cleanup(self):
+        for release in self.releases:
+            release.set()
+        try:
+            # Never signal a group or an unverified/reused PID in test fallback.
+            for record in reversed(self.owned):
+                if self._alive(record):
+                    try:
+                        os.kill(record[0], signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+            for thread in self.threads:
+                thread.join(15)
+            for process in self.processes:
+                process.wait(timeout=15)
+            self.assertFalse(any(thread.is_alive() for thread in self.threads),
+                             "race worker outlived fallback cleanup")
+        finally:
+            for process in self.processes:
+                for stream in (process.stdout, process.stderr):
+                    if stream is not None:
+                        stream.close()
+            self.temporary.cleanup()
+
+    def _command(self, tag, mode):
+        marker = self.root.name + "-" + tag
+        ready, gate = self.root / (tag + ".json"), self.root / (tag + ".go")
+        argv = (sys.executable, "-B", str(self.leader), str(self.child), str(ready), str(gate), marker, str(mode))
+        return argv, ready, gate, marker
+
+    def _capture(self, process, ready, marker):
+        self.assertIsInstance(process, self.real_popen)
+        self.assertGreater(process.pid, 0)
+        self.processes.append(process)
+        self.assertTrue(self._until(ready.exists), "child readiness deadline expired")
+        # The launch gate stays closed through leader and actual-child capture.
+        leader = self._remember(process.pid, marker, process.pid)
+        record = json.loads(ready.read_text(encoding="utf-8"))
+        self.assertGreater(record["pid"], 0)
+        self.assertEqual(record["marker"], marker + "-child")
+        child = self._remember(record["pid"], record["marker"], process.pid)
+        self.assertEqual(record["pgid"], process.pid)
+        return leader, child
+
+    def _decoy(self):
+        marker = self.root.name + "-decoy"
+        ready = self.root / "decoy.json"
+        process = self.real_popen([sys.executable, "-B", str(self.child), str(ready), marker],
+                                  start_new_session=True)
+        self.processes.append(process)
+        record = self._remember(process.pid, marker, process.pid)
+        self.assertTrue(self._until(ready.exists), "decoy readiness deadline expired")
+        observed = json.loads(ready.read_text(encoding="utf-8"))
+        self.assertGreater(observed["pid"], 0)
+        self.assertEqual(observed, {"pid": process.pid, "pgid": process.pid, "marker": marker})
+        self.assertTrue(self._alive(record))
+        return record
+
+    def test_completion_ends_closed_pipe_descendants_and_preserves_result_without_waitid(self):
+        import contextlib
+        import importlib.util
+        # Darwin's supported libc fallback is required where stock macOS 3.9
+        # lacks Python waitid. Linux 3.9 has waitid; masking it there is an
+        # unsupported build, not the Darwin ABI. Never fake sys.platform.
+        @contextlib.contextmanager
+        def without_waitid():
+            absent = object()
+            original = getattr(os, "waitid", absent)
+            if original is not absent:
+                del os.waitid
+            try:
+                yield
+            finally:
+                if original is not absent:
+                    os.waitid = original
+                elif hasattr(os, "waitid"):
+                    del os.waitid
+        decoy = self._decoy()
+        variants = (False, True) if sys.platform == "darwin" else (False,)
+        for missing_waitid in variants:
+            capability = without_waitid() if missing_waitid else contextlib.nullcontext()
+            with capability:
+                name = "_suite_owner_floor_runner"
+                spec = importlib.util.spec_from_file_location(name, TEST_DIR / "run_suites.py")
+                runner = importlib.util.module_from_spec(spec)
+                with mock.patch.dict(sys.modules, {name: runner}):
+                    spec.loader.exec_module(runner)
+                    for code in (0, 23):
+                        with self.subTest(missing_waitid=missing_waitid, code=code):
+                            argv, ready, gate, marker = self._command("exit-%s-%s" % (missing_waitid, code), code)
+                            captured = []
+                            def started(process):
+                                captured.extend(self._capture(process, ready, marker))
+                                gate.touch()
+                            outcome = runner.run_process(argv, cwd=self.root, timeout_seconds=10, on_start=started)
+                            self.assertEqual(len(captured), 2, "suite and ready child must both be captured")
+                            self.assertTrue(ready.exists())
+                            self.assertTrue(all(record[0] > 0 for record in captured))
+                            self.assertTrue(self._until(lambda: not self._alive(captured[1]), 10),
+                                            "same-group child survived suite completion before fixture fallback")
+                            self.assertEqual(outcome.status, "passed" if code == 0 else "failed")
+                            self.assertEqual(outcome.returncode, code)
+                            self.assertEqual(outcome.stdout, "suite-owner-out\n")
+                            self.assertEqual(outcome.stderr, "suite-owner-err\n")
+                            self.assertIsNone(outcome.error)
+                            self.assertTrue(self._alive(decoy), "unrelated private group was signalled")
+
+    def test_callback_failure_and_serial_interrupt_clean_group_and_keep_exception_identity(self):
+        decoy = self._decoy()
+        for index, sentinel in enumerate((RuntimeError("callback sentinel"), KeyboardInterrupt("serial sentinel"))):
+            with self.subTest(exception=type(sentinel).__name__):
+                argv, ready, gate, marker = self._command("callback-%s" % index, "sleep")
+                captured = []
+                def initialize(process, *args, **kwargs):
+                    # Delegate first, preserving the real class and actual Popen.
+                    self.real_popen_init(process, *args, **kwargs)
+                    actual_argv = args[0] if args else kwargs.get("args")
+                    if actual_argv is not None and tuple(actual_argv) == argv:
+                        captured.extend(self._capture(process, ready, marker))
+                def raises(process):
+                    raise sentinel
+                def suite(*args, **kwargs):
+                    return run_suites.run_process(argv, cwd=self.root, timeout_seconds=10, on_start=raises)
+                with mock.patch.object(self.real_popen, "__init__", new=initialize):
+                    with mock.patch.object(run_suites, "_run_suite", side_effect=suite):
+                        try:
+                            list(run_suites._outcomes([object()], jobs=1))
+                        except BaseException as caught:
+                            self.assertIs(caught, sentinel)
+                        else:
+                            self.fail("callback exception was swallowed")
+                self.assertEqual(len(captured), 2, "constructor hook must capture the real suite and child")
+                self.assertTrue(ready.exists())
+                self.assertTrue(all(record[0] > 0 for record in captured))
+                self.assertTrue(self._until(lambda: not any(self._alive(r) for r in captured), 10),
+                                "callback/serial interrupt leaked its actual Popen group before fallback")
+                self.assertTrue(self._alive(decoy))
+
+    def _controller(self, selected):
+        result, done = [], self.threading.Event()
+        self.releases.append(done)
+        def consume():
+            try:
+                list(run_suites._outcomes(selected, jobs=2))
+            except BaseException as error:
+                result.append(error)
+            finally:
+                done.set()
+        thread = self.threading.Thread(target=consume, daemon=True)
+        self.threads.append(thread)
+        thread.start()
+        return result, done
+
+    def test_parallel_cancellation_covers_actual_popen_registered_after_shutdown(self):
+        ready_event, release, worker_done, registered, collect = (self.threading.Event() for _ in range(5))
+        self.releases.extend((release, collect))
+        sentinel = RuntimeError("cancel before registration")
+        argv, ready, gate, marker = self._command("late", "sleep")
+        captured, failures = [], []
+        decoy = self._decoy()
+        def initialize(process, *args, **kwargs):
+            self.real_popen_init(process, *args, **kwargs)
+            actual_argv = args[0] if args else kwargs.get("args")
+            # ps observers and the independent decoy never enter this branch.
+            if actual_argv is not None and tuple(actual_argv) == argv:
+                captured.extend(self._capture(process, ready, marker))
+                gate.touch()
+                ready_event.set()
+                if not release.wait(45):
+                    failures.append("late-launch release deadline expired")
+            # Actual on_start registration happens only after __init__ returns.
+        def suite(which, on_start=None):
+            self.threads.append(self.threading.current_thread())
+            if which == 0:
+                if not ready_event.wait(15):
+                    raise AssertionError("late Popen was not ready")
+                raise sentinel
+            def started(process):
+                if on_start is not None:
+                    on_start(process)
+                registered.set()
+                # Hold before communicate so the fixture's normal timeout
+                # cannot clean the old runner's leak and manufacture GREEN.
+                if not collect.wait(45):
+                    failures.append("late-collection release deadline expired")
+            try:
+                return run_suites.run_process(argv, cwd=self.root, timeout_seconds=12, on_start=started)
+            finally:
+                worker_done.set()
+        with mock.patch.object(self.real_popen, "__init__", new=initialize), \
+                mock.patch.object(run_suites, "_run_suite", side_effect=suite):
+            result, done = self._controller([0, 1])
+            try:
+                self.assertTrue(ready_event.wait(15), "actual late Popen did not start")
+                self.assertEqual(len(captured), 2, "late constructor hook must capture suite and ready child")
+                self.assertTrue(ready.exists())
+                self.assertTrue(all(record[0] > 0 for record in captured))
+                # Old dispatcher returns with an empty snapshot. A dispatcher that
+                # joins workers is released after one bounded watchdog interval.
+                done.wait(1)
+                release.set()
+                self.assertTrue(registered.wait(15), "late Popen did not finish actual registration")
+                self.assertTrue(self._until(lambda: not any(self._alive(r) for r in captured), 10),
+                                "late group survived cancellation before collection/timeout/fallback")
+                collect.set()
+                self.assertTrue(done.wait(15), "dispatcher did not finish cancellation")
+                self.assertEqual(len(result), 1)
+                self.assertIs(result[0], sentinel)
+                self.assertTrue(worker_done.wait(15), "late-registered suite worker survived cancellation")
+                self.assertFalse(any(self._alive(r) for r in captured), "late group survived before fallback")
+                self.assertEqual(failures, [])
+                self.assertTrue(self._alive(decoy))
+            finally:
+                release.set()
+                collect.set()
+                # Join before restoring mocks; fallback kills only captured identities.
+                for record in captured:
+                    if self._alive(record):
+                        try:
+                            os.kill(record[0], signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                # Join every real thread before either patch is restored, even
+                # when an event assertion would fail. Events alone are not joins.
+                for thread in self.threads:
+                    thread.join(15)
+                self.assertFalse(any(thread.is_alive() for thread in self.threads),
+                                 "late worker/controller outlived patched scope")
+                self.assertTrue(worker_done.is_set(), "late worker did not finish bounded fallback")
+                self.assertTrue(done.is_set(), "dispatcher did not finish bounded fallback")
+
+    def test_dispatcher_never_signals_reaped_leader_with_unfinished_future(self):
+        reaped, release, worker_done = (self.threading.Event() for _ in range(3))
+        self.releases.append(release)
+        sentinel = RuntimeError("cancel while completed worker returns")
+        processes, unsafe, barriers, failures = [], [], [], []
+        marker = self.root.name + "-reaped"
+        gate = self.root / "reaped.go"
+        script = "import sys,time; sys.dont_write_bytecode=True; from pathlib import Path; "
+        script += "gate=Path(sys.argv[1]); deadline=time.monotonic()+45\n"
+        script += "while not gate.exists() and time.monotonic()<deadline: time.sleep(.01)\n"
+        script += "assert gate.exists(), 'reaped launch gate expired'\nprint('reaped-control')"
+        argv = (sys.executable, "-B", "-c", script, str(gate), marker)
+        def initialize(process, *args, **kwargs):
+            self.real_popen_init(process, *args, **kwargs)
+            actual_argv = args[0] if args else kwargs.get("args")
+            if actual_argv is not None and tuple(actual_argv) == argv:
+                self.assertIsInstance(process, self.real_popen)
+                self.assertGreater(process.pid, 0)
+                self.processes.append(process)
+                self._remember(process.pid, marker, process.pid)
+                processes.append(process)
+                gate.touch()
+        real_killpg = os.killpg
+        def observe(group, sig):
+            # Suppress the unsafe call: even a mocked recycled identity must
+            # never send a real signal. The record is the assertion evidence.
+            matches = [p for p in processes if p.pid == group]
+            if sig and (not matches or any(p.returncode is not None for p in matches)):
+                unsafe.append((group, int(sig)))
+                return
+            return real_killpg(group, sig)
+        def suite(which, on_start=None):
+            self.threads.append(self.threading.current_thread())
+            if which == 0:
+                if not reaped.wait(15):
+                    raise AssertionError("completed worker never reached reap barrier")
+                raise sentinel
+            def started(process):
+                self.assertEqual(processes, [process], "constructor must capture actual process before on_start")
+                if on_start is not None:
+                    on_start(process)
+            outcome = run_suites.run_process(argv, cwd=self.root, timeout_seconds=10, on_start=started)
+            barriers.append((outcome.status, outcome.returncode, outcome.stdout, processes[-1].returncode))
+            reaped.set()
+            try:
+                if not release.wait(45):
+                    failures.append("reaped-future release deadline expired")
+                return outcome
+            finally:
+                worker_done.set()
+        with mock.patch.object(self.real_popen, "__init__", new=initialize), \
+                mock.patch.object(run_suites, "_run_suite", side_effect=suite), \
+                mock.patch.object(os, "killpg", side_effect=observe):
+            result, done = self._controller([0, 1])
+            try:
+                self.assertTrue(reaped.wait(15), "actual Popen never completed")
+                self.assertEqual(len(processes), 1, "actual reaped Popen must be observed")
+                self.assertGreater(processes[0].pid, 0)
+                self.assertTrue(gate.exists())
+                self.assertEqual(barriers, [("passed", 0, "reaped-control\n", 0)])
+                # Keep the future unfinished until the dispatcher finishes, with
+                # bounded release for implementations that join on cancellation.
+                done.wait(3)
+                release.set()
+                self.assertTrue(done.wait(15), "dispatcher cancellation did not finish")
+                self.assertEqual(len(result), 1)
+                self.assertIs(result[0], sentinel)
+                self.assertTrue(worker_done.wait(15), "completed worker did not return")
+                self.assertEqual(unsafe, [], "dispatcher signalled after actual leader reap")
+                self.assertEqual(failures, [])
+            finally:
+                release.set()
+                for thread in self.threads:
+                    thread.join(15)
+                self.assertFalse(any(thread.is_alive() for thread in self.threads),
+                                 "reaped worker/controller outlived patched scope")
+                self.assertTrue(worker_done.is_set())
+                self.assertTrue(done.is_set())
+
+
+    def test_timeout_grace_interrupt_finishes_owned_group_before_escape(self):
+        argv, ready, gate, marker = self._command("grace-interrupt", "sleep")
+        # Install TERM ignoring before spawning the existing ready child.
+        script = self.leader.read_text(encoding="utf-8").replace(
+            "import os, subprocess, sys, time",
+            "import os, subprocess, sys, time, signal\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)")
+        argv = (sys.executable, "-B", "-c", script, *argv[3:])
+        sentinel = KeyboardInterrupt("interrupt actual TERM grace once")
+        captured, owners, terms, injections = [], [], [], []
+        decoy = self._decoy()
+        real_wait, real_killpg = run_suites._SuiteProcess.wait, os.killpg
+        def started(process):
+            owners.append(process)
+            captured.extend(self._capture(process, ready, marker))
+            gate.touch()
+        def signal_group(group, sig):
+            result = real_killpg(group, sig)
+            if owners and group == owners[0].pid and sig == signal.SIGTERM:
+                terms.append(group)
+            return result
+        def wait(process, timeout=None):
+            if owners and process is owners[0] and timeout == 1 and terms and not injections:
+                injections.append(process.pid)
+                raise sentinel
+            return real_wait(process, timeout=timeout)
+        def suite(*args, **kwargs):
+            return run_suites.run_process(argv, cwd=self.root, timeout_seconds=.1, on_start=started)
+        with mock.patch.object(os, "killpg", new=signal_group), \
+                mock.patch.object(run_suites._SuiteProcess, "wait", new=wait), \
+                mock.patch.object(run_suites, "_run_suite", side_effect=suite):
+            try:
+                try:
+                    list(run_suites._outcomes([object()], jobs=1))
+                except BaseException as caught:
+                    self.assertIs(caught, sentinel)
+                else:
+                    self.fail("timeout-grace interrupt was swallowed")
+                self.assertEqual(len(captured), 2)
+                self.assertTrue(ready.exists())
+                self.assertTrue(all(record[0] > 0 for record in captured))
+                self.assertEqual(injections, [owners[0].pid])
+                self.assertTrue(terms, "injection must follow actual TERM delivery")
+                stopped = self._until(lambda: not any(self._alive(r) for r in captured), 10)
+                closed = all(s is not None and s.closed for s in (owners[0].stdout, owners[0].stderr))
+                self.assertEqual((stopped, closed), (True, True),
+                                 "owned group leak or open streams before fixture fallback")
+                self.assertTrue(self._alive(decoy))
+            finally:
+                primary = sys.exc_info()[0] is not None
+                errors = []
+                for record in reversed(self.owned):
+                    try:
+                        if self._alive(record):
+                            os.kill(record[0], signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    except BaseException as error:
+                        errors.append(error)
+                for process in self.processes:
+                    try:
+                        process.wait(timeout=15)
+                    except BaseException as error:
+                        errors.append(error)
+                    finally:
+                        for stream in (process.stdout, process.stderr):
+                            if stream is not None:
+                                try:
+                                    stream.close()
+                                except BaseException as error:
+                                    errors.append(error)
+                if errors and not primary:
+                    raise errors[0]
+
+
+    def test_interrupted_real_constructor_cleans_before_registration_serial_and_parallel(self):
+        decoy = self._decoy()
+        for jobs in (1, 2):
+            with self.subTest(jobs=jobs):
+                argv, ready, gate, marker = self._command("constructor-%s" % jobs, "sleep")
+                sentinel = KeyboardInterrupt("actual constructor interrupt %s" % jobs)
+                captured, owners, injections, callbacks, workers = [], [], [], [], []
+                def initialize(process, *args, **kwargs):
+                    self.real_popen_init(process, *args, **kwargs)
+                    actual = args[0] if args else kwargs.get("args")
+                    if actual is not None and tuple(actual) == argv and not injections:
+                        owners.append(process)
+                        captured.extend(self._capture(process, ready, marker))
+                        injections.append(process.pid)
+                        raise sentinel
+                def started(process, on_start):
+                    callbacks.append(process.pid)
+                    if on_start is not None:
+                        on_start(process)
+                def suite(which, on_start=None):
+                    if jobs == 2:
+                        worker = self.threading.current_thread()
+                        workers.append(worker)
+                        self.threads.append(worker)
+                    return run_suites.run_process(
+                        argv, cwd=self.root, timeout_seconds=10,
+                        on_start=lambda p: started(p, on_start))
+                # Patch the original class, never replace it with a factory.
+                with mock.patch.object(self.real_popen, "__init__", new=initialize), \
+                        mock.patch.object(run_suites, "_run_suite", side_effect=suite):
+                    try:
+                        try:
+                            list(run_suites._outcomes([object()], jobs=jobs))
+                        except BaseException as caught:
+                            self.assertIs(caught, sentinel)
+                        else:
+                            self.fail("constructor interrupt was swallowed")
+                        self.assertEqual(len(owners), 1)
+                        self.assertEqual(len(captured), 2)
+                        self.assertTrue(ready.exists())
+                        self.assertTrue(all(record[0] > 0 for record in captured))
+                        self.assertEqual(injections, [owners[0].pid])
+                        self.assertEqual(callbacks, [], "on_start ran after interrupted construction")
+                        stopped = self._until(lambda: not any(self._alive(r) for r in captured), 10)
+                        closed = all(s is not None and s.closed for s in (owners[0].stdout, owners[0].stderr))
+                        self.assertEqual((stopped, closed), (True, True),
+                                         "constructor leaked group or streams before fixture fallback")
+                        self.assertTrue(self._alive(decoy))
+                    finally:
+                        primary = sys.exc_info()[0] is not None
+                        errors = []
+                        # _capture may register identities then raise before
+                        # captured.extend receives its return value. Restrict
+                        # fallback to this subcase's actual owner groups.
+                        owner_groups = {process.pid for process in owners}
+                        for record in self.owned:
+                            if record[3] not in owner_groups:
+                                continue
+                            try:
+                                if self._alive(record):
+                                    os.kill(record[0], signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                            except BaseException as error:
+                                errors.append(error)
+                        # Even the old dispatcher shuts down without joining;
+                        # join the actual pool thread before restoring either patch.
+                        for worker in workers:
+                            try:
+                                worker.join(15)
+                                if worker.is_alive():
+                                    errors.append(AssertionError("constructor worker outlived patched scope"))
+                            except BaseException as error:
+                                errors.append(error)
+                        for process in owners:
+                            try:
+                                process.wait(timeout=15)
+                            except BaseException as error:
+                                errors.append(error)
+                            finally:
+                                for stream in (process.stdout, process.stderr):
+                                    if stream is not None:
+                                        try:
+                                            stream.close()
+                                        except BaseException as error:
+                                            errors.append(error)
+                        if errors and not primary:
+                            raise errors[0]
+
+
+    @unittest.skipUnless(sys.platform == "darwin", "actual Darwin observer and waitid ABI required")
+    def test_darwin_active_owner_cleanup_does_not_reenter_numeric_observer(self):
+        import errno
+        import warnings
+        marker = self.root.name + "-active-owner"
+        gate = self.root / "active-owner.go"
+        script = "import os,sys,time; from pathlib import Path; gate=Path(sys.argv[1]); deadline=time.monotonic()+45\n"
+        script += "while not gate.exists() and time.monotonic()<deadline: time.sleep(.01)\n"
+        script += "assert gate.exists(), 'active-owner gate expired'\nos.write(1,b'active-out\\n'); os.write(2,b'active-err\\n')\n"
+        owner = run_suites._SuiteProcess(
+            [sys.executable, "-B", "-c", script, str(gate), marker],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            start_new_session=True)
+        self.processes.append(owner)
+        observers, triggers, depths, signals, after_reap = [], [], [], [], []
+        depth, enabled = 0, True
+        bounded = RuntimeError("bounded second nested numeric observer")
+        nested = []
+        real_killpg = os.killpg
+        numeric = ['/bin/ps', '-A', '-o', 'pid=,pgid=,stat=']
+        def signal_group(group, sig):
+            if group == owner.pid:
+                if owner.returncode is not None:
+                    after_reap.append((group, int(sig)))
+                    return
+                signals.append((group, int(sig)))
+                if enabled:
+                    raise PermissionError(errno.EPERM, "intentional owner-only EPERM")
+            return real_killpg(group, sig)
+        def initialize(process, *args, **kwargs):
+            nonlocal depth
+            actual = args[0] if args else kwargs.get("args")
+            if actual is None or list(actual) != numeric:
+                return self.real_popen_init(process, *args, **kwargs)
+            depth += 1
+            depths.append(depth)
+            try:
+                if depth > 1:
+                    nested.append(bounded)
+                    raise bounded  # Before real initialization: no second observer fork.
+                self.real_popen_init(process, *args, **kwargs)
+                observers.append(process)
+                self.processes.append(process)
+            finally:
+                depth -= 1
+        with mock.patch.object(self.real_popen, "__init__", new=initialize), \
+                mock.patch.object(os, "killpg", new=signal_group):
+            try:
+                record = self._remember(owner.pid, marker, owner.pid)
+                self.assertTrue(self._alive(record))
+                self.assertIsNone(owner.returncode)
+                with warnings.catch_warnings(record=True) as intentional:
+                    warnings.simplefilter("always", ResourceWarning)
+                    owner.__del__()  # Strong reference retained; real CPython registration.
+                resources = [w for w in intentional if issubclass(w.category, ResourceWarning)]
+                self.assertEqual(len(resources), 1)
+                self.assertIn(str(owner.pid), str(resources[0].message))
+                self.assertTrue(any(p is owner for p in subprocess._active),
+                                "real destructor did not register live owner")
+                gate.touch()
+                readonly_exit_probe = run_suites._exit_probe()
+                self.assertTrue(self._until(lambda: readonly_exit_probe(owner.pid), 10),
+                                "leader did not exit unreaped before cleanup trigger")
+                self.assertIsNone(owner.returncode)
+                # Plain base construction invokes real global subprocess._cleanup.
+                trigger = self.real_popen([sys.executable, "-B", "-c", "pass"],
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                triggers.append(trigger)
+                self.processes.append(trigger)
+                trigger.communicate(timeout=10)
+                self.assertTrue(depths, "numeric observer branch was not exercised")
+                self.assertLessEqual(max(depths), 1, "recursive observer construction before fallback")
+                self.assertEqual(nested, [])
+                self.assertTrue(signals, "owner-only EPERM injection was not exercised")
+                self.assertEqual(owner.cleanup_warnings, [])
+                self.assertEqual(owner.returncode, 0, "normal global cleanup did not reap owner")
+                self.assertFalse(any(p is owner for p in subprocess._active))
+                out, err = owner.communicate(timeout=10)
+                self.assertEqual((out, err), ("active-out\n", "active-err\n"))
+                with self.assertRaises(ChildProcessError):
+                    readonly_exit_probe(owner.pid)
+                owner.poll()
+                owner.wait(timeout=1)
+                self.assertEqual(after_reap, [], "signal attempted after actual reap")
+                self.assertTrue(observers)
+                self.assertTrue(all(p.returncode is not None for p in observers))
+                self.assertTrue(all(s.closed for p in observers for s in (p.stdout, p.stderr) if s is not None))
+            finally:
+                primary = sys.exc_info()[0] is not None
+                enabled = False
+                errors = []
+                # Even failed identity capture leaves a strong owner reference;
+                # release its gate and reap it without an unvalidated PID kill.
+                try:
+                    gate.touch()
+                except BaseException as error:
+                    errors.append(error)
+                # Disable only this fixture's EPERM injection for fallback;
+                # normal owner hooks and global cleanup remain in operation.
+                for record in self.owned:
+                    try:
+                        if self._alive(record):
+                            os.kill(record[0], signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    except BaseException as error:
+                        errors.append(error)
+                for process in [owner, *observers, *triggers]:
+                    try:
+                        if process is not owner and process.returncode is None:
+                            process.kill()
+                        process.wait(timeout=15)
+                    except BaseException as error:
+                        errors.append(error)
+                    finally:
+                        for stream in (process.stdout, process.stderr):
+                            if stream is not None:
+                                try:
+                                    stream.close()
+                                except BaseException as error:
+                                    errors.append(error)
+                # A normal constructor removes any now-reaped active entry.
+                try:
+                    final = self.real_popen([sys.executable, "-B", "-c", "pass"],
+                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    self.processes.append(final)
+                    try:
+                        final.communicate(timeout=10)
+                    finally:
+                        if final.returncode is None:
+                            final.kill()
+                        final.wait(timeout=15)
+                        final.stdout.close()
+                        final.stderr.close()
+                except BaseException as error:
+                    errors.append(error)
+                if errors and not primary:
+                    raise errors[0]
+
+
+
+    def test_constructor_interrupt_after_actual_pid_before_child_created_reaps_and_closes(self):
+        import inspect
+        self.assertEqual(os.name, "posix")
+        self.assertGreaterEqual(sys.version_info[:2], (3, 9))
+        self.assertTrue(callable(os.waitpid), "native positive-PID teardown requires waitpid")
+        self.assertTrue(callable(os.waitstatus_to_exitcode), "native Python 3.9 floor supplies status conversion")
+        execute = self.real_popen._execute_child
+        source, first = inspect.getsourcelines(execute)
+        assignments = [first + offset for offset, line in enumerate(source)
+                       if re.fullmatch(r"\s*self\._child_created\s*=\s*True\s*(?:#.*)?", line.rstrip())]
+        self.assertEqual(len(assignments), 1, "resolve exactly one native creation-flag assignment")
+        fault_line = assignments[0]
+        self.assertIn("self.pid", "".join(source[:fault_line - first]),
+                      "installed stdlib must assign the real PID before the fault line")
+        decoy = self._decoy()
+        marker = self.root.name + "-partial-constructor"
+        ready = self.root / "partial-constructor.json"
+        # This real child closes its captured descriptors, publishes its actual
+        # PID/PGID/marker atomically, ignores TERM, then sleeps for 120 seconds.
+        # Pipe closure and normal completion cannot make this regression pass.
+        argv = (sys.executable, "-B", str(self.child), str(ready), marker)
+        sentinel = KeyboardInterrupt("actual PID assigned before child-created flag")
+        owners, records, streams, flags, starts, escaped = [], [], [], [], [], []
+        fired = []
+        calling_thread = self.threading.get_ident()
+        prior_trace = sys.gettrace()
+
+        def trace(frame, event, arg):
+            if (not fired and event == "line" and frame.f_code is execute.__code__
+                    and frame.f_lineno == fault_line):
+                owner = frame.f_locals.get("self")
+                if tuple(getattr(owner, "args", ())) == argv:
+                    fired.append(self.threading.get_ident())
+                    # Hold strong references even if any readiness assertion fails.
+                    owners.append(owner)
+                    self.processes.append(owner)
+                    streams.extend((owner.stdout, owner.stderr))
+                    flags.append(owner._child_created)
+                    self.assertIsInstance(owner, run_suites._SuiteProcess)
+                    self.assertGreater(owner.pid, 0, "fault must follow actual fork PID assignment")
+                    self.assertFalse(owner._child_created)
+                    records.append(self._remember(owner.pid, marker, owner.pid))
+                    self.assertTrue(self._until(ready.exists, 10), "real child readiness deadline expired")
+                    self.assertEqual(json.loads(ready.read_text(encoding="utf-8")),
+                                     {"pid": owner.pid, "pgid": owner.pid, "marker": marker})
+                    self.assertTrue(self._alive(records[0]))
+                    self.assertTrue(all(stream is not None and not stream.closed for stream in streams))
+                    raise sentinel
+            return trace
+
+        def suite(which, on_start=None):
+            # Install in the actual caller; this remains correct if later run in
+            # a worker. No process-global threading trace hook is installed.
+            self.assertEqual(self.threading.get_ident(), calling_thread)
+            sys.settrace(trace)
+            try:
+                return run_suites.run_process(argv, cwd=self.root, timeout_seconds=10,
+                                              on_start=lambda process: starts.append(process))
+            finally:
+                sys.settrace(prior_trace)
+
+        try:
+            began = time.monotonic()
+            with mock.patch.object(run_suites, "_run_suite", side_effect=suite):
+                try:
+                    list(run_suites._outcomes([object()], jobs=1))
+                except BaseException as error:
+                    escaped.append(error)
+                    # Snapshot before any test fallback, poll, wait or raw reap.
+                    if owners:
+                        owner = owners[0]
+                        at_escape = (owner.returncode, self._identity(owner.pid),
+                                     tuple(stream is not None and stream.closed for stream in streams))
+            elapsed = time.monotonic() - began
+            self.assertIs(sys.gettrace(), prior_trace)
+            self.assertEqual(fired, [calling_thread], "one exact native frame must reach the fault")
+            self.assertEqual(len(owners), 1)
+            self.assertEqual(len(records), 1, "actual birth/PGID/argv identity must be captured")
+            self.assertGreater(records[0][0], 0)
+            self.assertEqual(flags, [False], "the real constructor flag must still be false at injection")
+            self.assertEqual(len(escaped), 1)
+            self.assertIs(escaped[0], sentinel, "constructor must preserve exact KeyboardInterrupt")
+            self.assertEqual(starts, [], "on_start cannot run for a partially constructed owner")
+            self.assertLess(elapsed, 30, "normal 120-second child exit cannot satisfy cleanup")
+            # v3/v4 are expected to remain alive for this entire bounded window.
+            # Collect that observation before any assertion can enter fallback.
+            ended = self._until(lambda: not self._alive(records[0]), 10)
+            decoy_survived = self._alive(decoy)
+            self.assertTrue(decoy_survived, "unrelated private group must survive")
+            self.assertTrue(ended, "actual partial-constructor child survived 10s before fallback")
+            self.assertIsNotNone(at_escape[0], "actual owner must already have its reaped returncode")
+            self.assertIsNone(at_escape[1], "child must be absent, not a live process or unreaped zombie, at escape")
+            self.assertEqual(at_escape[2], (True, True), "both captured streams must close before escape")
+        finally:
+            sys.settrace(prior_trace)
+            # Test-only fallback AFTER the assertion observations. An unrepaired
+            # false-flag Popen cannot safely use its normal wait loop here.
+            for owner in owners:
+                try:
+                    pid = getattr(owner, "pid", None)
+                    self.assertIsInstance(pid, int)
+                    self.assertGreater(pid, 0)
+                    record = records[0] if records else self._remember(pid, marker, pid)
+                    if self._alive(record):
+                        try:
+                            os.kill(pid, signal.SIGKILL)  # exactly the validated owned PID
+                        except ProcessLookupError:
+                            pass
+                    # No waitpid(-1), guessed group, synthetic PID or production
+                    # returncode mutation: only actual child status in fallback.
+                    deadline = time.monotonic() + 10
+                    while True:
+                        try:
+                            waited, status = os.waitpid(pid, os.WNOHANG)
+                        except ChildProcessError:
+                            break  # production already reaped this actual child
+                        if waited == pid:
+                            owner.returncode = os.waitstatus_to_exitcode(status)
+                            break
+                        if time.monotonic() >= deadline:
+                            self.fail("identity-checked partial-owner fallback did not reap actual child")
+                        time.sleep(.01)
+                finally:
+                    for stream in (getattr(owner, "stdout", None), getattr(owner, "stderr", None)):
+                        if stream is not None:
+                            stream.close()
+
 
 
 if __name__ == "__main__":

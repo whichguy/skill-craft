@@ -1,0 +1,117 @@
+{
+  "scratch": "/tmp/g1c-evidence-review/run-ekyqnjcp",
+  "changed_sealed_run": {
+    "before": {
+      "harness": {
+        "control-hello": "reviewed",
+        "candidate-hello": "reviewed"
+      },
+      "facade_reviewed": [
+        "candidate-hello",
+        "control-hello"
+      ]
+    },
+    "after": {
+      "harness": {
+        "control-hello": "invalid_evidence",
+        "candidate-hello": "reviewed"
+      },
+      "facade_reviewed": [
+        "candidate-hello",
+        "control-hello"
+      ],
+      "facade_epoch": {
+        "decision": {
+          "decision": "DROP",
+          "attempts": [
+            {
+              "id": "control-hello",
+              "arm": "control",
+              "case": "hello",
+              "outcome": "success",
+              "evidence_valid": true
+            },
+            {
+              "id": "candidate-hello",
+              "arm": "candidate",
+              "case": "hello",
+              "outcome": "success",
+              "evidence_valid": true
+            }
+          ]
+        },
+        "receipts": [
+          {
+            "review": {
+              "validity": {
+                "status": "valid",
+                "discovery_qualified": true
+              }
+            },
+            "judge": {
+              "validity": {
+                "status": "valid"
+              }
+            },
+            "routes": {}
+          },
+          {
+            "review": {
+              "validity": {
+                "status": "valid",
+                "discovery_qualified": true
+              }
+            },
+            "judge": {
+              "validity": {
+                "status": "valid"
+              }
+            },
+            "routes": {}
+          }
+        ],
+        "incomplete": 0,
+        "expected": 2
+      }
+    }
+  },
+  "calibration": {
+    "positive": {
+      "state": "calibrated",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "/tmp/g1c-evidence-review/run-ekyqnjcp/calibration.json is a calibration/1 report for codex/fake-model/high over hello; its scoring digest dc9fad07773b equals the current scoring files'; it recommends 1 attempts per arm at tolerance 0.05 on tokens"
+    },
+    "wrong_case_binding": {
+      "state": "calibrated",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "/tmp/g1c-evidence-review/run-ekyqnjcp/misbound.json is a calibration/1 report for codex/fake-model/high over not-a-catalog-case; its scoring digest dc9fad07773b equals the current scoring files'; it recommends 1 attempts per arm at tolerance 0.05 on tokens"
+    },
+    "zero_attempts": {
+      "state": "unmeasured",
+      "evidence": "the report /tmp/g1c-evidence-review/run-ekyqnjcp/zero.json recommends 0 attempts per arm: not a positive whole number",
+      "consumed": {
+        "seconds": 0.0
+      }
+    },
+    "inconsistent_tolerance": {
+      "state": "unmeasured",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "the report /tmp/g1c-evidence-review/run-ekyqnjcp/inconsistent.json recommends tolerance 0.25, but spread.recommend over its own rates gives 0.05: the recommendation does not follow from what was measured"
+    }
+  },
+  "torn_ledger": {
+    "harness": "ledger row 9 is incomplete; preserve and reconcile it before continuing",
+    "facade": {
+      "decision": null,
+      "receipts": [],
+      "incomplete": 0,
+      "expected": 0
+    }
+  }
+}

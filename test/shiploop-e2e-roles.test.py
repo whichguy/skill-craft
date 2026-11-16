@@ -125,6 +125,9 @@ class RoleDefaultsTest(unittest.TestCase):
                     args.improver_effort = override
                     iterate.improve(root, [], root / effort, args, prompt="Improve this fixture.")
                     argv = launch.call_args.args[0]
+                    self.assertEqual(argv[-1], "-")
+                    self.assertEqual(launch.call_args.kwargs["stdin_payload"], b"Improve this fixture.")
+                    self.assertEqual((root / effort / "prompt.txt").read_bytes(), b"Improve this fixture.")
                     self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
                     self.assertIn(f"model_reasoning_effort={effort}", argv)
                     self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', argv)
