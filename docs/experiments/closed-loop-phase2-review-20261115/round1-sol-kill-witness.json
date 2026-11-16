@@ -1,0 +1,12 @@
+{
+  "scratch": "/private/tmp/p2-kill-probe-bw_kxetk",
+  "child_rc": -9,
+  "worktree_status": "M test/shiploop_e2e/learning-records.jsonl",
+  "worktree_records": [
+    "LR-20261115-111111",
+    "LR-20261115-222222"
+  ],
+  "committed_ledger_contains_new_record": false,
+  "output_files": [],
+  "note": "real qualify wrapper; _qualify_impl stub appends owner finding then SIGKILL; no models"
+}
