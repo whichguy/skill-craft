@@ -1,0 +1,97 @@
+**Verdict: not ready for the first real compute.** The main blockers are false cleanup receipts and races between step transitions and owner operations.
+
+Reviewed commit `441b9edb4f6fbb990d1401c56538ac8bad0c49f3`; the checkout remained unchanged. Each suite ran once: queries **28 passed**; steps and real-engine suites timed out after 609s and 497s because this sandbox forbids `ps`. Their logs also exposed the startup handling defect below. These are incomplete verification results, not confirmation of the advertised 77 passing tests. [Execution evidence](/private/tmp/adapter-test-evidence-40hjxoay/summary.json).
+
+I did **not** verify a false QUIET from ordinary, completed harness artifacts. I did verify false cleanup evidence, which the orchestrator can accept for C5. The six stated decisions remain intact.
+
+The changes below are ordered by priority.
+
+1. **Verified bug — cleanup can acknowledge a worker that subsequently starts executing.**
+
+   Concrete window: `worker_main` acquires its lock and reads `starting`, then pauses before saving its identity. Cleanup sees a live lock but `worker:null`; `kill_step` stops nothing, and `settle` writes `cancelled`. Cleanup returns `verified:true`. The paused worker then saves `running` and proceeds.
+
+   My controlled witness returned verified cleanup over zero run folders, followed by worker execution and a final `published` record. The equivalent cancellation window exists in `step_cancel`.
+
+   Require a durable cancellation handshake and synchronized transitions; a worker must recheck cancellation before execution. Test the interval **after lock acquisition but before identity publication**, rather than only established running workers. [facade.py — `worker_main`, `kill_step`, `step_cancel`, `cmd_cleanup`, `settle`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py). [Witness](/private/tmp/g1-parent-witness-rcdutfqs/results.json).
+
+2. **Verified bug — failed process termination does not prevent verified cleanup.**
+
+   `kill_step` returns group outcomes and session survivors, but `cmd_cleanup` and `settle` do not incorporate them into verification. With `group:"survived"` and a nonempty survivor list, my witness still received `verified:true` because lifecycle cleanup found no recorded run resources.
+
+   This matters for reviewer, judge and improver sessions absent from the run lifecycle ledger. Require positive termination evidence before teardown and certification; preserve `protected`, unresolved identity and survivor outcomes as blockers. Add negative controls where termination leaves a survivor. [facade.py — `kill_step`, `stop_group`, `stop_processes`, `settle`, `lifecycle_cleanup`, `cmd_cleanup`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py). The false receipt is accepted by [closed_loop.py — `cmd_cleanup`, `check_c5`](/private/tmp/g1-sol.tHD7YG/checkout/skills/closed-loop/scripts/closed_loop.py).
+
+3. **Verified bug — cleanup can overwrite a completed publication.**
+
+   Unlike `step_cancel`, `cmd_cleanup` does not reload the step after stopping it. If the worker publishes while cleanup holds an earlier `running` record, cleanup subsequently saves that stale record as `cancelled`.
+
+   Reproduced result: the tip advanced, but the durable record became `cancelled` with `iteration:null` and `prepared:null`. This separates the published candidate from its reported outcome and acceptance evidence.
+
+   Serialize terminal transitions and reload under that synchronization before changing state. Add a barrier test where publication completes during cleanup’s kill operation. [facade.py — `cmd_cleanup`, `publish`, `step_cancel`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py). [Witness](/private/tmp/g1-parent-witness-rcdutfqs/results.json).
+
+4. **Verified bug — per-worker locks do not enforce one step per workspace.**
+
+   Two concurrent starts can both observe no record and no live worker before either writes its intent. With different keys, their locks are independent. A barrier witness accepted and launched both.
+
+   They can then reposition X and remove each other’s worktrees through `restore_x`, `position`, `settle` and `remove_worktrees`. The existing duplicate-start test is sequential and misses this interval.
+
+   Reserve the workspace atomically before admitting a step, including startup and pending publication. Test simultaneous starts with both identical and different keys. [facade.py — `step_start`, `live_keys`, `WorkerLock`, `restore_x`, `position`, `remove_worktrees`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py).
+
+5. **Verified bug — owner decisions can invalidate pending publication.**
+
+   A dead worker’s durable `prepared` record is excluded from `live_keys`. Consequently `cmd_decide` accepts an owner decision “between steps,” advancing T to a ledger-only D. Polling the completed step then rejects its intended T→T′ publication because D is neither endpoint.
+
+   Reproduced using the real owner command and publication functions. The build token stayed unchanged. Reconcile prepared steps before admitting owner decisions, under the same workspace synchronization.
+
+   The Git-object construction itself behaved correctly: original ledger mode, HEAD, index and working files were preserved; explicit identities were used; competing tip movement was refused by CAS. The defect is transaction admission. [facade.py — `cmd_decide`, `live_keys`, `advance`, `publish`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py). [Evidence](/tmp/g1-probes-owner-4woqs9ug/evidence.json).
+
+6. **Verified bug — terminal start replay violates the orchestrator’s accepted replies.**
+
+   Suppose the original launch response is lost, and the worker fails before replay. `step_start` returns the existing handle with `status:"failed"`. However, `apply_action(start)` accepts only `running` or `done`. It records another start failure instead of consuming the failed step and its reported consumption; three identical responses stop the campaign.
+
+   Preserve idempotence while providing a response the orchestrator can register and subsequently poll, or explicitly support terminal replay in the orchestrator. Add lost-response tests ending in failure and cancellation. [facade.py — `step_start`, `advance`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py); [closed_loop.py — `apply_action`, `start_action`, launch intents](/private/tmp/g1-sol.tHD7YG/checkout/skills/closed-loop/scripts/closed_loop.py).
+
+7. **Verified bugs — successful assessment retries are misread.**
+
+   - Exploration: `cycle.explore` accepts a successful judge retry written to `review-judge-retry-1/verdict.json`; `invocation_evidence` always reads the initial `review-judge/verdict.json`. A valid recovered exploration is therefore reported with `judge.valid:false`. Repeated recovery can prevent C2/C7 and trigger the no-progress stop.
+   - Epoch: `epoch_evidence` counts every historical `review_incomplete`, including attempts later marked `reviewed`. It therefore reports a recovered review as incomplete. A candidate already prevents that iteration being quiet, but its assessment facts remain wrong.
+
+   Both were reproduced using the real retry/receipt writers with model transport stubbed. Resolve authoritative final assessments per attempt, verify receipt identity, and test recovery separately from exhausted retries. [cycle.py — `explore`, `review_all`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/cycle.py); [epoch.py — `review_attempt`, `state`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/epoch.py); [facade.py — `invocation_evidence`, `epoch_evidence`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py). [Evidence](/tmp/g1-harness-derivations-vf3687th/results.json).
+
+8. **Verified bug — browser authority disappears from `cases`.**
+
+   `load_allowlist` emits empty requirements for every case. The real `battleship` entry has `needs:["browser"]`, while the manifest makes browser cases owner-only. The real orchestrator accepted `init --cases battleship` without case approval; widening uses the same predicate.
+
+   Translate the harness’s requirements into adapter requirements. Add refusal and approval controls. The existing catalog test explicitly expects empty requirements and currently protects this defect. [facade.py — `load_allowlist`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py); [cases.json — `battleship`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/cases.json); [closed_loop.py — `owner_gated_case`, `authority_problem`, `widening_candidates`](/private/tmp/g1-sol.tHD7YG/checkout/skills/closed-loop/scripts/closed_loop.py).
+
+9. **Verified bug — calibration can claim measurement without observations.**
+
+   A matching-driver `calibration/1` document containing `cases:{}`, an empty-case scoring digest and a recommendation returned `calibrated`. So did `{"hello":{}}` without any A/A samples.
+
+   The bridge supplies the report’s own case names to a loader that does not establish measurement provenance. This can authorize “measured efficiency” without measured noise. The shipped manifest leaves calibration unmeasured, so this is dormant initially.
+
+   Validate nonempty coverage and substantive calibration evidence before enabling this claim. Add zero-case and zero-sample negatives; the current positive fixture is itself sample-free. [facade.py — `probe_calibrated`, BRIDGE `calibration_check`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py); [cycle.py — `load_calibration`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/cycle.py). [Evidence](/tmp/g1-probes-owner-4woqs9ug/calibration-evidence.json).
+
+10. **Verified bug — initialization failures leave perpetual startup retries.**
+
+    The suite runs exposed `PermissionError` from `identity_of` **before** `worker_main` enters its exception handler. The durable state remains `starting`; after boot grace, every poll can spawn another worker. One retained log contains 389 identical failures.
+
+    Handle initialization errors as durable terminal failures, or explicitly bounded startup retries. Add missing/denied `ps` controls and bound process-table calls. The environment restriction explains the suite timeouts; the repeated relaunch behavior is an adapter defect. [facade.py — `worker_main`, `identity_of`, `ps_rows`, `advance`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py). [Logs and counts](/private/tmp/adapter-test-evidence-40hjxoay/summary.json).
+
+11. **Likely bug — absent leaders do not prove process-group ownership.**
+
+    `stop_group` allows signaling when the recorded leader is absent. After the original group disappears, its number can eventually be reused; the replacement leader can also exit while leaving members. An old record then cannot distinguish those unrelated members from its own descendants. A mocked-table witness confirmed that this state triggers signaling.
+
+    Require verifiable surviving ownership rather than assuming uninterrupted group existence. Existing tests cover a reused **present** leader, zombies and protected ancestors, but not recycled groups with absent leaders. [facade.py — `stop_group`, `worker_group`, `protected_pids`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py).
+
+**Judgement — several important derivations are sound and should remain.** `INTERRUPTED` exits fail without tip publication; invalid/nonqualified exploration reviews remain nonquiet; skipped epoch reviews fail closed. Missing retained candidates produce invalid evidence rather than invented outcomes. Epoch case outcomes preserve frozen `required_case` through the decision attempt rows. Baselines use the harness predicate, normalize source names, distinguish planning modes, exclude this step’s rows and return `unknown` when the current run wrote no row. Baseline absence can coexist with QUIET; C3 separately blocks convergence. [facade.py — `run_summary`, `invocation_evidence`, `baseline_status`, `derive_iteration`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py); [epoch.py — `decide`](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/epoch.py); [closed_loop.py — `quiet_reasons`, `check_c1`–`check_c7`](/private/tmp/g1-sol.tHD7YG/checkout/skills/closed-loop/scripts/closed_loop.py).
+
+**Judgement — the probe limits mostly match their ladders.** A failed product may still prove `cases.runs`; scoring an older build’s real run may prove `grading.scores`. Neither promises passing current-build floors. The bounded probe’s quick tier and receipt are build-bound. Its planted-edit negative control meaningfully tests `candidate_path`, but would miss removal of enforcement in `iterate.improve` or `cycle._qualify_impl`; add an integration control before claiming the full enforcement path. [facade.py — probe functions](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop_e2e/adapter/facade.py).
+
+**Judgement — test strength needs targeted improvement.**
+
+- `test_the_second_step_continues_from_the_tip_the_first_published` compares a `merge-base --is-ancestor` helper’s stdout with `""`; both success and failure produce that value. Assert its exit status.
+- The orchestrator smoke test accepts either certificate exit code and never checks certificate contents. It cannot establish correct C1–C7 results.
+- The poll-storm test is scheduling-dependent, and thread exceptions are not explicitly collected. Use barriers around the exact transitions above.
+- Add real converged and deliberately nonconverged controls: the real-engine fake hosts leave fidelity unobserved, so they never exercise a true quiet/converged outcome. [Step tests](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop-e2e-adapter-steps.test.py); [engine tests](/private/tmp/g1-sol.tHD7YG/checkout/test/shiploop-e2e-adapter-engine.test.py).
+
+I would withhold real readiness and campaign compute until items 1–8 and 10 are fixed and verified. Calibration should remain unmeasured until item 9 is fixed. Real kill/recovery trials also need durable ownership for the reviewer/judge/improver orphan limitation already acknowledged in R7.

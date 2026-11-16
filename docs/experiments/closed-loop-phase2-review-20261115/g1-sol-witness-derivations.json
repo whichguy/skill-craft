@@ -1,0 +1,64 @@
+{
+  "exploration_retry": {
+    "artifacts_written_by": "real cycle.explore with real judge.judge; only subject/build/Git and model transport stubbed",
+    "initial": {
+      "status": "invalid",
+      "reason": "the judge response is not bound to this review.json identity"
+    },
+    "final": {
+      "status": "valid",
+      "reason": null
+    },
+    "facade_review": {
+      "valid": true,
+      "complete": true
+    },
+    "facade_judge": {
+      "valid": false,
+      "complete": true
+    },
+    "quiet_reasons": [
+      "the judge was not valid and complete"
+    ]
+  },
+  "epoch_retry": {
+    "artifacts_written_by": "real epoch.review_attempt and judge.judge; registration/sealed run and model transport stubbed",
+    "events": [
+      "review_incomplete",
+      "reviewed"
+    ],
+    "harness_status": "reviewed",
+    "facade_epoch": {
+      "decision": {
+        "decision": "DROP",
+        "attempts": [
+          {
+            "id": "control-hello-1",
+            "case": "hello",
+            "arm": "control",
+            "outcome": "success",
+            "evidence_valid": true
+          }
+        ]
+      },
+      "incomplete": 1,
+      "expected": 1
+    },
+    "facade_reviews": [
+      {
+        "valid": true,
+        "complete": true
+      },
+      {
+        "valid": false,
+        "complete": false
+      }
+    ],
+    "facade_judges": [
+      {
+        "valid": true,
+        "complete": true
+      }
+    ]
+  }
+}

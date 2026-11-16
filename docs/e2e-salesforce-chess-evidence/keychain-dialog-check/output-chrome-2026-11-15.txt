@@ -1,0 +1,30 @@
+== trial 1
+chrome: Google Chrome 157.0.8103.51
+SecurityAgent before: none
+hosts.host('codex').env made the HOME in 0.08 s
+throwaway default keychain: "<home>/Library/Keychains/login.keychain-db"
+chrome ran 8.1 s; no SecurityAgent appeared
+Chrome Safe Storage in the throwaway keychain: True
+SecurityAgent after 2 s: none new
+owner's keychain list and default unchanged: True
+RESULT: PASS
+== trial 2
+chrome: Google Chrome 157.0.8103.51
+SecurityAgent before: none
+hosts.host('codex').env made the HOME in 0.07 s
+throwaway default keychain: "<home>/Library/Keychains/login.keychain-db"
+chrome ran 8.1 s; no SecurityAgent appeared
+Chrome Safe Storage in the throwaway keychain: True
+SecurityAgent after 2 s: none new
+owner's keychain list and default unchanged: True
+RESULT: PASS
+== trial 3
+chrome: Google Chrome 157.0.8103.51
+SecurityAgent before: none
+hosts.host('codex').env made the HOME in 0.07 s
+throwaway default keychain: "<home>/Library/Keychains/login.keychain-db"
+chrome ran 8.1 s; no SecurityAgent appeared
+Chrome Safe Storage in the throwaway keychain: True
+SecurityAgent after 2 s: none new
+owner's keychain list and default unchanged: True
+RESULT: PASS

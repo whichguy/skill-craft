@@ -1,0 +1,62 @@
+[
+  {
+    "input": {
+      "contract": "calibration/1",
+      "driver": {
+        "host": "codex",
+        "model": "gpt-6.1-terra",
+        "effort": "high"
+      },
+      "cases": {},
+      "scoring": {
+        "cases": [],
+        "sha256": "0d6b19e42bdd3c5e563e47f700d720d2914692d5ca4dc9930654dab0229a89e8"
+      },
+      "recommended": {
+        "attempts": 3,
+        "tolerance": 0.45,
+        "metric": "tokens",
+        "why": null
+      }
+    },
+    "reply": {
+      "state": "calibrated",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "/tmp/g1-probes-owner-4woqs9ug/zero-cases.json is a calibration/1 report for codex/gpt-6.1-terra/high over ; its scoring digest 0d6b19e42bdd equals the current scoring files'; it recommends 3 attempts per arm at tolerance 0.45 on tokens"
+    }
+  },
+  {
+    "input": {
+      "contract": "calibration/1",
+      "driver": {
+        "host": "codex",
+        "model": "gpt-6.1-terra",
+        "effort": "high"
+      },
+      "cases": {
+        "hello": {}
+      },
+      "scoring": {
+        "cases": [
+          "hello"
+        ],
+        "sha256": "5e1a97d2648101dc44c2803056876455e0b68f8bc36a4d026f2a3d46ca517b3f"
+      },
+      "recommended": {
+        "attempts": 3,
+        "tolerance": 0.45,
+        "metric": "tokens",
+        "why": null
+      }
+    },
+    "reply": {
+      "state": "calibrated",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "/tmp/g1-probes-owner-4woqs9ug/zero-samples.json is a calibration/1 report for codex/gpt-6.1-terra/high over hello; its scoring digest 5e1a97d26481 equals the current scoring files'; it recommends 3 attempts per arm at tolerance 0.45 on tokens"
+    }
+  }
+]

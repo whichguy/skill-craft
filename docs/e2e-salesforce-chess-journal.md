@@ -473,7 +473,9 @@ Grok), the CLI's documented switch for automation users: a command that reaches 
 restore the real HOME, so the guarded real CLI keeps reading the real keychain. Measured: exit 2 in 2 s with
 `NamedOrgNotFoundError` in a fresh HOME; `org list` through the unset path lists `de` as Connected; no `key.json` in the real
 `~/.sfdx`. Rejected: linking `~/Library/Keychains` into the throwaway HOME (it would hand the model the login and bypass the guard,
-F3); creating an empty keychain per run (writes keychain search-list state, which is not ours to change).
+F3); creating an empty keychain per run (writes keychain search-list state, which is not ours to change). **Superseded 2026-11-15
+(F14):** measured, a keychain made inside a throwaway HOME changes nothing outside it (the owner's keychain list, default keychain and
+security preferences are unchanged), and Chrome needed it; every throwaway HOME now gets one.
 
 Unknowns: what "Reset To Defaults" does for a process with a throwaway HOME (answer Cancel); a case that `home_links` `.sfdx`
 would now let the key file land in the real `~/.sfdx` (no case does); other throwaway-HOME builders (`stage_suite/stage_oracle.py`,
@@ -593,3 +595,51 @@ does its own check from the real cron context, because the marker file was left 
 Cancel" rule (F13): the CLI retries a failed keychain write 3 times, so each Cancel can bring another dialog (up to four per command);
 the owner got a burst of them after the control and cancelled them. Kill the stuck command's process group instead. Evidence and file
 hashes: `docs/e2e-salesforce-chess-evidence/2026-11-01-sf-cli-updater-real-path.md`.
+
+### F14. The dialog came back for "Chrome": a model-written browser test; every throwaway HOME now gets its own keychain (firm, 2026-11-15)
+
+The owner saw "Keychain Not Found. A keychain cannot be found to store "Chrome."" (Chrome icon, Cancel / Reset To Defaults) while E2E
+work ran, and suspected Chrome browser tests or Chrome DevTools. F13's fix covers only the Salesforce CLI, and F13's follow-up ruled
+Chrome out only for Playwright, which passes `--use-mock-keychain` itself.
+
+Caught live (process table, read only): Google Chrome 157.0.8103.51 started 18:08:14 as `--headless=new --no-sandbox --disable-gpu
+--disable-background-networking --no-first-run --remote-debugging-port=0 --user-data-dir=$TMPDIR/battleship-test-* about:blank`, from
+the working folder `~/e2e-runs/stacked-test-20261115/sessions/v2170-ds-battleship/C4/work`: another session's stacked test (Type 1
+research, branch `eeff/effort-harness-de6729`), whose Codex sessions take their environment from `hosts.CodexHost().env`, re-running a
+suite whose `test/browser.test.js` spawns Chrome itself. That session's `home/` held only `.codex` and `.gitconfig`: no `Library/Keychains`.
+Chrome saves its "Chrome Safe Storage" key at launch; with no keychain under HOME, macOS raises the dialog. Chrome DevTools MCP is not
+it: its processes belong to the owner's own Claude sessions, in the real HOME.
+
+How macOS finds the keychain (read only, then measured): with HOME set to an empty folder, `security list-keychains -d user` is empty and
+`security default-keychain -d user` says "A default keychain could not be found"; with the real HOME both name the login keychain. So the
+user's keychain is looked up under `$HOME`, and a file at `<HOME>/Library/Keychains/login.keychain-db` is enough: after
+`security create-keychain -p ""` there, the throwaway HOME's list and default name it, no preferences file is written anywhere (none in the
+throwaway HOME, no real `com.apple.security` domain, no security preference file touched in the last 30 minutes), and the owner's list and
+default are unchanged. `security create-keychain` alone leaves a lock timeout (a mutation without `set-keychain-settings` fails the
+`no-timeout` assertion), and a locked keychain would bring a password prompt mid-run, so `set-keychain-settings` with no option follows.
+
+Why a keychain and not a Chrome flag (census of `~/e2e-runs`, `keychain-dialog-check/chrome-launch-census-2026-11-15.txt`): 137 distinct
+model-written files start Chrome; 123 start it raw (no Playwright or Puppeteer), none of them with `--use-mock-keychain`; of those, 28 read
+`CHROME_PATH`/`CHROME_BIN`, 28 look on PATH, and 67 name only `/Applications/Google Chrome.app`. A PATH wrapper or a `CHROME_PATH` variable
+would miss at least those 67; the keychain covers every program that saves a secret, Chrome or not.
+
+Decision: `hosts.throwaway_keychain(home)`, called by `hosts._isolated_env`, gives every throwaway HOME the hosts build (Codex, Grok, and
+the research drivers that reuse them) an empty-password login keychain, never auto-locked, in 0.07 to 0.13 s; macOS only; a HOME that has
+one keeps it; a failing `security` raises, so a run does not start that could stop on a dialog. `SF_USE_GENERIC_UNIX_KEYCHAIN` stays (the
+Salesforce CLI's measured path, F13). The Claude host runs in the real HOME and gets none.
+
+Checks.
+- `keychain-dialog-check/check_chrome_keychain.py` builds the HOME with `hosts.host("codex").env` and starts Chrome with the caught test's
+  exact argv: 3 of 3 PASS (`output-chrome-2026-11-15.txt`): no SecurityAgent in 8 s, "Chrome Safe Storage" stored in the throwaway keychain
+  (the launch did reach the keychain), the owner's list and default unchanged. No dialog-raising control was run (bbe54a88: not unasked);
+  the stored key, and the owner's own dialog from the same launch without the keychain, stand for it.
+- `ThrowawayKeychainTest` in `test/shiploop-e2e-hosts.test.py` (macOS only, real `security`, temporary folders): the Codex and Grok homes get
+  a keychain macOS finds, with no timeout, kept on a second call, and the owner's default unchanged; a failing `security` raises. Three
+  mutations each fail the intended test (no call in `_isolated_env`; no `set-keychain-settings`; the failure ignored). Suites:
+  `shiploop-e2e-hosts` 134 OK, `shiploop-e2e-sf-guard` 113 OK; the quick tier with `--changed-from origin/main` passed (74 suites, 595 s).
+
+Unknowns. Runs already going (the stacked test among them) use the harness of the tree they started from and keep raising the dialog until
+that tree has this change: answer Cancel (never Reset To Defaults: what it does for a throwaway HOME is unknown), or stop that run's own
+process group. Two other builders give product tests a scratch HOME without a keychain and are unchanged:
+`stage_suite/stage_oracle.py` (`_execute`) and `probes/ticket_semantics.py` (`run_command`); a browser test there can still raise it.
+Whether Chrome asks again after a Cancel is not measured.
