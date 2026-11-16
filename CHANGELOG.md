@@ -4,6 +4,35 @@ Written by scripts/release.py.
 
 ## 2026-11-16
 
+### skill-craft 3.0.0
+
+- Skills: closed-loop 0.1.1, shiploop 2.0.0, shiploop-e2e-audit 1.0.0
+
+### closed-loop 0.1.1
+
+- Describe the ordered Git hash results without the obsolete Python 3.9 policy rationale. Runtime behavior is unchanged.
+
+### shiploop 2.0.0
+
+- ShipLoop now requires stable Python 3.15 or newer instead of Python 3.9.
+  Unsupported interpreters still get one CLI error (exit 2), while host hook
+  events remain silent (exit 0). CI follows the latest stable Python with
+  `3.x` and `check-latest: true`, without pinning a patch release.
+- Publish the previously implemented, still-unreleased delivery-loop corrections on the current release:
+  - Keep ordinary stage-loop backing state beside its run-owned contract and receipt, preserving resume and refusal behavior.
+  - Record actual release-target state and qualify each check for its claimed observation through the shared guide; errors remain indeterminate and required authorized work remains due.
+  - Require attributable settlement for removed pending outcomes, including cached answers and imported Improve results.
+  - Reject pytest summary errors and obsolete receipt verdicts using the current test-receipt format.
+  - Rerun declared external-state checks while retaining eligible local reuse and provenance.
+  This rolls the previously consumed unpublished patch notes forward after the Backchain retirement; it adds no compatibility adapter or new loop limit.
+
+### shiploop-e2e-audit 1.0.0
+
+- Require Python 3.15 or newer for the ShipLoop E2E audit harness instead of 3.10+.
+  Use a supported local interpreter first on PATH; no particular Python manager
+  or new dependency is required. This changes only the prerequisite: model defaults,
+  experiment baselines and runtime experiment behavior are unchanged.
+
 ### skill-craft 2.43.0
 
 - Skills: plan-dispatcher 0.6.6, shiploop 1.38.0

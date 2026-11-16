@@ -61,7 +61,7 @@ marketplace. The audit package includes this harness, fixtures and audit schemas
 no skill-craft clone is needed. ShipLoop is a separate subject dependency, not
 a bundled private copy. Live ShipLoop also needs its selected Improve skill.
 The user installs these dependencies deliberately; invoking the audit does not
-install/repoint them. Runtime prerequisites are Python **3.10+** and Git. Using
+install/repoint them. Runtime prerequisites are Python **3.15+** and Git. Using
 Grok as the audit operator or live builder also requires an authenticated Grok
 CLI. The mock checks themselves need no model access when invoked directly with
 Python; game verifier fixtures may also need Node.js.
@@ -281,7 +281,7 @@ specifies the exact CLI option and mode restrictions for every field.
 | --- | --- |
 | Mode | `mock` if omitted; `check` runs no-model host preflight; a named live suite, one catalog step, or `review PATH` must be explicit. |
 | `checkout` | Optional development harness override; default uses the loaded package's bundled harness. No clone is required for marketplace installs. Invalid explicit paths stop. |
-| `python` | Resolved `python3`, version 3.10+; use an explicit executable if PATH selects an older Python. |
+| `python` | Resolved `python3`, version 3.15+; use an explicit executable if PATH selects an older Python. |
 | `model` | Required for live runs; names the builder model, not the current Grok auditor's model. In `check`, an optional recorded label (default `not-selected`), not a model-availability test. |
 | `output` | If omitted, Grok chooses and reports a new external result directory. In review mode it selects an analyst directory; in `check`, an operator capture directory. Never reuse prior output. |
 | `repo` | Single create: omitted means a new external empty folder. Feature: required existing original product. Suite: automatically allocated unless exactly one selected case overrides it. Check: supplied existing directory, or an allocated empty preflight directory. |
@@ -594,8 +594,10 @@ not only a pass count.
 
 ## Fast mock Grok and DAG checks
 
-Use Python 3.10 or newer for this E2E apparatus; the game oracles use
-`zip(..., strict=True)`. On macOS, keep that interpreter explicit when selecting
+Use Python 3.15 or newer for this E2E apparatus; the game oracles use
+`zip(..., strict=True)`. Install a supported Python
+locally and put its `python3` first on PATH if needed; no particular manager or
+new dependency is required. On macOS, keep that interpreter explicit when selecting
 Command Line Tools Git: prepending its directory to `PATH` can also select
 Apple's older Python 3.9. The September 17 fix validation used Python 3.14.7.
 

@@ -528,7 +528,8 @@ _ROWS = (
         goal="Assess the product against the request: each outcome's end state in `summary`, gaps in `unverified`, missing work as add-work.",
         short_goal='accept the assembled product',
         done_when=(
-            "every request outcome was observed by an executed check, or is listed in unverified with its reason, "
+            "every request outcome was observed by an executed check, explicitly user-corrected on a revisit, or is listed "
+            "in unverified with its reason, "
             "owner and due stage",
             "missing product work is routed as add-work",
         ),

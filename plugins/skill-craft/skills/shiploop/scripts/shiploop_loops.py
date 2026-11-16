@@ -481,7 +481,7 @@ def runtime(state: Mapping[str, Any]) -> dict[str, str]:
 def start_command(bound: Mapping[str, str], receipt: Path, contract_file: Path) -> str:
     """The one command that starts a bound loop: the packet prints it, and the refusal for a loop that never ran
     repeats it."""
-    return (shlex.join(["python3", bound["runtime_cli"], "start", "--receipt", str(receipt)])
+    return (shlex.join(["python3", bound["runtime_cli"], "start", "--receipt", str(receipt), "--directory", str(receipt.parent)])
             + " < " + shlex.quote(str(contract_file)))
 
 

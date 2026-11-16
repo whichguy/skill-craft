@@ -9,7 +9,7 @@ description: >-
   propose the missing parts. Triggers: "closed loop", "self-improving loop", "run it, review it, improve it, repeat", "iterate on
   <subject> with cases", "widen the cases". Not for reviewing a repository change (use improve) and not for a test-driven
   repository campaign (the improve-loop skill).
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux

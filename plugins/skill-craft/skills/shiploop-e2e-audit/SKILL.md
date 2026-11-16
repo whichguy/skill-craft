@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.7.17
+version: 1.0.0
 license: MIT
 platforms:
   - linux
@@ -196,7 +196,7 @@ command's `--help` if this checkout differs from these defaults.
 | Field | Applicable mode | Mapping, requirement and default |
 | --- | --- | --- |
 | `checkout` | All | Optional development override to a skill-craft source root; default is the loaded package's bundled harness. Passed only to the binding helper. Invalid explicit paths do not fall back. No checkout is required for marketplace installs. |
-| `python` | Commands | Operator-only Python 3.10+ executable; resolve `python3` or the supplied executable before binding. It prefixes the helper/script argv, not a runner option. |
+| `python` | Commands | Operator-only Python 3.15+ executable; resolve `python3` or the supplied executable before binding. It prefixes the helper/script argv, not a runner option. |
 | `model` | Live/check | Live: required explicit builder model ID → `--model`. Check: optional recorded label, default `not-selected`; preflight does not prove model availability. Does not change the current audit operator's own model. |
 | `output` | All | Mock → `check_suite.py --output`; live → `run.py run/suite --output`; check → operator capture directory; review → analyst directory. Check/review never pass `--output` to the runner. If omitted, choose and report a unique external directory; never reuse an existing result directory. |
 | `repo` | Live/check | `--repo`. Required existing original product for a feature. For a single create, choose a new external empty product directory if omitted. For a suite, omit by default so the suite allocates products; an override requires exactly one selected case. Check: use the supplied existing directory or allocate an empty preflight directory; never initialize Git. |
@@ -272,7 +272,9 @@ not provide unattended full-chain verification.
 
 ## Execute with the existing harness
 
-Use Python 3.10+ and Git. Live runs require an authenticated Grok CLI; the
+Use Python 3.15+ and Git. If needed, install a supported Python locally and put
+its `python3` first on PATH; no particular manager or new dependency is required.
+Live runs require an authenticated Grok CLI; the
 no-model `check` command requires a runnable Grok CLI, Git, and read access to
 the authoritative source remote, which also holds the marketplace catalog.
 Offline checks cannot qualify freshness. A failed preflight must be explained
