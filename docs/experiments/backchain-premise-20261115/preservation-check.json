@@ -1,0 +1,249 @@
+{
+ "plans_checked": 30,
+ "plans_with_a_candidate_violation": {
+  "backchain": 0,
+  "none": 0
+ },
+ "rows": [
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "model": "grok",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "model": "grok",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "model": "sol",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "model": "sol",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 5
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "model": "sonnet",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "model": "sonnet",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 2
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "model": "grok",
+   "arm": "backchain",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "model": "grok",
+   "arm": "none",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "model": "sol",
+   "arm": "backchain",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "model": "sol",
+   "arm": "none",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "model": "sonnet",
+   "arm": "backchain",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "model": "sonnet",
+   "arm": "none",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "library-reminders",
+   "model": "grok",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "library-reminders",
+   "model": "grok",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 2
+  },
+  {
+   "case": "library-reminders",
+   "model": "sol",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "library-reminders",
+   "model": "sol",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 8
+  },
+  {
+   "case": "library-reminders",
+   "model": "sonnet",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "library-reminders",
+   "model": "sonnet",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "revenue-export-lineage",
+   "model": "grok",
+   "arm": "backchain",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "revenue-export-lineage",
+   "model": "grok",
+   "arm": "none",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "revenue-export-lineage",
+   "model": "sol",
+   "arm": "backchain",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "revenue-export-lineage",
+   "model": "sol",
+   "arm": "none",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "revenue-export-lineage",
+   "model": "sonnet",
+   "arm": "backchain",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "revenue-export-lineage",
+   "model": "sonnet",
+   "arm": "none",
+   "mode": "source-aware",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "model": "grok",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "model": "grok",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 3
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "model": "sol",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "model": "sol",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 9
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "model": "sonnet",
+   "arm": "backchain",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 0
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "model": "sonnet",
+   "arm": "none",
+   "mode": "legacy",
+   "candidate_violations": [],
+   "added_initial_state_facts": 2
+  }
+ ]
+}

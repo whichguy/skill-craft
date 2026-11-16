@@ -906,6 +906,45 @@ class ThrowawayHomeEnvTest(unittest.TestCase):
             for backend in (None, "ollama"):
                 env = hosts.host("claude", None, backend).env(Path(tempfile.gettempdir()) / "unused-home")
                 self.assertNotIn(self.VAR, env, str(backend))
+                self.assertFalse((Path(tempfile.gettempdir()) / "unused-home" / hosts.THROWAWAY_KEYCHAIN).exists(), backend)
+
+
+@unittest.skipUnless(sys.platform == "darwin" and os.access(hosts.SECURITY, os.X_OK), "macOS keychains only")
+class ThrowawayKeychainTest(unittest.TestCase):
+    """Any program that saves a secret raises the same dialog in a HOME without a keychain: Google Chrome started by a model-written
+    browser test without --use-mock-keychain did on 2026-11-15 (the stacked test's battleship sessions). So each throwaway HOME gets
+    an empty, unlocked login keychain of its own, which macOS finds under $HOME, and the owner's real keychain settings are not
+    touched. These run the real `security`, in temporary folders only."""
+
+    def default_keychain(self, home: Path | None) -> str:
+        env = dict(os.environ, HOME=str(home)) if home else dict(os.environ)
+        done = subprocess.run([hosts.SECURITY, "default-keychain", "-d", "user"], env=env, capture_output=True, text=True)
+        return (done.stdout + done.stderr).strip()
+
+    def test_the_codex_and_grok_throwaway_homes_get_a_keychain_macos_finds_and_the_real_default_is_unchanged(self):
+        real = self.default_keychain(None)
+        with tempfile.TemporaryDirectory() as temp:
+            auth = Path(temp) / "auth.json"
+            auth.write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}), mock.patch.object(hosts, "GROK_AUTH", auth):
+                for name in ("codex", "grok"):
+                    home = Path(temp) / f"{name}-home"
+                    hosts.host(name).env(home)
+                    keychain = home / hosts.THROWAWAY_KEYCHAIN
+                    self.assertTrue(keychain.is_file(), name)
+                    self.assertIn(str(keychain.resolve()), str(Path(self.default_keychain(home).strip('"')).resolve()), name)
+                    info = subprocess.run([hosts.SECURITY, "show-keychain-info", str(keychain)], capture_output=True, text=True,
+                                          env=dict(os.environ, HOME=str(home)))
+                    self.assertIn("no-timeout", info.stdout + info.stderr, name)
+                    self.assertEqual(hosts.throwaway_keychain(home), keychain, "a second call keeps the keychain it made")
+        self.assertEqual(self.default_keychain(None), real, "the owner's own default keychain is unchanged")
+
+    def test_a_failing_security_stops_the_run_from_starting(self):
+        with tempfile.TemporaryDirectory() as temp:
+            failed = subprocess.CompletedProcess([], 51, "", "boom")
+            with mock.patch.object(hosts.subprocess, "run", return_value=failed), \
+                    self.assertRaisesRegex(RuntimeError, "create-keychain .* failed \\(51\\): boom"):
+                hosts.throwaway_keychain(Path(temp))
 
 
 class ClaudeToolBlocksTest(unittest.TestCase):

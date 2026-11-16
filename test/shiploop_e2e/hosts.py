@@ -232,12 +232,44 @@ def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_p
 # with the real HOME (platform.model_bin) unsets it, so the real CLI keeps reading its key from the real keychain.
 THROWAWAY_HOME_ENV = {"SF_USE_GENERIC_UNIX_KEYCHAIN": "true"}
 
+# The same dialog comes from any program the model starts that saves a secret, and a variable cannot reach them all: Google Chrome
+# started by a model-written browser test without --use-mock-keychain saves its "Chrome Safe Storage" key at launch, and most such
+# tests name /Applications/Google Chrome.app directly, so no PATH wrapper or CHROME_PATH sees them (2026-11-15: 67 of the 123 distinct
+# raw launchers under ~/e2e-runs). So the throwaway HOME gets its own keychain. macOS looks for the user's keychain under $HOME
+# (with HOME set to an empty folder `security default-keychain -d user` finds none), so an empty-password keychain at
+# <HOME>/Library/Keychains/login.keychain-db, never auto-locked, is where such a program stores its secret, with no dialog. It
+# writes nothing outside that HOME (measured: the real keychain list, default keychain and security preferences unchanged).
+SECURITY = "/usr/bin/security"
+THROWAWAY_KEYCHAIN = "Library/Keychains/login.keychain-db"
+
+
+def throwaway_keychain(home: Path) -> Path | None:
+    """Give the throwaway HOME ``home`` an empty, unlocked login keychain, so a program that saves a secret raises no dialog.
+
+    macOS only (None elsewhere); a HOME that already has one keeps it. Raises RuntimeError when ``security`` fails: a run without
+    the keychain could stop on a modal dialog on the owner's screen, so it does not start."""
+    if sys.platform != "darwin" or not os.access(SECURITY, os.X_OK):
+        return None
+    path = home / THROWAWAY_KEYCHAIN
+    if path.exists():
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, HOME=str(home))
+    # create-keychain leaves it unlocked; set-keychain-settings with no option turns off the lock timeout and the lock on sleep.
+    for argv in ([SECURITY, "create-keychain", "-p", "", str(path)], [SECURITY, "set-keychain-settings", str(path)]):
+        done = subprocess.run(argv, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30, check=False)
+        if done.returncode != 0:
+            raise RuntimeError(f"{' '.join(argv[:2])} for the throwaway HOME {home} failed ({done.returncode}): "
+                               f"{(done.stderr or done.stdout).strip()}")
+    return path
+
 
 def _isolated_env(home: Path, git_config: Path | None, strip: tuple, extra: dict) -> dict:
-    """The environment of a throwaway profile at ``home`` with its own git identity."""
+    """The environment of a throwaway profile at ``home`` with its own git identity and its own keychain."""
     if git_config is None:
         git_config = home / ".gitconfig"
         git_config.write_text("[user]\n\tname = ShipLoop E2E\n\temail = shiploop-e2e@example.invalid\n")
+    throwaway_keychain(home)
     env = {k: v for k, v in os.environ.items() if not k.startswith(strip)}
     env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"),
                XDG_DATA_HOME=str(home / ".local/share"), XDG_CACHE_HOME=str(home / ".cache"),
