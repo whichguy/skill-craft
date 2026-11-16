@@ -1,0 +1,23 @@
+{
+  "setup_failure_classifier": {
+    "exit": 1,
+    "contains_FAIL": true,
+    "contains_ERROR": false,
+    "driver_counts_caught": true,
+    "test_body_ran": false
+  },
+  "barrier_delayed_schedule": {
+    "admission_removed": true,
+    "read_snapshots": [
+      [],
+      [
+        "a1"
+      ]
+    ],
+    "results": {
+      "a1": "running",
+      "b1": "step a1 has not finished: poll it, or run cleanup for it, before another begins (one step at a time)"
+    },
+    "same_test_assertions_pass": true
+  }
+}

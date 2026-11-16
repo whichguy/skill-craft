@@ -456,7 +456,36 @@ helper could keep git's stderr in the error. Both would have turned tonight's di
   15 of 15 caught, each by a failing assertion of its named test (78.8 s), removing `user.useConfigOnly` included (caught because the bare homes set
   `EMAIL`). The real-engine suite on this tree in the offline Linux container: 5 of 5 (52.7 s). Boundary hash
   1c1eb78b7fe966841b006af44017a173280813a19b62951f608329c3b59fb270 (its ratification is the owner's). **Firm** for what the tests cover.
-- **Open (unknown).** Whether removing the kinds ends the sibling pattern is what the verification of this diff measures.
+- **Open (unknown).** Whether removing the kinds ends the sibling pattern is what the verification of this diff measures. *Answered in R13: partly.*
+
+### R13. Plan B, step 4: the one verification (2026-11-16)
+
+- **Review.** Codex `gpt-6.1-sol` at max on c154c44fee46a6c5c852ce158e818d3237d3f121 (the diff from 4e36b3ad), one attempt, no fallback, a neutral clone;
+  704 s; verdict **not ready** (`docs/experiments/closed-loop-phase2-review-20261115/g1e-sol-*`). Of round 5's six: FIXED, the SIGKILL re-check and the
+  calibration binding; PARTLY, the other four. It found no competing publication or duplicate engine run on any path, and no wrong dependency on the
+  stdin commit. I checked each claim against the code and the witnesses; all held.
+- **Blocking, in the reviewer's words "would require before starting".**
+  1. *Detached survivors forgotten.* A repeated cleanup re-checks a stored kill with `kill_step`, which answers `gone` with no survivors once the worker's
+     group has emptied, so survivors recorded below it (processes in sessions of their own) are dropped, and only their PIDs were stored, not their
+     start times.
+  2. *Terminal transitions against a moved ref.* A prepared record whose ref already moved (a write failed after `update-ref`) is settled `cancelled`,
+     "not published", by `cancel` and `cleanup`, while the tip holds its result; and a cancel that finds a step already published answers `done`,
+     which `cmd_cancel` refuses (the campaign's step stays running until its next poll).
+  3. *Unfinished epoch evidence accepted.* An absent epoch with a cycle result that needs one (DROP), or an accepted epoch with no decision yet, counts as
+     zero expected assessments, so review and judge can read complete.
+  4. *Identity checked in the wrong context.* The check runs in X, but the loop commits in a linked worktree (an `includeIf gitdir:<X>/.git` identity
+     passed and failed there), and the improver's view kept the real HOME (a `~/` include passed and vanished in the isolated home); it also refuses a
+     Claude improver whose identity is in XDG, although that host keeps the caller's environment.
+- **Not blocking the attended smoke, by its account.** No judge placeholder for an incomplete epoch assessment (older than this diff); the Claude refusal.
+  Test limits: the simultaneous-start barrier's 2-second wait can still let a delayed second thread pass without the lock; the engine parity compares
+  counts, not receipt identities; the mutation driver would count an unrelated setUp assertion as caught. Judgements: a recent leaderless group's
+  ownership is still inferred; unrecorded sessions of a worker that died unobserved are still not found.
+- **What it shows.** The four kinds were reduced, not removed: the publisher kind kept terminal transitions that ignore the ref, the receipt kind kept
+  a re-check that answers from one view, and the identity check is itself a re-statement (of where and how the engine commits). The defects are now in
+  rarer paths (a process that survives SIGKILL, a disk that fills between two writes, an identity configured by path, an epoch stopped before its
+  decision) than round 3's. **Interim.** Rounds 3 to 6: 11, 7, 6, then 4 blocking.
+- **Next.** The owner's decision (plan B step 5): fix the four and then run the attended smoke without another round; fix them and verify once more; or
+  run the attended smoke now with all of them as documented limits.
 
 ## Findings
 

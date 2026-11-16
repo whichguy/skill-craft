@@ -1,0 +1,17 @@
+{
+  "already_published_record": "published",
+  "cancel_reply": {
+    "status": "done",
+    "iteration": {
+      "cleanup": {
+        "receipt": "finished cleanup",
+        "verified": true
+      },
+      "consumed": {
+        "runs": 0,
+        "seconds": 1
+      }
+    }
+  },
+  "orchestrator_cmd_cancel_accepts": false
+}

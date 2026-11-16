@@ -1,0 +1,219 @@
+{
+  "scratch": "/private/tmp/g1e-epoch-status-j6ongcx6",
+  "incomplete_judge": {
+    "harness": [
+      {
+        "id": "control-hello-1",
+        "arm": "control",
+        "case": "hello",
+        "status": "recorded"
+      },
+      {
+        "id": "candidate-hello-1",
+        "arm": "candidate",
+        "case": "hello",
+        "status": "reviewed"
+      }
+    ],
+    "epoch": {
+      "decision": {
+        "decision": "DROP",
+        "attempts": [
+          {
+            "id": "control-hello-1",
+            "arm": "control",
+            "case": "hello",
+            "outcome": "failure",
+            "evidence_valid": true
+          },
+          {
+            "id": "candidate-hello-1",
+            "arm": "candidate",
+            "case": "hello",
+            "outcome": "failure",
+            "evidence_valid": true
+          }
+        ],
+        "reasons": [
+          "witness"
+        ]
+      },
+      "receipts": [
+        {
+          "review": {
+            "validity": {
+              "status": "valid",
+              "discovery_qualified": true
+            }
+          },
+          "judge": {
+            "validity": {
+              "status": "valid"
+            }
+          },
+          "routes": {}
+        }
+      ],
+      "incomplete": 1,
+      "expected": 2,
+      "unreadable": null,
+      "invalid_evidence": []
+    },
+    "facts": {
+      "review": {
+        "valid": false,
+        "complete": false
+      },
+      "judge": {
+        "valid": true,
+        "complete": true
+      },
+      "invalid": [],
+      "unreconciled": false,
+      "candidate": {
+        "id": "LR-witness",
+        "hash": "cccccccccccccccccccccccccccccccccccccccc",
+        "outcome": "DROP"
+      }
+    }
+  },
+  "absent": {
+    "epoch": {
+      "decision": null,
+      "receipts": [],
+      "incomplete": 0,
+      "expected": 0,
+      "unreadable": null,
+      "invalid_evidence": []
+    },
+    "facts": {
+      "review": {
+        "valid": true,
+        "complete": true
+      },
+      "judge": {
+        "valid": true,
+        "complete": true
+      },
+      "invalid": [],
+      "unreconciled": false,
+      "candidate": {
+        "id": "LR-witness",
+        "hash": "cccccccccccccccccccccccccccccccccccccccc",
+        "outcome": "DROP"
+      }
+    }
+  },
+  "empty_directory": {
+    "epoch": {
+      "decision": null,
+      "receipts": [],
+      "incomplete": 0,
+      "expected": 0,
+      "unreadable": "no readable epoch ledger: [Errno 2] No such file or directory: '/private/tmp/g1e-epoch-status-j6ongcx6/inv-1/cycle-1/epoch/events.jsonl'",
+      "invalid_evidence": []
+    },
+    "facts": {
+      "review": {
+        "valid": true,
+        "complete": true
+      },
+      "judge": {
+        "valid": true,
+        "complete": true
+      },
+      "invalid": [
+        "the harness could not read the cycle's epoch: no readable epoch ledger: [Errno 2] No such file or directory: '/private/tmp/g1e-epoch-status-j6ongcx6/inv-1/cycle-1/epoch/events.jsonl'"
+      ],
+      "unreconciled": false,
+      "candidate": {
+        "id": "LR-witness",
+        "hash": "cccccccccccccccccccccccccccccccccccccccc",
+        "outcome": "DROP"
+      }
+    }
+  },
+  "dangling_symlink": {
+    "epoch": {
+      "decision": null,
+      "receipts": [],
+      "incomplete": 0,
+      "expected": 0,
+      "unreadable": null,
+      "invalid_evidence": []
+    },
+    "facts": {
+      "review": {
+        "valid": true,
+        "complete": true
+      },
+      "judge": {
+        "valid": true,
+        "complete": true
+      },
+      "invalid": [],
+      "unreconciled": false,
+      "candidate": {
+        "id": "LR-witness",
+        "hash": "cccccccccccccccccccccccccccccccccccccccc",
+        "outcome": "DROP"
+      }
+    }
+  },
+  "torn": {
+    "epoch": {
+      "decision": null,
+      "receipts": [],
+      "incomplete": 0,
+      "expected": 0,
+      "unreadable": "ledger row 1 is incomplete; preserve and reconcile it before continuing",
+      "invalid_evidence": []
+    },
+    "facts": {
+      "review": {
+        "valid": true,
+        "complete": true
+      },
+      "judge": {
+        "valid": true,
+        "complete": true
+      },
+      "invalid": [
+        "the harness could not read the cycle's epoch: ledger row 1 is incomplete; preserve and reconcile it before continuing"
+      ],
+      "unreconciled": false,
+      "candidate": {
+        "id": "LR-witness",
+        "hash": "cccccccccccccccccccccccccccccccccccccccc",
+        "outcome": "DROP"
+      }
+    }
+  },
+  "no_candidate_control": {
+    "epoch": {
+      "decision": null,
+      "receipts": [],
+      "incomplete": 0,
+      "expected": 0,
+      "unreadable": null,
+      "invalid_evidence": []
+    },
+    "facts": {
+      "review": {
+        "valid": true,
+        "complete": true
+      },
+      "judge": {
+        "valid": true,
+        "complete": true
+      },
+      "invalid": [],
+      "unreconciled": false,
+      "candidate": {
+        "id": "LR-witness",
+        "hash": "cccccccccccccccccccccccccccccccccccccccc",
+        "outcome": "DROP"
+      }
+    }
+  }
+}

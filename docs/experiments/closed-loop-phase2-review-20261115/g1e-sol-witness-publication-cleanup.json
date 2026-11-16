@@ -1,0 +1,115 @@
+{
+  "poll": {
+    "injected": "[Errno 28] injected after update-ref",
+    "before_state": "prepared",
+    "ref_before": true,
+    "reply": {
+      "status": "done",
+      "iteration": {
+        "cleanup": {
+          "receipt": "finished cleanup",
+          "verified": true
+        },
+        "consumed": {
+          "runs": 0,
+          "seconds": 1
+        }
+      }
+    },
+    "after_state": "published",
+    "tip_moved": true,
+    "base": "85f5c73581073f86b80c963a20ca9051ddf3b91d",
+    "target": "789648756c84af2e7f53714925478d5eebcbff9b",
+    "stored_error": null
+  },
+  "cancel": {
+    "injected": "[Errno 28] injected after update-ref",
+    "before_state": "prepared",
+    "ref_before": true,
+    "reply": {
+      "status": "cancelled",
+      "error": "cancelled by the operator; its finished result was not published",
+      "iteration": {
+        "consumed": {
+          "runs": 0,
+          "seconds": 1.1
+        }
+      }
+    },
+    "after_state": "cancelled",
+    "tip_moved": true,
+    "base": "85f5c73581073f86b80c963a20ca9051ddf3b91d",
+    "target": "789648756c84af2e7f53714925478d5eebcbff9b",
+    "stored_error": "cancelled by the operator; its finished result was not published"
+  },
+  "cleanup": {
+    "injected": "[Errno 28] injected after update-ref",
+    "before_state": "prepared",
+    "ref_before": true,
+    "reply": {
+      "verified": true,
+      "receipt": "s1 (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "after_state": "cancelled",
+    "tip_moved": true,
+    "base": "0c74812bc70172f163e03e5329f2b94d29640c84",
+    "target": "a26ca343a685a9f6d6b0571a9d725a24996c75d7",
+    "stored_error": "ended by cleanup; its finished result was not published"
+  },
+  "detached_survivor": {
+    "first": {
+      "verified": false,
+      "receipt": "s1 (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected; 1 process(es) below the worker did not end"
+    },
+    "first_kill": {
+      "at": "2026-11-16T15:55:45Z",
+      "detail": {
+        "ended_by": "SIGTERM",
+        "members": 1
+      },
+      "group": "stopped",
+      "sessions": 1,
+      "survivors": [
+        610101
+      ]
+    },
+    "second": {
+      "verified": true,
+      "receipt": "s1 (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "second_kill": {
+      "at": "2026-11-16T15:55:45Z",
+      "detail": {},
+      "group": "gone",
+      "sessions": 0,
+      "survivors": []
+    },
+    "live_table_after": {
+      "610101": {
+        "pid": 610101,
+        "ppid": 1,
+        "pgid": 610101,
+        "started": "Mon Nov 16 00:00:00 2026",
+        "stat": "S",
+        "command": "witness sleeper"
+      }
+    },
+    "signals": [
+      [
+        "killpg",
+        610100,
+        15
+      ],
+      [
+        "kill",
+        610101,
+        15
+      ],
+      [
+        "kill",
+        610101,
+        9
+      ]
+    ]
+  }
+}

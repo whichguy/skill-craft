@@ -1,0 +1,32 @@
+{
+  "tilde_include_false_pass": {
+    "preflight_problem": null,
+    "loop_ident": {
+      "rc": 0,
+      "out": "Test <test@example.invalid> 1794844556 -0800",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead"
+    },
+    "actual_isolated_improver_ident": {
+      "rc": 128,
+      "out": "",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nCommitter identity unknown\n\n*** Please tell me who you are.\n\nRun\n\n  git config --global user.email \"you@example.com\"\n  git config --global user.name \"Your Name\"\n\nto set your account's default identity.\nOmit --global to set the identity only in this repository.\n\nfatal: no email was given and auto-detection is disabled"
+    },
+    "actual_home": "/tmp/g1e-identity-9_kwr2jw/isolated-improver-home",
+    "actual_git_config_global": "/tmp/g1e-identity-9_kwr2jw/tilde-include/.gitconfig"
+  },
+  "claude_false_refusal": {
+    "preflight_problem": "the improver's commits would have no configured git identity (GIT_AUTHOR_IDENT: fatal: no email was given and auto-detection is disabled): set user.name and user.email (git config --global) before a step or a probe runs; the engine would otherwise stop after its first run",
+    "loop_ident": {
+      "rc": 0,
+      "out": "Test <test@example.invalid> 1794844557 -0800",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead"
+    },
+    "actual_claude_improver_ident": {
+      "rc": 0,
+      "out": "Test <test@example.invalid> 1794844557 -0800",
+      "err": "git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead"
+    },
+    "actual_home_unchanged": true,
+    "git_config_global_overridden": false
+  }
+}

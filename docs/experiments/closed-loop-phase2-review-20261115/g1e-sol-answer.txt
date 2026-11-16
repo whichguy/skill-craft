@@ -1,0 +1,52 @@
+**Verdict: not ready for the requested readiness→smoke sequence.** The replan fixes several specific defects, but its new paths retain cleanup, publication and evidence inconsistencies.
+
+Reviewed `c154c44fee46a6c5c852ce158e818d3237d3f121` against the requested base. The permitted suite passed **29 tests in 23.8 seconds**. I did not run either prohibited suite or the mutation driver. Witnesses used scratch Git repositories and simulated process tables under `/tmp`; the checkout remains clean.
+
+The six round-5 changes assess as follows. Facade symbols refer to [facade.py](test/shiploop_e2e/adapter/facade.py).
+
+| Round-5 change | Assessment | Code and residual |
+|---|---|---|
+| Preserve unresolved kill evidence | **PARTLY** | `cmd_cleanup` consults stored `kill` and retries it, but can erase surviving detached-process evidence. |
+| Reconcile cleanup facts and cancellation replies | **PARTLY** | Prepared cancellation no longer publishes. Already-moved refs and already-published records remain inconsistent with cancellation. |
+| Recover failures after moving the ref | **PARTLY** | `worker_main`, `publish` and `advance` recover through polling; cancel and cleanup bypass that reconciliation. |
+| Authoritative epoch validation | **PARTLY** | `BRIDGE.epoch_facts` delegates seal validation to `epoch.state`; downstream completion still ignores some authoritative states. |
+| Revalidate ownership before SIGKILL | **FIXED** | `stop_group` rechecks immediately before escalation. The disclosed recent-leaderless ownership inference remains. |
+| Bind calibration measurements to scoring | **FIXED** | `probe_calibrated` compares measured/scored cases; `cycle._load_calibration` supplies catalog validation. |
+
+**Verified bug — cleanup still forgets detached survivors.** In my witness, the worker group stopped, while a separately grouped descendant resisted both signals. First cleanup correctly returned false and stored its PID. Second cleanup called `kill_step`, found the original group gone, replaced the receipt with `survivors=[]`, and returned **true while that descendant remained alive**. `kill_step` never revalidates previously recorded survivors after their parent group disappears. Storing only survivor PIDs also loses the start-time identity needed for safe later signaling. This reproduces the defect class behind request 1. [Cleanup witness](</private/tmp/g1e-publication-cleanup-n06hbahx/results.json>)
+
+**Verified bug — terminalization can contradict an already-moved ref.** I injected `OSError(ENOSPC)` while saving `published`, after a real `update-ref`. Poll correctly recovered to `published/done`. Given the identical persisted `prepared` state, both `step_cancel` and `cmd_cleanup` instead settled it `cancelled`, reporting “its finished result was not published,” while the ref remained at its result. The finished iteration is then omitted from the reply although its changes are published. [Publication witness](</private/tmp/g1e-publication-cleanup-n06hbahx/results.json>)
+
+There is also a normal completion race: cancellation of an already-published record returns `done`; [closed_loop.py — cmd_cancel](skills/closed-loop/scripts/closed_loop.py) accepts only `cancelled` and leaves the campaign step running. The replan fixes this mismatch only for unpublished prepared records. [Published-cancel witness](</private/tmp/g1e-publication-cleanup-n06hbahx/published-cancel.json>)
+
+The locks and repeatable `publish` prevent competing publication or duplicate engine execution on the reviewed paths. Deliberately discarding an unpublished finished result is the owner’s accepted **judgement**; discarding its accounting after publication is a bug.
+
+**Verified bugs — delegation does not establish epoch parity on every path.** `epoch_facts` catches `OSError`, `ValueError`, `KeyError`, `TypeError` and `SystemExit` around state/events; receipt reads catch `OSError`/`ValueError`. Other child failures become bridge failures, which `epoch_evidence` reports as unreadable. Ordinary torn ledgers, changed registrations, rewritten receipts and changed sealed runs therefore fail closed.
+
+However:
+
+- `epoch_evidence` treats an absent epoch as zero expected assessments without checking whether the cycle legitimately stopped before registration. A retained `DROP` result with missing epoch evidence can inherit complete exploration assessments and return `invalid=[]`.
+- An **existing accepted epoch without a decision**, containing `not_launched`, `unknown_launch`, `recorded` and `reviewed` attempts, also becomes `expected=0,incomplete=0`. The bridge preserves those states; the facade discards them. The harness requests another launch, while facade review/judge facts can both say complete.
+- `invocation_evidence` adds an incomplete **review** placeholder but no corresponding judge placeholder. An incomplete assessment caused by an invalid judge can consequently yield `judge.valid=true,complete=true`. This predates the diff; review failure still blocks QUIET.
+
+These are verified fact defects, **not demonstrated whole-campaign false QUIET certificates**. Legitimate pre-epoch `NO_CANDIDATE` remains a valid separate case. [Epoch witnesses](</private/tmp/g1e-epoch-status-j6ongcx6/results.json>), [unfinished-epoch witness](</private/tmp/g1e-epoch-status-vbtzug4q/no-decision-results.json>)
+
+**Verified bug — identity checks use incomplete commit contexts.** `probe_env` matches the loop’s inherited environment, and `user.useConfigOnly=true` correctly rejects guesses. But `identity_problem` checks Git in X; [iterate.py — new_worktree, record_learnings](test/shiploop_e2e/iterate.py) commit in a linked worktree. An identity supplied through `includeIf gitdir:<X>/.git` passed preflight and failed in that worktree. [Witness](</private/tmp/g1e-identity-cwd-rd8j2ii_/results.json>)
+
+For the improver, changing only `GIT_CONFIG_GLOBAL` misses [hosts.py — _isolated_env](test/shiploop_e2e/hosts.py)’s changed HOME/XDG context. A configured identity included through `~/.git-id` passed preflight but disappeared in the isolated HOME. Conversely, the check falsely refuses a supported Claude improver using XDG identity, although `ClaudeHost.env` preserves that environment. The latter does not affect the pinned Codex route. [Identity witnesses](</private/tmp/g1e-identity-9_kwr2jw/results.json>)
+
+The tests improve substantially, with these limits:
+
+- [ReplanTests](test/shiploop-e2e-adapter-steps.test.py) discriminate their six named regressions: step identity refusal, improver configuration, probe refusal, repeated stale-group cleanup, recycled-leader escalation, and post-ref write failure followed by polling. `EMAIL` makes removal of `useConfigOnly` observable. They omit actual commit-context parity, detached-survivor retries, and cancellation/cleanup after the ref moved.
+- [SecondReviewTests — epoch tests](test/shiploop-e2e-adapter-steps.test.py) now use genuinely registered/sealed epochs from [fake_iterate.py — main](test/fixtures/closed-loop-adapter/fake_iterate.py), through the harness’s own functions. The last-decision test distinguishes different assessment sets; torn-ledger, rewritten-receipt and changed-seal assertions meaningfully discriminate their corresponding breaks. They omit absent/no-decision epochs and incomplete-judge facts.
+- The simultaneous-start barrier now captures the shared-state answer **before** waiting, fixing the previous easy false pass. Its two-second timeout still permits a false pass with admission removed if the second thread is delayed beyond that timeout; I reproduced that schedule. The older kill-blocker test now actually calls `cmd_cleanup`, so an always-verified implementation fails it. [Scheduling witness](</private/tmp/g1e-test-quality-0k242cn0/results.json>)
+- The misbound calibration case isolates the new equality guard: its scoring digest otherwise validates. Matching unknown cases are rejected by the harness loader. [Calibration controls](</private/tmp/g1e-signal-calibration-i90la3s7/results.json>)
+- [RealEngineTests](test/shiploop-e2e-adapter-engine.test.py) adds a useful changed-sealed-run control that would catch omitted seal enforcement. Initial parity compares **counts**, not receipt identities/content or all attempt states.
+
+[The mutation driver — MUTANTS, main](docs/experiments/closed-loop-phase2-review-20261115/g1d-mutations.py) contains 15 fair, localized breaks; the two-edit mutant fairly restores the old current-call-only cleanup behavior. It now rejects unittest errors, fails its aggregate result for missed mutants, and prevents real Codex launches. The recorded **15/15** supports those specific guards. It still accepts an unrelated `setUp` assertion failure as “caught”; my classifier witness did so without executing the test body. Per-mutant failure logs or clean controls would strengthen attribution.
+
+The SIGKILL recheck works when a replacement leader remains visible. Ownership of a recent leaderless group remains an inferred **judgement**, alongside the documented unrecorded-session recovery limit. Neither class was removed completely.
+
+I would require truthful survivor retention, ref/state reconciliation across terminal transitions, rejection of unfinished qualified-epoch evidence, and identity checks in actual commit contexts before starting the requested sequence. Incomplete-judge reporting and Claude false refusal also deserve repair, but do not independently block the pinned attended smoke. Calibration may remain explicitly unmeasured.
+
+The stdin transport commit is outside this review; I found no incorrect facade dependency on it.
