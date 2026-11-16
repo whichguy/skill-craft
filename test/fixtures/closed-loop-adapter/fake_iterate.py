@@ -21,6 +21,10 @@ Behaviour per case comes from the JSON file named by $FAKE_ENGINE, `{"<case>" or
   judge_retry     "recovered" | "exhausted": the first judgment is invalid and a retry folder follows
   review_retry    "recovered" | "incomplete" | "rewritten": a cycle's first attempt review ended incomplete, then was redone | was not |
                   its receipt was changed after the review sealed it
+  earlier_decision  a decision the epoch recorded first, over every attempt; its last decision, over all but the first, replaces it
+  sealed_changed  the first attempt's sealed result.json changes after it was recorded
+  torn_ledger     the epoch ledger ends in a row cut off mid-write
+  (A cycle's epoch is the harness's own: epoch.initialise, launch_intent, record_run, append and digest write it.)
   attribution     false: the run's card says it cannot be attributed to the build under test
   escape    "ledger": leave a harmless process in a session of its own, recorded in the run's resources.jsonl, as a model host is |
             "tree": the same without the record (only a process snapshot of the engine's children finds it)
@@ -31,7 +35,6 @@ The arguments of every call are appended to $FAKE_LOG when it is set.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import secrets
@@ -43,8 +46,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
+import epoch  # noqa: E402  (the harness's own epoch: a cycle's epoch is written with it, as cycle.py's is)
+import hosts  # noqa: E402
 import learning_records as lr  # noqa: E402
 import lifecycle  # noqa: E402
+import run as runner  # noqa: E402
 
 CONFIG = ["-c", "user.name=Fake", "-c", "user.email=fake@example.invalid", "-c", "commit.gpgsign=false"]
 LEDGER = "test/shiploop_e2e/learning-records.jsonl"
@@ -186,38 +192,56 @@ def main() -> int:
         git(worktree, "add", "skills/shiploop/SKILL.md")
         git(worktree, "commit", "-q", "-m", f"candidate for {record}\n\nLearning-Record: {record}\n")
         candidate = git(worktree, "rev-parse", "HEAD")
-        epoch = cycle / "epoch"
-        (epoch / "receipts").mkdir(parents=True)
-        events, attempts = [{"sequence": 1, "kind": "registered"}], []
+        epoch_root = cycle / "epoch"  # the harness's own epoch, written with its own functions, so the facade reads it as epoch.state does
         cases = [args.case] + ([args.generality_case] if args.generality_case else [])
-        for arm in ("control", "candidate"):
-            for case in cases:
-                identifier = f"{arm}-{case}-1"
-                run_folder(epoch / "runs" / identifier, case, args, epoch / "baselines.jsonl", knob.get("oracle"))
-                attempts.append({"id": identifier, "arm": arm, "case": case, "outcome": "failure" if knob.get("oracle") == "fail" else "success",
-                                 "evidence_valid": True})
+        plugin = cycle / "plugin"  # the build both arms ran: the registration binds its digest, and launch_intent checks it
+        (plugin / "skills" / "shiploop").mkdir(parents=True)
+        (plugin / "skills" / "shiploop" / "SKILL.md").write_text("the stand-in's build\n")
+        planned = [{"id": f"{arm}-{case}-1", "arm": arm, "case": case} for arm in ("control", "candidate") for case in cases]
+        template = cycle / "registration-template.json"
+        template.write_text(json.dumps({
+            "contract": "promotion/5", "purpose": "calibration", "cases": {case: {"role": "regression", "attempts": 1} for case in cases},
+            "arms": {arm: {"shiploop_build": runner.tree_digest(plugin), "driver": hosts.ROLE_DEFAULTS["subject"]} for arm in ("control", "candidate")},
+            "attempts": planned}))
+        epoch.initialise(epoch_root, template)
+        attempts = []
+        for attempt in planned:
+            intent = epoch.launch_intent(epoch_root, attempt["id"], plugin)
+            run_folder(Path(intent["output"]), attempt["case"], args, epoch_root / "baselines.jsonl", knob.get("oracle"))
+            epoch.record_run(epoch_root, attempt["id"])  # sealed: its files' digests and its review sources are bound in the ledger
+            attempts.append({**attempt, "outcome": "failure" if knob.get("oracle") == "fail" else "success", "evidence_valid": True})
+        valid = {"validity": {"status": "valid", "reason": None, "discovery_qualified": True}}
         for number, attempt in enumerate(attempts):
-            receipt = f"receipts/{attempt['id']}-epoch-1.json"
             retry = knob.get("review_retry") if number == 0 else None
             if retry in ("recovered", "incomplete"):  # the first attempt's review ended incomplete once, and was either redone or left so
-                events.append({"kind": "review_incomplete", "attempt_id": attempt["id"]})
+                receipt = f"receipts/{attempt['id']}-epoch-{number}-incomplete.json"
+                (epoch_root / receipt).write_text(json.dumps({"review": {"validity": {"status": "invalid", "discovery_qualified": False}},
+                                                              "judge": None, "routes": {}}))
+                epoch.append(epoch_root, "review_incomplete", attempt_id=attempt["id"], receipt=receipt,
+                             receipt_sha256=epoch.digest(epoch_root / receipt), routes={})
             if retry == "incomplete":
                 continue
-            (epoch / receipt).write_text(json.dumps({"review": {"validity": {"status": "valid"}}, "judge": {"validity": {"status": "valid"}},
-                                                     "routes": {}}))
-            sealed = hashlib.sha256((epoch / receipt).read_bytes()).hexdigest()
+            receipt = f"receipts/{attempt['id']}-epoch-{number}.json"
+            (epoch_root / receipt).write_text(json.dumps({"review": valid, "judge": {"validity": {"status": "valid", "reason": None}}, "routes": {}}))
+            epoch.append(epoch_root, "reviewed", attempt_id=attempt["id"], receipt=receipt, receipt_sha256=epoch.digest(epoch_root / receipt), routes={})
             if knob.get("review_retry") == "rewritten" and number == 0:  # a receipt changed after the review sealed it
-                (epoch / receipt).write_text(json.dumps({"review": {"validity": {"status": "valid"}}, "judge": {"validity": {"status": "valid"}},
-                                                         "routes": {}, "edited": True}))
-            events.append({"kind": "reviewed", "attempt_id": attempt["id"], "receipt": receipt, "receipt_sha256": sealed})
-        events.append({"kind": "decision", "result": {"decision": decision, "attempts": attempts}})
-        (epoch / "events.jsonl").write_text("".join(json.dumps(event) + "\n" for event in events))
+                (epoch_root / receipt).write_text(json.dumps({"review": valid, "judge": {"validity": {"status": "valid"}}, "routes": {}, "edited": True}))
+        if knob.get("earlier_decision"):  # an earlier decision over every attempt, which a last one over all but the first replaces
+            epoch.append(epoch_root, "decision", result={"decision": knob["earlier_decision"], "attempts": attempts, "reasons": ["superseded"]})
+        final = attempts[1:] if knob.get("earlier_decision") else attempts
+        epoch.append(epoch_root, "decision", result={"decision": decision, "attempts": final, "reasons": ["fake"]})
+        if knob.get("sealed_changed"):  # sealed evidence changed after it was recorded: the harness calls that attempt invalid_evidence
+            sealed_result = Path(epoch.sealed_run(epoch_root, attempts[0]["id"])[0]) / "result.json"
+            sealed_result.write_text(sealed_result.read_text() + "\n")
+        if knob.get("torn_ledger"):  # a row cut off mid-write, as a kill leaves it: the harness refuses to read such a ledger
+            with (epoch_root / epoch.LEDGER).open("a") as handle:
+                handle.write('{"sequence": 99, "kind": "rev')
         promoted = decision == "PROMOTE"
         if not promoted:
             git(worktree, "update-ref", f"refs/shiploop-loop/{name}/{record}", candidate)
             git(worktree, "reset", "-q", "--hard", tip)
         lr.append("predicted", record, ledger, prediction={"anchor": "S-14"}, candidate=candidate)
-        lr.append("decided", record, ledger, decision=decision, epoch=str(epoch))
+        lr.append("decided", record, ledger, decision=decision, epoch=str(epoch_root))
         if promoted:
             lr.append("verdict", record, ledger, verdict="supported", outcome="verified", reason="the epoch promoted it")
         elif decision == "DROP":

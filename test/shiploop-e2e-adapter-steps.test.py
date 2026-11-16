@@ -13,7 +13,6 @@ Run: python3 -B test/shiploop-e2e-adapter-steps.test.py
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import importlib.util
 import json
 import os
@@ -96,11 +95,23 @@ def source_for(variant: str):
 def setUpModule():
     STATE["folder"] = Path(tempfile.mkdtemp(prefix="shiploop-adapter-steps-")).resolve()
     STATE["variants"] = {}
+    # The facade refuses a step without a configured git identity (facade.identity_problem): this suite's home has one, for the facade it
+    # starts and for the calls it makes in this process. A developer's or a runner's own home may have none.
+    home = STATE["folder"] / "home"
+    home.mkdir()
+    (home / ".gitconfig").write_text(IDENTITY_CONFIG)
+    STATE["home_before"] = os.environ.get("HOME")
+    os.environ["HOME"] = str(home)
     source_for("plain")
 
 
 def tearDownModule():
+    if STATE.get("home_before") is not None:
+        os.environ["HOME"] = STATE["home_before"]
     shutil.rmtree(STATE["folder"], ignore_errors=True)
+
+
+IDENTITY_CONFIG = "[user]\n\tname = Test\n\temail = test@example.invalid\n[commit]\n\tgpgsign = false\n"
 
 
 LEADER_SCRIPT = """import subprocess, sys, time
@@ -734,16 +745,18 @@ class ProbeTests(StepCase):
         self.assertEqual(reply["state"], "declared")
         self.assertIn("no stored real run folder", reply["evidence"])
 
-    def report(self, driver, tamper=False, name="calibration.json", cases=("hello",), attempts=6, compared=20, k=3, tolerance=0.45):
+    def report(self, driver, tamper=False, name="calibration.json", cases=("hello",), attempts=6, compared=20, k=3, tolerance=0.45, scored=None):
         """A calibration/1 report in the shape spread.calibrate writes: per case the sealed attempts, a false-decision rate at every grid
-        tolerance (above the 0.10 threshold below 0.45, under it from 0.45, so spread.recommend gives 0.45) and the compared splits."""
-        digest = facade.bridge(self.layout, "scoring_digest", {"cases": list(cases)})["sha256"]
+        tolerance (above the 0.10 threshold below 0.45, under it from 0.45, so spread.recommend gives 0.45) and the compared splits.
+        `scored`, when given, is the case list its scoring digest covers instead of `cases`."""
+        scored = list(cases if scored is None else scored)
+        digest = facade.bridge(self.layout, "scoring_digest", {"cases": scored})["sha256"]
         rates = {f"{0.05 * step:.2f}": (0.5 if step < 9 else 0.04) for step in range(1, 11)}
         path = self.folder / name
         path.write_text(json.dumps({"contract": "calibration/1", "driver": driver, "attempts_sealed": attempts * len(cases),
                                     "cases": {case: {"attempts": attempts, "false_decision": {"tokens": {**rates, "compared": compared}}}
                                               for case in cases},
-                                    "scoring": {"cases": list(cases), "sha256": "0" * 64 if tamper else digest},
+                                    "scoring": {"cases": scored, "sha256": "0" * 64 if tamper else digest},
                                     "recommended": {"attempts": k, "tolerance": tolerance, "metric": "tokens", "why": None}}))
         return path
 
@@ -764,7 +777,11 @@ class ProbeTests(StepCase):
                   "holds no measured noise for hello"),
                  ("zero attempts per arm", ("--calibration", str(self.report(driver, k=0, name="zero.json"))), "not a positive whole number"),
                  ("a recommendation its own rates do not give", ("--calibration", str(self.report(driver, tolerance=0.25, name="inconsistent.json"))),
-                  "does not follow from what was measured"))
+                  "does not follow from what was measured"),
+                 # round 5, change 6: noise measured over one case while the scoring digest covers another passed every check above
+                 ("measurements not bound to the scoring they claim",
+                  ("--calibration", str(self.report(driver, cases=("not-a-catalog-case",), scored=("hello",), name="misbound.json"))),
+                  "not bound to the scoring they claim"))
         for label, flags, words in cases:
             with self.subTest(label):
                 refused = self.probe(claim, *flags)
@@ -826,16 +843,19 @@ class ReviewFindingsTests(StepCase):
     """Regression tests for the Sol max review of the facade's contract (docs/experiments/closed-loop-phase2-review-20261115/g1-sol-answer.txt)."""
 
     def test_two_steps_started_at_the_same_moment_are_not_both_admitted(self):
-        """Both starts are held where each asks whether another step is unsettled. Without the admission lock both would see none and both
-        would be admitted; with it the second waits, then sees the first's intent (the barrier times out, which is the serialisation)."""
+        """Each start reads whether another step is unsettled and is then held until both have read. Without the admission lock both hold an
+        empty answer at once and both are admitted, in every schedule; with it the second cannot read until the first has written its intent
+        and left (the first's wait times out, which is the serialisation). Reading before waiting is what makes this deterministic: a barrier
+        before the read let the first write its intent before the second read, so the test passed with the lock removed (round 5)."""
         import threading
         barrier = threading.Barrier(2)
         real_unsettled, real_spawn = facade.unsettled_keys, facade.spawn_worker
 
         def held(layout):
+            found = real_unsettled(layout)
             with contextlib.suppress(threading.BrokenBarrierError):
                 barrier.wait(timeout=2)
-            return real_unsettled(layout)
+            return found
         os.environ["CLOSED_LOOP_WORKSPACE"] = str(self.x)
         base, results = self.build(), {}
 
@@ -941,6 +961,9 @@ class ReviewFindingsTests(StepCase):
         rec["kill"] = {"group": "survived", "detail": {}, "sessions": 0, "survivors": [], "at": "t"}
         facade.settle(self.layout, rec, "cancelled", "cancelled by the operator")
         self.assertIn("process group survived", self.record("s1")["error"], "the settle says what the kill left")
+        reply = self.run_cli("cleanup", "--keys", "s1")  # and the cleanup's own answer, which check C5 reads, carries it (round 5)
+        self.assertFalse(reply["verified"], reply)
+        self.assertIn("process group survived", reply["receipt"])
 
     def test_a_worker_that_cannot_read_the_process_table_fails_the_step_and_is_not_started_again_forever(self):
         self.intent_only()
@@ -1032,12 +1055,25 @@ class SecondReviewTests(StepCase):
         self.assertEqual(self.poll(key)["status"], "done")
         self.assertEqual(self.tip(), result)
 
-    def test_cleanup_publishes_a_finished_step_whose_worker_is_gone(self):
-        key, result = self.prepared_step()
+    def test_cleanup_ends_a_finished_step_whose_worker_is_gone_and_publishes_nothing(self):
+        """One publisher (the worker, or a poll finishing what a dead worker prepared): a cleanup settles a finished, unpublished step as
+        cancelled, so it is never left unsettled and no published fact can contradict what the cleanup's kill found."""
+        key, _result = self.prepared_step()
         reply = self.run_cli("cleanup", "--keys", key)
         self.assertTrue(reply["verified"], reply)
-        self.assertEqual((self.record(key)["state"], self.tip()), ("published", result), "a cleanup never leaves a finished step unsettled")
+        self.assertEqual((self.record(key)["state"], self.tip()), ("cancelled", self.base), "nothing published; the tip stays")
+        self.assertIn("its finished result was not published", self.record(key)["error"])
         self.assertEqual(self.start("s9", ["hello"])["status"], "running", "and the workspace is free for the next step")
+
+    def test_a_cancel_of_a_finished_step_answers_cancelled_as_the_orchestrator_requires(self):
+        """closed_loop.py's `cancel` accepts only `cancelled` (cmd_cancel); a cancel that published answered `done` and left the campaign's
+        step recorded as running (round 5, change 2)."""
+        key, _result = self.prepared_step()
+        reply = self.run_cli("step", "cancel", "--handle", key)
+        self.assertEqual(reply["status"], "cancelled", reply)
+        self.assertEqual((self.record(key)["state"], self.tip()), ("cancelled", self.base))
+        self.assertEqual(self.poll(key)["status"], "cancelled", "a later poll does not publish what the cancel ended")
+        self.assertEqual(self.tip(), self.base)
 
     def test_a_poll_that_read_an_old_spawn_time_does_not_begin_a_second_worker(self):
         self.intent_only()
@@ -1085,18 +1121,138 @@ class SecondReviewTests(StepCase):
         self.assertEqual(it["review"], {"valid": False, "complete": False}, "epoch.state demotes an attempt whose receipt no longer matches its seal")
 
     def test_the_last_decision_of_an_epoch_is_the_one_that_counts(self):
-        out = Path(tempfile.mkdtemp(prefix="epoch-", dir=STATE["folder"]))
-        epoch = out / "cycle-1" / "epoch"
-        (epoch / "receipts").mkdir(parents=True)
-        (epoch / "receipts" / "a-1.json").write_text("{}")
-        seal = hashlib.sha256((epoch / "receipts" / "a-1.json").read_bytes()).hexdigest()
-        events = [{"kind": "decision", "result": {"decision": "UNDECIDED", "attempts": [{"id": "a"}]}},
-                  {"kind": "reviewed", "attempt_id": "a", "receipt": "receipts/a-1.json", "receipt_sha256": seal},
-                  {"kind": "decision", "result": {"decision": "DROP", "attempts": [{"id": "a"}]}}]
-        (epoch / "events.jsonl").write_text("".join(json.dumps(event) + "\n" for event in events))
-        found = facade.epoch_evidence(out)
-        self.assertEqual(found["decision"]["decision"], "DROP", "epoch.state takes the last decision")
-        self.assertEqual((found["incomplete"], len(found["receipts"])), (0, 1))
+        """The first decision names the attempt whose review stayed incomplete; the last one, which epoch.state reads, leaves it out."""
+        self.set_knobs({"csv-report": {"decision": "DROP", "earlier_decision": "UNDECIDED", "review_retry": "incomplete"}})
+        self.start("s1", ["csv-report"])
+        it = self.valid(self.finish("s1"), ["csv-report"])
+        self.assertEqual(it["review"], {"valid": True, "complete": True}, "only the last decision's attempts are asked for a review")
+
+    def test_an_epoch_ledger_the_harness_cannot_read_makes_the_cycle_invalid(self):
+        """A torn row (what a kill mid-append leaves): epoch.state refuses the ledger, and the facade reports that, never 'nothing expected'."""
+        self.set_knobs({"csv-report": {"decision": "DROP", "torn_ledger": True}})
+        self.start("s1", ["csv-report"])
+        it = self.valid(self.finish("s1"), ["csv-report"])
+        self.assertTrue(any("the harness could not read the cycle's epoch" in note for note in it["invalid"]), it["invalid"])
+        self.assertEqual(it["review"], {"valid": False, "complete": False})
+
+    def test_sealed_run_evidence_changed_after_recording_makes_the_cycle_invalid(self):
+        """epoch.state calls an attempt whose sealed files changed invalid_evidence (its sealed_run check), and so does the facade."""
+        self.set_knobs({"csv-report": {"decision": "DROP", "sealed_changed": True}})
+        self.start("s1", ["csv-report"])
+        it = self.valid(self.finish("s1"), ["csv-report"])
+        self.assertTrue(any("sealed run evidence changed after it was recorded: control-csv-report-1" in note for note in it["invalid"]),
+                        it["invalid"])
+        self.assertEqual(it["review"]["complete"], False, "an attempt whose evidence changed is not a reviewed one")
+
+
+class ReplanTests(StepCase):
+    """Replan B after review round 5 (docs/closed-loop-journal.md R10): the engine's git identity checked before any step or probe, cleanup
+    that answers from the stored evidence, ownership checked again before escalation, and a publication reconciled with the ref."""
+
+    def bare_home(self, xdg_identity=False):
+        """An environment whose home's .gitconfig names no identity; with `xdg_identity`, an XDG configuration that does, so the learnings
+        commit would have one and the improver, which is handed only .gitconfig (iterate.improve), would not. EMAIL lets git GUESS an
+        identity on any host (without it the guess depends on the hostname), so only `user.useConfigOnly` makes the check refuse it."""
+        home = Path(tempfile.mkdtemp(prefix="bare-home-", dir=STATE["folder"]))
+        (home / ".gitconfig").write_text("[commit]\n\tgpgsign = false\n")
+        env = {"HOME": str(home), "EMAIL": "guess@example.invalid"}
+        if xdg_identity:
+            (home / "xdg" / "git").mkdir(parents=True)
+            (home / "xdg" / "git" / "config").write_text(IDENTITY_CONFIG)
+            env["XDG_CONFIG_HOME"] = str(home / "xdg")
+        return env
+
+    def test_a_step_without_a_configured_engine_identity_is_refused_before_anything_starts(self):
+        """A real step on a machine whose git guessed an identity from a dotless hostname failed only after its subject run (journal R10).
+        `user.useConfigOnly` makes the check the same on every host: a guess that works today is refused too."""
+        done = self.start("s1", ["hello"], env=self.bare_home(), check=False)
+        self.assertEqual(done.returncode, 2, done.stdout)
+        self.assertIn("the loop's learnings commit would have no configured git identity", done.stderr)
+        self.assertIn("set user.name and user.email", done.stderr)
+        self.assertIsNone(facade.load_step(self.layout, "s1"), "no intent is written, so nothing was launched")
+        self.assertFalse(self.log.exists() and self.log.read_text().strip(), "the engine never ran")
+
+    def test_the_improvers_identity_is_the_one_in_the_home_gitconfig(self):
+        done = self.start("s1", ["hello"], env=self.bare_home(xdg_identity=True), check=False)
+        self.assertEqual(done.returncode, 2, done.stdout)
+        self.assertIn("the improver's commits would have no configured git identity", done.stderr)
+
+    def test_the_runs_probe_refuses_before_its_model_session(self):
+        answer = self.probe("cases.runs:hello", env=self.bare_home())
+        self.assertEqual((answer["state"], answer["consumed"]), ("declared", {"seconds": 0.0, "runs": 0}), answer)
+        self.assertIn("no configured git identity", answer["evidence"])
+
+    def test_a_repeated_cleanup_answers_from_the_stored_evidence_until_a_check_resolves_it(self):
+        """Round 5, change 1: a second cleanup over a group the first could not show to be the worker's answered verified from its own call."""
+        leader, member, _child = orphaned_group(self)
+        self.intent_only()
+        rec = self.record("s1")  # a dead worker's step; the record is old, so its leaderless group cannot be shown to be the worker's
+        rec.update(state="running", worker={"pid": leader, "pgid": leader, "started": member["started"], "at": time.time() - 16 * 3600})
+        facade.save_step(self.layout, rec)
+        first = self.run_cli("cleanup", "--keys", "s1")
+        self.assertFalse(first["verified"], first)
+        self.assertEqual(self.record("s1")["state"], "cancelled")
+        second = self.run_cli("cleanup", "--keys", "s1")
+        self.assertFalse(second["verified"], "a second cleanup does not forget what the first could not prove ended")
+        self.assertIn("process group unverified", second["receipt"])
+        self.assertTrue(alive(member["pid"]), "and it still signals nothing it cannot show to be the worker's")
+        os.kill(member["pid"], signal.SIGKILL)  # the leftover ends by other means
+        self.assertTrue(wait_for(lambda: not alive(member["pid"]), 10))
+        third = self.run_cli("cleanup", "--keys", "s1")
+        self.assertTrue(third["verified"], third)
+        self.assertEqual(self.record("s1")["kill"]["group"], "gone", "a fresh check resolved the stored problem")
+
+    def test_a_group_recycled_during_the_grace_is_not_sent_sigkill(self):
+        """Round 5, change 5: the worker's group emptied during the SIGTERM grace and its number now leads another session's group."""
+        ident = {"pid": 610001, "pgid": 610001, "started": "Sun Nov 16 00:00:00 2026", "at": time.time()}
+
+        def row(pid, started):
+            return {"pid": pid, "ppid": 1, "pgid": 610001, "stat": "S", "started": started, "command": "sleep"}
+        tables = {"before": {610001: row(610001, ident["started"]), 610002: row(610002, ident["started"])},
+                  "after": {610001: row(610001, "Sun Nov 16 00:00:09 2026"), 610003: row(610003, "Sun Nov 16 00:00:09 2026")}}
+        sent, phase = [], {"now": "before"}
+
+        def killpg(pgid, number):
+            sent.append((pgid, number))
+            phase["now"] = "after"
+        saved = (facade.ps_rows, facade.os.killpg, facade.GRACE_SECONDS, facade.FORCE_SECONDS, facade.POLL_SECONDS)
+        facade.ps_rows = lambda *_args, **_kwargs: dict(tables[phase["now"]])
+        facade.os.killpg, facade.GRACE_SECONDS, facade.FORCE_SECONDS, facade.POLL_SECONDS = killpg, 0.3, 0.3, 0.05
+        try:
+            how, _detail = facade.stop_group(ident)
+        finally:
+            facade.ps_rows, facade.os.killpg, facade.GRACE_SECONDS, facade.FORCE_SECONDS, facade.POLL_SECONDS = saved
+        self.assertEqual(how, "reused")
+        self.assertEqual(sent, [(610001, signal.SIGTERM)], "no SIGKILL to a group that is no longer the worker's")
+
+    def test_a_write_that_fails_after_the_tip_moved_leaves_the_step_for_a_poll_to_finish(self):
+        """Round 5, change 3: the ref moved, then saving `published` failed (a full disk); the step was recorded failed with its tip moved."""
+        self.intent_only()
+        real_save, failed = facade.save_step, []
+
+        def flaky(layout, rec):
+            if rec.get("state") == "published" and not failed:
+                failed.append(True)
+                raise OSError(28, "No space left on device")
+            real_save(layout, rec)
+        facade.save_step = flaky
+        saved_env = {name: os.environ.get(name) for name in ("FAKE_ENGINE", "FAKE_LOG")}
+        os.environ.update(FAKE_ENGINE=str(self.knobs), FAKE_LOG=str(self.log))
+        try:
+            with self.assertRaises(OSError):
+                facade.worker_main(self.layout, "s1")
+        finally:
+            facade.save_step = real_save
+            for name, value in saved_env.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+        record = self.record("s1")
+        self.assertEqual(record["state"], "prepared", "the last write that succeeded stands: the step is not settled failed")
+        self.assertEqual(self.tip(), record["prepared"]["tip_to"], "the tip had moved before the write failed")
+        self.assertEqual(self.poll("s1")["status"], "done", "a poll reconciles the record with the ref")
+        self.assertEqual((self.record("s1")["state"], self.tip()), ("published", record["prepared"]["tip_to"]))
 
 
 class OrchestratorConvergenceTests(StepCase):

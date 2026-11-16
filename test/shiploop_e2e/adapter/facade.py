@@ -231,9 +231,28 @@ elif op == "calibration_check":
         except (KeyError, TypeError, ValueError, AttributeError):
             recomputed = None
         out = {"ok": True, "calibration": cycle.load_calibration(path, cases), "driver": report.get("driver"), "cases": cases,
-               "per_case": per_case, "recomputed_tolerance": recomputed}
+               "per_case": per_case, "recomputed_tolerance": recomputed,
+               "scoring_cases": sorted(((report.get("scoring") or {}).get("cases")) or [])}
     except (OSError, ValueError, KeyError, TypeError) as error:
         out = {"ok": False, "why": str(error), "driver": None, "cases": []}
+elif op == "epoch_facts":
+    import epoch
+    root = Path(payload["root"])
+    try:
+        state, rows = epoch.state(root), epoch.events(root)
+    except (OSError, ValueError, KeyError, TypeError, SystemExit) as error:  # a torn ledger, a changed registration: no facts
+        out = {"ok": False, "why": str(error)[:400] or type(error).__name__}
+    else:
+        receipts = {}
+        for attempt in state["attempts"]:
+            if attempt["status"] == "reviewed":  # epoch.state's own reading: its last review keeps its seal, its sealed run is unchanged
+                last = [row for row in rows if row["kind"] == "reviewed" and row.get("attempt_id") == attempt["id"]][-1]
+                try:
+                    receipts[attempt["id"]] = json.loads((root / last["receipt"]).read_text())
+                except (OSError, ValueError):
+                    receipts[attempt["id"]] = None
+        out = {"ok": True, "decision": (state.get("decision") or {}).get("result"), "receipts": receipts,
+               "attempts": [{"id": attempt["id"], "status": attempt["status"]} for attempt in state["attempts"]]}
 elif op == "scoring_digest":
     import spread
     catalog = json.loads((harness / "cases.json").read_text())
@@ -560,6 +579,12 @@ def stop_group(ident: dict) -> tuple:
         return how, detail
     members = detail["members"]
     for name, number, wait in (("SIGTERM", signal.SIGTERM, GRACE_SECONDS), ("SIGKILL", signal.SIGKILL, FORCE_SECONDS)):
+        if number == signal.SIGKILL:  # ownership is decided again before escalating: during the grace the group may have emptied and its
+            how, detail = group_verdict(ps_rows(), ident)  # number been taken by another session's group, which is never signalled
+            if how == "gone":
+                return "stopped", {"ended_by": "SIGTERM", "members": len(members)}
+            if how != "ok":
+                return how, detail
         with contextlib.suppress(ProcessLookupError, PermissionError):
             os.killpg(pgid, number)
         end = time.monotonic() + wait
@@ -1043,40 +1068,26 @@ def run_summary(layout: Layout, run_dir: Path) -> dict:
             "key": {name: result.get(name) for name in ("case", "host", "model", "effort", "source", "prompt_sha256")}}
 
 
-def epoch_evidence(out: Path) -> dict:
-    """A cycle's epoch as the harness recorded it: the decision event's attempts (their strict outcomes, as promotion computed them), and
-    for each attempt the receipt of its LAST review event (a review that ended incomplete and was later redone counts as done, and an
-    attempt whose last event is incomplete, or that has none, as incomplete)."""
-    events = []
+def epoch_evidence(layout: Layout, out: Path) -> dict:
+    """A cycle's epoch as the harness itself reads it (`epoch.state` through the bridge, never a re-statement of its rule): the last decision's
+    attempts and, for each, the receipt of the review the harness counts (its last review keeps its seal and its sealed run is unchanged). A
+    cycle that ended before it made an epoch has none; an epoch the harness cannot read (a torn ledger row, a changed registration) gives no
+    receipts and says why, and the caller makes that invalid, never an empty success."""
+    root = out / "cycle-1" / "epoch"
+    if not root.exists():
+        return {"decision": None, "receipts": [], "incomplete": 0, "expected": 0, "unreadable": None, "invalid_evidence": []}
     try:
-        events = [json.loads(line) for line in lines_of((out / "cycle-1" / "epoch" / "events.jsonl").read_text())]
-    except (OSError, ValueError):
-        pass
-    decisions = [event.get("result") for event in events if event.get("kind") == "decision"]
-    decision = decisions[-1] if decisions else None  # epoch.state takes the last decision
-    reviewed = epoch_reviewed(out / "cycle-1" / "epoch", events)
+        facts = bridge(layout, "epoch_facts", {"root": str(root)})
+    except FacadeError as error:
+        facts = {"ok": False, "why": str(error)}
+    if not facts.get("ok"):
+        return {"decision": None, "receipts": [], "incomplete": 0, "expected": 0, "unreadable": facts.get("why") or "unreadable",
+                "invalid_evidence": []}
+    decision = facts.get("decision")
     attempts = [attempt.get("id") for attempt in (decision or {}).get("attempts") or []]
-    receipts = [reviewed[name] for name in attempts if name in reviewed]
-    return {"decision": decision, "receipts": receipts, "incomplete": len(attempts) - len(receipts), "expected": len(attempts)}
-
-
-def epoch_reviewed(root: Path, events: list) -> dict:
-    """attempt id -> the receipt of its review, for the attempts the harness counts as reviewed (epoch.state): one with a `reviewed` event
-    whose LAST reviewed receipt still has the digest the event sealed. A receipt rewritten after its review is not a review."""
-    found = {}
-    for event in events:
-        if event.get("kind") == "reviewed":
-            found[event.get("attempt_id")] = event
-    reviewed = {}
-    for attempt, event in found.items():
-        path = root / str(event.get("receipt"))
-        try:
-            sealed = hashlib.sha256(path.read_bytes()).hexdigest() == event.get("receipt_sha256")
-        except OSError:
-            sealed = False
-        if sealed:
-            reviewed[attempt] = read_optional(path)
-    return reviewed
+    receipts = [facts["receipts"][name] for name in attempts if facts["receipts"].get(name) is not None]
+    return {"decision": decision, "receipts": receipts, "incomplete": len(attempts) - len(receipts), "expected": len(attempts),
+            "unreadable": None, "invalid_evidence": [attempt["id"] for attempt in facts["attempts"] if attempt["status"] == "invalid_evidence"]}
 
 
 def final_verdict(run: Path):
@@ -1114,9 +1125,13 @@ def invocation_evidence(layout: Layout, rec: dict, inv: dict) -> dict:
         if review is not None and not qualified:
             detail = ((review.get("validity") or {}).get("reason") or validity_status(review) or "unknown")
             found["invalid"].append(f"INVALID_REVIEW on {inv['case']}: no discovery-qualified review ({str(detail)[:160]})")
-    epoch = epoch_evidence(out) if inv["cycle_ran"] else None
+    epoch = epoch_evidence(layout, out) if inv["cycle_ran"] else None
     decision = (epoch or {}).get("decision") or {}
     cycle = read_optional(out / "cycle-1" / "cycle-result.json") if inv["cycle_ran"] else None
+    if epoch is not None and epoch["unreadable"]:
+        found["invalid"].append(f"the harness could not read the cycle's epoch: {epoch['unreadable'][:200]}")
+    if epoch is not None and epoch["invalid_evidence"]:
+        found["invalid"].append("the harness found sealed run evidence changed after it was recorded: " + ", ".join(epoch["invalid_evidence"]))
     if epoch is not None:
         for receipt in epoch["receipts"]:
             found["reviews"].append({"valid": validity_status((receipt or {}).get("review")) == "valid", "complete": receipt is not None})
@@ -1387,13 +1402,13 @@ def worker_main(layout: Layout, key: str) -> int:
             rec.update(state="running", worker=identity_of(os.getpid()), started_at=now(), started_epoch=time.time())
             save_step(layout, rec)
             run_step(layout, rec)
-        except FacadeError as error:
-            if rec["state"] != "prepared":
-                settle(layout, rec, "failed", str(error))
-            else:
+        except Exception as error:  # noqa: BLE001 - whatever went wrong is the step's failure, with its reason
+            if rec.get("prepared") is not None:
+                # Once its publication is prepared the step is never settled here: the move of the tip may have happened (a write that
+                # failed after `update-ref`), so the record stays as last written and a poll reconciles it with the ref (`publish` is
+                # repeatable: a ref already at the result is a finished move), instead of a `failed` step whose tip moved.
                 raise
-        except Exception:  # noqa: BLE001 - whatever else went wrong is the step's failure, with its traceback
-            settle(layout, rec, "failed", "unexpected error: " + traceback.format_exc()[-1500:])
+            settle(layout, rec, "failed", str(error) if isinstance(error, FacadeError) else "unexpected error: " + traceback.format_exc()[-1500:])
     finally:
         lock.release()
     return 0
@@ -1558,6 +1573,9 @@ def step_start_admitted(layout: Layout, args, key: str) -> dict:
     dirty = x_dirty(layout)
     if dirty:
         raise FacadeError("the evaluator clone has uncommitted paths: " + ", ".join(dirty[:5]))
+    problem = identity_problem(layout, probe_env())  # the engine's own environment (run_invocation): refuse now, not after a run
+    if problem:
+        raise FacadeError(problem)
     out.mkdir(parents=True, exist_ok=True)
     profile = {name: getattr(args, name, None) for name in ("host", "model", "effort", "calibration", "tolerance", "attempts", "parallel")}
     profile["engine_args"] = list(getattr(args, "engine_arg", None) or [])
@@ -1584,14 +1602,15 @@ def step_cancel(layout: Layout, args) -> dict:
     with Exclusive(layout, rec["key"], stop_live=True) as held:
         if not held.held:
             raise FacadeError(f"the worker of step {rec['key']} did not stop in {EXCLUSIVE_WAIT_SECONDS:.0f} seconds")
-        rec = load_step(layout, rec["key"])  # the worker may have finished first: then the step is simply done
+        rec = load_step(layout, rec["key"])  # the worker may have published first: then the step is simply done
         killed = end_leftovers(layout, rec, held)
         if killed is not None:
             rec["kill"] = killed
-        if rec["state"] in LIVE:
-            settle(layout, rec, "cancelled", "cancelled by the operator")
-        elif rec["state"] == "prepared":
-            finish_publication(layout, rec)  # it had finished: a cancel does not throw away a prepared result
+        if rec["state"] in (*LIVE, "prepared"):
+            # One publisher: the step's own worker, or a poll finishing what a dead worker prepared. A cancel ends a finished but unpublished
+            # step too, so its reply is `cancelled`, which the orchestrator's `cancel` requires (closed_loop.py cmd_cancel), and no published
+            # fact can contradict what the kill found.
+            settle(layout, rec, "cancelled", "cancelled by the operator" + ("; its finished result was not published" if rec["state"] == "prepared" else ""))
     return reply_for(load_step(layout, rec["key"]))
 
 
@@ -1616,14 +1635,16 @@ def cmd_cleanup(args) -> dict:
                 continue
             rec = load_step(layout, key)
             killed = end_leftovers(layout, rec, held)  # evaluated whatever state the record reached meanwhile
+            if killed is None and rec.get("worker") and kill_problems(rec.get("kill")):
+                # What an earlier kill could not prove ended is checked again on a fresh process table, never forgotten: a repeated
+                # cleanup answers from the stored evidence, resolved only by a check that finds the group gone or stopped.
+                killed = kill_step(layout, rec)
             if killed is not None:
                 rec["kill"] = killed
-            if rec["state"] in LIVE:
-                settle(layout, rec, "cancelled", "ended by cleanup")
-            elif rec["state"] == "prepared":
-                finish_publication(layout, rec)  # a finished step is published, so a cleanup never leaves one unsettled
+            if rec["state"] in (*LIVE, "prepared"):
+                settle(layout, rec, "cancelled", "ended by cleanup" + ("; its finished result was not published" if rec["state"] == "prepared" else ""))
             ok, receipt = lifecycle_cleanup(layout, rec)
-            stuck = kill_problems(killed)
+            stuck = kill_problems(rec.get("kill"))  # the stored evidence, updated by any check above
             if stuck:
                 ok, receipt = False, receipt + "; " + "; ".join(stuck)
             save_step(layout, rec)
@@ -1659,6 +1680,26 @@ def probe_env() -> dict:
     return env
 
 
+def identity_problem(layout: Layout, env: dict) -> str | None:
+    """Why the engine could not record its work, or None. The loop commits its learnings with the caller's git identity and hands the
+    improver ``$HOME/.gitconfig`` as its only global configuration (iterate.record_learnings, iterate.improve), so both must name an identity
+    that is CONFIGURED: a guessed one (user@hostname) is refused once the hostname has no dot, and a machine's hostname can change with its
+    network during a campaign of hours (journal R10). Without this check the first step fails after its subject run."""
+    gitconfig = Path(env.get("HOME") or Path.home()) / ".gitconfig"
+    views = [("the loop's learnings commit", env)]
+    if gitconfig.is_file():  # otherwise the harness writes the improver a throwaway identity of its own (hosts._isolated_env)
+        views.append(("the improver's commits", dict(env, GIT_CONFIG_GLOBAL=str(gitconfig))))
+    for who, variables in views:
+        for name in ("GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"):
+            done = subprocess.run(["git", "-C", str(layout.x), "-c", "user.useConfigOnly=true", "var", name], capture_output=True,
+                                  text=True, env=variables, check=False)
+            if done.returncode != 0:
+                why = (done.stderr.strip().splitlines() or ["refused"])[-1]
+                return (f"{who} would have no configured git identity ({name}: {why}): set user.name and user.email "
+                        f"(git config --global) before a step or a probe runs; the engine would otherwise stop after its first run")
+    return None
+
+
 def build_plugins(clone: Path, into: Path) -> tuple:
     """The harness's own build (`scripts/build-packages.py`) in a clone; (ok, last words of its output)."""
     done = subprocess.run([sys.executable, "-B", str(clone / "scripts" / "build-packages.py"), str(into)], capture_output=True, text=True,
@@ -1672,6 +1713,9 @@ def probe_cases_runs(layout: Layout, args, case: str) -> dict:
     lifecycle cleanup of its folder is verified (plan 3.6). Effectful: it starts a model session. The folder is kept for `grading.scores`."""
     if case not in load_allowlist(layout):
         raise FacadeError(f"cases.runs:{case} names a case that is not in the allowlist")
+    problem = identity_problem(layout, probe_env())  # before the run, which costs a model session: a loop could not record it anyway
+    if problem:
+        return {"state": "declared", "evidence": problem, "consumed": {"seconds": 0.0, "runs": 0}}
     started = time.time()
     tip = published_tip(layout)
     scratch = scratch_folder(layout, f"runs-{case}")
@@ -1813,6 +1857,11 @@ def probe_calibrated(layout: Layout, args, profile: str) -> dict:
     calibration = checked["calibration"]
     if not checked["cases"]:
         return {"state": "unmeasured", "evidence": f"the report {path} covers no case", "consumed": {"seconds": 0.0}}
+    scored = checked.get("scoring_cases") or []
+    if scored != checked["cases"]:  # the harness's loader digests `scoring.cases` (catalog entries) and only asks that each named case have one
+        return {"state": "unmeasured", "consumed": {"seconds": 0.0},
+                "evidence": f"the report {path} measured noise over {', '.join(checked['cases'])} but its scoring digest covers "
+                            f"{', '.join(scored) or 'no case'}: its measurements are not bound to the scoring they claim"}
     attempts = calibration.get("attempts")
     if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
         return {"state": "unmeasured", "evidence": f"the report {path} recommends {attempts!r} attempts per arm: not a positive whole number",

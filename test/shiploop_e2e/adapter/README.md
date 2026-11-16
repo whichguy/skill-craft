@@ -42,7 +42,14 @@ X's ref `refs/closed-loop/tip`; every query reads Git objects at the published t
 liveness is a file lock), one `iterate.py` invocation per requested case, each from the tip the one before left; a cycle ends the step. The
 facts are read from the harness's JSON and Git (never its prose), the new tip is published in two phases, and baseline rows are captured from
 both places they land (X's tracked file, each epoch's own) and X is restored. A failed or cancelled step publishes nothing and archives
-what its worktrees held (`<out>/salvage/`), because a killed step's ledger rows can be staged and a plain diff misses them.
+what its worktrees held (`<out>/salvage/`), because a killed step's ledger rows can be staged and a plain diff misses them. Only the step's
+worker, or a poll finishing what a dead worker prepared, publishes: a cancel or a cleanup ends even a finished, unpublished step as
+`cancelled`. A cycle's epoch is read by the harness's own `epoch.state` (through the bridge), never by a re-statement of its rule.
+
+Before a step or the `cases.runs` probe, the engine's environment must name a CONFIGURED git identity (`user.name` and `user.email`;
+`git -c user.useConfigOnly=true var GIT_COMMITTER_IDENT` passes), because the loop commits its learnings, and hands the improver
+`$HOME/.gitconfig`, with it. A guessed one (user@hostname) is refused: git refuses to guess from a dotless hostname, and a machine's hostname can
+follow its network (docs/closed-loop-journal.md R10).
 
 ## Limits, said plainly
 
