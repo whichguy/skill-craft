@@ -1,0 +1,396 @@
+trial   e18-grok-f1
+host    grok grok 1.0.77 (50ca579fa996) grok-4.6 xhigh
+plan    tickets3  arm A3s  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   5.768  L  ledger        claim    T1           
++   5.769  L  ledger        claim    T2           
++   5.769  L  ledger        claim    T3           
++   5.770  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity
++  30.653  L  ledger        workspace T3           {"seconds":0.08}
++  30.654  L  ledger        start    T3           
++  30.717  L  ledger        workspace T2           {"seconds":0.062}
++  30.717  L  ledger        start    T2           
++  30.794  L  ledger        workspace T1           {"seconds":0.076}
++  30.795  L  ledger        start    T1           
++ 591.852  L  ledger        commit   T3           {"seconds":0.103}
++ 591.853  L  ledger        end      T3           {"sha":"c75cc93aad1a4897a9eae39fd8d17420aa162d18dfda4a1a78ae58c18c284a55","result":{"answer":135,"method":"Due times behind DUE_TIMES=on; npm test pas
++ 593.686  L  ledger        refused  T2           {"reason":"it is not a claim that never started","category":"duplicate"}
++ 597.408  L  ledger        retest   -            {"seconds":0.789}
++ 597.409  L  ledger        landed   -            {"seconds":0.89}
++ 597.522  L  ledger        conflict T3           {"seconds":0.045}
++ 597.523  L  ledger        retry    T3           {"reason":"merge conflict in src/app.js"}
++ 597.523  L  ledger        claim    T3           
++ 597.524  L  ledger        ready    -            {"result":{"ready":["T3"],"deferred":[],"claimed":[],"running":["T1","T2"],"done":[],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 617.358  L  ledger        workspace T3           {"seconds":0.948}
++ 617.360  L  ledger        start    T3           
++ 978.111  L  ledger        commit   T3           {"seconds":0.083}
++ 978.113  L  ledger        end      T3           {"sha":"10194149bc7d5c4562955a43b0f374f308c5ff6965a388017cc49cc27e1adceb","result":{"answer":135,"method":"Resolved src/app.js merge to shown(store.cr
++ 989.469  L  ledger        commit   T1           {"seconds":0.068}
++ 989.471  L  ledger        end      T1           {"sha":"cedb220ad20db2dbe72e8476c6c9694244e52f028228d97a6a9aa5ea0f4957fa","result":{"answer":127,"method":"implemented assignment then counted npm tes
++1099.868  L  ledger        commit   T2           {"seconds":0.071}
++1099.869  L  ledger        end      T2           {"sha":"5b536f67fa33c1bd183121544bd4c95a462cb0585ed359e0447ffbab01ebbf22","result":{"answer":130,"method":"POST /tickets/import all-or-none createMany
++1108.264  L  ledger        retest   T3           {"seconds":0.737}
++1108.264  L  ledger        merged   T3           {"seconds":0.05}
++1108.369  L  ledger        conflict T1           {"seconds":0.048}
++1108.370  L  ledger        retry    T1           {"reason":"merge conflict in CHANGELOG.md, docs/api.md, docs/decisions/README.md, src/format.js, src/store.js, src/tickets/query.js"}
++1108.462  L  ledger        conflict T2           {"seconds":0.038}
++1108.462  L  ledger        retry    T2           {"reason":"merge conflict in CHANGELOG.md, src/app.js, src/store.js"}
++1108.463  L  ledger        claim    T1           
++1108.463  L  ledger        claim    T2           
++1108.464  L  ledger        ready    -            {"result":{"ready":["T1","T2"],"deferred":[],"claimed":[],"running":[],"done":["T3"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++1122.119  L  ledger        workspace T1           {"seconds":0.219}
++1122.120  L  ledger        start    T1           
++1122.296  L  ledger        workspace T2           {"seconds":0.165}
++1122.297  L  ledger        start    T2           
++1194.209  L  ledger        commit   T2           {"seconds":0.111}
++1194.210  L  ledger        end      T2           {"sha":"cd099b7b20038b7d27c021db449440d98a74cd61b75144191110dc3e4da5b61f","result":{"answer":148,"method":"resolved merge conflicts in CHANGELOG.md, s
++1424.371  L  ledger        retest   T2           {"seconds":0.709}
++1424.372  L  ledger        merged   T2           {"seconds":0.044}
++1424.373  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":["T1"],"done":["T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++1508.279  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":["T1"],"done":["T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++1912.288  L  ledger        commit   T1           {"seconds":0.071}
++1912.289  L  ledger        end      T1           {"sha":"adc265a61a95953f5af73ead274143ec554ecdc0ebc46b779e5062141954c182","result":{"answer":158,"method":"merged assignment with due times and import
++1917.017  L  ledger        conflict T1           {"seconds":0.031}
++1917.017  L  ledger        retry    T1           {"reason":"merge conflict in src/store.js, src/tickets/validate.js"}
++22944.864  L  ledger        replay_seed -            
++22949.413  H  parent        text     -            I'll
++22949.432  H  parent        text     -            orchestr
++22949.438  H  parent        text     -            ate
++22949.449  H  parent        text     -            the
++22949.468  H  parent        text     -            ticket
++22949.473  H  parent        text     -            -
++22949.479  H  parent        text     -            service
++22949.488  H  parent        text     -            requests
++22949.498  H  parent        text     -            through
++22949.511  H  parent        text     -            `
++22949.519  H  parent        text     -            dag
++22949.531  H  parent        text     -            kit
++22949.548  H  parent        text     -            .py
++22949.559  H  parent        text     -            `,
++22949.584  H  parent        text     -            claiming
++22949.593  H  parent        text     -            at
++22949.607  H  parent        text     -            most
++22949.622  H  parent        text     -            one
++22949.635  H  parent        text     -            ready
++22949.648  H  parent        text     -            step
++22949.659  H  parent        text     -            at
++22949.687  H  parent        text     -            a
++22949.689  H  parent        text     -            time
++22949.719  H  parent        text     -            and
++22949.721  H  parent        text     -            launching
++22949.731  H  parent        text     -            a
++22949.742  H  parent        text     -            fresh
++22949.757  H  parent        text     -            sub
++22949.776  H  parent        text     -            -
++22949.782  H  parent        text     -            agent
++22949.838  H  parent        text     -            for
++22949.891  H  parent        text     -            each
++22949.944  H  parent        text     -            claim
++22949.992  H  parent        text     -            .
++22950.810  H  parent        call     todo_write   todo_write {"todos": [{"id": "loop", "content": "Run dagkit ready/claim loop until complete", "status": "in_progress"}, {"id": "verify", "content": "R
++22950.810  H  parent        call     run_terminal run_terminal_command python3 /Users/dadleet/e18-runs-20261115/e18-grok-f1/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-grok-f1/work
++22950.836  H  parent        result   -            
++22951.642  L  ledger        claim    T1           
++22951.643  L  ledger        ready    -            {"result":{"ready":["T1"],"deferred":[],"claimed":[],"running":[],"done":["T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++22951.654  H  parent        result   -            
++22956.107  H  parent        text     -            T
++22956.117  H  parent        text     -            1
++22956.134  H  parent        text     -            is
++22956.151  H  parent        text     -            claimed
++22956.158  H  parent        text     -            .
++22956.173  H  parent        text     -            Launch
++22956.187  H  parent        text     -            ing
++22956.202  H  parent        text     -            one
++22956.217  H  parent        text     -            sub
++22956.232  H  parent        text     -            -
++22956.249  H  parent        text     -            agent
++22956.270  H  parent        text     -            to
++22956.270  H  parent        text     -            begin
++22956.315  H  parent        text     -            that
++22956.416  H  parent        text     -            step
++22956.507  H  parent        text     -            .
++22957.072  H  parent        spawn    spawn_subage spawn_subagent Run exactly `python3 /Users/dadleet/e18-runs-20261115/e18-grok-f1/work/dagkit.py begin --run /Users/dadleet/e18-runs-20261115/e18-grok-
++22962.881  H  parent        result   -            
++22964.550  H  parent        wait     get_command_ get_command_or_subagent_output {"task_ids": ["01a1e1b6-1cde-7d82-9e2e-4ac91c8e3a6f"], "timeout_ms": 600000}
++22965.118  H  agent:8e3a6f  call     run_terminal run_terminal_command python3 /Users/dadleet/e18-runs-20261115/e18-grok-f1/work/dagkit.py begin --run /Users/dadleet/e18-runs-20261115/e18-grok-f1/work
++22965.646  L  ledger        workspace T1           {"seconds":0.244}
++22965.652  L  ledger        start    T1           
++22965.682  H  agent:8e3a6f  result   -            
++22968.226  H  parent        text     -            I'll
++22968.226  H  parent        text     -            inspect
++22968.226  H  parent        text     -            the
++22968.339  H  parent        text     -            workspace
++22968.355  H  parent        text     -            ,
++22968.374  H  parent        text     -            resolve
++22968.394  H  parent        text     -            the
++22968.416  H  parent        text     -            merge
++22968.434  H  parent        text     -            conflicts
++22968.454  H  parent        text     -            ,
++22968.475  H  parent        text     -            and
++22968.497  H  parent        text     -            get
++22968.514  H  parent        text     -            the
++22968.533  H  parent        text     -            tests
++22968.564  H  parent        text     -            passing
++22968.581  H  parent        text     -            .
++22969.776  H  agent:8e3a6f  call     todo_write   todo_write {"todos": [{"id": "1", "content": "Explore workspace, README, and conflicted files", "status": "in_progress"}, {"id": "2", "content": "Reso
++22969.777  H  agent:8e3a6f  call     list_dir     list_dir {"target_directory": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3"}
++22969.784  H  agent:8e3a6f  result   -            
++22969.794  H  agent:8e3a6f  result   -            
++22972.585  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/README.md"}
++22972.593  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/store.js"}
++22972.599  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/tickets/validate.js"}
++22972.611  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/docs/decisions/0010-ticket-assignment.md"}
++22972.619  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/test/assignment.test.js"}
++22972.719  H  agent:8e3a6f  result   -            
++22972.722  H  agent:8e3a6f  result   -            
++22972.722  H  agent:8e3a6f  result   -            
++22972.724  H  agent:8e3a6f  result   -            
++22972.725  H  agent:8e3a6f  result   -            
++22977.059  H  parent        text     -            I'll
++22977.075  H  parent        text     -            scan
++22977.089  H  parent        text     -            the
++22977.118  H  parent        text     -            rest
++22977.123  H  parent        text     -            of
++22977.146  H  parent        text     -            the
++22977.161  H  parent        text     -            service
++22977.179  H  parent        text     -            for
++22977.213  H  parent        text     -            leftover
++22977.218  H  parent        text     -            conflict
++22977.237  H  parent        text     -            markers
++22977.263  H  parent        text     -            and
++22977.273  H  parent        text     -            how
++22977.290  H  parent        text     -            assignment
++22977.301  H  parent        text     -            is
++22977.323  H  parent        text     -            wired
++22977.336  H  parent        text     -            through
++22977.461  H  parent        text     -            .
++22978.904  H  agent:8e3a6f  call     grep         grep {"path": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3", "pattern": "<<<<<<<|=======|>>>>>>>"}
++22978.906  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/app.js"}
++22978.910  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/tickets/query.js"}
++22978.911  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/persistence.js"}
++22978.911  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/format.js"}
++22978.912  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/templates.js"}
++22978.981  H  agent:8e3a6f  result   -            
++22978.981  H  agent:8e3a6f  result   -            
++22978.982  H  agent:8e3a6f  result   -            
++22978.987  H  agent:8e3a6f  result   -            
++22978.993  H  agent:8e3a6f  result   -            
++22979.144  H  agent:8e3a6f  result   -            
++22987.302  H  parent        text     -            Conflicts
++22987.316  H  parent        text     -            are
++22987.323  H  parent        text     -            only
++22987.344  H  parent        text     -            in
++22987.348  H  parent        text     -            those
++22987.362  H  parent        text     -            two
++22987.376  H  parent        text     -            files
++22987.392  H  parent        text     -            .
++22987.401  H  parent        text     -            I'll
++22987.422  H  parent        text     -            inspect
++22987.485  H  parent        text     -            nearby
++22987.485  H  parent        text     -            tests
++22987.486  H  parent        text     -            and
++22987.486  H  parent        text     -            the
++22987.486  H  parent        text     -            rest
++22987.495  H  parent        text     -            of
++22987.503  H  parent        text     -            the
++22987.517  H  parent        text     -            assignment
++22987.544  H  parent        text     -            path
++22987.544  H  parent        text     -            so
++22987.570  H  parent        text     -            the
++22987.582  H  parent        text     -            merge
++22987.620  H  parent        text     -            keeps
++22987.670  H  parent        text     -            both
++22987.719  H  parent        text     -            sides
++22987.766  H  parent        text     -            .
++22989.863  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/tickets/states.js"}
++22989.873  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/test/validate.test.js"}
++22989.893  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/docs/api.md"}
++22989.912  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/package.json"}
++22989.918  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/CHANGELOG.md", "limit": 80}
++22989.932  H  agent:8e3a6f  call     read_file    read_file {"target_file": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/CONTRIBUTING.md", "limit": 100}
++22990.376  H  agent:8e3a6f  result   -            
++22990.398  H  agent:8e3a6f  result   -            
++22990.398  H  agent:8e3a6f  result   -            
++22990.399  H  agent:8e3a6f  result   -            
++22990.400  H  agent:8e3a6f  result   -            
++22990.403  H  agent:8e3a6f  result   -            
++22993.928  H  parent        text     -            I'll
++22993.933  H  parent        text     -            keep
++22993.958  H  parent        text     -            both
++22993.985  H  parent        text     -            sides
++22994.003  H  parent        text     -            of
++22994.032  H  parent        text     -            the
++22994.056  H  parent        text     -            merge
++22994.086  H  parent        text     -            :
++22994.101  H  parent        text     -            assignment
++22994.128  H  parent        text     -            from
++22994.150  H  parent        text     -            HEAD
++22994.251  H  parent        text     -            plus
++22994.252  H  parent        text     -            everything
++22994.297  H  parent        text     -            already
++22994.361  H  parent        text     -            on
++22994.416  H  parent        text     -            main
++22994.462  H  parent        text     -            .
++22997.144  H  agent:8e3a6f  call     search_repla search_replace {"file_path": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/tickets/validate.js", "old_string": "<<<<<<< HEAD\nconst L
++22997.176  H  agent:8e3a6f  call     search_repla search_replace {"file_path": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/tickets/validate.js", "old_string": "<<<<<<< HEAD\nmodule.
++22997.197  H  agent:8e3a6f  call     search_repla search_replace {"file_path": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3/src/store.js", "old_string": "      status: 'open',\n<<<<<<< H
++22997.377  H  agent:8e3a6f  result   -            
++22997.388  H  agent:8e3a6f  result   -            
++22997.458  H  agent:8e3a6f  result   -            
++22999.351  H  agent:8e3a6f  call     grep         grep {"path": "/Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3", "pattern": "<<<<<<<|=======|>>>>>>>"}
++22999.357  H  agent:8e3a6f  call     todo_write   todo_write {"todos": [{"id": "1", "status": "completed"}, {"id": "2", "status": "completed"}, {"id": "3", "status": "completed", "content": "Assignmen
++22999.373  H  agent:8e3a6f  call     run_terminal run_terminal_command npm test
++22999.414  H  agent:8e3a6f  result   -            
++22999.533  H  agent:8e3a6f  result   -            
++23000.048  H  agent:8e3a6f  result   -            
++23002.944  H  agent:8e3a6f  call     run_terminal run_terminal_command npm test
++23003.699  H  agent:8e3a6f  result   -            
++23005.301  H  agent:8e3a6f  call     run_terminal run_terminal_command cd /Users/dadleet/e18-runs-20261115/e18-grok-f1/work/ws/T1-3 && npm test
++23008.277  H  agent:8e3a6f  result   -            
++23010.399  H  parent        text     -            All
++23010.425  H  parent        text     -            
++23010.457  H  parent        text     -            158
++23010.489  H  parent        text     -            tests
++23010.517  H  parent        text     -            passed
++23010.537  H  parent        text     -            .
++23010.560  H  parent        text     -            I'll
++23010.588  H  parent        text     -            report
++23010.616  H  parent        text     -            that
++23010.647  H  parent        text     -            result
++23010.676  H  parent        text     -            through
++23010.692  H  parent        text     -            dag
++23010.755  H  parent        text     -            kit
++23010.820  H  parent        text     -            .
++23011.574  H  agent:8e3a6f  call     todo_write   todo_write {"todos": [{"id": "4", "status": "completed"}, {"id": "5", "status": "in_progress"}], "merge": true}
++23011.608  H  agent:8e3a6f  call     run_terminal run_terminal_command python3 /Users/dadleet/e18-runs-20261115/e18-grok-f1/work/dagkit.py complete --run /Users/dadleet/e18-runs-20261115/e18-grok-f1/w
++23011.652  H  agent:8e3a6f  result   -            
++23012.532  L  ledger        commit   T1           {"seconds":0.251}
++23012.535  L  ledger        end      T1           {"sha":"0c7342f8134b26084b5f0d4a6a74ec2723b2f539b7f5932008a2b27e45da0112","result":{"answer":158,"method":"Resolved merge conflicts in store.js and va
++23012.546  H  agent:8e3a6f  result   -            
++23013.891  H  agent:8e3a6f  call     todo_write   todo_write {"todos": [{"id": "5", "status": "completed"}], "merge": true}
++23013.915  H  agent:8e3a6f  result   -            
++23015.475  H  parent        text     -            RE
++23015.475  H  parent        text     -            COR
++23015.476  H  parent        text     -            DED
++23015.476  H  parent        text     -            T
++23015.476  H  parent        text     -            1
++23015.476  H  parent        text     -            answer
++23015.476  H  parent        text     -            =
++23015.476  H  parent        text     -            158
++23015.476  H  parent        text     -            (
++23015.476  H  parent        text     -            finished
++23015.476  H  parent        text     -            ;
++23015.476  H  parent        text     -            do
++23015.476  H  parent        text     -            not
++23015.476  H  parent        text     -            report
++23015.476  H  parent        text     -            it
++23015.476  H  parent        text     -            again
++23015.476  H  parent        text     -            )
++23016.284  H  parent        result   -            
++23017.467  H  parent        text     -            T
++23017.472  H  parent        text     -            1
++23017.475  H  parent        text     -            finished
++23017.476  H  parent        text     -            .
++23017.560  H  parent        text     -            Claiming
++23017.562  H  parent        text     -            the
++23017.565  H  parent        text     -            next
++23017.565  H  parent        text     -            ready
++23017.566  H  parent        text     -            request
++23017.567  H  parent        text     -            .
++23017.927  H  parent        call     run_terminal run_terminal_command python3 /Users/dadleet/e18-runs-20261115/e18-grok-f1/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-grok-f1/work
++23020.328  L  ledger        retest   T1           {"seconds":1.839}
++23020.336  L  ledger        merged   T1           {"seconds":0.099}
++23020.337  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":true,"capacity"
++23020.386  H  parent        result   -            
++23023.323  H  parent        text     -            All
++23023.342  H  parent        text     -            requests
++23023.364  H  parent        text     -            are
++23023.390  H  parent        text     -            done
++23023.410  H  parent        text     -            .
++23023.424  H  parent        text     -            Running
++23023.453  H  parent        text     -            verify
++23023.474  H  parent        text     -            and
++23023.492  H  parent        text     -            reading
++23023.516  H  parent        text     -            T
++23023.548  H  parent        text     -            3
++23023.560  H  parent        text     -            's
++23023.571  H  parent        text     -            outcome
++23023.603  H  parent        text     -            .
++23024.335  H  parent        call     run_terminal run_terminal_command python3 /Users/dadleet/e18-runs-20261115/e18-grok-f1/work/dagkit.py verify --run /Users/dadleet/e18-runs-20261115/e18-grok-f1/wor
++23024.363  H  parent        call     todo_write   todo_write {"todos": [{"id": "loop", "status": "completed"}, {"id": "verify", "status": "in_progress"}], "merge": true}
++23024.438  H  parent        result   -            
++23024.661  L  ledger        verify   -            {"line":"VERIFY OK steps=3 chain=df2d3349a1f9"}
++23025.050  H  parent        result   -            
++23027.353  H  parent        call     todo_write   todo_write {"todos": [{"id": "verify", "status": "completed"}], "merge": true}
++23027.387  H  parent        result   -            
++23029.221  H  parent        text     -            VERIFY
++23029.223  H  parent        text     -            OK
++23029.223  H  parent        text     -            steps
++23029.224  H  parent        text     -            =
++23029.225  H  parent        text     -            3
++23029.227  H  parent        text     -            chain
++23029.227  H  parent        text     -            =
++23029.227  H  parent        text     -            df
++23029.227  H  parent        text     -            2
++23029.227  H  parent        text     -            d
++23029.228  H  parent        text     -            334
++23029.228  H  parent        text     -            9
++23029.228  H  parent        text     -            a
++23029.228  H  parent        text     -            1
++23029.228  H  parent        text     -            f
++23029.228  H  parent        text     -            9
++23029.228  H  parent        text     -            
++23029.228  H  parent        text     -            T
++23029.252  H  parent        text     -            1
++23029.252  H  parent        text     -            recorded
++23029.294  H  parent        text     -            answer
++23029.294  H  parent        text     -            
++23029.432  H  parent        text     -            158
++23029.432  H  parent        text     -            .
++23029.432  H  parent        text     -            T
++23029.432  H  parent        text     -            2
++23029.432  H  parent        text     -            and
++23029.432  H  parent        text     -            T
++23029.433  H  parent        text     -            3
++23029.434  H  parent        text     -            were
++23029.435  H  parent        text     -            already
++23029.435  H  parent        text     -            done
++23029.435  H  parent        text     -            .
++23029.435  H  parent        text     -            T
++23029.435  H  parent        text     -            3
++23029.436  H  parent        text     -            outcome
++23029.643  H  parent        text     -            is
++23029.644  H  parent        text     -            
++23029.646  H  parent        text     -            135
++23029.648  H  parent        text     -            .
++23029.649  H  parent        text     -            FINAL
++23029.653  H  parent        text     -            {"
++23029.653  H  parent        text     -            done
++23029.655  H  parent        text     -            ":
++23029.655  H  parent        text     -            ["
++23029.657  H  parent        text     -            T
++23029.659  H  parent        text     -            1
++23029.660  H  parent        text     -            ","
++23029.662  H  parent        text     -            T
++23029.665  H  parent        text     -            2
++23029.666  H  parent        text     -            ","
++23029.668  H  parent        text     -            T
++23029.668  H  parent        text     -            3
++23029.668  H  parent        text     -            "],
++23029.668  H  parent        text     -            "
++23029.668  H  parent        text     -            failed
++23029.669  H  parent        text     -            ":
++23029.669  H  parent        text     -            [],
++23029.669  H  parent        text     -            "
++23029.669  H  parent        text     -            not
++23029.669  H  parent        text     -            _
++23029.669  H  parent        text     -            run
++23029.669  H  parent        text     -            ":
++23029.669  H  parent        text     -            [],
++23029.669  H  parent        text     -            "
++23029.669  H  parent        text     -            answer
++23029.670  H  parent        text     -            ":
++23029.670  H  parent        text     -            135
++23029.670  H  parent        text     -            }

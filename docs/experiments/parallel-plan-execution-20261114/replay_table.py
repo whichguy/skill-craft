@@ -21,6 +21,7 @@ study's files outside its trial folder; an unflagged trial means no access was d
 
   python3 replay_table.py            the tables, R20 to R22 and the predictions P85 to P94 where the trials exist
   python3 replay_table.py --json     the per-trial points as JSON
+  python3 replay_table.py --audit    the flagged git commands and outside paths per trial
   python3 replay_table.py --selfcheck the bands, the logic of "every host", the boundary cases and P85 to P94 on synthetic trials
 """
 
@@ -441,13 +442,36 @@ def selfcheck() -> int:
     return 0 if not failures else 1
 
 
+def audit() -> None:
+    """The audit's raw material per trial (README A15): every git command a sub-agent or the parent ran that the flag rule would flag, and the paths a worker named outside its folder."""
+    for h in HOSTS:
+        for arm, _ in ARMS:
+            for i in DRAWS:
+                d = EV / name(h, arm, i)
+                if not (d / "score.json").is_file():
+                    continue
+                m = json.loads((d / "score.json").read_text())
+                inv = json.loads((d / "invocation.json").read_text())
+                shas = [(inv.get("replay") or {}).get("failed_commit"), (inv.get("replay") or {}).get("main_commit")]
+                wg, pg = m.get("worker_git") or [], m.get("parent_git") or []
+                flagged = [c for c in wg if git_flag([c], shas)]
+                parent = [c for c in pg if git_flag([c], shas)]
+                print(f"{name(h, arm, i)}: sub-agent git-mentioning calls {len(wg)}, flagged {len(flagged)}; parent flagged {len(parent)}; outside paths {m.get('worker_outside') or '-'}")
+                for c in flagged[:12] + parent[:4]:
+                    print("    " + c[:300].replace("\n", " "))
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--audit", action="store_true", help="the flagged git commands and outside paths per trial")
     parser.add_argument("--selfcheck", action="store_true", help="the bands, the logic of 'every host', the boundary cases and P85 to P94 on synthetic trials (no model call, no evidence)")
     args = parser.parse_args(argv)
     if args.selfcheck:
         return selfcheck()
+    if args.audit:
+        audit()
+        return 0
     data = {}
     for h in HOSTS:
         for arm, _ in ARMS:

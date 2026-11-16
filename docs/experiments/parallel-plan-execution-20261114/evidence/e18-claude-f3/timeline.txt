@@ -1,0 +1,132 @@
+trial   e18-claude-f3
+host    claude 2.1.325 (Claude Code) claude-sonnet-5-5 high
+plan    tickets3  arm A3s  variant N
+source  L = kit ledger (ground truth for steps)   H = host event stream (arrival time)
+
++   0.000  L  ledger        init     -            
++   2.076  L  ledger        claim    T1           
++   2.076  L  ledger        claim    T2           
++   2.076  L  ledger        claim    T3           
++   2.076  L  ledger        ready    -            {"result":{"ready":["T1","T2","T3"],"deferred":[],"claimed":[],"running":[],"done":[],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity
++   7.348  L  ledger        workspace T3           {"seconds":0.085}
++   7.348  L  ledger        start    T3           
++   7.432  L  ledger        workspace T2           {"seconds":0.083}
++   7.433  L  ledger        start    T2           
++   7.514  L  ledger        workspace T1           {"seconds":0.08}
++   7.515  L  ledger        start    T1           
++  74.597  L  ledger        commit   T2           {"seconds":0.191}
++  74.598  L  ledger        end      T2           {"sha":"f62914ce20e22fd61442ca235bb8b3082d5dea1b6f46e31f499f718620352cd9","result":{"answer":128,"method":"Added POST /tickets/import (validate.import
++  78.940  L  ledger        retest   -            {"seconds":0.815}
++  78.941  L  ledger        landed   -            {"seconds":0.972}
++  81.263  L  ledger        retest   T2           {"seconds":2.17}
++  81.264  L  ledger        merged   T2           {"seconds":0.101}
++  81.265  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":["T1","T3"],"done":["T2"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 104.774  L  ledger        commit   T1           {"seconds":0.065}
++ 104.775  L  ledger        end      T1           {"sha":"021f663b0d3f955fed740a6c54e51a1a8003de3bec8448e9d990e7e58c2d10cc","result":{"answer":143,"method":"Implemented PUT /tickets/:id/assignee, assi
++ 109.180  L  ledger        conflict T1           {"seconds":0.032}
++ 109.180  L  ledger        retry    T1           {"reason":"merge conflict in CHANGELOG.md, src/tickets/validate.js"}
++ 109.181  L  ledger        claim    T1           
++ 109.181  L  ledger        ready    -            {"result":{"ready":["T1"],"deferred":[],"claimed":[],"running":["T3"],"done":["T2"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity":
++ 113.465  L  ledger        workspace T1           {"seconds":0.133}
++ 113.465  L  ledger        start    T1           
++ 168.330  L  ledger        commit   T3           {"seconds":0.074}
++ 168.331  L  ledger        end      T3           {"sha":"a66dd0f96b9c7f86cee1c934144763b5c386532c7d1cacbd723f64dd6608b53f","result":{"answer":145,"method":"Added due times (stored in data file at v1 
++ 172.198  L  ledger        conflict T3           {"seconds":0.04}
++ 172.199  L  ledger        retry    T3           {"reason":"merge conflict in CHANGELOG.md"}
++ 172.199  L  ledger        claim    T3           
++ 172.199  L  ledger        ready    -            {"result":{"ready":["T3"],"deferred":[],"claimed":[],"running":["T1"],"done":["T2"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity":
++ 175.994  L  ledger        workspace T3           {"seconds":0.185}
++ 175.995  L  ledger        start    T3           
++ 215.708  L  ledger        commit   T3           {"seconds":0.099}
++ 215.709  L  ledger        end      T3           {"sha":"f5e6446561f77765cba560c661c04d555ac6874a727eceff4a74971e6341d610","result":{"answer":157,"method":"Resolved CHANGELOG conflict keeping both en
++ 220.370  L  ledger        retest   T3           {"seconds":1.274}
++ 220.370  L  ledger        merged   T3           {"seconds":0.052}
++ 220.371  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":["T1"],"done":["T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++ 260.615  L  ledger        commit   T1           {"seconds":0.13}
++ 260.617  L  ledger        end      T1           {"sha":"bf0aa417ca71737870c01d64c24c22b2637b61dc8618d585245a70388a8a24f9","result":{"answer":154,"method":"Resolved conflict markers in CHANGELOG.md a
++ 263.975  L  ledger        conflict T1           {"seconds":0.133}
++ 263.976  L  ledger        retry    T1           {"reason":"merge conflict in src/store.js, src/tickets/query.js"}
++21968.270  L  ledger        replay_seed -            
++21968.884  H  parent        system   init         init {"subtype": "init", "tools": ["Task", "Artifact", "ArtifactComments", "ArtifactData", "Bash", "CronCreate", "CronDelete", "CronList", "DesignSync
++21970.135  H  parent        call     Bash         Bash python3 /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/run --
++21970.407  L  ledger        claim    T1           
++21970.408  L  ledger        ready    -            {"result":{"ready":["T1"],"deferred":[],"claimed":[],"running":[],"done":["T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++21970.429  H  parent        result   -            {"ready":["T1"],"deferred":[],"claimed":[],"running":[],"done":["T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":false,"capacity"
++21970.629  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++21972.200  H  parent        spawn    Agent        Agent Run request T1 | Run exactly `python3 /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/dagkit.py begin --run /Users/dadleet/e18-runs-2026
++21972.309  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Run request 
++21973.563  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running py
++21973.566  H  agent:UjsdRf  call     Bash         Bash python3 /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/dagkit.py begin --run /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/run --
++21973.980  L  ledger        workspace T1           {"seconds":0.235}
++21973.983  L  ledger        start    T1           
++21974.009  H  agent:UjsdRf  result   -            STEP T1 BEGUN. You are a fresh agent; this is your whole task. Do only this.  Work only inside the workspace /Users/dadleet/e18-runs-2026111
++21975.976  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++21975.982  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && ls -R . | grep -v node_modules | head -80 && cat README.md && grep -rn '<<
++21976.326  H  agent:UjsdRf  result   -            CHANGELOG.md CONTRIBUTING.md README.md bin docs package.json scripts src test  ./bin: tickets.js  ./docs: api.md decisions operations.md  ./
++21977.794  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++21977.803  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && grep -rnE '^(<<<<<<<|=======|>>>>>>>)' . --exclude-dir=node_modules --excl
++21978.184  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++21978.187  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && cat src/tickets/query.js
++21978.938  H  agent:UjsdRf  result   -            'use strict';  const { InvalidError } = require('../errors'); const { decodeCursor } = require('../pagination'); const { PRIORITIES, isPrior
++21978.956  H  agent:UjsdRf  result   -            src/store.js:87:<<<<<<< HEAD src/store.js:89:======= src/store.js:92:>>>>>>> 01545c501adf3d30cd7464bff5ef78cbf02075f7 src/store.js:110:<<<<<
++21983.786  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++21983.792  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && python3 - <<'EOF' import re p='src/store.js' s=open(p).read() pat=re.compi
++21985.772  H  agent:UjsdRf  result   -            2   /** Open a new ticket; its requester is told it was received. */   createTicket({ title, priority, requester }, actor) {     const at =
++21987.403  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++21987.405  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && npm test 2>&1 | grep -E '^# |not ok' ; sed -n 250,285p test/due.test.js; g
++21989.863  H  agent:UjsdRf  result   -            });   });    test('refuses an overdue value other than true with 400 when due times are on', async () => {     await withService(setting
++21993.117  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++21993.128  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && npm test 2>&1 | grep -E '^(# |not ok|\s+not ok)'; grep -n 'assignee' test/
++21996.223  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "bvyqf6ten", "tool_use_id": "toolu_01MEPaBGoMqnn2i6tQK6Evy1", "description": "cd /Users/dadleet/e1
++22113.216  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++22113.218  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "bvyqf6ten"}
++22113.426  H  agent:UjsdRf  result   -            Command did not complete within its 120s timeout and was moved to the background (ID: bvyqf6ten). Output is being written to: /private/tmp/c
++22115.840  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++22115.845  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && grep -n 'assignee' test/*.js | grep -v assignment.test | head -20; head -3
++22119.396  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "bmfkzq3n0", "tool_use_id": "toolu_01Q2DPFHGW6GNnGDXtbYgzKH", "description": "cd /Users/dadleet/e1
++22136.610  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "bmfkzq3n0", "tool_use_id": "toolu_01Q2DPFHGW6GNnGDXtbYgzKH", "status": "completed"}
++22136.619  H  agent:UjsdRf  result   -            # Changelog  ## 1.5.0  - Due times ([decision 9](docs/decisions/0009-due-times.md)). Every ticket gets a due time, `due`: the time it was cr
++22140.542  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++22140.545  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && pkill -f 'node --test' ; cat package.json | grep -A5 scripts; for f in tes
++22143.224  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "bvyqf6ten"}
++22143.224  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "bvyqf6ten", "tool_use_id": "toolu_01MEPaBGoMqnn2i6tQK6Evy1", "status": "completed"}
++22143.224  H  parent        system   background_t background_tasks_changed {"subtype": "background_tasks_changed"}
++22146.046  H  parent        system   task_started task_started {"subtype": "task_started", "task_id": "b1dt9r0vx", "tool_use_id": "toolu_018Dt1EznR8UV5uRrPAse84m", "description": "cd /Users/dadleet/e1
++22150.361  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "b1dt9r0vx", "tool_use_id": "toolu_018Dt1EznR8UV5uRrPAse84m", "status": "failed"}
++22150.368  H  agent:UjsdRf  result   -            Exit code 1   "scripts": {     "start": "node src/server.js",     "test": "node --test",     "report:weekly": "node scripts/weekly-report.js
++22152.292  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++22152.297  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && timeout 100 npm test > /private/tmp/claude-501/out.txt 2>&1; grep -nE '^(ℹ
++22154.262  H  agent:UjsdRf  result   -            115:  ✖ answers exactly as before while DUE_TIMES is off: no `due`, and overdue is ignored (3.617625ms) 117:✖ the API (147.769291ms) 270:ℹ t
++22159.601  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++22159.627  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && sed -i "s/\['id', 'title', 'priority', 'requester', 'status', 'created', '
++22159.820  H  agent:UjsdRf  result   -            sed: 2: "test/due.test.js ": undefined label 'est/due.test.js' 115:  ✖ answers exactly as before while DUE_TIMES is off: no `due`, and overd
++22161.365  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Editing ws
++22161.367  H  agent:UjsdRf  call     Edit         Edit {"replace_all": false, "file_path": "/Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3/test/due.test.js", "old_string": "'requeste
++22161.390  H  agent:UjsdRf  result   -            The file /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3/test/due.test.js has been updated successfully.
++22162.768  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running cd
++22162.781  H  agent:UjsdRf  call     Bash         Bash cd /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/ws/T1-3 && timeout 100 npm test > /private/tmp/claude-501/out.txt 2>&1; grep -nE '^(ℹ
++22164.628  H  agent:UjsdRf  result   -            270:ℹ tests 183 272:ℹ pass 183 273:ℹ fail 0
++22166.216  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Running py
++22166.219  H  agent:UjsdRf  call     Bash         Bash python3 /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/dagkit.py complete --run /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/run
++22166.411  L  ledger        commit   T1           {"seconds":0.102}
++22166.412  L  ledger        end      T1           {"sha":"ee400cd2489df1b3e586303da6efbbe7b8c3a96be7667a63248eecd46dee4d7f","result":{"answer":183,"method":"Resolved store.js and query.js conflicts ke
++22166.425  H  agent:UjsdRf  result   -            RECORDED T1 answer=183 (finished; do not report it again)
++22170.040  H  parent        system   task_progres task_progress {"subtype": "task_progress", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "description": "Run reques
++22170.041  H  agent:UjsdRf  call     SubagentHand SubagentHandback {"message": "RECORDED T1 answer=183 (finished; do not report it again)\n\nDetails: I resolved the conflict markers in src/store.js an
++22170.979  H  agent:UjsdRf  result   -            {"success":true,"message":"Report delivered to your caller."}
++22170.983  H  parent        system   task_updated task_updated {"subtype": "task_updated", "task_id": "a0a80ab5b9b1a8379"}
++22170.984  H  parent        system   task_notific task_notification {"subtype": "task_notification", "task_id": "a0a80ab5b9b1a8379", "tool_use_id": "toolu_01A5T9hMMHbREfyt6TUjsdRf", "status": "complet
++22170.986  H  parent        result   -            This agent's report was delivered to you as a message from "a0a80ab5b9b1a8379" (its SubagentHandback call). Read it there; it is not repea
++22172.065  H  parent        call     Bash         Bash python3 /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/dagkit.py ready --run /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/run --
++22173.513  L  ledger        retest   T1           {"seconds":1.291}
++22173.514  L  ledger        merged   T1           {"seconds":0.052}
++22173.515  L  ledger        ready    -            {"result":{"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":true,"capacity"
++22173.528  H  parent        result   -            {"ready":[],"deferred":[],"claimed":[],"running":[],"done":["T1","T2","T3"],"failed":[],"blocked":[],"waiting":[],"complete":true,"capacity"
++22174.884  H  parent        call     Bash         Bash python3 /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/dagkit.py verify --run /Users/dadleet/e18-runs-20261115/e18-claude-f3/work/run;
++22174.985  L  ledger        verify   -            {"line":"VERIFY OK steps=3 chain=bb2ddbbe8c62"}
++22175.060  H  parent        result   -            VERIFY OK steps=3 chain=bb2ddbbe8c62 {"step":"T3","result":{"answer":157,"method":"Resolved CHANGELOG conflict keeping both entries; createM
++22175.265  H  parent        system   task_summary task_summary {"subtype": "task_summary"}
++22177.298  H  parent        text     -            All three requests finished and `verify` passed. One thing to know about T1: its sub-agent edited an existing test in `test/due.test.js`, adding `'ass
++22179.581  H  parent        system   post_turn_su post_turn_summary {"subtype": "post_turn_summary"}
++22179.585  H  parent        final    -            All three requests finished and `verify` passed. One thing to know about T1: its sub-agent edited an existing test in `test/due.test.js`, adding `'ass
++22179.587  H  parent        system   task_summary task_summary {"subtype": "task_summary"}

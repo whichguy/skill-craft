@@ -86,8 +86,10 @@ class StepPacketTests(unittest.TestCase):
         self.assertEqual(packets.references("Coding decision guide: GUIDES/coding-guidance.md\n")["skill_references"], 0)
         # The offline packets name guides this way, and the count did not fall when they became symbols (43 before).
         # Verify's packet, which named its own guides, retired with verify (design T §9.1 2b-4c): 41 since.
+        # 39 since 2026-11-15 (owner decision): a default run calls no Backchain child, so step-plan and carry-forward no
+        # longer name the Backchain audit resource (the caller contract), one reference each.
         named = [packets.references(text)["skill_references"] for text in self.found["node-fix-bug"].values()]
-        self.assertGreaterEqual(sum(named), 41, named)
+        self.assertGreaterEqual(sum(named), 39, named)
 
     def test_stages_that_run_the_tests_name_the_recorded_command(self) -> None:
         for name, found in self.found.items():

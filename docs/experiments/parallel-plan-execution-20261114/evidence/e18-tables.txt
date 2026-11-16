@@ -1,0 +1,85 @@
+E18: the same failed integration offered again to one fresh worker, under the fix rule (f) and the redo rule (r); seconds, tokens over all contexts
+
+trial            order  attempt  recovery    run to begin retry  valid compl  kit s   input tok  out tok   cost  patch +/-   git calls/tests load max  fails
+e18-claude-f1        1     41.6      53.8   67.6      3.7     0   True  True    3.5     614,691    4,142   0.26     440/19     4        12/8     65.1  
+e18-claude-r1        2    167.9     182.8  197.2      5.8     0  False  True    2.8   1,264,623   23,072   0.58     454/25     0        17/8    126.5  T1,T3 I1-5
+e18-claude-r2        3    140.1     308.1  317.9      3.6     1  False  True    6.4   2,039,918   42,250   1.00     425/18     0       29/11    102.3  T1,T3 I1-5
+e18-claude-f2        4     28.9      40.3   52.4      4.3     0   True  True    2.4     634,045    4,074   0.22     440/19     2        12/5    136.1  
+e18-claude-f3        5    192.4     203.1  211.4      3.6     0   True  True    1.7     791,385    5,285   0.25     440/19     1        15/9     97.6  
+e18-claude-r3        6    120.5     269.9  279.4      3.1     1  False  True    2.1   2,139,762   38,017   0.95     354/19     2       31/16     38.8  T1,T3 I1-5
+e18-claude-r4        7    149.5     162.9  171.6      3.1     0  False  True    0.9   1,080,101   24,010   0.57     490/24     1        14/5      8.9  T1,T3 I1-5
+e18-claude-f4        8     25.0      35.2   44.0      3.4     0   True  True    1.0     584,316    4,176   0.21     440/19     1        11/6      4.8  
+e18-grok-r1          1    470.9     490.2  504.1     13.2     0   True  True    1.9   1,763,960   38,346   1.39     403/17     0       113/8    131.7  
+e18-grok-f1          2     46.9      68.7   85.5     14.0     0   True  True    2.4     467,310    4,840   0.35     406/26     0        31/5    113.5  
+e18-grok-f2          3     41.3      61.9   77.5     14.6     0   True  True    1.6     458,481    4,543   0.37     406/26     0        30/5    128.8  
+e18-grok-r2          4    259.6     275.9  286.2     11.7     0   True  True    0.8   2,064,154   24,272   1.42     324/22   22!       115/4     81.4  
+e18-grok-r3          5    382.7     400.5  412.7      9.2     0   True  True    0.7   2,550,738   32,839   1.77     324/22   11!       126/7     23.2  
+e18-grok-f3          6     37.7      50.8   64.3      8.8     0   True  True    0.7     424,583    3,856   0.31     406/26     0        27/4      5.4  
+e18-grok-f4          7     35.4      49.1   59.4      9.3     0   True  True    0.7     363,407    3,725   0.35     406/26     0        25/5      5.7  
+e18-grok-r4          8    342.8     367.8  378.4     16.7     0   True  True    0.8   2,145,154   32,352   1.51     324/22   11!       122/5      6.3  
+e18-codex-r1         1    200.7     222.2  240.6     13.3     0   True  True    2.7     711,015    8,403    n/a     279/25     0        13/4    131.7  
+e18-codex-f1         2     68.2      86.4  102.3     10.0     0   True  True    1.8     642,977    3,014    n/a     685/23     0        10/4     47.2  
+e18-codex-f2         3     63.6      81.9   96.9     10.1     0   True  True    2.4     588,504    2,808    n/a     682/22     0         9/3     61.1  
+e18-codex-r2         4    164.3     181.6  198.1      9.1     0   True  True    1.6     800,714    7,528    n/a     250/23     0        11/3    125.5  
+e18-codex-r3         5    167.9     186.8  204.5     10.0     0   True  True    1.3     912,083    7,579    n/a     241/20     0        12/3     93.0  
+e18-codex-f3         6     64.0      82.6   97.2     10.3     0   True  True    1.3     477,319    3,076    n/a     695/22     0        13/3     37.9  
+e18-codex-f4         7     63.9      78.3   91.9      9.0     0   True  True    0.8     566,915    3,015    n/a     665/22     0         9/4     25.8  
+e18-codex-r4         8    152.1     167.0  180.1      8.2     0   True  True    0.7     695,290    7,025    n/a     245/23     0        10/2     14.5  
+  (order = the launch order on that host; attempt = the first recovery attempt; recovery = first claim to merge; to begin = first claim to the first begin (dispatch, start and the rule's workspace);
+   patch = the attempt's whole diff against main, the preserved feature included, so under fix it is not the repair worker's edits; * = a child has no usage record;
+   git = the git commands the sub-agents ran, ! = flagged git use or a commit of the state named, P = the parent ran such git, @ = a worker named a path of the study's files outside its folder;
+   calls/tests = the sub-agents' tool calls and how many ran the tests; load max = the one-minute load average's highest sample during the run)
+
+Pairs (redo over fix; a pair is usable when both trials are compliant and both attempts ended; ratios unrounded in the rules, printed to two places)
+host     draw  attempt f  attempt r    r/f   recov f   recov r    r/f  tokens r/f  not usable because
+claude      1       41.6      167.9   4.03      53.8     182.8   3.40        2.06  
+claude      2       28.9      140.1   4.84      40.3     308.1   7.64        3.22  
+claude      3      192.4      120.5   0.63     203.1     269.9   1.33        2.70  
+claude      4       25.0      149.5   5.97      35.2     162.9   4.63        1.85  
+grok        1       46.9      470.9  10.05      68.7     490.2   7.14        3.77  
+grok        2       41.3      259.6   6.28      61.9     275.9   4.46        4.50  
+grok        3       37.7      382.7  10.15      50.8     400.5   7.88        6.01  
+grok        4       35.4      342.8   9.70      49.1     367.8   7.50        5.90  
+codex       1       68.2      200.7   2.94      86.4     222.2   2.57        1.11  
+codex       2       63.6      164.3   2.58      81.9     181.6   2.22        1.36  
+codex       3       64.0      167.9   2.62      82.6     186.8   2.26        1.91  
+codex       4       63.9      152.1   2.38      78.3     167.0   2.13        1.23  
+
+R20 (completed first recovery attempts, redo over fix, per host, under the compliance conditions; 'redo costs more' = median at least 1.5 and at least 3 pairs above 1; n/c under 3 usable pairs)
+R20b (claim to merge: only the pairs in which both recoveries integrated, so a recovery that never merged is not in it; the launched trials' times are in the table above)
+  R20  claude redo costs more       4 usable pairs of 4 (8 of 8 trials launched)  ratios [4.03, 4.84, 0.63, 5.97]  median 4.44
+  R20  grok   redo costs more       4 usable pairs of 4 (8 of 8 trials launched)  ratios [10.05, 6.28, 10.15, 9.7]  median 9.87
+  R20  codex  redo costs more       4 usable pairs of 4 (8 of 8 trials launched)  ratios [2.94, 2.58, 2.62, 2.38]  median 2.60
+  R20  overall: redo costs more
+  R20b claude redo costs more       4 usable pairs of 4 (8 of 8 trials launched)  ratios [3.4, 7.64, 1.33, 4.63]  median 4.01
+  R20b grok   redo costs more       4 usable pairs of 4 (8 of 8 trials launched)  ratios [7.14, 4.46, 7.88, 7.5]  median 7.32
+  R20b codex  redo costs more       4 usable pairs of 4 (8 of 8 trials launched)  ratios [2.57, 2.22, 2.26, 2.13]  median 2.24
+  R20b overall: redo costs more
+  R20c claude redo costs more       4 pairs without those where a trial was flagged  (agrees with R20)
+  R20c grok   n/c                   1 pairs without those where a trial was flagged  (DISAGREES with R20)
+  R20c codex  redo costs more       4 pairs without those where a trial was flagged  (agrees with R20)
+  R20 with its sensitivity: inconclusive: R20 reads 'redo costs more' but R20c disagrees on grok (flagged trials: e18-grok-r2, e18-grok-r3, e18-grok-r4)
+
+R21 (the result: valid trials of four, and what failed)
+  R21  claude fix 4/4  redo 0/4  (redo less reliable)  invalid: [('e18-claude-r1', ['T1', 'T3'], True, False), ('e18-claude-r2', ['T1', 'T3'], True, False), ('e18-claude-r3', ['T1', 'T3'], True, False), ('e18-claude-r4', ['T1', 'T3'], True, False)]
+  R21  grok   fix 4/4  redo 4/4  (no difference of two or more)  invalid: -
+  R21  codex  fix 4/4  redo 4/4  (no difference of two or more)  invalid: -
+
+R22 (E17 beside this: the unpaired numbers; magnitudes only, no share of E17's gap is attributed to main moving)
+  R22  claude T1 after attempt 2: E17's own repair took 30.1 s; replay fix median 35.3 s, redo median 144.8 s
+  R22  grok   T1 after attempt 2: E17's own repair took 31.4 s; replay fix median 39.5 s, redo median 362.7 s
+  R22  codex  T3 after attempt 1: E17's own repair took 50.5 s; replay fix median 63.9 s, redo median 166.1 s
+
+Predictions (registered in README A15 before any trial, scored as written; 'not scorable' = a needed pair or host is missing or not usable)
+  P85 (75%): HELD
+  P86 (60%): HELD
+  P87 (85%): HELD
+  P88 (70%): HELD
+  P89 (40%): MISSED
+  P90 (75%): HELD
+  P91 (65%): HELD
+  P92 (65%): HELD
+  P93 (80%): HELD
+  P94 (85%): HELD
+  9 held, 1 missed, 0 not scorable; registered expectation of the scorable ones: 7.00 holds (the ten are correlated, not ten independent checks)
+  (valid fix trials 12 of 12, valid redo trials 8 of 12; trials that merged at their first try 22 of 24; trials that never merged 0)

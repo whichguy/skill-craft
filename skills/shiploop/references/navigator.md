@@ -262,14 +262,15 @@ or done run. Setting the recorded value is a no-op. The
 setting selects packet text; no script verifies who executed an assignment, and
 the Improve stage's `complete` imports a child the same way on both routes.
 
-Every run also records its `backchain_passes` option (`one`, `converge` or `none`;
-`one` unless `--backchain-passes` says otherwise), which the Backchain stage
+Every run also records its `backchain_passes` option (`none`, `one` or `converge`;
+`none` unless `--backchain-passes` says otherwise), which the Backchain stage
 packets are rendered with. No verb changes it mid-run, a retry of `init` or
 `workspace start` cannot change it, and a saved run without it is refused with the
-fresh-run hint. `none` offers no whole `plan`/`draft` loop: the `plan` packet prints the
-audit resource and the loop-resource status line, as the other Backchain stages do, and
-not the eight-file "Selected Backchain and Until Loop resources" block that `one` and
-`converge` print there. See [Backchain passes option](backchain-route.md#backchain-passes-option).
+fresh-run hint. `none` offers no Backchain child at any stage: no whole `plan`/`draft`, no
+read-only `review`/`audit` and no `repair`/`revise`. Its Backchain stage packets print the
+planning guide and the record-only graph check, and not the audit resource, the
+loop-resource status line, the Backchain planning run directory, or the eight-file
+"Selected Backchain and Until Loop resources" block that `one` and `converge` print at `plan`. See [Backchain passes option](backchain-route.md#backchain-passes-option).
 
 Every run also records its `planning_review` option (`stage` or `none`; `stage` unless
 `--planning-review` says otherwise), which selects the planning results that start an

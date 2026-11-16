@@ -103,7 +103,7 @@ Improve stage. So a `none` run names the card where it starts: `init` and `works
 refuse `--planning-review none` without
 `--improve-skill=<absolute selected Improve SKILL.md>`, and resolve the card there, so a missing
 or unloadable card shows at the start and not in the first work item.
-`--planning-review none` with `--backchain-passes none`
+`--planning-review none` in a run with no Backchain child (the default `--backchain-passes none`)
 leaves no model-run second look at the plan graph at all; it is the highest-risk
 combination, documented and not refused. SPEC S-10's second carve-out names what stands in for
 the review (ShipLoop's gates) and what nothing replaces (whether the criteria and oracles are

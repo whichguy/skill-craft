@@ -2003,19 +2003,43 @@ BACKCHAIN_NATIVE_CALLS = {
 }
 BACKCHAIN_AUDIT_STAGES = BACKCHAIN_STAGES - set(BACKCHAIN_NATIVE_CALLS)
 
-# Run-level Backchain passes option (state key ``backchain_passes``): how many review passes the
-# Backchain planning child may take.  ``one`` (the default for new runs) is one review/fix/check cycle,
-# ``converge`` is Backchain's default gate, completing at the first trivial review (owner decision D-D, 2026-11-01:
-# the converge marker never reached a printed packet after Backchain 0.7.0, so converge already ran that gate, and
-# 0 of 18 confirming reviews changed anything), ``none`` offers no whole loop at plan.  The CLI, the state and SPEC
-# S-10's carve-out name the same three.
+# Run-level Backchain passes option (state key ``backchain_passes``): whether the run's packets offer a Backchain
+# child, and how many review passes it may take.  ``none`` (the default for new runs, owner decision 2026-11-15) offers
+# no Backchain child at any stage: no whole `plan`/`draft`, no read-only `review`/`audit` and no `repair`/`revise`.  The
+# planning guide's dependency audit and the record-only `backchain-check` stay.  Basis: the 2026-11-15 value study found
+# no meaningful plan-quality edge for Backchain on Grok 4.6 xhigh, Sol 6.1 medium or Sonnet 5.5 high, at 10-15x the
+# tokens (docs/experiments/backchain-value-20261115/RESULTS.md).  ``one`` opts in with one review/fix/check cycle;
+# ``converge`` opts in with Backchain's default gate, completing at the first trivial review (owner decision D-D,
+# 2026-11-01: the converge marker never reached a printed packet after Backchain 0.7.0, so converge already ran that
+# gate, and 0 of 18 confirming reviews changed anything).  The CLI, the state and SPEC S-10's carve-out name the same
+# three.
 BACKCHAIN_PASSES_MODES = ("one", "converge", "none")
-DEFAULT_BACKCHAIN_PASSES = "one"
+DEFAULT_BACKCHAIN_PASSES = "none"
+
+
+# Product-acceptance's audit item requests the Backchain audit its optional line offers, so a run with no Backchain child
+# (``none``, the default since 2026-11-15) prints neither: duty() puts the guide's own audit in the item's place, and
+# prompt() prints no line.
+_PRODUCT_ACCEPTANCE_AUDIT_ITEM_NONE = """\
+7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: check it with the
+   Backchain planning guide's dependency audit and route it as item 6 says.
+"""
+_PRODUCT_ACCEPTANCE_AUDIT_ITEM = """\
+7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: request a Backchain
+   `review` / `audit` as the audit line below says; cite its receipt in `evidence_refs`.
+"""
 
 
 def _require_backchain_passes(backchain_passes: str) -> None:
     if backchain_passes not in BACKCHAIN_PASSES_MODES:
         raise ValueError(f"unknown backchain passes option: {backchain_passes!r}")
+
+
+def offers_backchain_child(backchain_passes: str) -> bool:
+    """Whether a run with this option offers any Backchain child: a whole `plan`/`draft`, a read-only
+    `review`/`audit` or a `repair`/`revise`.  ``none``, the default, offers none (owner decision 2026-11-15)."""
+    _require_backchain_passes(backchain_passes)
+    return backchain_passes != "none"
 
 
 def offers_whole_backchain_loop(stage: str, backchain_passes: str) -> bool:
@@ -2084,6 +2108,9 @@ def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
 # Record only: the navigator prints the command; nothing refuses a failing check.
 BACKCHAIN_CHECK = ("Run the printed `backchain-check` after each candidate revision; a failure is a loop finding; "
                    "cite its receipt in `evidence_refs`.\n")
+# The same check in a run with no Backchain child (``none``): there is no Backchain loop for a failure to belong to.
+_BACKCHAIN_CHECK_NONE = ("Run the printed `backchain-check` after each candidate revision; a failure is a finding; "
+                         "cite its receipt in `evidence_refs`.\n")
 
 
 _BACKCHAIN_ROUTE = """\
@@ -2091,6 +2118,15 @@ Follow the packet's Backchain planning guide for this stage's scoped outcome,
 prerequisite and consumer review. Carry selected requirement sections and test
 locators through the plan and existing result/context fields. The only Backchain
 call route is `source-aware-native`; ShipLoop carries no embedded Backchain mode.
+
+"""
+# The route paragraph of a run that offers no Backchain child (``none``, the default): the planning guide and the
+# record-only check stay; no call route is named, because there is none to take.
+_BACKCHAIN_ROUTE_NONE = """\
+Follow the packet's Backchain planning guide for this stage's scoped outcome,
+prerequisite and consumer review. Carry selected requirement sections and test
+locators through the plan and existing result/context fields. This run requests
+no Backchain child (Backchain passes option `none`, the default).
 
 """
 # Printed only where a whole loop may start (plan): the resource gate, the record rules, the child's scope.
@@ -2120,7 +2156,7 @@ finding goes to the stage owner, who within explicit authorized edit bounds may
 request exactly one action `repair` / stage `revise`, a whole native operation
 that needs the loop resources named in the planning guide's Source-aware native
 caller section (the packet's "Loop resources" line reports them)."""
-# Modes one and none.  An instruction to write the marker line, not a gate field: the audit text never names
+# Mode one.  An instruction to write the marker line, not a gate field: the audit text never names
 # `required_trivial_reviews`; the child's gate and exit condition are the ones Backchain's convergence reference
 # defines for the marker line, and without a line a repair/revise child runs that reference's default (its first
 # trivial review completes, owner decision 2026-11-01).
@@ -2133,9 +2169,6 @@ its first trivial review: put no `Backchain passes:` line in the child request a
 `--passes` to `prepare`."""
 _BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
 at `plan`."""
-# Mode none, at every stage: the run requests no whole loop, so the audit text says that in its place.  `one` is
-# the only marker value Backchain's convergence reference defines, so the text does not print `none` as one.
-_BACKCHAIN_AUDIT_WHOLE_NONE = """ No whole `plan`/`draft` is requested in this run."""
 _BACKCHAIN_AUDIT_TAIL = """ Start the child with Backchain SKILL.md step 1's `prepare` (`--run` the
 printed Backchain planning run directory, `--request`, `--caller` the repair/revise packet,
 `--draft` the candidate, `--binding`), then `freeze`, which writes its start contract. A MISSING loop resource blocks
@@ -2203,11 +2236,7 @@ not a prose plan.
 
 
 def _one_pass(backchain_passes: str) -> bool:
-    """Whether a Backchain child's gate text is the one-pass text (every mode but `converge`).
-
-    In `none` no whole `plan`/`draft` is offered, but a `repair`/`revise` after a finding still starts a child,
-    and that child runs one pass.
-    """
+    """Whether a Backchain child's gate text is the one-pass text (mode `one`; `none` prints no child text at all)."""
     return backchain_passes != "converge"
 
 
@@ -2219,14 +2248,16 @@ def _backchain_guidance(stage: str, *, improve_owner: bool = False,
     the other Backchain stages print the read-only audit route and the rule that a material finding may
     request one repair/revise.
 
-    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  ``converge`` prints Backchain's default
-    gate, with no marker line; the default ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at the
-    audit stages.  ``none`` offers no whole loop, so plan prints the audit route the four audit stages print
-    (see offers_whole_backchain_loop), and every audit stage says no whole `plan`/`draft` is requested.
+    ``backchain_passes`` is the run's option (see BACKCHAIN_PASSES_MODES).  The default ``none`` offers no Backchain
+    child (owner decision 2026-11-15), so every Backchain stage prints the planning guide's route without a call route,
+    and the record-only check.  ``one`` prints the one-pass gate and exit condition at plan and a one-line pointer at
+    the audit stages; ``converge`` prints Backchain's default gate, with no marker line.
     """
     _require_backchain_passes(backchain_passes)
     if improve_owner:
         return _BACKCHAIN_ROUTE + _BACKCHAIN_IMPROVE_OWNER
+    if stage in BACKCHAIN_STAGES and not offers_backchain_child(backchain_passes):
+        return _BACKCHAIN_ROUTE_NONE + _BACKCHAIN_CHECK_NONE
     if offers_whole_backchain_loop(stage, backchain_passes):
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
         return _BACKCHAIN_ROUTE + _BACKCHAIN_PLAN_CALL + f"""\
@@ -2243,10 +2274,10 @@ action. Only that exact `complete` receipt plus final candidate identity and dom
 permits Backchain planning convergence. The draft is a proposed candidate; ShipLoop still owns
 acceptance and lifecycle state.
 """ + BACKCHAIN_CHECK
-    if stage in BACKCHAIN_STAGES:  # an audit stage, or plan in a run that offers no whole loop
+    if stage in BACKCHAIN_STAGES:  # an audit stage
         audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes)
                                           else _BACKCHAIN_AUDIT_CONVERGE)
-                 + (_BACKCHAIN_AUDIT_WHOLE_NONE if backchain_passes == "none" else _BACKCHAIN_AUDIT_WHOLE)
+                 + _BACKCHAIN_AUDIT_WHOLE
                  + _BACKCHAIN_AUDIT_TAIL)
         return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK
     return _BACKCHAIN_ROUTE + """\
@@ -2272,7 +2303,20 @@ Request a Backchain `review` / `audit` only for a material prerequisite ambiguit
     - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
       done.
     Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
-    `evidence_refs`. The only call route is `source-aware-native`.{whole}"""
+    `evidence_refs`. The only call route is `source-aware-native`."""
+# The spec and plan items of a run that offers no Backchain child (``none``, the default since 2026-11-15): ShipLoop's
+# own dependency audit (plan) and the record-only graph check stay, and no child request is printed.
+_BACKCHAIN_ITEM_PLAN_NONE = """\
+Run the dependency audit of the Backchain planning guide. This run requests no Backchain child (Backchain
+    passes option `none`, the default).
+    Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
+    `evidence_refs`. Keep material findings visible in `summary`. Carry the selected requirement sections and test
+    locators through the plan and the items' `context`."""
+_BACKCHAIN_ITEM_CHECK_NONE = """\
+Check outcomes and missing prerequisites with the Backchain planning guide. This run requests no Backchain child
+    (Backchain passes option `none`, the default).
+    Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
+    `evidence_refs`."""
 _BACKCHAIN_ITEM_MARKER = "    - put the line `Backchain passes: one` beside the binding marker in the child request;\n"
 # Mode converge (owner decision D-D, 2026-11-01): Backchain's default gate; the request carries no marker line.
 _BACKCHAIN_ITEM_DEFAULT_GATE = ("    - put no `Backchain passes:` line in the child request: it runs Backchain's default "
@@ -2318,16 +2362,14 @@ _BACKCHAIN_GATE_CONVERGE_ITEM = """Until Loop owns the callback handle, progress
 def _backchain_item(stage: str, backchain_passes: str) -> str:
     """The Backchain item text of the spec or plan duty, for the run's Backchain passes option."""
     _require_backchain_passes(backchain_passes)
-    if stage == "plan" and offers_whole_backchain_loop(stage, backchain_passes):
-        one = _one_pass(backchain_passes)
+    if not offers_backchain_child(backchain_passes):
+        return _BACKCHAIN_ITEM_PLAN_NONE if stage == "plan" else _BACKCHAIN_ITEM_CHECK_NONE
+    one = _one_pass(backchain_passes)
+    if stage == "plan":  # one and converge offer the whole loop at plan
         return _BACKCHAIN_ITEM_PLAN.format(choice=_BACKCHAIN_PLAN_CHOICE_ITEM if one else "",
                                            gate=_BACKCHAIN_GATE_ONE_ITEM if one else _BACKCHAIN_GATE_CONVERGE_ITEM)
-    whole = ""
-    if stage == "plan":
-        whole = " No whole `plan`/`draft` is requested in this run."
-    one = _one_pass(backchain_passes)
     return _BACKCHAIN_ITEM_AUDIT.format(marker=_BACKCHAIN_ITEM_MARKER if one else _BACKCHAIN_ITEM_DEFAULT_GATE,
-                                        passes=", `--passes one`" if one else "; no `--passes`", whole=whole)
+                                        passes=", `--passes one`" if one else "; no `--passes`")
 
 
 BACKCHAIN_GUIDANCE = _backchain_guidance("plan")
@@ -2419,6 +2461,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
         text = text.replace(_PLAN_RECORD_INTERACTIONS, "")
     if _BACKCHAIN_ITEM in text:
         text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage, backchain_passes))
+    if stage == "product-acceptance" and not offers_backchain_child(backchain_passes):
+        text = text.replace(_PRODUCT_ACCEPTANCE_AUDIT_ITEM, _PRODUCT_ACCEPTANCE_AUDIT_ITEM_NONE)
     if _ITEM_COMMIT in text:
         text = text.replace(_ITEM_COMMIT, _item_commit_rule(execution_mode))
     if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
@@ -2515,7 +2559,8 @@ def _prompt_parts(stage: str, *, delegation: str, backchain_passes: str, plannin
     # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
     # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
     if stage in INLINE_AUDIT_STAGES and delegation == INLINE or stage in AUDIT_LINE_STAGES:
-        parts.append(("audit", INLINE_BACKCHAIN_AUDIT))
+        if offers_backchain_child(backchain_passes):  # the line requests an audit child; `none` prints no line
+            parts.append(("audit", INLINE_BACKCHAIN_AUDIT))
     elif stage in BACKCHAIN_FOLDED_STAGES:
         pass  # the Backchain item is folded into the duty; no loop budget block follows (Until Loop has no size limit)
     elif stage in BACKCHAIN_STAGES:

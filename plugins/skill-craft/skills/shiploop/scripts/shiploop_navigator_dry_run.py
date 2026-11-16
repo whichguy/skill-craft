@@ -230,7 +230,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--delegation', choices=navigator.DELEGATIONS, default=None,
                         help='execution delegation to simulate; default follows new runs (inline)')
     parser.add_argument('--backchain-passes', choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
-                        help='Backchain passes option to simulate; default follows new runs (one)')
+                        help='Backchain passes option to simulate; default follows new runs (none)')
     parser.add_argument('--planning-review', choices=navigator.PLANNING_REVIEW_MODES, default=None,
                         help='planning review option to simulate; default follows new runs (stage)')
     parser.add_argument('--list', action='store_true')

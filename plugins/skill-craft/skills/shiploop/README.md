@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.36.3
+# ShipLoop navigator 1.37.0
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
@@ -605,10 +605,10 @@ Options are recorded when the run starts and cannot be changed by a retry. You c
 | `--delegation` | `inline`, `ask-agent` | You want each step in a fresh worker's context | `delegation --set` |
 | `--lint` | `fix`, `report`, `off` | `report` to see fixes without applying them; `off` for a repo whose linters you do not trust | `lint-mode --set` |
 | `--planning-review` | `stage`, `none` | `none` to skip the four planning reviews (needs `--improve-skill=<absolute path>`) | no: start a fresh run |
-| `--backchain-passes` | `one`, `converge`, `none` | `converge` for a plan whose dependencies matter; `none` to skip the plan graph check | no: start a fresh run |
+| `--backchain-passes` | `none`, `one`, `converge` | `one` (one review pass) or `converge` to let the planning stages call a Backchain child; on current models it showed no plan-quality gain (2026-11-15 study) | no: start a fresh run |
 | `--delivery-contract` | off | The change must reach a consumer (an app, an endpoint) and you want that stated up front | no |
 
-`--planning-review none` together with `--backchain-passes none` removes every model-run second look at the plan. It is allowed,
+`--planning-review none` in a run with no Backchain child (the default `--backchain-passes none`) removes every model-run second look at the plan. It is allowed,
 and it is the highest-risk combination. See [run options](references/run-options.md).
 
 ## Steer a run
@@ -1331,8 +1331,8 @@ This last transfer is a host duty, not an automatic semantic guarantee.
 uses the same outcome/source/test mapping in the relevant planning and review
 packets. It is ShipLoop's planning checklist, not a second standalone planning
 run; a Backchain call uses only the `source-aware-native` route.
-The plan packet's Backchain loop takes one review/fix/check pass by default
-(`--backchain-passes one`; `converge` completes at the first trivial review, Backchain's default gate; `none` takes no whole loop), and
+A run calls no Backchain child unless it opts in at the start (`--backchain-passes one` takes one review/fix/check pass;
+`converge` completes at the first trivial review, Backchain's default gate; the default `none` offers no child), and
 `--planning-review stage|none` turns the per-stage planning reviews on or off; both are fixed for the run
 ([Backchain route](references/backchain-route.md#backchain-passes-option) and [run options](references/run-options.md#planning-review-option)).
 Keep product-document links portable across worktree return; verify destination
