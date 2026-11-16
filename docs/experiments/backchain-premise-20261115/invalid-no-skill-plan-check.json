@@ -1,0 +1,24 @@
+{
+ "schema": "backchain-check/v1",
+ "plan": "independent-inspection-scopes--none--sonnet (packaged copy of its final plan in backchain-value-20261115/evidence/plans.json)",
+ "ok": false,
+ "completion": "invalid",
+ "failures": [
+  {
+   "invariant": 7,
+   "message": "Null-origin need is not declared in initial_state",
+   "detail": {
+    "stepId": "S1",
+    "need": "canonicalHeader in src/import/header-map.js defines the canonical-name rules"
+   }
+  },
+  {
+   "invariant": 7,
+   "message": "Null-origin need is not declared in initial_state",
+   "detail": {
+    "stepId": "S1",
+    "need": "The sample CSV header row is available for inspection"
+   }
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "no_skill_arm": {
+  "docs/experiments/backchain-value-20261115/plan-format.md": 5544
+ },
+ "backchain_fresh_route_reads": {
+  "skills/backchain/SKILL.md": 14336,
+  "skills/backchain/prompts/direct.v1.md": 8807,
+  "skills/backchain/prompts/dependency-review.prompt.md": 3038,
+  "skills/backchain/references/convergence.md": 17867,
+  "skills/backchain/prompts/convergence-review.prompt.md": 4366,
+  "skills/backchain/references/technical-lenses.md": 8119,
+  "skills/backchain/references/technical-interactions.md": 9608,
+  "skills/improve/runtime/until-loop/ADAPTER.md": 24819
+ },
+ "backchain_reads_when_needed": {
+  "skills/backchain/prompts/elaborator.v1.md": 17254,
+  "skills/backchain/references/technical-lens-cards.md": 36412,
+  "skills/improve/runtime/until-loop/references/runtime-ephemeral.md": 27913
+ },
+ "bytes": {
+  "no_skill": 5544,
+  "backchain_low": 90960,
+  "backchain_high": 172539,
+  "ratio_low": 16.4,
+  "ratio_high": 31.1
+ },
+ "script_lines": {
+  "backchain.py": 1243,
+  "backchain_graph.py": 756,
+  "check_preservation.py": 142
+ },
+ "note": "backchain_graph.py holds the seven invariants, packaging and export; backchain.py holds the run machinery (prepare, freeze, record, verify, finish, lenses); check_preservation.py compares a candidate with what it must keep."
+}

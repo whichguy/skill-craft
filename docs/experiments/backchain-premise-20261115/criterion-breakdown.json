@@ -1,0 +1,159 @@
+{
+ "source": "docs/experiments/backchain-value-20261115/evidence/grades.json",
+ "points": {
+  "met": 2,
+  "partial": 1,
+  "missed": 0
+ },
+ "universal": {
+  "authority-and-bounds": {
+   "backchain/grok": 2.0,
+   "backchain/sol": 2.0,
+   "backchain/sonnet": 2.0,
+   "none/grok": 2.0,
+   "none/sol": 1.9,
+   "none/sonnet": 2.0
+  },
+  "dependency-logic": {
+   "backchain/grok": 1.8,
+   "backchain/sol": 1.9,
+   "backchain/sonnet": 1.9,
+   "none/grok": 1.85,
+   "none/sol": 1.9,
+   "none/sonnet": 1.9
+  },
+  "evidence-honesty": {
+   "backchain/grok": 1.9,
+   "backchain/sol": 1.9,
+   "backchain/sonnet": 1.9,
+   "none/grok": 1.85,
+   "none/sol": 1.75,
+   "none/sonnet": 1.9
+  },
+  "plan-usability": {
+   "backchain/grok": 1.75,
+   "backchain/sol": 1.9,
+   "backchain/sonnet": 1.8,
+   "none/grok": 1.8,
+   "none/sol": 1.8,
+   "none/sonnet": 1.75
+  },
+  "readiness-and-confirmations": {
+   "backchain/grok": 1.75,
+   "backchain/sol": 1.9,
+   "backchain/sonnet": 1.95,
+   "none/grok": 1.75,
+   "none/sol": 1.95,
+   "none/sonnet": 1.85
+  },
+  "requested-outcome": {
+   "backchain/grok": 1.9,
+   "backchain/sol": 1.95,
+   "backchain/sonnet": 1.9,
+   "none/grok": 1.9,
+   "none/sol": 2.0,
+   "none/sonnet": 1.9
+  },
+  "terminal-disposition": {
+   "backchain/grok": 1.9,
+   "backchain/sol": 1.8,
+   "backchain/sonnet": 1.9,
+   "none/grok": 1.9,
+   "none/sol": 2.0,
+   "none/sonnet": 1.8
+  }
+ },
+ "case_specific": {
+  "tally": {
+   "better": 7,
+   "worse": 7,
+   "tie": 190
+  },
+  "differences": [
+   {
+    "case": "billing-late-fee",
+    "model": "grok",
+    "criterion": "fixture-oracle-checked",
+    "backchain_minus_none": 2
+   },
+   {
+    "case": "billing-late-fee",
+    "model": "sonnet",
+    "criterion": "fixture-oracle-checked",
+    "backchain_minus_none": -2
+   },
+   {
+    "case": "billing-late-fee",
+    "model": "sonnet",
+    "criterion": "late-fee-module-planned",
+    "backchain_minus_none": -1
+   },
+   {
+    "case": "billing-late-fee",
+    "model": "sonnet",
+    "criterion": "test-run-confirm-executes",
+    "backchain_minus_none": 1
+   },
+   {
+    "case": "bounded-source-edge-repair",
+    "model": "grok",
+    "criterion": "preserve-completed-step",
+    "backchain_minus_none": 1
+   },
+   {
+    "case": "independent-inspection-scopes",
+    "model": "sonnet",
+    "criterion": "mapping-from-fixture",
+    "backchain_minus_none": -2
+   },
+   {
+    "case": "known-external-approval-blocker",
+    "model": "grok",
+    "criterion": "local-check-plan",
+    "backchain_minus_none": 2
+   },
+   {
+    "case": "known-external-approval-blocker",
+    "model": "sonnet",
+    "criterion": "local-check-plan",
+    "backchain_minus_none": -1
+   },
+   {
+    "case": "legacy-draft-discovers-mapping",
+    "model": "sol",
+    "criterion": "discover-implementable-supplier",
+    "backchain_minus_none": 2
+   },
+   {
+    "case": "legacy-draft-discovers-mapping",
+    "model": "sol",
+    "criterion": "preserve-raw-row-input",
+    "backchain_minus_none": 1
+   },
+   {
+    "case": "missing-normative-redaction-source",
+    "model": "sol",
+    "criterion": "name-missing-source",
+    "backchain_minus_none": -2
+   },
+   {
+    "case": "missing-normative-redaction-source",
+    "model": "sol",
+    "criterion": "stop-before-implementation",
+    "backchain_minus_none": 1
+   },
+   {
+    "case": "missing-normative-redaction-source",
+    "model": "sonnet",
+    "criterion": "stop-before-implementation",
+    "backchain_minus_none": -1
+   },
+   {
+    "case": "orders-cancel-rpc",
+    "model": "sol",
+    "criterion": "store-split-from-docs",
+    "backchain_minus_none": -1
+   }
+  ]
+ }
+}
