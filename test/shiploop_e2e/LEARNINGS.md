@@ -9102,3 +9102,36 @@ ones.
     runtime's text, which has 24 uses on main; release A added none.
   - (3) Not covered here, by design: ShipLoop's `converge` option (owner decision D-D; it now stops at the first
     trivial review, proved by hermetic tests only), a spec-stage child, and the other hosts.
+
+## 2026-11-15 — Backchain opt-in, a default `csv-report` run on Codex Terra xhigh: no Backchain child, 5 of 5 checks pass, one refused graph check at spec
+
+This is the live round for 27fa9c9278255dd544e5e844d135b374ba5aba7c: a new run calls no Backchain child unless it opts
+in, and `--backchain-passes` defaults to `none` (owner decision 2026-11-15; journal Round 13).
+- The round ran `run.py --source checkout` from that commit on a clean tree: skill-craft 2.41.0 and ShipLoop 1.36.3
+  source, `plugin_sha256` 10ab8a00c406, Codex gpt-6.1-terra at xhigh.
+- The request was the plain `csv-report` prompt with no `--backchain-passes` flag: the same case, host and model as
+  release A's round, without its forced-child sentence.
+
+- **Inclusion rule, met.** The rule was stated in the change's commit message before the run:
+  - state.md records `backchain_passes: none`;
+  - no Backchain child ran: `RUN/backchain/` holds four graph-check folders and no `run/` child directory;
+  - none of the run's 63 saved packet files carries child-request text. The line "This run requests no Backchain
+    child" printed 4 times.
+- **Readout.**
+  - The run took 1,280 s and 170 turns, with 53,603 output tokens and 27,817,970 processed.
+  - The planning window closed at test-spec after 586 s engine time.
+  - The plan stage took 63 s and 8 tool calls. Release A's forced-child round took 222 s and 20 tool calls at plan.
+    That is a different prompt, so the two are not a measurement of the change.
+  - The run review export shows `Backchain passes option (state.md): none`, and at spec, plan, step-plan and
+    product-acceptance "graph check only: 1 check, last ok (complete)".
+- **Delivery.** The run ended done, all 5 case checks pass (unit, totals, invalid, missing, empty), and the 4 script
+  verifications pass. Three ShipLoop command failures were gates doing their job: an Improve pass that changed a
+  result without recording its check, a step proof that was not one line, and an unrecorded surviving mutant.
+- **Finding, the fourth failure.** At spec the host ran `backchain-check` on `docs/shiploop/spec.md`, which was
+  refused as not JSON. It then built `run/scratch/spec-graph.json` and checked that 4 times, all ok, and spec took
+  127 s. The new `none` spec item states the check on its own: "Run the printed `backchain-check` after each candidate
+  revision". In `one` the same sentence ended the audit-child paragraph, and release A's host never ran the check at
+  spec. The run recovered, so nothing broke. A follow-up should say what the check reads (a JSON dependency graph, not
+  a spec or prose plan) or scope it at spec, and that change needs its own live round.
+- **Harness note.** The retired term "terminal packet" counted 6 again; it comes from the shared Until Loop runtime,
+  as in release A's round.

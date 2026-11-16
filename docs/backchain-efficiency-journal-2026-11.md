@@ -460,3 +460,22 @@ Backchain is much less valuable than its cost. Four questions stay open:
 - whether a Backchain plan changes what gets built;
 - whether a cheaper Backchain path (one pass, or a lighter review) keeps quality at a fraction of the cost;
 - a rerun of R12-4 without the naming prime.
+
+## Round 13 — Backchain becomes opt-in in ShipLoop (owner decision, 2026-11-15)
+
+Question (owner, after Round 12):
+- "Those gains are so small that they're not worth actually including Backchain at all at this point."
+- Then "Not by default."
+- Then "Correct me if I'm wrong, or determine if the cases were just too simplistic."
+- Asked for the scope, the owner chose "No child calls": default runs offer no plan/draft loop and no review/audit or
+  repair/revise child; the script-only graph check stays.
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R13-1 | The cases were mostly too simple to show value. Requests run 360-738 characters and final plans 1-8 steps. No-skill scores have a median of 94.2: 25 of 30 attempts scored 90 or more and 9 of 30 scored 100. Only 5 of 30 model-case cells left headroom below 90. Backchain lifted 1 of them (Sol, legacy-draft-discovers-mapping, 83.9 to 100) and changed the others by 0, +1.9, -1.7 and 0. So Round 12 supports "not by default" (no measured gain at 10-15x the tokens) but not "Backchain has no value": harder planning is unmeasured. | firm (descriptive, 30 pairs) | `experiments/backchain-value-20261115/evidence/analysis.json`, `plans.json`; the cases pinned in `evidence/freeze.json` |
+| R13-2 | Decision, implemented in 27fa9c9278255dd544e5e844d135b374ba5aba7c. `--backchain-passes` defaults to `none`, and `none` offers no Backchain child at any stage. Every Backchain stage keeps the planning guide's dependency audit and the record-only `backchain-check`. `one` and `converge` opt in unchanged. Packet text per stage, `one` to `none`: plan 15,819 to 13,489 bytes, spec 9,311 to 8,429, delegated step-plan and carry-forward -1,298 each, the inline routes -238, product-acceptance -253. The navigator's eight-path resource block (about 1.5 KB at plan) and the audit and status lines no longer print. | firm (hermetic tests) | the commit's message; `test/shiploop-navigator-dry-run.test.py` and `test/shiploop-navigator-contract.test.py` |
+| R13-3 | The live round, a default `csv-report` run on Codex Terra xhigh, recorded `none` and started no Backchain child; none of its 63 saved packets offers one. It ended done with 5 of 5 checks passing in 1,280 s. One refused call: at spec the host first ran `backchain-check` on the spec Markdown, was refused (not JSON), then built a JSON graph that passed. The no-child spec item states the check on its own, and a follow-up should name what the check reads. | firm (n = 1) | `test/shiploop_e2e/LEARNINGS.md` entry of 2026-11-15 (default run) |
+
+The correction the owner asked for: Round 12 measured small, well-specified planning tasks. On those, current models
+do not need Backchain, and that is the reading this decision rests on. Backchain stays installed and one flag away. A
+study of harder cases, with the naming prime of R12-4 removed, is proposed as a separate session.
