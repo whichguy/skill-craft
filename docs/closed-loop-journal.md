@@ -265,6 +265,37 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
   accept must reach the tip's ledger: the `decide` verb of W3); D1 and D3 (the tolerance-and-attempts rule and the loop limits) are open
   owner decisions that plan section 6 does not list.
 
+### R8. Gate G1: Sol's max review of the built facade, and the round it forced (2026-11-15)
+
+- **Question.** Plan gate G1 puts a max review of the facade's contract, with code and tests in front of the reviewer, before any real compute. Is the
+  facade, as built (commit 441b9edb4f6fbb990d1401c56538ac8bad0c49f3), ready for the first real compute?
+- **Review.** Codex `gpt-6.1-sol` at max, one attempt, no fallback, `workspace-write`, in a neutral clone; 974 seconds; verdict **not ready**, eleven
+  findings (ten verified bugs, one likely) and four judgements (`docs/experiments/closed-loop-phase2-review-20261115/g1-sol-answer.txt`, brief and
+  witnesses beside it). It found no false QUIET from ordinary completed artifacts, confirmed the six decisions of R7, and found the derivations of the
+  loop's own paths sound. I checked each finding against the code before accepting it; all eleven held, and two of them (the cancel and cleanup race
+  against a booting worker, and the evaluator finding that keeps an iteration from being quiet) I had already found myself minutes earlier.
+- **What changed (each with a regression test).** (1, 3) cancel and cleanup rewrite a step's record only while holding the step's lock, and a worker
+  that is only finishing is waited for, never stopped; (2) a kill's outcome (a group that survived, one that could not be signalled or verified, sessions
+  below the worker that survived) is part of what a cleanup proves, so a cleanup with a survivor is not verified; (4, 5) one workspace admission lock
+  covers `step start` and `decide`, and an unsettled step (running, starting, or prepared, with or without a live worker) blocks both; (6) a start replay of
+  a step that has since failed or been cancelled answers `running`, the orchestrator's only other accepted word being `done`; (7) the last judge assessment of
+  an exploration (`review-judge-retry-N`) and the last review event per epoch attempt are the assessments that count; (8) a case's `needs`, `platform` and
+  `base` from the harness catalog travel as the case's `requires`, so the orchestrator gates a browser case (a test had pinned the empty list); (9) a
+  calibration probe needs sealed attempts and compared splits, not only a matching digest; (10) a worker's start-up failure is a durable failed step, a
+  poll respawns a worker at most three times, and an unavailable `ps` is an error; (11) a group whose leader is gone is not signalled when its record is
+  older than twelve hours. Test fixes: an ancestry check that compared a helper's empty stdout, the certificate the rehearsal never read, the poll storm's
+  swallowed thread errors. Added: two real-orchestrator controls on stand-in evidence and an empty ledger (quiet and comparable evidence converges a scope
+  in two iterations; evidence that misses its floors never does), which the real-engine suite cannot give because fake hosts leave fidelity unobserved.
+- **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.** (9) Evaluator findings (records with `target: harness`) are not
+  `discoveries` of a subject iteration: the adapter contract says they never block a subject certificate, and a recurring one would otherwise keep the
+  quiet window from closing. (10) An unsettled step blocks a new step and an owner decision until a poll or a cleanup settles it, even when its worker is
+  dead: the evaluator clone, its worktrees and the tip are that step's until then. (11) The planted-edit half of `improver.bounded` stays what it is, a test of
+  `boundary.candidate_path`; it would not notice enforcement removed from `iterate.improve` or `cycle._qualify_impl`, and the README says so.
+- **Not fixed, said plainly.** Reviewer, judge and improver sessions of a worker that died unobserved are in no ledger (a cancel finds them); real
+  kill and recovery trials need durable ownership for them; a recycled group number with an absent leader is now bounded by an age, not excluded.
+  The probes' positive controls still run on fake hosts. The review ran on the snapshot before the fixes; the fixes themselves have not been reviewed again
+  (one more round of review returns less than the first, but a reviewer reading these diffs is the way to learn whether they introduced a defect).
+
 ## Findings
 
 | # | Finding | Status | Evidence |
@@ -293,3 +324,11 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F22 | Timing-invalid evidence still serves a token claim: only an attribution that is false makes a run's evidence invalid for it | firm (code and one calibration) | commit 3423e21801165d86c21e1d9e59d5c55d130bff66; `promotion._strict_comparable` |
 | F23 | A cancel must snapshot what runs below the worker before it signals anything: the harness starts model sessions in sessions of their own, found through parent links only while their parents live; a group kill and the lifecycle ledger together still miss a reviewer, judge or improver session | firm for the cancel path, a stated gap after an unobserved death | `ProcessTests.test_cancel_also_ends_the_sessions_below_the_worker_...` |
 | F24 | A probe's positive control can be wrong in the reader and right in the check: `grading.scores` parsed `scorecard.py --json` as a list when it prints `{"scorecard", "cards": [...]}`, which only a real run folder through the real scorecard showed; and a negative control must make the CHECK fail, not feed it bad input: a harness copy whose boundary rule accepts every path leaves `improver.bounded` declared while its build and tier parts pass | firm | `RealEngineTests.test_the_runs_and_scores_probes_...`; `RiggedBoundaryTests` |
+| F25 | Whoever is not the worker rewrites a step's record only while holding the step's lock: the worker's saves overwrite the whole file, so a canceller or cleanup that kills the worker the record names and then saves a stale copy loses a worker that was still booting (no identity yet) and can overwrite a publication that finished meanwhile | firm | Sol's witness `g1-sol-witness-parent-races.json`; `BootWindowTests`, `ReviewFindingsTests` |
+| F26 | A per-step lock cannot make two steps with different keys exclusive, and a step whose worker died is still the evaluator clone's owner: admission and every hand move of the tip (`decide`) take one workspace lock and refuse while any step is unsettled | firm | `ReviewFindingsTests.test_two_steps_started_at_the_same_moment_...`, `..._a_decision_is_refused_...` |
+| F27 | A cleanup receipt is a claim about what is left running, so a kill's outcome (survived, protected, unverified, surviving sessions) is part of it; the lifecycle ledger alone sees only recorded run resources and said verified over zero folders | firm | `kill_problems`; `ReviewFindingsTests.test_a_kill_that_left_something_running_...` |
+| F28 | "The first file found" is not the final assessment: a judge that is invalid is judged again in a folder of its own (`review-judge-retry-N`), and an epoch review that ended incomplete may be redone: read the last one per attempt | firm | `final_verdict`, `epoch_evidence`; `ReviewFindingsTests` |
+| F29 | Authority travels with the catalog: the facade dropped a case's `needs`, so the orchestrator's owner-only rule never fired for the browser case, and the test that pinned the empty list protected the defect; assert the refusal from the real orchestrator | firm | `CasesTests.test_the_orchestrator_gates_the_browser_case_...` |
+| F30 | A calibration document with no observations passes the harness's loader (it checks the digest and the recommendation): a probe must ask for sealed attempts and compared splits | firm | `ProbeTests.test_the_calibrated_claim_...` (three new negatives) |
+| F31 | A reply's vocabulary belongs to its consumer: `step start` accepts `running` or `done`, so an idempotent replay of a finished step must not answer `failed` (the orchestrator counts it as a start failure, and three stop the campaign) | firm | `ReviewFindingsTests.test_the_replay_of_a_start_...` |
+| F32 | A failure before the exception handler is a step that stays `starting`: a poll then begins a new worker each time (389 identical failures in the reviewer's logs); make start-up failures durable, bound respawns, and turn an unavailable `ps` into an error | firm | `ReviewFindingsTests.test_a_worker_that_cannot_read_the_process_table_...` |

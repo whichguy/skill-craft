@@ -278,7 +278,10 @@ class RealEngineTests(unittest.TestCase):
         self.assertNotIn("the review was not valid and complete", last["quiet_reasons"])
         cleaned = loop("cleanup", "--campaign", str(campaign))
         self.assertTrue(cleaned["ok"], cleaned)
-        loop("certificate", "--campaign", str(campaign), ok=(0, 1))
+        certificate = loop("certificate", "--campaign", str(campaign), ok=(0, 1))
+        self.assertEqual(certificate["status"], "incomplete", "fake hosts leave fidelity unobserved: the scope cannot converge on them")
+        self.assertTrue(any("floors" in reason for reason in certificate["reasons"]), certificate["reasons"])
+        self.assertEqual(sorted(certificate["checks"]), ["C1", "C2", "C3", "C4", "C5", "C6", "C7"])
 
 
     def engine_calls_with(self, role):

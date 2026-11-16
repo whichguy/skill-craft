@@ -1,0 +1,71 @@
+{
+  "cleanup_during_worker_identity_window": {
+    "reply": {
+      "verified": true,
+      "receipt": "k (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "state_at_reply": "cancelled",
+    "worker_execution_after_reply": [
+      "k"
+    ],
+    "final_state": "published"
+  },
+  "cleanup_overwrites_publication": {
+    "reply": {
+      "verified": true,
+      "receipt": "k (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "tip_moved": true,
+    "step_state": "cancelled",
+    "prepared": null,
+    "iteration": null
+  },
+  "cleanup_ignores_kill_failure": {
+    "reply": {
+      "verified": true,
+      "receipt": "k (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "kill_result": {
+      "detail": {
+        "members": [
+          99999999
+        ]
+      },
+      "group": "survived",
+      "survivors": [
+        88888888
+      ]
+    }
+  },
+  "two_concurrent_starts": {
+    "launches": [
+      "b",
+      "a"
+    ],
+    "replies": [
+      {
+        "handle": "b",
+        "status": "running"
+      },
+      {
+        "handle": "a",
+        "status": "running"
+      }
+    ],
+    "errors": []
+  },
+  "failed_start_replay": {
+    "reply": {
+      "handle": "k",
+      "status": "failed",
+      "error": "the engine exited 3",
+      "iteration": {
+        "consumed": {
+          "runs": 1,
+          "seconds": 5
+        }
+      }
+    },
+    "accepted_by_apply_action_start": false
+  }
+}

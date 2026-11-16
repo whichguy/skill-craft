@@ -175,7 +175,8 @@ class Fixture(unittest.TestCase):
 
     def x_snapshot(self):
         """Everything a query must leave alone: X's HEAD and status, and the state folder's file list with sizes."""
-        files = sorted((str(p.relative_to(self.layout.state)), p.stat().st_size) for p in self.layout.state.rglob("*") if p.is_file())
+        files = sorted((str(p.relative_to(self.layout.state)), p.stat().st_size) for p in self.layout.state.rglob("*")
+                       if p.is_file() and p.suffix != ".lock")  # a lock file is coordination, not state: an operation that only reads may create one
         return git(self.x, "rev-parse", "HEAD"), git(self.x, "status", "--porcelain", "--untracked-files=all"), files
 
 
@@ -216,8 +217,35 @@ class CasesTests(Fixture):
         self.assertEqual(sorted(cases), ["battleship", "csv-report", "hello", "seat-reservations"])
         self.assertEqual(cases["hello"]["dimensions"], {"style": "smoke"})
         self.assertEqual(cases["csv-report"]["dimensions"], {"style": "cli-files"})
-        self.assertTrue(all(case["requires"] == [] and case["hosted"] is False for case in cases.values()))
+        self.assertEqual({name: case["requires"] for name, case in cases.items()},
+                         {"battleship": ["browser"], "csv-report": [], "hello": [], "seat-reservations": []},
+                         "the harness catalog's `needs` is the case's authority requirement, and the manifest makes a browser case owner-only")
+        self.assertTrue(all(case["hosted"] is False for case in cases.values()))
         self.assertLess(cases["hello"]["cost"], cases["csv-report"]["cost"])
+
+    def test_the_orchestrator_gates_the_browser_case_and_releases_the_others(self):
+        """The real orchestrator, with the real manifest's authority block and the facade's catalog: `init --cases battleship` is refused until
+        the owner approves the case, and `hello` is not."""
+        manifest = json.loads((HARNESS / "adapter" / "adapter.json").read_text())
+        manifest["execution"]["pin"] = [str(FACADE), str(HARNESS / "adapter" / "allowlist.json")]
+        manifest["execution"]["cwd"] = str(self.folder)
+        for name in ("cases", "records", "identity", "step", "probe"):
+            manifest["commands"][name][1] = str(FACADE)
+        manifest["execution"]["cleanup"][1] = str(FACADE)
+        path = self.folder / "gate-adapter.json"
+        path.write_text(json.dumps(manifest))
+        orchestrator = ROOT / "skills" / "closed-loop" / "scripts" / "closed_loop.py"
+
+        def init(cases, extra=()):
+            return subprocess.run([sys.executable, "-B", str(orchestrator), "init", "--manifest", str(path), "--campaign",
+                                   str(self.folder / f"campaign-{cases}-{len(extra)}"), "--workspace", str(self.x), "--cases", cases,
+                                   "--budget", "seconds=60,runs=1", *extra], capture_output=True, text=True, check=False,
+                                  env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp")})
+        refused = init("battleship")
+        self.assertNotEqual(refused.returncode, 0, refused.stdout)
+        self.assertIn("owner", (refused.stdout + refused.stderr).lower())
+        self.assertEqual(init("battleship", ("--approve-case", "battleship", "--yes-owner-approved")).returncode, 0)
+        self.assertEqual(init("hello").returncode, 0)
 
     def test_a_case_the_catalog_lacks_or_restyles_is_refused(self):
         listed = json.loads(facade.ALLOWLIST.read_text())

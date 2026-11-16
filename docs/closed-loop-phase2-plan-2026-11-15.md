@@ -17,7 +17,9 @@ changed this plan in eight places, each a recorded decision in the journal's rou
 ends the step (3.3 said a promotion); only a false attribution makes evidence invalid (3.4 said "attribution or timing"); `cleanup` also stops a
 live step's worker; the runs-root variable is removed from the engine's environment; the strict outcome and the baseline predicate are the harness's
 own functions run in a bridge process (3.1 said re-stated); `grading.sensitive` and `improver.invocable` are not declared (3.6); and a probe works
-in a clone under the state folder. Read this plan for the reasons and the journal for what was built.
+in a clone under the state folder. Read this plan for the reasons and the journal for what was built. Gate G1's review (round 3 in
+`docs/experiments/closed-loop-phase2-review-20261115/`) said "not ready" about the first build: eleven findings, all fixed with tests (journal round R8);
+the fixes have not been reviewed again.
 
 ## 0. The recommendation in one screen
 

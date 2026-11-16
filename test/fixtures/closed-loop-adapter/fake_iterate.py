@@ -11,12 +11,15 @@ Behaviour per case comes from the JSON file named by $FAKE_ENGINE, `{"<case>" or
   kind      "quiet" (default: an exploration that finds nothing) | "discover" (it opens a material record; with "admit" true it also admits
             it, so a cycle follows) | "cycle" is not a kind: a cycle runs when `select` offers a record for the case
   record    the record id a discovery opens (default: a new one)
+  target    "harness": the discovery is about the evaluator (default "shiploop")
   decision  a cycle's decision: PROMOTE | DROP (default) | UNDECIDED | NO_CANDIDATE | UNKNOWN_LAUNCH
   oracle    "fail": the runs miss the accuracy floor
   fault     "crash": exit 3 right after the worktree exists | "hang": stage a ledger row, then sleep for an hour
   sleep     seconds to wait before doing anything (a step that stays running)
   stray     leave an untracked file in the evaluator checkout
   review_invalid  the exploration's review is not discovery-qualified (and no judge runs)
+  judge_retry     "recovered" | "exhausted": the first judgment is invalid and a retry folder follows
+  review_retry    "recovered" | "incomplete": a cycle's first attempt review ended incomplete, then was redone | was not
   attribution     false: the run's card says it cannot be attributed to the build under test
   escape    "ledger": leave a harmless process in a session of its own, recorded in the run's resources.jsonl, as a model host is |
             "tree": the same without the record (only a process snapshot of the engine's children finds it)
@@ -73,13 +76,19 @@ def run_folder(folder: Path, case: str, args, baselines: Path, oracle, attributi
     return folder
 
 
-def review_folders(run: Path, qualified=True) -> None:
-    """The review and the judge's verdict; a review that is not discovery-qualified ends the exploration before the judge, as in the loop."""
+def review_folders(run: Path, qualified=True, retry=None) -> None:
+    """The review and the judge's verdict; a review that is not discovery-qualified ends the exploration before the judge, as in the loop.
+    `retry` "recovered": the first judgment is invalid and the loop judged again, in review-judge-retry-1, validly; "exhausted": both are invalid."""
     status = {"status": "valid" if qualified else "invalid", "reason": None if qualified else "the reviewer returned no usable document"}
     (run / "review.json").write_text(json.dumps({"validity": {**status, "discovery_qualified": qualified}}))
-    if qualified:
-        (run / "review-judge").mkdir(exist_ok=True)
-        (run / "review-judge" / "verdict.json").write_text(json.dumps({"validity": {"status": "valid", "reason": None}}))
+    if not qualified:
+        return
+    invalid, valid = {"validity": {"status": "invalid", "reason": "no usable assessment"}}, {"validity": {"status": "valid", "reason": None}}
+    (run / "review-judge").mkdir(exist_ok=True)
+    (run / "review-judge" / "verdict.json").write_text(json.dumps(invalid if retry else valid))
+    if retry:
+        (run / "review-judge-retry-1").mkdir(exist_ok=True)
+        (run / "review-judge-retry-1" / "verdict.json").write_text(json.dumps(valid if retry == "recovered" else invalid))
 
 
 def leave_a_child(run: Path, how: str) -> None:
@@ -149,13 +158,13 @@ def main() -> int:
         explore = out / "explore-1"
         run = run_folder(explore / "run", args.case, args, ROOT / "test" / "shiploop_e2e" / "baselines.jsonl", knob.get("oracle"),
                          knob.get("attribution", True))
-        review_folders(run, not knob.get("review_invalid"))
+        review_folders(run, not knob.get("review_invalid"), knob.get("judge_retry"))
         if knob.get("escape"):
             leave_a_child(run, knob["escape"])
         opened = []
         if knob.get("kind") == "discover":
             found = knob.get("record") or f"LR-20261115-{secrets.token_hex(3)}"
-            lr.append("opened", found, ledger, title="a finding", materiality="material", confidence="high", target="shiploop",
+            lr.append("opened", found, ledger, title="a finding", materiality="material", confidence="high", target=knob.get("target", "shiploop"),
                       source={"run": str(run), "case": args.case, "exposure": "development"})
             opened.append(found)
             if knob.get("admit"):
@@ -185,8 +194,13 @@ def main() -> int:
                 run_folder(epoch / "runs" / identifier, case, args, epoch / "baselines.jsonl", knob.get("oracle"))
                 attempts.append({"id": identifier, "arm": arm, "case": case, "outcome": "failure" if knob.get("oracle") == "fail" else "success",
                                  "evidence_valid": True})
-        for attempt in attempts:
+        for number, attempt in enumerate(attempts):
             receipt = f"receipts/{attempt['id']}-epoch-1.json"
+            retry = knob.get("review_retry") if number == 0 else None
+            if retry:  # the first attempt's review ended incomplete once, and was either redone or left so
+                events.append({"kind": "review_incomplete", "attempt_id": attempt["id"]})
+            if retry == "incomplete":
+                continue
             (epoch / receipt).write_text(json.dumps({"review": {"validity": {"status": "valid"}}, "judge": {"validity": {"status": "valid"}},
                                                      "routes": {}}))
             events.append({"kind": "reviewed", "attempt_id": attempt["id"], "receipt": receipt})

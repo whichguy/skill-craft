@@ -220,7 +220,12 @@ elif op == "calibration_check":
     try:
         report = json.loads(path.read_text())
         cases = sorted(report.get("cases") or {})
-        out = {"ok": True, "calibration": cycle.load_calibration(path, cases), "driver": report.get("driver"), "cases": cases}
+        metric = (report.get("recommended") or {}).get("metric")
+        per_case = {name: {"attempts": (entry or {}).get("attempts"),
+                           "compared": (((entry or {}).get("false_decision") or {}).get(metric) or {}).get("compared")}
+                    for name, entry in (report.get("cases") or {}).items()}
+        out = {"ok": True, "calibration": cycle.load_calibration(path, cases), "driver": report.get("driver"), "cases": cases,
+               "per_case": per_case}
     except (OSError, ValueError, KeyError, TypeError) as error:
         out = {"ok": False, "why": str(error), "driver": None, "cases": []}
 elif op == "scoring_digest":
@@ -304,7 +309,10 @@ def load_allowlist(layout: Layout) -> dict:
         cost = meta.get("cost")
         if isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost < 0:
             raise FacadeError(f"allowlisted case {case_id} needs a non-negative cost (median minutes)")
-        cases[case_id] = {"id": case_id, "dimensions": {"style": meta["style"]}, "cost": cost, "requires": [], "hosted": False}
+        needs = [name for name in (entry.get("needs") or []) if isinstance(name, str)]
+        requires = sorted({*needs, *(["platform"] if entry.get("platform") else []), *(["base-repository"] if entry.get("base") else [])})
+        cases[case_id] = {"id": case_id, "dimensions": {"style": meta["style"]}, "cost": cost, "requires": requires,
+                          "hosted": bool(entry.get("platform"))}
     return cases
 
 
@@ -450,6 +458,7 @@ def cmd_setup(args) -> dict:
 
 PS_ENV = {"LC_ALL": "C", "LANG": "C"}  # `lstart` is compared as text, so its format must not follow the user's locale
 GRACE_SECONDS, FORCE_SECONDS, POLL_SECONDS = 8.0, 4.0, 0.1  # a group gets this long after SIGTERM, then after SIGKILL, to end
+STALE_GROUP_SECONDS = 12 * 3600  # a group whose leader is gone is signalled only for a record younger than this (a step may run 8 hours)
 
 
 def ps_rows(pids=None) -> dict:
@@ -457,7 +466,10 @@ def ps_rows(pids=None) -> dict:
     process, because a recycled pid has another start time."""
     command = ["ps", "-ww", "-o", "pid=,ppid=,pgid=,stat=,lstart=,command="]
     command += ["-p", ",".join(str(pid) for pid in pids)] if pids else ["-ax"]
-    done = subprocess.run(command, capture_output=True, text=True, env=dict(os.environ, **PS_ENV), check=False)
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, env=dict(os.environ, **PS_ENV), check=False, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise FacadeError(f"ps could not be run: {error}") from None
     if done.returncode not in (0, 1):  # 1 is "nothing matched" for -p
         raise FacadeError(f"ps failed ({done.returncode}): {done.stderr.strip()[-200:]}")
     rows = {}
@@ -468,6 +480,14 @@ def ps_rows(pids=None) -> dict:
         rows[int(parts[0])] = {"pid": int(parts[0]), "ppid": int(parts[1]), "pgid": int(parts[2]), "stat": parts[3],
                                "started": " ".join(parts[4:9]), "command": parts[9] if len(parts) > 9 else ""}
     return rows
+
+
+def age_seconds(started: str) -> float:
+    """How long ago the process that ps printed `started` for began; 0 when the text cannot be read (then the record is not called stale)."""
+    try:
+        return max(0.0, time.time() - time.mktime(time.strptime(started, "%a %b %d %H:%M:%S %Y")))
+    except (ValueError, OverflowError):
+        return 0.0
 
 
 def alive_in_group(table: dict, pgid: int) -> list:
@@ -509,8 +529,10 @@ def protected_pids(table: dict) -> set:
 def stop_group(ident: dict) -> tuple:
     """End the process group a recorded worker led, only if it is still that group: ``(how, detail)`` with ``how`` one of
     ``stopped`` (``ended_by`` SIGTERM or SIGKILL), ``survived``, ``gone`` (no member), ``reused`` (the leader's pid now names another
-    process: not signalled) or ``protected`` (the group holds this process or an ancestor). A group number is not reused while the
-    group has a member, so a leader that is gone with members left means they are the worker's own descendants."""
+    process: not signalled), ``protected`` (the group holds this process or an ancestor) or ``unverified`` (the leader is gone and the
+    record is old: not signalled). A group number is not reused while the group has a member, so a leader that is gone with members left
+    means they are the worker's own descendants only if the group never emptied since the record; after hours that is not shown, and the
+    members are left alone and reported."""
     pgid = ident["pgid"]
     table = ps_rows()
     members = alive_in_group(table, pgid)
@@ -522,6 +544,9 @@ def stop_group(ident: dict) -> tuple:
     leader = table.get(ident["pid"])
     if leader is not None and leader["started"] != ident["started"]:
         return "reused", {"now": {"pid": leader["pid"], "command": leader["command"][:200]}}
+    if leader is None and age_seconds(ident["started"]) > STALE_GROUP_SECONDS:
+        return "unverified", {"members": [row["pid"] for row in members],
+                              "reason": "the leader is gone and the record is more than 12 hours old: the group number may belong to another process now"}
     for name, number, wait in (("SIGTERM", signal.SIGTERM, GRACE_SECONDS), ("SIGKILL", signal.SIGKILL, FORCE_SECONDS)):
         with contextlib.suppress(ProcessLookupError, PermissionError):
             os.killpg(pgid, number)
@@ -608,6 +633,64 @@ def worker_alive(layout: Layout, key: str) -> bool:
         lock.release()
         return False
     return True
+
+
+EXCLUSIVE_WAIT_SECONDS = 40.0  # longer than a worker needs to boot, plus the time a group gets to end (GRACE_SECONDS, FORCE_SECONDS)
+
+
+class Exclusive:
+    """Hold a step's lock while someone other than its worker rewrites its record. The worker owns the record while it lives (its saves
+    overwrite the whole file), so a canceller or a cleanup must not write until the worker is gone, and while this lock is held no worker
+    can begin: `worker_main` takes the same lock first and goes away when it cannot. With `stop_live`, a worker of a step that is
+    `starting` or `running` is stopped (its lock is freed by the operating system when it ends); a step that is only finishing
+    (`prepared`) is waited for, not stopped. `held` says whether the lock was obtained within the wait."""
+
+    def __init__(self, layout: Layout, key: str, stop_live: bool = False, wait: bool = True) -> None:
+        self.layout, self.key, self.stop_live, self.wait = layout, key, stop_live, wait
+        self.lock, self.held, self.killed = WorkerLock(layout.lock_file(key)), False, None
+
+    def __enter__(self):
+        end = time.monotonic() + (EXCLUSIVE_WAIT_SECONDS if self.wait else 0.0)
+        stopped = set()
+        while True:
+            if self.lock.acquire():
+                self.held = True
+                return self
+            rec = load_step(self.layout, self.key)
+            worker = (rec or {}).get("worker")
+            if self.stop_live and rec and rec["state"] in LIVE and worker and worker["pid"] not in stopped:
+                stopped.add(worker["pid"])
+                self.killed = kill_step(self.layout, rec)
+            if time.monotonic() >= end:
+                return self
+            time.sleep(0.2)
+
+    def __exit__(self, *_exc) -> None:
+        self.lock.release()
+
+
+@contextlib.contextmanager
+def admission(layout: Layout):
+    """Serialise the decisions that admit a step or move the tip by hand (`step start`, `decide`): two of them must not both see an empty
+    workspace, and a per-step lock cannot do that, because the second step has another key."""
+    layout.state.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(layout.state / "admission.lock"), os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        with contextlib.suppress(OSError):
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
+def unsettled_keys(layout: Layout) -> list:
+    """Keys of the steps that have not reached a final state: starting, running, or prepared and not yet published. Whether a worker is alive
+    does not matter: a step whose worker died is still unsettled until a poll or a cleanup has settled it, and neither a new step nor an
+    owner decision may begin before (the evaluator clone, its worktrees and the tip are that step's until then)."""
+    if not layout.steps.is_dir():
+        return []
+    return [path.stem for path in sorted(layout.steps.glob("*.json")) if read_json(path, {}).get("state") in LIVE + ("prepared",)]
 
 
 def live_keys(layout: Layout) -> list:
@@ -949,20 +1032,36 @@ def run_summary(layout: Layout, run_dir: Path) -> dict:
 
 
 def epoch_evidence(out: Path) -> dict:
-    """A cycle's epoch as the harness recorded it: the decision event's attempts (their strict outcomes, as promotion computed them),
-    the review receipts, and the count of reviews that ended incomplete."""
+    """A cycle's epoch as the harness recorded it: the decision event's attempts (their strict outcomes, as promotion computed them), and
+    for each attempt the receipt of its LAST review event (a review that ended incomplete and was later redone counts as done, and an
+    attempt whose last event is incomplete, or that has none, as incomplete)."""
     events = []
     try:
         events = [json.loads(line) for line in lines_of((out / "cycle-1" / "epoch" / "events.jsonl").read_text())]
     except (OSError, ValueError):
         pass
     decision = next((event.get("result") for event in events if event.get("kind") == "decision"), None)
-    receipts = []
+    last = {}
     for event in events:
-        if event.get("kind") == "reviewed":
-            receipts.append(read_optional(out / "cycle-1" / "epoch" / str(event.get("receipt"))))
-    return {"decision": decision, "receipts": receipts, "incomplete": sum(1 for event in events if event.get("kind") == "review_incomplete"),
-            "expected": len((decision or {}).get("attempts") or [])}
+        if event.get("kind") in ("reviewed", "review_incomplete"):
+            last[event.get("attempt_id")] = event
+    attempts = [attempt.get("id") for attempt in (decision or {}).get("attempts") or []]
+    receipts = [read_optional(out / "cycle-1" / "epoch" / str(last[name].get("receipt"))) for name in attempts
+                if name in last and last[name].get("kind") == "reviewed"]
+    done = len(receipts)
+    return {"decision": decision, "receipts": receipts, "incomplete": max(0, len(attempts) - done) if attempts else sum(
+        1 for event in last.values() if event.get("kind") != "reviewed"), "expected": len(attempts)}
+
+
+def final_verdict(run: Path):
+    """The judge's last assessment of an exploration's review: `review-judge/verdict.json`, or the highest `review-judge-retry-N` folder's
+    (`cycle.explore` judges again, in a folder of its own, until one is valid); a folder with no verdict is an assessment that did not end."""
+    folder, number = run / "review-judge", 0
+    for candidate in sorted(run.glob("review-judge-retry-*")):
+        match = re.fullmatch(r"review-judge-retry-(\d+)", candidate.name)
+        if match and int(match.group(1)) > number:
+            folder, number = candidate, int(match.group(1))
+    return read_optional(folder / "verdict.json")
 
 
 def candidate_ref(layout: Layout, inv: dict, record: str) -> str | None:
@@ -982,7 +1081,7 @@ def invocation_evidence(layout: Layout, rec: dict, inv: dict) -> dict:
     explore_run = out / "explore-1" / "run"
     if inv["loop"]["explored"]:
         found["exploration"] = str(explore_run)
-        review, verdict = read_optional(explore_run / "review.json"), read_optional(explore_run / "review-judge" / "verdict.json")
+        review, verdict = read_optional(explore_run / "review.json"), final_verdict(explore_run)
         qualified = bool(((review or {}).get("validity") or {}).get("discovery_qualified"))
         found["reviews"].append({"valid": validity_status(review) == "valid" and qualified, "complete": review is not None})
         found["judges"].append({"valid": validity_status(verdict) == "valid", "complete": verdict is not None})
@@ -996,7 +1095,7 @@ def invocation_evidence(layout: Layout, rec: dict, inv: dict) -> dict:
         for receipt in epoch["receipts"]:
             found["reviews"].append({"valid": validity_status((receipt or {}).get("review")) == "valid", "complete": receipt is not None})
             found["judges"].append({"valid": validity_status((receipt or {}).get("judge")) == "valid", "complete": receipt is not None})
-        if epoch["incomplete"] or len(epoch["receipts"]) < epoch["expected"]:
+        if epoch["incomplete"]:
             found["reviews"].append({"valid": False, "complete": False})
     # the runs that stand for the case on the build the step ends with
     if inv["promoted"]:
@@ -1118,10 +1217,12 @@ def derive_iteration(layout: Layout, rec: dict) -> dict:
         invalid.append("the ledger at the new tip is not an append-only continuation of the published one")
     folded = fold_ledger(layout, final_tip)
     material = {state["record"]: state.get("materiality") in folded["material_words"] for state in folded["records"]}
+    evaluator = {state["record"] for state in folded["records"] if state.get("target") == "harness"}
     seen, discoveries = {row.get("record") for row in before}, []
     for row in after[len(before):]:
         if row.get("event") == "opened":
-            discoveries.append({"id": row["record"], "material": bool(material.get(row["record"])), "repeat": row["record"] in seen})
+            if row["record"] not in evaluator:  # a finding about the evaluator is an adapter record: it never blocks a subject iteration
+                discoveries.append({"id": row["record"], "material": bool(material.get(row["record"])), "repeat": row["record"] in seen})
             seen.add(row["record"])
     build_after = done[-1]["build_after"] if done else rec["build_before"]
     scoring = scoring_token(layout)
@@ -1168,6 +1269,9 @@ def settle(layout: Layout, rec: dict, state: str, reason: str) -> None:
         verified, receipt = lifecycle_cleanup(layout, rec)
     except (OSError, FacadeError) as error:
         verified, receipt = False, f"lifecycle cleanup failed: {error}"
+    stuck = kill_problems(rec.get("kill"))
+    if stuck:
+        verified, receipt = False, receipt + "; " + "; ".join(stuck)
     held = [item for item in archives if item["ledger_rows"] or item["commits"] or item["changed_paths"]]
     text = reason + "".join(f"; archive {item['path']} ({item['ledger_rows']} ledger row(s), {item['commits']} commit(s), "
                             f"{item['changed_paths']} changed path(s))" for item in held) + "".join(f"; {note}" for note in notes)
@@ -1253,9 +1357,9 @@ def worker_main(layout: Layout, key: str) -> int:
         rec = load_step(layout, key)
         if rec is None or rec["state"] != "starting":
             return 0
-        rec.update(state="running", worker=identity_of(os.getpid()), started_at=now(), started_epoch=time.time())
-        save_step(layout, rec)
         try:
+            rec.update(state="running", worker=identity_of(os.getpid()), started_at=now(), started_epoch=time.time())
+            save_step(layout, rec)
             run_step(layout, rec)
         except FacadeError as error:
             if rec["state"] != "prepared":
@@ -1272,6 +1376,7 @@ def worker_main(layout: Layout, key: str) -> int:
 # ----------------------------------------------------------------------------------------------------------- the step verbs
 
 BOOT_GRACE_SECONDS = 10.0  # a worker just spawned may not hold its lock yet; a step is not called lost before this has passed
+MAX_SPAWNS = 3  # a step whose worker never started is begun again at most this many times, then it fails with the worker's log
 
 
 def spawn_worker(layout: Layout, rec: dict) -> None:
@@ -1301,6 +1406,17 @@ def worker_group(table: dict, worker) -> list:
     return alive_in_group(table, worker["pgid"])
 
 
+def kill_problems(kill) -> list:
+    """Why a kill is not proof that nothing is left running: a group that survived SIGKILL, one this process may not signal or could not
+    verify, or sessions below the worker that survived. `reused` and `gone` mean nothing of the worker's is left."""
+    if not kill:
+        return []
+    found = [f"the worker's process group {kill['group']}"] if kill.get("group") in ("survived", "protected", "unverified") else []
+    if kill.get("survivors"):
+        found.append(f"{len(kill['survivors'])} process(es) below the worker did not end")
+    return found
+
+
 def kill_step(layout: Layout, rec: dict) -> dict:
     """End a live step: snapshot what runs below the worker (the model sessions the harness starts in sessions of their own are found
     through parent links only while their parents live, so this comes first), stop the worker's group (the worker and the engine), then
@@ -1326,13 +1442,34 @@ def advance(layout: Layout, rec: dict) -> dict:
         if worker_alive(layout, rec["key"]):
             return {"status": "running"}
         if state == "starting":
-            if time.time() - rec["created_epoch"] < BOOT_GRACE_SECONDS:
+            if time.time() - rec.get("spawned_epoch", rec["created_epoch"]) < BOOT_GRACE_SECONDS:
                 return {"status": "running"}
-            spawn_worker(layout, rec)  # the intent is durable and nothing ran: begin it
-            return {"status": "running"}
-        if rec.get("worker"):
-            rec["kill"] = kill_step(layout, rec)  # a worker that died alone leaves its engine in the group
-        settle(layout, rec, "failed", "the step's worker ended without a result (killed or crashed): " + tail(Path(rec["out"]) / "worker.log"))
+            begin = False
+            with Exclusive(layout, rec["key"], wait=False) as held:
+                if not held.held:
+                    return {"status": "running"}
+                rec = load_step(layout, rec["key"])
+                if rec["state"] == "starting":
+                    if rec.get("spawns", 1) >= MAX_SPAWNS:
+                        settle(layout, rec, "failed", f"the step's worker did not start in {rec.get('spawns', 1)} attempts: " + tail(Path(rec["out"]) / "worker.log"))
+                    else:
+                        rec.update(spawns=rec.get("spawns", 1) + 1, spawned_epoch=time.time())
+                        save_step(layout, rec)
+                        begin = True
+            if begin:
+                spawn_worker(layout, rec)  # the intent is durable and nothing ran: begin it again (the lock is free, the worker takes it)
+                return {"status": "running"}
+            state = rec["state"]
+            if state == "starting":
+                return {"status": "running"}
+        with Exclusive(layout, rec["key"], wait=False) as held:
+            if not held.held:
+                return {"status": "running"}  # a worker began in the meantime
+            rec = load_step(layout, rec["key"])
+            if rec["state"] in LIVE:
+                if rec.get("worker"):
+                    rec["kill"] = kill_step(layout, rec)  # a worker that died alone leaves its engine in the group
+                settle(layout, rec, "failed", "the step's worker ended without a result (killed or crashed): " + tail(Path(rec["out"]) / "worker.log"))
         state = rec["state"]
     if state == "prepared":
         if worker_alive(layout, rec["key"]):
@@ -1349,11 +1486,22 @@ def advance(layout: Layout, rec: dict) -> dict:
     return {"status": state, "error": rec.get("error"), "iteration": {"consumed": rec.get("consumed") or {"seconds": 0.0, "runs": 0}}}
 
 
+def start_reply(reply: dict) -> dict:
+    """The orchestrator accepts only `running` or `done` from `step start`. A replay of a step that has since failed or been cancelled
+    answers `running`; its next poll reports the failure and what it consumed, which is what the orchestrator records."""
+    return reply if reply["status"] == "done" else {"status": "running"}
+
+
 def step_start(layout: Layout, args) -> dict:
     key = check_key(args.key)
+    with admission(layout):
+        return step_start_admitted(layout, args, key)
+
+
+def step_start_admitted(layout: Layout, args, key: str) -> dict:
     rec = load_step(layout, key)
     if rec is not None:  # idempotent on the key: the same handle, nothing launched twice
-        return {"handle": key, **advance(layout, rec)}
+        return {"handle": key, **start_reply(advance(layout, rec))}
     cases = [case for case in args.cases.split(",") if case]
     if not cases or len(set(cases)) != len(cases):
         raise FacadeError("--cases must name at least one case, each once")
@@ -1372,9 +1520,9 @@ def step_start(layout: Layout, args) -> dict:
     build = build_token(layout, tip)
     if args.base != build:
         raise FacadeError(f"the published build is {build}, not the requested base {args.base}: the build moved since the step was planned")
-    busy = live_keys(layout)
+    busy = unsettled_keys(layout)
     if busy:
-        raise FacadeError(f"step {busy[0]} is still running in this workspace: one step at a time")
+        raise FacadeError(f"step {busy[0]} has not finished: poll it, or run cleanup for it, before another begins (one step at a time)")
     dirty = x_dirty(layout)
     if dirty:
         raise FacadeError("the evaluator clone has uncommitted paths: " + ", ".join(dirty[:5]))
@@ -1383,8 +1531,8 @@ def step_start(layout: Layout, args) -> dict:
     profile["engine_args"] = list(getattr(args, "engine_arg", None) or [])
     rec = {"schema": STEP_SCHEMA, "key": key, "scope": args.scope, "cases": cases, "mode": args.mode, "base": args.base, "out": str(out),
            "profile": profile, "tip_from": tip, "build_before": build, "scoring_before": scoring_token(layout), "state": "starting",
-           "created_at": now(), "created_epoch": time.time(), "worker": None, "invocations": [], "iteration": None, "prepared": None,
-           "error": None}
+           "created_at": now(), "created_epoch": time.time(), "spawned_epoch": time.time(), "spawns": 1, "worker": None, "invocations": [],
+           "iteration": None, "prepared": None, "error": None}
     save_step(layout, rec)  # the write-ahead intent: from here a replay of this start finds it
     spawn_worker(layout, rec)
     return {"handle": key, "status": "running"}
@@ -1401,11 +1549,12 @@ def step_cancel(layout: Layout, args) -> dict:
     rec = load_step(layout, check_key(args.handle))
     if rec is None:
         raise FacadeError(f"no step with handle {args.handle}")
-    if rec["state"] in LIVE:
-        killed = kill_step(layout, rec)
-        rec = load_step(layout, rec["key"])  # the worker may have finished first: then the step is simply done (never save a stale copy over it)
+    with Exclusive(layout, rec["key"], stop_live=True) as held:
+        if not held.held:
+            raise FacadeError(f"the worker of step {rec['key']} did not stop in {EXCLUSIVE_WAIT_SECONDS:.0f} seconds")
+        rec = load_step(layout, rec["key"])  # the worker may have finished first: then the step is simply done
         if rec["state"] in LIVE:
-            rec["kill"] = killed
+            rec["kill"] = held.killed or {"group": "gone", "detail": {}, "sessions": 0, "survivors": [], "at": now()}
             settle(layout, rec, "cancelled", "cancelled by the operator")
     return advance(layout, rec)
 
@@ -1421,16 +1570,23 @@ def cmd_cleanup(args) -> dict:
     layout = layout_from_env()
     verified, parts = True, []
     for key in [item for item in args.keys.split(",") if item]:
-        rec = load_step(layout, check_key(key))
-        if rec is None:
+        if load_step(layout, check_key(key)) is None:
             parts.append(f"{key}: no step record, so this facade launched nothing for it")
             continue
-        if rec["state"] in LIVE:
-            if worker_alive(layout, key) or rec.get("worker"):
-                rec["kill"] = kill_step(layout, rec)
-            settle(layout, rec, "cancelled", "ended by cleanup")
-        ok, receipt = lifecycle_cleanup(layout, rec)
-        save_step(layout, rec)
+        with Exclusive(layout, key, stop_live=True) as held:
+            if not held.held:
+                verified = False
+                parts.append(f"{key}: its worker did not stop in {EXCLUSIVE_WAIT_SECONDS:.0f} seconds")
+                continue
+            rec = load_step(layout, key)
+            if rec["state"] in LIVE:
+                rec["kill"] = held.killed or {"group": "gone", "detail": {}, "sessions": 0, "survivors": [], "at": now()}
+                settle(layout, rec, "cancelled", "ended by cleanup")
+            ok, receipt = lifecycle_cleanup(layout, rec)
+            stuck = kill_problems(rec.get("kill"))
+            if stuck:
+                ok, receipt = False, receipt + "; " + "; ".join(stuck)
+            save_step(layout, rec)
         verified = verified and ok and not worktrees(layout)
         parts.append(f"{key} ({rec['state']}): {receipt}")
     return {"verified": bool(verified), "receipt": " | ".join(parts) or "no step named"}
@@ -1615,6 +1771,15 @@ def probe_calibrated(layout: Layout, args, profile: str) -> dict:
     if named != profile:
         return {"state": "unmeasured", "evidence": f"the report is for {named}, not {profile}", "consumed": {"seconds": 0.0}}
     calibration = checked["calibration"]
+    if not checked["cases"]:
+        return {"state": "unmeasured", "evidence": f"the report {path} covers no case", "consumed": {"seconds": 0.0}}
+    thin = [name for name, found in sorted(checked["per_case"].items())
+            if not (isinstance(found.get("attempts"), int) and found["attempts"] >= 2 * calibration["attempts"]
+                    and isinstance(found.get("compared"), int) and found["compared"] > 0)]
+    if thin:
+        return {"state": "unmeasured", "consumed": {"seconds": 0.0},
+                "evidence": f"the report {path} holds no measured noise for {', '.join(thin)}: each case needs at least 2 x {calibration['attempts']} "
+                            "sealed attempts and compared splits of the metric it recommends"}
     return {"state": "calibrated", "consumed": {"seconds": 0.0},
             "evidence": f"{path} is a calibration/1 report for {named} over {', '.join(checked['cases'])}; its scoring digest {calibration['sha256'][:12]} "
                         f"equals the current scoring files'; it recommends {calibration['attempts']} attempts per arm at tolerance "
@@ -1673,9 +1838,14 @@ def cmd_decide(args) -> dict:
         raise FacadeError("--reason must carry the owner's words")
     if args.outcome == "defer" and not (args.reopen_when or "").strip():
         raise FacadeError("a deferral needs --reopen-when: the condition that brings the record back")
-    busy = live_keys(layout)
+    with admission(layout):
+        return decide_admitted(layout, args)
+
+
+def decide_admitted(layout: Layout, args) -> dict:
+    busy = unsettled_keys(layout)
     if busy:
-        raise FacadeError(f"step {busy[0]} is still running: a decision is recorded between steps")
+        raise FacadeError(f"step {busy[0]} has not finished: a decision is recorded between steps, after its poll has published or settled it")
     tip = published_tip(layout)
     known = {state["record"] for state in fold_ledger(layout, tip)["records"]}
     if args.record not in known:

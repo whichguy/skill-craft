@@ -62,7 +62,7 @@ STATE: dict = {}
 RIGGED_RULE = "    return path.startswith(CANDIDATE_PREFIXES) and not path.startswith(HARNESS_PREFIXES)\n"
 
 
-def build_engine_source(folder: Path, rigged: bool = False):
+def build_engine_source(folder: Path, rigged: bool = False, clean: bool = False):
     """The stand-in source: the stand-in engine and scorecard, a quick tier that exits as $FAKE_TIER_EXIT says, and a build script that
     only makes its folder. `rigged` also makes the harness's boundary rule accept every path (the negative control of the planted-edit check)."""
     src, _ = queries.build_source(folder)
@@ -72,6 +72,8 @@ def build_engine_source(folder: Path, rigged: bool = False):
     (src / "test" / "run-all.sh").write_text("#!/bin/sh\nexit ${FAKE_TIER_EXIT:-0}\n")
     (src / "scripts").mkdir()
     (src / "scripts" / "build-packages.py").write_text("import pathlib, sys\npathlib.Path(sys.argv[1]).mkdir(parents=True, exist_ok=True)\n")
+    if clean:  # no learning record at all: nothing keeps a scope from converging but the evidence
+        (src / facade.LEDGER_REL).write_text("")
     if rigged:
         text = (harness / "boundary.py").read_text()
         if RIGGED_RULE not in text:
@@ -85,7 +87,7 @@ def source_for(variant: str):
     if variant not in STATE["variants"]:
         folder = STATE["folder"] / f"source-{variant}"
         folder.mkdir()
-        STATE["variants"][variant] = build_engine_source(folder, rigged=(variant == "rigged"))
+        STATE["variants"][variant] = build_engine_source(folder, rigged=(variant == "rigged"), clean=(variant == "clean"))
     return STATE["variants"][variant]
 
 
@@ -241,6 +243,14 @@ class QuietStepTests(StepCase):
         second = self.valid(self.finish("s2"), ["hello"])
         self.assertEqual(second["discoveries"], [{"id": "LR-20261115-aaaaaa", "material": True, "repeat": True}])
 
+    def test_a_finding_about_the_evaluator_is_an_adapter_record_and_not_a_discovery(self):
+        self.set_knobs({"*": {"kind": "discover", "record": "LR-20261115-bbbbbb", "target": "harness"}})
+        self.start("s1", ["hello"])
+        it = self.valid(self.finish("s1"), ["hello"])
+        self.assertEqual(it["discoveries"], [], "a harness finding never blocks a subject iteration, or a repeat of it would keep the window from ever closing")
+        by_id = {item["id"]: item for item in self.run_cli("records")["records"]}
+        self.assertEqual(by_id["LR-20261115-bbbbbb"]["target"], "adapter", "it is still in the ledger, and in the report as an adapter record")
+
     def test_a_file_the_engine_leaves_in_the_clone_is_reported_and_removed(self):
         self.set_knobs({"*": {"stray": True}})
         self.start("s1", ["hello"])
@@ -395,7 +405,8 @@ class CycleStepTests(StepCase):
         self.start("s2", ["hello"])
         second = self.valid(self.finish("s2"), ["hello"])
         self.assertEqual(second["build_before"], first["build_after"])
-        self.assertEqual(git(self.x, "merge-base", "--is-ancestor", self.record("s1")["prepared"]["tip_to"], self.tip(), check=False), "")
+        self.assertEqual(subprocess.run(["git", "-C", str(self.x), "merge-base", "--is-ancestor", self.record("s1")["prepared"]["tip_to"], self.tip()],
+                                        check=False).returncode, 0, "the first step's published tip is in the second step's history")
         self.assertEqual(subprocess.run(["git", "-C", str(self.x), "merge-base", "--is-ancestor", first["candidate"]["hash"], self.tip()],
                                         check=False).returncode, 0, "the promoted candidate is in the second step's history")
 
@@ -508,7 +519,7 @@ class ProcessTests(StepCase):
         self.assertEqual((again["handle"], again["status"]), (first["handle"], "running"))
         refused = self.start("s2", ["hello"], check=False)
         self.assertEqual(refused.returncode, 2)
-        self.assertIn("step s1 is still running", refused.stderr)
+        self.assertIn("step s1 has not finished", refused.stderr)
         done = self.finish("s1")
         self.assertEqual(len(self.engine_calls()), 1, "the duplicate start launched no second engine")
         replay = self.start("s1", ["hello"])
@@ -605,11 +616,14 @@ class RaceTests(StepCase):
         `prepared` record while the worker did, lose the race on `update-ref`, and overwrite the record with `failed` (seen in a full run)."""
         import threading
         self.start("s1", ["hello"])
-        replies, stop = [], threading.Event()
+        replies, raised, stop = [], [], threading.Event()
 
         def hammer():
-            while not stop.is_set():
-                replies.append(self.poll("s1")["status"])
+            try:
+                while not stop.is_set():
+                    replies.append(self.poll("s1")["status"])
+            except BaseException as error:  # noqa: BLE001 - a poll that raised is a failure of the test, not a lost thread
+                raised.append(repr(error))
         threads = [threading.Thread(target=hammer) for _ in range(3)]
         for thread in threads:
             thread.start()
@@ -620,6 +634,7 @@ class RaceTests(StepCase):
             stop.set()
             for thread in threads:
                 thread.join()
+        self.assertEqual(raised, [], "no polling thread raised")
         self.assertEqual(self.record("s1")["state"], "published")
         self.assertEqual(set(replies) - {"running", "done"}, set(), replies)
         self.assertEqual(self.tip(), self.record("s1")["prepared"]["tip_to"])
@@ -652,11 +667,14 @@ class ProbeTests(StepCase):
         self.assertEqual(reply["state"], "declared")
         self.assertIn("no stored real run folder", reply["evidence"])
 
-    def report(self, driver, tamper=False, name="calibration.json"):
-        digest = facade.bridge(self.layout, "scoring_digest", {"cases": ["hello"]})["sha256"]
+    def report(self, driver, tamper=False, name="calibration.json", cases=("hello",), attempts=6, compared=20):
+        """A calibration/1 report in the shape spread.calibrate writes: per case the sealed attempts and the compared splits of the metric."""
+        digest = facade.bridge(self.layout, "scoring_digest", {"cases": list(cases)})["sha256"]
         path = self.folder / name
-        path.write_text(json.dumps({"contract": "calibration/1", "driver": driver, "cases": {"hello": {}},
-                                    "scoring": {"cases": ["hello"], "sha256": "0" * 64 if tamper else digest},
+        path.write_text(json.dumps({"contract": "calibration/1", "driver": driver, "attempts_sealed": attempts * len(cases),
+                                    "cases": {case: {"attempts": attempts, "false_decision": {"tokens": {"0.45": 0.04, "compared": compared}}}
+                                              for case in cases},
+                                    "scoring": {"cases": list(cases), "sha256": "0" * 64 if tamper else digest},
                                     "recommended": {"attempts": 3, "tolerance": 0.45, "metric": "tokens", "why": None}}))
         return path
 
@@ -669,7 +687,12 @@ class ProbeTests(StepCase):
         cases = (("no report", (), "no calibration report was given"),
                  ("a changed scoring digest", ("--calibration", str(self.report(driver, tamper=True, name="tampered.json"))), "scoring files or case entries changed"),
                  ("another driver", ("--calibration", str(self.report({**driver, "model": "other"}, name="other.json"))), "the report is for codex/other/high"),
-                 ("no such file", ("--calibration", str(self.folder / "missing.json")), "not a usable calibration"))
+                 ("no such file", ("--calibration", str(self.folder / "missing.json")), "not a usable calibration"),
+                 ("no case at all", ("--calibration", str(self.report(driver, cases=(), name="empty.json"))), "covers no case"),
+                 ("too few attempts to make two arms", ("--calibration", str(self.report(driver, attempts=4, name="thin.json"))),
+                  "holds no measured noise for hello"),
+                 ("no compared splits", ("--calibration", str(self.report(driver, compared=0, name="unmeasured.json"))),
+                  "holds no measured noise for hello"))
         for label, flags, words in cases:
             with self.subTest(label):
                 refused = self.probe(claim, *flags)
@@ -693,6 +716,256 @@ class RiggedBoundaryTests(StepCase):
         self.assertEqual(reply["state"], "declared")
         self.assertIn("NOT separated by boundary.candidate_path", reply["evidence"])
         self.assertIn("the quick tier passed", reply["evidence"], "the other two parts held, so the failure is the planted edit's alone")
+
+
+class BootWindowTests(StepCase):
+    """The worker owns its record while it lives; a canceller must not rewrite it until the worker is gone, and a worker that starts after
+    a cancel must do nothing."""
+
+    def intent_only(self, key="s1"):
+        original = facade.spawn_worker
+        facade.spawn_worker = lambda layout, rec: None  # the call wrote its intent and died before launching anything
+        try:
+            os.environ["CLOSED_LOOP_WORKSPACE"] = str(self.x)
+            args = type("Args", (), {"key": key, "scope": "s1", "cases": "hello", "mode": "iterate", "base": self.build(),
+                                     "out": str(self.work / "runs" / key), "host": "codex", "model": "m", "effort": "high",
+                                     "calibration": None, "tolerance": 0.25, "attempts": 1, "parallel": 1, "engine_arg": None})
+            facade.step_start(self.layout, args)
+        finally:
+            facade.spawn_worker = original
+
+    def test_a_worker_that_starts_after_a_cancel_does_nothing(self):
+        self.intent_only()
+        self.run_cli("step", "cancel", "--handle", "s1")
+        self.assertEqual(self.record("s1")["state"], "cancelled")
+        done = subprocess.run([sys.executable, "-B", str(FACADE), "worker", "--key", "s1"], capture_output=True, text=True, check=False,
+                              env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "CLOSED_LOOP_WORKSPACE": str(self.x),
+                                   "FAKE_ENGINE": str(self.knobs), "FAKE_LOG": str(self.log)})
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.record("s1")["state"], "cancelled", "the late worker did not run the step or rewrite its record")
+        self.assertEqual(self.engine_calls(), [])
+
+    def test_a_cancel_waits_for_a_worker_that_is_still_booting_and_then_settles_the_record(self):
+        self.intent_only()
+        booting = facade.WorkerLock(self.layout.lock_file("s1"))  # a worker that holds its lock but has not recorded who it is
+        self.assertTrue(booting.acquire())
+        cancel = subprocess.Popen([sys.executable, "-B", str(FACADE), "step", "cancel", "--handle", "s1"], stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True,
+                                  env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "CLOSED_LOOP_WORKSPACE": str(self.x)})
+        time.sleep(1.5)
+        self.assertIsNone(cancel.poll(), "the cancel waits: the lock is held, so the record is not its to rewrite")
+        self.assertEqual(self.record("s1")["state"], "starting")
+        booting.release()  # the worker ends (here: never was)
+        out, err = cancel.communicate(timeout=30)
+        self.assertEqual(cancel.returncode, 0, err)
+        self.assertEqual(json.loads(out)["status"], "cancelled")
+        self.assertEqual(self.record("s1")["state"], "cancelled")
+
+
+class ReviewFindingsTests(StepCase):
+    """Regression tests for the Sol max review of the facade's contract (docs/experiments/closed-loop-phase2-review-20261115/g1-sol-answer.txt)."""
+
+    def test_two_steps_started_at_the_same_moment_are_not_both_admitted(self):
+        """A per-step lock cannot serialise two steps with different keys; the workspace admission lock does."""
+        self.set_knobs({"*": {"sleep": 2}})
+        base = self.build()
+        for round_number in range(2):
+            keys = (f"a{round_number}", f"b{round_number}")
+            commands = [[sys.executable, "-B", str(FACADE), "step", "--tolerance", "0.25", "--attempts", "1", "start", "--key", key, "--scope", "s1",
+                         "--cases", "hello", "--mode", "iterate", "--base", base, "--out", str(self.work / "runs" / key)] for key in keys]
+            environment = {"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "CLOSED_LOOP_WORKSPACE": str(self.x),
+                           "FAKE_ENGINE": str(self.knobs), "FAKE_LOG": str(self.log)}
+            started = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=environment) for command in commands]
+            codes = sorted(process.wait(timeout=60) for process in started)
+            for process in started:
+                process.stdout.close()
+                process.stderr.close()
+            self.assertEqual(codes, [0, 2], f"exactly one of two simultaneous starts is admitted (round {round_number})")
+            winner = keys[0] if (self.layout.steps / f"{keys[0]}.json").exists() else keys[1]
+            self.finish(winner)
+            base = self.build()
+
+    def test_a_decision_is_refused_while_a_step_has_not_been_settled_and_accepted_after(self):
+        publication = PublicationTests("test_prepared_and_the_tip_still_at_the_start_is_moved_by_the_next_poll")
+        publication.x, publication.layout, publication.work, publication.base = self.x, self.layout, self.work, self.base
+        publication.build, publication.poll, publication.record = self.build, self.poll, self.record
+        result = publication.commit_on_top(self.base)
+        publication.prepared(tip_to=result)  # a finished step whose worker is gone and whose tip has not moved yet
+        refused = self.run_cli("decide", "--record", "LR-20261101-000002", "--outcome", "accept", "--reason", "the owner's words", check=False)
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("has not finished", refused.stderr)
+        self.assertEqual(self.poll("p1")["status"], "done", "the poll publishes the step's tip")
+        accepted = self.run_cli("decide", "--record", "LR-20261101-000002", "--outcome", "accept", "--reason", "the owner's words")
+        self.assertEqual(git(self.x, "rev-parse", f"{accepted['tip']}^"), result, "the decision sits on the step's published tip")
+
+    def test_the_replay_of_a_start_whose_step_failed_or_was_cancelled_answers_running_and_the_poll_reports_it(self):
+        self.set_knobs({"*": {"fault": "crash"}})
+        first = self.start("s1", ["hello"])
+        self.assertEqual(first, {"handle": "s1", "status": "running"})
+        self.assertEqual(self.finish("s1")["status"], "failed")
+        replay = self.start("s1", ["hello"])
+        self.assertEqual(replay, {"handle": "s1", "status": "running"}, "the orchestrator accepts only running or done from a start")
+        poll = self.poll("s1")
+        self.assertEqual((poll["status"], sorted(poll["iteration"]["consumed"])), ("failed", ["runs", "seconds"]))
+        self.set_knobs({"*": {"fault": "hang"}})
+        self.start("s2", ["hello"])
+        self.assertEqual(self.run_cli("step", "cancel", "--handle", "s2")["status"], "cancelled")
+        self.assertEqual(self.start("s2", ["hello"]), {"handle": "s2", "status": "running"}, "a cancelled step is answered the same way")
+        self.assertEqual(self.poll("s2")["status"], "cancelled")
+
+    def test_a_judge_that_recovered_on_a_retry_is_valid_and_one_that_never_did_is_not(self):
+        self.set_knobs({"*": {"judge_retry": "recovered"}})
+        self.start("s1", ["hello"])
+        recovered = self.valid(self.finish("s1"), ["hello"])
+        self.assertEqual(recovered["judge"], {"valid": True, "complete": True}, "the last assessment is the one that counts, not the first folder")
+        self.set_knobs({"*": {"judge_retry": "exhausted"}})
+        self.start("s2", ["hello"])
+        exhausted = self.valid(self.finish("s2"), ["hello"])
+        self.assertEqual(exhausted["judge"], {"valid": False, "complete": True})
+
+    def test_an_epoch_review_that_was_redone_is_complete(self):
+        self.set_knobs({"csv-report": {"decision": "DROP", "review_retry": "recovered"}})
+        self.start("s1", ["csv-report"])
+        recovered = self.valid(self.finish("s1"), ["csv-report"])
+        self.assertEqual(recovered["review"], {"valid": True, "complete": True}, "an incomplete review that was redone is not still incomplete")
+
+    def test_an_epoch_review_left_incomplete_is_incomplete(self):
+        self.set_knobs({"csv-report": {"decision": "DROP", "review_retry": "incomplete"}})
+        self.start("s1", ["csv-report"])
+        left = self.valid(self.finish("s1"), ["csv-report"])
+        self.assertEqual(left["review"], {"valid": False, "complete": False})
+
+    def test_a_cleanup_that_races_a_finishing_step_does_not_turn_it_into_a_cancelled_one(self):
+        """The worker publishes while cleanup waits for it: the record stays `published` with its iteration."""
+        publication = PublicationTests("test_prepared_and_the_tip_still_at_the_start_is_moved_by_the_next_poll")
+        publication.x, publication.layout, publication.work, publication.base = self.x, self.layout, self.work, self.base
+        publication.build = self.build
+        result = publication.commit_on_top(self.base)
+        rec = publication.prepared(tip_to=result)
+        finishing = facade.WorkerLock(self.layout.lock_file("p1"))
+        self.assertTrue(finishing.acquire())  # a live worker, between `prepared` and `published`
+        cleanup = subprocess.Popen([sys.executable, "-B", str(FACADE), "cleanup", "--keys", "p1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True, env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "CLOSED_LOOP_WORKSPACE": str(self.x)})
+        time.sleep(1.5)
+        self.assertIsNone(cleanup.poll(), "cleanup waits for a step that is only finishing: it never stops one")
+        git(self.x, "update-ref", facade.TIP_REF, result)
+        rec.update(state="published")
+        facade.save_step(self.layout, rec)  # the worker's last save
+        finishing.release()
+        _out, err = cleanup.communicate(timeout=30)
+        self.assertEqual(cleanup.returncode, 0, err)
+        self.assertEqual(self.record("p1")["state"], "published")
+        self.assertEqual(self.record("p1")["iteration"], rec["iteration"])
+
+    def test_a_kill_that_left_something_running_is_a_blocker_for_a_verified_cleanup(self):
+        for kill, words in (({"group": "survived", "survivors": []}, "process group survived"),
+                            ({"group": "protected", "survivors": []}, "process group protected"),
+                            ({"group": "unverified", "survivors": []}, "process group unverified"),
+                            ({"group": "stopped", "survivors": [123, 456]}, "2 process(es) below the worker did not end")):
+            self.assertIn(words, " ".join(facade.kill_problems(kill)))
+        for kill in ({"group": "stopped", "survivors": []}, {"group": "gone", "survivors": []}, {"group": "reused", "survivors": []}, None):
+            self.assertEqual(facade.kill_problems(kill), [])
+        boot = BootWindowTests("test_a_worker_that_starts_after_a_cancel_does_nothing")
+        boot.x, boot.layout, boot.work, boot.base, boot.build = self.x, self.layout, self.work, self.base, self.build
+        boot.intent_only()
+        rec = self.record("s1")
+        rec["kill"] = {"group": "survived", "detail": {}, "sessions": 0, "survivors": [], "at": "t"}
+        facade.settle(self.layout, rec, "cancelled", "cancelled by the operator")
+        self.assertIn("process group survived", self.record("s1")["error"], "the settle says what the kill left")
+
+    def test_a_worker_that_cannot_read_the_process_table_fails_the_step_and_is_not_started_again_forever(self):
+        boot = BootWindowTests("test_a_worker_that_starts_after_a_cancel_does_nothing")
+        boot.x, boot.layout, boot.work, boot.base, boot.build = self.x, self.layout, self.work, self.base, self.build
+        boot.intent_only()
+        real = facade.ps_rows
+
+        def broken(*_args, **_kwargs):
+            raise facade.FacadeError("ps could not be run: [Errno 1] Operation not permitted")
+        facade.ps_rows = broken
+        try:
+            facade.worker_main(self.layout, "s1")
+        finally:
+            facade.ps_rows = real
+        record = self.record("s1")
+        self.assertEqual(record["state"], "failed")
+        self.assertIn("ps could not be run", record["error"])
+        # and a start that never produced a worker is begun again a bounded number of times
+        boot.intent_only("s2")
+        started = []
+        original = facade.spawn_worker
+        facade.spawn_worker = lambda layout, rec: started.append(rec["key"])
+        try:
+            for _ in range(facade.MAX_SPAWNS + 2):
+                rec = self.record("s2")
+                rec["spawned_epoch"] -= 60
+                facade.save_step(self.layout, rec)
+                facade.advance(self.layout, self.record("s2"))
+        finally:
+            facade.spawn_worker = original
+        self.assertEqual(len(started), facade.MAX_SPAWNS - 1, "the first spawn was the start's own; the rest are bounded")
+        failed = self.record("s2")
+        self.assertEqual(failed["state"], "failed")
+        self.assertIn(f"did not start in {facade.MAX_SPAWNS} attempts", failed["error"])
+
+
+class OrchestratorConvergenceTests(StepCase):
+    """The real orchestrator with the facade's real step verbs, on stand-in evidence and an empty ledger, with readiness answered by a stub:
+    evidence that is quiet and comparable converges the scope, and evidence that misses its floors never does. (The real-engine suite's
+    fake hosts leave fidelity unobserved, so they can show only the second.)"""
+
+    variant = "clean"
+
+    def campaign(self, knobs, iterations):
+        self.set_knobs(knobs)
+        facade.write_json(self.layout.tier_file(self.build()), {"green": True, "build": self.build(), "at": "2026-11-15T00:00:00Z"})
+        stub = self.folder / "probe_stub.py"
+        stub.write_text("import json, sys\nTOP = {'cases.runs': 'runs', 'grading.scores': 'scores', 'improver.bounded': 'bounded', "
+                        "'grading.calibrated': 'calibrated'}\nprint(json.dumps({'state': TOP[sys.argv[-1].split(':')[0]], "
+                        "'evidence': 'stub: ' + sys.argv[-1], 'consumed': {'seconds': 0}}))\n")
+        manifest = json.loads((HARNESS / "adapter" / "adapter.json").read_text())
+        manifest["execution"]["pin"] = [str(FACADE), str(HARNESS / "adapter" / "allowlist.json"), str(stub)]
+        manifest["execution"]["cwd"] = str(self.folder)
+        manifest["execution"]["env_allow"] = sorted({*manifest["execution"]["env_allow"], "FAKE_ENGINE", "FAKE_LOG", "FAKE_TIER_EXIT",
+                                                     "PYTHONDONTWRITEBYTECODE"})
+        for name in ("cases", "records", "identity", "step"):
+            manifest["commands"][name][1] = str(FACADE)
+        manifest["commands"]["probe"] = [sys.executable, str(stub)]
+        manifest["execution"]["cleanup"][1] = str(FACADE)
+        path = self.folder / "adapter.json"
+        path.write_text(json.dumps(manifest))
+        campaign = self.folder / "campaign"
+
+        def loop(*args, ok=(0,)):
+            done = subprocess.run([sys.executable, "-B", str(ROOT / "skills" / "closed-loop" / "scripts" / "closed_loop.py"), *args],
+                                  capture_output=True, text=True, check=False,
+                                  env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "CLOSED_LOOP_WORKSPACE": str(self.x),
+                                       "FAKE_ENGINE": str(self.knobs), "FAKE_LOG": str(self.log), "PYTHONDONTWRITEBYTECODE": "1"})
+            self.assertIn(done.returncode, ok, f"closed_loop.py {' '.join(args)}: {done.stdout[-500:]} {done.stderr[-300:]}")
+            return json.loads(done.stdout)
+        loop("init", "--manifest", str(path), "--campaign", str(campaign), "--workspace", str(self.x), "--cases", "hello", "--budget",
+             "seconds=3600,runs=50", "--quiet-window", "1")
+        loop("ratify", "--campaign", str(campaign), "--yes-owner-approved", "--note", "rehearsal: the test plays the owner")
+        self.assertTrue(loop("readiness", "--manifest", str(path), "--campaign", str(campaign), "--workspace", str(self.x), "--require-start")["start_ok"])
+        certificate = status = None
+        for _ in range(80):
+            loop("step", "--campaign", str(campaign), ok=(0, 1))
+            certificate = loop("certificate", "--campaign", str(campaign), ok=(0, 1))
+            status = loop("status", "--campaign", str(campaign), "--no-certificate")
+            if certificate["status"] == "converged" or status["iterations"] >= iterations:
+                break
+            time.sleep(0.4)
+        return certificate, status
+
+    def test_quiet_and_comparable_evidence_converges_the_scope(self):
+        certificate, status = self.campaign({"*": {}}, 4)
+        self.assertEqual(certificate["status"], "converged", certificate.get("reasons"))
+        self.assertEqual(status["iterations"], 2, "the first iteration has no comparable baseline, the second has")
+
+    def test_evidence_that_misses_its_floors_never_converges(self):
+        certificate, status = self.campaign({"*": {"oracle": "fail"}}, 3)
+        self.assertEqual(certificate["status"], "incomplete")
+        self.assertTrue(any("floors" in reason for reason in certificate["reasons"]), certificate["reasons"])
+        self.assertGreaterEqual(status["iterations"], 1)
 
 
 class RefusalTests(StepCase):
@@ -753,6 +1026,30 @@ class PureTests(unittest.TestCase):
         ident = facade.identity_of(child.pid)
         how, _detail = facade.stop_group(ident)
         self.assertEqual(how, "gone")
+
+    def orphaned_group(self):
+        """A process group whose leader has exited and whose one member lives on; returns (the leader's pid, the member's identity)."""
+        starter = ("import subprocess,sys;p=subprocess.Popen([sys.executable,'-c','import subprocess,sys,time;"
+                   "subprocess.Popen([sys.executable,\\'-c\\',\\'import time;time.sleep(60)\\']);time.sleep(0.5)'],start_new_session=True,"
+                   "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);print(p.pid)")
+        leader = int(subprocess.run([sys.executable, "-c", starter], capture_output=True, text=True, check=True).stdout.strip())
+
+        def orphaned():
+            table = facade.ps_rows()
+            return leader not in table and facade.alive_in_group(table, leader)
+        members = wait_for(orphaned, 15)
+        self.addCleanup(lambda: [os.kill(row["pid"], signal.SIGKILL) for row in facade.alive_in_group(facade.ps_rows(), leader)
+                                 if row["pid"] != os.getpid()])
+        return leader, {"pid": members[0]["pid"], "started": members[0]["started"]}
+
+    def test_a_group_whose_leader_is_gone_is_left_alone_when_its_record_is_old_and_stopped_when_it_is_recent(self):
+        leader, member = self.orphaned_group()
+        old = facade.stop_group({"pid": leader, "pgid": leader, "started": "Mon Jan  1 00:00:00 2001"})
+        self.assertEqual(old[0], "unverified", "after hours, a group number with an absent leader may belong to another process")
+        self.assertTrue(alive(member["pid"]), "its members were left alone")
+        recent = facade.stop_group({"pid": leader, "pgid": leader, "started": member["started"]})
+        self.assertEqual(recent[0], "stopped")
+        self.assertTrue(wait_for(lambda: not alive(member["pid"]), 10))
 
     def test_this_process_and_its_ancestors_are_never_signalled(self):
         how, _detail = facade.stop_group({"pid": os.getpid(), "pgid": os.getpgrp(), "started": facade.identity_of(os.getpid())["started"]})
