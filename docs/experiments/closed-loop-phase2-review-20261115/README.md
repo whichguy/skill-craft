@@ -12,11 +12,16 @@ appendix B; this folder holds the evidence.
 
 | 3 | the BUILT facade (commit 441b9edb4f6fbb990d1401c56538ac8bad0c49f3: code, tests, manifest), gate G1 | not ready for the first real compute (eleven findings, ten verified bugs and one likely) | 974 s | `g1-sol-brief.txt`, `g1-sol-answer.txt`, `g1-sol-run.json`, `g1-sol-witness-*.json` |
 
+| 4 | the fixes of round 3 (main at a9d40c307a9edec62d2a487d810e30e630710821, containing fc5b3d5e) | not ready (five findings fixed, six partly; seven verified bugs) | 872 s | `g1b-sol-brief.txt`, `g1b-sol-answer.txt`, `g1b-sol-run.json`, `g1b-sol-*-results.json`, `g1b-sol-kill-result-race.json` |
+
 Round 3 is the plan's gate G1: Codex `gpt-6.1-sol` at max effort, one attempt, no fallback, `workspace-write` sandbox, in a neutral clone of the branch
 under `/tmp` (its origin remote removed; the clone's status was identical before and after). The reviewer could not run `ps` in its sandbox, so
 the steps and real-engine suites timed out for it (only the 28 queries tests ran there); the behaviours it reports were reproduced with its own
 witness scripts, kept here as `g1-sol-witness-*.json`. Each finding was checked against the code before it was accepted; what each changed is in
 the journal's round R8 (`docs/closed-loop-journal.md`).
+
+Round 4 verified round 3's fixes in the same way (a neutral clone of main, no `ps` in the reviewer's sandbox, its own witness scripts). What each finding
+changed is in the journal's round R9.
 
 `round1-sol-kill-witness.json` is the reviewer's own scratch result: a stubbed qualified cycle that appends two owner findings to the
 ledger and is then SIGKILLed; the loop worktree keeps them as an uncommitted change and the output folder is empty. It shows the window

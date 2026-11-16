@@ -1,0 +1,65 @@
+**Verdict: not ready for the first real compute sequence.** The fixes improve the adapter, but cleanup can still certify surviving processes, and publication remains insufficiently synchronized.
+
+Reviewed `a9d40c30`, containing `fc5b3d5e`. The checkout remained clean. The query suite passed **29 tests in 25.1 seconds**; I did not run the two prohibited suites. Controlled witnesses and outputs are retained in [verification evidence](/tmp/g1b-verification-o9esbdtl/witness-results.json), [additional evidence](/tmp/g1b-verification-o9esbdtl/extra-results.json), and [kill-result evidence](/tmp/g1b-verification-o9esbdtl/kill-result-race.json).
+
+The eleven findings, in their original order:
+
+| # | Assessment | Code and remaining gap |
+|---|---|---|
+| 1. Booting worker versus cancellation | **FIXED** | [facade.py — `Exclusive`, `worker_main`](/private/tmp/g1b-sol.J8zz0X/checkout/test/shiploop_e2e/adapter/facade.py): cancellation waits for ownership; a late worker reads `cancelled` and exits. Timeout fails closed. |
+| 2. Failed termination versus verified cleanup | **PARTLY** | `kill_problems`, `settle`, and `cmd_cleanup` incorporate retained negative results. However, cleanup now skips termination when it immediately obtains a dead worker’s lock, and can discard `held.killed` after a state transition. |
+| 3. Cleanup overwriting publication | **PARTLY** | `Exclusive` protects a live worker’s final save. A dead worker’s publication through `advance` still occurs outside `Exclusive`, allowing cleanup to overwrite it. |
+| 4. Concurrent starts | **FIXED** | `step_start` holds `admission` across admission and intent creation. Different keys share that lock. A separate poll/start race remains below. |
+| 5. Decisions during pending publication | **FIXED** | `decide_admitted` checks `unsettled_keys`, including dead `prepared` workers, before reading/moving the tip. Cleanup’s incomplete reconciliation remains a recovery problem. |
+| 6. Terminal start replay | **FIXED** | `start_reply` returns `running` for failed/cancelled records; subsequent polling reports their terminal state and consumption. This matches [closed_loop.py — `apply_action`](/private/tmp/g1b-sol.J8zz0X/checkout/skills/closed-loop/scripts/closed_loop.py). |
+| 7. Assessment retries | **PARTLY** | `final_verdict` correctly selects the highest numeric retry, matching [cycle.py — `explore`](/private/tmp/g1b-sol.J8zz0X/checkout/test/shiploop_e2e/cycle.py) and [judge.py — `judge`](/private/tmp/g1b-sol.J8zz0X/checkout/test/shiploop_e2e/judge.py). `epoch_evidence` correctly collapses review events per attempt, but does not verify receipt seals and selects the first decision. |
+| 8. Case authority | **FIXED** | `load_allowlist` maps `needs`, `platform`, and `base` into the manifest’s requirement vocabulary; `hosted` follows `platform`. This correctly gates [cases.json — `battleship`](/private/tmp/g1b-sol.J8zz0X/checkout/test/shiploop_e2e/cases.json). |
+| 9. Calibration without observations | **PARTLY** | Empty coverage, insufficient samples, and zero comparisons are rejected. The fields match [spread.py — `calibrate`, `case_spread`, `recommend`](/private/tmp/g1b-sol.J8zz0X/checkout/test/shiploop_e2e/spread.py). However, a malformed recommendation of **zero attempts**, zero observations, and `compared:1` still returns `calibrated`. |
+| 10. Startup failures and endless retries | **PARTLY** | `worker_main` catches identity initialization failures; `ps_rows` bounds/translates process-table failures; `MAX_SPAWNS` caps launches. Concurrent polls can consume the cap before renewed boot grace expires. |
+| 11. Absent leader and recycled group | **PARTLY** | `stop_group` refuses old leaderless groups. Recent ownership remains unproven, and `kill_step` can still signal descendant sessions of an old, unverified group. |
+
+The concrete changes I would prioritize are:
+
+1. **Verified bug — restore termination checks after immediately acquiring a free lock.**  
+   In `Exclusive`, successful acquisition returns before `kill_step`. Consequently `cmd_cleanup` and `step_cancel` substitute `group:"gone"` for a dead worker whose group may remain alive. My witness used a real sleeping orphan in the recorded group: cleanup returned `verified:true`, called `kill_step` zero times, and left the member alive.
+
+   Also preserve and evaluate `held.killed` regardless of the subsequently loaded state. A second witness returned `group:"survived", survivors:[900002]` while transitioning to `prepared`; cleanup discarded that result and returned verified.
+
+2. **Verified bug — synchronize every prepared-state publication and record rewrite.**  
+   `advance` checks `worker_alive`, releases that probe lock, then calls `publish` without ownership. My barrier witness let cleanup acquire `Exclusive` between those actions: polling returned `done` and saved `published`; cleanup subsequently saved its stale `prepared` record.
+
+   Route publication and publication-failure settlement through the same ownership protocol and reload after acquisition. `stop_live` also has a state-check-to-signal window: a snapshot of `running` can trigger `kill_step` after the durable state becomes `prepared`.
+
+3. **Verified bug — make start’s tip snapshot consistent with reconciliation.**  
+   `step_start_admitted` reads `tip` before checking `unsettled_keys`. A poll can publish between those operations despite start holding admission. My witness accepted a new step with `tip_from=T` while the published tip was already `T′`; the build tokens were equal because the intervening commit changed no candidate files.
+
+   Check unsettled ownership before taking the authoritative tip snapshot, with synchronization covering publication.
+
+   Separately, `cmd_cleanup` leaves dead `prepared` records unsettled while reporting verified. Repeated cleanup never releases admission; an explicit poll does. Resolve that mismatch or report the outstanding reconciliation clearly.
+
+4. **Verified bug — recheck boot grace inside `Exclusive`.**  
+   Three polls can all pass the old grace check, then acquire the lock sequentially. My witness produced two respawns and terminal failure **0.16 seconds** after the latest spawn, despite a ten-second grace. Keep the three-attempt cap, but evaluate the current `spawned_epoch` under ownership.
+
+5. **Verified bug — honor authoritative epoch receipts and decisions.**  
+   `epoch_evidence` accepts a rewritten receipt whose `receipt_sha256` no longer matches. [epoch.py — `state`](/private/tmp/g1b-sol.J8zz0X/checkout/test/shiploop_e2e/epoch.py) correctly demotes that attempt to `recorded`; the adapter still reports it complete. It also reads the first decision while the harness uses the last. Verify seals and review bindings, and select the latest decision. These are residual contract gaps, not all newly introduced.
+
+6. **Verified bug — apply ownership refusal before collecting/signalling descendant sessions.**  
+   `kill_step` uses `worker_group` to discover extra sessions before `stop_group` declares ownership unverified. It then passes those sessions to `stop_processes` anyway. My stale-group witness identified an unrelated descendant session for termination.
+
+   `age_seconds` also depends on local wall time: changing UTC to Los Angeles converted a genuinely sixteen-hour-old record into eight hours; the DST fold is ambiguous, and parse failure returns zero. `PS_ENV` correctly fixes textual locale; locale was not the demonstrated CLI failure. Prefer durable ownership evidence and an epoch timestamp over this age heuristic.
+
+7. **Verified bug — validate calibration recommendations before using their sample requirement.**  
+   Require a positive, non-boolean integer attempt count and validate recommendation/rate consistency. The zero-attempt witness above bypasses the new substance gate. A report produced through the real `spread.calibrate` calculations, with sealed-card inputs stubbed, passed correctly.
+
+I found **no lock-order cycle**: workers do not acquire admission, and `advance` uses nonwaiting `Exclusive` acquisition. Dead records cause explicit refusals rather than a two-lock deadlock. Admission itself has no timeout.
+
+The new tests are useful but narrower than their names suggest:
+
+- [ReviewFindingsTests](/private/tmp/g1b-sol.J8zz0X/checkout/test/shiploop-e2e-adapter-steps.test.py): decision refusal/acceptance and terminal replay have meaningful assertions. Retry tests exercise the intended fixture vocabulary, but omit seals and real receipt invalidation. Startup testing covers handler placement and serial retry counts, not concurrent grace consumption.
+- Its simultaneous-start test lacks a barrier; removing admission can still pass under favorable scheduling. Its publication test covers a simulated finishing worker, not the unlocked poll path.
+- **`test_a_kill_that_left_something_running_is_a_blocker_for_a_verified_cleanup` cannot detect an always-verified `cmd_cleanup` mutant:** it asserts `kill_problems` and `settle`’s error text, never cleanup’s returned verification.
+- `BootWindowTests` meaningfully check late-worker refusal and lock waiting, but the 1.5-second sleep supplies no execution handshake.
+- `OrchestratorConvergenceTests` provide meaningful positive and negative controls, with readiness explicitly stubbed.
+- The stale-group test checks the age rule, not recycled ownership or descendant-session bypass. The authority test is strong and passed. Calibration’s three negatives each isolate a real condition, but miss zero recommended attempts.
+
+I would not start the smoke campaign without correcting cleanup proof, publication/admission synchronization, and startup retry races, with deterministic regressions. Keep calibration unmeasured pending its fix. Automated kill/recovery trials additionally need the acknowledged durable ownership of reviewer, judge, and improver sessions.

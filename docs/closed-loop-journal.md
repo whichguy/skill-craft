@@ -296,6 +296,39 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
   The probes' positive controls still run on fake hosts. The review ran on the snapshot before the fixes; the fixes themselves have not been reviewed again
   (one more round of review returns less than the first, but a reviewer reading these diffs is the way to learn whether they introduced a defect).
 
+### R9. Sol's verification review of the G1 fixes, and the round it forced (2026-11-15)
+
+- **Question.** Did the fixes of R8 (commit fc5b3d5e, on main as a9d40c30) close the eleven findings without opening new defects, so that the readiness
+  probes and a one-iteration smoke campaign can run?
+- **Review.** Codex `gpt-6.1-sol` at max, one attempt, no fallback, `workspace-write`, a neutral clone of main; 872 seconds; verdict **not ready**
+  (`docs/experiments/closed-loop-phase2-review-20261115/g1b-sol-*`). Of the eleven: five FIXED, six PARTLY. Seven new or remaining defects, each marked
+  verified bug with the reviewer's own witness. I checked each against the code before accepting it; all seven held. It found no lock-order cycle.
+- **What the review showed about the first fixes.** The rule of R8 (whoever is not the live worker rewrites a step's record only under the step's lock)
+  was applied to cancel and cleanup but not to every writer: the poll published a finished step outside the lock, a respawn checked its grace outside the
+  lock, and a start read the tip before it checked for unsettled steps. A lock obtained at once was taken as proof that the worker's group was gone, though a
+  worker killed alone frees its lock while its engine still runs in the group, so cleanup reported verified with a live process left. `kill_step` collected
+  the sessions below a group before deciding whether the group was provably the worker's, and signalled them even when it was not.
+- **What changed (each with a deterministic regression test, and each test mutation-checked: breaking the fix makes it fail, 9 of 9).** One owner for
+  every rewrite and publication: `advance` publishes, respawns and settles only under the step's lock, after a reload, and re-checks the boot grace there;
+  cancel and cleanup publish a step that finished rather than discard it (`finish_publication`). `end_leftovers`: after the lock is held, a kill of whatever a
+  dead worker left in its group, and any kill result counts toward the verdict whatever state the record reached. `group_verdict` decides ownership before
+  anything is collected or signalled; the age rule reads the epoch time stored in the worker's identity (`at`), not ps's local-time text, and an identity with
+  no time proves no ownership of a leaderless group. `step_start` reads the tip after the unsettled check. `epoch_evidence` counts an attempt as reviewed the way
+  `epoch.state` does (its last reviewed receipt with its seal intact) and takes the last decision; a parity test on the real engine's epoch compares the two.
+  The calibration probe needs a positive whole number of attempts and a recommendation that `spread.recommend` gives from the report's own rates.
+- **A fault of the test apparatus, found while measuring.** On the final tree the real-engine suite failed 3 of 5 ("the engine exited 1 on hello"): the real
+  loop's `iterate.record_learnings` runs `git commit` with the caller's git identity, the suite's throwaway home had none, and git's fallback guess
+  (`user@hostname`) is refused when the hostname has no dot. This Mac's hostname had become a dotless identifier that day (`git var GIT_COMMITTER_IDENT` in an
+  empty home: "unable to auto-detect email address (got 'user@<identifier>.(none)')"); the same suite had passed on a9d40c30 earlier the same day. The suite's
+  home now carries its own identity: 5 of 5 OK in 96.8 s. Not a facade defect: in real use the engine runs with the owner's home, which has an identity.
+- **Decisions made in the session (routine; AGENTS.md, Decisions), with reasons.** (12) Cancel and cleanup publish a `prepared` step: it finished, and
+  throwing its result away would make the next step redo it. (13) Re-state the epoch's review rule in the facade (with the parity test) instead of calling
+  `epoch.state`, which needs a fully frozen epoch the stand-in engine does not build. (14) The age rule uses the recorded epoch time, so a time-zone change or a
+  DST fold cannot move it.
+- **Open (unknown).** These fixes are not reviewed yet; R8's were not either and the review found siblings of them, which is the reason for another round.
+  The residual gaps the reviewer named remain stated: reviewer, judge and improver sessions of a worker that died unobserved are in no ledger; recent group
+  ownership is shown by the record's age, not proven.
+
 ## Findings
 
 | # | Finding | Status | Evidence |
@@ -332,3 +365,10 @@ Plan: `docs/closed-loop-plan-2026-11-15.md`. Skill: `skills/closed-loop/`. Tests
 | F30 | A calibration document with no observations passes the harness's loader (it checks the digest and the recommendation): a probe must ask for sealed attempts and compared splits | firm | `ProbeTests.test_the_calibrated_claim_...` (three new negatives) |
 | F31 | A reply's vocabulary belongs to its consumer: `step start` accepts `running` or `done`, so an idempotent replay of a finished step must not answer `failed` (the orchestrator counts it as a start failure, and three stop the campaign) | firm | `ReviewFindingsTests.test_the_replay_of_a_start_...` |
 | F32 | A failure before the exception handler is a step that stays `starting`: a poll then begins a new worker each time (389 identical failures in the reviewer's logs); make start-up failures durable, bound respawns, and turn an unavailable `ps` into an error | firm | `ReviewFindingsTests.test_a_worker_that_cannot_read_the_process_table_...` |
+| F33 | A lock obtained at once proves nothing about the worker's group: a worker killed alone frees its lock while its engine still runs there, so every path that settles a dead step stops the group first | firm | `SecondReviewTests.test_cleanup_stops_what_a_worker_that_died_alone_...`, `..._a_cancel_stops_...`; reviewer witness `g1b-sol-witness-results.json` |
+| F34 | An ownership rule fixed for the writers a review named still fails for the ones it did not: list every writer and every publisher of the state and apply the rule to each (the poll's publication, the respawn's grace check and the start's tip read were the siblings) | firm | `SecondReviewTests`; journal R8 against R9 |
+| F35 | Decide ownership before collecting anything below a process group, and take a record's age from an epoch time stored with it, not from `ps`'s local-time text (a time-zone change turned 16 hours into 8) | firm | `group_verdict`; `PureTests.test_a_group_whose_leader_is_gone_...` |
+| F36 | Where the facade re-states a harness rule, mirror it exactly and keep a parity test against the harness's own function on real data: the facade took the first epoch decision and ignored receipt seals, while `epoch.state` takes the last and demotes a broken seal | firm | `epoch_reviewed`; the real-engine parity assertion |
+| F37 | A recommendation must follow from the report's own measurements: recompute it with the harness's function (`spread.recommend`); a zero attempt count had turned the sample check into 0 >= 0 | firm | `ProbeTests` (two new negatives) |
+| F38 | A test named for a guarantee must fail when the guarantee is removed: break each fix on purpose and run its test (9 of 9 caught here; in R8 the simultaneous-start and the kill tests could not have failed for some mutants) | firm | `docs/experiments/closed-loop-phase2-review-20261115/g1b-mutations.py` and `g1b-mutations.txt` |
+| F39 | A throwaway home must carry every piece of global configuration the code under test relies on: git's fallback identity depends on the hostname, so a suite that passed earlier in the day failed once the hostname lost its dot | firm | `setUpModule` in `test/shiploop-e2e-adapter-engine.test.py`; R9 |

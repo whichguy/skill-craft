@@ -1,0 +1,15 @@
+Use MAX reasoning effort. This is a focused VERIFICATION review, your second on the built ShipLoop adapter for the closed-loop skill. Do not modify any tracked file and write nothing inside the checkout (temporary files and scratch Git repositories under /tmp are fine). Your sandbox does not allow `ps`, so test/shiploop-e2e-adapter-steps.test.py and test/shiploop-e2e-adapter-engine.test.py cannot run there (they need the process table); read the code and use your own witnesses, as last time. test/shiploop-e2e-adapter.test.py does run (about 25 s).
+
+Context. Your previous review (docs/experiments/closed-loop-phase2-review-20261115/g1-sol-brief.txt and g1-sol-answer.txt, on commit 441b9edb4f6fbb990d1401c56538ac8bad0c49f3) said "not ready for the first real compute" with eleven findings. All eleven were accepted and fixed in commit fc5b3d5e (this checkout is main at a9d40c30, a merge that contains it). What changed, finding by finding, is in docs/closed-loop-journal.md round R8 and in that commit's message (git show fc5b3d5e). Code: test/shiploop_e2e/adapter/facade.py; tests: test/shiploop-e2e-adapter*.test.py; stand-in engine: test/fixtures/closed-loop-adapter/fake_iterate.py.
+
+Please do, with file and symbol citations:
+
+1. For each of your eleven findings: FIXED, PARTLY or NOT FIXED, with the code that answers it and anything still missing.
+
+2. NEW DEFECTS THE FIXES INTRODUCED. In particular: `Exclusive` (who may rewrite a step record and when; `stop_live`; the waits; the single-attempt use in `advance`); `admission` and `unsettled_keys` (can an unsettled step whose worker died block `step start` or `decide` forever, can the two locks deadlock, can a poll that settles a dead step race a start that holds admission); `start_reply`; `kill_problems` in `settle` and `cmd_cleanup`; `final_verdict` and the new `epoch_evidence`, checked against the real test/shiploop_e2e/judge.py, cycle.py (`explore`) and epoch.py (event kinds, receipts, retries); the `requires` mapping in `load_allowlist` against cases.json; the calibration probe's substance check against spread.py's real report (`calibrate`, `case_spread`, `recommend`); `worker_main`'s start-up handling and the `MAX_SPAWNS` bound in `advance`; `stop_group`'s stale-group rule and `age_seconds` (local time, locale, daylight saving).
+
+3. TEST QUALITY of the new tests (ReviewFindingsTests, BootWindowTests, OrchestratorConvergenceTests, PureTests' stale-group test, CasesTests' authority gate test, ProbeTests' calibration negatives): would each fail if the code it guards were wrong? Name any that cannot fail.
+
+4. VERDICT: ready for the first real compute (the readiness probes, then a one-iteration smoke campaign on `hello` at a quiet window of 1), ready with changes, or not ready. Then a prioritized list of concrete changes, each marked verified bug, likely bug or judgement, with the evidence. Say what you would NOT start without.
+
+Keep the answer under 1,500 words. Cite files and symbols, not line numbers.

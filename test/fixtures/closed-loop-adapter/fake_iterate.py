@@ -19,7 +19,8 @@ Behaviour per case comes from the JSON file named by $FAKE_ENGINE, `{"<case>" or
   stray     leave an untracked file in the evaluator checkout
   review_invalid  the exploration's review is not discovery-qualified (and no judge runs)
   judge_retry     "recovered" | "exhausted": the first judgment is invalid and a retry folder follows
-  review_retry    "recovered" | "incomplete": a cycle's first attempt review ended incomplete, then was redone | was not
+  review_retry    "recovered" | "incomplete" | "rewritten": a cycle's first attempt review ended incomplete, then was redone | was not |
+                  its receipt was changed after the review sealed it
   attribution     false: the run's card says it cannot be attributed to the build under test
   escape    "ledger": leave a harmless process in a session of its own, recorded in the run's resources.jsonl, as a model host is |
             "tree": the same without the record (only a process snapshot of the engine's children finds it)
@@ -30,6 +31,7 @@ The arguments of every call are appended to $FAKE_LOG when it is set.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import secrets
@@ -197,13 +199,17 @@ def main() -> int:
         for number, attempt in enumerate(attempts):
             receipt = f"receipts/{attempt['id']}-epoch-1.json"
             retry = knob.get("review_retry") if number == 0 else None
-            if retry:  # the first attempt's review ended incomplete once, and was either redone or left so
+            if retry in ("recovered", "incomplete"):  # the first attempt's review ended incomplete once, and was either redone or left so
                 events.append({"kind": "review_incomplete", "attempt_id": attempt["id"]})
             if retry == "incomplete":
                 continue
             (epoch / receipt).write_text(json.dumps({"review": {"validity": {"status": "valid"}}, "judge": {"validity": {"status": "valid"}},
                                                      "routes": {}}))
-            events.append({"kind": "reviewed", "attempt_id": attempt["id"], "receipt": receipt})
+            sealed = hashlib.sha256((epoch / receipt).read_bytes()).hexdigest()
+            if knob.get("review_retry") == "rewritten" and number == 0:  # a receipt changed after the review sealed it
+                (epoch / receipt).write_text(json.dumps({"review": {"validity": {"status": "valid"}}, "judge": {"validity": {"status": "valid"}},
+                                                         "routes": {}, "edited": True}))
+            events.append({"kind": "reviewed", "attempt_id": attempt["id"], "receipt": receipt, "receipt_sha256": sealed})
         events.append({"kind": "decision", "result": {"decision": decision, "attempts": attempts}})
         (epoch / "events.jsonl").write_text("".join(json.dumps(event) + "\n" for event in events))
         promoted = decision == "PROMOTE"

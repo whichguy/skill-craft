@@ -18,8 +18,8 @@ ends the step (3.3 said a promotion); only a false attribution makes evidence in
 live step's worker; the runs-root variable is removed from the engine's environment; the strict outcome and the baseline predicate are the harness's
 own functions run in a bridge process (3.1 said re-stated); `grading.sensitive` and `improver.invocable` are not declared (3.6); and a probe works
 in a clone under the state folder. Read this plan for the reasons and the journal for what was built. Gate G1's review (round 3 in
-`docs/experiments/closed-loop-phase2-review-20261115/`) said "not ready" about the first build: eleven findings, all fixed with tests (journal round R8);
-the fixes have not been reviewed again.
+`docs/experiments/closed-loop-phase2-review-20261115/`) said "not ready" about the first build: eleven findings, all fixed with tests (journal round R8).
+Round 4 verified those fixes and said "not ready" again: seven more defects, all fixed with mutation-checked tests (journal round R9).
 
 ## 0. The recommendation in one screen
 
