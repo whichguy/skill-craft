@@ -1,0 +1,10 @@
+Mutation check of the round-4 fixes (2026-11-15): each fix broken in turn, the test named for it run alone, facade.py restored after each.
+caught (test failed)      cleanup kills nothing when the lock is free
+caught (test failed)      start without admission
+caught (test failed)      no grace re-check under the lock
+caught (test failed)      publication outside the lock
+caught (test failed)      receipt seal ignored
+caught (test failed)      first decision
+caught (test failed)      kill below an unverified group
+caught (test failed)      tip read before the unsettled check
+caught (test failed)      recommendation not recomputed

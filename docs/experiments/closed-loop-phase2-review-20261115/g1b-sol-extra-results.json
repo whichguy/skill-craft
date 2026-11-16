@@ -1,0 +1,95 @@
+{
+  "stale_group_protection_bypassed_for_sessions": {
+    "kill_result": {
+      "group": "unverified",
+      "detail": {
+        "members": [
+          800002
+        ],
+        "reason": "the leader is gone and the record is more than 12 hours old: the group number may belong to another process now"
+      },
+      "sessions": 1,
+      "survivors": [],
+      "at": "2026-11-16T04:58:53Z"
+    },
+    "unrelated_sessions_passed_to_stop_processes": [
+      800003
+    ]
+  },
+  "cleanup_of_prepared_does_not_release_admission": {
+    "cleanup": {
+      "verified": true,
+      "receipt": "p1 (prepared): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "state_after": "prepared",
+    "unsettled_keys_after": [
+      "p1"
+    ],
+    "poll": {
+      "status": "done",
+      "iteration": {}
+    },
+    "unsettled_keys_after_poll": []
+  },
+  "calibration_real_shape_and_zero_attempt_recommendation": {
+    "real_calibrate_report_answer": {
+      "state": "calibrated",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "/private/tmp/g1b-verification-o9esbdtl/real-report/report.json is a calibration/1 report for codex/fake-model/high over hello; its scoring digest dc9fad07773b equals the current scoring files'; it recommends 3 attempts per arm at tolerance 0.05 on tokens"
+    },
+    "report_cases": {
+      "hello": {
+        "attempts": 6,
+        "successes": 6,
+        "failures": 0,
+        "unknown": 0,
+        "failure_rate": 0.0,
+        "false_drop_risk": 0.0,
+        "measures": {
+          "tokens": {
+            "n": 6,
+            "median": 102.5,
+            "min": 100,
+            "max": 105
+          }
+        },
+        "false_decision": {
+          "tokens": {
+            "0.05": 0.0,
+            "0.10": 0.0,
+            "0.15": 0.0,
+            "0.20": 0.0,
+            "0.25": 0.0,
+            "0.30": 0.0,
+            "0.35": 0.0,
+            "0.40": 0.0,
+            "0.45": 0.0,
+            "0.50": 0.0,
+            "compared": 20
+          }
+        },
+        "splits": 20,
+        "quality_split_differs": 0.0
+      }
+    },
+    "report_recommended": {
+      "attempts": 3,
+      "metric": "tokens",
+      "threshold": 0.1,
+      "tolerance": 0.05,
+      "by_case": {
+        "hello": 0.05
+      },
+      "why": null
+    },
+    "zero_attempt_recommendation_answer": {
+      "state": "calibrated",
+      "consumed": {
+        "seconds": 0.0
+      },
+      "evidence": "/private/tmp/g1b-verification-o9esbdtl/real-report/zero-attempt-recommendation.json is a calibration/1 report for codex/fake-model/high over hello; its scoring digest dc9fad07773b equals the current scoring files'; it recommends 0 attempts per arm at tolerance 0.45 on tokens"
+    }
+  }
+}

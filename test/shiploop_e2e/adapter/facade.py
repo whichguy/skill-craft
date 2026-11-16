@@ -224,8 +224,14 @@ elif op == "calibration_check":
         per_case = {name: {"attempts": (entry or {}).get("attempts"),
                            "compared": (((entry or {}).get("false_decision") or {}).get(metric) or {}).get("compared")}
                     for name, entry in (report.get("cases") or {}).items()}
+        import spread
+        recommended = report.get("recommended") or {}
+        try:
+            recomputed = spread.recommend(report.get("cases") or {}, metric, recommended.get("attempts"))["tolerance"]
+        except (KeyError, TypeError, ValueError, AttributeError):
+            recomputed = None
         out = {"ok": True, "calibration": cycle.load_calibration(path, cases), "driver": report.get("driver"), "cases": cases,
-               "per_case": per_case}
+               "per_case": per_case, "recomputed_tolerance": recomputed}
     except (OSError, ValueError, KeyError, TypeError) as error:
         out = {"ok": False, "why": str(error), "driver": None, "cases": []}
 elif op == "scoring_digest":
@@ -482,14 +488,6 @@ def ps_rows(pids=None) -> dict:
     return rows
 
 
-def age_seconds(started: str) -> float:
-    """How long ago the process that ps printed `started` for began; 0 when the text cannot be read (then the record is not called stale)."""
-    try:
-        return max(0.0, time.time() - time.mktime(time.strptime(started, "%a %b %d %H:%M:%S %Y")))
-    except (ValueError, OverflowError):
-        return 0.0
-
-
 def alive_in_group(table: dict, pgid: int) -> list:
     """The members of a process group that are not zombies: a zombie is a dead process whose parent has not reaped it, and nothing can be
     stopped in it."""
@@ -497,8 +495,10 @@ def alive_in_group(table: dict, pgid: int) -> list:
 
 
 def identity_of(pid: int) -> dict | None:
+    """A process's identity as a record keeps it: pid, group, the start time ps prints, and `at`, the epoch time the identity was taken
+    (the age rule of `group_verdict` reads `at`, not ps's local-time text, which shifts with the time zone and is ambiguous at a DST fold)."""
     row = ps_rows([pid]).get(pid)
-    return None if row is None else {"pid": pid, "pgid": row["pgid"], "started": row["started"]}
+    return None if row is None else {"pid": pid, "pgid": row["pgid"], "started": row["started"], "at": time.time()}
 
 
 def descendants(table: dict, root: int) -> list:
@@ -526,15 +526,12 @@ def protected_pids(table: dict) -> set:
     return found
 
 
-def stop_group(ident: dict) -> tuple:
-    """End the process group a recorded worker led, only if it is still that group: ``(how, detail)`` with ``how`` one of
-    ``stopped`` (``ended_by`` SIGTERM or SIGKILL), ``survived``, ``gone`` (no member), ``reused`` (the leader's pid now names another
-    process: not signalled), ``protected`` (the group holds this process or an ancestor) or ``unverified`` (the leader is gone and the
-    record is old: not signalled). A group number is not reused while the group has a member, so a leader that is gone with members left
-    means they are the worker's own descendants only if the group never emptied since the record; after hours that is not shown, and the
-    members are left alone and reported."""
+def group_verdict(table: dict, ident: dict) -> tuple:
+    """Whether the group a recorded worker led may be signalled, decided before anything is: ``("ok", {"members": ...})``, or one of
+    ``gone`` (no member), ``protected`` (it holds this process or an ancestor), ``reused`` (the leader's pid now names another process) and
+    ``unverified`` (the leader is gone and the identity is older than STALE_GROUP_SECONDS, or carries no time: the group number may belong
+    to another process now). Nothing below the worker is signalled unless this says ``ok``."""
     pgid = ident["pgid"]
-    table = ps_rows()
     members = alive_in_group(table, pgid)
     if not members:
         return "gone", {}
@@ -544,9 +541,24 @@ def stop_group(ident: dict) -> tuple:
     leader = table.get(ident["pid"])
     if leader is not None and leader["started"] != ident["started"]:
         return "reused", {"now": {"pid": leader["pid"], "command": leader["command"][:200]}}
-    if leader is None and age_seconds(ident["started"]) > STALE_GROUP_SECONDS:
+    if leader is None and time.time() - float(ident.get("at") or 0.0) > STALE_GROUP_SECONDS:
         return "unverified", {"members": [row["pid"] for row in members],
                               "reason": "the leader is gone and the record is more than 12 hours old: the group number may belong to another process now"}
+    return "ok", {"members": members}
+
+
+def stop_group(ident: dict) -> tuple:
+    """End the process group a recorded worker led, only if it is still that group: ``(how, detail)`` with ``how`` one of
+    ``stopped`` (``ended_by`` SIGTERM or SIGKILL), ``survived``, ``gone`` (no member), ``reused`` (the leader's pid now names another
+    process: not signalled), ``protected`` (the group holds this process or an ancestor) or ``unverified`` (the leader is gone and the
+    record is old: not signalled). A group number is not reused while the group has a member, so a leader that is gone with members left
+    means they are the worker's own descendants only if the group never emptied since the record; after hours that is not shown, and the
+    members are left alone and reported."""
+    pgid = ident["pgid"]
+    how, detail = group_verdict(ps_rows(), ident)
+    if how != "ok":
+        return how, detail
+    members = detail["members"]
     for name, number, wait in (("SIGTERM", signal.SIGTERM, GRACE_SECONDS), ("SIGKILL", signal.SIGKILL, FORCE_SECONDS)):
         with contextlib.suppress(ProcessLookupError, PermissionError):
             os.killpg(pgid, number)
@@ -1040,17 +1052,31 @@ def epoch_evidence(out: Path) -> dict:
         events = [json.loads(line) for line in lines_of((out / "cycle-1" / "epoch" / "events.jsonl").read_text())]
     except (OSError, ValueError):
         pass
-    decision = next((event.get("result") for event in events if event.get("kind") == "decision"), None)
-    last = {}
-    for event in events:
-        if event.get("kind") in ("reviewed", "review_incomplete"):
-            last[event.get("attempt_id")] = event
+    decisions = [event.get("result") for event in events if event.get("kind") == "decision"]
+    decision = decisions[-1] if decisions else None  # epoch.state takes the last decision
+    reviewed = epoch_reviewed(out / "cycle-1" / "epoch", events)
     attempts = [attempt.get("id") for attempt in (decision or {}).get("attempts") or []]
-    receipts = [read_optional(out / "cycle-1" / "epoch" / str(last[name].get("receipt"))) for name in attempts
-                if name in last and last[name].get("kind") == "reviewed"]
-    done = len(receipts)
-    return {"decision": decision, "receipts": receipts, "incomplete": max(0, len(attempts) - done) if attempts else sum(
-        1 for event in last.values() if event.get("kind") != "reviewed"), "expected": len(attempts)}
+    receipts = [reviewed[name] for name in attempts if name in reviewed]
+    return {"decision": decision, "receipts": receipts, "incomplete": len(attempts) - len(receipts), "expected": len(attempts)}
+
+
+def epoch_reviewed(root: Path, events: list) -> dict:
+    """attempt id -> the receipt of its review, for the attempts the harness counts as reviewed (epoch.state): one with a `reviewed` event
+    whose LAST reviewed receipt still has the digest the event sealed. A receipt rewritten after its review is not a review."""
+    found = {}
+    for event in events:
+        if event.get("kind") == "reviewed":
+            found[event.get("attempt_id")] = event
+    reviewed = {}
+    for attempt, event in found.items():
+        path = root / str(event.get("receipt"))
+        try:
+            sealed = hashlib.sha256(path.read_bytes()).hexdigest() == event.get("receipt_sha256")
+        except OSError:
+            sealed = False
+        if sealed:
+            reviewed[attempt] = read_optional(path)
+    return reviewed
 
 
 def final_verdict(run: Path):
@@ -1396,16 +1422,6 @@ def tail(path: Path, size: int = 400) -> str:
         return ""
 
 
-def worker_group(table: dict, worker) -> list:
-    """The processes of the worker's group, unless the worker's pid now names another process (then the group is not ours)."""
-    if worker is None:
-        return []
-    leader = table.get(worker["pid"])
-    if leader is not None and leader["started"] != worker["started"]:
-        return []
-    return alive_in_group(table, worker["pgid"])
-
-
 def kill_problems(kill) -> list:
     """Why a kill is not proof that nothing is left running: a group that survived SIGKILL, one this process may not signal or could not
     verify, or sessions below the worker that survived. `reused` and `gone` mean nothing of the worker's is left."""
@@ -1422,68 +1438,84 @@ def kill_step(layout: Layout, rec: dict) -> dict:
     through parent links only while their parents live, so this comes first), stop the worker's group (the worker and the engine), then
     those sessions. The lifecycle cleanup that follows (`settle`) handles the run hosts the harness recorded."""
     worker = rec.get("worker")
+    if worker is None:
+        return {"group": "gone", "detail": {}, "sessions": 0, "survivors": [], "at": now()}
     table = ps_rows()
-    members = worker_group(table, worker)  # a worker that died alone leaves its engine in the group: the snapshot starts from them too
+    verdict, detail = group_verdict(table, worker)
+    if verdict != "ok":  # a group that is not provably the worker's: neither it nor anything found below it is signalled
+        return {"group": verdict, "detail": detail, "sessions": 0, "survivors": [], "at": now()}
     below: dict = {}
-    for member in members:
+    for member in detail["members"]:  # a worker that died alone leaves its engine in the group: the snapshot starts from the members
         for row in descendants(table, member["pid"]):
             below[row["pid"]] = row
     extra = [row for row in below.values() if row["pgid"] != worker["pgid"]]
-    how, detail = stop_group(worker) if worker else ("gone", {})
-    survivors = stop_processes(extra)
+    how, detail = stop_group(worker)
+    survivors = stop_processes(extra) if how in ("stopped", "gone", "survived") else extra  # a group that stopped being provably ours: leave all
     return {"group": how, "detail": detail, "sessions": len(extra), "survivors": [row["pid"] for row in survivors], "at": now()}
 
 
-def advance(layout: Layout, rec: dict) -> dict:
-    """Move a step along whatever its worker left and answer as `poll` does; safe to repeat."""
-    rec = load_step(layout, rec["key"]) or rec
-    state = rec["state"]
-    if state in LIVE:
-        if worker_alive(layout, rec["key"]):
-            return {"status": "running"}
-        if state == "starting":
-            if time.time() - rec.get("spawned_epoch", rec["created_epoch"]) < BOOT_GRACE_SECONDS:
-                return {"status": "running"}
-            begin = False
-            with Exclusive(layout, rec["key"], wait=False) as held:
-                if not held.held:
-                    return {"status": "running"}
-                rec = load_step(layout, rec["key"])
-                if rec["state"] == "starting":
-                    if rec.get("spawns", 1) >= MAX_SPAWNS:
-                        settle(layout, rec, "failed", f"the step's worker did not start in {rec.get('spawns', 1)} attempts: " + tail(Path(rec["out"]) / "worker.log"))
-                    else:
-                        rec.update(spawns=rec.get("spawns", 1) + 1, spawned_epoch=time.time())
-                        save_step(layout, rec)
-                        begin = True
-            if begin:
-                spawn_worker(layout, rec)  # the intent is durable and nothing ran: begin it again (the lock is free, the worker takes it)
-                return {"status": "running"}
-            state = rec["state"]
-            if state == "starting":
-                return {"status": "running"}
-        with Exclusive(layout, rec["key"], wait=False) as held:
-            if not held.held:
-                return {"status": "running"}  # a worker began in the meantime
-            rec = load_step(layout, rec["key"])
-            if rec["state"] in LIVE:
-                if rec.get("worker"):
-                    rec["kill"] = kill_step(layout, rec)  # a worker that died alone leaves its engine in the group
-                settle(layout, rec, "failed", "the step's worker ended without a result (killed or crashed): " + tail(Path(rec["out"]) / "worker.log"))
-        state = rec["state"]
-    if state == "prepared":
-        if worker_alive(layout, rec["key"]):
-            return {"status": "running"}  # the worker is finishing: while it lives, it alone moves the tip
-        try:
-            publish(layout, rec)
-        except FacadeError as error:
-            rec = load_step(layout, rec["key"])
-            if rec["state"] == "prepared":
-                settle(layout, rec, "failed", str(error))
-        state = rec["state"]
-    if state == "published":
+TERMINAL = ("published", "failed", "cancelled")
+
+
+def reply_for(rec: dict) -> dict:
+    """What `poll` answers for a record as it is: done with its iteration, running until it ends, or the end it came to."""
+    if rec["state"] == "published":
         return {"status": "done", "iteration": rec["iteration"]}
-    return {"status": state, "error": rec.get("error"), "iteration": {"consumed": rec.get("consumed") or {"seconds": 0.0, "runs": 0}}}
+    if rec["state"] not in TERMINAL:
+        return {"status": "running"}
+    return {"status": rec["state"], "error": rec.get("error"), "iteration": {"consumed": rec.get("consumed") or {"seconds": 0.0, "runs": 0}}}
+
+
+def finish_publication(layout: Layout, rec: dict) -> None:
+    """Publish a `prepared` step whose worker is gone, or settle it failed when the tip moved elsewhere. The caller holds the step's lock."""
+    try:
+        publish(layout, rec)
+    except FacadeError as error:
+        settle(layout, rec, "failed", str(error))
+
+
+def end_leftovers(layout: Layout, rec: dict, held: "Exclusive") -> dict | None:
+    """After the step's lock is held: the kill result this call produced, or a kill of whatever the worker left in its group. A worker that
+    died alone frees its lock while its engine still runs in its group, so a lock obtained at once proves nothing about the group."""
+    if held.killed is not None:
+        return held.killed
+    if rec["state"] not in TERMINAL and rec.get("worker"):
+        return kill_step(layout, rec)
+    return None
+
+
+def advance(layout: Layout, rec: dict) -> dict:
+    """Move a step along whatever its worker left and answer as `poll` does; safe to repeat. While a worker lives it alone writes the record;
+    otherwise every rewrite and every publication happens under the step's lock, after a reload, so no two callers act on one state."""
+    key = rec["key"]
+    rec = load_step(layout, key) or rec
+    if rec["state"] in TERMINAL or worker_alive(layout, key):
+        return reply_for(rec)
+    if rec["state"] == "starting" and time.time() - rec.get("spawned_epoch", rec["created_epoch"]) < BOOT_GRACE_SECONDS:
+        return {"status": "running"}
+    begin = False
+    with Exclusive(layout, key, wait=False) as held:
+        if not held.held:
+            return {"status": "running"}  # a worker began, or another caller holds the step
+        rec = load_step(layout, key)
+        if rec["state"] == "starting":
+            if time.time() - rec.get("spawned_epoch", rec["created_epoch"]) < BOOT_GRACE_SECONDS:
+                return {"status": "running"}  # checked again under the lock: another poll has just begun a worker
+            if rec.get("spawns", 1) >= MAX_SPAWNS:
+                settle(layout, rec, "failed", f"the step's worker did not start in {rec.get('spawns', 1)} attempts: " + tail(Path(rec["out"]) / "worker.log"))
+            else:
+                rec.update(spawns=rec.get("spawns", 1) + 1, spawned_epoch=time.time())
+                save_step(layout, rec)
+                begin = True
+        elif rec["state"] == "running":
+            rec["kill"] = end_leftovers(layout, rec, held)
+            settle(layout, rec, "failed", "the step's worker ended without a result (killed or crashed): " + tail(Path(rec["out"]) / "worker.log"))
+        elif rec["state"] == "prepared":
+            finish_publication(layout, rec)
+    if begin:
+        spawn_worker(layout, rec)  # the intent is durable and nothing ran: begin it again (the lock is free, the worker takes it)
+        return {"status": "running"}
+    return reply_for(load_step(layout, key))
 
 
 def start_reply(reply: dict) -> dict:
@@ -1516,13 +1548,13 @@ def step_start_admitted(layout: Layout, args, key: str) -> dict:
         raise FacadeError(f"--out {out} must be outside the evaluator clone and its state folder")
     if out.exists() and any(out.iterdir()):
         raise FacadeError(f"--out {out} is not empty: a step writes into a folder of its own")
+    busy = unsettled_keys(layout)  # first: with none unsettled and admission held, nothing can move the tip before the intent is written
+    if busy:
+        raise FacadeError(f"step {busy[0]} has not finished: poll it, or run cleanup for it, before another begins (one step at a time)")
     tip = published_tip(layout)
     build = build_token(layout, tip)
     if args.base != build:
         raise FacadeError(f"the published build is {build}, not the requested base {args.base}: the build moved since the step was planned")
-    busy = unsettled_keys(layout)
-    if busy:
-        raise FacadeError(f"step {busy[0]} has not finished: poll it, or run cleanup for it, before another begins (one step at a time)")
     dirty = x_dirty(layout)
     if dirty:
         raise FacadeError("the evaluator clone has uncommitted paths: " + ", ".join(dirty[:5]))
@@ -1553,10 +1585,14 @@ def step_cancel(layout: Layout, args) -> dict:
         if not held.held:
             raise FacadeError(f"the worker of step {rec['key']} did not stop in {EXCLUSIVE_WAIT_SECONDS:.0f} seconds")
         rec = load_step(layout, rec["key"])  # the worker may have finished first: then the step is simply done
+        killed = end_leftovers(layout, rec, held)
+        if killed is not None:
+            rec["kill"] = killed
         if rec["state"] in LIVE:
-            rec["kill"] = held.killed or {"group": "gone", "detail": {}, "sessions": 0, "survivors": [], "at": now()}
             settle(layout, rec, "cancelled", "cancelled by the operator")
-    return advance(layout, rec)
+        elif rec["state"] == "prepared":
+            finish_publication(layout, rec)  # it had finished: a cancel does not throw away a prepared result
+    return reply_for(load_step(layout, rec["key"]))
 
 
 def cmd_step(args) -> dict:
@@ -1579,11 +1615,15 @@ def cmd_cleanup(args) -> dict:
                 parts.append(f"{key}: its worker did not stop in {EXCLUSIVE_WAIT_SECONDS:.0f} seconds")
                 continue
             rec = load_step(layout, key)
+            killed = end_leftovers(layout, rec, held)  # evaluated whatever state the record reached meanwhile
+            if killed is not None:
+                rec["kill"] = killed
             if rec["state"] in LIVE:
-                rec["kill"] = held.killed or {"group": "gone", "detail": {}, "sessions": 0, "survivors": [], "at": now()}
                 settle(layout, rec, "cancelled", "ended by cleanup")
+            elif rec["state"] == "prepared":
+                finish_publication(layout, rec)  # a finished step is published, so a cleanup never leaves one unsettled
             ok, receipt = lifecycle_cleanup(layout, rec)
-            stuck = kill_problems(rec.get("kill"))
+            stuck = kill_problems(killed)
             if stuck:
                 ok, receipt = False, receipt + "; " + "; ".join(stuck)
             save_step(layout, rec)
@@ -1773,13 +1813,21 @@ def probe_calibrated(layout: Layout, args, profile: str) -> dict:
     calibration = checked["calibration"]
     if not checked["cases"]:
         return {"state": "unmeasured", "evidence": f"the report {path} covers no case", "consumed": {"seconds": 0.0}}
+    attempts = calibration.get("attempts")
+    if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
+        return {"state": "unmeasured", "evidence": f"the report {path} recommends {attempts!r} attempts per arm: not a positive whole number",
+                "consumed": {"seconds": 0.0}}
     thin = [name for name, found in sorted(checked["per_case"].items())
-            if not (isinstance(found.get("attempts"), int) and found["attempts"] >= 2 * calibration["attempts"]
+            if not (isinstance(found.get("attempts"), int) and found["attempts"] >= 2 * attempts
                     and isinstance(found.get("compared"), int) and found["compared"] > 0)]
     if thin:
         return {"state": "unmeasured", "consumed": {"seconds": 0.0},
-                "evidence": f"the report {path} holds no measured noise for {', '.join(thin)}: each case needs at least 2 x {calibration['attempts']} "
+                "evidence": f"the report {path} holds no measured noise for {', '.join(thin)}: each case needs at least 2 x {attempts} "
                             "sealed attempts and compared splits of the metric it recommends"}
+    if checked.get("recomputed_tolerance") != calibration["tolerance"]:
+        return {"state": "unmeasured", "consumed": {"seconds": 0.0},
+                "evidence": f"the report {path} recommends tolerance {calibration['tolerance']}, but spread.recommend over its own rates gives "
+                            f"{checked.get('recomputed_tolerance')}: the recommendation does not follow from what was measured"}
     return {"state": "calibrated", "consumed": {"seconds": 0.0},
             "evidence": f"{path} is a calibration/1 report for {named} over {', '.join(checked['cases'])}; its scoring digest {calibration['sha256'][:12]} "
                         f"equals the current scoring files'; it recommends {calibration['attempts']} attempts per arm at tolerance "

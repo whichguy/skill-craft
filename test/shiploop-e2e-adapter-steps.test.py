@@ -12,6 +12,8 @@ Run: python3 -B test/shiploop-e2e-adapter-steps.test.py
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
 import importlib.util
 import json
 import os
@@ -101,6 +103,48 @@ def tearDownModule():
     shutil.rmtree(STATE["folder"], ignore_errors=True)
 
 
+LEADER_SCRIPT = """import subprocess, sys, time
+subprocess.Popen([sys.executable] + sys.argv[1:])
+time.sleep(0.5)
+"""
+MEMBER_SCRIPT = """import subprocess, sys, time
+if sys.argv[1:] == ["tree"]:
+    subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], start_new_session=True)
+time.sleep(60)
+"""
+
+
+def orphaned_group(test, tree=False):
+    """What a worker killed alone leaves behind: a process group whose leader has exited while its member lives on, and with `tree` a child
+    of the member in a session of its own (a model session). Returns (the leader's pid, the member's row, the child's row or None)."""
+    folder = Path(tempfile.mkdtemp(prefix="orphan-", dir=STATE["folder"]))
+    (folder / "leader.py").write_text(LEADER_SCRIPT)
+    (folder / "member.py").write_text(MEMBER_SCRIPT)
+    starter = ("import subprocess,sys;p=subprocess.Popen([sys.executable]+sys.argv[1:],start_new_session=True,"
+               "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);print(p.pid)")
+    args = [str(folder / "leader.py"), str(folder / "member.py"), *(["tree"] if tree else [])]
+    leader = int(subprocess.run([sys.executable, "-c", starter, *args], capture_output=True, text=True, check=True).stdout.strip())
+
+    def ready():
+        table = facade.ps_rows()
+        members = facade.alive_in_group(table, leader)
+        if leader in table or not members:
+            return None
+        below = [row for row in facade.descendants(table, members[0]["pid"]) if row["pgid"] != leader]
+        if tree and not below:
+            return None
+        return members[0], (below[0] if below else None)
+    member, child = wait_for(ready, 15)
+
+    def end():
+        for row in (member, child):
+            if row:
+                with contextlib.suppress(ProcessLookupError, PermissionError):
+                    os.kill(row["pid"], signal.SIGKILL)
+    test.addCleanup(end)
+    return leader, member, child
+
+
 def alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -155,6 +199,29 @@ class StepCase(unittest.TestCase):
 
     def build(self):
         return self.run_cli("identity")["build"]
+
+    def intent_only(self, key="s1"):
+        """The state a `step start` leaves when it wrote its intent and died before launching anything."""
+        original = facade.spawn_worker
+        facade.spawn_worker = lambda layout, rec: None
+        try:
+            os.environ["CLOSED_LOOP_WORKSPACE"] = str(self.x)
+            facade.step_start(self.layout, self.start_args(key))
+        finally:
+            facade.spawn_worker = original
+
+    def start_args(self, key, base=None):
+        return type("Args", (), {"key": key, "scope": "s1", "cases": "hello", "mode": "iterate", "base": base or self.build(),
+                                 "out": str(self.work / "runs" / key), "host": "codex", "model": "m", "effort": "high", "calibration": None,
+                                 "tolerance": 0.25, "attempts": 1, "parallel": 1, "engine_arg": None})
+
+    def prepared_step(self):
+        """A finished step whose worker is gone and whose tip has not moved yet: (its key, the commit it moves the tip to)."""
+        publication = PublicationTests("test_prepared_and_the_tip_still_at_the_start_is_moved_by_the_next_poll")
+        publication.x, publication.layout, publication.work, publication.base, publication.build = self.x, self.layout, self.work, self.base, self.build
+        result = publication.commit_on_top(self.base)
+        publication.prepared(tip_to=result)
+        return "p1", result
 
     def probe(self, claim, *flags, env=None):
         return self.run_cli("probe", "--host", "codex", "--model", "fake-model", "--effort", "high", *flags, claim, env=env)
@@ -667,15 +734,17 @@ class ProbeTests(StepCase):
         self.assertEqual(reply["state"], "declared")
         self.assertIn("no stored real run folder", reply["evidence"])
 
-    def report(self, driver, tamper=False, name="calibration.json", cases=("hello",), attempts=6, compared=20):
-        """A calibration/1 report in the shape spread.calibrate writes: per case the sealed attempts and the compared splits of the metric."""
+    def report(self, driver, tamper=False, name="calibration.json", cases=("hello",), attempts=6, compared=20, k=3, tolerance=0.45):
+        """A calibration/1 report in the shape spread.calibrate writes: per case the sealed attempts, a false-decision rate at every grid
+        tolerance (above the 0.10 threshold below 0.45, under it from 0.45, so spread.recommend gives 0.45) and the compared splits."""
         digest = facade.bridge(self.layout, "scoring_digest", {"cases": list(cases)})["sha256"]
+        rates = {f"{0.05 * step:.2f}": (0.5 if step < 9 else 0.04) for step in range(1, 11)}
         path = self.folder / name
         path.write_text(json.dumps({"contract": "calibration/1", "driver": driver, "attempts_sealed": attempts * len(cases),
-                                    "cases": {case: {"attempts": attempts, "false_decision": {"tokens": {"0.45": 0.04, "compared": compared}}}
+                                    "cases": {case: {"attempts": attempts, "false_decision": {"tokens": {**rates, "compared": compared}}}
                                               for case in cases},
                                     "scoring": {"cases": list(cases), "sha256": "0" * 64 if tamper else digest},
-                                    "recommended": {"attempts": 3, "tolerance": 0.45, "metric": "tokens", "why": None}}))
+                                    "recommended": {"attempts": k, "tolerance": tolerance, "metric": "tokens", "why": None}}))
         return path
 
     def test_the_calibrated_claim_needs_a_report_for_this_profile_whose_digest_still_holds(self):
@@ -692,7 +761,10 @@ class ProbeTests(StepCase):
                  ("too few attempts to make two arms", ("--calibration", str(self.report(driver, attempts=4, name="thin.json"))),
                   "holds no measured noise for hello"),
                  ("no compared splits", ("--calibration", str(self.report(driver, compared=0, name="unmeasured.json"))),
-                  "holds no measured noise for hello"))
+                  "holds no measured noise for hello"),
+                 ("zero attempts per arm", ("--calibration", str(self.report(driver, k=0, name="zero.json"))), "not a positive whole number"),
+                 ("a recommendation its own rates do not give", ("--calibration", str(self.report(driver, tolerance=0.25, name="inconsistent.json"))),
+                  "does not follow from what was measured"))
         for label, flags, words in cases:
             with self.subTest(label):
                 refused = self.probe(claim, *flags)
@@ -721,18 +793,6 @@ class RiggedBoundaryTests(StepCase):
 class BootWindowTests(StepCase):
     """The worker owns its record while it lives; a canceller must not rewrite it until the worker is gone, and a worker that starts after
     a cancel must do nothing."""
-
-    def intent_only(self, key="s1"):
-        original = facade.spawn_worker
-        facade.spawn_worker = lambda layout, rec: None  # the call wrote its intent and died before launching anything
-        try:
-            os.environ["CLOSED_LOOP_WORKSPACE"] = str(self.x)
-            args = type("Args", (), {"key": key, "scope": "s1", "cases": "hello", "mode": "iterate", "base": self.build(),
-                                     "out": str(self.work / "runs" / key), "host": "codex", "model": "m", "effort": "high",
-                                     "calibration": None, "tolerance": 0.25, "attempts": 1, "parallel": 1, "engine_arg": None})
-            facade.step_start(self.layout, args)
-        finally:
-            facade.spawn_worker = original
 
     def test_a_worker_that_starts_after_a_cancel_does_nothing(self):
         self.intent_only()
@@ -766,24 +826,35 @@ class ReviewFindingsTests(StepCase):
     """Regression tests for the Sol max review of the facade's contract (docs/experiments/closed-loop-phase2-review-20261115/g1-sol-answer.txt)."""
 
     def test_two_steps_started_at_the_same_moment_are_not_both_admitted(self):
-        """A per-step lock cannot serialise two steps with different keys; the workspace admission lock does."""
-        self.set_knobs({"*": {"sleep": 2}})
-        base = self.build()
-        for round_number in range(2):
-            keys = (f"a{round_number}", f"b{round_number}")
-            commands = [[sys.executable, "-B", str(FACADE), "step", "--tolerance", "0.25", "--attempts", "1", "start", "--key", key, "--scope", "s1",
-                         "--cases", "hello", "--mode", "iterate", "--base", base, "--out", str(self.work / "runs" / key)] for key in keys]
-            environment = {"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "CLOSED_LOOP_WORKSPACE": str(self.x),
-                           "FAKE_ENGINE": str(self.knobs), "FAKE_LOG": str(self.log)}
-            started = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=environment) for command in commands]
-            codes = sorted(process.wait(timeout=60) for process in started)
-            for process in started:
-                process.stdout.close()
-                process.stderr.close()
-            self.assertEqual(codes, [0, 2], f"exactly one of two simultaneous starts is admitted (round {round_number})")
-            winner = keys[0] if (self.layout.steps / f"{keys[0]}.json").exists() else keys[1]
-            self.finish(winner)
-            base = self.build()
+        """Both starts are held where each asks whether another step is unsettled. Without the admission lock both would see none and both
+        would be admitted; with it the second waits, then sees the first's intent (the barrier times out, which is the serialisation)."""
+        import threading
+        barrier = threading.Barrier(2)
+        real_unsettled, real_spawn = facade.unsettled_keys, facade.spawn_worker
+
+        def held(layout):
+            with contextlib.suppress(threading.BrokenBarrierError):
+                barrier.wait(timeout=2)
+            return real_unsettled(layout)
+        os.environ["CLOSED_LOOP_WORKSPACE"] = str(self.x)
+        base, results = self.build(), {}
+
+        def start(key):
+            try:
+                results[key] = facade.step_start(self.layout, self.start_args(key, base))["status"]
+            except facade.FacadeError as error:
+                results[key] = str(error)
+        facade.unsettled_keys, facade.spawn_worker = held, (lambda layout, rec: None)
+        try:
+            threads = [threading.Thread(target=start, args=(key,)) for key in ("a1", "b1")]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=60)
+        finally:
+            facade.unsettled_keys, facade.spawn_worker = real_unsettled, real_spawn
+        self.assertEqual(sorted(value == "running" for value in results.values()), [False, True], results)
+        self.assertTrue(any("has not finished" in value for value in results.values()), results)
 
     def test_a_decision_is_refused_while_a_step_has_not_been_settled_and_accepted_after(self):
         publication = PublicationTests("test_prepared_and_the_tip_still_at_the_start_is_moved_by_the_next_poll")
@@ -865,18 +936,14 @@ class ReviewFindingsTests(StepCase):
             self.assertIn(words, " ".join(facade.kill_problems(kill)))
         for kill in ({"group": "stopped", "survivors": []}, {"group": "gone", "survivors": []}, {"group": "reused", "survivors": []}, None):
             self.assertEqual(facade.kill_problems(kill), [])
-        boot = BootWindowTests("test_a_worker_that_starts_after_a_cancel_does_nothing")
-        boot.x, boot.layout, boot.work, boot.base, boot.build = self.x, self.layout, self.work, self.base, self.build
-        boot.intent_only()
+        self.intent_only()
         rec = self.record("s1")
         rec["kill"] = {"group": "survived", "detail": {}, "sessions": 0, "survivors": [], "at": "t"}
         facade.settle(self.layout, rec, "cancelled", "cancelled by the operator")
         self.assertIn("process group survived", self.record("s1")["error"], "the settle says what the kill left")
 
     def test_a_worker_that_cannot_read_the_process_table_fails_the_step_and_is_not_started_again_forever(self):
-        boot = BootWindowTests("test_a_worker_that_starts_after_a_cancel_does_nothing")
-        boot.x, boot.layout, boot.work, boot.base, boot.build = self.x, self.layout, self.work, self.base, self.build
-        boot.intent_only()
+        self.intent_only()
         real = facade.ps_rows
 
         def broken(*_args, **_kwargs):
@@ -890,7 +957,7 @@ class ReviewFindingsTests(StepCase):
         self.assertEqual(record["state"], "failed")
         self.assertIn("ps could not be run", record["error"])
         # and a start that never produced a worker is begun again a bounded number of times
-        boot.intent_only("s2")
+        self.intent_only("s2")
         started = []
         original = facade.spawn_worker
         facade.spawn_worker = lambda layout, rec: started.append(rec["key"])
@@ -906,6 +973,130 @@ class ReviewFindingsTests(StepCase):
         failed = self.record("s2")
         self.assertEqual(failed["state"], "failed")
         self.assertIn(f"did not start in {facade.MAX_SPAWNS} attempts", failed["error"])
+
+
+class SecondReviewTests(StepCase):
+    """Regression tests for Sol's verification review of the G1 fixes (docs/experiments/closed-loop-phase2-review-20261115/g1b-sol-answer.txt)."""
+
+    def dead_worker_step(self, leader, member):
+        self.intent_only()
+        rec = self.record("s1")
+        rec.update(state="running", worker={"pid": leader, "pgid": leader, "started": member["started"], "at": time.time()})
+        facade.save_step(self.layout, rec)
+
+    def test_cleanup_stops_what_a_worker_that_died_alone_left_in_its_group(self):
+        """The worker's lock is free at once, which proves nothing about its group: the engine it left behind is stopped."""
+        leader, member, _child = orphaned_group(self)
+        self.dead_worker_step(leader, member)
+        reply = self.run_cli("cleanup", "--keys", "s1")
+        self.assertTrue(reply["verified"], reply)
+        self.assertTrue(wait_for(lambda: not alive(member["pid"]), 10), "the process the dead worker left in its group was stopped")
+        record = self.record("s1")
+        self.assertEqual((record["state"], record["kill"]["group"]), ("cancelled", "stopped"))
+
+    def test_a_cancel_stops_what_a_worker_that_died_alone_left_in_its_group(self):
+        leader, member, _child = orphaned_group(self)
+        self.dead_worker_step(leader, member)
+        self.assertEqual(self.run_cli("step", "cancel", "--handle", "s1")["status"], "cancelled")
+        self.assertTrue(wait_for(lambda: not alive(member["pid"]), 10))
+
+    def test_a_cleanup_whose_kill_left_a_survivor_is_not_verified(self):
+        self.intent_only()
+        rec = self.record("s1")
+        rec.update(state="running", worker={"pid": 999999, "pgid": 999999, "started": "x", "at": time.time()})
+        facade.save_step(self.layout, rec)
+        real = facade.kill_step
+        facade.kill_step = lambda layout, rec: {"group": "survived", "detail": {}, "sessions": 1, "survivors": [4242], "at": "t"}
+        os.environ["CLOSED_LOOP_WORKSPACE"] = str(self.x)
+        try:
+            reply = facade.cmd_cleanup(type("Args", (), {"keys": "s1"}))
+        finally:
+            facade.kill_step = real
+        self.assertFalse(reply["verified"], reply)
+        self.assertIn("process group survived", reply["receipt"])
+        self.assertIn("1 process(es) below the worker did not end", reply["receipt"])
+
+    def test_a_poll_does_not_publish_while_another_caller_holds_the_step(self):
+        """The poll saw the lock free (its liveness probe), then a cleanup took the step: the publication itself must need the lock."""
+        key, result = self.prepared_step()
+        holder = facade.WorkerLock(self.layout.lock_file(key))
+        self.assertTrue(holder.acquire())  # a cleanup or a cancel holds the step
+        real_alive = facade.worker_alive
+        facade.worker_alive = lambda layout, name: False  # the probe ran a moment before the cleanup took the lock
+        try:
+            self.assertEqual(facade.advance(self.layout, self.record(key))["status"], "running")
+            self.assertEqual((self.tip(), self.record(key)["state"]), (self.base, "prepared"), "nothing is published while the step is someone else's")
+        finally:
+            facade.worker_alive = real_alive
+            holder.release()
+        self.assertEqual(self.poll(key)["status"], "done")
+        self.assertEqual(self.tip(), result)
+
+    def test_cleanup_publishes_a_finished_step_whose_worker_is_gone(self):
+        key, result = self.prepared_step()
+        reply = self.run_cli("cleanup", "--keys", key)
+        self.assertTrue(reply["verified"], reply)
+        self.assertEqual((self.record(key)["state"], self.tip()), ("published", result), "a cleanup never leaves a finished step unsettled")
+        self.assertEqual(self.start("s9", ["hello"])["status"], "running", "and the workspace is free for the next step")
+
+    def test_a_poll_that_read_an_old_spawn_time_does_not_begin_a_second_worker(self):
+        self.intent_only()
+        rec = self.record("s1")
+        rec["spawned_epoch"] -= 60
+        facade.save_step(self.layout, rec)
+        stale, started = dict(rec), []
+        real_spawn, real_load = facade.spawn_worker, facade.load_step
+        facade.spawn_worker = lambda layout, rec: started.append(rec["spawns"])
+        try:
+            facade.advance(self.layout, self.record("s1"))  # poll A: the grace has passed, it begins a worker
+            reads = []
+
+            def stale_first(layout, key):  # poll B read the record before A updated it
+                if not reads:
+                    reads.append(key)
+                    return dict(stale)
+                return real_load(layout, key)
+            facade.load_step = stale_first
+            facade.advance(self.layout, stale)
+        finally:
+            facade.spawn_worker, facade.load_step = real_spawn, real_load
+        self.assertEqual(started, [2], "one respawn: the second poll checked the spawn time again under the lock")
+        self.assertEqual(self.record("s1")["spawns"], 2)
+
+    def test_a_start_reads_the_tip_only_after_no_step_is_unsettled(self):
+        order = []
+        real_unsettled, real_tip, real_spawn = facade.unsettled_keys, facade.published_tip, facade.spawn_worker
+        facade.unsettled_keys = lambda layout: order.append("unsettled") or real_unsettled(layout)
+        facade.published_tip = lambda layout: order.append("tip") or real_tip(layout)
+        facade.spawn_worker = lambda layout, rec: None
+        os.environ["CLOSED_LOOP_WORKSPACE"] = str(self.x)
+        try:
+            args = self.start_args("s1", base=self.build())
+            order.clear()
+            facade.step_start(self.layout, args)
+        finally:
+            facade.unsettled_keys, facade.published_tip, facade.spawn_worker = real_unsettled, real_tip, real_spawn
+        self.assertLess(order.index("unsettled"), order.index("tip"), "with none unsettled and admission held, nothing can move the tip")
+
+    def test_an_epoch_receipt_changed_after_its_review_is_not_a_review(self):
+        self.set_knobs({"csv-report": {"decision": "DROP", "review_retry": "rewritten"}})
+        self.start("s1", ["csv-report"])
+        it = self.valid(self.finish("s1"), ["csv-report"])
+        self.assertEqual(it["review"], {"valid": False, "complete": False}, "epoch.state demotes an attempt whose receipt no longer matches its seal")
+
+    def test_the_last_decision_of_an_epoch_is_the_one_that_counts(self):
+        out = Path(tempfile.mkdtemp(prefix="epoch-", dir=STATE["folder"]))
+        epoch = out / "cycle-1" / "epoch"
+        (epoch / "receipts").mkdir(parents=True)
+        (epoch / "receipts" / "a-1.json").write_text("{}")
+        seal = hashlib.sha256((epoch / "receipts" / "a-1.json").read_bytes()).hexdigest()
+        events = [{"kind": "decision", "result": {"decision": "UNDECIDED", "attempts": [{"id": "a"}]}},
+                  {"kind": "reviewed", "attempt_id": "a", "receipt": "receipts/a-1.json", "receipt_sha256": seal},
+                  {"kind": "decision", "result": {"decision": "DROP", "attempts": [{"id": "a"}]}}]
+        (epoch / "events.jsonl").write_text("".join(json.dumps(event) + "\n" for event in events))
+        found = facade.epoch_evidence(out)
+        self.assertEqual(found["decision"]["decision"], "DROP", "epoch.state takes the last decision")
+        self.assertEqual((found["incomplete"], len(found["receipts"])), (0, 1))
 
 
 class OrchestratorConvergenceTests(StepCase):
@@ -1027,29 +1218,20 @@ class PureTests(unittest.TestCase):
         how, _detail = facade.stop_group(ident)
         self.assertEqual(how, "gone")
 
-    def orphaned_group(self):
-        """A process group whose leader has exited and whose one member lives on; returns (the leader's pid, the member's identity)."""
-        starter = ("import subprocess,sys;p=subprocess.Popen([sys.executable,'-c','import subprocess,sys,time;"
-                   "subprocess.Popen([sys.executable,\\'-c\\',\\'import time;time.sleep(60)\\']);time.sleep(0.5)'],start_new_session=True,"
-                   "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);print(p.pid)")
-        leader = int(subprocess.run([sys.executable, "-c", starter], capture_output=True, text=True, check=True).stdout.strip())
-
-        def orphaned():
-            table = facade.ps_rows()
-            return leader not in table and facade.alive_in_group(table, leader)
-        members = wait_for(orphaned, 15)
-        self.addCleanup(lambda: [os.kill(row["pid"], signal.SIGKILL) for row in facade.alive_in_group(facade.ps_rows(), leader)
-                                 if row["pid"] != os.getpid()])
-        return leader, {"pid": members[0]["pid"], "started": members[0]["started"]}
-
     def test_a_group_whose_leader_is_gone_is_left_alone_when_its_record_is_old_and_stopped_when_it_is_recent(self):
-        leader, member = self.orphaned_group()
-        old = facade.stop_group({"pid": leader, "pgid": leader, "started": "Mon Jan  1 00:00:00 2001"})
-        self.assertEqual(old[0], "unverified", "after hours, a group number with an absent leader may belong to another process")
-        self.assertTrue(alive(member["pid"]), "its members were left alone")
-        recent = facade.stop_group({"pid": leader, "pgid": leader, "started": member["started"]})
-        self.assertEqual(recent[0], "stopped")
-        self.assertTrue(wait_for(lambda: not alive(member["pid"]), 10))
+        leader, member, child = orphaned_group(self, tree=True)
+        old = {"pid": leader, "pgid": leader, "started": member["started"], "at": time.time() - 16 * 3600}
+        killed = facade.kill_step(None, {"worker": old})
+        self.assertEqual((killed["group"], killed["sessions"]), ("unverified", 0), "an old record proves no ownership: nothing below it is collected")
+        self.assertTrue(alive(member["pid"]) and alive(child["pid"]), "neither the member nor the session below it was signalled")
+        killed = facade.kill_step(None, {"worker": {**old, "at": time.time()}})
+        self.assertEqual((killed["group"], killed["sessions"]), ("stopped", 1))
+        self.assertTrue(wait_for(lambda: not alive(member["pid"]) and not alive(child["pid"]), 10))
+
+    def test_an_identity_with_no_time_proves_no_ownership_of_a_leaderless_group(self):
+        leader, member, _child = orphaned_group(self)
+        self.assertEqual(facade.stop_group({"pid": leader, "pgid": leader, "started": member["started"]})[0], "unverified")
+        self.assertTrue(alive(member["pid"]))
 
     def test_this_process_and_its_ancestors_are_never_signalled(self):
         how, _detail = facade.stop_group({"pid": os.getpid(), "pgid": os.getpgrp(), "started": facade.identity_of(os.getpid())["started"]})
