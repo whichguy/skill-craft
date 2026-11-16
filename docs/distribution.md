@@ -211,39 +211,44 @@ with `--git-ref main` stored `0eb91fc0bc1860ee158c822d62b81e65c3099a18`, and onc
 of this repository (`whichguy`, `skill-craft`, `whichguy-skill-craft`), indexed at commits from 2026-09-16 to 2026-09-27 and one
 of them still on the per-skill catalog, sat side by side and stale.
 
-The owner's decision (2026-11-15): never pin a registration. Register the repository root on its default branch (no
-`--git-ref`, or `--git-ref main`), never a commit or a tag, and keep one registration per repository, named `whichguy`. Cursor
-still snapshots the commit, and once the app reloads a re-registration leaves the plugin uninstalled (below), so staying on the
-latest release takes these steps after each release, as on 2026-11-15:
+The owner's decisions about the registration, both on 2026-11-15. In the morning: never pin it; register the repository root on
+its default branch (no `--git-ref`, or `--git-ref main`), never a commit or a tag. Cursor still snapshots the commit, so each
+release then needed a re-registration, a reload and a click. In the evening the owner said they did not want it pinned, or unable
+to update by itself, and chose **no Cursor registration and no native install of skill-craft on a machine that has Claude
+Code**: Cursor runs Claude Code's copy.
 
-1. `cursor-agent plugin marketplace remove whichguy`, then `cursor-agent plugin marketplace add https://github.com/whichguy/skill-craft`.
-2. Make the app read the new registration: launch it if it is closed, or reload its window (first check that every sidebar chat
-   reads Completed). Until then the app keeps the registration it loaded: the plugin page shows the old version and **Add** fails
-   with "Plugin not found" (that error's own **Reload** button reloads the window).
-3. **Customize → Browse Marketplace → Personal → Whichguy → skill-craft**. If it reads **Add**, click it once: no dialog appears,
-   and Cursor writes the account's enabled record and installs the new commit (2026-11-15: 2.41.0, the old cache folder removed
-   by Cursor). If it still reads **Added**, the running app still holds the old install (2026-11-15 morning: 2.39.0): **Uninstall**
-   it, which leaves Cursor's cloud agents without the plugin until the next Add, reload the window, then click **Add**
-   (with **Add for Myself** where the dialog appears).
-4. Read back: the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/<commit>` names the new commit, and its
-   `.cursor-plugin/plugin.json` the new version.
+Cursor imports Claude Code's installed plugins and marks them **Imported**. It watches `~/.claude/plugins/installed_plugins.json`,
+`known_marketplaces.json` and `cache/`, and shows a plugin newly installed in Claude Code within seconds (2026-11-15: 1.8 s and
+1.2 s for two plugins). With no native copy, the Installed list shows skill-craft **Imported** at the version Claude Code has installed: 2.42.0
+with 26 skills on 2026-11-15, read in the app after the registration was removed and Cursor was quit and reopened (Round 12,
+F34 to F38 of [the portability journal](shiploop-portability-audit-journal.md)). So Cursor's refresh after a release is Claude
+Code's, `claude plugin update skill-craft@whichguy`, followed by a Cursor launch: a running Cursor did not react to a version
+bump for 15 minutes.
 
-Cursor also imports Claude Code's installed plugins (12 of 17 on 2026-11-15, skill-craft among them) and marks them **Imported**.
-That row is Claude Code's copy, not Cursor's: do not press its **Uninstall**, because what the button does to an imported plugin
-was not tested. With both present the Installed list shows two skill-craft rows, but the plugin loader's total did not change, so
-Cursor loads one (Round 11, F31 to F33 of [the portability journal](shiploop-portability-audit-journal.md)).
+On such a machine do not run `cursor-agent plugin marketplace add` for this repository and do not click **Add** for skill-craft:
+that installs a native copy pinned to one commit, and the native copy is the one the app shows (2026-11-15: v2.41.1 with 27
+skills stayed on screen while Claude Code had 2.41.2 with 26; Round 12, F36). If a registration exists, remove it with
+`cursor-agent plugin marketplace remove whichguy`; the app keeps the registration it loaded until it is quit and reopened. Do
+not press **Uninstall** on the Imported row: that row is Claude Code's copy, and what the button does to it is untested.
 
-A running app does not move an installed plugin by itself after a re-registration: on 2026-11-15, 2.39.0 (cache
-`c2ad82f57032930ef9ca66927d711a8f8f74b868`) stayed installed for the minutes between the re-registration and its uninstall. After
-a relaunch the plugin was no longer installed at all (Round 11, F30), so the Add was a fresh install; whether a window reload of a
-running app does the same is not tested. Once the marketplace plugin is installed, move any copy under
-`~/.cursor/plugins/local/skill-craft` out of the way so the skills do not load twice.
+A machine with Cursor but without Claude Code has nothing to import, so it takes the native route, which is pinned: register the
+repository root, reload the app (first check that every sidebar chat reads Completed), then **Customize → Browse Marketplace →
+Personal → Whichguy → skill-craft → Add**. After each release repeat the remove, the add, the reload and the Add, because
+`update` re-indexes the same commit and does not advance it. After a `remove` and a relaunch the plugin was no longer
+installed (Round 11, F30), so the Add is a fresh install; if a running app still shows the old install as **Added**,
+**Uninstall** it, which leaves Cursor's cloud agents without the plugin until the next Add, reload the window, then **Add**.
+Once the marketplace plugin is installed, move any copy under `~/.cursor/plugins/local/skill-craft` out of the way so the
+skills do not load twice.
 
 Team-scoped marketplace import remains a Teams or Enterprise administrator action
 through **Dashboard → Settings → Plugins → Import from Repo**. A public listing
 additionally requires submitting the public repository through
 [Cursor's publication form](https://cursor.com/marketplace/publish) and passing
 review. See [Cursor plugin distribution](https://cursor.com/docs/plugins).
+
+Cursor's own documentation names the one route that tracks a branch: a team marketplace imported from GitHub with Auto Refresh,
+which needs the Cursor GitHub app installed on the repository and re-indexes at most once every 10 minutes. It needs a Teams
+plan (one team marketplace) or Enterprise, and it was not tried here (Round 12, F39).
 
 ### Refreshing after a release
 
@@ -256,7 +261,7 @@ installed version back.
 | Claude Code | `claude plugin marketplace update whichguy` | `claude plugin update skill-craft@whichguy --scope user`, then restart | `claude plugin list --json` |
 | Codex | `codex plugin marketplace upgrade whichguy` | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
 | Grok | `grok plugin marketplace update whichguy` | `grok plugin update skill-craft` | `grok plugin details skill-craft` |
-| Cursor | `cursor-agent plugin marketplace update whichguy` re-indexes the same commit only | remove and add the marketplace (its repository root, never a commit), relaunch or reload the app, then Add skill-craft (Uninstall it first only if the running app still shows the old install), as under [Cursor](#cursor) | `cursor-agent plugin marketplace list --format json` (`gitRef`) and the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/` |
+| Cursor | none: Cursor runs Claude Code's copy (Imported), so the Claude Code row is its refresh | a Cursor launch after `claude plugin update`; do not re-register or Add skill-craft in Cursor (a native copy pins one commit and shadows the import); a machine without Claude Code takes the native route under [Cursor](#cursor) | the Installed list's skill-craft row (version and skill count), or Claude Code's `~/.claude/plugins/installed_plugins.json` |
 
 Checked on 2026-11-09 for 2.36.0 to 2.36.1 (Claude Code 2.1.319, Codex 0.167.0,
 Grok 1.0.77, Cursor Agent 2026.09.23):

@@ -382,6 +382,54 @@ app that still shows the old install. Round 10 left open whether a reload alone 
 part: after a relaunch there was no installed plugin left to move, so the Add made a fresh install. Left, the owner's: the import
 already follows `claude plugin update`, so whether the native copy is still wanted is theirs to say.
 
+## Round 12 — Cursor runs Claude Code's copy, with no registration (2026-11-15)
+
+Asked by the owner, in their words: "Can you help me understand what we could do to better register with Cursor, because I don't
+like it pinned or not having it be able to update automatically?" I read Cursor's documentation and forum replies and this
+machine's Cursor logs, proposed the cheapest option (let Cursor use Claude Code's copy), and the owner answered "Yes, run the
+test" and then "Yes, remove it". Cursor 3.30.14 with Cursor Agent 2026.09.23-86fc751, Claude Code 2.1.325, one machine, 16:00 to
+16:58 PST (times below are PST). The grant for Cursor was click-only, so the app could be read and clicked but not quit or typed
+into; the owner quit and reopened it.
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F34 | Cursor imports a plugin that Claude Code installs within about 2 s. Its agent host registers watchers on `~/.claude/plugins/installed_plugins.json`, `known_marketplaces.json` and `cache/` (log, 16:00:12). `sport80@fortified-strength` was installed in Claude Code at 16:00:01.9 and first loaded by Cursor (`loadClaudePlugin`) at 16:00:03.7; `fortified-strength-design@fortified-strength` was installed at 16:31:32.7, first loaded at 16:31:33.9, and the loader's total went from 40 to 41 at 16:31:34.4 | firm (two observations) | the "Cursor Plugins" log of launch 20261115T155928, `installed_plugins.json` |
+| F35 | A version bump of a plugin Cursor already imports did not trigger a reload. `claude plugin update skill-craft@whichguy` (2.41.1 to 2.41.2) ran at 16:14:02; the last `loadAllPlugins` before it was at 16:09:41 and the next at 16:29:40, whose cause I did not identify | firm for that 15-minute window (one observation) | the same log |
+| F36 | While Cursor's own copy was installed, the Installed list had one skill-craft row, the native one: v2.41.1 with 27 skills (sport80 included) and an Uninstall button, although Claude Code had 2.41.2 with 26 since 16:14:02 and Cursor had reloaded Claude Code's plugins at 16:29:40 and 16:31:34. A native copy shadows the Imported one and stays on its commit, as Round 11 inferred in F33. The removal of sport80 from skill-craft (`4ef10ecc7dd65341c77020905df6a48393cd2181`, released in `5b93207807a33e1610c89282031726e18285c021`) is what made the two copies tell apart: 27 skills against 26 | firm | the app's Installed list and the skill-craft page, read through the accessibility tree and screenshots; `~/.cursor/plugins/cache/whichguy/skill-craft/3c55b80288a0f7bd136c155342f27cdc43d1f557` (2.41.1) |
+| F37 | After `cursor-agent plugin marketplace remove whichguy` (16:51:45) and the owner's quit and reopen (launch 16:55:12), the Installed list shows skill-craft **Imported**, publisher whichguy, v2.42.0, 26 skills: Claude Code's install (2.42.0 since 16:52:16, from another session's release `e0d4ec65b1f27c56a4ee9703abca69d4a52cb36d`). The launch log has `loadClaudePlugin skill-craft@whichguy` and no `Adding enabled plugin: skill-craft`. So with no native copy Cursor shows what Claude Code has installed, at the launch | firm (one launch) | the "Cursor Plugins" logs of launch 20261115T165512; the skill-craft page |
+| F38 | The removal did not hold for a minute. Another session's 2.42.0 host refresh, following the procedure that this document then gave, re-registered `whichguy` at 16:52:51 (`gitRef` e0d4ec65b1f27c56a4ee9703abca69d4a52cb36d). No Add followed (no `Adding enabled plugin: skill-craft` in the relaunch log), the registration was removed again at about 16:58, and that session acknowledged by message that it will not re-register | firm | `cursor-agent plugin marketplace list --format json` (`lastIndexedAt`); the peer's reply |
+| F39 | Cursor's own account of this, from its documentation and from forum replies that read as Cursor staff (2026-07-25 to 2026-11-03): a plugin added by `/add-plugin` from a GitHub URL stays at its install commit, which a reply calls a known bug with no date; plugins in the official Marketplace are pinned, and each update is reviewed before it reaches clients; the one documented way to track a branch is a team marketplace imported from GitHub with Auto Refresh (the Cursor GitHub app installed on the repository; at most one re-index every 10 minutes; Teams plan: one team marketplace, Enterprise: unlimited); forum users report that Auto Refresh sometimes misses changes. Cursor's documentation says nothing about imported plugins | interim (read from pages and replies, not exercised) | https://cursor.com/docs/plugins and the forum threads on plugin updates, team marketplaces and publishing an update |
+
+Decided (owner, 2026-11-15, "Yes, remove it"): on a machine that has Claude Code, Cursor keeps no skill-craft registration and no
+native install, and runs Claude Code's copy. docs/distribution.md "Cursor" and its refresh table now say so: the per-release
+Cursor steps are gone, `claude plugin update skill-craft@whichguy` is Cursor's refresh and a Cursor launch shows it, and the native
+route stays only for a machine without Claude Code. This supersedes the native install of Round 9
+(`cd389ecdf3c61b5609c0e752f6b92bf941924f6b`) and Round 11 (`200903effa4c503c31a5f818dba94d245b2eaef3`) on this machine. The aim
+of Round 9, skill-craft in the Cursor app, holds: it is there, as an Imported plugin.
+
+Contrary evidence and unknowns:
+- The Imported copy is Claude Code's. Cursor lags it until a launch (F35), a machine without Claude Code or with a Claude Code that
+  nobody updated leaves Cursor behind, and Claude Code updates `whichguy` only when a session runs `claude plugin update`: its
+  `known_marketplaces.json` carries no auto-update flag for any marketplace, and whether Claude Code can auto-update a third-party
+  marketplace was not verified.
+- One launch and one 15-minute window. Whether a window focus makes a running Cursor re-read Claude Code's install, as staff
+  describe for marketplace plugins, is untested.
+- The imported copy's hooks (the plugin ships ShipLoop's hooks) were not examined in Cursor; forum users report that hooks of
+  imported Claude plugins misbehave there.
+- Cursor's cloud agents read the account's enabled list, which no longer names skill-craft (inferred from the launch log, not read
+  from the account).
+- Cursor's other four registrations are still pinned at their add dates (claude-plugins-official 2026-09-03, grok-plugin-claude-code
+  2026-07-13, openai-codex 2026-07-03, claude-craft 2026-06-15), and a `fortified-strength` registration made by another session is
+  pinned at `5b2d2dcef56089ed74513461dfff8660e5742087`. None was touched. async-suite and codex are installed natively in Cursor (its launch log) at those registrations' commits and
+  Claude Code has them too, so they probably sit behind a native copy in the same way; not checked.
+- Cursor left the old cache folder of the native copy on disk.
+- The Teams route (Auto Refresh) was not tried: it needs a paid plan, which I have not checked the owner has.
+
+Evidence: the "Cursor Plugins" logs of launches 20261115T155928 and 20261115T165512 (under `~/Library/Application
+Support/Cursor/logs/`; they list the account's whole plugin set, so they stay on this machine and the table carries the lines that
+matter), `cursor-agent plugin marketplace list --format json` before and after, `~/.claude/plugins/installed_plugins.json`, and the
+app's Installed list and skill-craft page.
+
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
 1. **Declare the floor.** One line in `skills/shiploop/SKILL.md` and its README: Python 3.9 or newer and `git` on PATH.
