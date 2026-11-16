@@ -6230,21 +6230,22 @@ def _platform_testing_lines(core: Any, state: Mapping[str, Any], stage: str) -> 
 
 def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
     """The Backchain planning guide, the resources (or the audit resource and the loop-resource status) and the graph
-    check command, at a Backchain stage; what the stage's Backchain paragraph or line cites."""
+    check command, at a Backchain stage; what the stage's Backchain paragraph or line cites.  A run that offers no
+    Backchain child (``none``, the default) prints only the guide and the graph check."""
     if stage not in guidance.BACKCHAIN_STAGES:
         return []
     lines = ["Backchain planning guide: " + str(_reference_dir(core) / "backchain-planning.md") + "#navigator-planning"]
+    passes = recorded_backchain_passes(state)
+    child = guidance.offers_backchain_child(passes)  # `none`, the default, offers no child (owner, 2026-11-15)
     resources = guidance.resolved_backchain_resources()
-    if (guidance.offers_whole_backchain_loop(stage, recorded_backchain_passes(state))
-            and not state.get("active_improve")):
-        # Only the stage that may start a whole loop selects its full resource set: plan, unless
-        # the run's Backchain passes option is none (then plan prints the audit line and the status).
+    if guidance.offers_whole_backchain_loop(stage, passes) and not state.get("active_improve"):
+        # Only the stage that may start a whole loop selects its full resource set: plan, in a run that opts in.
         lines.append(
             "Selected Backchain and Until Loop resources "
             "(resolved by ShipLoop from its installed plugin):"
         )
         lines.extend(f"  {label}: {path}" for label, path in resources)
-    else:
+    elif child:
         audit_resource = dict(resources)[guidance.BACKCHAIN_AUDIT_RESOURCE]
         lines.append(f"Backchain audit resource (backchain-caller/v1 contract; operation review/audit): {audit_resource}")
         if not state.get("active_improve"):
@@ -6258,8 +6259,11 @@ def _backchain_lines(core: Any, root: Path, state: Mapping[str, Any], stage: str
             ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
             + " <your candidate file>")
         # Backchain 0.7.0 keeps a planning run's records in the one directory its `prepare` creates; naming it gives every
-        # host the same place and lets the run review find the child's receipt and cycles (Round 10, W1).
-        lines.append("Backchain planning run directory: " + str(root / "backchain" / current_action(state)["id"] / "run"))
+        # host the same place and lets the run review find the child's receipt and cycles (Round 10, W1).  A run with
+        # no Backchain child has no such directory to name.
+        if child:
+            lines.append("Backchain planning run directory: "
+                         + str(root / "backchain" / current_action(state)["id"] / "run"))
     return lines
 
 

@@ -196,7 +196,7 @@ route rather than generating a replacement workflow.
 Run options are recorded at `workspace start` or `init` and refused on a saved run without them:
 `--delegation inline|ask-agent` (default `inline`: this conversation executes every assignment),
 `--lint fix|report|off`, `--planning-review stage|none` ([run options](references/run-options.md)) and
-`--backchain-passes one|converge|none` ([Backchain route](references/backchain-route.md)).
+`--backchain-passes none|one|converge` (default `none`: no Backchain child; [Backchain route](references/backchain-route.md)).
 
 ## Inner stages
 

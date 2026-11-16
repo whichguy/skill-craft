@@ -235,7 +235,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
     start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                        help="new run: script-owned advisory lint fix (default), report or off")
     start.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
-                       help="new run: Backchain planning child passes, one (default), converge or none")
+                       help="new run: Backchain planning child, none (default: no child), one (one pass) or converge")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
                        help="new run: which planning results start an Improve stage, stage (default) or none")
     for name in ("plan-return", "review-return", "return"):
@@ -745,7 +745,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             sub.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                              help="new run: script-owned advisory lint fix (default), report or off")
             sub.add_argument("--backchain-passes", choices=navigator.BACKCHAIN_PASSES_MODES, default=None,
-                             help="new run: Backchain planning child passes, one (default), converge or none")
+                             help="new run: Backchain planning child, none (default: no child), one (one pass) or converge")
             sub.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
                              help="new run: which planning results start an Improve stage, stage (default) or none")
         if name == "delegation":
