@@ -98,6 +98,9 @@ def setUpModule():
     for name in ("codex-home", "home", "state", "leases"):
         (folder / name).mkdir()
     (folder / "codex-home" / "auth.json").write_text("{}")
+    # The real loop commits its learnings with the caller's git identity (the owner's home has one). Without one, git
+    # guesses user@hostname, which it refuses when the hostname has no dot, so this home carries its own.
+    (folder / "home" / ".gitconfig").write_text("[user]\n\tname = Test\n\temail = test@example.invalid\n[commit]\n\tgpgsign = false\n")
     STATE["bin"] = bin_dir
 
 
@@ -207,6 +210,14 @@ class RealEngineTests(unittest.TestCase):
         by_id = {item["id"]: item for item in self.cli("records")["records"]}
         self.assertIn(first["loop"]["cycle"], by_id)
         self.assertEqual(self.cli("identity")["build"], it["build_after"])
+        epoch = self.work / "runs" / "s1" / "inv-1" / "cycle-1" / "epoch"
+        events = [json.loads(line) for line in (epoch / "events.jsonl").read_text().splitlines() if line.strip()]
+        harness = self.x / "test" / "shiploop_e2e"
+        counted = subprocess.run([sys.executable, "-B", "-c", "import json, sys\nfrom pathlib import Path\nsys.path.insert(0, sys.argv[1])\nimport epoch\n"
+                                  "print(json.dumps(sorted(a['id'] for a in epoch.state(Path(sys.argv[2]))['attempts'] if a['status'] == 'reviewed')))",
+                                  str(harness), str(epoch)], capture_output=True, text=True, check=True, cwd=str(harness))
+        self.assertEqual(sorted(facade.epoch_reviewed(epoch, events)), json.loads(counted.stdout.strip().splitlines()[-1]),
+                         "the facade counts an epoch's reviewed attempts as the harness's own epoch.state does")
 
     def probe(self, claim, *flags, **extra):
         return self.cli("probe", "--host", "codex", "--model", "fake-model", "--effort", "high", *flags, claim, **extra)

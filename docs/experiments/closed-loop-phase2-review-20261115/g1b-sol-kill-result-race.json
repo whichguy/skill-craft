@@ -1,0 +1,14 @@
+{
+  "cleanup": {
+    "verified": true,
+    "receipt": "p1 (prepared): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+  },
+  "record_state": "prepared",
+  "recorded_kill": null,
+  "injected_kill": {
+    "group": "survived",
+    "survivors": [
+      900002
+    ]
+  }
+}

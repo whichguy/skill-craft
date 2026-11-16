@@ -1,0 +1,166 @@
+{
+  "dead_worker_cleanup": {
+    "cleanup": {
+      "verified": true,
+      "receipt": "s1 (cancelled): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "record_kill": {
+      "at": "2026-11-16T04:55:42Z",
+      "detail": {},
+      "group": "gone",
+      "sessions": 0,
+      "survivors": []
+    },
+    "kill_step_calls": 0,
+    "leader": 53036,
+    "live_member": 53039,
+    "group_before": 53036,
+    "group_after": 53036
+  },
+  "prepared_poll_cleanup_race": {
+    "poll_publishes_while_lock_held": true,
+    "poll": {
+      "status": "done",
+      "iteration": {
+        "consumed": {
+          "runs": 0,
+          "seconds": 1.0
+        }
+      }
+    },
+    "after_poll": "published",
+    "cleanup": {
+      "verified": true,
+      "receipt": "s1 (prepared): lifecycle.py cleanup over 0 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected"
+    },
+    "after_cleanup": "prepared",
+    "tip": "cc3afb01f5eeadac955669eb20fabb425caed083",
+    "expected_tip": "cc3afb01f5eeadac955669eb20fabb425caed083"
+  },
+  "poll_publication_races_start_admission": {
+    "reply": {
+      "handle": "s2",
+      "status": "running"
+    },
+    "new_step_tip_from": "923776e65d63c7fecaea0931b9c986f9a4133584",
+    "actual_published_tip": "2a8d4e1c77785cb2618dfc0e273da75947d4fbcf",
+    "old_tip": "923776e65d63c7fecaea0931b9c986f9a4133584",
+    "new_tip": "2a8d4e1c77785cb2618dfc0e273da75947d4fbcf",
+    "spawns": [
+      "s2"
+    ],
+    "build_equal": true
+  },
+  "polls_consume_retry_bound_without_boot_grace": {
+    "replies": {
+      "0": {
+        "status": "running"
+      },
+      "1": {
+        "status": "running"
+      },
+      "2": {
+        "status": "failed",
+        "error": "the step's worker did not start in 3 attempts: ",
+        "iteration": {
+          "consumed": {
+            "runs": 0,
+            "seconds": 60.2
+          }
+        }
+      }
+    },
+    "spawned": [
+      {
+        "spawns": 2,
+        "at": 1794804945.989289
+      },
+      {
+        "spawns": 3,
+        "at": 1794804945.9895868
+      }
+    ],
+    "final_state": "failed",
+    "spawns": 3,
+    "age_of_last_retry": 0.15886497497558594,
+    "boot_grace": 10.0,
+    "error": "the step's worker did not start in 3 attempts: "
+  },
+  "stop_live_state_check_race": {
+    "held": true,
+    "killed": {
+      "group": "stopped",
+      "survivors": []
+    },
+    "trace": [
+      "advanced after the live snapshot",
+      "kill called with actual record prepared"
+    ]
+  },
+  "local_time_age": {
+    "started_in_UTC": "Sun Nov 15 08:00:00 2026",
+    "real_age": 57600,
+    "age_UTC": 57600.0,
+    "age_after_TZ_change": 28800.0,
+    "stale_cutoff": 43200,
+    "unparseable_age": 0.0,
+    "fold_strings": [
+      "Sun Nov 01 01:30:00 2026",
+      "Sun Nov 01 01:30:00 2026"
+    ]
+  },
+  "epoch_receipt_and_last_decision": {
+    "decision": {
+      "decision": "DROP",
+      "attempts": [
+        {
+          "id": "a1"
+        }
+      ]
+    },
+    "receipts": [
+      {
+        "review": {
+          "validity": {
+            "status": "valid",
+            "discovery_qualified": true
+          }
+        },
+        "judge": {
+          "validity": {
+            "status": "valid"
+          }
+        },
+        "rewritten": "not the sealed receipt"
+      }
+    ],
+    "incomplete": 0,
+    "expected": 1,
+    "real_epoch_state": [
+      {
+        "id": "a1",
+        "status": "recorded"
+      }
+    ],
+    "receipt_digest_changed": true,
+    "adapter_after_second_decision": {
+      "decision": "DROP",
+      "attempts": [
+        {
+          "id": "a1"
+        }
+      ]
+    },
+    "harness_after_second_decision": {
+      "decision": "UNDECIDED",
+      "attempts": [
+        {
+          "id": "a1"
+        },
+        {
+          "id": "a2"
+        }
+      ]
+    }
+  }
+}
