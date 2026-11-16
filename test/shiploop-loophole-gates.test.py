@@ -123,7 +123,8 @@ DODGES = [
      "release-verify", {"product-acceptance": {"unverified": [dict(contract.UNVERIFIED_ENTRY, due_stage="release-verify")]}},
      lambda block: {key: value for key, value in block.items() if key != "unverified"},
      "a done release-verify result restates unverified",
-     lambda block: {**block, "unverified": []}),    # the named exit: drop the entry it observed; [] once none is open
+     lambda block: {**block, "unverified": [dict(row, due_stage="handoff") for row in block["unverified"]]}),
+     # The named exit: restate and defer the still-unobserved reader outcome; no settlement is claimed.
     # The follow-on list (design 4.4): not seen in a live run yet, so the rows name the design's mechanical checks.
     ("a follow-on gap that maps to no sentence of the request", "the follow-on design, 4.4 (no live run yet)",
      "handoff", None, lambda block: {**block, "follow_on": [FOLLOW_ON_ENTRY]},
@@ -161,6 +162,12 @@ class LoopholeGateTests(contract.RealCliCase):
                 run, head = self.new_run(stage, results=positioning)
                 command, path, action = contract.printed_callback(head)
                 good = self.fill_done(head)
+                if stage == "release-verify":
+                    template = contract.store.loads(head.split("Result template:\n", 1)[1]
+                                                    .split("\nAllowed outcomes:", 1)[0])
+                    good["unverified"] = template["unverified"]
+                    self.assertEqual(good["unverified"],
+                                     contract.nav.unverified.current_list(self.state(run))[2])
                 contract.write_block(path, dodge(good))
                 self.assertIn(fragment, self.refused(command, run))
                 route = exit_route(good)
@@ -168,6 +175,12 @@ class LoopholeGateTests(contract.RealCliCase):
                 # A stage that closes the knowledge home names its files first (the contract suite's own helper).
                 contract.RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
                 self.assertEqual(self.recorded(run, action)["outcome"], route["outcome"])
+                if stage == "release-verify":
+                    recorded = self.recorded(run, action)
+                    self.assertEqual(recorded["unverified"],
+                                     [dict(row, due_stage="handoff")
+                                      for row in positioning["product-acceptance"]["unverified"]])
+                    self.assertEqual(recorded["settled"], [])
 
     def test_every_row_names_where_it_was_seen_and_a_refusal_it_expects(self) -> None:
         labels = [row[0] for row in DODGES]

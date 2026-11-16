@@ -72,14 +72,22 @@ class FollowOnCase(contract.RealCliCase):
     def block(self, head: str, follow_on: object) -> dict:
         """The printed done template filled minimally, with this ``follow_on`` in place of the fixture's."""
         filled = self.fill_done(head)
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+        # No reader observation happened: carry the packet's actual pending rows, not fill_done's empty default.
+        filled["unverified"] = template["unverified"]
         filled["follow_on"] = follow_on
         return filled
 
     def finish(self, run: Path, head: str, follow_on: object) -> str:
         """Submit a done handoff carrying ``follow_on`` through the printed callback; the output is the done packet."""
-        command, path, _action = contract.printed_callback(head)
+        command, path, action = contract.printed_callback(head)
+        pending = nav.unverified.current_list(self.state(run))[2]
         contract.write_block(path, self.block(head, follow_on))
-        return self.accepted(command)
+        out = self.accepted(command)
+        recorded = self.recorded(run, action)
+        self.assertEqual(recorded["unverified"], pending)
+        self.assertEqual(recorded["settled"], [])
+        return out
 
 
 class ShapeTests(unittest.TestCase):
@@ -200,6 +208,7 @@ class RouteTests(FollowOnCase):
         run, head = self.at_handoff()
         out = self.finish(run, head, [GAP, DECISION, NOTE, PERSON])
         self.assertEqual(self.state(run)["status"], "done")
+        self.assertEqual(nav.unverified.current_list(self.state(run))[2], [contract.UNVERIFIED_ENTRY])
         self.assertIn("It's all complete.", out)
         request = (run / "follow-on-request.md").read_text(encoding="utf-8")
         for entry in (GAP, DECISION):
