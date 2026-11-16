@@ -768,10 +768,16 @@
       "reason": "Large source inventory or subprocess trace retained once outside the checkout"
     },
     {
-      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/check_documents.py",
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/check_documents-frozen-before-host.py",
       "bytes": 7301,
       "sha256": "dac13dea91b161edc4ab04ae8b28a7baa9040a37f3e18ece7ed753254a67e24e",
       "reason": "Read-only source/evidence and document consistency audit"
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r19-20261115/check_documents.py",
+      "bytes": 7333,
+      "sha256": "78406a36e09d4e69e4a9a3393ef218b1a71a0e154268b7d2e1a6f5d787728f99",
+      "reason": "Current source/evidence audit after host scaffold integration; earlier checker retained separately"
     }
   ]
 }

@@ -2,8 +2,8 @@
   "status": "IMPLEMENTED_SCOPED",
   "recommendation": "R19",
   "baseline_source": "4ec9ac4bb7425724f41cf3abd5e1776e8fdbd596",
-  "accepted_source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
-  "integrated_upstream": "477542e047f8dcbadcfc4b5767d956c85017631c",
+  "accepted_source": "ce056b1106aa0859e198972f4236f99bcc376587",
+  "integrated_upstream": "038d678654affd134031ae3bf4a8dc37a4d592b0",
   "production_delta": "start_command appends --directory receipt.parent; existing RUN/loops is reused",
   "production_paths": [
     "skills/shiploop/scripts/shiploop_loops.py"
@@ -104,5 +104,7 @@
     "review": "APPROVE",
     "reviewed_path_hashes_unchanged": 13
   },
-  "limits_on_whitespace": "The original integration broad diff-check failed on an upstream plan. R19 does not repair or normalize unrelated documents or frozen raw evidence."
+  "limits_on_whitespace": "The original integration broad diff-check failed on an upstream plan. R19 does not repair or normalize unrelated documents or frozen raw evidence.",
+  "runtime_qualified_merged_source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+  "final_source_continuity": "final-source-continuity.json"
 }

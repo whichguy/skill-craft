@@ -23,7 +23,7 @@
       "new_excerpt_sha256": "fe72d6730436c374f7003148c95d9d423f42880bec14238d04e7d73af71734dc"
     }
   ],
-  "relocated": 25,
+  "relocated": 28,
   "details": [
     {
       "path": "skills/shiploop/scripts/shiploop_navigator.py",
@@ -1359,9 +1359,9 @@
       "path": "test/shiploop_e2e/hosts.py",
       "symbol": "GrokHost.preempt_install",
       "old_start": 321,
-      "new_start": 321,
+      "new_start": 353,
       "excerpt_unchanged": true,
-      "source_file_unchanged": true,
+      "source_file_unchanged": false,
       "old_excerpt_sha256": "be08edb6e002ffd9ee27d5fa6b5a0cc68f06ac836f340c1f69d0dfe3bd764dbe",
       "new_excerpt_sha256": "be08edb6e002ffd9ee27d5fa6b5a0cc68f06ac836f340c1f69d0dfe3bd764dbe"
     },
@@ -1389,9 +1389,9 @@
       "path": "test/shiploop_e2e/hosts.py",
       "symbol": "ROLE_DEFAULTS and ROLE_EFFORT",
       "old_start": 616,
-      "new_start": 616,
+      "new_start": 648,
       "excerpt_unchanged": true,
-      "source_file_unchanged": true,
+      "source_file_unchanged": false,
       "old_excerpt_sha256": "c37a87a1a3657295e58f543ae73daef68362b90248f22f66d0df28245a352b6e",
       "new_excerpt_sha256": "c37a87a1a3657295e58f543ae73daef68362b90248f22f66d0df28245a352b6e"
     },
@@ -1889,9 +1889,9 @@
       "path": "test/shiploop_e2e/hosts.py",
       "symbol": "CodexHost.argv",
       "old_start": 465,
-      "new_start": 465,
+      "new_start": 497,
       "excerpt_unchanged": true,
-      "source_file_unchanged": true,
+      "source_file_unchanged": false,
       "old_excerpt_sha256": "3ef3c4c6ecca3faa4b83aeee5035ab06b1914f83a86d595babf121111cd3f104",
       "new_excerpt_sha256": "3ef3c4c6ecca3faa4b83aeee5035ab06b1914f83a86d595babf121111cd3f104"
     },

@@ -1,0 +1,50 @@
+{
+  "status": "SOURCE_CONTINUITY_PASS",
+  "source": "ce056b1106aa0859e198972f4236f99bcc376587",
+  "upstream_main": "038d678654affd134031ae3bf4a8dc37a4d592b0",
+  "previous_anchor_source": "541422e1e0b243579cb030cb09fc6422b28e7a4b",
+  "retained_excerpt_count": 222,
+  "changed_excerpt_count": 0,
+  "relocations": [
+    {
+      "path": "test/shiploop_e2e/hosts.py",
+      "symbol": "GrokHost.preempt_install",
+      "old": 321,
+      "new": 353
+    },
+    {
+      "path": "test/shiploop_e2e/hosts.py",
+      "symbol": "ROLE_DEFAULTS and ROLE_EFFORT",
+      "old": 616,
+      "new": 648
+    },
+    {
+      "path": "test/shiploop_e2e/hosts.py",
+      "symbol": "CodexHost.argv",
+      "old": 465,
+      "new": 497
+    }
+  ],
+  "changed_anchor_file": "test/shiploop_e2e/hosts.py",
+  "r19_reviewed_paths_unchanged": {
+    "skills/shiploop/scripts/shiploop_loops.py": "26d60ef453416988a94ccb9cfce72b8813f8785ac128405934a9f806d227cfa7",
+    "test/shiploop-loops.test.py": "61f5209bf4a8770c93d5f1029189b5740b00a780fa7f55151ea44e52e1c2be1d",
+    "test/shiploop-e2e-fidelity.test.py": "3ec8396ccc739b9caeebea7451a0ce5daaf1edd8f3444b1c07366a0857662801",
+    "skills/shiploop/scripts/shiploop_navigator.py": "0dc2f9cc462a707bd81847d80073afc0c7e8510f102a752999f49df4790d5a0a",
+    "test/shiploop-callback-contract.test.py": "450d2098af4bd0494ec0fe1d5a08118742a330d7aabee3c134920e6c238b9b62",
+    "test/shiploop-actual-improve-cli.test.py": "9ba15b039bb99046d062d058e9c722a77e9c495a2f1cc9a2fea7f18472db21e9",
+    "test/shiploop-rehydration.test.py": "1a3f499bc414da36176693c149adf6b542bfee3f6389f50145676c4e2c5f1796",
+    "test/shiploop-head-order.test.py": "a118d3c5b1830e2d2fd4eba7ec2711d5d4c2c070a7ea375e515152244d7e9243",
+    "test/shiploop-packet-bounds.test.py": "4b6c486170e4dc0be0058179affd636bcde4f0ca985a13c6adf1db8d6f50f5fd",
+    "test/improve-runtime.test.py": "b0f53520710e63840dded17ef2af3d1d976291441e1d148d6a7371d1b7fc6154",
+    "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py": "fad65999c57893b43f2e308cc967746f90fcf3c14261d6d649ba0c002185ceb4",
+    "skills/improve/runtime/until-loop/scripts/until_loop_recover.py": "bae7c5fd50e550f107d1e84645e2e49c48eb68e4dc05521ea076e0cec3f09af1",
+    "skills/improve/runtime/until-loop/scripts/until_loop_session.py": "c79c030b79bf34373a265969eadf6a5dbf3dc286a5e5ec4b17746b1a0c91c430"
+  },
+  "runtime_banks_remain_at": [
+    "053195ab37d5c9830d3d14a82ebcbf3e90a7505c",
+    "541422e1e0b243579cb030cb09fc6422b28e7a4b"
+  ],
+  "no_fresh_e2e_host_qualification": true,
+  "decision": "Re-anchor the unrelated apparatus file and retain R19 conclusions; no runtime/prompt change or new scope. Freeze checkpoint038d678."
+}
