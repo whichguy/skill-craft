@@ -1386,7 +1386,7 @@ class LoopCommandsTest(unittest.TestCase):
                                          Path(self.RUN) / "loops/nav-1-contract.json")
 
     def test_the_printed_start_command_is_not_glue_a_script_edit_or_a_commit(self):
-        self.assertEqual(self.start, f"python3 {self.SCRIPT} start --receipt {self.RUN}/loops/nav-1-terminal.json "
+        self.assertEqual(self.start, f"python3 {self.SCRIPT} start --receipt {self.RUN}/loops/nav-1-terminal.json --directory {self.RUN}/loops "
                                      f"< {self.RUN}/loops/nav-1-contract.json")
         self.assertEqual(metrics.glue_reasons(self.start), [])
         self.assertEqual(self.fidelity.shell_edits(self.start), [])
