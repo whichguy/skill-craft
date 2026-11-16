@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-16
 
+### skill-craft 3.0.1
+
+- Skills: test-harness 0.1.1
+
+### test-harness 0.1.1
+
+- Attempt hard-timeout evidence before cleanup and publish complete private JSON atomically without replacing existing files or symlinks.
+
 ### skill-craft 3.0.0
 
 - Skills: closed-loop 0.1.1, shiploop 2.0.0, shiploop-e2e-audit 1.0.0
