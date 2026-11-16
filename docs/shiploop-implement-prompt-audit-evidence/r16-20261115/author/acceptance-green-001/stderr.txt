@@ -1,0 +1,15 @@
+test_r16_actual_release_plan_import_and_release_check_preserve_current_state (r16_selected.R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state) ... FAIL
+
+======================================================================
+FAIL: test_r16_actual_release_plan_import_and_release_check_preserve_current_state (r16_selected.R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r16-20261115/test/shiploop-actual-improve-cli.test.py", line 585, in test_r16_actual_release_plan_import_and_release_check_preserve_current_state
+    self.assertIn("not the current action", refused.stderr + refused.stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'not the current action' not found in 'ShipLoop navigator: navigator result path must be the current generated path: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-001/scratch/shiploop-child-cli-8bqq5ep3/parent-release-plan/inbox/nav-4aa7a31da7764b2f9f12602b6db42e13.md\nRead the current packet with next; the rejected request did not advance the graph.\nThe run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.\n'
+
+----------------------------------------------------------------------
+Ran 1 test in 5.482s
+
+FAILED (failures=1)

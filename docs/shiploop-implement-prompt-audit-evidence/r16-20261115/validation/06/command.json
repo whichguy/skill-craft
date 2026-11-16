@@ -1,0 +1,14 @@
+{
+  "number": 6,
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-reference.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T05:40:00.634114+00:00",
+  "attempt": 1
+}

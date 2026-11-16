@@ -1,0 +1,100 @@
+F811 [*] Redefinition of unused `knowledge` from line 28
+  --> test/shiploop-actual-improve-cli.test.py:34:35
+   |
+32 | from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+33 | from shiploop_improve_route import with_route  # noqa: E402
+34 | import shiploop_knowledge_home as knowledge  # noqa: E402
+   |                                   ^^^^^^^^^ `knowledge` redefined here
+35 | import shiploop_stage_spec as stage_spec  # noqa: E402
+   |
+  ::: test/shiploop-actual-improve-cli.test.py:28:35
+   |
+26 | import shiploop_store as store  # noqa: E402
+27 | from shiploop_packet_view import head_packet_path, packet_file_named  # noqa: E402
+28 | import shiploop_knowledge_home as knowledge  # noqa: E402
+   |                                   --------- previous definition of `knowledge` here
+29 | import shiploop_stage_spec as stage_spec  # noqa: E402
+   |
+help: Remove definition: `knowledge`
+   |
+33 | from shiploop_improve_route import with_route  # noqa: E402
+   - import shiploop_knowledge_home as knowledge  # noqa: E402
+34 | import shiploop_stage_spec as stage_spec  # noqa: E402
+   |
+
+F811 [*] Redefinition of unused `stage_spec` from line 29
+  --> test/shiploop-actual-improve-cli.test.py:35:31
+   |
+33 | from shiploop_improve_route import with_route  # noqa: E402
+34 | import shiploop_knowledge_home as knowledge  # noqa: E402
+35 | import shiploop_stage_spec as stage_spec  # noqa: E402
+   |                               ^^^^^^^^^^ `stage_spec` redefined here
+36 |
+37 | sys.path.insert(0, str(ROOT / "test"))
+   |
+  ::: test/shiploop-actual-improve-cli.test.py:29:31
+   |
+27 | from shiploop_packet_view import head_packet_path, packet_file_named  # noqa: E402
+28 | import shiploop_knowledge_home as knowledge  # noqa: E402
+29 | import shiploop_stage_spec as stage_spec  # noqa: E402
+   |                               ---------- previous definition of `stage_spec` here
+30 |
+31 | sys.path.insert(0, str(ROOT / "test"))
+   |
+help: Remove definition: `stage_spec`
+   |
+34 | import shiploop_knowledge_home as knowledge  # noqa: E402
+   - import shiploop_stage_spec as stage_spec  # noqa: E402
+35 |
+   |
+
+F811 [*] Redefinition of unused `finish_loop` from line 32
+  --> test/shiploop-actual-improve-cli.test.py:38:35
+   |
+37 | sys.path.insert(0, str(ROOT / "test"))
+38 | from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+   |                                   ^^^^^^^^^^^ `finish_loop` redefined here
+39 | import shiploop_inner_fixture as inner_fixture  # noqa: E402
+40 | import shiploop_knowledge_support as knowledge_support  # noqa: E402
+   |
+  ::: test/shiploop-actual-improve-cli.test.py:32:35
+   |
+31 | sys.path.insert(0, str(ROOT / "test"))
+32 | from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+   |                                   ----------- previous definition of `finish_loop` here
+33 | from shiploop_improve_route import with_route  # noqa: E402
+34 | import shiploop_knowledge_home as knowledge  # noqa: E402
+   |
+help: Remove definition: `finish_loop`
+   |
+37 | sys.path.insert(0, str(ROOT / "test"))
+   - from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+38 | import shiploop_inner_fixture as inner_fixture  # noqa: E402
+   |
+
+F811 [*] Redefinition of unused `with_receipt` from line 32
+  --> test/shiploop-actual-improve-cli.test.py:38:48
+   |
+37 | sys.path.insert(0, str(ROOT / "test"))
+38 | from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+   |                                                ^^^^^^^^^^^^ `with_receipt` redefined here
+39 | import shiploop_inner_fixture as inner_fixture  # noqa: E402
+40 | import shiploop_knowledge_support as knowledge_support  # noqa: E402
+   |
+  ::: test/shiploop-actual-improve-cli.test.py:32:48
+   |
+31 | sys.path.insert(0, str(ROOT / "test"))
+32 | from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+   |                                                ------------ previous definition of `with_receipt` here
+33 | from shiploop_improve_route import with_route  # noqa: E402
+34 | import shiploop_knowledge_home as knowledge  # noqa: E402
+   |
+help: Remove definition: `with_receipt`
+   |
+37 | sys.path.insert(0, str(ROOT / "test"))
+   - from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+38 | import shiploop_inner_fixture as inner_fixture  # noqa: E402
+   |
+
+Found 4 errors.
+[*] 4 fixable with `--fix`.

@@ -1,0 +1,82 @@
+{
+  "relocations": [
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2682,
+      "new": 2687
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2117,
+      "new": 2122
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 1773,
+      "new": 1745
+    },
+    {
+      "path": "skills/shiploop/references/platforms/salesforce.md",
+      "old": 55,
+      "new": 50
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2937,
+      "new": 2942
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2682,
+      "new": 2687
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2557,
+      "new": 2562
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2645,
+      "new": 2650
+    },
+    {
+      "path": "test/shiploop-guidance.test.py",
+      "old": 3047,
+      "new": 3154
+    },
+    {
+      "path": "test/shiploop-actual-improve-cli.test.py",
+      "old": 464,
+      "new": 625
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2663,
+      "new": 2668
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2937,
+      "new": 2942
+    },
+    {
+      "path": "skills/shiploop/references/platforms/salesforce.md",
+      "old": 55,
+      "new": 50
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "old": 2649,
+      "new": 2654
+    }
+  ],
+  "current_source": "a20263ccff20b5fcc505cde5e2e5bbc7d9b96567",
+  "exact_modified_sites": {
+    "plan": 1777,
+    "check": 1806,
+    "release": 1830,
+    "guide": 251,
+    "sf": 59
+  }
+}

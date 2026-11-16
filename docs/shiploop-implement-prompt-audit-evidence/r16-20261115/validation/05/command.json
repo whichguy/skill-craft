@@ -1,0 +1,14 @@
+{
+  "number": 5,
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-e2e-release-slice.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T05:38:58.527889+00:00",
+  "attempt": 1
+}

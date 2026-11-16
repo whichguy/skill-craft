@@ -1,0 +1,47 @@
+{
+  "source": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+  "valid_contract_red": {
+    "methods": 5,
+    "failed_assertions": 7,
+    "errors": 0,
+    "production_unchanged": true
+  },
+  "local_observer": {
+    "actual_invocations": 16,
+    "qualification": {
+      "honest": true,
+      "always-success": false
+    },
+    "expected_identity": "candidate-v2",
+    "target_paths_and_bytes_unchanged": true,
+    "report": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/qualification.json",
+    "report_sha256": "25370be4d21e7e7df68ffdbdae65cda495a1fa3544cf8d47249c262aa9a44282",
+    "expected_exit_matrix": {
+      "identity": {
+        "absent": 1,
+        "correct": 0,
+        "wrong": 1,
+        "error": 2
+      },
+      "presence": {
+        "absent": 1,
+        "correct": 0,
+        "wrong": 0,
+        "error": 2
+      },
+      "behavior": {
+        "absent": 1,
+        "correct": 0,
+        "wrong": 0,
+        "error": 2
+      }
+    }
+  },
+  "scope": "Contract contradiction and local observer logic only; no model uptake, deployment or authority qualification",
+  "excluded_attempts": {
+    "red-001": "Invalid collector bootstrap, zero tests",
+    "acceptance-baseline-001": "Fixture missing inherited knowledge; not runtime defect",
+    "acceptance-green-001": "Fixture expected a different normal refusal message; no production broadening",
+    "author_exit": "Transport Bad Request, worker INCOMPLETE; focused receipts retained"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "number": 9,
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-head-order.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T05:40:10.956896+00:00",
+  "attempt": 1,
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_counts": [
+    36
+  ],
+  "terminal_ok": true,
+  "skipped": false,
+  "end": "2026-11-16T05:40:20.955008+00:00"
+}

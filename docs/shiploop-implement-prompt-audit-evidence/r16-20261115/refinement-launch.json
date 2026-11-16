@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "codex",
+    "exec",
+    "--profile",
+    "shiploop",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "--sandbox",
+    "danger-full-access",
+    "-c",
+    "approval_policy=\"never\"",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r16-20261115",
+    "--json",
+    "-o",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement-final.md",
+    "-"
+  ],
+  "source": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+  "candidate_hashes": "author-incomplete-hashes.json",
+  "input_sha256": "fed3664dbc367c1aae91c2af174d511406310f679cbd8386b6efa3396588c0b1",
+  "started_utc": "2026-11-16T05:16:58.052770+00:00"
+}

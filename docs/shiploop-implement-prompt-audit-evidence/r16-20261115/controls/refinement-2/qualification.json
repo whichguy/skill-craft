@@ -1,0 +1,298 @@
+{
+  "expected_identity": "candidate-v2",
+  "qualification": {
+    "honest": true,
+    "always-success": false
+  },
+  "records": [
+    {
+      "variant": "honest",
+      "claim": "identity",
+      "fixture": "absent",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 1,
+      "stdout": "{\"state\": \"absent\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"identity\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "identity",
+      "fixture": "correct",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"requested candidate present\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v2\", \"claim\": \"identity\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "identity",
+      "fixture": "wrong",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 1,
+      "stdout": "{\"state\": \"different revision\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v1\", \"claim\": \"identity\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "identity",
+      "fixture": "error",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 2,
+      "stdout": "{\"state\": \"indeterminate\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"identity\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "presence",
+      "fixture": "absent",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 1,
+      "stdout": "{\"state\": \"absent\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"presence\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "presence",
+      "fixture": "correct",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"requested candidate present\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v2\", \"claim\": \"presence\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "presence",
+      "fixture": "wrong",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"different revision\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v1\", \"claim\": \"presence\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "presence",
+      "fixture": "error",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 2,
+      "stdout": "{\"state\": \"indeterminate\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"presence\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "behavior",
+      "fixture": "absent",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 1,
+      "stdout": "{\"state\": \"absent\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"behavior\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "behavior",
+      "fixture": "correct",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"requested candidate present\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v2\", \"claim\": \"behavior\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "behavior",
+      "fixture": "wrong",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"different revision\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v1\", \"claim\": \"behavior\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "honest",
+      "claim": "behavior",
+      "fixture": "error",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 2,
+      "stdout": "{\"state\": \"indeterminate\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"behavior\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "always-success",
+      "claim": "identity",
+      "fixture": "absent",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"absent\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"identity\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "always-success",
+      "claim": "identity",
+      "fixture": "correct",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"requested candidate present\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v2\", \"claim\": \"identity\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "always-success",
+      "claim": "identity",
+      "fixture": "wrong",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"different revision\", \"requested\": \"candidate-v2\", \"observed\": \"candidate-v1\", \"claim\": \"identity\"}\n",
+      "stderr": ""
+    },
+    {
+      "variant": "always-success",
+      "claim": "identity",
+      "fixture": "error",
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations",
+      "exit": 0,
+      "stdout": "{\"state\": \"indeterminate\", \"requested\": \"candidate-v2\", \"observed\": null, \"claim\": \"identity\"}\n",
+      "stderr": ""
+    }
+  ],
+  "paths_and_bytes_unchanged": true
+}

@@ -1,0 +1,57 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-actual-improve-cli.test.py",
+    "R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state",
+    "-v"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-baseline-followup-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "deadline": "2026-11-16T05:40:00+00:00",
+  "preflight_matches": true,
+  "pre": {
+    "time": "2026-11-16T05:25:35.640026+00:00",
+    "head": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+    "branch": "HEAD",
+    "ordinary_status": " M test/shiploop-actual-improve-cli.test.py\n",
+    "ignored_status": " M test/shiploop-actual-improve-cli.test.py\n",
+    "tracked_inventory_sha256": "fdc84edf6a06782284cb379b91fdeaea9189b945ec8b1ebb22cfd5d2da255da8",
+    "test_sha256": "2676586dcec0e4b48bf6f20bf3f6d2f9977ba077401a8f4759859bdc13092b19",
+    "production_sha256": {
+      "skills/shiploop/scripts/shiploop_prompts.py": "daa28f40dd8a062a395471d623567517070930cd1f4c6c0c855baacb8f58b0c2",
+      "skills/shiploop/references/testing-and-documentation.md": "5361d5bc93943a3d481d8a2ab1e4e38e8e7c7dec3ca1a5a36ff7d95348b663f3",
+      "skills/shiploop/references/platforms/salesforce.md": "9ca923c7d23a4975a481a2bb8dba85b94df5109da58571b164ddea76d608c6f0"
+    }
+  },
+  "attempts": 1,
+  "started_at": "2026-11-16T05:25:35.669729+00:00",
+  "exit_code": 0,
+  "ended_at": "2026-11-16T05:25:40.618679+00:00",
+  "post": {
+    "time": "2026-11-16T05:25:42.118833+00:00",
+    "head": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+    "branch": "HEAD",
+    "ordinary_status": " M test/shiploop-actual-improve-cli.test.py\n",
+    "ignored_status": " M test/shiploop-actual-improve-cli.test.py\n",
+    "tracked_inventory_sha256": "fdc84edf6a06782284cb379b91fdeaea9189b945ec8b1ebb22cfd5d2da255da8",
+    "test_sha256": "2676586dcec0e4b48bf6f20bf3f6d2f9977ba077401a8f4759859bdc13092b19",
+    "production_sha256": {
+      "skills/shiploop/scripts/shiploop_prompts.py": "daa28f40dd8a062a395471d623567517070930cd1f4c6c0c855baacb8f58b0c2",
+      "skills/shiploop/references/testing-and-documentation.md": "5361d5bc93943a3d481d8a2ab1e4e38e8e7c7dec3ca1a5a36ff7d95348b663f3",
+      "skills/shiploop/references/platforms/salesforce.md": "9ca923c7d23a4975a481a2bb8dba85b94df5109da58571b164ddea76d608c6f0"
+    }
+  },
+  "hygiene_matches": true,
+  "completed_count": 1,
+  "terminal_ok": true,
+  "skips_present": false,
+  "status": "PASS",
+  "logs": {
+    "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/baseline-followup/stdout.log",
+    "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/baseline-followup/stderr.log"
+  },
+  "scope": "Synthetic test setup/model-shaped result/review; real local CLI callbacks. No deployed/model/authority/consumer-execution claim. Original baseline failure remains separate."
+}

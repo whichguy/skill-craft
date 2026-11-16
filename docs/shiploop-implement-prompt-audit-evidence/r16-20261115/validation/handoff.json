@@ -1,0 +1,342 @@
+{
+  "status": "PASS",
+  "source": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "head": "c245399990b7b5d3402f44b5821c0fa774352f45",
+  "source_identity_match": true,
+  "tracked_entries": 13976,
+  "ordinary_status": "",
+  "ignored_inclusive_status": "",
+  "required_checks": 14,
+  "completed_checks": 14,
+  "unittest_total": 505,
+  "results": [
+    {
+      "number": 1,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-guidance.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:36:14.632332+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        93
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:36:20.756637+00:00"
+    },
+    {
+      "number": 2,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-actual-improve-cli.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:36:14.632526+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        106
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:39:16.875137+00:00"
+    },
+    {
+      "number": 3,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-consumer-delivery.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:36:14.632577+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        34
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:36:17.008449+00:00"
+    },
+    {
+      "number": 4,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-consumer-delivery-cli.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:38:58.527743+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        5
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:39:01.987700+00:00"
+    },
+    {
+      "number": 5,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-release-slice.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:38:58.527889+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        44
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:39:51.799524+00:00"
+    },
+    {
+      "number": 6,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-reference.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:00.634114+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        8
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:40:00.962455+00:00"
+    },
+    {
+      "number": 7,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-reference-routing.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:00.633829+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        4
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:40:01.458380+00:00"
+    },
+    {
+      "number": 8,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-domain-words.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:00.634157+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        5
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:40:02.109732+00:00"
+    },
+    {
+      "number": 9,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-head-order.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:10.956896+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        36
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:40:20.955008+00:00"
+    },
+    {
+      "number": 10,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-packet-bounds.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:10.957155+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        21
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:40:12.331577+00:00"
+    },
+    {
+      "number": 11,
+      "argv": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-fidelity.test.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:10.957202+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [
+        149
+      ],
+      "terminal_ok": true,
+      "skipped": false,
+      "end": "2026-11-16T05:40:27.465662+00:00"
+    },
+    {
+      "number": 12,
+      "argv": [
+        "ruff",
+        "check",
+        "--no-cache",
+        "--select",
+        "F,E9",
+        "skills/shiploop/scripts/shiploop_prompts.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:32.312589+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [],
+      "terminal_ok": false,
+      "skipped": false,
+      "end": "2026-11-16T05:40:32.352128+00:00"
+    },
+    {
+      "number": 13,
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-release-boundary.py",
+        "--base",
+        "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+        "--head",
+        "c245399990b7b5d3402f44b5821c0fa774352f45"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:32.312831+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [],
+      "terminal_ok": false,
+      "skipped": false,
+      "end": "2026-11-16T05:40:32.503277+00:00"
+    },
+    {
+      "number": 14,
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/src/skill-craft-r16-20261115",
+        "diff",
+        "--check",
+        "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+        "HEAD",
+        "--",
+        "skills/shiploop/scripts/shiploop_prompts.py",
+        "skills/shiploop/references/testing-and-documentation.md",
+        "skills/shiploop/references/platforms/salesforce.md",
+        "test/shiploop-guidance.test.py",
+        "test/shiploop-actual-improve-cli.test.py",
+        "changes/shiploop/r16-observe-actual-release-state.md"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+      "environment_overrides": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "start": "2026-11-16T05:40:32.312794+00:00",
+      "attempt": 1,
+      "exit_code": 0,
+      "status": "PASS",
+      "unittest_counts": [],
+      "terminal_ok": false,
+      "skipped": false,
+      "end": "2026-11-16T05:40:32.331692+00:00"
+    }
+  ],
+  "source_evidence": [
+    "pre-source.json",
+    "post-source.json"
+  ],
+  "scope": "Current source regression and hygiene only; no deployed/model uptake/CI/published acceptance claims. Earlier failures and baseline follow-up remain frozen and separate.",
+  "deadline_utc": "2026-11-16T06:15:00Z",
+  "retry_policy": "none",
+  "generated_source_outputs": []
+}

@@ -1,0 +1,6 @@
+test_r16_local_observer_independent_controls_reject_always_success (r16_selected.R16LocalObserverTests.test_r16_local_observer_independent_controls_reject_always_success) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.425s
+
+OK

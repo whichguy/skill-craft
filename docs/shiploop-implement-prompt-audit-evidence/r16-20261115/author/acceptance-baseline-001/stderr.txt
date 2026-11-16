@@ -1,0 +1,30 @@
+test_r16_actual_release_plan_import_and_release_check_preserve_current_state (r16_selected.R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state) ... FAIL
+
+======================================================================
+FAIL: test_r16_actual_release_plan_import_and_release_check_preserve_current_state (r16_selected.R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft-r16-20261115/test/shiploop-actual-improve-cli.test.py", line 545, in test_r16_actual_release_plan_import_and_release_check_preserve_current_state
+    self._start_parent_at_stage("release-plan", refs, producer_extra={
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "summary": summary, "consumer_entry": entry, "consumer_checks": [],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "consumer_checks_na": "SYNTHETIC admission fixture only; no consumer command execution claimed."})
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dadleet/src/skill-craft-r16-20261115/test/shiploop-actual-improve-cli.test.py", line 285, in _start_parent_at_stage
+    completed = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+  File "/Users/dadleet/src/skill-craft-r16-20261115/test/shiploop-actual-improve-cli.test.py", line 138, in invoke
+    self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ShipLoop navigator: Before release-plan is done, write: /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-baseline-001/scratch/shiploop-child-cli-4fmhbo71/repo/docs/shiploop/environment.md
+ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. The files, one per line:
+- /Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-baseline-001/scratch/shiploop-child-cli-4fmhbo71/repo/docs/shiploop/environment.md
+See the packet's knowledge-home lines for what each file holds.
+Read the current packet with next; the rejected request did not advance the graph.
+The run is still active: fix the result and resubmit in this turn; do not end the turn over a refused callback.
+
+
+----------------------------------------------------------------------
+Ran 1 test in 2.889s
+
+FAILED (failures=1)

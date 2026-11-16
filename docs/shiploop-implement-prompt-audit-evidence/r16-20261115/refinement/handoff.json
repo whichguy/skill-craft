@@ -1,0 +1,146 @@
+{
+  "status": "BOUNDED_SLICE_COMPLETE_PARENT_VALIDATION_PENDING",
+  "first_author_status": "INCOMPLETE",
+  "head": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+  "attempts": [
+    {
+      "tests_run": 1,
+      "failures": 5,
+      "errors": 0,
+      "exit": 1,
+      "name": "cold-locator-red-001",
+      "receipt": "cold-locator-red-001/receipt.json"
+    },
+    {
+      "tests_run": 6,
+      "failures": 0,
+      "errors": 0,
+      "exit": 0,
+      "name": "guidance-green-001",
+      "receipt": "guidance-green-001/receipt.json"
+    },
+    {
+      "tests_run": 2,
+      "failures": 0,
+      "errors": 0,
+      "exit": 0,
+      "name": "observer-cli-green-001",
+      "receipt": "observer-cli-green-001/receipt.json"
+    },
+    {
+      "tests_run": 6,
+      "failures": 0,
+      "errors": 0,
+      "exit": 0,
+      "name": "guidance-green-002",
+      "receipt": "guidance-green-002/receipt.json"
+    }
+  ],
+  "failed_attempts": [
+    {
+      "attempt": "author/red-001",
+      "explanation": "Invalid collector bootstrap; zero tests. Not a source red."
+    },
+    {
+      "attempt": "author/red-002",
+      "explanation": "Valid source red: 5 methods, 7 assertion failures, 0 errors; production unchanged."
+    },
+    {
+      "attempt": "author/acceptance-baseline-001",
+      "explanation": "Missing synthetic fixture knowledge, not an R16 runtime red."
+    },
+    {
+      "attempt": "author/acceptance-green-001",
+      "explanation": "Synthetic fixture expected a different normal refusal message. No production gate fix; author/acceptance-green-002 passed 1/1."
+    },
+    {
+      "attempt": "author worker exit",
+      "explanation": "Exit 1, terminal transport Bad Request, no final handoff. First worker remains INCOMPLETE."
+    },
+    {
+      "attempt": "prior test Ruff",
+      "explanation": "Duplicate knowledge/stage_spec imports already in HEAD and unchanged. Not rerun or cleaned; source-only Ruff used."
+    },
+    {
+      "attempt": "refinement/finalization-001",
+      "explanation": "External report collector failed on a nonliteral unrelated DUTIES entry. Zero tests; source unchanged. Narrowed collector to owned stages; not a runtime or source failure."
+    },
+    {
+      "attempt": "refinement/cold-locator-red-001",
+      "explanation": "Expected prerequisite red: 1 method, 5 assertion failures (two stages on both routes plus Salesforce link), 0 errors; all six source hashes unchanged during run."
+    }
+  ],
+  "source_ruff": "PASS E9,F,B --no-cache",
+  "whitespace": "PASS tracked diff and untracked note",
+  "preexisting_test_ruff": "Unchanged known baseline duplicate-import findings; not rerun",
+  "text_size_only": {
+    "skills/shiploop/scripts/shiploop_prompts.py": {
+      "before": 231215,
+      "after": 230660,
+      "delta": -555
+    },
+    "skills/shiploop/references/testing-and-documentation.md": {
+      "before": 69454,
+      "after": 69454,
+      "delta": 0
+    },
+    "skills/shiploop/references/platforms/salesforce.md": {
+      "before": 14479,
+      "after": 13819,
+      "delta": -660
+    }
+  },
+  "observer_reports": [
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/r16-observer-jnrf8q9c/observations/qualification.json",
+      "sha256": "86dcfba4508cdb925baad6c86d2bce33f9b62f35062ad96d7f36fb8cd7c37f6e",
+      "controls": 16
+    },
+    {
+      "path": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/observer-cli-green-001/scratch/shiploop-child-cli-wvevse4d/observations/qualification.json",
+      "sha256": "0eb690fb1641bd7ce16d0bbfb935c29d9ff4f30cc4fb0bc1f477733efe8ecc77",
+      "controls": 16
+    }
+  ],
+  "frozen_author_files_verified": 764,
+  "observer_cli_test_file_byte_identical": true,
+  "routing_catalog_unchanged": true,
+  "synthetic": [
+    "predecessor navigation",
+    "model-shaped results",
+    "review content"
+  ],
+  "claims": [
+    "Explicit locator availability on inline and ask-agent routes",
+    "Shared file and anchor resolution under actual GUIDES binding",
+    "Salesforce relative link resolves to same shared section",
+    "Local observer qualification",
+    "Actual release-plan producer completion, Improve import, release-check completion admission"
+  ],
+  "not_claimed": [
+    "model read or uptake",
+    "delivery-contract authority coverage",
+    "release-verify consumer-check execution",
+    "Salesforce or deployed acceptance",
+    "speed or model quality improvement",
+    "full-suite or independent review completion"
+  ],
+  "parent_owns": [
+    "full suites",
+    "independent review",
+    "plan updates",
+    "commits",
+    "main",
+    "publication"
+  ],
+  "artifacts": [
+    "final-six-file-manifest.json",
+    "production.diff",
+    "candidate.diff",
+    "refinement.diff",
+    "before-after-examples.json",
+    "frozen-before.json",
+    "frozen-after.json",
+    "final-command-receipts.json"
+  ]
+}

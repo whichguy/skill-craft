@@ -1,0 +1,90 @@
+[
+  {
+    "name": "production-ruff",
+    "argv": [
+      "ruff",
+      "check",
+      "--no-cache",
+      "--select",
+      "F,E9",
+      "skills/shiploop/scripts/shiploop_prompts.py"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+    "exit": 0,
+    "stdout": "production-ruff.stdout",
+    "stderr": "production-ruff.stderr"
+  },
+  {
+    "name": "test-ruff",
+    "argv": [
+      "ruff",
+      "check",
+      "--no-cache",
+      "--select",
+      "F,E9",
+      "test/shiploop-guidance.test.py",
+      "test/shiploop-actual-improve-cli.test.py"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+    "exit": 1,
+    "stdout": "test-ruff.stdout",
+    "stderr": "test-ruff.stderr"
+  },
+  {
+    "name": "whitespace",
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dadleet/src/skill-craft-r16-20261115",
+      "diff",
+      "--check",
+      "--",
+      "skills/shiploop/scripts/shiploop_prompts.py",
+      "skills/shiploop/references/testing-and-documentation.md",
+      "skills/shiploop/references/platforms/salesforce.md",
+      "test/shiploop-guidance.test.py",
+      "test/shiploop-actual-improve-cli.test.py",
+      "changes/shiploop/r16-observe-actual-release-state.md"
+    ],
+    "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+    "exit": 0,
+    "stdout": "whitespace.stdout",
+    "stderr": "whitespace.stderr"
+  },
+  {
+    "name": "baseline-shiploop-guidance.test",
+    "argv": [
+      "ruff",
+      "check",
+      "--no-cache",
+      "--select",
+      "F,E9",
+      "--stdin-filename",
+      "test/shiploop-guidance.test.py",
+      "-"
+    ],
+    "stdin": "git show HEAD:test/shiploop-guidance.test.py",
+    "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+    "exit": 0,
+    "stdout": "baseline-shiploop-guidance.test.stdout",
+    "stderr": "baseline-shiploop-guidance.test.stderr"
+  },
+  {
+    "name": "baseline-shiploop-actual-improve-cli.test",
+    "argv": [
+      "ruff",
+      "check",
+      "--no-cache",
+      "--select",
+      "F,E9",
+      "--stdin-filename",
+      "test/shiploop-actual-improve-cli.test.py",
+      "-"
+    ],
+    "stdin": "git show HEAD:test/shiploop-actual-improve-cli.test.py",
+    "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+    "exit": 1,
+    "stdout": "baseline-shiploop-actual-improve-cli.test.stdout",
+    "stderr": "baseline-shiploop-actual-improve-cli.test.stderr"
+  }
+]

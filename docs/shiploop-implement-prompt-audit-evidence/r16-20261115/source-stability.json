@@ -1,0 +1,43 @@
+{
+  "qualified_source": "c245399990b7b5d3402f44b5821c0fa774352f45",
+  "current_source": "a20263ccff20b5fcc505cde5e2e5bbc7d9b96567",
+  "tracked_entries": 13976,
+  "tracked_inventory_equal": true,
+  "ordinary_and_ignored_status_clean": true,
+  "frozen_prior_evidence": [
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r05-20261115",
+      "baseline_tree": "e563153e4dde7cdee6f5deb9a3ac14c8ba0123e5",
+      "current_tree": "e563153e4dde7cdee6f5deb9a3ac14c8ba0123e5",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r07-20261115",
+      "baseline_tree": "3c754f223fefb154f988cdfa30c86e70a03c432a",
+      "current_tree": "3c754f223fefb154f988cdfa30c86e70a03c432a",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r08-20261115",
+      "baseline_tree": "5dd061552ce99704449212ffb1d4c6211362bf21",
+      "current_tree": "5dd061552ce99704449212ffb1d4c6211362bf21",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r19-20261115",
+      "baseline_tree": "c7fbe1c8b342d0a3578ee25504db79dbc0dd166a",
+      "current_tree": "c7fbe1c8b342d0a3578ee25504db79dbc0dd166a",
+      "unchanged": true
+    },
+    {
+      "path": "docs/shiploop-implement-prompt-audit-evidence/r21-20261115",
+      "baseline_tree": "3dbfefb943ac1fc45d2f1204c84c57ce55602020",
+      "current_tree": "3dbfefb943ac1fc45d2f1204c84c57ce55602020",
+      "unchanged": true
+    }
+  ],
+  "all_234_anchors_unchanged_after_upstream_merge": true,
+  "pre_source_record_sha256": "b08fae60cd040cc36efdcedee82b77d5a651cf498452098c76ad4226844dbee2",
+  "post_source_record_sha256": "f220386347511b31427e88d1a470a447bb4c45a08fd75ff064335bca53b3c94f",
+  "tracked_inventory_sha256": "14a3e9a5fd51962c4f17ab8ec0dafecd599173a7231e4fdcf3076bc3e9379152"
+}

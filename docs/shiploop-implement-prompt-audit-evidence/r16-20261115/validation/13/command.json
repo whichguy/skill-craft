@@ -1,0 +1,18 @@
+{
+  "number": 13,
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/check-release-boundary.py",
+    "--base",
+    "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+    "--head",
+    "c245399990b7b5d3402f44b5821c0fa774352f45"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T05:40:32.312831+00:00",
+  "attempt": 1
+}

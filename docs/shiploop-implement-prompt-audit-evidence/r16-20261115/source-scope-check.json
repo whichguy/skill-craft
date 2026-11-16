@@ -1,0 +1,28 @@
+{
+  "source": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+  "only_production_python_change": "release-plan/release-check/release DUTIES values; all other AST nodes identical",
+  "changed_paths": [
+    "skills/shiploop/scripts/shiploop_prompts.py",
+    "skills/shiploop/references/testing-and-documentation.md",
+    "skills/shiploop/references/platforms/salesforce.md",
+    "test/shiploop-guidance.test.py",
+    "test/shiploop-actual-improve-cli.test.py",
+    "changes/shiploop/r16-observe-actual-release-state.md"
+  ],
+  "frozen_author_files_unchanged": 764,
+  "observer_cli_test_file_unchanged_during_refinement": true,
+  "current_sha256": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "bf41a06c1c18b7801aa49d9436b522b2674c4c5cefd56502358eb81af12c0685",
+    "skills/shiploop/references/testing-and-documentation.md": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "skills/shiploop/references/platforms/salesforce.md": "b78c2015babb8d478f9ed70ab72da89581dc793ab7d2289d8e79987a1e8606e2",
+    "test/shiploop-guidance.test.py": "9d4241d6676936ab5ff94b7904c13d37663aa9b4d70111fcb7c491d64e0ceffd",
+    "test/shiploop-actual-improve-cli.test.py": "2676586dcec0e4b48bf6f20bf3f6d2f9977ba077401a8f4759859bdc13092b19",
+    "changes/shiploop/r16-observe-actual-release-state.md": "3f91e86b89c1c01aea1790174d4abd982fef302cb275b9ee995334b531ee1e6a"
+  },
+  "refinement_tests": {
+    "guidance": 6,
+    "observer_and_actual_cli": 2
+  },
+  "baseline_followup": "Native1/1 PASS on unchanged production with corrected test; original fixture FAIL retained",
+  "publication": "not done"
+}

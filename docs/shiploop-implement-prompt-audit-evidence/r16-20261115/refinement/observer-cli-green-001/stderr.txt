@@ -1,0 +1,7 @@
+test_r16_local_observer_independent_controls_reject_always_success (r16_selected.R16LocalObserverTests.test_r16_local_observer_independent_controls_reject_always_success) ... ok
+test_r16_actual_release_plan_import_and_release_check_preserve_current_state (r16_selected.R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 6.905s
+
+OK

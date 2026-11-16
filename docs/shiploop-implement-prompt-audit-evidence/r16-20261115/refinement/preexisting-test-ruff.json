@@ -1,0 +1,33 @@
+{
+  "test_ruff_rerun": false,
+  "reason": "Source-only Ruff requested; duplicate knowledge/stage_spec imports left untouched.",
+  "baseline_and_current_imports": [
+    [
+      28,
+      "import shiploop_knowledge_home as knowledge  # noqa: E402"
+    ],
+    [
+      29,
+      "import shiploop_stage_spec as stage_spec  # noqa: E402"
+    ],
+    [
+      34,
+      "import shiploop_knowledge_home as knowledge  # noqa: E402"
+    ],
+    [
+      35,
+      "import shiploop_stage_spec as stage_spec  # noqa: E402"
+    ]
+  ],
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r16-20261115",
+    "show",
+    "HEAD:test/shiploop-actual-improve-cli.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "exit": 0,
+  "baseline_stdout_sha256": "9ba15b039bb99046d062d058e9c722a77e9c495a2f1cc9a2fea7f18472db21e9",
+  "stderr": ""
+}

@@ -1,0 +1,585 @@
+{
+  "argv": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/collect.py",
+    "--attempt",
+    "acceptance-green-002",
+    "--file",
+    "test/shiploop-actual-improve-cli.test.py",
+    "R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "production_before": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "9e90141721b4e1d35bf35f3e4c60694cd3acf8fe4705cb74186c3a8bbe7be44c",
+    "skills/shiploop/references/testing-and-documentation.md": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "skills/shiploop/references/platforms/salesforce.md": "990d465c5f01860a0b71947471a19096b500e31d7fedcd43c2a1a3b0a5d19158"
+  },
+  "test_ids": [
+    "R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state"
+  ],
+  "tests_run": 1,
+  "failures": 0,
+  "errors": 0,
+  "exit": 0,
+  "seconds": 7.316792541001632,
+  "production_after": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "9e90141721b4e1d35bf35f3e4c60694cd3acf8fe4705cb74186c3a8bbe7be44c",
+    "skills/shiploop/references/testing-and-documentation.md": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "skills/shiploop/references/platforms/salesforce.md": "990d465c5f01860a0b71947471a19096b500e31d7fedcd43c2a1a3b0a5d19158"
+  },
+  "commands": [
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "init",
+        "--repo",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/repo",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run",
+        "--prompt",
+        "Protocol composition fixture",
+        "--improve-skill",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/improve/SKILL.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0000.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0000.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run",
+        "--action",
+        "nav-ab8e600a25474b288481d33bc8168b4f",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run/inbox/nav-ab8e600a25474b288481d33bc8168b4f.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0001.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0001.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run",
+        "--action",
+        "nav-a21c6a87e9ce44d8b147d72e7cc32afb",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run/inbox/nav-a21c6a87e9ce44d8b147d72e7cc32afb.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0002.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0002.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run",
+        "--action",
+        "nav-15b46c6543804dbb9a70583abfd06fa3",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run/inbox/nav-15b46c6543804dbb9a70583abfd06fa3.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0003.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0003.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run",
+        "--action",
+        "nav-bd685750bb2c40d88309f62b12023906",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/run/inbox/nav-bd685750bb2c40d88309f62b12023906.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0004.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0004.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0005.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0005.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0006.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0006.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0007.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0007.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0008.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0008.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0009.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0009.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0010.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0010.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0011.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0011.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0012.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0012.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0013.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0013.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0014.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0014.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0015.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0015.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0016.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0016.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0017.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0017.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0018.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0018.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0019.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0019.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0020.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0020.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "init",
+        "--repo",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/repo",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--prompt",
+        "Synthetic predecessor navigation for CLI composition.",
+        "--improve-skill",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/improve/SKILL.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0021.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0021.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--action",
+        "nav-8744ecbdd97b4873a5b12f7fcaea7a56",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-8744ecbdd97b4873a5b12f7fcaea7a56.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0022.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0022.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "next",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0023.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0023.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "done",
+        "--state",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/until-loop/innerloop-e8ynki7s.json",
+        "--action=XyisGDSHo_a2OV44am5GO4mB:1"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0024.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0024.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "done",
+        "--state",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/until-loop/innerloop-e8ynki7s.json",
+        "--action=XyisGDSHo_a2OV44am5GO4mB:2"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0025.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0025.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "done",
+        "--state",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/until-loop/innerloop-e8ynki7s.json",
+        "--action=XyisGDSHo_a2OV44am5GO4mB:3"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0026.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0026.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--action",
+        "nav-c39b1075ccbc4e9e900bf9b831861d99",
+        "--notes",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-8744ecbdd97b4873a5b12f7fcaea7a56-improve-notes.md",
+        "--final-result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-8744ecbdd97b4873a5b12f7fcaea7a56-final-result.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0027.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0027.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--action",
+        "nav-c39b1075ccbc4e9e900bf9b831861d99",
+        "--notes",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-8744ecbdd97b4873a5b12f7fcaea7a56-improve-notes.md",
+        "--final-result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-8744ecbdd97b4873a5b12f7fcaea7a56-final-result.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0028.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0028.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--action",
+        "nav-c39b1075ccbc4e9e900bf9b831861d99",
+        "--notes",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-8744ecbdd97b4873a5b12f7fcaea7a56-improve-notes.md",
+        "--final-result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-8744ecbdd97b4873a5b12f7fcaea7a56-final-result.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0029.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0029.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "next",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0030.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0030.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--action",
+        "nav-8744ecbdd97b4873a5b12f7fcaea7a56",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-b51be38b5d4c4699a743a999649de7ba.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0031.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0031.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "check",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--action",
+        "nav-b51be38b5d4c4699a743a999649de7ba",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-b51be38b5d4c4699a743a999649de7ba.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0032.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0032.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/src/skill-craft-r16-20261115/skills/shiploop/scripts/shiploop",
+        "complete",
+        "--run-dir",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan",
+        "--action",
+        "nav-b51be38b5d4c4699a743a999649de7ba",
+        "--result",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k/parent-release-plan/inbox/nav-b51be38b5d4c4699a743a999649de7ba.md"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/scratch/shiploop-child-cli-ix_2no2k",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0033.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/acceptance-green-002/command-0033.stderr"
+    }
+  ]
+}

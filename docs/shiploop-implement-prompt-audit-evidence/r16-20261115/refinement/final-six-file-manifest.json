@@ -1,0 +1,48 @@
+{
+  "head": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+  "staged_paths": [],
+  "files": [
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "status": " M",
+      "before_sha256": "9e90141721b4e1d35bf35f3e4c60694cd3acf8fe4705cb74186c3a8bbe7be44c",
+      "sha256": "bf41a06c1c18b7801aa49d9436b522b2674c4c5cefd56502358eb81af12c0685",
+      "unchanged_from_first_candidate": false
+    },
+    {
+      "path": "skills/shiploop/references/testing-and-documentation.md",
+      "status": " M",
+      "before_sha256": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+      "sha256": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+      "unchanged_from_first_candidate": true
+    },
+    {
+      "path": "skills/shiploop/references/platforms/salesforce.md",
+      "status": " M",
+      "before_sha256": "990d465c5f01860a0b71947471a19096b500e31d7fedcd43c2a1a3b0a5d19158",
+      "sha256": "b78c2015babb8d478f9ed70ab72da89581dc793ab7d2289d8e79987a1e8606e2",
+      "unchanged_from_first_candidate": false
+    },
+    {
+      "path": "test/shiploop-guidance.test.py",
+      "status": " M",
+      "before_sha256": "f9e20a663b8b1a9c7e7a29c95986644b0e549f2f78a7536bcfc642ff9b858e53",
+      "sha256": "9d4241d6676936ab5ff94b7904c13d37663aa9b4d70111fcb7c491d64e0ceffd",
+      "unchanged_from_first_candidate": false
+    },
+    {
+      "path": "test/shiploop-actual-improve-cli.test.py",
+      "status": " M",
+      "before_sha256": "2676586dcec0e4b48bf6f20bf3f6d2f9977ba077401a8f4759859bdc13092b19",
+      "sha256": "2676586dcec0e4b48bf6f20bf3f6d2f9977ba077401a8f4759859bdc13092b19",
+      "unchanged_from_first_candidate": true
+    },
+    {
+      "path": "changes/shiploop/r16-observe-actual-release-state.md",
+      "status": "??",
+      "before_sha256": "3f91e86b89c1c01aea1790174d4abd982fef302cb275b9ee995334b531ee1e6a",
+      "sha256": "3f91e86b89c1c01aea1790174d4abd982fef302cb275b9ee995334b531ee1e6a",
+      "unchanged_from_first_candidate": true
+    }
+  ]
+}

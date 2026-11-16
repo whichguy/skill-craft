@@ -1,0 +1,271 @@
+{
+  "argv": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/collect.py",
+    "--attempt",
+    "observer-001",
+    "--file",
+    "test/shiploop-actual-improve-cli.test.py",
+    "R16LocalObserverTests.test_r16_local_observer_independent_controls_reject_always_success"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "production_before": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "daa28f40dd8a062a395471d623567517070930cd1f4c6c0c855baacb8f58b0c2",
+    "skills/shiploop/references/testing-and-documentation.md": "5361d5bc93943a3d481d8a2ab1e4e38e8e7c7dec3ca1a5a36ff7d95348b663f3",
+    "skills/shiploop/references/platforms/salesforce.md": "9ca923c7d23a4975a481a2bb8dba85b94df5109da58571b164ddea76d608c6f0"
+  },
+  "test_ids": [
+    "R16LocalObserverTests.test_r16_local_observer_independent_controls_reject_always_success"
+  ],
+  "tests_run": 1,
+  "failures": 0,
+  "errors": 0,
+  "exit": 0,
+  "seconds": 0.6576515830020071,
+  "production_after": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "daa28f40dd8a062a395471d623567517070930cd1f4c6c0c855baacb8f58b0c2",
+    "skills/shiploop/references/testing-and-documentation.md": "5361d5bc93943a3d481d8a2ab1e4e38e8e7c7dec3ca1a5a36ff7d95348b663f3",
+    "skills/shiploop/references/platforms/salesforce.md": "9ca923c7d23a4975a481a2bb8dba85b94df5109da58571b164ddea76d608c6f0"
+  },
+  "commands": [
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0000.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0000.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0001.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0001.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0002.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0002.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "identity",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0003.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0003.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0004.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0004.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0005.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0005.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0006.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0006.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "presence",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0007.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0007.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 1,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0008.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0008.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0009.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0009.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0010.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0010.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "behavior",
+        "honest"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 2,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0011.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0011.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/absent/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0012.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0012.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/correct/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0013.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0013.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/wrong/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0014.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0014.stderr"
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "-B",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/observer.py",
+        "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/targets/error/artifact.json",
+        "candidate-v2",
+        "identity",
+        "always-success"
+      ],
+      "cwd": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations",
+      "exit": 0,
+      "stdout": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0015.stdout",
+      "stderr": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/command-0015.stderr"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "exit": 1,
+  "reason": "No configured committer identity in this execution environment",
+  "source_unchanged": true,
+  "merge_started": false,
+  "resolution": "Use the verified existing main-commit identity via per-command git -c only; no persistent config edit",
+  "identity_source": "08fc6be6b80a8a3b03d4edcc14eb34b584062fa8"
+}

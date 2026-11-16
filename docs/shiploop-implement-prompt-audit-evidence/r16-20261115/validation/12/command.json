@@ -1,0 +1,17 @@
+{
+  "number": 12,
+  "argv": [
+    "ruff",
+    "check",
+    "--no-cache",
+    "--select",
+    "F,E9",
+    "skills/shiploop/scripts/shiploop_prompts.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T05:40:32.312589+00:00",
+  "attempt": 1
+}

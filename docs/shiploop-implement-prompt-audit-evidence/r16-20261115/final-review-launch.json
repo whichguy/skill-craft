@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "codex",
+    "exec",
+    "--profile",
+    "shiploop-judge",
+    "--model",
+    "gpt-6-astra",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "--sandbox",
+    "read-only",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r16-20261115",
+    "--json",
+    "-o",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/final-review.md",
+    "-"
+  ],
+  "source": "c245399990b7b5d3402f44b5821c0fa774352f45",
+  "input_sha256": "dec1553e7d9cd32e01396941628bcd206420dc6d18c91296d5c8ea0aee7cd383",
+  "started_utc": "2026-11-16T05:36:39.460927+00:00"
+}

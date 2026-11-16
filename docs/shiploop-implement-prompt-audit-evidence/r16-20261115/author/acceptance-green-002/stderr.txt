@@ -1,0 +1,6 @@
+test_r16_actual_release_plan_import_and_release_check_preserve_current_state (r16_selected.R16ReleaseStateCliTests.test_r16_actual_release_plan_import_and_release_check_preserve_current_state) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 7.054s
+
+OK

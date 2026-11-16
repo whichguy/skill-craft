@@ -1,0 +1,11 @@
+test_every_v3_v4_packet_locator_resolves_to_a_package_reference_heading (__main__.ReferenceRoutingTests.test_every_v3_v4_packet_locator_resolves_to_a_package_reference_heading)
+Every reference locator a navigator packet prints names a real file and heading. ... ok
+test_maintained_requirements_guides_keep_package_local_links_when_relocated (__main__.ReferenceRoutingTests.test_maintained_requirements_guides_keep_package_local_links_when_relocated) ... ok
+test_normative_guides_name_only_existing_package_files (__main__.ReferenceRoutingTests.test_normative_guides_name_only_existing_package_files)
+Linked or backticked package file names must not outlive their files. ... ok
+test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases (__main__.ReferenceRoutingTests.test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.576s
+
+OK

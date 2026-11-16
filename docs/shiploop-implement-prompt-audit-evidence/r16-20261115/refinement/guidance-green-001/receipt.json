@@ -1,0 +1,48 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "-B",
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/refinement/collect.py",
+    "--attempt",
+    "guidance-green-001",
+    "--file",
+    "test/shiploop-guidance.test.py",
+    "GuidanceTests.test_r16_cold_release_state_locator_resolves_on_both_routes",
+    "GuidanceTests.test_r16_release_plan_qualifies_claims_independently_of_current_observation",
+    "GuidanceTests.test_r16_release_check_records_actual_state_and_indeterminate_observations",
+    "GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification",
+    "GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources",
+    "GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "production_before": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "bf41a06c1c18b7801aa49d9436b522b2674c4c5cefd56502358eb81af12c0685",
+    "skills/shiploop/references/testing-and-documentation.md": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "skills/shiploop/references/platforms/salesforce.md": "b78c2015babb8d478f9ed70ab72da89581dc793ab7d2289d8e79987a1e8606e2",
+    "test/shiploop-guidance.test.py": "520889bbea7a78e3dc74946942f6106851c9fa27ff4722f0a74f8cf13ed1c925",
+    "test/shiploop-actual-improve-cli.test.py": "2676586dcec0e4b48bf6f20bf3f6d2f9977ba077401a8f4759859bdc13092b19",
+    "changes/shiploop/r16-observe-actual-release-state.md": "3f91e86b89c1c01aea1790174d4abd982fef302cb275b9ee995334b531ee1e6a"
+  },
+  "test_ids": [
+    "GuidanceTests.test_r16_cold_release_state_locator_resolves_on_both_routes",
+    "GuidanceTests.test_r16_release_plan_qualifies_claims_independently_of_current_observation",
+    "GuidanceTests.test_r16_release_check_records_actual_state_and_indeterminate_observations",
+    "GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification",
+    "GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources",
+    "GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts"
+  ],
+  "tests_run": 6,
+  "failures": 0,
+  "errors": 0,
+  "exit": 0,
+  "seconds": 0.930464540993853,
+  "production_after": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "bf41a06c1c18b7801aa49d9436b522b2674c4c5cefd56502358eb81af12c0685",
+    "skills/shiploop/references/testing-and-documentation.md": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "skills/shiploop/references/platforms/salesforce.md": "b78c2015babb8d478f9ed70ab72da89581dc793ab7d2289d8e79987a1e8606e2",
+    "test/shiploop-guidance.test.py": "520889bbea7a78e3dc74946942f6106851c9fa27ff4722f0a74f8cf13ed1c925",
+    "test/shiploop-actual-improve-cli.test.py": "2676586dcec0e4b48bf6f20bf3f6d2f9977ba077401a8f4759859bdc13092b19",
+    "changes/shiploop/r16-observe-actual-release-state.md": "3f91e86b89c1c01aea1790174d4abd982fef302cb275b9ee995334b531ee1e6a"
+  },
+  "commands": []
+}

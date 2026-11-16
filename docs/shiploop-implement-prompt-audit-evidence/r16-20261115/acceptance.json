@@ -1,0 +1,94 @@
+{
+  "status": "IMPLEMENTED_SCOPED",
+  "recommendation": "R16",
+  "baseline_source": "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+  "qualified_source": "c245399990b7b5d3402f44b5821c0fa774352f45",
+  "current_source": "a20263ccff20b5fcc505cde5e2e5bbc7d9b96567",
+  "integrated_main": "4e36b3ad486b30fce972e697096fcfa158c29e3d",
+  "production_delta": "Only release-plan/release-check/release DUTIES string values and2 reference sections; all other production Python AST identical",
+  "new_test_methods": 8,
+  "valid_red": {
+    "methods": 5,
+    "failed_assertions": 7,
+    "errors": 0,
+    "production_unchanged": true
+  },
+  "cold_locator_red": {
+    "methods": 1,
+    "failed_assertions": 5,
+    "errors": 0
+  },
+  "focused_green": {
+    "guidance": 6,
+    "observer_and_actual_cli": 2
+  },
+  "baseline_followup": {
+    "methods": 1,
+    "status": "PASS",
+    "original_fixture_failure_not_regraded": true,
+    "same_production_as_original_baseline": true
+  },
+  "observer_control_reports": [
+    {
+      "directory": "controls/author-1",
+      "actual_invocations": 16,
+      "honest_qualified": true,
+      "always_success_qualified": false,
+      "paths_and_bytes_unchanged": true
+    },
+    {
+      "directory": "controls/refinement-1",
+      "actual_invocations": 16,
+      "honest_qualified": true,
+      "always_success_qualified": false,
+      "paths_and_bytes_unchanged": true
+    },
+    {
+      "directory": "controls/refinement-2",
+      "actual_invocations": 16,
+      "honest_qualified": true,
+      "always_success_qualified": false,
+      "paths_and_bytes_unchanged": true
+    }
+  ],
+  "full_bank": {
+    "modules": 11,
+    "executions": 505,
+    "counts": [
+      93,
+      106,
+      34,
+      5,
+      44,
+      8,
+      4,
+      5,
+      36,
+      21,
+      149
+    ],
+    "deduplicated": false,
+    "skips": 0,
+    "retries": 0
+  },
+  "static_checks": {
+    "source_ruff": "PASS",
+    "release_boundary": "PASS",
+    "scoped_whitespace": "PASS",
+    "baseline_test_ruff": "FAIL unchanged duplicates; not a passing lint command"
+  },
+  "independent_source_review": "APPROVE",
+  "first_author": "INCOMPLETE: terminal transport Bad Request",
+  "refinement": "completed, same requested Sol6.1/medium",
+  "unchanged_prior_evidence": true,
+  "shortening_from_first_repair_draft_characters": 1215,
+  "not_claimed": [
+    "Model uptake/read or reliability",
+    "Marked-contract authority coverage by synthetic fixture",
+    "release-verify consumer command execution",
+    "Live platform/deployed/universal-package/installed-host/CI acceptance",
+    "Token or performance gain"
+  ],
+  "publication": "not done; release2.42.1/ShipLoop1.37.1 remains upstream",
+  "next": "R15"
+}

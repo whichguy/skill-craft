@@ -1,0 +1,22 @@
+{
+  "number": 3,
+  "argv": [
+    "python3",
+    "-B",
+    "test/shiploop-consumer-delivery.test.py"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T05:36:14.632577+00:00",
+  "attempt": 1,
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_counts": [
+    34
+  ],
+  "terminal_ok": true,
+  "skipped": false,
+  "end": "2026-11-16T05:36:17.008449+00:00"
+}

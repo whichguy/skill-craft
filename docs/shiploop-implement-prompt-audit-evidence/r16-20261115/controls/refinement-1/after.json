@@ -1,0 +1,25 @@
+{
+  "absent": {
+    "kind": "directory"
+  },
+  "correct": {
+    "kind": "directory"
+  },
+  "correct/artifact.json": {
+    "kind": "file",
+    "hex": "7b2263616e646964617465223a202263616e6469646174652d7632222c20226265686176696f72223a20227265616479227d"
+  },
+  "error": {
+    "kind": "directory"
+  },
+  "error/artifact.json": {
+    "kind": "directory"
+  },
+  "wrong": {
+    "kind": "directory"
+  },
+  "wrong/artifact.json": {
+    "kind": "file",
+    "hex": "7b2263616e646964617465223a202263616e6469646174652d7631222c20226265686176696f72223a20227265616479227d"
+  }
+}

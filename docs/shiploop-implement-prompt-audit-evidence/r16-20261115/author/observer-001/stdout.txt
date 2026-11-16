@@ -1,0 +1,1 @@
+{"r16_observer_report": "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/observer-001/scratch/r16-observer-o577_fx9/observations/qualification.json", "qualification": {"honest": true, "always-success": false}}

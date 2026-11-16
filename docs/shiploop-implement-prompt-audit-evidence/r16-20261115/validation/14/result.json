@@ -1,0 +1,31 @@
+{
+  "number": 14,
+  "argv": [
+    "git",
+    "-C",
+    "/Users/dadleet/src/skill-craft-r16-20261115",
+    "diff",
+    "--check",
+    "6207cffbf36c1632f9d9b18d6431c26cba0f447d",
+    "HEAD",
+    "--",
+    "skills/shiploop/scripts/shiploop_prompts.py",
+    "skills/shiploop/references/testing-and-documentation.md",
+    "skills/shiploop/references/platforms/salesforce.md",
+    "test/shiploop-guidance.test.py",
+    "test/shiploop-actual-improve-cli.test.py",
+    "changes/shiploop/r16-observe-actual-release-state.md"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "start": "2026-11-16T05:40:32.312794+00:00",
+  "attempt": 1,
+  "exit_code": 0,
+  "status": "PASS",
+  "unittest_counts": [],
+  "terminal_ok": false,
+  "skipped": false,
+  "end": "2026-11-16T05:40:32.331692+00:00"
+}

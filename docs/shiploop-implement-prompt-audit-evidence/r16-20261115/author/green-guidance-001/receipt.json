@@ -1,0 +1,38 @@
+{
+  "argv": [
+    "/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-7921-b457-5cf870234201/r16-20261115/author/collect.py",
+    "--attempt",
+    "green-guidance-001",
+    "--file",
+    "test/shiploop-guidance.test.py",
+    "GuidanceTests.test_r16_release_plan_qualifies_claims_independently_of_current_observation",
+    "GuidanceTests.test_r16_release_check_records_actual_state_and_indeterminate_observations",
+    "GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification",
+    "GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources",
+    "GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts"
+  ],
+  "cwd": "/Users/dadleet/src/skill-craft-r16-20261115",
+  "production_before": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "9e90141721b4e1d35bf35f3e4c60694cd3acf8fe4705cb74186c3a8bbe7be44c",
+    "skills/shiploop/references/testing-and-documentation.md": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "skills/shiploop/references/platforms/salesforce.md": "990d465c5f01860a0b71947471a19096b500e31d7fedcd43c2a1a3b0a5d19158"
+  },
+  "test_ids": [
+    "GuidanceTests.test_r16_release_plan_qualifies_claims_independently_of_current_observation",
+    "GuidanceTests.test_r16_release_check_records_actual_state_and_indeterminate_observations",
+    "GuidanceTests.test_r16_release_reference_separates_actual_observation_from_qualification",
+    "GuidanceTests.test_r16_platform_confirm_preserves_presence_query_entry_and_sources",
+    "GuidanceTests.test_r16_initially_current_release_keeps_remaining_operations_and_replan_receipts"
+  ],
+  "tests_run": 5,
+  "failures": 0,
+  "errors": 0,
+  "exit": 0,
+  "seconds": 0.383315416998812,
+  "production_after": {
+    "skills/shiploop/scripts/shiploop_prompts.py": "9e90141721b4e1d35bf35f3e4c60694cd3acf8fe4705cb74186c3a8bbe7be44c",
+    "skills/shiploop/references/testing-and-documentation.md": "b57dbff0e5f45c1410d6e252b37f6d634585d88cb882ffd7749adccf94376c14",
+    "skills/shiploop/references/platforms/salesforce.md": "990d465c5f01860a0b71947471a19096b500e31d7fedcd43c2a1a3b0a5d19158"
+  },
+  "commands": []
+}

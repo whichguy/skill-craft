@@ -1,0 +1,50 @@
+{
+  "information_gain": "Parent qualitative decision ranking on a0-1 scale, not a measured probability",
+  "questions": [
+    {
+      "question": "Does one current target observation qualify discrimination?",
+      "info_gain": 0.95,
+      "answer": "No; independent controls qualify only the claimed observation.",
+      "evidence": [
+        "skills/shiploop/scripts/shiploop_prompts.py:1777",
+        "skills/shiploop/references/testing-and-documentation.md:251"
+      ]
+    },
+    {
+      "question": "Was a runtime absence gate repaired?",
+      "info_gain": 0.95,
+      "answer": "No; corrected baseline actual-CLI test already passes. The defect was the instruction.",
+      "evidence": [
+        "baseline-followup/handoff.json",
+        "author/red-002/receipt.json"
+      ]
+    },
+    {
+      "question": "Must presence or behavior checks reject every other revision?",
+      "info_gain": 0.9,
+      "answer": "No; identity is a separate claim. The fixed expected matrix rejects always-success identity.",
+      "evidence": [
+        "controls/refinement-1/qualification.json",
+        "skills/shiploop/references/testing-and-documentation.md:251"
+      ]
+    },
+    {
+      "question": "Can duplicated prose be removed without hiding the rule?",
+      "info_gain": 0.85,
+      "answer": "Use the existing shared guide with explicit bound locators; both routes resolve its file/header and the platform relative link. Model consumption remains unknown.",
+      "evidence": [
+        "test/shiploop-guidance.test.py:272"
+      ]
+    },
+    {
+      "question": "Does an already-present artifact waive other release operations?",
+      "info_gain": 0.8,
+      "answer": "No; still-required authorized work remains due, while current evidence may establish satisfied effects.",
+      "evidence": [
+        "skills/shiploop/scripts/shiploop_prompts.py:1830"
+      ]
+    }
+  ],
+  "remediation": "Completed scoped5 instruction sites across3 production files; no runtime/gate/schema change",
+  "original_author_audit": "author/audit.md preserved verbatim"
+}
