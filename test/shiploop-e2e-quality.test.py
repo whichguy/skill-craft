@@ -2030,5 +2030,359 @@ class CaseQualityTest(unittest.TestCase):
         self.assertTrue(checks and prompt)
 
 
+
+
+class AcceptanceSocketCleanupTest(unittest.TestCase):
+    """Real kept-alive clients, bounded test-owned servers, and acceptance exit contracts."""
+
+    @contextlib.contextmanager
+    def server(self):
+        import http.server
+        import threading
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(10)
+
+            def do_GET(self):
+                body = b'{"owned": true}'
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(body)
+                self.wfile.flush()
+
+            def log_message(self, *args):
+                pass
+
+        class Server(http.server.ThreadingHTTPServer):
+            daemon_threads = False
+            block_on_close = False
+
+            def __init__(self):
+                self.accepted = 0
+                self.workers = []
+                super().__init__(("127.0.0.1", 0), Handler)
+
+            def get_request(self):
+                client, address = super().get_request()
+                self.accepted += 1
+                return client, address
+
+            def process_request_thread(self, request, address):
+                self.workers.append(threading.current_thread())
+                super().process_request_thread(request, address)
+
+        server = Server()
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.02))
+        thread.start()
+        try:
+            yield server, f"http://127.0.0.1:{server.server_port}"
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(3)
+            for worker in server.workers:
+                worker.join(3)
+            self.assertFalse(thread.is_alive(), "test-owned HTTP listener did not stop")
+            self.assertFalse(any(t.is_alive() for t in server.workers), "test-owned HTTP handler did not stop")
+
+    @contextlib.contextmanager
+    def session(self, *, hook=True, cleanup_error=None, finish_error=None):
+        import threading
+        import types
+
+        owner = quality.load_checks("ticket_assignment_accept", quality.HERE / "checks")
+        with tempfile.TemporaryDirectory() as tmp, self.server() as (server, base):
+            state = types.SimpleNamespace(owner=owner, base=base, server=server, events=[], socket=None,
+                                          fd=None, key=(threading.get_ident(), base), calls=0, checks={})
+
+            def request():
+                self.assertEqual(owner.call(base, "GET", "/"), (200, {"owned": True}))
+                client = owner._connections[state.key]
+                if state.socket is None:
+                    state.socket, state.fd = client.sock, client.sock.fileno()
+                    state.client = client
+                else:
+                    self.assertIs(client, state.client)
+                    self.assertIs(client.sock, state.socket, "request unexpectedly replaced the kept-alive socket")
+                    self.assertEqual(client.sock.fileno(), state.fd)
+                state.calls += 1
+
+            def cleanup(url):
+                state.events.append(("cleanup", threading.get_ident(), url))
+                owner.hang_up(url)
+                if cleanup_error is not None:
+                    raise cleanup_error
+
+            module = types.SimpleNamespace(CHECKS=state.checks)
+            if hook:
+                module.cleanup = cleanup
+
+            def finish(proc, groups):
+                self.assertIs(proc, state.proc)
+                state.events.append(("finish", state.socket.fileno() if state.socket else None,
+                                     state.key in owner._connections))
+                if finish_error is not None:
+                    raise finish_error
+
+            def accept(stop=lambda: None):
+                block = {"module": "socket_owned", "start": "unused", "source": "contract",
+                         "checks": [{"id": ident, "source": "source " + ident} for ident in state.checks]}
+                with mock.patch.object(quality, "load_checks", return_value=module), \
+                        mock.patch.object(quality, "serve_on_free_port", return_value=(state.proc, server.server_port, None)), \
+                        mock.patch.object(quality, "finish", side_effect=finish):
+                    return quality.acceptance(Path(tmp), block, groups=set(), stop=stop, logs=Path(tmp) / "logs")
+
+            state.proc = object()
+            state.request, state.accept = request, accept
+            try:
+                yield state
+            finally:
+                # Always close the actual owning thread/base, even against the unmodified RED source.
+                owner.hang_up(base)
+                if state.socket is not None:
+                    self.assertEqual(state.socket.fileno(), -1, "fallback failed to close test-owned client")
+                self.assertNotIn(state.key, owner._connections)
+
+    def closed_before_finish(self, state):
+        import threading
+        self.assertEqual(state.events, [("cleanup", threading.get_ident(), state.base), ("finish", -1, False)])
+        self.assertEqual(state.socket.fileno(), -1)
+        self.assertNotIn(state.key, state.owner._connections)
+
+    def expected(self, values, notes):
+        rows = [{"id": str(i), "source": "source " + str(i), "pass": value, "note": note}
+                for i, (value, note) in enumerate(zip(values, notes))]
+        result = {"observed": None not in values, "source": "contract", "ids": [r["id"] for r in rows],
+                  "passed": [r["id"] for r in rows if r["pass"] is True], "checks": rows}
+        if None in values:
+            result["reason"] = "unobserved held-out checks: " + "; ".join(
+                r["id"] + ": " + r["note"] for r in rows if r["pass"] is None)
+        return result
+
+    def diagnostic(self, result, marker):
+        # Cleanup qualification is INCOMPLETE; completed behavioral observations stay intact.
+        diagnostic = result.get("cleanup_error")
+        self.assertIsInstance(diagnostic, str, result)
+        self.assertIn(marker, diagnostic)
+        self.assertLessEqual(len(diagnostic), quality.NOTE_CHARS)
+
+    def test_keepalive_socket_and_pool_close_before_finish(self):
+        with self.session() as s:
+            def check(base):
+                self.assertEqual(base, s.base)
+                s.request()
+                s.request()
+                self.assertEqual(s.server.accepted, 1, "two requests must reuse one accepted connection")
+                return True, "kept alive"
+            s.checks["0"] = check
+            self.assertEqual(s.accept(), self.expected([True], ["kept alive"]))
+            self.assertEqual(s.calls, 2)
+            self.closed_before_finish(s)
+
+    def test_rows_continuation_and_hook_once_for_every_check_outcome(self):
+        for value in (True, False, None, "exception"):
+            with self.subTest(value=value), self.session() as s:
+                def first(base):
+                    s.request()
+                    if value == "exception":
+                        raise ValueError("check failure")
+                    return value, "measured"
+                def second(base):
+                    s.request()
+                    return True, "continued"
+                s.checks.update({"0": first, "1": second})
+                expected_value = False if value == "exception" else value
+                note = "raised ValueError('check failure')" if value == "exception" else "measured"
+                self.assertEqual(s.accept(), self.expected([expected_value, True], [note, "continued"]))
+                self.assertEqual(s.calls, 2)
+                self.assertEqual(s.server.accepted, 1)
+                self.closed_before_finish(s)
+
+    def test_stop_before_first_and_after_request_preserves_exact_stop_result(self):
+        for after in (False, True):
+            with self.subTest(after_request=after), self.session() as s:
+                s.request()  # Seed the actual loaded owner's pool even for stop-before-first.
+                def check(base):
+                    s.request()
+                    return True, "measured"
+                s.checks.update({"0": check, "1": check})
+                stops = iter((None, "owner stop") if after else ("owner stop",))
+                self.assertEqual(s.accept(lambda: next(stops)), {
+                    "observed": False,
+                    "reason": f"owner stop: the held-out checks ended after {int(after)} of 2"})
+                self.assertEqual(s.calls, 1 + int(after))
+                self.closed_before_finish(s)
+
+    def test_primary_interrupt_instance_survives_cleanup_and_finish(self):
+        for primary in (KeyboardInterrupt("original keyboard"), SystemExit(37)):
+            with self.subTest(primary=type(primary).__name__), self.session() as s:
+                def check(base):
+                    s.request()
+                    raise primary
+                s.checks["0"] = check
+                with self.assertRaises(type(primary)) as caught:
+                    s.accept()
+                self.assertIs(caught.exception, primary)
+                self.closed_before_finish(s)
+
+    def test_cleanup_exception_preserves_original_outcome_with_incomplete_cleanup_diagnostic(self):
+        for kind in ("normal", "known-false", "check-exception", "unknown", "stop", "primary-keyboard", "primary-systemexit",
+                     "primary-cleanup-keyboard", "primary-cleanup-systemexit"):
+            cleanup_error = (KeyboardInterrupt("cleanup-marker") if kind == "primary-cleanup-keyboard" else
+                             SystemExit("cleanup-marker") if kind == "primary-cleanup-systemexit" else
+                             RuntimeError("cleanup-marker" + "x" * 5000))
+            with self.subTest(kind=kind), self.session(cleanup_error=cleanup_error) as s:
+                primary = SystemExit(37) if kind == "primary-systemexit" else KeyboardInterrupt("primary-marker")
+                def check(base):
+                    s.request()
+                    if kind.startswith("primary"):
+                        raise primary
+                    if kind == "check-exception":
+                        raise ValueError("check failure")
+                    return (None if kind == "unknown" else False if kind == "known-false" else True), "measured"
+                s.checks.update({"0": check, "1": lambda base: (False, "delivery false")})
+                if kind == "stop":
+                    s.request()
+                    result = s.accept(lambda: "owner stop")
+                    self.diagnostic(result, "cleanup-marker")
+                    self.assertEqual({k: v for k, v in result.items() if k != "cleanup_error"}, {
+                        "observed": False, "reason": "owner stop: the held-out checks ended after 0 of 2"})
+                elif kind.startswith("primary"):
+                    stderr = io.StringIO()
+                    with contextlib.redirect_stderr(stderr), self.assertRaises(type(primary)) as caught:
+                        s.accept()
+                    self.assertIs(caught.exception, primary)
+                    retained = "\n".join(getattr(primary, "__notes__", [])) + stderr.getvalue()
+                    self.assertIn("cleanup-marker", retained, "cleanup failure must be retained on primary failure")
+                else:
+                    result = s.accept()
+                    self.diagnostic(result, "cleanup-marker")
+                    value = None if kind == "unknown" else False if kind in ("known-false", "check-exception") else True
+                    note = "raised ValueError('check failure')" if kind == "check-exception" else "measured"
+                    old = self.expected([value, False], [note, "delivery false"])
+                    # Preserve observed, boolean/None rows, passed IDs and reason presence/value exactly.
+                    # cleanup_error qualifies apparatus cleanup as INCOMPLETE, never product failure.
+                    self.assertEqual({k: v for k, v in result.items() if k != "cleanup_error"}, old)
+                self.closed_before_finish(s)
+
+    def test_cleanup_interrupt_propagates_after_finish_and_failed_reaping_never_passes(self):
+        cases = ((KeyboardInterrupt("cleanup keyboard"), None), (SystemExit(91), None),
+                 (None, RuntimeError("failed reaping")))
+        for cleanup_error, finish_error in cases:
+            with self.subTest(cleanup=repr(cleanup_error), finish=repr(finish_error)), \
+                    self.session(cleanup_error=cleanup_error, finish_error=finish_error) as s:
+                def check(base):
+                    s.request()
+                    return True, "delivery passed"
+                s.checks["0"] = check
+                if cleanup_error is not None:
+                    with self.assertRaises(type(cleanup_error)) as caught:
+                        s.accept()
+                    self.assertIs(caught.exception, cleanup_error)
+                else:
+                    # An explicit unobserved diagnostic or propagated reap error is permitted; observed PASS is not.
+                    try:
+                        result = s.accept()
+                    except RuntimeError as exc:
+                        self.assertIs(exc, finish_error)
+                    else:
+                        self.assertIs(result["observed"], False)
+                        self.assertIn("reap", str(result).lower())
+                self.closed_before_finish(s)
+
+    def test_legacy_module_without_hook_keeps_exact_result_and_old_lifetime(self):
+        with self.session(hook=False) as s:
+            def check(base):
+                s.request()
+                s.request()
+                return True, "legacy"
+            s.checks["0"] = check
+            self.assertEqual(s.accept(), self.expected([True], ["legacy"]))
+            self.assertEqual(s.events, [("finish", s.fd, True)])
+            self.assertEqual(s.server.accepted, 1)
+            self.assertGreaterEqual(s.socket.fileno(), 0)
+
+    def test_nested_serving_and_other_base_module_thread_remain_independent(self):
+        import threading
+        with self.session() as s, self.server() as (_other_server, other), self.server() as (_nested_server, nested):
+            unrelated = quality.load_checks("ticket_assignment_accept", quality.HERE / "checks")
+            self.assertIsNot(unrelated, s.owner)
+            ready, resume = threading.Event(), threading.Event()
+            errors, worker_sockets = [], []
+            def worker():
+                try:
+                    self.assertEqual(s.owner.call(s.base, "GET", "/")[0], 200)
+                    conn = s.owner._connections[(threading.get_ident(), s.base)]
+                    worker_sockets.append(conn.sock)
+                    ready.set()
+                    if not resume.wait(5):
+                        raise AssertionError("main thread did not release scope control")
+                    self.assertEqual(s.owner.call(s.base, "GET", "/")[0], 200)
+                    self.assertIs(conn.sock, worker_sockets[0])
+                except BaseException as exc:
+                    errors.append(exc)
+                    ready.set()
+                finally:
+                    s.owner.hang_up(s.base)  # Deliberately performed on the owning thread.
+            thread = threading.Thread(target=worker)
+            thread.start()
+            nested_sockets = []
+            class ProductStyle:
+                @contextlib.contextmanager
+                def serve(self, env):
+                    try:
+                        yield nested
+                    finally:
+                        # A.serving must close its nested client before this server lifetime ends.
+                        if nested_sockets:
+                            self_test.assertEqual(nested_sockets[0].fileno(), -1)
+            self_test = self
+            try:
+                self.assertTrue(ready.wait(3), "other-thread owner did not become ready")
+                self.assertEqual(errors, [])
+                self.assertEqual(unrelated.call(s.base, "GET", "/")[0], 200)
+                independent = unrelated._connections[(threading.get_ident(), s.base)].sock
+                self.assertEqual(s.owner.call(other, "GET", "/")[0], 200)
+                other_socket = s.owner._connections[(threading.get_ident(), other)].sock
+                def check(base):
+                    s.request()
+                    with s.owner.serving(ProductStyle(), {}) as url:
+                        self.assertEqual(s.owner.call(url, "GET", "/")[0], 200)
+                        nested_sockets.append(s.owner._connections[(threading.get_ident(), url)].sock)
+                    self.assertNotIn((threading.get_ident(), nested), s.owner._connections)
+                    s.request()  # Closing the nested base must leave the main socket unchanged.
+                    return True, "scoped"
+                s.checks["0"] = check
+                result = s.accept()
+                # Run usability controls before the expected RED closure assertion.
+                self.assertEqual(unrelated.call(s.base, "GET", "/")[0], 200)
+                self.assertIs(unrelated._connections[(threading.get_ident(), s.base)].sock, independent)
+                self.assertEqual(s.owner.call(other, "GET", "/")[0], 200)
+                self.assertIs(s.owner._connections[(threading.get_ident(), other)].sock, other_socket)
+                resume.set()
+                thread.join(3)
+                self.assertFalse(thread.is_alive())
+                self.assertEqual(errors, [])
+                self.assertEqual(worker_sockets[0].fileno(), -1)
+                self.assertEqual(result, self.expected([True], ["scoped"]))
+                self.closed_before_finish(s)
+            finally:
+                resume.set()
+                thread.join(6)
+                unrelated.hang_up(s.base)
+                s.owner.hang_up(other)
+                s.owner.hang_up(nested)
+                self.assertFalse(thread.is_alive(), "test-owned client thread did not stop")
+                self.assertEqual(errors, [], "test-owned thread failed")
+                if worker_sockets:
+                    self.assertEqual(worker_sockets[0].fileno(), -1)
+
+
 if __name__ == "__main__":
     unittest.main()

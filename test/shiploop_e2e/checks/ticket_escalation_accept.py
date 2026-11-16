@@ -17,6 +17,10 @@ restart (0008), which is what "at most once, even across restarts" needs.
 
 ESCALATE_AFTER_MINUTES=0 makes every urgent ticket old enough at once, so the escalation checks wait on the product's worker at a
 25 ms interval, with bounded waits; one check sets 1 minute and watches for 1.5 s, which a unit mistaken for seconds fails.
+
+``cleanup(base_url)`` closes only this thread and base URL in this module's own helper pool, before the main server
+finishes. ``quality.acceptance`` calls it once; an ordinary failure is a separate ``cleanup_error`` diagnostic
+qualifying cleanup as INCOMPLETE while preserving every behavioral observation.
 """
 
 from __future__ import annotations
@@ -260,6 +264,10 @@ def escalation_at_most_once(base: str, product) -> tuple[bool, str]:
         wrong.append(f"{ONCALL} was told about {first} {before} times before a restart and {after} times in all; "
                      f"about {second}, created after it, {other} times")
     return A.verdict(wrong, "each ticket is escalated once, and a restart with the data file escalates it no second time")
+
+
+# The exact helper instance used by this loaded module owns its pooled clients.
+cleanup = A.hang_up
 
 
 CHECKS = {

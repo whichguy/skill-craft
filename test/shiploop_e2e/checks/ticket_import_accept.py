@@ -14,6 +14,10 @@ limit of the import's own; with DATA_FILE set the data file is rewritten whole a
 decision 8), so 5000 tickets created one at a time take far longer than 10 seconds; and a create audits and enqueues a
 notification (decisions 6 and 7), which an import refused for an invalid item must not leave behind. The time and
 persistence checks run the product as docs/operations.md runs it, with DATA_FILE set.
+
+``cleanup(base_url)`` closes only this thread and base URL in this module's own helper pool, before the main server
+finishes. ``quality.acceptance`` calls it once; an ordinary failure is a separate ``cleanup_error`` diagnostic
+qualifying cleanup as INCOMPLETE while preserving every behavioral observation.
 """
 
 from __future__ import annotations
@@ -254,6 +258,10 @@ def import_persists(base: str, product) -> tuple[bool, str]:
         if number(again) != number(ids[-1]) + 1:
             wrong.append(f"the next ticket after the restart is {again}, after {ids[-1]}")
     return A.verdict(wrong, "imported tickets survive a restart from the data file, and numbers go on")
+
+
+# The exact helper instance used by this loaded module owns its pooled clients.
+cleanup = A.hang_up
 
 
 CHECKS = {

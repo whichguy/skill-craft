@@ -33,6 +33,7 @@ import shlex
 import shutil
 import socket
 import subprocess
+import sys
 import threading
 import time
 from typing import Callable
@@ -711,6 +712,24 @@ class Product:
         return run_once(argv, self.folder, self._env(env), self._next("command").with_suffix(".log"), ceiling, self._groups)
 
 
+def _acceptance_lifecycle_error(phase: str, exc: BaseException, primary: BaseException | None = None) -> str:
+    """Bound a lifecycle diagnostic and retain it on an existing failure without replacing that failure."""
+    try:
+        detail = repr(exc)
+    except BaseException:
+        detail = "exception description unavailable"
+    note = f"acceptance {phase} failed: {detail}"[:NOTE_CHARS]
+    if primary is not None:
+        try:
+            primary.add_note(note)
+        except BaseException:  # Python without add_note, or a reporting failure: preserve the original exception.
+            try:
+                print(note, file=sys.stderr)
+            except BaseException:
+                pass
+    return note
+
+
 def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str | None], logs: Path,
                checks_dir: Path = HERE / "checks", ports: list[int] | tuple = ()) -> dict:
     """One block of held-out checks run against the copy's server: ``{observed, source, checks: [{id, source, pass, note}]}``.
@@ -723,10 +742,18 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
     leaves every check unrun and the block unobserved. The checks
     run in this process: nothing but the product's own command lines reaches an argv. Every server and command runs under the
     same port guard as the mutation runs (`ports`): a product that ignores PORT and meets it says so.
+
+    An optional module ``cleanup(base_url)`` runs once on this thread before the main server's ``finish``, including early
+    stop and exceptional exits. A missing hook preserves the legacy lifetime. An ordinary cleanup exception adds only a
+    bounded ``cleanup_error`` to the original result: cleanup qualification is INCOMPLETE, not a delivery failure, and the
+    observed flag, rows, passed ids and unknown/stop reasons remain unchanged. A propagating primary exception keeps its
+    identity, with lifecycle diagnostics retained as exception notes or best-effort stderr. A cleanup interruption with no
+    earlier primary propagates after finish; a failed finish remains observable. Cleanup never guarantees successful reaping.
     """
     declared = [item["id"] for item in block["checks"]]
     try:
-        implemented = load_checks(block["module"], checks_dir).CHECKS
+        module = load_checks(block["module"], checks_dir)
+        implemented = module.CHECKS
     except Exception as exc:  # a harness defect, never a delivery's: say so
         return {"observed": False, "reason": f"the held-out module {block['module']!r} could not be loaded: {exc!r}"}
     missing = [ident for ident in declared if ident not in implemented]
@@ -742,6 +769,10 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
         return {"observed": False, "reason": f"the product's server ({block['start']}) could not be started: {exc}"}
     if why_not:
         return {"observed": False, "reason": why_not}
+    base = f"http://127.0.0.1:{port}"
+    result = None
+    primary = None
+    cleanup_failure = None
     try:
         product = Product(copy, block["start"], groups=groups, logs=logs / f"product-{block['module']}", guard=guard,
                           refusals_log=refusals_log, ports=ports)
@@ -750,10 +781,10 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
         for item in block["checks"]:
             why = stop()
             if why:
-                return {"observed": False, "reason": f"{why}: the held-out checks ended after {len(results)} of {len(declared)}"}
+                result = {"observed": False, "reason": f"{why}: the held-out checks ended after {len(results)} of {len(declared)}"}
+                return result
             try:
                 check = implemented[item["id"]]
-                base = f"http://127.0.0.1:{port}"
                 ok, note = check(base, product) if takes_product(check) else check(base)
                 row = {"id": item["id"], "source": item.get("source"), "pass": None if ok is None else bool(ok),
                        "note": str(note)[:NOTE_CHARS]}
@@ -762,13 +793,38 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
                     unknown.append(f"{item['id']}: {row['note']}")
             except Exception as exc:
                 results.append({"id": item["id"], "source": item.get("source"), "pass": False, "note": f"raised {exc!r}"[:NOTE_CHARS]})
+        result = {"observed": not unknown, "source": block.get("source"), "ids": declared,
+                  "passed": [row["id"] for row in results if row["pass"] is True], "checks": results}
+        if unknown:
+            result["reason"] = "unobserved held-out checks: " + "; ".join(unknown)
+        return result
+    except BaseException as exc:
+        primary = exc
+        raise
     finally:
-        finish(proc, groups)
-    result = {"observed": not unknown, "source": block.get("source"), "ids": declared,
-              "passed": [row["id"] for row in results if row["pass"] is True], "checks": results}
-    if unknown:
-        result["reason"] = "unobserved held-out checks: " + "; ".join(unknown)
-    return result
+        try:
+            cleanup = getattr(module, "cleanup", None)
+            if cleanup is not None:
+                cleanup(base)
+        except BaseException as exc:
+            cleanup_failure = exc
+            note = _acceptance_lifecycle_error("client cleanup", exc, primary)
+            if primary is None and isinstance(exc, Exception) and result is not None:
+                result["cleanup_error"] = note
+        finally:
+            try:
+                finish(proc, groups)
+            except BaseException as exc:
+                pending = primary
+                if pending is None and cleanup_failure is not None and not isinstance(cleanup_failure, Exception):
+                    pending = cleanup_failure
+                if pending is None:
+                    if cleanup_failure is not None:
+                        _acceptance_lifecycle_error("client cleanup", cleanup_failure, exc)
+                    raise
+                _acceptance_lifecycle_error("server finish", exc, pending)
+        if primary is None and cleanup_failure is not None and not isinstance(cleanup_failure, Exception):
+            raise cleanup_failure
 
 
 # --------------------------------------------------------------------------------------------------------------------

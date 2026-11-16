@@ -1015,5 +1015,125 @@ class ThroughMainTest(e2e.CaseRunCase):
         self.assertTrue(card["accuracy"]["acceptance_required"])
 
 
+
+
+import contextlib
+
+
+class BrownfieldSocketCleanupTest(unittest.TestCase):
+    """Exact loaded delegation instances, real HTTP keepalive, and owner-scoped closure."""
+
+    @contextlib.contextmanager
+    def server(self):
+        import http.server
+        import threading
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(10)
+
+            def do_GET(self):
+                body = b'{"owned": true}'
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(body)
+                self.wfile.flush()
+
+            def log_message(self, *args):
+                pass
+
+        class Server(http.server.ThreadingHTTPServer):
+            daemon_threads = False
+            block_on_close = False
+
+            def __init__(self):
+                self.accepted = 0
+                self.workers = []
+                super().__init__(("127.0.0.1", 0), Handler)
+
+            def get_request(self):
+                client, address = super().get_request()
+                self.accepted += 1
+                return client, address
+
+            def process_request_thread(self, request, address):
+                self.workers.append(threading.current_thread())
+                super().process_request_thread(request, address)
+
+        server = Server()
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.02))
+        thread.start()
+        try:
+            yield server, f"http://127.0.0.1:{server.server_port}"
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(3)
+            for worker in server.workers:
+                worker.join(3)
+            self.assertFalse(thread.is_alive(), "test-owned HTTP listener did not stop")
+            self.assertFalse(any(t.is_alive() for t in server.workers), "test-owned HTTP handler did not stop")
+
+    def test_actual_four_module_aliases_close_only_their_own_thread_and_base_pool(self):
+        import threading
+        modules = [quality.load_checks(name, quality.HERE / "checks") for name in (
+            "ticket_assignment_accept", "ticket_import_accept", "ticket_escalation_accept", "ticket_sla_accept")]
+        owners = [modules[0], modules[1].A, modules[2].A, modules[3].E.A]
+        self.assertIs(modules[3].A, modules[3].E.A)
+        self.assertEqual(len({id(owner) for owner in owners}), 4, "each loader must retain its exact helper instance")
+        separate = quality.load_checks("ticket_assignment_accept", quality.HERE / "checks")
+        with self.server() as (server, base), self.server() as (_other_server, other):
+            key = (threading.get_ident(), base)
+            other_key = (threading.get_ident(), other)
+            sockets, other_sockets = [], []
+            try:
+                for owner in owners:
+                    self.assertEqual(owner.call(base, "GET", "/"), (200, {"owned": True}))
+                    client = owner._connections[key]
+                    sock, fd = client.sock, client.sock.fileno()
+                    self.assertGreaterEqual(fd, 0)
+                    self.assertEqual(owner.call(base, "GET", "/"), (200, {"owned": True}))
+                    self.assertIs(owner._connections[key], client)
+                    self.assertIs(client.sock, sock)
+                    self.assertEqual(client.sock.fileno(), fd)
+                    sockets.append(sock)
+                    self.assertEqual(owner.call(other, "GET", "/")[0], 200)
+                    other_sockets.append(owner._connections[other_key].sock)
+                self.assertEqual(server.accepted, 4, "two GETs per owner must use exactly one connection each")
+                self.assertEqual(separate.call(base, "GET", "/")[0], 200)
+                separate_socket = separate._connections[key].sock
+                for index, (module, owner, sock) in enumerate(zip(modules, owners, sockets)):
+                    with self.subTest(module=module.__name__, owner=id(owner), fd=sock.fileno()):
+                        cleanup = getattr(module, "cleanup", None)
+                        if callable(cleanup):
+                            cleanup(base)
+                        # Exercise live unrelated controls before the expected RED closure assertion.
+                        for live_owner, live_socket in zip(owners[index + 1:], sockets[index + 1:]):
+                            self.assertEqual(live_owner.call(base, "GET", "/")[0], 200)
+                            self.assertIs(live_owner._connections[key].sock, live_socket)
+                        for other_owner, other_socket in zip(owners, other_sockets):
+                            self.assertEqual(other_owner.call(other, "GET", "/")[0], 200)
+                            self.assertIs(other_owner._connections[other_key].sock, other_socket)
+                        self.assertEqual(separate.call(base, "GET", "/")[0], 200)
+                        self.assertIs(separate._connections[key].sock, separate_socket)
+                        self.assertEqual(sock.fileno(), -1, "real module cleanup must close its actual helper's retained socket")
+                        self.assertNotIn(key, owner._connections, "real module cleanup must remove its actual pool entry")
+                        self.assertTrue(callable(cleanup), "acceptance module must export its optional cleanup hook")
+            finally:
+                # Fallbacks own all created pools, including old-source runs with no public hook.
+                for owner in owners + [separate]:
+                    owner.hang_up(base)
+                    owner.hang_up(other)
+                self.assertTrue(all(sock.fileno() == -1 for sock in sockets + other_sockets))
+                for owner in owners + [separate]:
+                    self.assertNotIn(key, owner._connections)
+                    self.assertNotIn(other_key, owner._connections)
+
+
 if __name__ == "__main__":
     unittest.main()
