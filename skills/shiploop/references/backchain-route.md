@@ -12,7 +12,11 @@ whole `plan`/`draft`, no read-only `review`/`audit` and no `repair`/`revise` (ow
 meaningful plan-quality edge for Backchain on Grok 4.6 xhigh, Sol 6.1 medium or Sonnet 5.5 high,
 at 10-15 times the tokens, on cases near the score ceiling). Its Backchain stage packets keep
 the planning guide's dependency audit and the record-only `backchain-check`, and print no
-child request, audit resource, loop-resource status or planning run directory. `one` opts in
+child request, audit resource, loop-resource status or planning run directory. Where they tell the host
+to run the check they say what it reads: only a candidate graph in Backchain's plan schema, a JSON file,
+never a spec, a Markdown note or a prose plan, so it runs after each revision of a graph the host wrote,
+and no graph is written only to run it (2026-11-15: a default run ran it on the spec Markdown, was
+refused, then wrote one graph and re-ran it at four stages for the receipts). `one` opts in
 with one review/fix/check cycle, and `converge` with Backchain's default gate, which completes
 at the first trivial review (owner decision, 2026-11-01: it was documented as two consecutive
 trivial reviews, but its marker line never reached a printed packet after Backchain 0.7.0).
