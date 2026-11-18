@@ -147,8 +147,8 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
         # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
         # The ShipLoop adapter's three contract suites (2026-11-15: queries, steps, real engine with fake hosts) make 209.
-        # The hosted outcome guard adds one hermetic apparatus suite (2026-11-18).
-        self.assertEqual(len(suite_catalog.SUITES), 208)
+        # Hosted outcome discovery and evaluation each add a hermetic apparatus suite (2026-11-18).
+        self.assertEqual(len(suite_catalog.SUITES), 209)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -316,6 +316,19 @@ class TestGroupTests(unittest.TestCase):
                 for group in ("quick", "affected"):
                     self.assertIn(suite, suite_catalog.select((group,), (path,)), group)
 
+    def test_outcome_evaluation_apparatus_is_selected_for_its_sources(self) -> None:
+        suite, = (s for s in suite_catalog.select(("e2e-apparatus",)) if s.id == "outcome-evaluation")
+        self.assertNotIn(suite, suite_catalog.smoke())
+        for path in (
+            suite.path,
+            "test/shiploop_e2e/hosted_outcome/evaluation.py",
+            "test/shiploop_e2e/scenarios/grok-chat-outcome/evaluation.example.json",
+            "test/shiploop_e2e/scenarios/grok-chat-outcome/OUTCOME_REVIEW.md",
+        ):
+            with self.subTest(path=path):
+                for group in ("quick", "affected"):
+                    self.assertIn(suite, suite_catalog.select((group,), (path,)), group)
+
     def test_planning_boundary_timeline_does_not_turn_retained_fixtures_into_hubs(self) -> None:
         fixtures = TEST_DIR / "fixtures/fidelity"
         timeline = next(fixtures.glob("*/.shiploop-runs/*/run/timeline[.]json"))
@@ -407,19 +420,12 @@ class TestGroupTests(unittest.TestCase):
                              [s.id for s in suite_catalog.select([group], changed)])
 
     def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
-        # Frozen ded345978767587e07c6fffe60aa3f7e785c668b rows, excluding the two new CI helper suites and the suites added since
-        # (closed-loop and the ShipLoop adapter's three, 2026-11-15): a new suite is named here so the digest keeps freezing the original rows.
-        # The sport80 suite's row left the catalog with the skill (2026-11-15; it moved to the fortified-strength repository), so
-        # the digest below is that of the rows that remain: it changed by the removal of that one row and by nothing else.
-        # Backchain's backchain-chunks and backchain-toolkit rows left with the retired skill (2026-11-16), and the digest
-        # changed again by those two removals only.
+        # All 208 rows at 971b767e7a113d202cd421bf0bf88bba48b9d0b1, including hosted-outcome.
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
-                   for s in suite_catalog.SUITES if s.id not in {"ci-summary", "browser-fixtures", "closed-loop",
-                                           "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps",
-                                           "shiploop-e2e-adapter-engine", "hosted-outcome"}]
+                   for s in suite_catalog.SUITES if s.id != "outcome-evaluation"]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "fff0b677e7bb72149c0d21c515fb6e5d55136faa5839ed969662bfecca4b4bc0")
+        self.assertEqual(digest, "d7a112cb48f4e8af005bbd9755e624250e3acbeb744f5cfabe4e79e1c18bfaef")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])

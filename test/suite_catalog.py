@@ -389,8 +389,13 @@ _HOSTED_OUTCOME_SUITE = _suite(
     "python3", "-B", "test/shiploop-e2e-hosted-outcome.test.py",
 )
 
+_OUTCOME_EVALUATION_SUITE = _suite(
+    "outcome-evaluation", "e2e-apparatus", "test/shiploop-e2e-outcome-evaluation.test.py",
+    "python3", "-B", "test/shiploop-e2e-outcome-evaluation.test.py",
+)
+
 SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, *_PLANNING_APPARATUS_SUITES,
-          _HOSTED_OUTCOME_SUITE, _APPARATUS_SUITE)
+          _HOSTED_OUTCOME_SUITE, _OUTCOME_EVALUATION_SUITE, _APPARATUS_SUITE)
 
 GROUPS = (
     "all",
@@ -537,6 +542,9 @@ _PATH_SUITE_IDS = {
     "test/shiploop_e2e/checks/sf_guard.py": (_HOSTED_OUTCOME_SUITE.id,),
     "test/shiploop_e2e/lifecycle.py": (_HOSTED_OUTCOME_SUITE.id,),
     "test/shiploop_e2e/run.py": (_HOSTED_OUTCOME_SUITE.id,),
+    "test/shiploop_e2e/hosted_outcome/evaluation.py": (_OUTCOME_EVALUATION_SUITE.id,),
+    "test/shiploop_e2e/scenarios/grok-chat-outcome/evaluation.example.json": (_OUTCOME_EVALUATION_SUITE.id,),
+    "test/shiploop_e2e/scenarios/grok-chat-outcome/OUTCOME_REVIEW.md": (_OUTCOME_EVALUATION_SUITE.id,),
     # The E2E spec has three logical readers; the original harness suite is now three components.
     "test/shiploop_e2e/SPEC.md": (*_E2E_SPLIT_IDS, "shiploop-navigator-contract", "shiploop-run-review"),
     # The packet obligation ledger and its checker; the code that writes the text its anchors live in is in

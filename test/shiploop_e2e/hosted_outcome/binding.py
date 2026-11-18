@@ -93,7 +93,9 @@ def load(path, *, now=None, fresh=True):
     raw = path.read_bytes()
     data = decoded(raw)
     fields(data, "case run_kind product_cwd target namespace legacy_prefixes provider synthetic_label "
-                 "sf_bin tool_dirs prompt_sha256 source_readiness_sha256 receipts")
+                 "sf_bin tool_dirs prompt_sha256 source_readiness_sha256 receipts"
+                 + (" review_hold" if isinstance(data, dict) and "review_hold" in data else ""))
+    require(type(data.get("review_hold", False)) is bool, "review_hold must be a JSON boolean")
     require(data["case"] == CASE and data["run_kind"] == "create", "binding must name the hosted create case")
     work = absolute(data["product_cwd"])
     require(work.name == "work" and work.parent != HERE.parents[1] and HERE.parents[1] not in work.parents, "product must be the external runner work path")

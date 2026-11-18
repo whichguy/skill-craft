@@ -1036,6 +1036,7 @@ raise SystemExit(run.main())
 
 def load_tests(loader, tests, pattern):
     tests.addTests(loader.loadTestsFromTestCase(operator_fixtures.OperatorFixtures))
+    tests.addTests(loader.loadTestsFromTestCase(operator_fixtures.RetentionFixtures))
     return tests
 
 

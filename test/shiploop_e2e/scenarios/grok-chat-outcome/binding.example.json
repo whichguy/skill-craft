@@ -1,6 +1,7 @@
 {
   "case": "grok-chat-outcome",
   "run_kind": "create",
+  "review_hold": true,
   "product_cwd": "/absolute/attempt-output/work",
   "target": {
     "org_id": "<canonical 18-character org ID>",
