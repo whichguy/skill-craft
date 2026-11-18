@@ -57,6 +57,18 @@ follow its network (docs/closed-loop-journal.md R10).
 - The harness's neighbour check sees only the folders beside a run (the runs-root variable is deliberately not set), not other sessions' runs.
 - The tolerance and attempts rule (D1) and the loop's limits (D3) are open owner decisions; the manifest's values are stated, not measured.
 - A killed `cases.runs` probe can leave a model session running: `python3 test/shiploop_e2e/lifecycle.py cleanup <run folder>` ends it.
+- Known since the verification of 2026-11-16 (journal R13), kept for now by the owner's choice (R14) because none can occur in a normal
+  attended run with a plain global git identity; fixed when a campaign needs unattended or kill-recovery behaviour:
+  - a repeated `cleanup` re-checks a stored kill with `kill_step`, which drops survivors recorded below the worker (processes in sessions of
+    their own) once the worker's group has emptied; only their PIDs are stored;
+  - a `cancel` or `cleanup` of a finished step whose tip already moved (a write that failed after `update-ref`) records it `cancelled`, "not
+    published", although the tip holds its result; a `cancel` that finds a step already published answers `done`, which the orchestrator's
+    `cancel` refuses (its next poll records the step);
+  - an epoch with no decision yet, or missing under a cycle result that needs one, counts as no expected assessment, so review and judge can
+    read complete; an incomplete epoch assessment adds no judge placeholder;
+  - the identity check runs in X with the caller's HOME: an identity configured per folder (`includeIf gitdir:`) or through a `~/` include can
+    pass it and still fail where the loop commits, and a Claude improver whose identity is only in XDG is refused. A plain
+    `git config --global user.name` and `user.email` has none of these problems.
 
 ## Tests
 

@@ -487,6 +487,26 @@ helper could keep git's stderr in the error. Both would have turned tonight's di
 - **Next.** The owner's decision (plan B step 5): fix the four and then run the attended smoke without another round; fix them and verify once more; or
   run the attended smoke now with all of them as documented limits.
 
+### R14. Plan B, step 5: the owner's lean choice, and the smoke's terms (2026-11-18)
+
+- **The owner's words.** Asked to "propose answers to help improve and validate without unnecessary overhead", I proposed: no fixes and no further
+  review before the smoke (the four written down as known limits, fixed only when a campaign needs unattended or kill-recovery behaviour); git's global
+  identity set; the three caseless records left as they are; and the smoke's approvals. The owner answered "Yes".
+- **Done under it.** Git's global identity is `Jim Wiese` and the email every earlier commit carries (it had none; the identity had been guessed from the
+  hostname). `git -c user.useConfigOnly=true var` resolves it in a checkout and, with an empty HOME and GIT_CONFIG_GLOBAL at `~/.gitconfig`, as the
+  improver sees it. The four limits are in `test/shiploop_e2e/adapter/README.md`.
+- **Why no fixes first.** None of the four can occur in a normal attended one-step run with a plain global identity: each needs a process that survives
+  SIGKILL, a cancel at the moment of publication or a disk that fills between two writes, a cycle that stops before its decision, or an identity
+  configured by folder or by include. The defect that mattered most so far (R10) came from running, not from review.
+- **The smoke's terms (approved).** One step on `hello`, quiet window 1, from the latest release's commit as the base (3.0.1,
+  b23e0166b8c4dd70bffc08822e246d3cc122cc0f, which holds ec2eae69 and c154c44f); the boundary hash of the commit it runs on; a budget of 4 hours and 8
+  runs as a cap (a quiet iteration uses about 2 runs, a cycle 6 more); the manifest's stated settings (3 attempts per side, tolerance 0.45, 2 at
+  once). The three caseless records stay open, so the campaign is expected to stop `blocked` after its iteration. It is driven with the orchestrator's
+  `step`, `certificate` and `report` directly, without an Until Loop contract around the scope (that runtime is part of closed-loop's own release and is
+  not what this smoke validates).
+- **Passes if** the readiness checks prove a real Codex run, its scoring and the improver's limits; one step finishes with valid facts and a published
+  tip; cleanup shows nothing left running; and the campaign stops for a stated reason (quiet, blocked or budget). Results: R15.
+
 ## Findings
 
 | # | Finding | Status | Evidence |
