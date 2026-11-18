@@ -1,0 +1,6 @@
+{"at": "2026-11-18T09:46:51Z", "exit": 0, "answer": {"action": "start", "handle": "14b4a9cbf1-S0-1", "key": "14b4a9cbf1-S0-1", "status": "running"}}
+{"at": "2026-11-18T09:47:51Z", "exit": 0, "answer": {"action": "poll", "key": "14b4a9cbf1-S0-1", "status": "running"}}
+{"at": "2026-11-18T09:48:52Z", "exit": 0, "answer": {"action": "poll", "key": "14b4a9cbf1-S0-1", "status": "running"}}
+{"at": "2026-11-18T09:49:52Z", "exit": 0, "answer": {"action": "poll", "key": "14b4a9cbf1-S0-1", "status": "running"}}
+{"at": "2026-11-18T09:50:52Z", "exit": 0, "answer": {"action": "poll", "key": "14b4a9cbf1-S0-1", "status": "running"}}
+{"at": "2026-11-18T09:51:52Z", "exit": 0, "answer": {"action": "poll", "iteration": 1, "key": "14b4a9cbf1-S0-1", "quiet": false, "status": "done"}}

@@ -1,0 +1,12 @@
+{
+  "action": "stop",
+  "binds": {
+    "build": "b-0a9b1c1b377645ad203ab022",
+    "campaign_identity": "7191e91492bb7e83",
+    "candidates": [],
+    "scope": "S0",
+    "scoring": "7b2ae123f9683b98c099d93c6865875837c0920a13798d8a89d08617a30af33c"
+  },
+  "reason": "owner decisions are needed before any further investigation: LR-20261030-355e5e, LR-20261030-583e17, LR-20261030-d73cd8",
+  "status": "incomplete"
+}

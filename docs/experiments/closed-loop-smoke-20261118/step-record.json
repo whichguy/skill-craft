@@ -1,0 +1,72 @@
+{
+ "key": "14b4a9cbf1-S0-1",
+ "scope": "S0",
+ "cases": [
+  "hello"
+ ],
+ "mode": "iterate",
+ "state": "published",
+ "tip_from": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+ "build_before": "b-0a9b1c1b377645ad203ab022",
+ "created_at": "2026-11-18T09:46:51Z",
+ "ended_at": "2026-11-18T09:51:15Z",
+ "iteration": {
+  "acceptance": null,
+  "build_after": "b-0a9b1c1b377645ad203ab022",
+  "build_before": "b-0a9b1c1b377645ad203ab022",
+  "candidate": null,
+  "cases": {
+   "hello": {
+    "baseline": "none",
+    "floors_met": false,
+    "ran": false
+   }
+  },
+  "cleanup": {
+   "receipt": "lifecycle.py cleanup over 1 run folder(s): 0 group(s) stopped; none survived, none unverified, none protected; 1 loop worktree(s) removed, 0 left",
+   "verified": true
+  },
+  "consumed": {
+   "runs": 1,
+   "seconds": 264.1
+  },
+  "discoveries": [],
+  "invalid": [],
+  "judge": {
+   "complete": true,
+   "valid": true
+  },
+  "review": {
+   "complete": true,
+   "valid": true
+  },
+  "scoring": "7b2ae123f9683b98c099d93c6865875837c0920a13798d8a89d08617a30af33c",
+  "tier": {
+   "build": "b-0a9b1c1b377645ad203ab022",
+   "green": true
+  }
+ },
+ "error": null,
+ "kill": null,
+ "prepared": {
+  "tip_from": "b23e0166b8c4dd70bffc08822e246d3cc122cc0f",
+  "tip_to": "841d375008e3f64a66085afdd4d4c329769fa789"
+ },
+ "invocations": [
+  {
+   "case": "hello",
+   "loop": {
+    "branch": "auto/shiploop-loop-57f245",
+    "cycle": null,
+    "explored": true,
+    "stop": "no admitted learning record after exploring",
+    "worktree": "/Users/dadleet/e2e-runs/closed-loop-smoke-hello-20261118-cdd52e/x/.claude/worktrees/shiploop-loop-57f245"
+   },
+   "cycle_ran": false,
+   "promoted": false,
+   "tip_after": "841d375008e3f64a66085afdd4d4c329769fa789",
+   "build_after": "b-0a9b1c1b377645ad203ab022",
+   "invalid": []
+  }
+ ]
+}

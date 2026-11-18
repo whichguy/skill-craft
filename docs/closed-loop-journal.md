@@ -507,6 +507,36 @@ helper could keep git's stderr in the error. Both would have turned tonight's di
 - **Passes if** the readiness checks prove a real Codex run, its scoring and the improver's limits; one step finishes with valid facts and a published
   tip; cleanup shows nothing left running; and the campaign stops for a stated reason (quiet, blocked or budget). Results: R15.
 
+### R15. The first real compute: the attended smoke on `hello` (2026-11-18)
+
+Evidence: `docs/experiments/closed-loop-smoke-20261118/` (the run's folders stay in `~/e2e-runs/closed-loop-smoke-hello-20261118-cdd52e/`).
+
+- **Setup.** Campaign `14b4a9cbf1`, scope S0 (`hello`), build `b-0a9b1c1b377645ad203ab022`, the evaluator clone at release 3.0.1; ratified at boundary
+  cb2b6747c77e17d71caa383600674052392093bf76b13a5b2813fe7dcda17acb with the owner's approval in the note; budget seconds=14400,runs=8; quiet window 1.
+- **Readiness** (1400 s; `start_ok` true). `cases.runs:hello` runs: one real Codex `gpt-6.1-terra` high session, run exit 0 in 1234 s, ShipLoop invoked
+  from the build under test, result, metrics and timeline written, lifecycle cleanup verified. `grading.scores` scores: scored twice with identical
+  output; floors accuracy pass, fidelity pass, enterprise not applicable. `improver.bounded` bounded: plugin build and quick tier passed; a planted edit
+  to `cases.json` was caught. `grading.calibrated` unmeasured (no report given, as planned).
+- **The step** (`14b4a9cbf1-S0-1`, 264 s, 1 run). Published: the tip moved from the release to the loop's learnings commit. Facts: `hello` ran false,
+  floors not met, no baseline; review and judge complete and valid; no subject discovery; cleanup verified (one run folder, the loop worktree removed,
+  nothing left); quick tier green; the loop stopped with "no admitted learning record after exploring". The orchestrator recorded iteration 1; the
+  certificate is incomplete (C1 the three caseless records, C2 not quiet because a scope case did not run, C3 and C4 no run on the current build), and
+  `next` answers `stop`: "owner decisions are needed before any further investigation".
+- **The finding.** In the harness's throwaway home Codex's shell is a login shell (`/bin/zsh -lc`); macOS path_helper puts `/usr/bin` first, so
+  `python3` is Apple's 3.9.6, below ShipLoop's 3.15 minimum (set when 7a04fc04 standardized the supported Python). The readiness session looked up
+  `python3.15` and used it, and passed; the step's session followed the skill's rule to report a missing prerequisite rather than substitute, so
+  ShipLoop never started. Same environment, two outcomes: every real E2E run on this machine depends on that choice until the harness pins a Python of
+  at least 3.15 for the shells a model uses (its existing re-pin of guarded commands in the throwaway home's startup files, `run.py`
+  SHELL_STARTUP_FILES, is not applied to `python3`). The exploration's reviewer recorded the fault as a harness record, LR-20261118-3bbfd5 ("Harness
+  runtime evidence did not establish subject readiness", deferred), which does not block the subject's certificate. **Firm.**
+- **Verdict: the smoke passes** all four of R14's conditions. The subject's run failed for the environment reason above, and the adapter reported that
+  truthfully (a case that did not run, a stated stop) instead of a success.
+- **Budget used.** 2 runs of 8, about 30 minutes of 4 hours.
+- **My own slips.** The chained starter checked a field readiness does not write (`ok`; it writes `start_ok`), so I started the step by hand a minute
+  late; the status script first read the step driver's multi-line log line by line (fixed in place).
+- **Next, proposed.** Pin a Python of at least 3.15 first in the throwaway home's shells, release it, and rerun the one step on a new campaign at that
+  release; the three records stay the owner's.
+
 ## Findings
 
 | # | Finding | Status | Evidence |
@@ -559,3 +589,5 @@ helper could keep git's stderr in the error. Both would have turned tonight's di
 | F46 | The same symptom on two machines can have two causes: compare the failure's details (CI's messages listed no staged path, the Mac's always one) and reproduce on the CI's operating system before attributing | firm | `linux-ci-failure-evidence.txt`; R10 |
 | F47 | A prompt passed as one command-line argument fails on Linux above 128 KiB; the harness's reviewer prompt is 175 KB because it carries the whole E2E spec, so its reviewer cannot launch on Linux, and macOS's 1 MiB limit is about six times away and shrinks as the spec grows. Hand prompts over on stdin | firm | `linux-ci-failure-evidence.txt` sections 2 and 3 |
 | F48 | Read CI's result after every push, not only its start: the engine suite failed CI from its first push (a9d40c30) and was noticed two pushes later | firm | CI runs 43801628143 and 43811121318 |
+| F49 | A Python minimum raised in the repository is a requirement on every environment a model works in: the harness's throwaway homes run login shells where macOS puts `/usr/bin/python3` (3.9.6) first, and a model then either substitutes `python3.15` or reports a missing prerequisite, so outcomes split by the model's choice, not by the change under test | firm | `docs/experiments/closed-loop-smoke-20261118/python-in-login-shells.json`; R15 |
+| F50 | One real run showed the adapter's plumbing whole (readiness, a step, its facts, publication, cleanup, a stated stop) and found an environment fault four reviews had not: at this stage running is the cheaper instrument | firm | `docs/experiments/closed-loop-smoke-20261118/`; R13 against R15 |

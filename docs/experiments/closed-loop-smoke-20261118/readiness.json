@@ -1,0 +1,33 @@
+{
+  "allowed_claims": [
+    "efficiency under a stated tolerance, labelled 'stated, not measured'",
+    "no quality claim is allowed yet: sensitivity is unknown for every property"
+  ],
+  "blocked": [],
+  "boundary_sha256": "cb2b6747c77e17d71caa383600674052392093bf76b13a5b2813fe7dcda17acb",
+  "claims": {
+    "cases.runs:hello": {
+      "effect": "effectful",
+      "evidence": "hello ran once at build b-0a9b1c1b377645ad203ab022 (run exit 0, 1234 s) in a clone of b23e0166b8c4: the skill was invoked from the build under test, result.json, metrics.json and timeline.jsonl were written, and the lifecycle cleanup of run is verified (observed, none survived, unverified or protected). Evidence kept in /Users/dadleet/e2e-runs/closed-loop-smoke-hello-20261118-cdd52e/x.facade/probes/runs-hello/20261118T012211-4do4cmpt/run",
+      "state": "runs"
+    },
+    "grading.calibrated:codex/gpt-6.1-terra/high": {
+      "effect": "read-only",
+      "evidence": "no calibration report was given: run an A/A epoch (spread.py) for this profile first",
+      "state": "unmeasured"
+    },
+    "grading.scores": {
+      "effect": "read-only",
+      "evidence": "scorecard.py scored /Users/dadleet/e2e-runs/closed-loop-smoke-hello-20261118-cdd52e/x.facade/probes/runs-hello/20261118T012211-4do4cmpt/run twice with identical output; floors {\"accuracy\": \"pass\", \"enterprise\": \"not_applicable\", \"fidelity\": \"pass\"}; the validity and efficiency blocks are present",
+      "state": "scores"
+    },
+    "improver.bounded": {
+      "effect": "effectful",
+      "evidence": "build b-0a9b1c1b377645ad203ab022 at b23e0166b8c4: the plugin build passed; the quick tier passed; a planted edit to test/shiploop_e2e/cases.json beside one to skills/shiploop/SKILL.md was caught: out of scope ['test/shiploop_e2e/cases.json']",
+      "state": "bounded"
+    }
+  },
+  "note": "invocable proves plumbing only, never improvement quality",
+  "ratified": true,
+  "start_ok": true
+}

@@ -1,0 +1,155 @@
+{
+  "binds": {
+    "build": "b-0a9b1c1b377645ad203ab022",
+    "campaign_identity": "7191e91492bb7e83",
+    "candidates": [],
+    "scope": "S0",
+    "scoring": "7b2ae123f9683b98c099d93c6865875837c0920a13798d8a89d08617a30af33c"
+  },
+  "checks": {
+    "C1": {
+      "detail": {
+        "actionable": [],
+        "adapter_backlog": [
+          "LR-20261030-05e66a",
+          "LR-20261031-382fba",
+          "LR-20261031-b5d300",
+          "LR-20261101-35ad6a",
+          "LR-20261108-72fe16",
+          "LR-20261118-3bbfd5"
+        ],
+        "blocking": [
+          {
+            "id": "LR-20261030-355e5e",
+            "reopen_when": "the pause recurs on any case or model",
+            "status": "deferred"
+          },
+          {
+            "id": "LR-20261030-583e17",
+            "reopen_when": null,
+            "status": "owner"
+          },
+          {
+            "id": "LR-20261030-d73cd8",
+            "reopen_when": null,
+            "status": "owner"
+          }
+        ],
+        "open_tasks": [],
+        "outside_scope": [
+          "LR-20261030-5dce01",
+          "LR-20261031-8d97e7",
+          "LR-20261101-58f651",
+          "LR-20261101-94533c",
+          "LR-20261101-bea142",
+          "LR-20261101-e982b8",
+          "LR-20261101-f8c562",
+          "LR-20261105-0542a3",
+          "LR-20261105-884ad2",
+          "LR-20261105-9d39bf",
+          "LR-20261108-15e9e9",
+          "LR-20261108-4bc6cb",
+          "LR-20261108-f03c2c"
+        ],
+        "owner_gated": [
+          "LR-20261030-355e5e",
+          "LR-20261030-583e17",
+          "LR-20261030-d73cd8"
+        ]
+      },
+      "id": "C1",
+      "pass": false,
+      "reasons": [
+        "LR-20261030-355e5e is deferred: a material record keeps the scope incomplete",
+        "LR-20261030-583e17 is owner: a material record keeps the scope incomplete",
+        "LR-20261030-d73cd8 is owner: a material record keeps the scope incomplete"
+      ]
+    },
+    "C2": {
+      "detail": {
+        "k": 1,
+        "window": [
+          1
+        ]
+      },
+      "id": "C2",
+      "pass": false,
+      "reasons": [
+        "iteration 1 was not quiet: a scope case did not run or missed its floors"
+      ]
+    },
+    "C3": {
+      "detail": {},
+      "id": "C3",
+      "pass": false,
+      "reasons": [
+        "hello has no run on the current build"
+      ]
+    },
+    "C4": {
+      "detail": {
+        "not_covered": {
+          "style=cli-files": "outside this scope: a widening candidate",
+          "style=stateful-service": "outside this scope: a widening candidate",
+          "style=web-service": "outside this scope: a widening candidate"
+        }
+      },
+      "id": "C4",
+      "pass": false,
+      "reasons": [
+        "style=smoke is declared by the scope but has no run on the current build"
+      ]
+    },
+    "C5": {
+      "detail": {},
+      "id": "C5",
+      "pass": true,
+      "reasons": []
+    },
+    "C6": {
+      "detail": {
+        "note": "no candidate",
+        "promoted": []
+      },
+      "id": "C6",
+      "pass": true,
+      "reasons": []
+    },
+    "C7": {
+      "detail": {},
+      "id": "C7",
+      "pass": true,
+      "reasons": []
+    }
+  },
+  "claims": {
+    "allowed": [
+      "efficiency under a stated tolerance, labelled 'stated, not measured'",
+      "no quality claim is allowed yet: sensitivity is unknown for every property"
+    ],
+    "note": null,
+    "recorded": true
+  },
+  "quota": {
+    "budget": {
+      "runs": 8,
+      "seconds": 14400
+    },
+    "consumed": {
+      "runs": 2,
+      "seconds": 1699.9240000000002
+    },
+    "exhausted": false,
+    "over": [],
+    "running_seconds": 0
+  },
+  "reasons": [
+    "C1: LR-20261030-355e5e is deferred: a material record keeps the scope incomplete",
+    "C1: LR-20261030-583e17 is owner: a material record keeps the scope incomplete",
+    "C1: LR-20261030-d73cd8 is owner: a material record keeps the scope incomplete",
+    "C2: iteration 1 was not quiet: a scope case did not run or missed its floors",
+    "C3: hello has no run on the current build",
+    "C4: style=smoke is declared by the scope but has no run on the current build"
+  ],
+  "status": "incomplete"
+}
