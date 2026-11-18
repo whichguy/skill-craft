@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import signal
 import subprocess
 import tempfile
 import time
@@ -11,7 +12,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 
 import hosts
 import lifecycle
@@ -47,7 +48,7 @@ def ref(path):
 
 class ExplainCall:
     returncode = 0
-    pid = 1
+    pid = sentinel.salesforce_fixture_child
 
     def __init__(self, argv, cwd, env, **kwargs):
         self.cli = self.__class__.cli
@@ -259,6 +260,7 @@ class Layout:
         self.object = self.namespace + "Records__c"
         self.permission = self.namespace + "Access"
         self.launches, self.events = [], []
+        self.child_signals = []
         self.state = None
         self.key = None
 
@@ -267,6 +269,11 @@ class Layout:
         op.write(path, value)
         return ref(path)
 
+    def record_child_signal(self, group, number):
+        self.test.assertIs(group, sentinel.salesforce_fixture_child)
+        self.test.assertEqual(number, signal.SIGKILL)
+        self.child_signals.append((group, number))
+
     def command(self, command, *extra, authorized=True, after_build=False):
         argv = [command, "--config", str(self.config_path), *extra]
         if authorized:
@@ -274,10 +281,12 @@ class Layout:
         ExplainCall.cli = self.sf
         fake_cli = SimpleNamespace(Popen=ExplainCall, DEVNULL=subprocess.DEVNULL,
                                    PIPE=subprocess.PIPE, TimeoutExpired=subprocess.TimeoutExpired)
+        fake_cli_os = SimpleNamespace(**(vars(os) | {"killpg": self.record_child_signal}))
         output, errors = io.StringIO(), io.StringIO()
         with contextlib.ExitStack() as stack:
             for patcher in (patch.dict(self.sf.data, {"sf_bin": self.binding["sf_bin"]}),
-                            patch.object(op, "subprocess", fake_cli), patch.object(attempt, "builder", self.builder),
+                            patch.object(op, "subprocess", fake_cli), patch.object(op, "os", fake_cli_os),
+                            patch.object(attempt, "builder", self.builder),
                             patch.object(op.Phase, "pause", lambda phase: self.publish(phase)),
                             contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors)):
                 stack.enter_context(patcher)
@@ -1096,6 +1105,18 @@ class RetentionFixtures(FixtureCase):
         self.assertEqual(code, 0, (retired, err))
         self.assertTrue(attempt.reusable(fixture.state, retired))
         self.assertEqual(fixture.sf.mutations, mutations)
+
+    def test_retirement_timeout_signals_only_the_fixture_child(self):
+        with (patch.object(os, "killpg") as outer_group_signal,
+              patch.object(os, "kill") as outer_process_signal,
+              patch.object(Layout, "record_child_signal", autospec=True,
+                           side_effect=Layout.record_child_signal) as record):
+            self.test_retention_unresolved_retirement_requires_the_original_explicit_approval()
+        outer_group_signal.assert_not_called()
+        outer_process_signal.assert_not_called()
+        record.assert_called_once()
+        fixture, _, _ = record.call_args.args
+        self.assertEqual(fixture.child_signals, [(sentinel.salesforce_fixture_child, signal.SIGKILL)])
 
 
 if __name__ == "__main__":
