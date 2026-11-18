@@ -131,7 +131,10 @@ assert args[0] == 'exec', args
 with (root / 'launches.jsonl').open('a') as handle:
     handle.write(json.dumps({{'argv': args, 'env': dict(os.environ), 'cwd': str(Path.cwd()),
                             'initial_files': sorted(os.listdir())}}) + '\\n')
-shell = subprocess.run(['/bin/zsh', '-lc', 'command -v sf; command -v sfdx; command -v grok-chat-ui'],
+login_shell = shutil.which('zsh') or shutil.which('bash')
+if login_shell is None:
+    raise SystemExit('Codex fixture requires an executable zsh or bash login shell')
+shell = subprocess.run([login_shell, '-lc', 'command -v sf; command -v sfdx; command -v grok-chat-ui'],
                        capture_output=True, text=True)
 (root / 'shell.txt').write_text(shell.stdout)
 if (root / 'read-alias-drift').exists():
@@ -176,7 +179,7 @@ if (root / 'test-deploy').exists():
             (obj / 'fields/Review__c.field-meta.xml').write_text('<CustomField><fullName>Review__c</fullName></CustomField>')
     command = ['sf', 'project', 'deploy', 'start', '--source-dir', 'force-app', '--target-org', 'de', '--json']
     def sf(words, path=None):
-        return subprocess.run(['/bin/zsh', '-lc', shlex.join(words)], cwd=path or product,
+        return subprocess.run([login_shell, '-lc', shlex.join(words)], cwd=path or product,
                               capture_output=True, text=True)
     assert sf(['sf', 'project', 'generate', '--name', 'fixture']).stdout.strip() == 'fixture: generated project'
     if (root / 'native-workspace').exists():
