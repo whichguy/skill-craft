@@ -599,11 +599,11 @@ def version_gate(released: dict, plugin_version: str | None, shiploop_version: s
     return problems
 
 
-def export_released(out: Path) -> Path:
+def export_released(out: Path, revision: str = "origin/main") -> Path:
     """origin/main's plugins/skill-craft, byte for byte: the payload the marketplace serves."""
     target = out / "marketplace"
     target.mkdir()
-    archive = subprocess.run(["git", "-C", str(ROOT), "archive", "origin/main", f"plugins/{PLUGIN_NAME}"],
+    archive = subprocess.run(["git", "-C", str(ROOT), "archive", revision, f"plugins/{PLUGIN_NAME}"],
                              check=True, capture_output=True).stdout
     subprocess.run(["tar", "-x", "-C", str(target)], input=archive, check=True)
     return target / "plugins" / PLUGIN_NAME
@@ -905,7 +905,7 @@ def end_host(leader: int, signum: int, grace: float = SESSION_END_SECONDS) -> bo
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
            first: bool = True, fresh: bool = True, translate=None, stop_when=None, stop_file: Path | None = None,
-           before_start=None, end_signal=None) -> dict:
+           before_start=None, end_signal=None, hosted_state: Path | None = None) -> dict:
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
 
     `end_signal()`, asked once when `stop_when` ended the session, may name a signal to send the host first (end_host): the
@@ -945,12 +945,16 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     argv = keep_awake(argv)
     with events_path.open(mode) as events, (out / "stderr.txt").open(mode) as stderr, \
             (out / "timeline.jsonl").open("w" if first else "a") as stamps:
-        proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                stderr=stderr, env=env, start_new_session=True)
+        spawn_options = dict(cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=stderr, env=env)
+        if hosted_state is None:
+            proc = subprocess.Popen(argv, start_new_session=True, **spawn_options)
+        else:
+            proc, owned = lifecycle.spawn_registered(hosted_state, "host", argv, mirror=out, **spawn_options)
         LIVE_HOST_GROUPS.add(proc.pid)  # a signal to the harness now ends this group (on_termination)
         HOST_THREAD[proc.pid] = threading.get_ident()
         # In the run's ledger with its leader's creation identity, so a later invocation can stop it if this harness is killed.
-        owned = lifecycle.own(out, proc.pid, "host")
+        if hosted_state is None:
+            owned = lifecycle.own(out, proc.pid, "host")
 
         def record(raw: bytes):
             nonlocal line, stop
@@ -1015,6 +1019,8 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
                 HOST_THREAD.pop(proc.pid, None)
                 lifecycle.ended(out, owned, "session ended" if status is None else status,
                                 **({"left_in_group": left} if left else {}))
+                if hosted_state is not None:
+                    lifecycle.ended(hosted_state, owned, "reaped by the harness")
         if status is None:
             # A signal may have killed the group before this loop saw it: that is a stop, not a host failure.
             status = "stopped" if TERMINATION.is_set() else "exited" if proc.returncode == 0 else "failed"
@@ -2674,6 +2680,8 @@ def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     mode = p.add_mutually_exclusive_group()
     p.add_argument("--case", default="hello", help="case name from cases.json (default: hello)")
+    p.add_argument("--environment-binding", type=Path, metavar="ABS_JSON",
+                   help="operator-owned environment binding for a leased grok-chat-outcome discovery attempt")
     mode.add_argument("--suite", help="run a suite from suites.json in order (focused: one style in depth; "
                                    "breadth: one case per style); --output becomes the suite directory")
     p.add_argument("--baseline", type=Path, default=BASELINES,
@@ -4074,6 +4082,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    hosted = None
+    if args.environment_binding is not None:
+        from hosted_outcome import attempt
+        try:
+            hosted = attempt.authorize(args.environment_binding, argv, args)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise SystemExit(f"hosted environment binding refused: {exc}") from None
     if args.inspect_recovery:
         import recovery
         context = recovery.inspect_context(args.inspect_recovery, args.recovery_phase)
@@ -4100,7 +4115,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         return baseline_report_main(args)
     if args.runs or args.json or args.release_gate:
         raise SystemExit("--runs, --json and --release-gate belong to --baseline-report")
-    if not args.prompt and (args.preflight_only or not (args.resume_run or args.suite)):
+    if not hosted and not args.prompt and (args.preflight_only or not (args.resume_run or args.suite)):
         require_case_readiness(args.case, catalog().get(args.case, {}))
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
@@ -4261,6 +4276,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 raise SystemExit("pre-invoked prompt_file does not support --seed-at or --planning-review none")
             selected_host = the_host(args)
             exact_opening = case_opening(selected_host, args.skill or selected_host.skill, prompt, preinvoked=True)
+            if hosted:
+                from hosted_outcome import binding
+                exact_opening = binding.opening(exact_opening, hosted[0])
         seed_built = seed_materials(name, args.seed_at)  # refused here, before the folder, the install and the platform
         platform_spec = case_platform(name)
         if args.stop_after_start and platform_spec:
@@ -4346,6 +4364,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
 
         done = None
         try:
+            if hosted:
+                launch_kw["hosted_state"] = hosted[2]
             done = launch(*launch_args, before_start=begin, **launch_kw)
         finally:
             if started:  # a launch refused before any host ran leaves no session behind
@@ -4370,6 +4390,16 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if why := hosts.ollama_ready(args.model):
             raise SystemExit(f"--backend ollama: {why}. Nothing was started.")
     env = host.env(out / "home")
+    hosted_identity = {}
+    if hosted:
+        from hosted_outcome import binding
+        data, binding_sha, state_dir = hosted
+        env = binding.guard_path(data, env, state_dir, SHELL_STARTUP_FILES, hosts.PYTHON_PIN_DIR,
+                                 shell_resolution_problems)
+        hosted_identity = {"environment_binding_sha256": binding_sha, "original_prompt_sha256": data["prompt_sha256"],
+                           "delivered_opening_sha256": binding.sha(exact_opening.encode("utf-8")),
+                           "product_acceptance": "UNKNOWN", "evaluator": "UNQUALIFIED",
+                           "host_scope": "guarded default CLI path; broad host authority remains reachable"}
     earlier_platform = earlier_result.get("platform") or {}
     # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
     # crash leaves result.json holding an older one, so the record the cleanup itself writes (platform/cleanup-record.json) wins.
@@ -4436,6 +4466,16 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                              "Start the case again.")
     elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
+        if hosted and not versions["gate"]:
+            if versions["released"]["origin_main"] != attempt.read(state_dir / "start.json")["build"]:
+                versions["gate"].append("origin/main moved from the operator's expected marketplace build")
+            published = export_released(out, versions["released"]["origin_main"])
+            for skill_name in ("shiploop", "improve"):
+                expected = tree_digest(published / "skills" / skill_name)
+                installed = tree_digest(plugin_dir / "skills" / skill_name)
+                if not expected or expected != installed:
+                    versions["gate"].append(f"installed {skill_name} bytes differ from current publication")
+                versions[f"{skill_name}_sha256"] = installed
         if not resumed:
             require_improve_card(planning_review, plugin_dir)  # the install above is the only host CLI that could run before this
         if resumed:
@@ -4446,7 +4486,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 # The run already has a result.json worth more than a refusal stub; leave it as it was.
                 raise SystemExit("version gate: " + "; ".join(versions["gate"]))
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
-                                                         "output": str(out)}, indent=2) + "\n")
+                                                         "output": str(out), **hosted_identity}, indent=2) + "\n")
             raise SystemExit("version gate: " + "; ".join(versions["gate"]) + f" (see {out / 'result.json'})")
     else:
         plugin = None
@@ -4545,7 +4585,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
                   "owner_note_at": owner_note_at, "needs": needs, "environment": start_environment,
                   **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
-                  "planning_review": planning_review, "improve_skill": improve_skill,
+                  "planning_review": planning_review, "improve_skill": improve_skill, **hosted_identity,
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
                                           **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
@@ -4568,7 +4608,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host}" + (f" backend={backend}" if backend not in (None, "anthropic") else "")
               + f" model={args.model} effort={args.effort} work={work}", flush=True)
-        if not regrade:
+        if not regrade and not hosted:
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
@@ -4640,6 +4680,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # killed rather than finished; the case declares 8 hours so a full game build can complete without a hand-typed
     # flag. A platform case's checks also cost time the timeout does not cover, which is why the cap is generous.
     cap = args.timeout or (catalog().get(args.case, {}) if args.case else {}).get("timeout") or float("inf")
+    if hosted:
+        remaining = attempt.read(state_dir / "start.json")["build_until"] - time.time()
+        if remaining <= 0:
+            raise SystemExit("hosted deadline expired before the builder invocation")
+        cap = remaining
     deadline = time.monotonic() + cap
     note_watcher = (owner_note.Watcher(out, the_cli, owner_note_at, lambda: live_run_dir(out)).start()
                     if owner_note_at and not regrade else None)
@@ -4902,12 +4947,17 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
            else host_build_why, "local_head": "no head recorded", "started": stamps_why, "ended": stamps_why,
            "planning_seconds": metrics.planning_unmeasured(run_metrics.get("planning"))}
     identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
+    runner_pass = all(verdicts)
+    if hosted:
+        outcome, outcome_basis = None, "hosted discovery requires independent product observations"
+        hosted_identity["runner_pass"] = runner_pass
     result = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort,
-              "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
+              "pass": None if hosted else runner_pass, "invoked": invoked, "plugin": plugin, "versions": versions, **hosted_identity,
               # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
               # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
-              "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
+              "prompt_sha256": (hosted_identity.get("delivered_opening_sha256") or
+                                masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output)),
               # The route the run began with, read from what its start left on disk (start_route.py; a probe records the first one
               # its watcher saw): workspace (the isolated entry, once its run has a state), direct (init), or null where ShipLoop
               # never started a run.
@@ -4973,7 +5023,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             handle.write(json.dumps(row) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731
-    print(f"{'STOPPED' if stop_seen and not result['pass'] else mark(result['pass'])}  "
+    print(f"{'DISCOVERY' if hosted else 'STOPPED' if stop_seen and not runner_pass else mark(runner_pass)}  "
           f"shiploop e2e case={name} host={args.host}  output={out}")
     print(f"  versions  {versions['source']}: skill-craft {versions['plugin_version']}, "
           f"ShipLoop {versions['shiploop_version']}")
@@ -5101,7 +5151,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # A regrade's flags are the grading invocation's (the default --timeout is above any task limit), not the run's.
         print("  resume    use the command printed when the run started, with --timeout below the launcher's limit "
               "(this regrade's own flags are not the run's)")
-    if not result["pass"] and not stop_seen:
+    if not runner_pass and not stop_seen:
         failed = [(verdict, want, got) for ok, verdict, want, got in (
             (invoked["pass"], "invoked", "the host registers the invoked ShipLoop skill", "not registered"),
             (plugin["pass"], "plugin", "exactly the skill-craft build under test loads", str(plugin.get("loaded"))),
@@ -5149,7 +5199,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         result["quality"] = block
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     print(f"  quality   {quality.line(result['quality'])}")
-    return 0 if result["pass"] else 1
+    return 0 if runner_pass else 1
 
 
 if __name__ == "__main__":

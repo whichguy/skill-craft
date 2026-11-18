@@ -384,7 +384,13 @@ _PLANNING_APPARATUS_SUITES = (
            "python3", "-B", "test/shiploop-e2e-planning-comparison.test.py"),
 )
 
-SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, *_PLANNING_APPARATUS_SUITES, _APPARATUS_SUITE)
+_HOSTED_OUTCOME_SUITE = _suite(
+    "hosted-outcome", "e2e-apparatus", "test/shiploop-e2e-hosted-outcome.test.py",
+    "python3", "-B", "test/shiploop-e2e-hosted-outcome.test.py",
+)
+
+SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, *_PLANNING_APPARATUS_SUITES,
+          _HOSTED_OUTCOME_SUITE, _APPARATUS_SUITE)
 
 GROUPS = (
     "all",
@@ -527,6 +533,10 @@ _PATH_SUITE_IDS = {
     "skills/shiploop-e2e-audit/harness/planning_trace.py": ("planning-boundary", "planning-comparison"),
     "skills/shiploop-e2e-audit/harness/capture.py": ("planning-comparison",),
     "skills/shiploop-e2e-audit/harness/evidence.py": ("planning-comparison",),
+    "test/shiploop_e2e/cases.json": (_HOSTED_OUTCOME_SUITE.id,),
+    "test/shiploop_e2e/checks/sf_guard.py": (_HOSTED_OUTCOME_SUITE.id,),
+    "test/shiploop_e2e/lifecycle.py": (_HOSTED_OUTCOME_SUITE.id,),
+    "test/shiploop_e2e/run.py": (_HOSTED_OUTCOME_SUITE.id,),
     # The E2E spec has three logical readers; the original harness suite is now three components.
     "test/shiploop_e2e/SPEC.md": (*_E2E_SPLIT_IDS, "shiploop-navigator-contract", "shiploop-run-review"),
     # The packet obligation ledger and its checker; the code that writes the text its anchors live in is in
@@ -591,6 +601,8 @@ _PREFIX_SUITE_IDS = {
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
     "agents/in-parallel.md": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
+    "test/shiploop_e2e/hosted_outcome/": (_HOSTED_OUTCOME_SUITE.id,),
+    "test/shiploop_e2e/scenarios/grok-chat-outcome/": (_HOSTED_OUTCOME_SUITE.id,),
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
     # The packets and commits regrade of the saved runs, its mutation record and the script that wrote them.

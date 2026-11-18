@@ -1286,7 +1286,7 @@
     "style": "hosted-platform",
     "discovery_only": true,
     "prompt_file": "scenarios/grok-chat-outcome/BUILDER_PROMPT.md",
-    "prompt_sha256": "745b29d950dcfff788d759266063d80e20387bf912bd0e85d270922b3a1be41e",
+    "prompt_sha256": "ff3c22eac735be61e10590b827287114664ad81ddf5ce4e96d648f8350107078",
     "readiness_file": "scenarios/grok-chat-outcome/READINESS.json",
     "checks": [],
     "checks_source": "Discovery only. Independent product checks are pending evaluator qualification."

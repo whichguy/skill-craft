@@ -338,6 +338,34 @@ class CandidateProblemTest(unittest.TestCase):
         self.assertFalse(found.taken, found)
         self.assertFalse(self.problem(rc=1, stderr="listen EADDRINUSE 149123").taken, "49123 is not the port 149123")
 
+    def test_a_port_mention_outside_the_bind_error_does_not_authorize_retry(self):
+        found = self.problem(rc=1, stderr="service PORT: 49123\nError: listen EADDRINUSE: address already in use :::4180\n")
+        self.assertFalse(found.taken, found)
+
+    def test_ambiguous_or_unrecognized_bind_errors_do_not_authorize_retry(self):
+        exact = "Error: listen EADDRINUSE: address already in use :::49123\n"
+        different = "Error: listen EADDRINUSE: address already in use 127.0.0.1:4180\n"
+        denied = "Error: listen EACCES: permission denied 127.0.0.1:49123\n"
+        for stderr in (exact + different, different + exact, exact + denied, exact + exact,
+                       "listen EADDRINUSE 49123\n", "Error: listen EADDRINUSE: address already in use :::49123 (reported)\n"):
+            with self.subTest(stderr=stderr):
+                self.assertFalse(self.problem(rc=1, stderr=stderr).taken)
+
+    def test_an_ipv4_bind_error_can_identify_the_assigned_port(self):
+        found = self.problem(rc=1, stderr="Error: listen EADDRINUSE: address already in use 127.0.0.1:49123\n")
+        self.assertTrue(found.taken, found)
+
+    def test_a_bind_error_mixed_with_another_node_error_does_not_authorize_retry(self):
+        log = self.tmp / "server.stderr"
+        collision = "Error: listen EADDRINUSE: address already in use :::56387\n"
+        for other in ("Error: ENOENT: missing configuration file\n",
+                      "TypeError: invalid configuration\n",
+                      "Error [ERR_MODULE_NOT_FOUND]: missing configuration module\n"):
+            for stderr in (collision + other, other + collision):
+                with self.subTest(stderr=stderr):
+                    log.write_text(stderr)
+                    self.assertFalse(self.serve.port_taken(log, 56387))
+
     def test_a_candidate_that_exits_for_another_reason_did_not_find_its_port_taken(self):
         self.assertFalse(self.problem(rc=23, stderr="startup fixture refused\n").taken)
         self.assertFalse(self.problem(rc=1, stderr="").taken)
@@ -963,6 +991,186 @@ class SharedExpensesCheckTest(unittest.TestCase):
         self.assertEqual([check.rsplit(" ", 1)[1] for check in case["checks"]], list(self.CHECKS))
         self.assertFalse(run.case_quality("shared-expenses").get("refuse_ports"), "a case with no fixed port leases none")
         self.assertIn("shared-expenses", json.loads((run.HERE / "probe_terms.json").read_text())["terms"])
+
+
+class SharedExpensesServerTest(unittest.TestCase):
+    """Exercise the shared-expenses server startup against real local port holders."""
+
+    def setUp(self):
+        checks = run.HERE / "checks"
+        spec = importlib.util.spec_from_file_location("shiploop_e2e_test_expenses", checks / "expense_service.py")
+        self.expense = importlib.util.module_from_spec(spec)
+        with mock.patch.object(sys, "path", [str(checks), *sys.path]):
+            spec.loader.exec_module(self.expense)
+        self.serve = self.expense.serve
+
+    def holder(self):
+        family = socket.AF_INET6 if socket.has_ipv6 else socket.AF_INET
+        sock = socket.socket(family)
+        self.addCleanup(sock.close)
+        if family == socket.AF_INET6:
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        sock.bind(("::" if family == socket.AF_INET6 else "0.0.0.0", 0))
+        sock.listen()
+        return sock
+
+    def test_reference_split_and_settle_recover_from_a_real_bind_error(self):
+        holder = self.holder()
+        held = holder.getsockname()[1]
+        observe = self.serve.listening_pids
+        for check in ("split", "settle"):
+            with self.subTest(check=check), contextlib.chdir(SharedExpensesCheckTest.REFERENCE):
+                fresh = self.serve.free_port()
+                err = io.StringIO()
+                # Exercise the early-exit branch even when lsof would see the
+                # holder before Node reports its failed bind.
+                with (contextlib.redirect_stderr(err),
+                      mock.patch.object(self.serve, "free_port", side_effect=[held, fresh]) as allocate,
+                      mock.patch.object(self.serve, "listening_pids", side_effect=lambda p: [] if p == held else observe(p)),
+                      mock.patch.object(self.serve, "port_taken", wraps=self.serve.port_taken) as taken):
+                    getattr(self.expense, check)()
+                self.assertEqual(allocate.call_count, 2)
+                self.assertEqual(taken.call_args.args[1], held)
+                self.assertIn(f"another process took PORT={held}", err.getvalue())
+
+    def test_real_wrong_port_bind_with_assigned_port_in_log_fails_after_one_start(self):
+        wrong = self.holder().getsockname()[1]
+        # Reserve distinct numbers while choosing the two ports, then release both for the fixture.
+        with socket.socket() as first, socket.socket() as second:
+            first.bind(("127.0.0.1", 0))
+            second.bind(("127.0.0.1", 0))
+            handed, fresh = first.getsockname()[1], second.getsockname()[1]
+        with tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp):
+            Path("server.js").write_text(
+                "require('fs').appendFileSync('starts.log', process.env.PORT + '\\n');\n"
+                f"if (Number(process.env.PORT) === {handed}) {{\n"
+                "  console.error('service PORT: ' + process.env.PORT);\n"
+                "  require('net').createServer().on('error', error => {\n"
+                "    console.error(error.toString());\n"
+                "    process.exitCode = 1;\n"
+                f"  }}).listen({wrong});\n"
+                "} else {\n" + ServeRetryTest.LISTENS + "}\n")
+            out, err = io.StringIO(), io.StringIO()
+            with (contextlib.redirect_stdout(out), contextlib.redirect_stderr(err),
+                  mock.patch.object(self.serve, "free_port", side_effect=[handed, fresh]) as allocate):
+                with self.assertRaises(SystemExit) as stopped:
+                    with self.expense.server(Path(tmp) / "data.json") as base:
+                        starts = Path("starts.log").read_text().splitlines()
+                        self.fail(f"admitted {base} after starts on {starts}; {err.getvalue()}")
+            self.assertEqual(stopped.exception.code, 1)
+            self.assertEqual(allocate.call_count, 1)
+            self.assertEqual(Path("starts.log").read_text().splitlines(), [str(handed)])
+            self.assertIn(f"FAIL: the candidate exited (rc 1) before it listened on PORT={handed}", out.getvalue())
+            self.assertIn(f"service PORT: {handed}", out.getvalue())
+            self.assertRegex(out.getvalue(), rf"Error: listen EADDRINUSE: address already in use \S+:{wrong}\b")
+            self.assertEqual(err.getvalue(), "")
+
+    def test_real_mixed_startup_errors_fail_after_one_start(self):
+        holder = self.holder()
+        held = holder.getsockname()[1]
+        fresh = self.serve.free_port()
+        observe = self.serve.listening_pids
+        with tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp):
+            Path("server.js").write_text(
+                "const fs = require('fs');\n"
+                "fs.appendFileSync('starts.log', process.env.PORT + '\\n');\n"
+                f"if (Number(process.env.PORT) === {held}) {{\n"
+                "  require('net').createServer().on('error', error => {\n"
+                "    console.error(error.toString());\n"
+                "    try { fs.readFileSync('missing-config.json'); }\n"
+                "    catch (error) { console.error(error.toString()); }\n"
+                "    process.exitCode = 1;\n"
+                "  }).listen(Number(process.env.PORT));\n"
+                "} else {\n" + ServeRetryTest.LISTENS + "}\n")
+            out, err = io.StringIO(), io.StringIO()
+            # Exercise classification after the real bind and file errors reach stderr.
+            with (contextlib.redirect_stdout(out), contextlib.redirect_stderr(err),
+                  mock.patch.object(self.serve, "free_port", side_effect=[held, fresh]) as allocate,
+                  mock.patch.object(self.serve, "listening_pids", side_effect=lambda p: [] if p == held else observe(p)),
+                  self.assertRaises(SystemExit) as stopped):
+                with self.expense.server(Path(tmp) / "data.json") as base:
+                    starts = Path("starts.log").read_text().splitlines()
+                    self.fail(f"admitted {base} after starts on {starts}; {err.getvalue()}")
+            self.assertEqual(stopped.exception.code, 1)
+            self.assertEqual(allocate.call_count, 1)
+            self.assertEqual(Path("starts.log").read_text().splitlines(), [str(held)])
+            self.assertIn(f"FAIL: the candidate exited (rc 1) before it listened on PORT={held}", out.getvalue())
+            self.assertRegex(out.getvalue(), rf"Error: listen EADDRINUSE: address already in use \S+:{held}\b")
+            self.assertIn("Error: ENOENT: no such file or directory, open 'missing-config.json'", out.getvalue())
+            self.assertEqual(err.getvalue(), "")
+
+    def test_a_foreign_listener_is_refused_and_left_listening(self):
+        holder = self.holder()
+        held = holder.getsockname()[1]
+        fresh = self.serve.free_port()
+        with tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp):
+            data = Path(tmp) / "data.json"
+            Path("server.js").write_text(
+                f"if (Number(process.env.PORT) === {held}) {{\n"
+                "  setInterval(() => {}, 1000);\n"
+                "} else {\n"
+                "  console.error('startup fixture refused');\n"
+                "  process.exit(23);\n"
+                "}\n")
+            out, err = io.StringIO(), io.StringIO()
+            with (contextlib.redirect_stdout(out), contextlib.redirect_stderr(err),
+                  mock.patch.object(self.serve, "free_port", side_effect=[held, fresh]) as allocate,
+                  mock.patch.object(self.expense, "ServerProcess", wraps=self.expense.ServerProcess) as launch,
+                  self.assertRaises(SystemExit) as stopped):
+                with self.expense.server(data):
+                    self.fail("a foreign listener supplied readiness")
+            self.assertEqual(stopped.exception.code, 1)
+            self.assertEqual(allocate.call_count, 2)
+            self.assertEqual(launch.call_count, 2)
+            self.assertIn(f"another process took PORT={held}", err.getvalue())
+            self.assertIn("exited (rc 23)", out.getvalue())
+            self.assertIn("startup fixture refused", out.getvalue())
+            self.assertIn(os.getpid(), self.serve.listening_pids(held))
+
+    def test_taken_ports_exhaust_the_existing_start_budget(self):
+        held = self.holder().getsockname()[1]
+        with tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp):
+            Path("server.js").write_text(ServeRetryTest.STAYS)
+            out, err = io.StringIO(), io.StringIO()
+            with (contextlib.redirect_stdout(out), contextlib.redirect_stderr(err),
+                  mock.patch.object(self.serve, "free_port", return_value=held) as allocate,
+                  self.assertRaises(SystemExit) as stopped):
+                with self.expense.server(Path(tmp) / "data.json"):
+                    self.fail("a foreign listener supplied readiness")
+            self.assertEqual(stopped.exception.code, 1)
+            self.assertEqual(allocate.call_count, self.serve.TRIES)
+            self.assertEqual(err.getvalue().count("starting the candidate again"), self.serve.TRIES - 1)
+            self.assertIn(f"started {self.serve.TRIES} times", out.getvalue())
+            self.assertIn(f"pid {os.getpid()}", out.getvalue())
+
+    def test_wrong_port_missing_listener_and_unobserved_ownership_are_not_retried(self):
+        for reason in ("wrong port", "no listener", "unobserved"):
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp):
+                port = self.serve.free_port()
+                other = port - 1
+                body = ServeRetryTest.STAYS
+                expected = "did not listen on PORT"
+                if reason == "wrong port":
+                    body = ServeRetryTest.OTHER.replace("4180", str(other))
+                    expected = f"EADDRINUSE: address already in use :::{other}"
+                Path("server.js").write_text(body)
+                out, err = io.StringIO(), io.StringIO()
+                with contextlib.ExitStack() as stack:
+                    if reason == "unobserved":
+                        stack.enter_context(mock.patch.object(self.serve, "listening_pids",
+                            side_effect=self.serve.listeners.Unobserved("fixture unavailable")))
+                        expected = "cannot confirm who listens"
+                    elif reason == "no listener":
+                        stack.enter_context(mock.patch.object(self.serve, "READY_SECONDS", 0))
+                    with (contextlib.redirect_stdout(out), contextlib.redirect_stderr(err),
+                          mock.patch.object(self.serve, "free_port", return_value=port) as allocate,
+                          self.assertRaises(SystemExit) as stopped):
+                        with self.expense.server(Path(tmp) / "data.json"):
+                            self.fail("startup should have failed")
+                self.assertEqual(stopped.exception.code, 1)
+                self.assertEqual(allocate.call_count, 1)
+                self.assertIn(expected, out.getvalue())
+                self.assertEqual(err.getvalue(), "")
 
 
 class SessionStopTest(unittest.TestCase):

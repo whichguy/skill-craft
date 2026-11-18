@@ -68,6 +68,16 @@ POLL_SECONDS = listeners.POLL_SECONDS
 OBSERVER_SETTLE_SECONDS = 5.0  # how long cleanup waits for an observer whose starter is still running to become an orphan
 
 _WRITE = threading.Lock()  # suite cases run in threads of one harness; each appends to its own ledger, but one lock is enough
+STARTUP_ROLES = ("hosted-runner", "host")
+_WAIT_FOR_REGISTRATION = """
+import os, sys
+pipe, lock = map(int, sys.argv[1:3])
+os.set_inheritable(lock, False)
+if os.read(pipe, 1) != b'G':
+    sys.exit(125)
+os.close(pipe)
+os.execvp(sys.argv[3], sys.argv[3:])
+"""
 
 
 class Refused(SystemExit):
@@ -77,7 +87,7 @@ class Refused(SystemExit):
 
 # ---------------------------------------------------------------- the process table
 
-def _ps(argv: list[str]) -> str:
+def _ps(argv: list[str], *, allow_missing_pid: bool = False) -> str:
     """One read-only ps call in the C locale (``lstart`` is then one fixed shape). Raises Unobserved as listeners._run does."""
     try:
         done = subprocess.run(argv, capture_output=True, text=True, timeout=listeners.LSOF_TIMEOUT, stdin=subprocess.DEVNULL,
@@ -86,10 +96,14 @@ def _ps(argv: list[str]) -> str:
         raise listeners.Unobserved("ps not found") from None
     except subprocess.TimeoutExpired:
         raise listeners.Unobserved(f"ps timed out after {listeners.LSOF_TIMEOUT}s") from None
-    except OSError as exc:
+    except (OSError, UnicodeError) as exc:
         raise listeners.Unobserved(f"ps could not run: {exc}") from None
-    if done.returncode not in (0, 1):  # 1: none of the pids asked for exists
+    if allow_missing_pid and done.returncode == 1 and not (done.stdout or done.stderr):
+        return ""
+    if done.returncode != 0:
         raise listeners.Unobserved(f"ps exited {done.returncode}")
+    if done.stderr or not done.stdout.endswith("\n"):
+        raise listeners.Unobserved("ps returned an incomplete process table")
     return done.stdout
 
 
@@ -100,15 +114,22 @@ def table(pids=None) -> dict[int, dict]:
     if pids == []:
         return {}
     text = _ps(["ps", "-ww", "-o", "pid=,ppid=,pgid=,lstart=,command=",
-                *(["-p", ",".join(map(str, pids))] if pids else ["-ax"])])
+                *(["-p", ",".join(map(str, pids))] if pids else ["-ax"])],
+               allow_missing_pid=pids is not None and len(pids) == 1)
     rows = {}
     for line in text.splitlines():
         parts = line.split(None, 8)
-        if len(parts) < 8 or not all(part.isdigit() for part in parts[:3]):
-            continue
+        if len(parts) < 8 or not all(part.isascii() and part.isdecimal() for part in parts[:3]):
+            raise listeners.Unobserved("ps returned a malformed process row")
         pid, ppid, pgid = map(int, parts[:3])
-        rows[pid] = {"pid": pid, "ppid": ppid, "pgid": pgid, "started": " ".join(parts[3:8]),
+        started = " ".join(parts[3:8])
+        if pid in rows or not re.fullmatch(r"[A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}", started):
+            raise listeners.Unobserved("ps returned an invalid process identity")
+        rows[pid] = {"pid": pid, "ppid": ppid, "pgid": pgid, "started": started,
                      "command": parts[8] if len(parts) > 8 else ""}
+    if pids is None and os.getpid() not in rows:
+        # A full inventory must include the process taking it, even if a truncated prefix parses.
+        raise listeners.Unobserved("ps process table omitted the caller")
     return rows
 
 
@@ -120,20 +141,37 @@ def same_leader(recorded: dict | None, now: dict | None) -> bool:
 
 # ---------------------------------------------------------------- the ledger
 
-def record(out, kind: str, **fields) -> dict:
+def record(out, kind: str, *, durable: bool = False, **fields) -> dict:
     """Append one row to the run's ledger. Raises OSError where it cannot be written; callers that must not fail catch it."""
     row = {"kind": kind, "at": round(time.time(), 3), **fields}
     with _WRITE, open(Path(out) / LEDGER, "a") as handle:
         handle.write(json.dumps(row) + "\n")
+        if durable:
+            handle.flush()
+            os.fsync(handle.fileno())
+            fd = os.open(out, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
     return row
 
 
-def rows(out) -> list[dict]:
+def rows(out, *, strict: bool = False) -> list[dict]:
     """The ledger's rows; a line that is not a JSON object (a write cut by a kill) is passed over."""
     try:
-        text = (Path(out) / LEDGER).read_text(errors="replace")
+        text = (Path(out) / LEDGER).read_text(errors="strict" if strict else "replace")
     except OSError:
+        if strict:
+            raise
         return []
+    if strict:
+        if not text.endswith("\n"):
+            raise ValueError("incomplete resource ledger")
+        found = [json.loads(line) for line in text.splitlines()]
+        if not all(isinstance(row, dict) and isinstance(row.get("kind"), str) for row in found):
+            raise ValueError("invalid resource ledger")
+        return found
     found = []
     for line in text.splitlines():
         with contextlib.suppress(ValueError):
@@ -143,7 +181,7 @@ def rows(out) -> list[dict]:
     return found
 
 
-def own(out, pid: int, role: str) -> dict | None:
+def own(out, pid: int, role: str, *, durable: bool = False) -> dict | None:
     """Record the group ``pid`` leads, just started for this run, with its leader's creation identity. Never raises: a leader
     ps cannot see is recorded with the reason (cleanup never signals a group without an identity), and a ledger that cannot
     be written returns None."""
@@ -153,10 +191,66 @@ def own(out, pid: int, role: str) -> dict | None:
     except listeners.Unobserved as exc:
         leader, reason = None, str(exc)
     try:
-        return record(out, "group", id=f"{pid}@{time.time():.6f}", pgid=pid, role=role, leader=leader,
+        return record(out, "group", durable=durable, id=f"{pid}@{time.time():.6f}", pgid=pid, role=role, leader=leader,
                       **({"reason": reason} if reason else {}))
     except OSError:
         return None
+
+
+def startup_lock(state, role):
+    return Path(state) / f"{role}.startup.lock"
+
+
+def initialize_startup(state):
+    for role in STARTUP_ROLES:
+        with startup_lock(state, role).open("xb"):
+            pass
+    record(state, "startup-protocol", durable=True)
+
+
+def startups_clear(state):
+    """Check for a live startup shim, including one whose parent died before recording its PID."""
+    try:
+        for role in STARTUP_ROLES:
+            with startup_lock(state, role).open("rb") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except OSError:
+        return False
+
+
+def spawn_registered(state, role, argv, *, mirror=None, **kwargs):
+    """Start a separate session that can exec only after its identity is durable."""
+    with startup_lock(state, role).open("rb") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        read_fd, write_fd = os.pipe()
+        process = None
+        released = False
+        try:
+            process = subprocess.Popen(
+                [sys.executable, "-I", "-S", "-B", "-c", _WAIT_FOR_REGISTRATION,
+                 str(read_fd), str(lock.fileno()), *argv],
+                pass_fds=(read_fd, lock.fileno()), start_new_session=True, **kwargs)
+            group = own(state, process.pid, role, durable=True)
+            if not group or not group["leader"] or group["leader"]["pgid"] != process.pid:
+                raise RuntimeError("could not durably register the startup process group")
+            if mirror is not None:
+                record(mirror, "group", durable=True, **{
+                    key: group[key] for key in ("id", "pgid", "role", "leader")
+                })
+            os.write(write_fd, b"G")
+            released = True
+            return process, group
+        finally:
+            os.close(read_fd)
+            os.close(write_fd)
+            if not released and process is not None:
+                # The private session may already have received the byte if a
+                # signal interrupted os.write after the write took effect.
+                listeners.end_group(process.pid)
+                process.wait()
+                if process.stdout is not None:
+                    process.stdout.close()
 
 
 def ended(out, group: dict | None, how: str, **detail) -> None:
@@ -304,7 +398,20 @@ def _signal_group(pgid: int, number: int) -> None:
     listeners.signal_adopted_group(pgid, number)  # the harness's group signals all live in listeners.py (S-12)
 
 
-def stop(group: dict) -> tuple[str, dict]:
+def group_absent(pgid: int) -> bool:
+    """Confirm group absence with the kernel. Signal zero does not deliver a signal."""
+    if pgid <= 1:
+        return False
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return True
+    except OSError:
+        return False
+    return False
+
+
+def stop(group: dict, *, verify_absence: bool = False) -> tuple[str, dict]:
     """Stop one recorded group if, and only if, it is still the one recorded: ``(how, detail)``.
 
     ``how`` is ``stopped`` (``ended_by`` SIGTERM or SIGKILL), ``survived`` (still there after SIGKILL), ``gone`` (nothing
@@ -312,17 +419,26 @@ def stop(group: dict) -> tuple[str, dict]:
     was never seen, and processes remain in the group: not signalled, listed) or ``protected`` (the group holds this process or
     an ancestor). A leader that is this process's unreaped child is ended by ``listeners.end_group``, the exact path. Between
     the identity check and each signal the group is never seen empty, and a group number is not reused while the group has a
-    member, so a signal reaches only the group that was checked. Raises Unobserved."""
+    member, so a signal reaches only the group that was checked. With verify_absence, a missing group must also
+    be absent from the kernel before it is considered gone or stopped. Raises Unobserved."""
     pgid, leader = group["pgid"], group.get("leader")
+
+    def finished(how, **detail):
+        if verify_absence and not group_absent(pgid):
+            return "unverified", {"members": [], "reason": "kernel did not confirm group absence"}
+        return how, detail
+
     if pgid <= 1:
         return "protected", {"members": []}
     now = table()
     members = _members(pgid, now)
     current = now.get(pgid)
     if not members:
-        return "gone", {}
+        return finished("gone")
     if current is not None and leader and not same_leader(leader, current):
-        return "reused", {"now": _named(current)}
+        if not verify_absence or current["pgid"] == pgid:
+            return "reused", {"now": _named(current)}
+        current = None
     if not leader or current is None:
         return "unverified", {"members": [_named(row) for row in members],
                               "reason": "the leader was never seen" if not leader else "the leader is gone"}
@@ -330,18 +446,18 @@ def stop(group: dict) -> tuple[str, dict]:
         return "protected", {"members": [_named(row) for row in members]}
     if listeners.unreaped(pgid) is not None:
         listeners.end_group(pgid)  # SIGKILL; the Popen that started it reaps it
-        return "stopped", {"ended_by": "SIGKILL", "members": len(members)}
+        return finished("stopped", ended_by="SIGKILL", members=len(members))
     for name, number, wait in (("SIGTERM", signal.SIGTERM, GRACE_SECONDS), ("SIGKILL", signal.SIGKILL, FORCE_SECONDS)):
         _signal_group(pgid, number)
         end = time.monotonic() + wait
         while time.monotonic() < end:
             time.sleep(POLL_SECONDS)
             if not _members(pgid, table()):
-                return "stopped", {"ended_by": name, "members": len(members)}
+                return finished("stopped", ended_by=name, members=len(members))
     return "survived", {"members": [_named(row) for row in _members(pgid, table())]}
 
 
-def cleanup(out) -> dict:
+def cleanup(out, *, verify_absence: bool = False) -> dict:
     """Stop what the run's ledger says it owns and is still alive (ShipLoop's observer adopted first), and record each group's
     end. Idempotent: a group with an ``ended`` row is not looked at again, so a second cleanup changes nothing. Deletes no
     file. Returns ``{observed: True, stopped, survived, gone, reused, unverified, protected}`` (each a list) or
@@ -351,10 +467,12 @@ def cleanup(out) -> dict:
     try:
         settle_observers(out)
         for group in open_groups(out):
-            how, detail = stop(group)
+            how, detail = stop(group, verify_absence=verify_absence)
             entry = {"pgid": group["pgid"], "role": group.get("role"),
                      "command": ((group.get("leader") or {}).get("command") or "")[:200], **detail}
             found[how].append(entry)
+            if verify_absence and how not in {"gone", "stopped", "reused"}:
+                raise listeners.Unobserved(f"could not verify clearance of process group {group['pgid']}")
             if how != "survived":  # a survivor stays open, so a later cleanup (or the orphan refusal) sees it again
                 ended(out, group, how, **detail)
     except listeners.Unobserved as exc:

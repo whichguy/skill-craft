@@ -1,0 +1,18 @@
+{
+  "schema": "hosted-outcome-operator/1",
+  "binding": {"path": "/absolute/operator/binding.json", "sha256": "<binding SHA256>"},
+  "retirement_plan": {"path": "/absolute/operator/retirement-plan.json", "sha256": "<plan SHA256>"},
+  "retirement_verification": {"path": "/absolute/operator/retirement-verification.json", "sha256": "<verification SHA256>"},
+  "reference_snapshot": {"path": "/absolute/operator/references/manifest.json", "sha256": "<manifest SHA256>"},
+  "named_credential_id": "<canonical Salesforce NamedCredential ID>",
+  "external_credential": {"reference": "ExampleExternalCredential", "id": "<canonical Salesforce ExternalCredential ID>"},
+  "sf_bin_sha256": "<SHA256 of sf_bin in the binding>",
+  "codex_bin": {"path": "/absolute/tools/codex", "sha256": "<binary SHA256>"},
+  "model_catalog": {"path": "/absolute/operator/codex-model-catalog.json", "sha256": "<catalog SHA256>"},
+  "campaign": "/absolute/operator/campaign",
+  "build": "<40-character published origin/main commit>",
+  "baseline": "/absolute/operator/campaign/baselines.jsonl",
+  "deadline": null,
+  "observation_seconds": 300,
+  "teardown_seconds": 300
+}

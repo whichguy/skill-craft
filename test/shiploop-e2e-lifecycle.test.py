@@ -740,7 +740,9 @@ class ThroughMainTest(HarnessCase):
         self.guard()
         decoy = self.spawn(["sleep", "300"])
         out = self.tmp / "hello"
-        self.main(*self.argv(out), mode="leave-in-group")
+        # Give the fake host exactly one group member. On macOS caffeinate adds its own helper.
+        with mock.patch.object(run, "keep_awake", side_effect=lambda argv: argv):
+            self.main(*self.argv(out), mode="leave-in-group")
         [worker] = self.children()
         self.assertTrue(gone(worker), "the worker in the host's group ended with its session")
         self.assertTrue(alive(decoy.pid))

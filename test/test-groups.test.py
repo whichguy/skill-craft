@@ -147,7 +147,8 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
         # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
         # The ShipLoop adapter's three contract suites (2026-11-15: queries, steps, real engine with fake hosts) make 209.
-        self.assertEqual(len(suite_catalog.SUITES), 207)
+        # The hosted outcome guard adds one hermetic apparatus suite (2026-11-18).
+        self.assertEqual(len(suite_catalog.SUITES), 208)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -297,6 +298,24 @@ class TestGroupTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(planning.isdisjoint(suite_catalog.targeted((path,))))
 
+    def test_hosted_outcome_apparatus_is_selected_for_its_sources(self) -> None:
+        suite, = (s for s in suite_catalog.select(("e2e-apparatus",)) if s.id == "hosted-outcome")
+        self.assertNotIn(suite, suite_catalog.smoke())
+        for path in (
+            suite.path,
+            "test/shiploop_e2e/run.py",
+            "test/shiploop_e2e/cases.json",
+            "test/shiploop_e2e/checks/sf_guard.py",
+            "test/shiploop_e2e/lifecycle.py",
+            "test/shiploop_e2e/hosted_outcome/attempt.py",
+            "test/shiploop_e2e/hosted_outcome/binding.py",
+            "test/shiploop_e2e/scenarios/grok-chat-outcome/BUILDER_PROMPT.md",
+            "test/shiploop_e2e/scenarios/grok-chat-outcome/READINESS.json",
+        ):
+            with self.subTest(path=path):
+                for group in ("quick", "affected"):
+                    self.assertIn(suite, suite_catalog.select((group,), (path,)), group)
+
     def test_planning_boundary_timeline_does_not_turn_retained_fixtures_into_hubs(self) -> None:
         fixtures = TEST_DIR / "fixtures/fidelity"
         timeline = next(fixtures.glob("*/.shiploop-runs/*/run/timeline[.]json"))
@@ -397,7 +416,8 @@ class TestGroupTests(unittest.TestCase):
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES if s.id not in {"ci-summary", "browser-fixtures", "closed-loop",
-                                           "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine"}]
+                                           "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps",
+                                           "shiploop-e2e-adapter-engine", "hosted-outcome"}]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
         self.assertEqual(digest, "fff0b677e7bb72149c0d21c515fb6e5d55136faa5839ed969662bfecca4b4bc0")
 

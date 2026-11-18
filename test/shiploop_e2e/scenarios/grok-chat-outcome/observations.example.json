@@ -1,0 +1,31 @@
+{
+  "binding_sha256": "<binding SHA256 from observe-request.json>",
+  "target": {
+    "org_id": "<org ID from observe-request.json>",
+    "user_id": "<user ID from observe-request.json>",
+    "selector": "example-operator-alias",
+    "username": "operator@example.test"
+  },
+  "phase": "observe",
+  "verified": true,
+  "checked_at": null,
+  "status": "UNKNOWN",
+  "deployments": [
+    {
+      "intent_sha256": "<approved deployment intent SHA256>",
+      "source_sha256": "<approved force_app_sha256>",
+      "deployment_id": "<canonical Salesforce deployment ID>"
+    }
+  ],
+  "routes": {
+    "browser": {"status": "UNKNOWN"},
+    "provider": {"status": "UNKNOWN"},
+    "native": {
+      "status": "OBSERVED",
+      "path": "/absolute/operator/native-evidence.json",
+      "sha256": "<native evidence SHA256>"
+    },
+    "records": {"status": "UNKNOWN"}
+  },
+  "app_work_pending": false
+}

@@ -4,23 +4,21 @@
   "selectable": true,
   "packaged": false,
   "preparation": "PREPARED",
-  "preparation_review": "Initial packet independently reviewed at commit 71fa298e44db73f6afa46217377ba0ea850de916. Subsequent owner-directed Grok Bot behavior, intentions and visual-reference clarification was parent-reviewed against official sources and checked for JSON, links and source hygiene; it has no renewed independent model review or application acceptance. Initial document renders apply to the initial revision only. This is not evaluator qualification.",
+  "preparation_review": "Owner-directed chronological rewrite with a new prompt identity before any live launch. The independent repeatability design advice informs the operator interface. Earlier review and rendering apply to their original prompt revisions.",
   "live_launch": "BLOCKED",
   "evaluator": "UNQUALIFIED",
   "product_acceptance": "NOT_RUN",
   "delivery_boundary": {
     "builder": "Exact frozen literal BUILDER_PROMPT.md plus minimal nonsecret resolved environment/authority binding",
-    "operator_only": ["README.md", "OUTCOME_REVIEW.md", "READINESS.json"],
+    "operator_only": ["README.md", "OUTCOME_REVIEW.md", "READINESS.json", "operator-config.example.json", "binding.example.json", "observations.example.json"],
     "excluded": "Historical fixed contracts, checks and internal implementation prescriptions"
   },
-  "integration": "Opt-in discovery case excluded from strict promotion/5 registration. The runner can inspect the pinned prompt and readiness offline. READY is a trusted operator assertion. Hosted lifecycle, authority binding and independent observation require separate integration.",
+  "integration": "The internal hosted_outcome CLI runs one attended discovery attempt with a pinned operator config and an attempt-bound assertion after leased reset. Source readiness stays BLOCKED. The catalog entry is excluded from strict promotion/5 registration.",
   "launch_blockers": [
-    "Resolve canonical org, user, target, explicit setup/deploy/synthetic scope and existing-work conflicts without ambient defaults",
-    "Establish cross-prefix owned inventory, verified startup reset including empty no-op, job/late-deploy containment and quiescence, and owned teardown",
-    "Resolve installed ShipLoop identity, nonsecret provider reference/endpoint/model, operator secrets/principal grants and safe browser/auth route",
-    "Establish independent read-only observation capability, deadlines and evaluator qualification",
-    "Verify all builder-visible inputs, including inherited PATH and E2E_* in the effective launch environment",
-    "Before each fresh launch, resolve the latest available SOL and Astra releases from the current official catalog. Record exact model IDs and actual parent and default-child controls: SOL medium for builders and tests, Astra high for independent review. Preserve recorded prior and frozen run identities."
+    "Provide fresh pinned authority, retirement and observer evidence for the exact canonical org in Salesforce and its initiating user",
+    "Authorize the exact pinned external operator config and require a verified startup reset, including an independently verified fresh no-op under lease before the builder",
+    "Resolve published ShipLoop identity, a fresh official Codex catalog, the provider references and current operator browser route",
+    "Attend review of deployment source, effects, grants and members, arrange independent read-only observation of the rendered UI and actual effects, and require evidence of owned cleanup"
   ],
-  "evidence": "No application launch or results; no borrowed historical acceptance, preparation verdict or render evidence"
+  "evidence": "Offline apparatus only. Live org reset, deployment, app acceptance, evaluator qualification and generic ShipLoop gain are unmeasured."
 }

@@ -17,7 +17,7 @@ import json
 import os
 from pathlib import Path
 import re
-import socket
+import signal
 import subprocess
 import sys
 import tempfile
@@ -25,44 +25,58 @@ import time
 import urllib.error
 import urllib.request
 
+import serve
+
 
 def fail(reason: str) -> None:
     print("FAIL: " + reason)
     sys.exit(1)
 
 
-def free_port() -> int:
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        return sock.getsockname()[1]
+class ServerProcess(subprocess.Popen):
+    def poll(self):
+        # candidate_problem polls for an early exit. End the group while the
+        # exited leader still holds its PID, before poll reaps it.
+        if self.returncode is None and serve.listeners.unreaped(self.pid) == "exited":
+            serve.listeners.end_group(self.pid)
+            return super().poll()
+        return self.returncode
 
 
 @contextlib.contextmanager
 def server(data_file: Path):
-    port = free_port()
-    env = dict(os.environ, PORT=str(port), DATA_FILE=str(data_file))
-    with tempfile.TemporaryFile() as errors:
-        proc = subprocess.Popen(["node", "server.js"], env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                stderr=errors)
-        try:
-            for _ in range(100):
-                if proc.poll() is not None:
-                    errors.seek(0)
-                    fail("server.js exited early: " + errors.read().decode(errors="replace")[-400:])
-                try:
-                    socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
-                    break
-                except OSError:
-                    time.sleep(0.1)
-            else:
-                fail("server.js did not listen on PORT within 10 seconds")
-            yield f"http://127.0.0.1:{port}"
-        finally:
-            proc.terminate()
+    handed: list[int] = []
+    with tempfile.TemporaryDirectory(prefix="e2e-expenses-") as scratch:
+        stderr = Path(scratch) / "server.stderr"
+        for attempt in range(1, serve.TRIES + 1):
+            port = serve.free_port()
+            handed.append(port)
+            env = dict(os.environ, PORT=str(port), DATA_FILE=str(data_file))
+            with stderr.open("w") as errors:
+                proc = ServerProcess(["node", "server.js"], env=env, stdin=subprocess.DEVNULL,
+                                     stdout=subprocess.DEVNULL, stderr=errors, start_new_session=True)
             try:
-                proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                proc.kill()
+                problem = serve.candidate_problem(proc, port, stderr)
+                if problem is None:
+                    try:
+                        yield f"http://127.0.0.1:{port}"
+                    finally:
+                        # Keep the graceful stop used by the restart checks.
+                        with contextlib.suppress(ProcessLookupError):
+                            os.killpg(proc.pid, signal.SIGTERM)
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline and serve.listeners.unreaped(proc.pid) == "running":
+                            time.sleep(serve.POLL_SECONDS)
+                    return
+            finally:
+                serve.listeners.end_group(proc.pid)
+                proc.wait()
+            if not problem.taken:
+                fail(problem.reason)
+            if attempt == serve.TRIES:
+                fail(f"{problem.reason} (started {attempt} times, on ports {', '.join(map(str, handed))}; each was taken)")
+            print(f"expense_service.py: another process took PORT={port}; starting the candidate again on another port "
+                  f"(start {attempt + 1} of {serve.TRIES})", file=sys.stderr)
 
 
 def call(base: str, method: str, path: str, body: object = None) -> tuple[int, object]:

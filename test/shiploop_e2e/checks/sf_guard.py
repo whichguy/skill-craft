@@ -25,6 +25,7 @@ Policy (default deny; the isolated HOME is hygiene, not a boundary, so this is w
     org; a missing or different one is refused, so no command falls back to the default org. The real sf is also run with
     `SF_TARGET_ORG=<org>` and every other default-org variable (`SFDX_DEFAULTUSERNAME`, `SF_TARGET_DEV_HUB` ...) removed from its
     environment, so a pin the guard read but the CLI did not (a flag spelling the guard misjudged) falls back to the case's org.
+    The hosted gate replaces explicit selectors with the bound username and uses that username as the default for supported reads.
   * SCOPED: `project deploy start|validate` may carry only the components the owner approved: ApexClass, CustomTab,
     CustomApplication and FlexiPage named <prefix>* (an underscore suffix is fine: SLChess_Board) and LightningComponentBundle named
     <lwcPrefix>* (SLChess -> slChess). Every `--source-dir` tree, `--metadata` entry and `--manifest` is checked (with none of them,
@@ -82,14 +83,17 @@ can change it between this check and the CLI reading it.
 """
 from __future__ import annotations
 
+from contextlib import ExitStack
 import hashlib
 import json
 import os
 import re
+import shutil
 import signal
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -114,13 +118,15 @@ SIGNALS = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)  # forwarded to the rea
 
 # (command words) -> exact match unless listed in PREFIX_OK. Org-talking commands are PINNED; the rest are LOCAL. `project deploy
 # quick|cancel|resume` are left out on purpose: they take the org from the CLI's global deploy cache, which --target-org does not pin.
-PINNED = {
+HOSTED_READS = {
+    ("apex", "get", "test"), ("apex", "get", "log"), ("apex", "list", "log"),
+    ("data", "query"), ("data", "get", "record"), ("sobject", "list"), ("sobject", "describe"),
+    ("org", "list", "metadata"), ("org", "list", "metadata-types"),
+}
+PINNED = HOSTED_READS | {
     ("project", "deploy", "start"), ("project", "deploy", "validate"), ("project", "deploy", "report"),
     ("project", "retrieve", "start"), ("project", "retrieve", "preview"),
-    ("apex", "run"), ("apex", "run", "test"), ("apex", "get", "test"), ("apex", "get", "log"), ("apex", "list", "log"),
-    ("data", "query"), ("data", "get", "record"),
-    ("sobject", "list"), ("sobject", "describe"),
-    ("org", "list", "metadata"), ("org", "list", "metadata-types"),
+    ("apex", "run"), ("apex", "run", "test"),
 }
 LOCAL = {("version",), ("help",), ("project", "generate"), ("lightning", "generate"), ("apex", "generate"), ("template", "generate"),
          ("org", "list")}
@@ -170,6 +176,8 @@ STRICT_DIRS = frozenset("""ActionableEventOrchDefSettings ActionableEventTypeDef
     integrationHub lightningTypes lwc mktDataSources objectTranslations objects restrictionRules siteDotComSites sites staticresources
     uiBundles uiWidgets waveTemplates""".split())
 OBJECT_PATH_BARRIERS = STRICT_DIRS | frozenset(FLAT_FOLDERS) | frozenset({"contentassets", "layouts", "permissionsets", "triggers"})
+OBJECT_CHILDREN = frozenset({"businessProcesses", "compactLayouts", "fields", "fieldSets", "indexes", "listViews",
+                             "recordTypes", "sharingReasons", "validationRules", "webLinks"})
 # The flags of `project deploy start|validate` that take a value (long name -> short char), and the ones oclif lets repeat AND read
 # the bare words after them as more values (`-d a b` is two directories). Needed to tell a path from the value of another flag.
 DEPLOY_OPTIONS = {
@@ -277,13 +285,14 @@ def denied_line(name: str, reason: str) -> str:
 
 
 def scope_line(name: str, org: str, prefix: str, reason: str = "", permission_sets: bool = False,
-               custom_objects: bool = False) -> str:
+               custom_objects: bool = False, *, hosted: bool = False) -> str:
     """What this run allows, printed after a denial and after help: the org pin, the deploy scope and the allowed commands (left
     out when the reason already lists them)."""
     deploys = approved_text(prefix, lwc_prefix(prefix), flat_types(permission_sets), custom_objects) if prefix else "none (no deploy scope is defined)"
     commands = "" if "allowed: " in reason else f"; commands: {allowed_commands(permission_sets)}"
-    return (f"{name}: this run allows only `sf`, only on org {org!r} (every command that talks to an org carries --target-org "
-            f"{org}); deploys: {deploys}{commands}")
+    target = ("hosted reads default to the bound username" if hosted else
+              f"every command that talks to an org carries --target-org {org}")
+    return f"{name}: this run allows only `sf`, only on org {org!r} ({target}); deploys: {deploys}{commands}"
 
 
 def assign_problem(rest: list[str], prefix: str) -> str | None:
@@ -325,7 +334,7 @@ def assign_problem(rest: list[str], prefix: str) -> str | None:
 
 
 def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None, permission_sets: bool = False,
-           custom_objects: bool = False) -> tuple[bool, str]:
+           custom_objects: bool = False, *, hosted: bool = False) -> tuple[bool, str]:
     """(allowed, reason) for the model's argv. `prefix` and `cwd` scope a deploy (see deploy_scope_problems); `permission_sets` adds
     PermissionSet to that scope and allows `org assign permset` (see assign_problem); `custom_objects` opts into the narrow owned-schema
     scope."""
@@ -367,7 +376,7 @@ def decide(argv: list[str], org: str, prefix: str = "", cwd: str | None = None, 
     wrong = [value for value in given if value != org]
     if wrong:
         return False, f"--target-org must be {org!r} on every command (got {wrong[0]!r})"
-    if match in pinned and not given:
+    if match in pinned and not given and not (hosted and match in HOSTED_READS):
         return False, f"`{' '.join(match)}` must carry --target-org {org} (no default-org fallback)"
     if match in PERMSET_COMMANDS:
         problem = assign_problem(rest, prefix)
@@ -788,7 +797,7 @@ def force_app_sha256(root: Path) -> str:
     return digest.hexdigest()
 
 
-def deploy_source_root(argv: list[str]) -> Path | None:
+def deploy_source_root(argv: list[str], *, explain_ignore: bool = False) -> Path | None:
     """Recognize a canonical full-source deployment for attestation only."""
     words, rest = command_words(argv)
     if words != ("project", "deploy", "start"):
@@ -814,14 +823,22 @@ def deploy_source_root(argv: list[str]) -> Path | None:
     if project is None:
         return None
     root = Path(project)
-    # A full-source receipt must not silently omit an LWC through .forceignore.
-    # This opt-in case keeps nondeployable tests outside force-app instead.
-    ignore = root / ".forceignore"
-    if ignore.is_symlink() or (ignore.exists() and any(
-            line.strip() and not line.lstrip().startswith("#")
-            for line in ignore.read_text().splitlines())):
+    if cwd / source != root / "force-app":
         return None
-    return root if cwd / source == root / "force-app" else None
+    # Full-package evidence must cover files that an active ignore rule can hide.
+    ignore = root / ".forceignore"
+    if ignore.is_symlink():
+        if explain_ignore:
+            raise ValueError(".forceignore must not be a symlink for full force-app deployment")
+        return None
+    if ignore.exists():
+        for number, line in enumerate(ignore.read_text().splitlines(), 1):
+            if line.strip() and not line.lstrip().startswith("#"):
+                if explain_ignore:
+                    raise ValueError(f".forceignore:{number}: active rule {line.strip()[:120]!r}; "
+                                     "comment out active rules to deploy the full force-app package")
+                return None
+    return root
 
 
 def find_real_sf(name: str = "sf") -> str | None:
@@ -898,21 +915,22 @@ def parse_fixed(args: list[str]) -> tuple[str, str, bool, str, list[str], bool]:
     return org, prefix, deny_all, name, argv, permission_sets
 
 
-def child_env(org: str, environ: dict | None = None) -> dict:
+def child_env(org: str | None, environ: dict | None = None) -> dict:
     """The real sf's environment: the caller's, with every default-org variable removed and SF_TARGET_ORG set to the case's org. The
     CLI falls back to that variable when no --target-org reaches it, so a pin the guard read but the CLI did not selects the case's
     org, never the owner's default."""
     env = {key: value for key, value in (os.environ if environ is None else environ).items() if not DEFAULT_ORG_ENV_RE.fullmatch(key)}
-    env["SF_TARGET_ORG"] = org
+    if org is not None:
+        env["SF_TARGET_ORG"] = org
     return env
 
 
-def run_real(real: str, argv: list[str], state: dict, env: dict | None = None) -> tuple[str, str, int]:
+def run_real(real: str, argv: list[str], state: dict, env: dict | None = None, cwd: Path | None = None) -> tuple[str, str, int]:
     """Run the real sf (with `env`, or the caller's environment) and capture its output; (stdout, stderr, exit code). A signal seen in
     `state` ends it: SIGTERM first, SIGKILL after KILL_GRACE seconds."""
     if state["interrupted"]:
         return "", "", 143
-    proc = subprocess.Popen([real, *argv], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    proc = subprocess.Popen([real, *argv], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=cwd)
     state["proc"] = proc
     if state["interrupted"]:  # the signal came between the check and the child's start
         proc.terminate()
@@ -927,23 +945,359 @@ def run_real(real: str, argv: list[str], state: dict, env: dict | None = None) -
     return out.decode("utf-8", errors="replace"), err.decode("utf-8", errors="replace"), 143 if state["interrupted"] else code
 
 
+def write_once(path: Path, value: dict) -> None:
+    """Durably publish a new operator/guard record without overwriting earlier evidence."""
+    with path.open("xb") as handle:
+        handle.write(json.dumps(value, sort_keys=True, allow_nan=False).encode() + b"\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def hosted_product(root: Path, work: Path) -> bool:
+    """Accept the starting project or ShipLoop's default linked product checkout."""
+    if root == work:
+        return True
+    if not (root.name == "worktree" and re.fullmatch(r"work-[0-9]{8}-[0-9]{6}-[0-9a-f]{6}", root.parent.name)
+            and root.parent.parent == work.parent / ".shiploop-runs"):
+        return False
+    linked = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir"],
+                            cwd=root, capture_output=True, text=True, timeout=5, check=False)
+    return linked.returncode == 0 and linked.stdout.splitlines() == [str(root), str(work / ".git")]
+
+
+def hosted_options(rest, value_flags, switches):
+    """Parse a bounded flag subset, with no positional, greedy or repeated values."""
+    aliases = {short: long for long, short in value_flags.items() if short}
+    options = {}
+    i = 0
+    while i < len(rest):
+        token = rest[i]
+        name = token.partition("=")[0]
+        flag = aliases.get(name, name)
+        if token in switches:
+            flag, value = switches[token], True
+            i += 1
+        elif flag in value_flags:
+            width = 1 if "=" in token else 2
+            value, = flag_values(rest[i:i + width], flag, value_flags[flag])
+            if not value or value.startswith("-"):
+                raise ValueError(f"{flag} requires one explicit value")
+            i += width
+        else:
+            raise ValueError("hosted verification requires explicit scoped flags and no positional arguments")
+        if flag in options:
+            raise ValueError(f"{flag} must occur once")
+        options[flag] = value
+    return options
+
+
+def hosted_evidence(path):
+    from hosted_outcome import binding
+
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("hosted deployment evidence must be a regular file")
+    return binding.decoded(path.read_bytes())
+
+
+def hosted_submission(path, record):
+    from hosted_outcome import binding
+
+    key = path.stem
+    intent_path = path.with_suffix(".intent")
+    if intent_path.is_symlink() or not intent_path.is_file():
+        raise ValueError("hosted submission lacks its deployment intent")
+    raw = intent_path.read_bytes()
+    members, approval_sha256 = binding.approval(path.with_suffix(".approved"), key, raw, record)
+    submission = hosted_evidence(path)
+    if submission["intent_sha256"] != key or submission["approval_sha256"] != approval_sha256:
+        raise ValueError("hosted submission approval linkage differs")
+    return binding.decoded(raw), members
+
+
+def hosted_test(state, rest, record):
+    from hosted_outcome import binding
+
+    options = hosted_options(
+        rest, {"--class-names": "-n", "--target-org": "-o", "--test-level": "-l", "--result-format": "-r"},
+        {"--synchronous": "--synchronous", "-y": "--synchronous", "--json": "--json"})
+    class_name = options.get("--class-names")
+    if (options.get("--target-org") != record["target"]["selector"] or not options.get("--synchronous")
+            or options.get("--test-level", "RunSpecifiedTests") != "RunSpecifiedTests"
+            or not binding.match(re.escape(record["namespace"]) + r"[A-Za-z0-9_]*", class_name)):
+        raise ValueError("hosted Apex tests require one named current-namespace class, --synchronous and the pinned target")
+
+    submissions = list(state.glob("*.submitted"))
+    returns = {path: hosted_evidence(path.with_suffix(".returned")) for path in submissions}
+    if not returns or any(row.get("terminal") is not True for row in returns.values()):
+        raise ValueError("hosted Apex tests require a completed deployment and no unresolved submissions")
+    latest = max(returns, key=lambda path: hosted_evidence(path)["submitted_at"])
+    intent, members = hosted_submission(latest, record)
+    if (class_name not in members.get("ApexClass", ()) or
+            class_name not in returns[latest].get("deployed_apex_classes", ())):
+        raise ValueError("hosted Apex test class is missing from the current approved successful deployment")
+    root = Path.cwd().resolve(strict=True)
+    project = root / "sfdx-project.json"
+    if (str(root) != intent["root"] or project.is_symlink()
+            or binding.sha(project.read_bytes()) != intent["project_sha256"]
+            or force_app_sha256(root) != intent["force_app_sha256"]):
+        raise ValueError("hosted Apex tests require the current approved DX workspace and deployed source")
+
+
+def hosted_report(state, rest, record):
+    from hosted_outcome import binding
+
+    options = hosted_options(rest, {"--job-id": "-i", "--target-org": "-o"}, {"--json": "--json"})
+    job_id = options.get("--job-id")
+    if options.get("--target-org") != record["target"]["selector"] or not binding.sf_id(job_id, "0Af"):
+        raise ValueError("hosted deployment reports require a checksum-valid --job-id and the pinned target")
+    for path in state.glob("*.submitted"):
+        returned = path.with_suffix(".returned")
+        remote_id = hosted_evidence(returned).get("remote_id") if returned.exists() else None
+        if remote_id is None:
+            reconciliation = path.with_suffix(".reconciled")
+            if not reconciliation.exists():
+                continue
+            receipt = hosted_evidence(reconciliation)
+            remote_id = receipt.get("remote_id")
+            if not (remote_id in (job_id, job_id[:15]) and hosted_reconciliation(receipt, path, record)):
+                continue
+        if remote_id in (job_id, job_id[:15]):
+            hosted_submission(path, record)
+            # The CLI prefers a cached target over its explicit --target-org.
+            cache = Path.home() / ".sf" / "deploy-cache.json"
+            if cache.exists():
+                cached_target = binding.decoded(cache.read_bytes()).get(job_id, {}).get("target-org")
+                target = record["target"]
+                if cached_target not in (None, target["username"]):
+                    raise ValueError("hosted deployment report cache points to a different Salesforce target")
+            return
+    raise ValueError("deployment job ID is not recorded by this hosted attempt")
+
+
+def hosted_reconciliation(receipt, path, record):
+    from hosted_outcome import attempt, binding
+
+    if (not attempt.verified(receipt, record, "reconciliation") or receipt.get("intent_sha256") != path.stem
+            or receipt.get("disposition") != "REMOTE_ID"):
+        return False
+    ref = receipt["evidence"]
+    evidence = binding.absolute(ref["path"])
+    if (evidence == path.parent / "observations.json" or evidence.is_relative_to(Path(record["output"]))
+            or not evidence.is_file()):
+        return False
+    raw = evidence.read_bytes()
+    return bool(raw) and binding.sha(raw) == ref["sha256"]
+
+
+def hosted_xml(path, kind):
+    """Read schema metadata that can contribute members inside an XML file."""
+    with path.open("rb") as stream:
+        raw = stream.read(MANIFEST_LIMIT + 1).decode("utf-8")
+    if len(raw) > MANIFEST_LIMIT or DECLARATION_RE.search(raw):
+        raise ValueError("unsupported XML in hosted deployment metadata member map")
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError:
+        raise ValueError("invalid XML in hosted deployment metadata member map") from None
+    if root.tag not in (kind, f"{{http://soap.sforce.com/2006/04/metadata}}{kind}"):
+        raise ValueError("unexpected XML type in hosted deployment metadata member map")
+    return root
+
+
+def hosted_payload_members(snapshot, prefix):
+    """Enumerate supported components from the exact DX snapshot passed to sf."""
+    package = snapshot / "force-app"
+    kinds = flat_types(permission_sets=True)
+    flat = {folder: (kind, suffixes) for kind, (folder, suffixes) in kinds.items()}
+    members = {}
+    for path in package.rglob("*"):
+        if path.is_dir() or path.name == PLACEHOLDER:
+            continue
+        parts = path.relative_to(package).parts
+        if not in_scope(parts, prefix, lwc_prefix(prefix), kinds, custom_objects=True):
+            raise ValueError("unsupported file in hosted deployment metadata member map")
+        dirs, name = parts[:-1], parts[-1]
+        if "lwc" in dirs:
+            tail = parts[parts.index("lwc") + 1:]
+            if len(tail) == 1 and name in LWC_CONFIG_FILES:
+                continue
+            if len(tail) < 2 or dirs.count("lwc") != 1:
+                raise ValueError("invalid bundle path in hosted deployment metadata member map")
+            kind, member = BUNDLE_TYPE, tail[0]
+        elif "objects" in dirs:
+            kind, member = hosted_object_member(path, parts[parts.index("objects") + 1])
+        else:
+            kind, suffixes = flat[dirs[-1]]
+            suffix = next(suffix for suffix in suffixes if name.endswith(suffix))
+            member = name.removesuffix(suffix)
+            if kind == "ApexClass" and not all((path.parent / f"{member}{end}").is_file() for end in suffixes):
+                raise ValueError("Apex class and descriptor must both be in the hosted deployment metadata member map")
+        members.setdefault(kind, set()).add(member)
+    return members
+
+
+def hosted_object_member(path, object_name):
+    if path.name.endswith(".object-meta.xml"):
+        obj = hosted_xml(path, CUSTOM_OBJECT_TYPE)
+        if any(child.tag.rsplit("}", 1)[-1] in OBJECT_CHILDREN for child in obj):
+            raise ValueError("hosted metadata member map requires decomposed object children")
+        return CUSTOM_OBJECT_TYPE, object_name
+    field = path.name.removesuffix(".field-meta.xml")
+    declared = [child.text for child in hosted_xml(path, CUSTOM_FIELD_TYPE)
+                if child.tag.rsplit("}", 1)[-1] == "fullName"]
+    if declared != [field]:
+        raise ValueError("custom field name differs from the hosted deployment metadata member map")
+    return CUSTOM_FIELD_TYPE, f"{object_name}.{field}"
+
+
+def canonical_hosted_target(argv, rest, selector, username, flag, short=None):
+    """Replace one explicit selector. A missing selector uses the canonical environment."""
+    booleans = BOOLEAN_SHORTS if short else ""
+    values = flag_values(rest, flag, short, booleans)
+    if short and has_flag(rest, "--o"):
+        raise ValueError("use --target-org or -o for a hosted Salesforce target")
+    if not values:
+        return argv, None
+    if values != [selector]:
+        raise ValueError(f"{flag} must occur once with the leased selector")
+    for i, token in enumerate(rest, start=len(argv) - len(rest)):
+        if not flag_values([token], flag, short, booleans):
+            continue
+        if token != peel(token, booleans):
+            raise ValueError(f"pass {flag} separately from other short flags")
+        width = 2 if token in (flag, short) else 1
+        return [*argv[:i], flag, username, *argv[i + width:]], values[0]
+    raise ValueError(f"could not locate {flag} for canonical forwarding")
+
+
+def hosted_forward(state: Path, argv: list[str], org: str, record: dict) -> tuple[Path, Path] | None:
+    """Check the active attempt before forwarding a guarded hosted CLI command."""
+    from hosted_outcome import attempt, binding
+
+    if org != record["target"]["selector"]:
+        raise ValueError("hosted Salesforce selector differs from the leased target")
+    words, rest = command_words(argv)
+    if words == ("org", "list"):
+        # Even --skip-connection-status can query Dev Hubs for scratch orgs.
+        raise ValueError("org list can contact multiple Salesforce identities and cannot be pinned")
+    if words == ("apex", "run", "test"):
+        hosted_test(state, rest, record)
+        attempt.assert_open(state)
+        return None
+    if words == ("project", "deploy", "report"):
+        hosted_report(state, rest, record)
+        attempt.assert_open(state)
+        return None
+    if words[:2] in (("apex", "run"), ("org", "assign")) or words[:2] == ("project", "retrieve"):
+        raise ValueError("the hosted operator handles anonymous Apex, app access and metadata retrieval")
+    if words[:2] != ("project", "deploy"):
+        return None
+    if argv != ["project", "deploy", "start", "--source-dir", "force-app", "--target-org", org, "--json"]:
+        raise ValueError(f"use sf project deploy start --source-dir force-app --target-org {org} --json for hosted deployment")
+    root = Path.cwd().resolve(strict=True)
+    work = Path(record["output"]) / "work"
+    if not hosted_product(root, work) or deploy_source_root(argv, explain_ignore=True) != root:
+        raise ValueError("deploy from the owned DX product workspace using its full force-app package")
+    config = root / "sfdx-project.json"
+    if config.is_symlink():
+        raise ValueError("the DX project config must be a regular product file")
+    raw = config.read_bytes()
+    project = binding.decoded(raw)
+    folders = project.get("packageDirectories")
+    if (set(project) - {"packageDirectories", "namespace", "sourceApiVersion", "sfdcLoginUrl", "name"}
+            or project.get("namespace", "") != "" or not isinstance(folders, list) or len(folders) != 1
+            or set(folders[0]) - {"path", "default"} or folders[0].get("path") != "force-app"):
+        raise ValueError("the DX project must declare only force-app, without registry overrides or replacements")
+    intent = {"binding_sha256": record["binding_sha256"], "target": record["target"], "root": str(root),
+              "argv": argv, "force_app_sha256": force_app_sha256(root),
+              "project_sha256": hashlib.sha256(raw).hexdigest()}
+    request = json.dumps(intent, sort_keys=True, allow_nan=False).encode() + b"\n"
+    key = hashlib.sha256(request).hexdigest()
+    try:
+        write_once(state / f"{key}.intent", intent)
+    except FileExistsError:
+        if (state / f"{key}.intent").read_bytes() != request:
+            raise ValueError("inconsistent deployment intent") from None
+    approval = state / f"{key}.approved"
+    if not approval.exists():
+        raise ValueError(f"awaiting operator inspection of source and grants for deployment {key}; retry once approved")
+    submitted = state / f"{key}.submitted"
+    if submitted.exists():
+        raise ValueError(f"deployment {key} was already forwarded or interrupted; operator reconciliation required")
+    snapshot = Path(tempfile.mkdtemp(prefix=f"{key}.payload-", dir=state))
+    shutil.copytree(root / "force-app", snapshot / "force-app", symlinks=True)
+    (snapshot / "sfdx-project.json").write_bytes(raw)
+    if force_app_sha256(snapshot) != intent["force_app_sha256"]:
+        raise ValueError("source changed while copying the approved deployment payload")
+    try:
+        members = hosted_payload_members(snapshot, record["namespace"])
+        _, approval_sha256 = binding.approval(approval, key, request, record, payload_members=members)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ValueError(f"invalid operator approval for deployment {key}: {exc}") from None
+    attempt.assert_open(state)
+    try:
+        write_once(submitted, {"intent_sha256": key, "approval_sha256": approval_sha256,
+                               "submitted_at": time.time(), "payload": str(snapshot),
+                               "forward_target": {"requested": org, "effective": record["target"]["username"]}})
+    except FileExistsError:
+        raise ValueError(f"deployment {key} was already forwarded or interrupted; operator reconciliation required") from None
+    return submitted, snapshot
+
+
+def hosted_deploy_result(submitted: Path, stdout: str, code: int, interrupted: bool) -> None:
+    from hosted_outcome import binding
+
+    remote_id = None
+    terminal = False
+    deployed_apex_classes = []
+    try:
+        payload = json.loads(stdout)
+        for field in ("result", "data"):
+            result = payload.get(field) or {}
+            value = result.get("id")
+            if isinstance(value, str) and re.fullmatch(r"0Af[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?", value):
+                remote_id = value
+                terminal = (result.get("done") is True and not interrupted
+                            and (len(value) == 15 or binding.sf_id(value, "0Af")))
+                if terminal and code == 0 and result.get("status") == "Succeeded" and result.get("success") is True:
+                    parts = (result.get("details") or {}).get("componentSuccesses") or []
+                    if isinstance(parts, dict):
+                        parts = [parts]
+                    deployed_apex_classes = sorted({part["fullName"] for part in parts if isinstance(part, dict)
+                                                    and part.get("componentType") == "ApexClass"
+                                                    and isinstance(part.get("fullName"), str)
+                                                    and part.get("success") is True and part.get("deleted") is not True})
+                break
+    except (ValueError, AttributeError, TypeError):
+        pass
+    write_once(submitted.with_suffix(".returned"), {"remote_id": remote_id, "exit": code, "interrupted": interrupted,
+                                                    "terminal": terminal, "deployed_apex_classes": deployed_apex_classes})
+
+
 def main(args: list[str]) -> int:
     org, prefix, deny_all, name, argv, permission_sets, custom_objects = parse_fixed_options(args)
     if not org:
         print(denied_line(name, "the wrapper was built without --org"), file=sys.stderr)
         return 2
     call = os.urandom(4).hex()
+    hosted_state = os.environ.get("HOSTED_SF_GATE")
     if deny_all:
         allowed, reason = False, f"`{name}` is not available in this run; use `sf` with --target-org {org}"
     else:
         try:
-            allowed, reason = decide(argv, org, prefix=prefix, permission_sets=permission_sets, custom_objects=custom_objects)
+            allowed, reason = decide(argv, org, prefix=prefix, permission_sets=permission_sets, custom_objects=custom_objects,
+                                     hosted=bool(hosted_state))
         except Exception as exc:  # a crash is a refusal with a decision line, never a traceback and an unlogged call
             allowed, reason = False, f"the guard could not judge this call ({type(exc).__name__})"
     if not allowed:
         logged = log_decision(call, argv, org, prefix, False, reason, name)
         print(denied_line(name, reason[:REASON_LIMIT]) + ("" if logged else " (and the call could not be logged)"), file=sys.stderr)
-        print(scope_line(name, org, prefix, reason, permission_sets, custom_objects), file=sys.stderr)
+        print(scope_line(name, org, prefix, reason, permission_sets, custom_objects, hosted=bool(hosted_state)), file=sys.stderr)
         return 2
     state: dict = {"proc": None, "interrupted": False, "at": 0.0}
 
@@ -958,7 +1312,7 @@ def main(args: list[str]) -> int:
     if not log_decision(call, argv, org, prefix, True, reason):
         print(denied_line(name, "the call could not be logged (E2E_PLATFORM_DIR is unset or not writable)"), file=sys.stderr)
         return 2
-    real = find_real_sf()
+    real = os.environ.get("HOSTED_SF_BIN") if hosted_state else find_real_sf()
     if real is None:
         log_end(call, 127, "no real sf on PATH", False)
         print(f"{name}: no real `sf` found on PATH outside this run's guard", file=sys.stderr)
@@ -971,12 +1325,53 @@ def main(args: list[str]) -> int:
                 before_sha256 = force_app_sha256(root)
         except (OSError, ValueError, RuntimeError):
             pass  # incomplete evidence must never affect the authorized command
-    try:
-        out, err, code = run_real(real, argv, state, child_env(org))
-    except OSError as exc:
-        log_end(call, 126, str(exc), False)
-        print(f"{name}: the real `sf` could not be started: {scrub(str(exc))}", file=sys.stderr)
-        return 126
+    deployment = None
+    forwarded, effective = argv, None if hosted_state else org
+    if hosted_state and reason in {"help", "help for a group of allowed commands"}:
+        # Forward only the command and help flag, even if --help was supplied as another flag's value.
+        _, rest = command_words(argv)
+        forwarded = [*argv[:len(argv) - len(rest)], "--help"]
+    with ExitStack() as gate:
+        if hosted_state and reason == "allowed":
+            # The installed wrapper invokes this file directly from checks/.
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+            from hosted_outcome import attempt, binding
+            from listeners import Unobserved
+
+            try:
+                words, rest = command_words(argv)
+                exclusive = words in (("project", "deploy", "start"), ("apex", "run", "test"))
+                gate.enter_context(binding.build_lock(Path(hosted_state), exclusive=exclusive))
+                record = attempt.assert_open(Path(hosted_state))
+                effective = record["target"]["username"]
+                requested = None
+                from_org = has_flag(rest, "--from-org")
+                pinned = words in pinned_commands(permission_sets)
+                if from_org and words != ("project", "generate", "manifest"):
+                    raise ValueError("--from-org is only accepted for hosted manifest generation")
+                if pinned or from_org:
+                    flag, short = ("--from-org", None) if from_org else ("--target-org", "-o")
+                    forwarded, requested = canonical_hosted_target(argv, rest, org, effective, flag, short)
+                deployment = hosted_forward(Path(hosted_state), argv, org, record)
+                if pinned or from_org:
+                    target = {"requested": scrub(requested) if requested is not None else None, "effective": scrub(effective)}
+                    if not write_log({"call": call, "forward_target": target}):
+                        raise ValueError("hosted Salesforce forwarding target could not be logged")
+            except (OSError, ValueError, TypeError, KeyError, AttributeError, RuntimeError, Unobserved,
+                    subprocess.TimeoutExpired) as exc:
+                refusal = scrub(str(exc))
+                log_end(call, 2, refusal, False)
+                print(denied_line(name, refusal), file=sys.stderr)
+                return 2
+        try:
+            run_options = {"cwd": deployment[1]} if deployment is not None else {}
+            out, err, code = run_real(real, forwarded, state, child_env(effective), **run_options)
+        except OSError as exc:
+            log_end(call, 126, str(exc), False)
+            print(f"{name}: the real `sf` could not be started: {scrub(str(exc))}", file=sys.stderr)
+            return 126
+        if deployment is not None:
+            hosted_deploy_result(deployment[0], out, code, state["interrupted"])
     for number in SIGNALS:  # the child is gone: a later signal ends this process instead of being swallowed while the output is written
         signal.signal(number, signal.SIG_DFL)
     source_binding = None
@@ -995,7 +1390,8 @@ def main(args: list[str]) -> int:
     sys.stdout.flush()
     sys.stderr.write(scrub(err))
     if reason in HELP_REASONS or argv[:1] in (["--help"], ["-h"], ["help"]):
-        sys.stderr.write(scope_line(name, org, prefix, permission_sets=permission_sets, custom_objects=custom_objects) + "\n")
+        sys.stderr.write(scope_line(name, org, prefix, permission_sets=permission_sets, custom_objects=custom_objects,
+                                    hosted=bool(hosted_state)) + "\n")
     sys.stderr.flush()
     return code
 

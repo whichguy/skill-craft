@@ -30,6 +30,7 @@ never chosen again; nothing else sets it.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import os
 from pathlib import Path
 import re
@@ -90,12 +91,27 @@ class Problem(NamedTuple):
 
 
 def port_taken(stderr: Path, port: int) -> bool:
-    """Whether the candidate's own stderr says its own port was taken: EADDRINUSE naming that port, not another one."""
+    """Recognize one Node listen collision whose reported TCP endpoint uses the assigned port."""
     try:
         text = stderr.read_text(errors="replace")
     except OSError:
         return False
-    return "EADDRINUSE" in text and re.search(rf"[:\s]{port}\b", text) is not None
+    # Count Node error headers as well as bare listen/bind diagnostics. Stack
+    # metadata cannot supply a missing endpoint or resolve mixed startup errors.
+    errors = re.findall(
+        r"^[ \t]*((?:[\w.$]*Error(?: \[[A-Z][A-Z0-9_]*\])?:|(?:listen|bind) [A-Z][A-Z0-9_]*\b).*)$",
+        text, re.MULTILINE,
+    )
+    if len(errors) != 1:
+        return False
+    endpoint = re.fullmatch(r"listen EADDRINUSE: address already in use (\S+):([0-9]+)", errors[0].removeprefix("Error: "))
+    if endpoint is None or endpoint[2] != str(port):
+        return False
+    try:
+        ipaddress.ip_address(endpoint[1])
+    except ValueError:
+        return False
+    return True
 
 
 def candidate_problem(proc: subprocess.Popen, port: int, stderr: Path) -> Problem | None:
