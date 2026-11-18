@@ -353,6 +353,7 @@ def main(argv: list[str] | None = None) -> int:
         import cycle
         return cycle.loop(args)
 
+    runner.require_case_readiness(args.case, runner.catalog().get(args.case, {}))
     name = f"auto-shiploop-e2e-{secrets.token_hex(3)}"
     out = (args.output or Path(tempfile.gettempdir()) / "shiploop-e2e" / name).resolve()
     if out == ROOT or ROOT in out.parents:

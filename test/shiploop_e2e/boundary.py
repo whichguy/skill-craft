@@ -2,7 +2,7 @@
 and which files are held out from every model.
 
 * ``fingerprint`` digests what grades a run: the harness's code (``evaluator``), its checks and fixtures (``oracle``) and the case's
-  catalog entry (``case``). ``run.py`` records it in result.json as ``boundary`` each time it grades, a regrade included; the
+  catalog entry and any referenced prompt and readiness bytes (``case``). ``run.py`` records it in result.json as ``boundary`` each time it grades, a regrade included; the
   candidate's digest is the plugin tree the host loaded (``versions.plugin_sha256``). ``promotion.py`` compares a case only
   across attempts with equal digests, so a harness or oracle change is an experiment of its own.
 * ``candidate_path`` is what the improver of ``iterate.py`` may change: the skill, its notes and ShipLoop's own tests, never
@@ -22,6 +22,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -39,6 +40,11 @@ CANDIDATE_PREFIXES = ("skills/shiploop/", "changes/shiploop/", "test/shiploop-",
 HARNESS_PREFIXES = ("test/shiploop_e2e/", "test/shiploop-e2e")
 GROUPS = ("evaluator", "oracle", "case")  # the digests a candidate must leave unchanged
 QUALIFICATION_CONTRACT = "qualification-inputs/1"
+
+
+def qualification_eligible(case: dict) -> bool:
+    """A case must omit discovery_only or set it to the JSON boolean false."""
+    return case.get("discovery_only", False) is False
 
 
 def candidate_path(path: str) -> bool:
@@ -87,13 +93,90 @@ def _canonical(value) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
 
 
+def source_file(harness: Path, relative: str | None) -> Path:
+    """Resolve a catalog input file inside the harness source, including through symlinks."""
+    if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
+        raise ValueError("expected a relative path inside the harness source tree")
+    try:
+        root = harness.resolve()
+        path = (root / relative).resolve()
+        if not path.is_relative_to(root):
+            raise ValueError(f"{relative!r} escapes the harness source tree")
+        if not path.is_file():
+            raise ValueError(f"{relative!r} is missing or is not a file")
+    except (OSError, RuntimeError) as error:
+        raise ValueError(f"cannot resolve {relative!r}: {error}") from None
+    return path
+
+
+def prompt_file(harness: Path, case: dict) -> Path | None:
+    if "prompt_file" not in case and "prompt_sha256" not in case:
+        return None
+    return source_file(harness, case.get("prompt_file"))
+
+
+def load_case_prompt(harness: Path, case: dict) -> str:
+    """Read the inline prompt or validate and decode the exact bytes of a pinned prompt."""
+    path = prompt_file(harness, case)
+    if path is None:
+        return case["prompt"]
+    if "prompt" in case:
+        raise ValueError("prompt_file and inline prompt are mutually exclusive")
+    expected = case.get("prompt_sha256")
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        raise ValueError("prompt_file needs a full lowercase prompt_sha256")
+    data = path.read_bytes()
+    if (actual := hashlib.sha256(data).hexdigest()) != expected:
+        raise ValueError(f"prompt_sha256 mismatch (expected {expected}, found {actual})")
+    prompt = data.decode("utf-8")
+    if not prompt.strip() or "\0" in prompt:
+        raise ValueError("prompt_file must contain nonempty UTF-8 text without NULs")
+    return prompt
+
+
+def case_readiness(harness: Path, case: dict, name: str | None = None) -> tuple[Path, bytes, dict] | None:
+    """Validate the operator's launch record and return the same bytes for identity hashing."""
+    if "readiness_file" not in case:
+        return None
+
+    def unique_fields(pairs):
+        record = dict(pairs)
+        if len(record) != len(pairs):
+            raise ValueError("duplicate readiness fields")
+        return record
+
+    def bad_constant(value):
+        raise ValueError(f"invalid JSON number {value}")
+
+    relative = case["readiness_file"]
+    try:
+        path = source_file(harness, relative)
+        data = path.read_bytes()
+        record = json.loads(data.decode("utf-8"), object_pairs_hook=unique_fields, parse_constant=bad_constant)
+        scenario = record.get("scenario") if isinstance(record, dict) else None
+        if name is not None and scenario != name:
+            raise ValueError(f"readiness scenario must be exactly {name!r}")
+        if not isinstance(scenario, str) or not scenario.strip():
+            raise ValueError("readiness scenario must be a nonempty string")
+        state = record.get("live_launch")
+        if state not in ("BLOCKED", "READY"):
+            raise ValueError("live_launch must be BLOCKED or READY")
+        blockers = record.get("launch_blockers")
+        if (not isinstance(blockers, list) or any(not isinstance(line, str) or not line.strip() for line in blockers)
+                or bool(blockers) != (state == "BLOCKED")):
+            raise ValueError("launch_blockers must be a nonempty text list for BLOCKED and empty for READY")
+    except (OSError, ValueError) as error:
+        raise ValueError(f"{relative!r}: {error}") from None
+    return path, data, record
+
+
 def qualification_snapshot(harness: Path, case_names=None) -> dict:
     """Freeze the scorecard inputs and their current bytes for a strict promotion/5 registration.
 
     ``cases`` and ``suites`` are snapshots, so an old run is scored with the registered requiredness even if the live
     catalogs later change. ``files`` binds the snapshot to the evaluator, recursive checks/fixtures/evaluators, SPEC, catalogs and
-    the scorecard's source modules; a comparison recomputes this record before it can qualify anything. Paths are relative
-    to the repository root (the parent of ``test/``), not to a machine-specific checkout path.
+    registered cases' prompt and readiness files and the scorecard's source modules; a comparison recomputes this record before it can
+    qualify anything. Paths are relative to the repository root (the parent of ``test/``).
     """
     harness = Path(harness).resolve()
     repo = harness.parent.parent
@@ -114,6 +197,14 @@ def qualification_snapshot(harness: Path, case_names=None) -> dict:
     files += evaluator_files(harness)
     files += oracle_files(harness)
     files += _tree_files(harness / "evaluators")
+    readiness_bytes = {}
+    for name in names:
+        if path := prompt_file(harness, cases[name]):
+            files.append(path)
+        if readiness := case_readiness(harness, cases[name], name):
+            path, data, _ = readiness
+            readiness_bytes[path] = data
+            files.append(path)
     # These modules are read by scorecard.py for validity and metrics. They are also top-level evaluator files today;
     # spelling the dependency set out makes the frozen scorecard inputs explicit if their layout changes later.
     files += [harness / name for name in ("scorecard.py", "boundary.py", "metrics.py", "delivery.py",
@@ -122,7 +213,8 @@ def qualification_snapshot(harness: Path, case_names=None) -> dict:
     hashes = {}
     for path in files:
         try:
-            hashes[path.relative_to(repo).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+            data = readiness_bytes[path] if path in readiness_bytes else path.read_bytes()
+            hashes[path.relative_to(repo).as_posix()] = hashlib.sha256(data).hexdigest()
         except (OSError, ValueError) as error:
             raise ValueError(f"qualification input cannot be read: {path}: {error}") from None
     frozen = {"contract": QUALIFICATION_CONTRACT, "scorecard": "scorecard/6", "files": hashes,
@@ -157,8 +249,10 @@ def qualification_changes(frozen: dict, harness: Path, case_names=None) -> list[
 
 
 def fingerprint(harness: Path, case: dict | None) -> dict:
-    """``{evaluator, oracle, case}`` (12 hex each) for the harness folder `harness` and the case's catalog entry as the run
-    read it; a part that could not be made is null with its reason under ``unmeasured``. A custom prompt has no entry."""
+    """``{evaluator, oracle, case}`` (12 hex each) for the harness folder and the case's catalog entry, prompt and readiness files.
+
+    A part that could not be made is null with its reason under ``unmeasured``. A custom prompt has no entry.
+    """
     harness = Path(harness)
     found: dict = {}
     unmeasured: dict = {}
@@ -170,7 +264,15 @@ def fingerprint(harness: Path, case: dict | None) -> dict:
         if why:
             unmeasured[name] = why
     if case:
-        found["case"] = hashlib.sha256(json.dumps(case, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:12]
+        try:
+            data = json.dumps(case, sort_keys=True, separators=(",", ":")).encode()
+            if path := prompt_file(harness, case):
+                data += b"\0" + hashlib.sha256(path.read_bytes()).digest()
+            if readiness := case_readiness(harness, case):
+                data += b"\0" + hashlib.sha256(readiness[1]).digest()
+            found["case"] = hashlib.sha256(data).hexdigest()[:12]
+        except (OSError, ValueError) as error:
+            found["case"], unmeasured["case"] = None, f"case input cannot be read: {error}"
     else:
         found["case"], unmeasured["case"] = None, "a custom prompt has no catalog entry"
     return {**found, **({"unmeasured": unmeasured} if unmeasured else {})}

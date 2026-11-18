@@ -738,7 +738,18 @@ def walk(out: Path, plugin_scripts: Path | None = None, case: str = "hello") -> 
     import os
     import subprocess
 
-    root = Path(__file__).resolve().parents[2]
+    import boundary
+
+    harness = Path(__file__).resolve().parent
+    cases = json.loads((harness / "cases.json").read_text(encoding="utf-8"))
+    if case not in cases:
+        raise SystemExit(f"walk: no case {case!r} in cases.json (cases: {', '.join(sorted(cases))})")
+    try:
+        prompt = boundary.load_case_prompt(harness, cases[case])
+    except (OSError, ValueError) as error:
+        raise SystemExit(f"walk: case {case!r} prompt refused: {error}") from None
+
+    root = harness.parents[1]
     scripts = plugin_scripts or root / "skills" / "shiploop" / "scripts"
     card = root / "skills" / "improve" / "SKILL.md"
     out.mkdir(parents=True, exist_ok=True)
@@ -751,10 +762,6 @@ def walk(out: Path, plugin_scripts: Path | None = None, case: str = "hello") -> 
         subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True, env=env)
     cli = scripts / "shiploop"
     workspace = out / ".shiploop-runs" / "walk"
-    cases = json.loads((Path(__file__).resolve().parent / "cases.json").read_text(encoding="utf-8"))
-    if case not in cases:
-        raise SystemExit(f"walk: no case {case!r} in cases.json (cases: {', '.join(sorted(cases))})")
-    prompt = cases[case]["prompt"]
     started = subprocess.run([sys.executable, str(cli), "workspace", "start", f"--repo={work}", f"--workspace-root={workspace}",
                               "--delegation=inline", f"--prompt={prompt}"], capture_output=True, text=True, env=env)
     if started.returncode:

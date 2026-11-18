@@ -27,6 +27,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1342,9 +1343,13 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
         (neighbour / "timeline.jsonl").write_text(
             "".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in enumerate((now - 60, now + 600))))
         (neighbour / "invocation.json").write_text(json.dumps({"case": "other", "host": "codex", "versions": {}}))
-        code, result, printed = self.invoke_printed("grok", "done")
+        clock = SimpleNamespace(time=lambda: now, monotonic=time.monotonic, sleep=time.sleep, strftime=time.strftime)
+        with mock.patch.object(run, "time", clock):
+            code, result, printed = self.invoke_printed("grok", "done")
         self.assertEqual(code, 0, result)
-        (entry,) = result["environment"]["overlap"]["runs"]
+        overlap = result["environment"]["overlap"]
+        self.assertEqual(overlap["span"], {"first": round(now, 3), "last": round(now, 3)})
+        (entry,) = overlap["runs"]
         self.assertEqual((entry["folder"], entry["case"], entry["hosts"]), ("neighbour", "other", ["codex"]))
         self.assertLess(entry["started_offset_seconds"], 0, "it was already running when this run began")
         self.assertEqual(entry["overlapped_seconds"], 0.0, "a fake host's events all arrive in one instant, inside the neighbour's span")

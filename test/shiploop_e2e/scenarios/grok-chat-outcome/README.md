@@ -1,6 +1,8 @@
 # Grok chat outcome scenario — operator preparation
 
-`grok-chat-outcome` is a new scenario directory, not a registered catalog case or selectable invocation. This packet is preparation only: preparation **PREPARED**, live launch **BLOCKED**, evaluator **UNQUALIFIED**, product acceptance **NOT_RUN**. Offline prompt review, JSON parsing and local-link checks establish preparation only. No application or live test is requested here.
+`grok-chat-outcome` is registered as an opt-in discovery case. The catalog pins the exact UTF-8 builder prompt, including its Codex skill invocation. Preparation is **PREPARED**, live launch is **BLOCKED**, the evaluator is **UNQUALIFIED**, and product acceptance is **NOT_RUN**.
+
+From the repository root, `python3 -B test/shiploop_e2e/run.py --case grok-chat-outcome --preflight-only` reports the launch blockers and exits before setting up a host or touching the target.
 
 ## Keep the delivery boundary narrow
 
@@ -11,9 +13,9 @@
 | This README, `OUTCOME_REVIEW.md`, `READINESS.json` | Operator evidence and gates only; do not send to the builder. |
 | Historical fixed contracts and checks | Retained history; do not seed them into builder inputs or helper tools. |
 
-The next future case must use the new exact frozen literal brief plus the resolved minimal binding, through the actually installed ShipLoop. Resolve and record that installation's current identity. Future launch controls must actually select Sol 6.1/medium for builder and tests, and a fresh Astra/high reviewer. These are future controls, not current model claims or changed defaults.
+A future hosted attempt must use the frozen brief and minimal resolved binding through the installed ShipLoop. Record the install identity. Before each fresh launch, resolve the latest available SOL and Astra releases from the current official catalog. Record the exact model IDs and the actual parent and default-child launch controls. Use SOL at medium effort for builder and test sessions and Astra at high effort for independent review. `gpt-6.2-sol` and `gpt-6.2-astra` are observed examples. Preserve the recorded identities of prior and frozen runs.
 
-Current [run.py — load_case and seed_home](../../run.py) selects case prompts and checks from the catalog backed by `cases.json`, and also writes case checks into `environment.md` under Commands when seeding the knowledge home. This directory is not loaded automatically. Historical full and exploratory catalog entries and the async packet remain unchanged. Runnable integration is future separate work; this rewrite does not update an existing invocation or create a selectable ID.
+The catalog entry contains zero fixed checks and provides no platform wrappers or helper tools. It is outside the live suites and closed-loop allowlist. Its `discovery_only` marker excludes it from strict `promotion/5` registration. The runner refuses seed shortcuts and planning-review injection for pre-invoked prompts. Hosted lifecycle, authority binding and independent observation still need integration. [Case catalog](../../cases.json) · [Runner](../../run.py)
 
 ## Resolve authority before any builder launch
 
@@ -25,6 +27,6 @@ Resolve the current provider's nonsecret reference, endpoint and model; operator
 
 ## Preserve evidence boundaries
 
-Before launch inspect the entire builder-visible input, including seeded files and helper tools, for inherited fixed checks, labels or schemas. Use `OUTCOME_REVIEW.md` independently after construction. Do not inherit preparation verdicts, rendered-document claims or acceptance from older packets.
+The runner treats `READY` with an empty blocker list as a trusted operator assertion. The operator owns verification of those prerequisites. Before launch inspect the entire builder-visible input for inherited fixed checks, labels or schemas, including seeded files, helper tools and the effective host environment. Codex can inherit `PATH` and `E2E_*` from its parent. Use `OUTCOME_REVIEW.md` independently after construction. Do not inherit preparation verdicts, rendered-document claims or acceptance from older packets.
 
 The full messages of `fc4ac19952cfc73c5361378a8dd5bee97b36137b`, `cf211dab4409e0452235138a6b72dce6ac07655d` and `f87061c07caa5901e0c35244dce62d52a83dfcf0` informed the preparation/live distinction, independent observation and owned lifecycle gates. Their implementation contracts are not builder requirements here. At initial packet commit `71fa298e44db73f6afa46217377ba0ea850de916`, the prompt was rendered and inspected at desktop width, and the outcome review at a 390px document width. The subsequent owner-directed Grok Bot reference clarification was checked as source against official material; those earlier renders and independent review do not cover the revised bytes. This README was checked as source; none of these checks renders or accepts an application.

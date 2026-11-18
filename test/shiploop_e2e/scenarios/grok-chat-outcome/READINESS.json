@@ -1,7 +1,7 @@
 {
   "scenario": "grok-chat-outcome",
-  "registered": false,
-  "selectable": false,
+  "registered": true,
+  "selectable": true,
   "packaged": false,
   "preparation": "PREPARED",
   "preparation_review": "Initial packet independently reviewed at commit 71fa298e44db73f6afa46217377ba0ea850de916. Subsequent owner-directed Grok Bot behavior, intentions and visual-reference clarification was parent-reviewed against official sources and checked for JSON, links and source hygiene; it has no renewed independent model review or application acceptance. Initial document renders apply to the initial revision only. This is not evaluator qualification.",
@@ -13,13 +13,14 @@
     "operator_only": ["README.md", "OUTCOME_REVIEW.md", "READINESS.json"],
     "excluded": "Historical fixed contracts, checks and internal implementation prescriptions"
   },
-  "integration": "Preparation only; current runner does not load this packet automatically. Runnable integration is separate future work.",
+  "integration": "Opt-in discovery case excluded from strict promotion/5 registration. The runner can inspect the pinned prompt and readiness offline. READY is a trusted operator assertion. Hosted lifecycle, authority binding and independent observation require separate integration.",
   "launch_blockers": [
     "Resolve canonical org, user, target, explicit setup/deploy/synthetic scope and existing-work conflicts without ambient defaults",
     "Establish cross-prefix owned inventory, verified startup reset including empty no-op, job/late-deploy containment and quiescence, and owned teardown",
     "Resolve installed ShipLoop identity, nonsecret provider reference/endpoint/model, operator secrets/principal grants and safe browser/auth route",
     "Establish independent read-only observation capability, deadlines and evaluator qualification",
-    "Freeze and inspect all builder-visible inputs and apply actual future Sol 6.1/medium builder/test and fresh Astra/high reviewer controls"
+    "Verify all builder-visible inputs, including inherited PATH and E2E_* in the effective launch environment",
+    "Before each fresh launch, resolve the latest available SOL and Astra releases from the current official catalog. Record exact model IDs and actual parent and default-child controls: SOL medium for builders and tests, Astra high for independent review. Preserve recorded prior and frozen run identities."
   ],
   "evidence": "No application launch or results; no borrowed historical acceptance, preparation verdict or render evidence"
 }

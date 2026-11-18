@@ -184,6 +184,8 @@ def _strict_registration(raw: dict, data: bytes) -> dict:
     for case, frozen_case in snapshot_cases.items():
         if not isinstance(frozen_case, dict):
             raise SystemExit(f"promotion/5 frozen case {case!r} is malformed")
+        if not boundary.qualification_eligible(frozen_case):
+            raise SystemExit(f"promotion/5 frozen case {case!r} is discovery-only or has an invalid discovery_only marker")
         if scorecard.requires_acceptance(case, frozen_case) is None:
             raise SystemExit(f"promotion/5 frozen case {case!r} has unknown acceptance requiredness")
     arms = reg["arms"]

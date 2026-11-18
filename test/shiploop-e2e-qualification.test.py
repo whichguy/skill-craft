@@ -1,8 +1,11 @@
-"""No-model qualification tests for the strict promotion/5 contract."""
+"""Model-free tests for promotion/5 and the harness inputs it freezes."""
 
 from __future__ import annotations
 
+import contextlib
 import copy
+import hashlib
+import io
 import json
 import math
 import os
@@ -18,7 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 HARNESS = ROOT / "test" / "shiploop_e2e"
 sys.path.insert(0, str(HARNESS))
 import boundary
+import cycle
+import hosts
+import iterate
+import learning_records
+import packet_anatomy
 import promotion
+import run
 import scorecard
 import spread
 
@@ -31,8 +40,8 @@ class QualificationTest(unittest.TestCase):
         self.runs.mkdir()
         self.next_start = 5000
 
-    def registration(self, roles=None, *, purpose="product_change", same_build=False, efficiency=None,
-                     budget=None, hard_floors=None, registered_at=1000, raw_changes=None):
+    def registration_payload(self, roles=None, *, purpose="product_change", same_build=False, efficiency=None,
+                             budget=None, hard_floors=None, registered_at=1000, raw_changes=None):
         roles = roles or {"hello": "capability"}
         cases = {case: {"role": role, "attempts": 1} for case, role in roles.items()}
         snapshot = boundary.qualification_snapshot(HARNESS, cases)
@@ -55,10 +64,20 @@ class QualificationTest(unittest.TestCase):
             reg["efficiency"] = efficiency
         if raw_changes:
             reg.update(raw_changes)
+        return reg
+
+    def registration(self, *args, **kwargs):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "registration.json"
-            path.write_text(json.dumps(reg))
+            path.write_text(json.dumps(self.registration_payload(*args, **kwargs)))
             return promotion.load_registration(path)
+
+    def test_discovery_case_is_refused_by_strict_registration(self):
+        name = "grok-chat-outcome"
+        reg = self.registration_payload({name: "capability"})
+        self.assertIs(scorecard.requires_acceptance(name, reg["qualification"]["cases"][name]), False)
+        with self.assertRaisesRegex(SystemExit, "grok-chat-outcome.*discovery-only"):
+            promotion._strict_registration(reg, json.dumps(reg).encode())
 
     def card(self, reg, arm, case, *, passed=True, start=None, no_start=False, attempt_id=None, run=None, build=None,
              tokens=100, minutes=10, cost=1.0, fidelity=None, correctness=True,
@@ -467,6 +486,373 @@ class QualificationTest(unittest.TestCase):
                 path.write_text(json.dumps(bad))
                 with self.assertRaises(SystemExit):
                     promotion.load_registration(path)
+
+
+class FileBackedCaseTest(unittest.TestCase):
+    NAME = "grok-chat-outcome"
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.harness = self.root / "test" / "shiploop_e2e"
+        self.harness.mkdir(parents=True)
+        self.cases = json.loads(run.CASES.read_text())
+        self.case = self.cases[self.NAME]
+        self.prompt = self.harness / self.case["prompt_file"]
+        self.readiness = self.harness / self.case["readiness_file"]
+        self.prompt.parent.mkdir(parents=True)
+        for path in (self.prompt, self.readiness):
+            shutil.copyfile(HARNESS / path.relative_to(self.harness), path)
+        self.baseline = self.root / "baseline.jsonl"
+        self.baseline.write_bytes(b"prior baseline\n")
+        self.out = self.root / "output"
+        for patch in (mock.patch.object(run, "HERE", self.harness),
+                      mock.patch.object(run, "CASES", self.harness / "cases.json")):
+            patch.start()
+            self.addCleanup(patch.stop)
+        self.write_catalog()
+
+    def write_catalog(self):
+        run.CASES.write_text(json.dumps(self.cases))
+
+    def write_prompt(self, data):
+        self.prompt.write_bytes(data)
+        self.case["prompt_sha256"] = hashlib.sha256(data).hexdigest()
+        self.write_catalog()
+
+    def args(self, *extra):
+        return ["--case", self.NAME, "--host", "codex", "--quiet", "--output", str(self.out),
+                "--baseline", str(self.baseline), *extra]
+
+    def load(self, *extra):
+        return run.load_case(run.parser().parse_args(self.args(*extra)))
+
+    def assert_refused(self, reason, *argv):
+        effects = ("new_output_dir", "take_leases", "the_host", "marketplace_preflight", "platform_preflight", "launch")
+        with contextlib.ExitStack() as stack:
+            for name in effects:
+                stack.enter_context(mock.patch.object(run, name, side_effect=AssertionError(f"unexpected {name}")))
+            with self.assertRaisesRegex(SystemExit, reason) as error:
+                run.main(list(argv) if argv else self.args())
+        self.assertFalse(self.out.exists())
+        self.assertEqual(self.baseline.read_bytes(), b"prior baseline\n")
+        return str(error.exception)
+
+    def test_registered_discovery_is_inspectable_and_outside_live_suites_and_allowlist(self):
+        name, prompt, checks, follows = self.load()
+        self.assertEqual((name, checks, follows), (self.NAME, [], None))
+        self.assertEqual(prompt.encode("utf-8"), self.prompt.read_bytes())
+        self.assertIsNone(run.case_platform(name))
+        self.assertEqual(run.case_quality(name), {})
+        suites = json.loads(run.SUITES.read_text())
+        self.assertTrue(all(name not in suite["cases"] + suite.get("gate", [])
+                            for key, suite in suites.items() if not key.startswith("_")))
+        self.assertNotIn(name, json.loads((HARNESS / "adapter" / "allowlist.json").read_text())["cases"])
+
+    def test_operator_ready_fixture_reaches_real_codex_argv_with_exact_prompt_and_empty_workspace(self):
+        # Mock an operator assertion and the host environment. This tests runner additions, not inherited PATH or E2E_*.
+        self.readiness.write_text(json.dumps({"scenario": self.NAME, "live_launch": "READY", "launch_blockers": []}))
+        expected = self.prompt.read_bytes()
+        codex = hosts.CodexHost("fixture-codex")
+
+        class ReachedLaunch(Exception):
+            pass
+
+        def capture(argv, work, out, env, *args, **kwargs):
+            self.assertEqual(argv[:2], ["fixture-codex", "exec"])
+            self.assertEqual(argv[-1].encode("utf-8"), expected)
+            self.assertEqual(argv[-1].count("$skill-craft:shiploop"), 1)
+            self.assertEqual((out / "host-prompt.txt").read_bytes(), expected)
+            self.assertEqual((out / "prompt.txt").read_bytes(), expected)
+            self.assertTrue(kwargs["fresh"])
+            self.assertEqual(list(work.iterdir()), [])
+            self.assertNotIn("E2E_CHECKS", env)
+            invocation = json.loads((out / "invocation.json").read_text())
+            self.assertEqual(invocation["checks"], [])
+            self.assertNotIn("platform", invocation)
+            self.assertFalse((out / "platform").exists())
+            raise ReachedLaunch
+
+        with (mock.patch.dict(os.environ), mock.patch.object(run, "the_host", return_value=codex),
+              mock.patch.object(codex, "env", return_value={}), mock.patch.object(codex, "cli_version", return_value=("fake", None)),
+              mock.patch.object(run, "refuse_stale_listeners"), mock.patch.object(run, "refuse_lifecycle"),
+              mock.patch.object(run, "take_leases"), mock.patch.object(run.listeners, "hold_case", return_value=None),
+              mock.patch.object(run, "marketplace_preflight", return_value=(self.root, None, {"gate": []})),
+              mock.patch.object(run.environment, "start_record", return_value={}),
+              mock.patch.object(run.lifecycle, "contention"),
+              mock.patch.object(run, "platform_preflight", side_effect=AssertionError("platform helper inherited")),
+              mock.patch.object(run, "launch", side_effect=capture), self.assertRaises(ReachedLaunch)):
+            run.main(self.args())
+
+    def test_inline_and_custom_paths_still_get_host_invocations_and_checks(self):
+        codex = hosts.CodexHost()
+        hello = self.cases["hello"]
+        name, prompt, checks, follows = self.load("--case", "hello", "--check", "extra")
+        self.assertEqual((name, prompt, checks, follows), ("hello", hello["prompt"], hello["checks"] + ["extra"], None))
+        self.assertEqual(run.case_opening(codex, codex.skill, prompt), "$skill-craft:shiploop " + hello["prompt"])
+        name, prompt, checks, follows = self.load("--prompt", "  test\r\n", "--check", "custom-check")
+        self.assertEqual((name, prompt, checks, follows), ("custom", "  test\r\n", ["custom-check"], None))
+        self.assertEqual(run.case_opening(codex, codex.skill, prompt), "$skill-craft:shiploop   test\r\n")
+
+    def test_utf8_and_newline_bytes_survive_loading_and_codex_argv(self):
+        expected = "$skill-craft:shiploop\r\n\r\nCafé\r\n\r\n".encode()
+        self.write_prompt(expected)
+        host = hosts.CodexHost()
+        opening = run.case_opening(host, host.skill, self.load()[1], preinvoked=True)
+        argv = host.argv(prompt=opening, prompt_file=self.root / "host.txt", cwd=self.root, model="fixture",
+                         effort=None, permission_mode=None, max_turns=None)
+        self.assertEqual(argv[-1].encode("utf-8"), expected)
+        self.assertEqual((self.root / "host.txt").read_bytes(), expected)
+
+    def test_refuses_unpinned_changed_invalid_and_missing_prompt(self):
+        expected = self.case.pop("prompt_sha256")
+        self.write_catalog()
+        with self.assertRaisesRegex(SystemExit, "needs a full lowercase prompt_sha256"):
+            self.load()
+        self.case["prompt_sha256"] = expected[:12]
+        self.write_catalog()
+        with self.assertRaisesRegex(SystemExit, "needs a full lowercase prompt_sha256"):
+            self.load()
+        self.case["prompt_sha256"] = expected
+        self.write_catalog()
+        self.prompt.write_bytes(self.prompt.read_bytes() + b"\n")
+        with self.assertRaisesRegex(SystemExit, "prompt_sha256 mismatch"):
+            self.load()
+        for data, reason in ((b"\xff", "utf-8"), (b"x\0", "without NULs"), (b"", "nonempty")):
+            with self.subTest(data=data):
+                self.write_prompt(data)
+                with self.assertRaisesRegex(SystemExit, reason):
+                    self.load()
+        self.prompt.unlink()
+        with self.assertRaisesRegex(SystemExit, "missing"):
+            self.load()
+
+    def test_refuses_absolute_parent_and_symlink_escape(self):
+        outside = self.harness.parent / "outside.md"
+        outside.write_bytes(self.prompt.read_bytes())
+        symlink = self.harness / "alias.md"
+        symlink.symlink_to(outside)
+        for path, reason in ((str(outside), "relative path"), ("../outside.md", "escapes"), (symlink.name, "escapes")):
+            with self.subTest(path=path):
+                self.case["prompt_file"] = path
+                self.write_catalog()
+                with self.assertRaisesRegex(SystemExit, reason):
+                    self.load()
+
+    def test_incompatible_invocation_and_prompt_rewriting_flags_refuse_before_setup(self):
+        self.case.pop("readiness_file")
+        self.write_catalog()
+        for extra, reason in ((("--host", "claude"), "incompatible with --host claude"),
+                              (("--host", "grok"), "incompatible with --host grok"),
+                              (("--skill", "other:shiploop"), "first line must be"),
+                              (("--seed-at", "step-plan"), "does not support --seed-at"),
+                              (("--planning-review", "none"), "does not support.*--planning-review none")):
+            with self.subTest(extra=extra):
+                with (mock.patch.object(hosts.Host, "env", side_effect=AssertionError("host setup")),
+                      mock.patch.object(hosts.CodexHost, "env", side_effect=AssertionError("host setup")),
+                      mock.patch.object(run, "new_output_dir", side_effect=AssertionError("output setup")),
+                      self.assertRaisesRegex(SystemExit, reason)):
+                    run.main(self.args(*extra))
+        self.assertFalse(self.out.exists())
+
+    def test_blocked_run_preflight_and_resume_stop_before_side_effects(self):
+        resume = self.root / "resume"
+        resume.mkdir()
+        (resume / "invocation.json").write_text(json.dumps({"case": self.NAME}))
+        for argv in (self.args(), self.args("--stop-after-start"), self.args("--preflight-only", "--host", "all"),
+                     ["--resume-run", str(resume), "--baseline", str(self.baseline)]):
+            with self.subTest(argv=argv):
+                message = self.assert_refused("live launch BLOCKED", *argv)
+                for blocker in ("canonical org", "verified startup reset", "independent read-only observation"):
+                    self.assertIn(blocker, message)
+        self.assertEqual([path.name for path in resume.iterdir()], ["invocation.json"])
+
+    def test_suite_checks_readiness_before_shared_host_setup(self):
+        suites = self.root / "suites.json"
+        suites.write_text(json.dumps({"fixture": {"gate": ["hello"], "cases": [self.NAME]}}))
+        with mock.patch.object(run, "SUITES", suites):
+            self.assert_refused("live launch BLOCKED", "--suite", "fixture", "--output", str(self.out))
+
+    def test_conflicting_resume_modes_are_refused_before_side_effects(self):
+        resume = self.root / "resume"
+        resume.mkdir()
+        invocation = resume / "invocation.json"
+        recorded = json.dumps({"case": self.NAME})
+        invocation.write_text(recorded)
+        suites = self.root / "suites.json"
+        suites.write_text(json.dumps({"fixture": {"gate": ["hello"], "cases": ["hello"]}}))
+        resume_args = ["--resume-run", str(resume), "--baseline", str(self.baseline), "--output", str(self.out)]
+        for other in (["--preflight-only"], ["--suite", "fixture"]):
+            for argv in (resume_args + other, other + resume_args):
+                with (self.subTest(argv=argv), mock.patch.object(run, "SUITES", suites),
+                      contextlib.redirect_stderr(stderr := io.StringIO())):
+                    self.assert_refused("^2$", *argv)
+                    self.assertRegex(stderr.getvalue(), r"error: argument --.*: not allowed with argument --")
+                    self.assertIn(other[0], stderr.getvalue().splitlines()[-1])
+                    self.assertIn("--resume-run", stderr.getvalue().splitlines()[-1])
+        self.assertEqual(list(resume.iterdir()), [invocation])
+        self.assertEqual(invocation.read_text(), recorded)
+
+    def test_invalid_readiness_fails_closed(self):
+        records = ((b"{", "readiness refused"),
+                   (b'{"scenario":"other","live_launch":"READY","launch_blockers":[]}', "scenario must be exactly"),
+                   (b'{"scenario":"grok-chat-outcome","live_launch":"ready","launch_blockers":[]}', "live_launch must be"),
+                   (b'{"scenario":"grok-chat-outcome","live_launch":"READY"}', "launch_blockers must be"),
+                   (b'{"scenario":"grok-chat-outcome","live_launch":"READY","launch_blockers":["unresolved"]}',
+                    "launch_blockers must be"),
+                   (b'{"scenario":"grok-chat-outcome","live_launch":"BLOCKED","live_launch":"READY","launch_blockers":[]}',
+                    "duplicate readiness fields"))
+        for record, reason in records:
+            with self.subTest(record=record):
+                self.readiness.write_bytes(record)
+                self.assert_refused(reason)
+        self.readiness.unlink()
+        self.assert_refused("readiness refused: .*missing")
+
+    def test_ordinary_iteration_refuses_blocked_case_before_setup(self):
+        argv = ["--case", self.NAME, "--iterations", "1", "--output", str(self.out)]
+
+        def unexpected_worktree(_name):
+            raise AssertionError(f"reached new_worktree (output exists: {self.out.exists()})")
+
+        with (mock.patch.object(iterate, "new_worktree", side_effect=unexpected_worktree),
+              mock.patch.object(iterate.subprocess, "run", side_effect=AssertionError("reached build")),
+              mock.patch.object(run, "main", side_effect=AssertionError("reached runner")),
+              self.assertRaisesRegex(SystemExit, "live launch BLOCKED")):
+            iterate.main(argv)
+        self.assertFalse(self.out.exists())
+
+    def test_ordinary_iteration_allows_ready_discovery_and_legacy_case(self):
+        self.readiness.write_text(json.dumps({"scenario": self.NAME, "live_launch": "READY", "launch_blockers": []}))
+        for case in (self.NAME, "hello"):
+            out = self.root / case
+            argv = ["--case", case, "--iterations", "1", "--output", str(out)]
+            with (self.subTest(case=case),
+                  mock.patch.object(iterate, "new_worktree", side_effect=RuntimeError("fixture reached setup")),
+                  self.assertRaisesRegex(RuntimeError, "fixture reached setup")):
+                iterate.main(argv)
+            self.assertTrue(out.is_dir())
+
+    def test_qualified_iteration_refuses_discovery_in_either_case_role_before_setup(self):
+        self.copy_qualification_inputs()
+        exposing = "roundtable-agent-work"
+        self.assertEqual(learning_records.select(HARNESS / "learning-records.jsonl", exposing, self.NAME),
+                         "LR-20261108-4bc6cb")
+        self.assertIs(self.case["discovery_only"], True)
+        for index, marker in enumerate((True, "false", None, 0, [])):
+            self.case["discovery_only"] = marker
+            self.write_catalog()
+            for first, second in ((exposing, self.NAME), (self.NAME, exposing)):
+                out = self.root / f"qualify-{index}-{first}"
+                argv = ["--qualify", "--case", first, "--generality-case", second, "--iterations", "1",
+                        "--attempts", "1", "--tolerance", "0.25", "--output", str(out)]
+                with (self.subTest(exposing=first, generality=second, marker=marker),
+                      mock.patch.object(cycle, "HERE", self.harness),
+                      mock.patch.object(iterate, "new_worktree", side_effect=AssertionError("reached new_worktree")) as worktree,
+                      mock.patch.object(cycle, "build", side_effect=AssertionError("reached build")) as build,
+                      mock.patch.object(iterate, "improve", side_effect=AssertionError("reached improve")) as improve):
+                    with self.assertRaisesRegex(SystemExit, r"--qualify: .*grok-chat-outcome.*discovery-only"):
+                        iterate.main(argv)
+                    worktree.assert_not_called()
+                    build.assert_not_called()
+                    improve.assert_not_called()
+                    self.assertFalse(out.exists())
+
+    def test_nonfinite_readiness_numbers_refuse_setup_and_invalidate_both_identities(self):
+        self.copy_qualification_inputs()
+        frozen = boundary.qualification_snapshot(self.harness, [self.NAME])
+        for number in (b"NaN", b"Infinity", b"-Infinity"):
+            self.readiness.write_bytes(b'{"scenario":"grok-chat-outcome","live_launch":"READY","launch_blockers":[],'
+                                       b'"observation":' + number + b'}')
+            reason = f"invalid JSON number {number.decode()}"
+            with self.subTest(number=number, check="setup"):
+                self.assert_refused(f"readiness refused: .*{reason}")
+            with self.subTest(number=number, check="qualification"):
+                changes = boundary.qualification_changes(frozen, self.harness, [self.NAME])
+                self.assertEqual(len(changes), 1, changes)
+                self.assertRegex(changes[0], f"current qualification inputs are unavailable: .*{reason}")
+            with self.subTest(number=number, check="case fingerprint"):
+                invalid = boundary.fingerprint(self.harness, self.case)
+                self.assertIsNone(invalid["case"])
+                self.assertIn(reason, invalid["unmeasured"]["case"])
+
+    def copy_qualification_inputs(self):
+        for name in ("SPEC.md", "suites.json", "scorecard.py", "boundary.py", "metrics.py", "delivery.py",
+                     "environment.py", "runrecord.py"):
+            shutil.copyfile(HARNESS / name, self.harness / name)
+
+    def test_prompt_mutation_changes_both_qualification_and_case_fingerprints(self):
+        self.copy_qualification_inputs()
+        frozen = boundary.qualification_snapshot(self.harness, [self.NAME])
+        before = boundary.fingerprint(self.harness, self.case)
+        catalog_bytes = run.CASES.read_bytes()
+        relative = self.prompt.relative_to(self.root).as_posix()
+        self.assertEqual(frozen["files"][relative], self.case["prompt_sha256"])
+        self.prompt.write_bytes(self.prompt.read_bytes() + b"\n")
+        current = boundary.qualification_snapshot(self.harness, [self.NAME])
+        self.assertEqual(run.CASES.read_bytes(), catalog_bytes)
+        self.assertNotEqual(current["sha256"], frozen["sha256"])
+        self.assertEqual(boundary.qualification_changes(frozen, self.harness, [self.NAME]), [relative])
+        self.assertEqual(boundary.changed(before, boundary.fingerprint(self.harness, self.case)), ["case"])
+
+    def test_readiness_mutation_changes_both_qualification_and_case_fingerprints(self):
+        self.copy_qualification_inputs()
+        frozen = boundary.qualification_snapshot(self.harness, [self.NAME])
+        before = boundary.fingerprint(self.harness, self.case)
+        relative = self.readiness.relative_to(self.root).as_posix()
+        original = self.readiness.read_bytes()
+        record = json.loads(original)
+        self.readiness.write_text(json.dumps({**record, "live_launch": "READY", "launch_blockers": []}))
+        current = boundary.qualification_snapshot(self.harness, [self.NAME])
+        with self.subTest(identity="qualification"):
+            self.assertEqual(boundary.qualification_changes(frozen, self.harness, [self.NAME]), [relative])
+            self.assertNotEqual(current["sha256"], frozen["sha256"])
+            self.assertEqual(frozen["files"][relative], hashlib.sha256(original).hexdigest())
+        with self.subTest(identity="case"):
+            self.assertEqual(boundary.changed(before, boundary.fingerprint(self.harness, self.case)), ["case"])
+
+    def test_readiness_path_and_parse_failures_invalidate_both_identities(self):
+        self.copy_qualification_inputs()
+        frozen = boundary.qualification_snapshot(self.harness, [self.NAME])
+        for bad_input, reason in ((b"{", "READINESS.json"), (None, "missing")):
+            if bad_input is None:
+                self.readiness.unlink()
+            else:
+                self.readiness.write_bytes(bad_input)
+            with self.subTest(bad_input=bad_input, identity="qualification"):
+                changes = boundary.qualification_changes(frozen, self.harness, [self.NAME])
+                self.assertEqual(len(changes), 1, changes)
+                self.assertRegex(changes[0], f"current qualification inputs are unavailable: .*{reason}")
+            with self.subTest(bad_input=bad_input, identity="case"):
+                invalid = boundary.fingerprint(self.harness, self.case)
+                self.assertIsNone(invalid["case"])
+                self.assertIn("READINESS.json", invalid["unmeasured"]["case"])
+
+    def test_inline_case_fingerprint_still_hashes_only_the_catalog_entry(self):
+        case = self.cases["hello"]
+        digest = hashlib.sha256(json.dumps(case, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:12]
+        self.assertEqual(boundary.fingerprint(self.harness, case)["case"], digest)
+
+    def test_packet_walk_submits_exact_pinned_or_inline_prompt(self):
+        for name, expected in ((self.NAME, self.prompt.read_bytes()),
+                               ("hello", self.cases["hello"]["prompt"].encode("utf-8"))):
+            with (self.subTest(name=name),
+                  mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as child):
+                packet_anatomy.walk(self.root / f"walk-{name}", case=name)
+                commands = [call.args[0] for call in child.call_args_list]
+                [start] = [argv for argv in commands if argv[2:4] == ["workspace", "start"]]
+                self.assertEqual(start[-1].encode("utf-8"), b"--prompt=" + expected)
+                if name == self.NAME:
+                    self.assertEqual(hashlib.sha256(expected).hexdigest(), self.case["prompt_sha256"])
+
+    def test_packet_walk_refuses_changed_prompt_before_creating_scratch(self):
+        self.prompt.write_bytes(self.prompt.read_bytes() + b"\n")
+        with (mock.patch.object(packet_anatomy, "__file__", str(self.harness / "packet_anatomy.py")),
+              mock.patch.object(subprocess, "run", side_effect=AssertionError("scratch child")),
+              self.assertRaisesRegex(SystemExit, "prompt_sha256 mismatch")):
+            packet_anatomy.walk(self.out, case=self.NAME)
+        self.assertFalse(self.out.exists())
 
 
 if __name__ == "__main__":

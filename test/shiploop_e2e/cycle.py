@@ -885,6 +885,10 @@ def loop(args) -> int:
     cases = [args.case] + ([args.generality_case] if args.generality_case else [])
     try:
         calibration = resolve_calibration(args, cases)
+        frozen = boundary.qualification_snapshot(HERE, cases)
+        for case in cases:
+            if not boundary.qualification_eligible(frozen["cases"][case]):
+                raise ValueError(f"case {case!r} is discovery-only or has an invalid discovery_only marker")
     except ValueError as error:
         raise SystemExit(f"--qualify: {error}")
     name = f"shiploop-loop-{secrets.token_hex(3)}"
@@ -894,7 +898,6 @@ def loop(args) -> int:
     out.mkdir(parents=True, exist_ok=False)
     worktree, branch = iterate.new_worktree(name)
     ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
-    frozen = boundary.qualification_snapshot(HERE, cases)
     journal = out / "LOOP.md"
     iterate.journal(journal, [f"# Qualified loop: {', '.join(cases)}", "", f"- worktree {worktree}, branch {branch}",
                               f"- basis: {calibration_phrase(calibration_basis(calibration))}; "

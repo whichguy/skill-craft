@@ -251,11 +251,11 @@ def the_host(args) -> "hosts.Host":
     return hosts.host(args.host, getattr(args, args.host + "_bin"), getattr(args, "backend", None))
 
 
-def load_case(args) -> tuple[str, str, list[str], str | None]:
+def load_case(args, cases: dict | None = None) -> tuple[str, str, list[str], str | None]:
     """Name, prompt, checks and the case it follows (None for a fresh start)."""
     if args.prompt:
         return "custom", args.prompt, args.check or [], None
-    cases = catalog()
+    cases = catalog() if cases is None else cases
     if args.case not in cases:
         raise SystemExit(f"unknown case {args.case!r}; known: {', '.join(sorted(cases))}")
     case = cases[args.case]
@@ -264,7 +264,33 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
         regression = chains.regression(cases, args.case)
     except chains.ChainError as exc:
         raise SystemExit(f"{exc}; known: {', '.join(sorted(cases))}") from exc
-    return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), case.get("follows")
+    try:
+        prompt = boundary.load_case_prompt(HERE, case)
+    except (OSError, ValueError) as error:
+        raise SystemExit(f"case {args.case!r} prompt refused: {error}") from None
+    return args.case, prompt, regression + case["checks"] + case.get("retention", []) + (args.check or []), case.get("follows")
+
+
+def case_opening(host: hosts.Host, skill: str, prompt: str, *, preinvoked: bool = False) -> str:
+    """Keep a file-backed opening literal after checking its invocation against the selected host."""
+    if not preinvoked:
+        return host.invoke(skill, prompt)
+    expected = host.invoke(skill, "").rstrip(" ")
+    if prompt.split("\n", 1)[0].removesuffix("\r") != expected:
+        raise SystemExit(f"pre-invoked prompt_file is incompatible with --host {host.name}: first line must be {expected!r}")
+    return prompt
+
+
+def require_case_readiness(name: str, case: dict) -> None:
+    """A declared readiness record is a read-only gate ahead of all launch setup."""
+    try:
+        readiness = boundary.case_readiness(HERE, case, name)
+    except ValueError as error:
+        raise SystemExit(f"case {name!r} readiness refused: {error}") from None
+    if readiness is not None:
+        path, _, record = readiness
+        if record["live_launch"] == "BLOCKED":
+            raise SystemExit(f"case {name!r} live launch BLOCKED ({path.name}):\n  " + "\n  ".join(record["launch_blockers"]))
 
 
 def case_quality(name: str) -> dict:
@@ -2646,13 +2672,14 @@ class PlatformGuard:
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    mode = p.add_mutually_exclusive_group()
     p.add_argument("--case", default="hello", help="case name from cases.json (default: hello)")
-    p.add_argument("--suite", help="run a suite from suites.json in order (focused: one style in depth; "
+    mode.add_argument("--suite", help="run a suite from suites.json in order (focused: one style in depth; "
                                    "breadth: one case per style); --output becomes the suite directory")
     p.add_argument("--baseline", type=Path, default=BASELINES,
                    help="append one summary row per run to this file (default: the committed baselines.jsonl)")
     p.add_argument("--prompt", help="run this prompt instead of a named case")
-    p.add_argument("--resume-run", type=Path,
+    mode.add_argument("--resume-run", type=Path,
                    help="an earlier run's output directory whose ShipLoop run stopped while active (a host ran "
                         "out of credits, a machine slept): continue that same run in place, on --host, and grade "
                         "it as usual. The case and checks come from the earlier run. A run that is already "
@@ -2738,7 +2765,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "
                         "local HEAD == origin/main and matching versions; checkout: build this checkout")
-    p.add_argument("--preflight-only", action="store_true",
+    mode.add_argument("--preflight-only", action="store_true",
                    help="pull skill-craft from the marketplace into a fresh profile, print what main publishes "
                         "and what the host installed, and exit non-zero if the version gate refuses")
     p.add_argument("--plugin-dir", type=Path, help="test this skill-craft plugin build (implies --source checkout)")
@@ -2767,13 +2794,13 @@ def parser() -> argparse.ArgumentParser:
                    help="declare a need of this run, which records its capability on the harness side before the host "
                         "starts (browser: can a headless browser load a stand-in page here). A named case declares its own "
                         "(`needs` in cases.json); a custom --prompt declares none by itself. A record, never a verdict")
-    p.add_argument("--baseline-report", action="store_true",
+    mode.add_argument("--baseline-report", action="store_true",
                    help="read-only: print, per cell of the baseline file and the run folders, how many attempts there were, "
                         "which count, on how many builds, and the n, min, median and max of cost, turns, minutes and "
                         "planning minutes. Starts no host and writes nothing; exits 0")
     p.add_argument("--runs", type=Path, nargs="+",
                    help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
-    p.add_argument("--inspect-recovery", type=Path, metavar="RUN_OUT",
+    mode.add_argument("--inspect-recovery", type=Path, metavar="RUN_OUT",
                    help="inspect the selected run checkout without writes or launch")
     p.add_argument("--recovery-phase", choices=("builder", "final"), default="builder")
     p.add_argument("--json", action="store_true", help="with --baseline-report or --inspect-recovery: print JSON instead of text")
@@ -3926,6 +3953,9 @@ def _run_suite(args, argv: list[str]) -> int:
     if args.suite not in suites or args.suite.startswith("_"):
         raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
     cases = json.loads(CASES.read_text())
+    gate = suites[args.suite].get("gate") or []
+    for name in [*gate, *suites[args.suite]["cases"]]:
+        require_case_readiness(name, cases[name])
     # Once, up front (like the version gate): a refusal raised inside a case's worker thread would reach the suite only after
     # the running chains finish, with no suite-result.json. Its cases skip their own check (--suite-name).
     refuse_stale_listeners(None)
@@ -3950,7 +3980,6 @@ def _run_suite(args, argv: list[str]) -> int:
         (check / "preflight.json").write_text(json.dumps(versions, indent=2) + "\n")
         if versions["gate"]:
             raise SystemExit("suite not started, version gate: " + "; ".join(versions["gate"]))
-    gate = suites[args.suite].get("gate") or []
     gate_rows = []
     for case in gate:
         # A batch suite's gate runs first and alone: a cheap case that fails stops the costly ones.
@@ -4071,6 +4100,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         return baseline_report_main(args)
     if args.runs or args.json or args.release_gate:
         raise SystemExit("--runs, --json and --release-gate belong to --baseline-report")
+    if not args.prompt and (args.preflight_only or not (args.resume_run or args.suite)):
+        require_case_readiness(args.case, catalog().get(args.case, {}))
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
@@ -4135,10 +4166,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     earlier = {}
     earlier_result: dict = {}
     recorded: dict = {}  # a regrade restates this: the run's own last record
+    exact_opening = None
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
         earlier = json.loads((out / "invocation.json").read_text())
+        require_case_readiness(earlier["case"], catalog().get(earlier["case"], {}))
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
         based = earlier.get("base")  # the base the run started from (SPEC: A brownfield case)
         prefix = run_prefix(args.platform_prefix, name, json.loads(CASES.read_text()), resuming=True,
@@ -4221,7 +4254,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             raise SystemExit("--platform-prefix: a custom --prompt has no case prefix to rename")
         prefix = run_prefix(args.platform_prefix, args.case, json.loads(CASES.read_text()))
         RUN_PREFIX = (args.case, prefix) if prefix else None
-        name, prompt, checks, follows = load_case(args)
+        cases = catalog()
+        name, prompt, checks, follows = load_case(args, cases)
+        if not args.prompt and "prompt_file" in cases[name]:
+            if args.seed_at or args.planning_review == "none":
+                raise SystemExit("pre-invoked prompt_file does not support --seed-at or --planning-review none")
+            selected_host = the_host(args)
+            exact_opening = case_opening(selected_host, args.skill or selected_host.skill, prompt, preinvoked=True)
         seed_built = seed_materials(name, args.seed_at)  # refused here, before the folder, the install and the platform
         platform_spec = case_platform(name)
         if args.stop_after_start and platform_spec:
@@ -4458,7 +4497,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                                          None if regrade else refusal_note(host, out))) if resumed
                else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt, seeded["delegation"],
                                                         seeded["stage"])) if seeded
-               else host.invoke(args.skill, prompt))
+               else exact_opening if exact_opening is not None
+               else case_opening(host, args.skill, prompt))
     stamp = launch_stamp(out, host.name) if resumed else None
     cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
                                                        f"resume-{host.name}-{stamp}.txt"),
@@ -4518,7 +4558,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         (out / f"invocation-resume-{host.name}-{stamp}.json").write_text(
             json.dumps(invocation, indent=2) + "\n")
     else:
-        (out / "prompt.txt").write_text(prompt + "\n")
+        if exact_opening is not None:
+            (out / "prompt.txt").write_bytes(prompt.encode("utf-8"))
+        else:
+            (out / "prompt.txt").write_text(prompt + "\n")
         (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     # Provider contention is observed, not reserved (SPEC "The resource lifecycle"): the live runs on this host and model now.
     start_contention = None if regrade else lifecycle.contention(out, args.host, args.model)
