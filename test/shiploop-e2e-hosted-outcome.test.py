@@ -131,6 +131,10 @@ assert args[0] == 'exec', args
 with (root / 'launches.jsonl').open('a') as handle:
     handle.write(json.dumps({{'argv': args, 'env': dict(os.environ), 'cwd': str(Path.cwd()),
                             'initial_files': sorted(os.listdir())}}) + '\\n')
+# The hosted environment whitelist drops GIT_CONFIG_NOSYSTEM before exec.
+# Skip system Git defaults in this fake host, preserving the harness's
+# GIT_CONFIG_GLOBAL fixture identity and the workspace's local config.
+os.environ['GIT_CONFIG_NOSYSTEM'] = '1'
 login_shell = shutil.which('zsh') or shutil.which('bash')
 if login_shell is None:
     raise SystemExit('Codex fixture requires an executable zsh or bash login shell')
