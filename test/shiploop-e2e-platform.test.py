@@ -2774,8 +2774,13 @@ class UnchangedCaseTest(PlatformCase):
         for done in (result, resumed):
             self.assertNotIn("platform", done)
             self.assertNotIn("guard", json.dumps(done["environment"]))
-        for name in ("platform", ".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"):
-            self.assertFalse((out / name).exists() or (out / "home" / name).exists(), name)
+        self.assertFalse((out / "platform").exists() or (out / "home" / "platform").exists())
+        # Every throwaway HOME's startup files carry the harness's python3 pin (hosts.pin_python), with a platform or without
+        # one; the platform's own pin of the guarded commands (run.PIN_MARK) is what a case without a platform never gains.
+        for name in hosts.SHELL_STARTUP_FILES:
+            self.assertFalse((out / name).exists(), name)
+            startup = out / "home" / name
+            self.assertNotIn(run.PIN_MARK, startup.read_text() if startup.exists() else "", name)
         self.assertNotIn("guard saw", printed)
         self.assertEqual(self.verbs(), [])
 

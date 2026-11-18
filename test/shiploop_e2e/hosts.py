@@ -21,6 +21,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -274,13 +275,52 @@ def throwaway_keychain(home: Path) -> Path | None:
     return path
 
 
+# The startup files a shell the model may use reads after /etc/zprofile or /etc/profile ran macOS path_helper: zsh login (.zprofile),
+# zsh interactive (.zshrc), bash login (the first of .bash_profile, .profile) and bash interactive (.bashrc). run.pin_shell_path uses them too.
+SHELL_STARTUP_FILES = (".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile")
+
+# python3, in every shell a model may use in a throwaway HOME, is this harness's own interpreter. ShipLoop refuses a Python older than its
+# minimum (skills/shiploop/scripts/shiploop_pyfloor.py, 3.15 since 7a04fc044edb4418e92551c5619c48192862575b), and Codex and Grok run commands
+# in login shells, where path_helper puts /usr/bin first: a throwaway HOME has none of the owner's startup files, so python3 was Apple's
+# 3.9.6. A model then either substituted python3.15 or reported a missing prerequisite, and a run's outcome depended on that choice, not on
+# the change under test (2026-11-18, docs/closed-loop-journal.md R15). The pin is the guarded commands' mechanism (run.pin_shell_path):
+# a marked PATH line in each startup file, which runs after path_helper, and the same folder first in the environment's PATH for shells
+# that read no startup file.
+PYTHON_PIN_DIR = ".skill-craft-e2e/python"
+PYTHON_PIN_MARK = "# skill-craft E2E: python3 is the harness's own interpreter, first on PATH after macOS path_helper"
+
+
+def pin_python(home: Path) -> Path:
+    """Give the throwaway ``home`` a folder whose ``python3`` runs this harness's interpreter, and pin it first on PATH for login and
+    interactive shells: a marked block appended once to each of SHELL_STARTUP_FILES (a startup file that is a symlink is never written
+    through). Returns the folder."""
+    folder = home / PYTHON_PIN_DIR
+    folder.mkdir(parents=True, exist_ok=True)
+    wrapper = folder / "python3"
+    wrapper.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
+    wrapper.chmod(0o755)
+    block = f'{PYTHON_PIN_MARK}\nPATH={shlex.quote(str(folder))}":$PATH"\nexport PATH\n'
+    for name in SHELL_STARTUP_FILES:
+        path = home / name
+        if path.is_symlink():
+            continue
+        text = path.read_text(errors="replace") if path.exists() else ""
+        if block not in text:
+            with path.open("a") as handle:
+                handle.write(("" if not text or text.endswith("\n") else "\n") + block)
+    return folder
+
+
 def _isolated_env(home: Path, git_config: Path | None, strip: tuple, extra: dict) -> dict:
-    """The environment of a throwaway profile at ``home`` with its own git identity and its own keychain."""
+    """The environment of a throwaway profile at ``home`` with its own git identity, its own keychain, and this harness's
+    interpreter as ``python3`` in every shell (pin_python)."""
     if git_config is None:
         git_config = home / ".gitconfig"
         git_config.write_text("[user]\n\tname = ShipLoop E2E\n\temail = shiploop-e2e@example.invalid\n")
     throwaway_keychain(home)
+    python_folder = pin_python(home)
     env = {k: v for k, v in os.environ.items() if not k.startswith(strip)}
+    env["PATH"] = f"{python_folder}{os.pathsep}{env.get('PATH', os.defpath)}"
     env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"),
                XDG_DATA_HOME=str(home / ".local/share"), XDG_CACHE_HOME=str(home / ".cache"),
                XDG_STATE_HOME=str(home / ".local/state"),

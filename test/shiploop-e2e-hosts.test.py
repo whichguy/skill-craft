@@ -1195,6 +1195,27 @@ class ThrowawayHomeEnvTest(unittest.TestCase):
                 self.assertNotIn(self.VAR, env, str(backend))
                 self.assertFalse((Path(tempfile.gettempdir()) / "unused-home" / hosts.THROWAWAY_KEYCHAIN).exists(), backend)
 
+    def test_python3_in_every_shell_of_a_throwaway_home_is_the_harness_interpreter(self):
+        """ShipLoop needs Python 3.15, and in a throwaway HOME macOS path_helper put /usr/bin first in login shells, so python3 was Apple's
+        3.9.6: one real session substituted python3.15 and passed, the next reported a missing prerequisite and ShipLoop never ran
+        (docs/closed-loop-journal.md R15). Every installed shell a model may use must find this harness's own interpreter."""
+        with tempfile.TemporaryDirectory() as temp:
+            auth = Path(temp) / "auth.json"
+            auth.write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}), mock.patch.object(hosts, "GROK_AUTH", auth):
+                for name in ("codex", "grok"):
+                    home = Path(temp) / f"{name}-home"
+                    env = hosts.host(name).env(home)
+                    folder = home / hosts.PYTHON_PIN_DIR
+                    self.assertEqual(run.shell_resolution_problems(["python3"], folder, env), [], name)
+                    login = next(shell for shell in ("/bin/zsh", "/bin/bash") if os.access(shell, os.X_OK))
+                    done = subprocess.run([login, "-lc", "python3 -c 'import sys; print(sys.executable)'"], capture_output=True, text=True,
+                                          env=dict(env, SHELL_SESSIONS_DISABLE="1"), stdin=subprocess.DEVNULL, timeout=60, check=False)
+                    self.assertEqual(os.path.realpath(done.stdout.strip()), os.path.realpath(sys.executable), (name, done.stderr))
+                    hosts.host(name).env(home)  # a second launch in the same home, as a resume makes
+                    for startup in hosts.SHELL_STARTUP_FILES:
+                        self.assertEqual((home / startup).read_text().count(hosts.PYTHON_PIN_MARK), 1, (name, startup))
+
 
 @unittest.skipUnless(sys.platform == "darwin" and os.access(hosts.SECURITY, os.X_OK), "macOS keychains only")
 class ThrowawayKeychainTest(unittest.TestCase):

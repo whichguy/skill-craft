@@ -537,6 +537,29 @@ Evidence: `docs/experiments/closed-loop-smoke-20261118/` (the run's folders stay
 - **Next, proposed.** Pin a Python of at least 3.15 first in the throwaway home's shells, release it, and rerun the one step on a new campaign at that
   release; the three records stay the owner's.
 
+### R16. The harness pins `python3` in every throwaway home (2026-11-18)
+
+Evidence: `docs/experiments/closed-loop-smoke-20261118/harness-python-pin-checks.txt`.
+
+- **The owner's words.** "Yes, update the harness , I do not think we need to rerun for only that change."
+- **What changed.** `test/shiploop_e2e/hosts.py` `pin_python`: each throwaway HOME gets `.skill-craft-e2e/python/python3`, a two-line wrapper that
+  execs the harness's own interpreter (`sys.executable`), first on PATH through one marked block appended to `.zprofile`, `.zshrc`, `.bash_profile`,
+  `.bashrc` and `.profile` (they run after path_helper; a symlinked file is never written through); `_isolated_env` also puts the folder first in the
+  environment's PATH, for shells that read no startup file. Every Codex and Grok profile (subject, reviewer, judge, improver) comes from
+  `_isolated_env`; a Claude host keeps the real HOME, unchanged. `SHELL_STARTUP_FILES` moved from `run.py` to `hosts.py`, one list for this pin and
+  the platform's pin of guarded commands.
+- **Why the harness's interpreter, not a version search.** It is the Python the harness was started with and supports, and a run then matches the
+  owner's own shells, where Homebrew's Python comes first. A wrapper rather than a symlink keeps the interpreter's own prefix (a venv's, say).
+- **Checks.** `ThrowawayHomeEnvTest`: 3 OK, including the new test that in a Codex and a Grok home every installed shell of `run.RESOLUTION_SHELLS`
+  (`sh`, `bash`, `zsh` with `-c`, `-lc`, `-ilc`) resolves `python3` to the wrapper, a login shell's `python3` reports the harness's interpreter, and a
+  second launch adds no second block. Mutation check: 3 of 3 caught (no startup-file block; no PATH prefix; a block on every launch). Quick tier
+  (`--changed-from origin/main`, 74 suites, 706 s wall): 73 OK and `shiploop-e2e-platform` failed in `UnchangedCaseTest`, which proved that a case
+  without a platform gains nothing by the absence of every shell startup file in its throwaway HOME. The pin now writes those files in every home, so
+  the test asserts what it meant: no `platform` file and no `run.PIN_MARK` block. The whole platform suite then passed.
+- **No rerun** for this change alone (the owner's words above); the next real run is the first with the pin.
+- **Not known.** No real model session has run with the pin. On Linux, login shells do not reorder PATH, so there only the environment-PATH half
+  matters; the startup-file half is proven on macOS only.
+
 ## Findings
 
 | # | Finding | Status | Evidence |
@@ -591,3 +614,4 @@ Evidence: `docs/experiments/closed-loop-smoke-20261118/` (the run's folders stay
 | F48 | Read CI's result after every push, not only its start: the engine suite failed CI from its first push (a9d40c30) and was noticed two pushes later | firm | CI runs 43801628143 and 43811121318 |
 | F49 | A Python minimum raised in the repository is a requirement on every environment a model works in: the harness's throwaway homes run login shells where macOS puts `/usr/bin/python3` (3.9.6) first, and a model then either substitutes `python3.15` or reports a missing prerequisite, so outcomes split by the model's choice, not by the change under test | firm | `docs/experiments/closed-loop-smoke-20261118/python-in-login-shells.json`; R15 |
 | F50 | One real run showed the adapter's plumbing whole (readiness, a step, its facts, publication, cleanup, a stated stop) and found an environment fault four reviews had not: at this stage running is the cheaper instrument | firm | `docs/experiments/closed-loop-smoke-20261118/`; R13 against R15 |
+| F51 | A test that proves a feature's absence by a file's absence breaks when another feature writes that file: assert the feature's own marker instead (`UnchangedCaseTest` asserted no shell startup files; the `python3` pin writes them in every throwaway home) | firm | `docs/experiments/closed-loop-smoke-20261118/harness-python-pin-checks.txt`; R16 |

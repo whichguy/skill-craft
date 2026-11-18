@@ -1,0 +1,22 @@
+Checks of the harness's python3 pin (test/shiploop_e2e/hosts.py pin_python), 2026-11-18, macOS 27.2.1, on fca50280cf2252025dc19fcd317dc6703b052f00 plus the change.
+
+1. Quick tier: bash test/run-all.sh --group quick --changed-from origin/main (exit 1)
+FAIL shiploop-e2e-platform
+run-all.sh: FAILED
+run-all.sh: 74 suites in 706.0 s wall (--jobs 8); slowest: shiploop-e2e-brownfield-tickets 448.2 s, shiploop-e2e-slice 337.8 s, shiploop-e2e-stages 290.1 s
+   the one failure:
+   FAIL: test_a_case_without_a_platform_gains_nothing_from_any_of_this (__main__.UnchangedCaseTest.test_a_case_without_a_platform_gains_nothing_from_any_of_this)
+   ----------------------------------------------------------------------
+   Traceback (most recent call last):
+     File "<repo>/test/shiploop-e2e-platform.test.py", line 2778, in test_a_case_without_a_platform_gains_nothing_from_any_of_this
+       self.assertFalse((out / name).exists() or (out / "home" / name).exists(), name)
+       ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   AssertionError: True is not false : .zprofile
+
+2. After narrowing UnchangedCaseTest to its claim (no platform file, no run.PIN_MARK block):
+   python3 -B test/shiploop-e2e-platform.test.py UnchangedCaseTest -> Ran 1 test, OK
+   python3 -B test/shiploop-e2e-platform.test.py -> Ran 173 tests in 120.448s, OK
+   python3 -B test/shiploop-e2e-hosts.test.py ThrowawayHomeEnvTest -> Ran 3 tests, OK
+
+3. Mutation check of the new hosts test (each break alone, hosts.py restored and its digest checked): 3 of 3 caught
+   (no startup-file block; no PATH prefix in the environment; a block appended on every launch).

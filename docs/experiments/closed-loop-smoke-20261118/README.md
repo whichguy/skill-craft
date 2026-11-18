@@ -12,3 +12,4 @@ window 1, subject profile Codex `gpt-6.1-terra` at `high`. Journal: `docs/closed
 | `certificate.json` | the certificate after iteration 1: incomplete (C1 three caseless records, C2 not quiet, C3 and C4 no run on the build) |
 | `next.json` | the orchestrator's next action: stop, "owner decisions are needed before any further investigation" |
 | `python-in-login-shells.json` | what `python3` each real session saw: Apple's 3.9.6 in both; the readiness session used `python3.15`, the step's session reported a missing prerequisite |
+| `harness-python-pin-checks.txt` | the checks of the fix in the harness (journal R16): the quick tier's one failure, a test that read the new startup files as a platform's, and the reruns after narrowing it |

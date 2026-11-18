@@ -1923,9 +1923,9 @@ def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
     return written
 
 
-# The startup files a shell the model may use reads after /etc/zprofile or /etc/profile ran path_helper: zsh login (.zprofile),
-# zsh interactive (.zshrc), bash login (the first of .bash_profile, .profile) and bash interactive (.bashrc).
-SHELL_STARTUP_FILES = (".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile")
+# The startup files a shell the model may use reads after /etc/zprofile or /etc/profile ran path_helper (hosts.SHELL_STARTUP_FILES,
+# where every throwaway HOME also gets its python3 pin).
+SHELL_STARTUP_FILES = hosts.SHELL_STARTUP_FILES
 PIN_MARK = "# skill-craft E2E (platform.model_bin): the guarded commands stay first on PATH after macOS path_helper moved them"
 # The shells whose resolution of a guarded name is checked: a plain `-c` shell (what the host's own tools use), a login shell and
 # an interactive login shell (what Grok's shell tool starts). One that is not installed here is skipped. The host's own $SHELL,
