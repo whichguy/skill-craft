@@ -2,10 +2,11 @@
 """ShipLoop's Python floor, the run again on a newer Python, and its fail-open hooks (portability audit,
 docs/shiploop-portability-audit-journal.md).
 
-Below the floor an entry script runs itself again with the newest ``python3`` or ``python3.N`` on PATH that meets the
-floor.  Only when there is none does the CLI say so in one line and exit 2, while a host hook event does nothing and
+The floor is the oldest Python the scripts' code runs on (3.9), not a support policy, and the card states no version
+(owner, 2026-11-18: no artificial mandates).  Below the floor an entry script runs itself again with the newest
+``python3`` or ``python3.N`` on PATH that meets it.  Only when there is none does the CLI say so in one line and exit 2, while a host hook event does nothing and
 exits 0, so a machine with an old python3, or none, gets no error on every tool call.  The floor is declared once, in
-``shiploop_pyfloor.FLOOR``; the skill card states the minimum, while CI follows the latest stable Python (the
+``shiploop_pyfloor.FLOOR``, while CI follows the latest stable Python (the
 python-floor group's membership is pinned in test-groups, not here: importing the catalog would make this suite a reader
 of every path it names).  The interpreter below the floor is simulated by setting ``sys.version_info`` before the entry
 script runs (a real Python 3.7.3 gave the same exits on 2026-10-31); every other interpreter on PATH is a stub shell
@@ -95,16 +96,16 @@ class StubsCase(unittest.TestCase):
 
 
 class BelowTheFloorWithNoNewerPythonTest(StubsCase):
-    """Old interpreters only: Apple's python3 3.9 (asked) and a python3.14 (not asked: its name is below the floor)."""
+    """Old interpreters only: a python3 3.8 (asked) and a python3.7 (not asked: its name is below the floor)."""
 
     def setUp(self) -> None:
         super().setUp()
-        _stub_python(self.tmp / "bin" / "python3", "3 9")
-        _stub_python(self.tmp / "bin" / "python3.14", "3 14")
+        _stub_python(self.tmp / "bin" / "python3", "3 8")
+        _stub_python(self.tmp / "bin" / "python3.7", "3 7")
         self.path = str(self.tmp / "bin")
 
     def test_the_cli_entries_state_the_requirement_and_exit_blocked(self) -> None:
-        for version in ((3, 8, 0), (3, 9, 0), (3, 14, 0)):
+        for version in ((3, 7, 3), (3, 8, 0), (3, 8, 20)):
             for script, args in (("shiploop", ["--help"]), ("shiploop-drive", ["--help"]),
                                  ("shiploop-hook", ["status", "--host", "claude"])):
                 with self.subTest(script=script, version=version):
@@ -121,7 +122,7 @@ class BelowTheFloorWithNoNewerPythonTest(StubsCase):
         self.assertEqual(set(self.asked()), {str(self.tmp / "bin" / "python3")})
 
     def test_a_host_hook_event_does_nothing_and_says_nothing(self) -> None:
-        for version in ((3, 8, 0), (3, 9, 0), (3, 14, 0)):
+        for version in ((3, 7, 3), (3, 8, 0), (3, 8, 20)):
             for verb in ("observe", "stop", "skill", "session-end"):
                 with self.subTest(verb=verb, version=version):
                     done = _run_below_floor("shiploop-hook", verb, "--host", "auto", version=version, path=self.path,
@@ -137,17 +138,17 @@ class BelowTheFloorWithNoNewerPythonTest(StubsCase):
 
 
 class RunsAgainWithTheNewestPythonTest(StubsCase):
-    """PATH as on a Mac after path_helper: Apple's python3 3.9 first, then newer interpreters.  Each decoy would win
-    if the rule it tests were broken: a python3.12 that would answer 3.18, a python3-config that would answer 3.17."""
+    """PATH as on an older Linux: a python3 3.8 first, then newer interpreters.  Each decoy would win if the rule it
+    tests were broken: a python3.8 that would answer 3.18, a python3-config that would answer 3.17."""
 
     def setUp(self) -> None:
         super().setUp()
         first, second = self.tmp / "first", self.tmp / "second"
-        _stub_python(first / "python3", "3 9")
-        _stub_python(first / "python3.15", "3 15")
+        _stub_python(first / "python3", "3 8")
+        _stub_python(first / "python3.9", "3 9")
         newest = _stub_python(second / "python3.16", "3 16")
         (second / "python3").symlink_to(newest.name)  # one interpreter under two names: asked once, by its first name
-        _stub_python(second / "python3.12", "3 18")  # never asked: its name is below the floor
+        _stub_python(second / "python3.8", "3 18")  # never asked: its name is below the floor
         _stub_python(second / "python3-config", "3 17")  # not an interpreter name
         self.first, self.second = first, second
         self.path = os.pathsep.join((str(first), str(second)))
@@ -160,7 +161,7 @@ class RunsAgainWithTheNewestPythonTest(StubsCase):
         self.assertEqual(done.returncode, EXITED_AS_STUB, done.stderr)
         self.assertEqual((done.stdout, done.stderr), ("", ""))
         self.assertEqual(self.ran(), [str(self.second / "python3"), "-B", str(SCRIPTS / "shiploop"), "--help", "mark=1"])
-        self.assertEqual(self.asked(), [str(self.first / "python3"), str(self.first / "python3.15"),
+        self.assertEqual(self.asked(), [str(self.first / "python3"), str(self.first / "python3.9"),
                                         str(self.second / "python3")])
 
     def test_every_entry_runs_again_and_a_hook_keeps_its_payload_on_stdin(self) -> None:
@@ -205,8 +206,8 @@ class RunsAgainWithTheNewestPythonTest(StubsCase):
 
 class AtTheFloorTest(unittest.TestCase):
     def test_an_interpreter_at_the_floor_passes_the_guard(self) -> None:
-        self.assertEqual(shiploop_pyfloor.FLOOR, (3, 15))
-        for version in ((3, 15, 0), (3, 15, 1), (3, 16, 0), (4, 0, 0)):
+        self.assertEqual(shiploop_pyfloor.FLOOR, (3, 9))
+        for version in ((3, 9, 0), (3, 9, 6), (3, 15, 1), (4, 0, 0)):
             with self.subTest(version=version), mock.patch.object(sys, "version_info", version + ("final", 0)):
                 self.assertIsNone(shiploop_pyfloor.require())
                 self.assertIsNone(shiploop_pyfloor.require(hook_event=True))
@@ -268,13 +269,13 @@ class HookWrapperTest(unittest.TestCase):
             self.assertTrue(os.access(path, os.X_OK), name)
 
 
-class FloorIsStatedWhereItIsEnforcedTest(unittest.TestCase):
-    def test_the_card_and_the_ci_job_state_the_same_floor(self) -> None:
+class TheCardStatesNoVersionTest(unittest.TestCase):
+    def test_the_card_asks_for_python3_and_git_only_and_ci_follows_the_latest_python(self) -> None:
         card = " ".join((ROOT / "skills/shiploop/SKILL.md").read_text().split())
-        self.assertIn(f"needs Python {FLOOR} or newer (`python3` or `python3.N` on PATH) and `git` on PATH", card)
-        # The card must not send the model to check the version itself: the step of the 2026-11-18 smoke did, saw
-        # Apple's 3.9.6 and stopped without starting the CLI (docs/experiments/closed-loop-smoke-20261118).
-        self.assertIn("Start the CLI with `python3` even when `python3 --version` is older", card)
+        self.assertIn("ShipLoop needs `python3` and `git` on PATH.", card)
+        # No version on the card (owner, 2026-11-18: no artificial mandates): a stated version sends the model to check it
+        # and stop, as the step of the 2026-11-18 smoke did on Apple's 3.9.6 (docs/experiments/closed-loop-smoke-20261118).
+        self.assertNotRegex(card, r"(?i)python ?3\.[0-9]")
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         # Keep this a narrow workflow reader; do not import the suite catalog or inventory docs.
         setups = [step for step in re.split(r"(?m)^      - ", workflow)

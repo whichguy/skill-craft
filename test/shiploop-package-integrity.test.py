@@ -427,19 +427,12 @@ elif 'commit' not in args:
         self.assertEqual(done.returncode, 1)
         self.assertIn("shiploop-drive mode 644", done.stderr)
 
-    def test_published_guard_and_card_must_agree_and_meet_current_minimum(self) -> None:
+    def test_published_guard_must_declare_one_two_part_floor(self) -> None:
         guard = self.fixture / "skills/shiploop/scripts/shiploop_pyfloor.py"
-        guard.write_text("FLOOR = (3, 9)\n")
+        guard.write_text("FLOOR = (3,)\n")
         done = self.run_probe()
         self.assertEqual(done.returncode, 1)
-        self.assertIn("current project minimum 3.15", done.stderr)
-        shutil.rmtree(self.scratch)  # Only this test's newly created scratch.
-        guard.write_text("FLOOR = (3, 15)\n")
-        card = self.fixture / "skills/shiploop/SKILL.md"
-        card.write_text("needs Python 3.14 or newer (`python3` or `python3.N` on PATH) and `git` on PATH\n")
-        done = self.run_probe()
-        self.assertEqual(done.returncode, 1)
-        self.assertIn("card and published guard disagree", done.stderr)
+        self.assertIn("published guard must declare one two-part FLOOR", done.stderr)
 
     def test_empty_workspace_packet_is_a_required_failure(self) -> None:
         entry = self.fixture / "skills/shiploop/scripts/shiploop"

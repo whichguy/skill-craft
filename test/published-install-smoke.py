@@ -111,20 +111,17 @@ def selected_python():
         raise ValueError("invalid PYTHON interpreter selection: %s" % exc) from exc
 
 
-def published_floor(scripts, card):
+def published_floor(scripts):
+    """The published FLOOR: what ShipLoop's code needs, not the repository's tooling minimum (MINIMUM), and stated
+    nowhere else; the installed tree's equality with origin/main covers the card."""
     tree = ast.parse((scripts / "shiploop_pyfloor.py").read_text())
     values = [ast.literal_eval(node.value) for node in tree.body
               if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "FLOOR"
                                                       for t in node.targets)]
-    if len(values) != 1 or not isinstance(values[0], tuple) or len(values[0]) != 2:
+    if (len(values) != 1 or not isinstance(values[0], tuple) or len(values[0]) != 2
+            or any(type(n) is not int for n in values[0])):
         raise ValueError("published guard must declare one two-part FLOOR")
-    floor = values[0]
-    if any(type(n) is not int for n in floor) or floor < MINIMUM:
-        raise ValueError("published FLOOR must meet the current project minimum 3.15")
-    expected = "needs Python %d.%d or newer (`python3` or `python3.N` on PATH) and `git` on PATH" % floor
-    if expected not in " ".join(card.read_text().split()):
-        raise ValueError("installed card and published guard disagree")
-    return floor
+    return values[0]
 
 
 def tree_bytes(root):
@@ -205,10 +202,10 @@ def probe(scratch, checkout, python):
         mode = stat.S_IMODE((scripts / name).stat().st_mode)
         if mode != 0o755:
             raise ValueError("%s mode %o, expected 755" % (name, mode))
-    floor = published_floor(scripts, package / "skills/shiploop/SKILL.md")
+    floor = published_floor(scripts)
     if sys.version_info[:2] < floor:
         raise ValueError("selected interpreter is below the published FLOOR %s" % (floor,))
-    print("PASS tree, eight executable modes, FLOOR/card %d.%d" % floor, flush=True)
+    print("PASS tree, eight executable modes, FLOOR %d.%d" % floor, flush=True)
     repo = scratch / "repo"
     home = scratch / "home"
     home.mkdir()

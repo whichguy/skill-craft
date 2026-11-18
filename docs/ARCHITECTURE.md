@@ -170,7 +170,8 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   `e2e-apparatus`, one job per group, covering all 207 unique suites once.
   The local `python-floor` selector retains its 76-suite legacy component subset
   using the caller's `python3`; it is not a separate interpreter validation job.
-  Python prerequisites are 3.15 or newer. All CI Python setups, including browser
+  Repository tooling needs Python 3.15 or newer; ShipLoop's own scripts need only what their
+  code uses (3.9, `shiploop_pyfloor.FLOOR`). All CI Python setups, including browser
   fixtures, use `python-version: '3.x'` with `check-latest: true` to qualify
   latest stable Python. When that advances to 3.16, CI no longer exercises the
   declared 3.15 minimum; this is not ongoing minimum-version qualification.

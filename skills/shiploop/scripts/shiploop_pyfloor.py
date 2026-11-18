@@ -1,19 +1,20 @@
 """The Python floor of ShipLoop's scripts, checked before anything else is imported.
 
-Every entry script imports this module first and calls ``require``.  Only syntax and calls that Python 3.7 accepts
-belong here, so an older interpreter reaches this code instead of a ``TypeError`` from a later import (the library
-modules subscript ``os.PathLike`` and call ``str.removeprefix``, both Python 3.9).
+``FLOOR`` is the oldest Python the scripts' code runs on, not a support policy: the library modules subscript
+``os.PathLike`` and call ``str.removeprefix`` (Python 3.9), and need nothing newer (owner, 2026-11-18: no artificial
+mandates).  Every entry script imports this module first and calls ``require``.  Only syntax and calls that Python 3.7
+accepts belong here, so an older interpreter reaches this code instead of a ``TypeError`` from a later import.
 
 An interpreter below the floor is not a reason to fail when a newer one is installed: ``require`` then runs the same
 script again with the newest Python on PATH that meets the floor (``python3``, ``python3.N``), and refuses only when
-there is none.  macOS login shells put Apple's ``/usr/bin/python3`` first, so this is the ordinary case on a Mac.
+there is none.
 """
 
 import os
 import subprocess
 import sys
 
-FLOOR = (3, 15)
+FLOOR = (3, 9)
 # Set for the one run again, so an interpreter that answered the version query with a version it does not have cannot
 # make the script run itself again and again; cleared as soon as an interpreter at the floor is running.
 REEXEC_MARK = "SHIPLOOP_PYTHON_REEXEC"

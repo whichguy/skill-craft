@@ -1,0 +1,28 @@
+What ShipLoop's code needs, checked on Apple's Python 3.9.6 (2026-11-18, macOS 27.2.1), with FLOOR set to (3, 9) in the working
+tree on 95670c1b0f1c16e56dee8edfbae131bdf7a7aeab (release 3.1.0).
+
+1. Compile. Every ShipLoop runtime file (skills/shiploop/scripts/*.py and the extensionless python3 entry scripts), py_compile under
+   /usr/bin/python3 3.9.6: 58 files, 0 failed.
+
+2. The legacy python-floor selector (76 ShipLoop suites: every one but shiploop-e2e*), python3 = 3.9.6 first on the normal PATH:
+   python3 -B test/run_suites.py --group python-floor   (exit 1)
+   run-all.sh: 76 suites in 673.6 s wall (--jobs 8); slowest: shiploop-test-loop 581.0 s, shiploop-callback-contract 257.4 s, shiploop-workspace 246.0 s
+   74 OK; 2 FAIL, neither in ShipLoop's code:
+   - shiploop-python-floor: the test as it stood encoded the 3.15 floor (FLOOR == (3, 15); 3.9.0 and 3.14.0 simulated as below the
+     floor; stubs answering 3.9 as an old python3). Rewritten for the 3.9 floor, it passes on 3.9.6 and on 3.15.1 (16 tests each).
+   - shiploop-package-integrity: 10 of 24 failed, all PublishedInstallProbeTests: 9 show the probe's own refusal, "probe needs Python
+     3.15 or newer; select it with PYTHON or PATH", and the tenth (the Docker timeout case) finds none of the probe's step records, which
+     that refusal at the start leaves unwritten. The published-install probe is repository tooling with its own 3.15 minimum. The suite
+     passes on 3.15.1 (24 tests) after the change.
+   A first attempt with PATH=/usr/bin:/bin:/usr/sbin:/sbin failed in package building for want of node (a test-setup fault); it was
+   stopped and run again as above.
+
+3. The real case with FLOOR (3, 9), Apple's python3 first:
+   env -i HOME=<throwaway> PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin /bin/zsh -lc ...
+     python3 --version -> Python 3.9.6
+     shiploop_pyfloor.require() -> returned on 3.9.6 with no run again (SHIPLOOP_PYTHON_REEXEC not set)
+     python3 <cli> --help -> exit 0
+   printf '{}' | env -i HOME=<throwaway> PATH=/usr/bin:/bin /usr/bin/python3 <shiploop-hook> observe --host auto -> exit 0
+
+4. After the change: test/shiploop-python-floor.test.py 16 OK on 3.15.1 and on 3.9.6; test/shiploop-package-integrity.test.py 24 OK on
+   3.15.1; the mutation driver of the run again (bd871a887de9a0481cd4d1483d54144bd14b20fd) against the adjusted tests: 8 of 8 caught.

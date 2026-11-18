@@ -573,6 +573,21 @@ Evidence: `docs/experiments/closed-loop-smoke-20261118/harness-python-pin-checks
   shells, and hosts whose hooks start an old `python3`.
 - **No E2E round** for this change: the selection happens before any ShipLoop module loads, and 16 hermetic tests (8 of 8 mutants caught) and the
   real-case check hold it; the commit carries `No-E2E-Round`.
+- **Published** with R16's commit as skill-craft 3.1.0 / shiploop 2.1.0 (release 95670c1b0f1c16e56dee8edfbae131bdf7a7aeab); Claude Code, Codex and
+  Grok read back 3.1.0; the published-install smoke passed (`docs/experiments/closed-loop-smoke-20261118/published-install-3.1.0.txt`); CI on
+  main: green for both pushes (run 44286570043 on the two commits, 44286733259 on the release). The smoke on `hello` was not rerun, as the owner said.
+
+### R18. The Python minimum is ShipLoop's own need, 3.9 (2026-11-18)
+
+- **The owner's words.** "Do not put artificial mandates which are not specifically necessary , such as the min python version. Don't
+  fixate too much on this, lighten up the restriction and republish. Merge to main and publish when done."
+- **Done.** ShipLoop's FLOOR is 3.9, what its code needs (the 3.15 came from the 2026-11-16 standardization, which changed no ShipLoop code),
+  and its card asks only for `python3` and `git` on PATH. On Apple's 3.9.6, 74 of ShipLoop's 76 floor suites pass and the other two are tests
+  about the floor itself (`docs/experiments/closed-loop-smoke-20261118/python-floor-3.9.6.txt`; portability journal Round 14, F44). With it,
+  the smoke's fault (Apple's `python3` in a login shell) needs neither R16's pin nor R17's run again; both stay, as environment fidelity and
+  for interpreters below 3.9.
+- **Learning.** I built around the restriction twice before asking whether it was necessary; a requirement is what the code needs, found by
+  running it, and a card states no version threshold.
 
 ## Findings
 

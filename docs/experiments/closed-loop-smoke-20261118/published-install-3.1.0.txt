@@ -1,0 +1,17 @@
+Published-install smoke of release 3.1.0 (shiploop 2.1.0), 2026-11-18, macOS 27.2.1:
+SKILL_CRAFT_CHECKOUT=<repo> python3 -B test/published-install-smoke.py <new scratch folder>   (exit 0)
+
+## native Claude install into <new scratch folder>/claude-config
+## installed tree vs origin/main plugins/skill-craft
+published comparison commit: 95670c1b0f1c16e56dee8edfbae131bdf7a7aeab
+PASS tree, eight executable modes, FLOOR/card 3.15
+PASS clean environment help/workspace start; packet_bytes=17021
+PASS five hooks quiet without Python
+PASS real old-interpreter CLI refusal (2) and hook silence (0); Python 3.7.3
+PASS required published clean-install checks; optional checks reported separately
+
+Host refresh after the release push:
+  claude plugin update skill-craft@whichguy -> updated from 3.0.1 to 3.1.0 (restart to apply)
+  codex plugin marketplace upgrade whichguy -> upgraded; ~/.codex/plugins/cache/whichguy/skill-craft/3.1.0 holds the new shiploop_pyfloor.py
+  grok plugin update skill-craft -> updated (3.0.1 -> 3.1.0)
+  Cursor runs Claude Code's copy (no step of its own).
