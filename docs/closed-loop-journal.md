@@ -586,6 +586,8 @@ Evidence: `docs/experiments/closed-loop-smoke-20261118/harness-python-pin-checks
   about the floor itself (`docs/experiments/closed-loop-smoke-20261118/python-floor-3.9.6.txt`; portability journal Round 14, F44). With it,
   the smoke's fault (Apple's `python3` in a login shell) needs neither R16's pin nor R17's run again; both stay, as environment fidelity and
   for interpreters below 3.9.
+- **Published** as skill-craft 3.2.0 / shiploop 2.2.0 (release 2212f857bc9a76c36e9980a2e4c6e7d17f3491b2); Claude Code, Codex and Grok read
+  back 3.2.0; the published-install smoke passed (`published-install-3.2.0.txt`); CI on main green for both pushes.
 - **Learning.** I built around the restriction twice before asking whether it was necessary; a requirement is what the code needs, found by
   running it, and a card states no version threshold.
 

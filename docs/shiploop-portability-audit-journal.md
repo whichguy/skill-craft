@@ -498,6 +498,12 @@ latest-stable policy.
 |---|---------|--------|----------|
 | F44 | ShipLoop's code still runs on Python 3.9: all 58 runtime files compile under Apple's 3.9.6, and the 76-suite `python-floor` selector with 3.9.6 as `python3` passes 74; the other two are tests about the floor itself (the floor test as it encoded 3.15, and the published-install probe's own 3.15 minimum as repository tooling), and both pass after the change. With FLOOR at 3.9, Apple's `python3` starts the CLI and a hook directly | firm | `docs/experiments/closed-loop-smoke-20261118/python-floor-3.9.6.txt` |
 
+Published (2026-11-18): 12c8f967b868f0f51994ba76d2176adc94a989ac, then release 2212f857bc9a76c36e9980a2e4c6e7d17f3491b2 (skill-craft
+3.2.0, shiploop 2.2.0), each through `release-push.py`. Claude Code, Codex and Grok read back 3.2.0 with `FLOOR = (3, 9)` in their
+installed copies. The published-install smoke passed and reported FLOOR 3.9; a real Python 3.7.3 is still refused with one line and
+the hooks stay silent (`docs/experiments/closed-loop-smoke-20261118/published-install-3.2.0.txt`). CI on main: green for both pushes
+(run 44290859254 on the change, 44290976077 on the release).
+
 Unknowns: CI runs the latest stable Python only, so a later change can come to need a newer Python unnoticed; the floor is checked when
 it changes (the `python-floor` selector under an old `python3`). The `shiploop-e2e*` suites are not in that selector and were not run on
 3.9 (repository tooling, 3.15).
