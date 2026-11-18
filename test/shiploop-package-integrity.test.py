@@ -436,7 +436,7 @@ elif 'commit' not in args:
         shutil.rmtree(self.scratch)  # Only this test's newly created scratch.
         guard.write_text("FLOOR = (3, 15)\n")
         card = self.fixture / "skills/shiploop/SKILL.md"
-        card.write_text("needs `python3` 3.14 or newer and `git` on PATH\n")
+        card.write_text("needs Python 3.14 or newer (`python3` or `python3.N` on PATH) and `git` on PATH\n")
         done = self.run_probe()
         self.assertEqual(done.returncode, 1)
         self.assertIn("card and published guard disagree", done.stderr)

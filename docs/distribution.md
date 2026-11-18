@@ -352,13 +352,16 @@ prerequisites; packaging does not manufacture unavailable capabilities.
 
 ### ShipLoop's prerequisites
 
-ShipLoop's scripts and hooks need `python3` 3.15 or newer and `git` on PATH, on Linux or macOS (they use `fcntl`; there
-is no Windows support). The E2E apparatus has the same Python minimum. Install a supported Python locally and put
-its `python3` first on PATH; no particular dependency manager or new third-party package is required. The floor is
+ShipLoop's scripts and hooks need Python 3.15 or newer and `git` on PATH, on Linux or macOS (they use `fcntl`; there
+is no Windows support). They are started with `python3`; when that one is older, each entry script runs itself again
+with the newest `python3` or `python3.N` on PATH that is 3.15 or newer, so a supported Python has to be on PATH, not
+first (macOS login shells put Apple's `/usr/bin/python3` first). The E2E apparatus has the same Python minimum, and its
+throwaway homes put the harness's own interpreter first as `python3`. Install a supported Python locally; no particular
+dependency manager or new third-party package is required. The floor is
 `shiploop_pyfloor.FLOOR`. CI qualifies latest stable Python (`3.x`, `check-latest: true`), not an ongoing fixed-minimum
 job: once latest stable advances to 3.16, CI no longer tests 3.15. The local `python-floor` selector retains its
 76-suite legacy component subset using the caller's `python3`, without selecting another interpreter.
-Below the floor the CLI exits 2 with one line naming the
+Below the floor, with no newer Python on PATH, the CLI exits 2 with one line naming the
 requirement, and a host hook event does nothing; with no `python3`, the hook entries exit 0 silently. Setting
 `SHIPLOOP_KEEPALIVE=off` turns the hooks off whatever the interpreter. Historical behavior measurements:
 [the portability audit](shiploop-portability-audit-journal.md).

@@ -121,7 +121,7 @@ def published_floor(scripts, card):
     floor = values[0]
     if any(type(n) is not int for n in floor) or floor < MINIMUM:
         raise ValueError("published FLOOR must meet the current project minimum 3.15")
-    expected = "needs `python3` %d.%d or newer and `git` on PATH" % floor
+    expected = "needs Python %d.%d or newer (`python3` or `python3.N` on PATH) and `git` on PATH" % floor
     if expected not in " ".join(card.read_text().split()):
         raise ValueError("installed card and published guard disagree")
     return floor

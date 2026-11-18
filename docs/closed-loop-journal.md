@@ -560,6 +560,20 @@ Evidence: `docs/experiments/closed-loop-smoke-20261118/harness-python-pin-checks
 - **Not known.** No real model session has run with the pin. On Linux, login shells do not reorder PATH, so there only the environment-PATH half
   matters; the startup-file half is proven on macOS only.
 
+### R17. ShipLoop itself runs again on a qualifying Python (2026-11-18)
+
+- **The owner's words.** "We should not fail on the python version of we don't have to , that should be just pick up the last minimal version."
+  My reading, stated to the owner before the work: below the floor, use the newest installed Python that meets it, and refuse only when there is none.
+- **The account is the portability journal's Round 13** (`docs/shiploop-portability-audit-journal.md`, F40 to F43). In short: below the floor,
+  `shiploop_pyfloor.require` runs the entry script again (`os.execv`) on the newest `python3` or `python3.N` on PATH that is 3.15 or newer, and the
+  card tells the model to start the CLI with `python3` even when its version is older, where it used to send the model to check the version and stop.
+  On this Mac the smoke's situation (a throwaway HOME's login shell, Apple's 3.9.6 first) now starts the CLI
+  (`docs/experiments/closed-loop-smoke-20261118/python-auto-select.txt`).
+- **With R16**, the harness's homes already give a qualifying `python3`, so E2E runs do not exercise this path; it serves the owner's and users' own
+  shells, and hosts whose hooks start an old `python3`.
+- **No E2E round** for this change: the selection happens before any ShipLoop module loads, and 16 hermetic tests (8 of 8 mutants caught) and the
+  real-case check hold it; the commit carries `No-E2E-Round`.
+
 ## Findings
 
 | # | Finding | Status | Evidence |

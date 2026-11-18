@@ -430,6 +430,44 @@ Support/Cursor/logs/`; they list the account's whole plugin set, so they stay on
 matter), `cursor-agent plugin marketplace list --format json` before and after, `~/.claude/plugins/installed_plugins.json`, and the
 app's Installed list and skill-craft page.
 
+## Round 13 — below the floor, ShipLoop runs again on a qualifying Python (2026-11-18)
+
+Found by the closed-loop smoke of 2026-11-18 (`docs/closed-loop-journal.md` R15): in a login shell macOS path_helper puts
+`/usr/bin` first, so `python3` was Apple's 3.9.6, below the 3.15 floor that 7a04fc044edb4418e92551c5619c48192862575b set
+(that commit made no live run). One model session found `python3.15` and carried on; the other followed the card ("ShipLoop
+needs `python3` 3.15 or newer ... report the missing prerequisite"), ran `python3 --version` itself and stopped before
+starting the CLI. The owner, in their words: "We should not fail on the python version of we don't have to , that should be
+just pick up the last minimal version." I read it, and said so, as: below the floor, use the newest installed Python that
+meets it, and refuse only when there is none.
+
+| Change | Where |
+|---|---|
+| Below the floor, `require` runs the same script again with `os.execv` (the process is replaced, so stdin, a hook's payload, is untouched and the exit status is the new run's) on the newest `python3` or `python3.N` on PATH that is 3.15 or newer, keeping `-I`, `-E`, `-s` and `-B`. Each candidate is asked its version once with `-c`; the running interpreter and a `python3.N` whose name is below the floor are not asked; one file under two names is asked once. `SHIPLOOP_PYTHON_REEXEC` marks the run again so a second one never follows, and an interpreter at the floor clears it for its children. With no qualifying Python, the CLI still exits 2 with one line (now naming the interpreter that ran) and a hook event still exits 0 silently | `skills/shiploop/scripts/shiploop_pyfloor.py` (`candidates`, `newest`, `require`), still Python 3.7 syntax |
+| The card: start the CLI with `python3` even when `python3 --version` is older and do not check the version first; report a missing prerequisite only when the CLI refuses, or `git` or the CLI is unavailable | `skills/shiploop/SKILL.md` |
+| The floor test (16 tests): the refusal with only old interpreters on PATH, or none; the run again picks the newest and keeps arguments, options and stdin; the mark stops a second run again; a chosen interpreter that cannot be run is named; at the floor the mark is cleared. Every other interpreter is a stub that answers the version query and records what it ran | `test/shiploop-python-floor.test.py` |
+| The card's floor phrase, as the published-install smoke and the package-integrity fixture read it | `test/published-install-smoke.py`, `test/shiploop-package-integrity.test.py` |
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F40 | Apple's `python3` 3.9.6 first on PATH no longer stops ShipLoop on this Mac: in a throwaway HOME's login shell, as in the smoke, `python3 --version` says 3.9.6 and `python3 <cli> --help` exits 0 on Homebrew's 3.15.1; a hook event exits 0 with no output; with no qualifying Python on PATH the CLI exits 2, naming the interpreter that ran (Xcode's, behind the `/usr/bin` stub) | firm (one machine) | `docs/experiments/closed-loop-smoke-20261118/python-auto-select.txt` |
+| F41 | The run again costs a hook event about 50 ms here: median 85 ms with Apple's `python3` first (search, then 3.15), 36 ms when `python3` already meets the floor, 16 ms for the old exit that did nothing (15 runs each, idle machine) | firm (one machine) | the same file |
+| F42 | A card that states a prerequisite's version sends the model to check it and stop, where the CLI could have carried on; the card now says what the CLI does and when to report | interim (the old wording's effect rests on one session; the new wording has not met a live session) | `docs/experiments/closed-loop-smoke-20261118/python-in-login-shells.json` |
+| F43 | Each rule of the search is held by a failing test when broken: 8 of 8 mutants caught (no name skip; no realpath dedupe; first qualifying instead of newest; no mark check; mark kept at the floor; options dropped; exec failure not named; a hook event printing the refusal), the file restored and its digest checked | firm | the mutation driver's output, quoted in the commit message |
+
+Decided (routine): the newest qualifying interpreter, per the owner's words; `os.execv` rather than a child process, so no
+second process carries ShipLoop's work and a hook's stdin needs no copying; the word "newest" stays out of the card, whose
+recovery check forbids it (that rule is about guessing a run folder, so the card says "a `python3` or `python3.N`").
+
+Contrary evidence and unknowns:
+- No live model session has met the new card wording or the run again. The next real E2E run will not exercise it either:
+  the harness now pins `python3` in its throwaway homes (`docs/closed-loop-journal.md` R16).
+- Linux was not run live; the hermetic tests run there in CI.
+- A pyenv-style shim answers the version query through its own launcher; its cost and output were not measured.
+- A free-threaded build (`python3.15t`) is not a candidate.
+- The search runs on every hook event while `python3` is below the floor; nothing is cached.
+- `shiploop_status_hook.py` (the status display hook) has no floor check; it still imports and exits 0 on 3.9.6, so it was
+  left as it is.
+
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
 1. **Declare the floor.** One line in `skills/shiploop/SKILL.md` and its README: Python 3.9 or newer and `git` on PATH.

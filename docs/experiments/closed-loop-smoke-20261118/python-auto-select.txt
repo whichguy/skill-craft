@@ -1,0 +1,22 @@
+date: 2026-11-18T10:24:58Z; macOS 27.2.1; commit fca50280cf2252025dc19fcd317dc6703b052f00 plus the uncommitted change
+interpreters: /usr/bin/python3 -> /Applications/Xcode.app/Contents/Developer/usr/bin/python3 3.9.6; /opt/homebrew/bin/python3 -> 3.15.1
+
+$ env -i HOME=<throwaway-home> PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin /bin/zsh -lc 'python3 --version; python3 <repo>/skills/shiploop/scripts/shiploop --help | head -1'
+Python 3.9.6
+usage: shiploop [-h]
+exit=0
+
+$ env -i HOME=<throwaway-home> PATH=/usr/bin:/bin:/opt/homebrew/bin /usr/bin/python3 -c '<the interpreter the CLI chooses>'
+chosen: ((3, 15), '/opt/homebrew/bin/python3')
+
+$ printf '{}' | env -i HOME=<throwaway-home> PATH=/usr/bin:/bin:/opt/homebrew/bin /usr/bin/python3 <repo>/skills/shiploop/scripts/shiploop-hook observe --host auto
+exit=0 output_bytes=0
+
+$ env -i HOME=<throwaway-home> PATH=/usr/bin:/bin /usr/bin/python3 <repo>/skills/shiploop/scripts/shiploop --help
+error: ShipLoop needs Python 3.15 or newer; this Python (/Applications/Xcode.app/Contents/Developer/usr/bin/python3) is 3.9.6, and no python3 or python3.N on PATH is 3.15 or newer; install one or put it on PATH.
+exit=2
+
+hook event cost, median of 15 runs each (wall ms):
+  python3 at the floor (/opt/homebrew/bin/python3), no search            36
+  Apple python3 first, search then run again on 3.15                     85
+  Apple python3 start alone (what the old silent exit cost, about)       16

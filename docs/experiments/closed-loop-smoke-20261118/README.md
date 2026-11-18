@@ -13,3 +13,4 @@ window 1, subject profile Codex `gpt-6.1-terra` at `high`. Journal: `docs/closed
 | `next.json` | the orchestrator's next action: stop, "owner decisions are needed before any further investigation" |
 | `python-in-login-shells.json` | what `python3` each real session saw: Apple's 3.9.6 in both; the readiness session used `python3.15`, the step's session reported a missing prerequisite |
 | `harness-python-pin-checks.txt` | the checks of the fix in the harness (journal R16): the quick tier's one failure, a test that read the new startup files as a platform's, and the reruns after narrowing it |
+| `python-auto-select.txt` | the real case after ShipLoop's own fix (journal R17; portability journal Round 13): with Apple's 3.9.6 first on PATH the CLI starts on Homebrew's 3.15.1, a hook event stays silent, the refusal when no Python qualifies, and what the run again costs a hook event |
