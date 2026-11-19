@@ -556,7 +556,7 @@ class CodexHost(Host):
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=None, plugin_dir=None, resume=None, allow=(), workspace_state=None):
-        if permission_mode not in ("auto", "never", "read-only", CODEX_AUTO_REVIEW):
+        if permission_mode not in (None, "auto", "never", "read-only", CODEX_AUTO_REVIEW):
             raise ValueError(f"unsupported Codex permission mode: {permission_mode}")
         prompt_file.write_bytes(prompt.encode("utf-8"))
         legacy = "read-only" if permission_mode == "read-only" else "danger-full-access"
