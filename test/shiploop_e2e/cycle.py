@@ -320,6 +320,7 @@ def qualify_built(root: Path, record: str, prediction_file: Path, control_plugin
                   cases: dict[str, str], driver: dict, calibration: dict, args, ledger: Path,
                   candidate_ref: str | None = None) -> dict:
     """Steps 3 to 7's measured part: register, run, review, decide, and the prediction's verdict."""
+    import iterate
     import run as runner
     try:
         control, candidate = runner.tree_digest(control_plugin), runner.tree_digest(candidate_plugin)
@@ -328,10 +329,15 @@ def qualify_built(root: Path, record: str, prediction_file: Path, control_plugin
         if control == candidate:
             raise ValueError("the candidate's build is the control's: there is nothing to compare")
         template = root.parent / f"{root.name}-registration.json"
-        template.write_text(json.dumps(registration_template(cases, control, candidate, driver, calibration["attempts"],
-                                                             calibration["tolerance"], calibration["metric"],
-                                                             getattr(args, "budget", None)), indent=2) + "\n")
-        epoch.initialise(root, template, prediction_file)
+        registration = registration_template(cases, control, candidate, driver, calibration["attempts"],
+                                             calibration["tolerance"], calibration["metric"], getattr(args, "budget", None))
+        if driver.get("permission_mode") == hosts.CODEX_AUTO_REVIEW:
+            for arm, plugin in (("control", control_plugin), ("candidate", candidate_plugin)):
+                registration["arms"][arm]["installed_skills"] = runner.skill_digests(plugin)
+        template.write_text(json.dumps(registration, indent=2) + "\n")
+        epoch.initialise(root, template, prediction_file,
+                         profiles={**{role: iterate.role_profile(args, role) for role in ("reviewer", "judge", "improver")},
+                                   "subject": {key: driver[key] for key in ("host", "model", "effort")}})
     except ValueError as error:
         raise RegistrationRefused(str(error)) from error
     predicted = epoch.state(root)["prediction"]
@@ -770,7 +776,8 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
         head = _git(worktree, "rev-parse", "HEAD")
         script = purpose_check.script_check(worktree, tip, head, record_id, record.get("files"))
         reviewed = None if not script["passed"] else purpose_check.review(
-            worktree, tip, head, record, predicted, stage / f"purpose-{attempt}", codex_bin=getattr(args, "codex_bin", "codex"))
+            worktree, tip, head, record, predicted, stage / f"purpose-{attempt}",
+            codex_bin=getattr(args, "codex_bin", "codex"), **iterate.role_profile(args, "judge"))
         verdict = purpose_check.decide(script, reviewed)
         (stage / f"purpose-{attempt}.json").write_text(json.dumps({"script": script, "review": reviewed,
                                                                    "decision": verdict}, indent=2) + "\n")
@@ -809,6 +816,10 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
     candidate_plugin = build(worktree, stage / "candidate-build")
     driver = hosts.resolve_role("subject", {"host": args.host, "model": args.model, "effort": args.effort})
     driver = {key: driver[key] for key in ("host", "model", "effort")}
+    if getattr(args, "permission_mode", None) == hosts.CODEX_AUTO_REVIEW:
+        driver["permission_mode"] = hosts.CODEX_AUTO_REVIEW
+    if getattr(args, "run_timeout", None):
+        driver["timeout_seconds"] = args.run_timeout
     try:
         result = qualify_built(stage / "epoch", record_id, prediction_file, control_plugin, candidate_plugin, roles,
                                driver, calibration, args, ledger, candidate_sha)
@@ -838,19 +849,64 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
 
 def explore(worktree: Path, stage: Path, args) -> list[str]:
     """One exploration run of the exposing case on the tip, reviewed and judged; returns the records it opened."""
+    import run as runner
+    stage.mkdir(parents=True, exist_ok=True)
+    plugin = build(worktree, stage / "build")
+    runner.main(["--case", args.case, "--host", args.host, "--output", str(stage / "run"), "--plugin-dir", str(plugin),
+                 "--baseline", str(stage / "baselines.jsonl"),
+                 *hosts.permission_args(args.permission_mode),
+                 *(["--timeout", str(args.run_timeout)] if getattr(args, "run_timeout", None) else []),
+                 *(["--model", args.model] if args.model else []), *(["--effort", args.effort] if args.effort else [])])
+    return assess_exploration(worktree, stage, args, stage / "run")
+
+
+def assess_published(worktree: Path, stage: Path, args) -> list[str]:
+    """Admit learning from an exact published discovery without rebuilding its product."""
+    import run as runner
+    run_dir = args.review_run.resolve()
+    try:
+        result = json.loads((run_dir / "result.json").read_text())
+        invocation = json.loads((run_dir / "invocation.json").read_text())
+    except (OSError, ValueError) as error:
+        raise SystemExit(f"--review-run needs the original result and launch record: {error}") from None
+    versions = result.get("versions") or {}
+    released = versions.get("released") or {}
+    driver = hosts.resolve_role("subject", {"host": args.host, "model": args.model, "effort": args.effort})
+    case = runner.catalog().get(args.case, {})
+    expected = boundary.fingerprint(HERE, case)
+    revision = _git(worktree, "rev-parse", "HEAD")
+    installed = runner.skill_digests(Path(invocation.get("plugin_dir") or run_dir / "missing-plugin"))
+    published = runner.skill_digests(worktree / "plugins" / runner.PLUGIN_NAME)
+    if (result.get("case") != args.case or any(result.get(key) != value for key, value in driver.items())
+            or invocation.get("case") != args.case or any(invocation.get(key) != value for key, value in driver.items())
+            or versions.get("source") != "marketplace" or versions.get("gate") != []
+            or invocation.get("versions") != versions
+            or released.get("origin_main") != revision or released.get("local_head") != revision
+            or not all(installed.values()) or installed != published
+            or any(versions.get(key) != digest for key, digest in installed.items())
+            or result.get("permission_mode") != hosts.CODEX_AUTO_REVIEW
+            or invocation.get("permission_mode") != hosts.CODEX_AUTO_REVIEW
+            or "--approve-for-me" not in invocation.get("argv", ())
+            or invocation.get("timeout_seconds") != result.get("timeout_seconds")
+            or (getattr(args, "run_timeout", None) and invocation.get("timeout_seconds") != args.run_timeout)
+            or (not (case.get("base") or case.get("follows")) and
+                (invocation.get("fresh_product") is not True
+                 or any(invocation.get(key) for key in ("base", "follow_on", "seeded"))))
+            or not (result.get("invoked") or {}).get("pass") or not (result.get("plugin") or {}).get("pass")
+            or any((result.get("boundary") or {}).get(key) != value for key, value in expected.items())):
+        raise SystemExit("--review-run does not match this case, published checkout, evaluator and driver")
+    stage.mkdir(parents=True, exist_ok=True)
+    return assess_exploration(worktree, stage, args, run_dir)
+
+
+def assess_exploration(worktree: Path, stage: Path, args, run_dir: Path) -> list[str]:
+    """Use one fresh read-only reviewer and judge, then record the evidence and any discoveries."""
     import iterate
     import judge
     import review as reviewer
-    import run as runner
-    stage.mkdir(parents=True, exist_ok=True)
     tip = _git(worktree, "rev-parse", "HEAD")
-    plugin = build(worktree, stage / "build")
-    runner.main(["--case", args.case, "--host", args.host, "--output", str(stage / "run"), "--plugin-dir", str(plugin),
-                 "--permission-mode", args.permission_mode,
-                 *(["--model", args.model] if args.model else []), *(["--effort", args.effort] if args.effort else [])])
     ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
-    verdict = reviewer.review(stage / "run", **iterate.role_profile(args, "reviewer"),
-                              skill_root=worktree / "skills" / "shiploop",
+    verdict = reviewer.review(run_dir, **iterate.role_profile(args, "reviewer"),
                               prior_learnings=reviewer.last_commit_messages(worktree),
                               records=learning_records.reviewer_view(ledger))
     if not (verdict.get("validity") or {}).get("discovery_qualified"):
@@ -858,24 +914,24 @@ def explore(worktree: Path, stage: Path, args) -> list[str]:
         status = validity.get("status") or "unknown"
         detail = validity.get("reason") or "the review did not qualify a discovery"
         reason = f"Review validity {status}: {detail}; no discovery-qualified learning record was admitted"
-        note = f"No learning record was admitted; exploration artifacts remain at {stage / 'run'}."
+        note = f"No learning record was admitted; exploration artifacts remain at {run_dir}."
         commit_terminal_learning(worktree, stage, None, None, "INVALID_REVIEW", reason, tip, None,
                                  None, [args.case], note,
-                                 exploration_run_summary(stage / "run" / "result.json"))
+                                 exploration_run_summary(run_dir / "result.json"))
         return []
     for asked in range(JUDGE_ASSESSMENTS):  # the first judgment keeps its folder name; each later one gets its own
-        judged = judge.judge(stage / "run", verdict, **iterate.role_profile(args, "judge"),
+        judged = judge.judge(run_dir, verdict, **iterate.role_profile(args, "judge"),
                              **({"assessment_id": f"retry-{asked}"} if asked else {}))
         if (judged.get("validity") or {}).get("status") == "valid":
             break
     routes = judge.admitted(verdict, judged)
-    opened = learning_records.ingest(verdict, routes, {"run": str(stage / "run"), "case": args.case,
+    opened = learning_records.ingest(verdict, routes, {"run": str(run_dir), "case": args.case,
                                                        "review_sha256": judged.get("review_sha256"),
                                                        "exposure": "development"}, ledger)
-    result = json.loads((stage / "run" / "result.json").read_text())
+    result = json.loads((run_dir / "result.json").read_text())
     verdict["judge"], verdict["actionable"], verdict["learning_records"] = judged, routes["implementation"], opened
     sha = _git(worktree, "rev-parse", "HEAD")
-    iterate.record_learnings(worktree, iterate.learnings_message(0, args, sha, result, verdict, []), stage)
+    iterate.record_learnings(worktree, iterate.learnings_message(0, args, sha, result, verdict, []), stage, run_dir=run_dir)
     return opened
 
 
@@ -904,12 +960,22 @@ def loop(args) -> int:
                               f"{calibration['attempts']} attempts per arm, "
                               f"tolerance {calibration['tolerance']} on {calibration['metric']}"])
     stop, misses = f"reached --iterations {args.iterations}", 0
+    records = None
+    if getattr(args, "review_run", None):
+        opened = assess_published(worktree, out / "published-exploration", args)
+        iterate.journal(journal, ["## Published exploration", "", f"- records opened: {', '.join(opened) or 'none'}"])
+        records = set(opened)
+    elif getattr(args, "record", None):
+        records = {args.record}
     for index in range(1, args.iterations + 1):
         if boundary.qualification_snapshot(HERE, cases) != frozen:
             stop = "the evaluator changed: start a new loop"
             break
-        record = learning_records.select(ledger, args.case, args.generality_case)
+        record = learning_records.select(ledger, args.case, args.generality_case, records=records)
         if record is None:
+            if records is not None:
+                stop = "no eligible record from the requested assessment"
+                break
             opened = explore(worktree, out / f"explore-{index}", args)
             iterate.journal(journal, [f"## Exploration {index}", "", f"- records opened: {', '.join(opened) or 'none'}"])
             record = learning_records.select(ledger, args.case, args.generality_case)
@@ -917,6 +983,7 @@ def loop(args) -> int:
                 stop = "no admitted learning record after exploring"
                 break
         result = qualify(worktree, name, record, out / f"cycle-{index}", args, calibration)
+        records = None
         iterate.journal(journal, [f"## Cycle {index}: {record}", "", f"- decision: {result['decision']}",
                                   f"- reasons: {'; '.join(result.get('reasons') or [])}",
                                   f"- {result.get('tip_note', '')}"])

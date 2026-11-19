@@ -616,7 +616,7 @@ def build_candidate(out: Path) -> Path:
     return out / "build" / "plugins" / PLUGIN_NAME
 
 
-def tree_digest_checked(root: Path) -> tuple[str | None, str | None]:
+def tree_digest_checked(root: Path, *, include_modes: bool = False) -> tuple[str | None, str | None]:
     """(a digest of the plugin tree a host loads, None) or (None, why it could not be made). 12 hex.
 
     Each file's relative path and the sha256 of its bytes. A version string does not identify a build (two Battleship
@@ -643,15 +643,32 @@ def tree_digest_checked(root: Path) -> tuple[str | None, str | None]:
                 found.append(path.relative_to(root))
     digest = hashlib.sha256()
     for relative in sorted(found):
+        path = root / relative
         try:
-            data = (root / relative).read_bytes()
+            data = path.read_bytes()
+            mode = b"\0" + str(path.stat().st_mode & 0o111).encode() if include_modes else b""
         except OSError as error:
             problems.append(f"{root / relative}: {error.strerror}")
             continue
-        digest.update(relative.as_posix().encode() + b"\0" + hashlib.sha256(data).hexdigest().encode() + b"\n")
+        digest.update(relative.as_posix().encode() + mode + b"\0" + hashlib.sha256(data).hexdigest().encode() + b"\n")
     if problems:
         return None, f"unreadable: {problems[0]}" + (f" (and {len(problems) - 1} more)" if len(problems) > 1 else "")
-    return digest.hexdigest()[:12], None
+    return (digest.hexdigest() if include_modes else digest.hexdigest()[:12]), None
+
+
+def skill_digests(plugin_dir: Path) -> dict:
+    return {f"{name}_sha256": tree_digest_checked(plugin_dir / "skills" / name, include_modes=True)[0]
+            for name in ("shiploop", "improve")}
+
+
+def verify_skill_install(expected: Path, installed: Path, versions: dict) -> None:
+    """Bind the actual cache copy to the intended ShipLoop and Improve package bytes and modes."""
+    wanted = skill_digests(expected)
+    observed = skill_digests(installed)
+    versions.update(observed)
+    for key, digest in wanted.items():
+        if not digest or digest != observed[key]:
+            versions["gate"].append(f"installed {key.removesuffix('_sha256')} differs from the selected build")
 
 
 def tree_digest(root: Path) -> str | None:
@@ -722,6 +739,15 @@ def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None
     versions["gate"] = version_gate(released, versions["plugin_version"], versions["shiploop_version"])
     if plugin is not None and not plugin["pass"]:
         versions["gate"].append("the marketplace install failed: " + ("; ".join(plugin["loaded"]) or "no plugin"))
+    if (getattr(args, "permission_mode", None) == hosts.CODEX_AUTO_REVIEW
+            and not getattr(args, "environment_binding", None) and not versions["gate"]):
+        if released["local_head"] != released["origin_main"] or git("status", "--porcelain", "--untracked-files=all"):
+            versions["gate"].append("the marketplace improvement trial needs a clean checkout of current origin/main")
+        else:
+            expected = export_released(out, released["origin_main"])
+            if skill_digests(ROOT) != skill_digests(expected):
+                versions["gate"].append("published ShipLoop or Improve differs from source on current main")
+            verify_skill_install(expected, plugin_dir, versions)
     print(preflight_line(versions), flush=True)
     return plugin_dir, plugin, versions
 
@@ -1246,7 +1272,7 @@ def resume_command(out: Path, args) -> str:
              *(["--timeout", str(args.timeout)] if args.timeout else []),
              *(["--max-resumes", str(args.max_resumes)] if args.max_resumes is not None else []),
              *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
-             "--permission-mode", args.permission_mode]
+             *hosts.permission_args(args.permission_mode)]
     binary = getattr(args, args.host + "_bin")
     if binary != parser().get_default(args.host + "_bin"):
         parts += [f"--{args.host}-bin", binary]
@@ -2782,7 +2808,10 @@ def parser() -> argparse.ArgumentParser:
     # No limit is imposed unless one is asked for (owner 2026-10-24: no turn, spend, time or resume limit by default).
     p.add_argument("--max-budget-usd", type=float, default=None,
                    help="claude --backend anthropic only, default none; grok and codex have no spend cap")
-    p.add_argument("--permission-mode", default="auto")
+    permissions = p.add_mutually_exclusive_group()
+    permissions.add_argument("--permission-mode", default="auto", help="host permission mode")
+    permissions.add_argument("--codex-auto-review", action="store_const", const=hosts.CODEX_AUTO_REVIEW, dest="permission_mode",
+                             help="use the Codex workspace sandbox with automatic review of individual commands")
     p.add_argument("--timeout", type=int, default=None, help="seconds before the host is killed; default: none")
     p.add_argument("--max-resumes", type=int, default=None,
                    help="resumable hosts (grok, codex): resume the same session at most this many times while ShipLoop is still active; "
@@ -4082,6 +4111,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.permission_mode == hosts.CODEX_AUTO_REVIEW and not args.resume_run and args.host != "codex":
+        raise SystemExit("--permission-mode auto-review requires --host codex")
     hosted = None
     if args.environment_binding is not None:
         from hosted_outcome import attempt
@@ -4214,6 +4245,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                              f"{state.get('status')!r} in {out}" + (f": {state['reason']}" if state.get("reason") else ""))
         launched = runrecord.launches(out)
         last_launch = launched[-1][1] if launched else earlier  # the launch that ran it last, which a resume continues
+        if regrade or last_launch.get("permission_mode") == hosts.CODEX_AUTO_REVIEW:
+            args.permission_mode = last_launch.get("permission_mode", "auto")
+            args.timeout = last_launch.get("timeout_seconds")
         if not regrade:
             asked = host_given(argv)
             args.host, args.model, args.effort = resume_identity(args, asked, last_launch, out)
@@ -4378,6 +4412,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # Everything this run starts (the host, ShipLoop, the grading of the work folder) finds no repository above the run.
     os.environ.update(isolate_git_discovery(os.environ, out))
     host = the_host(args)
+    if args.permission_mode == hosts.CODEX_AUTO_REVIEW and host.name != "codex":
+        raise SystemExit("an auto-review run requires the Codex host")
     args.model = args.model or host.model
     args.effort = args.effort or host.effort
     args.skill = args.skill or host.skill
@@ -4496,6 +4532,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         plugin = host.install_plugin(env, plugin_dir)
         require_installed(plugin, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
+        if args.permission_mode == hosts.CODEX_AUTO_REVIEW:
+            versions["gate"] = []
+            installed = Path(plugin["path"]) if plugin and plugin.get("path") else out / "missing-plugin"
+            verify_skill_install(plugin_dir, installed, versions)
+            if versions["gate"]:
+                (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions},
+                                                             indent=2) + "\n")
+                raise SystemExit("version gate: " + "; ".join(versions["gate"]))
     keepalive = host.keepalive_install(env, plugin_dir)
     # The hook foresees Auto-review's floor, so only an auto launch gets one; any other launch (and a regrade) reports
     # the hook its profile already holds, which stays inert outside auto (grok_preempt.decide).
@@ -4539,13 +4583,18 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                                                         seeded["stage"])) if seeded
                else exact_opening if exact_opening is not None
                else case_opening(host, args.skill, prompt))
+    workspace_grant = {}
+    if args.permission_mode == hosts.CODEX_AUTO_REVIEW and not regrade:
+        workspace_state = out / ".shiploop-runs"
+        workspace_state.mkdir(exist_ok=True)
+        workspace_grant["workspace_state"] = workspace_state
     stamp = launch_stamp(out, host.name) if resumed else None
     cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
                                                        f"resume-{host.name}-{stamp}.txt"),
                     cwd=work, model=args.model, effort=args.effort,
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
-                    plugin_dir=None if host.marketplace else plugin_dir, allow=host_allow)
+                    plugin_dir=None if host.marketplace else plugin_dir, allow=host_allow, **workspace_grant)
     # The host CLI's build, probed once for this launch and written on this launch's record. A regrade starts no host: it
     # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
     # that ran). Claude's build is its init event's (read below), so it is never probed.
@@ -4579,7 +4628,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         LAUNCH_PREDATES if regrade and "plugin_sha256" not in versions else "no reason recorded")
     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
+    launch_settings = {}
+    if args.permission_mode == hosts.CODEX_AUTO_REVIEW:
+        launch_settings["permission_mode"] = args.permission_mode
+        launch_settings["fresh_product"] = earlier.get("fresh_product") if resumed else not any(work.iterdir())
+    if args.timeout:
+        launch_settings["timeout_seconds"] = args.timeout
     invocation = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort, "argv": cli,
+                  **launch_settings,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
@@ -4593,16 +4649,17 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         invocation["platform"] = {"spec": platform_spec, "dir": str(out / "platform"), **platform_state,
                                   **({"existing": existing} if existing != "fresh" else {})}
         invocation["keep_platform"] = args.keep_platform  # this invocation's own: a resume keeps the platform only if told again
+    invocation_path = out / f"invocation-resume-{host.name}-{stamp}.json" if resumed else out / "invocation.json"
+    invocation_bytes = (json.dumps(invocation, indent=2) + "\n").encode("utf-8")
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
-        (out / f"invocation-resume-{host.name}-{stamp}.json").write_text(
-            json.dumps(invocation, indent=2) + "\n")
+        invocation_path.write_bytes(invocation_bytes)
     else:
         if exact_opening is not None:
             (out / "prompt.txt").write_bytes(prompt.encode("utf-8"))
         else:
             (out / "prompt.txt").write_text(prompt + "\n")
-        (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
+        invocation_path.write_bytes(invocation_bytes)
     # Provider contention is observed, not reserved (SPEC "The resource lifecycle"): the live runs on this host and model now.
     start_contention = None if regrade else lifecycle.contention(out, args.host, args.model)
     if not args.quiet:
@@ -4637,6 +4694,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     platform_dir = out / "platform"
     before_record_file = platform_dir / "before-record.json"
     platform_before = None
+    if (args.permission_mode == hosts.CODEX_AUTO_REVIEW and not regrade
+            and (not invocation_path.is_file() or invocation_path.read_bytes() != invocation_bytes)):
+        raise SystemExit("launch evidence changed during the scoped run")
     if platform_spec and not regrade:
         if resumed:
             # A resume does not snapshot again: the first run's snapshot is what the cleanup compares with.
@@ -4746,7 +4806,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   f"{'not yet started' if state.get('status') is None else 'active at revision ' + str(state.get('revision')) + ', stage ' + str(state.get('stage'))}", flush=True)
         argv = host.argv(prompt=resume_prompt(state.get("run_dir"), the_cli, refusal_note(host, out)),
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
-                         effort=args.effort, permission_mode=args.permission_mode,
+                         effort=args.effort, permission_mode=args.permission_mode, **workspace_grant,
                          max_turns=args.max_turns, resume=session_id, allow=host_allow)
         launched_at, resumed_any = state.get("revision"), True
         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
@@ -4952,6 +5012,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         outcome, outcome_basis = None, "hosted discovery requires independent product observations"
         hosted_identity["runner_pass"] = runner_pass
     result = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort,
+              **launch_settings,
               "pass": None if hosted else runner_pass, "invoked": invoked, "plugin": plugin, "versions": versions, **hosted_identity,
               # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
               # folder masked, the host CLI's build (Claude's

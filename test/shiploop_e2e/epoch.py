@@ -114,7 +114,7 @@ def append(root: Path, kind: str, **fields) -> dict:
     return row
 
 
-def initialise(root: Path, template: Path, prediction: Path | None = None) -> dict:
+def initialise(root: Path, template: Path, prediction: Path | None = None, *, profiles: dict | None = None) -> dict:
     root = root.resolve()
     checkout = HERE.parents[1]
     if root == checkout or checkout in root.parents:
@@ -155,7 +155,7 @@ def initialise(root: Path, template: Path, prediction: Path | None = None) -> di
     (root / LEDGER).touch(exist_ok=False)
     (root / "runs").mkdir()
     (root / "receipts").mkdir()
-    write_json(root / "roles.json", hosts.ROLE_DEFAULTS)
+    write_json(root / "roles.json", {**hosts.ROLE_DEFAULTS, **(profiles or {})})
     write_json(root / "specification.json", {"sha256": digest(HERE / "SPEC.md"),
                                             "text": (HERE / "SPEC.md").read_text()})
     bound = {}
@@ -264,6 +264,8 @@ def launch_intent(root: Path, attempt_id: str, plugin: Path) -> dict:
     expected = reg["arms"][spec["arm"]]
     if runner.tree_digest(plugin) != expected["shiploop_build"]:
         raise ValueError("plugin bytes differ from the registered ShipLoop build")
+    if expected.get("installed_skills") and runner.skill_digests(plugin) != expected["installed_skills"]:
+        raise ValueError("skill bytes or modes differ from the registered build")
     if not (plugin / "skills" / "shiploop" / "SKILL.md").is_file():
         raise ValueError("plugin does not contain the selected ShipLoop skill")
     output = root / "runs" / attempt_id
@@ -442,6 +444,10 @@ def launch(root: Path, attempt_id: str, plugin: Path) -> dict:
     argv = ["--case", intent["case"], "--host", driver["host"], "--model", driver["model"],
             "--effort", driver["effort"], "--plugin-dir", intent["plugin"], "--output", intent["output"],
             "--baseline", str(root.resolve() / "baselines.jsonl")]
+    if "permission_mode" in driver:
+        argv += hosts.permission_args(driver["permission_mode"])
+    if "timeout_seconds" in driver:
+        argv += ["--timeout", str(driver["timeout_seconds"])]
     if intent.get("predecessor"):
         argv += ["--predecessor-registration", str(root / "registration.json"),
                  "--predecessor-registration-sha256", intent["registration_sha256"]]

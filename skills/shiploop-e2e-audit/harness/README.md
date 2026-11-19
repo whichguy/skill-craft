@@ -274,7 +274,7 @@ Use one mode followed by `key=value` fields. Quote paths with spaces; repeated
 `only` / `artifact-root` fields or JSON string arrays are supported. Underscore
 spellings such as `max_turns` normalize to the documented `max-turns`. These
 fields are interpreted by Grok; they are not passed unchanged to Python. The
-[skill's complete argument mapping](../SKILL.md#argument-reference)
+[skill's complete argument mapping](../AUDIT.md#argument-reference)
 specifies the exact CLI option and mode restrictions for every field.
 
 | Field | Default or requirement |

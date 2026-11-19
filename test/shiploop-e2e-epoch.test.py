@@ -99,6 +99,43 @@ class EpochTest(unittest.TestCase):
         profiles = json.loads((self.root / "roles.json").read_text())
         self.assertEqual(profiles["improver"], {"host": "codex", "model": "gpt-6.1-sol", "effort": "max"})
 
+    def test_both_arms_use_the_registered_permissions_timeout_and_review_roles(self):
+        driver = {"host": "codex", "model": "requested-sol", "effort": "medium",
+                  "permission_mode": hosts.CODEX_AUTO_REVIEW, "timeout_seconds": 321}
+        improve = self.plugin / "skills/improve/SKILL.md"
+        improve.parent.mkdir()
+        improve.write_text("fixture improve")
+        build = runner.tree_digest(self.plugin)
+        skills = runner.skill_digests(self.plugin)
+        for arm in self.reg["arms"].values():
+            arm["driver"] = driver
+            arm["shiploop_build"] = build
+            arm["installed_skills"] = skills
+        self.template.write_text(json.dumps(self.reg))
+        root = self.temp / "scoped"
+        reviewers = {role: {"host": "codex", "model": "requested-astra", "effort": "high"}
+                     for role in ("reviewer", "judge")}
+        epoch.initialise(root, self.template, profiles=reviewers)
+        improve.chmod(0o755)
+        with self.assertRaisesRegex(ValueError, "modes differ"):
+            epoch.launch_intent(root, "control-hello", self.plugin)
+        improve.chmod(0o644)
+
+        def completed_run(argv):
+            args = runner.parser().parse_args(argv)
+            self.assertEqual((args.host, args.model, args.effort), ("codex", "requested-sol", "medium"))
+            self.assertEqual((args.permission_mode, args.timeout), (hosts.CODEX_AUTO_REVIEW, 321))
+            args.output.mkdir()
+            (args.output / "result.json").write_text(json.dumps({"case": args.case, "pass": True}))
+            return 0
+
+        with mock.patch.object(runner, "main", side_effect=completed_run) as launched:
+            for arm in ("control", "candidate"):
+                epoch.launch(root, arm + "-hello", self.plugin)
+        self.assertEqual(launched.call_count, 2)
+        profiles = json.loads((root / "roles.json").read_text())
+        self.assertEqual({role: profiles[role] for role in reviewers}, reviewers)
+
     def test_launch_retains_summary_rows_in_epoch_without_mutating_source_baseline(self):
         source_baseline = self.temp / "source-baselines.jsonl"
         accepted = '{"case": "accepted-history"}\n'

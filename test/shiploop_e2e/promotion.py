@@ -45,6 +45,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import boundary  # noqa: E402  (boundary.GROUPS: the grading digests)
+import hosts  # noqa: E402
 import metrics  # noqa: E402  (metrics.span: the one span reader)
 import predecessor  # noqa: E402
 import scorecard  # noqa: E402  (the cards the contract reads)
@@ -195,10 +196,26 @@ def _strict_registration(raw: dict, data: bytes) -> dict:
         if not isinstance(arm_spec, dict) or not _valid_build(arm_spec.get("shiploop_build")):
             raise SystemExit(f"promotion/5 {name} arm needs a ShipLoop build digest")
         driver = arm_spec.get("driver")
-        if (not isinstance(driver, dict) or set(driver) != {"host", "model", "effort"}
+        fields = {"host", "model", "effort"}
+        if isinstance(driver, dict) and "permission_mode" in driver:
+            if driver["permission_mode"] != hosts.CODEX_AUTO_REVIEW or driver.get("host") != "codex":
+                raise SystemExit(f"promotion/5 {name} arm has an unsupported permission mode")
+            fields.add("permission_mode")
+        if isinstance(driver, dict) and "timeout_seconds" in driver:
+            timeout = driver["timeout_seconds"]
+            if type(timeout) is not int or timeout <= 0:
+                raise SystemExit(f"promotion/5 {name} arm needs a positive timeout")
+            fields.add("timeout_seconds")
+        if (not isinstance(driver, dict) or set(driver) != fields
                 or any(not isinstance(driver.get(key), str) or not driver[key].strip()
                        for key in ("host", "model", "effort"))):
             raise SystemExit(f"promotion/5 {name} arm needs exact host, model, and effort driver bindings")
+        if driver.get("permission_mode") == hosts.CODEX_AUTO_REVIEW:
+            skills = arm_spec.get("installed_skills")
+            if (not isinstance(skills, dict) or set(skills) != {"shiploop_sha256", "improve_sha256"}
+                    or any(not isinstance(value, str) or len(value) != 64
+                           or any(char not in "0123456789abcdef" for char in value) for value in skills.values())):
+                raise SystemExit(f"promotion/5 {name} scoped arm needs exact skill bytes and modes")
         if "product" in arm_spec and (not isinstance(arm_spec["product"], str) or not arm_spec["product"].strip()):
             raise SystemExit(f"promotion/5 optional {name} product pin must be a non-empty string")
     control, candidate = arms["control"], arms["candidate"]
@@ -210,7 +227,8 @@ def _strict_registration(raw: dict, data: bytes) -> dict:
         raise SystemExit("calibration requires the same ShipLoop build and host/model/effort driver")
     if reg["purpose"] == "model_only" and (not same_build or
             control_driver["model"] == candidate_driver["model"] or
-            any(control_driver[key] != candidate_driver[key] for key in ("host", "effort"))):
+            any(control_driver.get(key) != candidate_driver.get(key)
+                for key in ("host", "effort", "permission_mode", "timeout_seconds"))):
         raise SystemExit("model_only requires the same ShipLoop build and host/effort, with a different model")
     attempts = reg.get("attempts")
     if not isinstance(attempts, list) or not attempts:
@@ -691,6 +709,12 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
             expected_driver = arm_spec.get("driver") if isinstance(arm_spec.get("driver"), dict) else {}
             if any(driver.get(key) != expected_driver.get(key) for key in ("host", "model", "effort")):
                 add_evidence_error(row, f"{attempt_id}: recorded host/model/effort does not match the {side} arm binding")
+            for setting in ("permission_mode", "timeout_seconds"):
+                if driver.get(setting) != expected_driver.get(setting):
+                    add_evidence_error(row, f"{attempt_id}: recorded {setting} does not match the {side} arm binding")
+            installed = arm_spec.get("installed_skills") or {}
+            if any((card.get("versions") or {}).get(key) != value for key, value in installed.items()):
+                add_evidence_error(row, f"{attempt_id}: installed skills do not match the {side} arm binding")
             product_ok, product_why = _strict_product_valid(card)
             if not product_ok:
                 add_evidence_error(row, f"{attempt_id}: {product_why}")

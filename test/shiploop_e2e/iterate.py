@@ -267,13 +267,13 @@ def review_line(index: int, run_dir: Path) -> str:
     return f"== iteration {index}: update the Run Review page: {REVIEW_ADVISE} {run_dir}"
 
 
-def review_evidence(worktree: Path, stage: Path) -> str | None:
+def review_evidence(worktree: Path, run_dir: Path) -> str | None:
     """Copy the run's compact Run Review export to test/shiploop_e2e/evidence/<run key>.json.
 
     Returns the repository path, or None when the run left no readable export (run.py reports why).
     """
     try:
-        bundle = stage / "run" / "review-export" / "review-export.json"
+        bundle = run_dir / "review-export" / "review-export.json"
         text = bundle.read_text()
         keys = list(json.loads(text)["docs"]["runs"])
         if len(keys) != 1 or not keys[0] or "/" in keys[0] or keys[0].startswith("."):
@@ -286,7 +286,7 @@ def review_evidence(worktree: Path, stage: Path) -> str | None:
     return relative
 
 
-def record_learnings(worktree: Path, message: str, stage: Path) -> str:
+def record_learnings(worktree: Path, message: str, stage: Path, *, run_dir: Path | None = None) -> str:
     """Append the iteration's message to LEARNINGS.md in the worktree and commit it, with the run's
     compact Run Review export when the run left one."""
     path = worktree / "test" / "shiploop_e2e" / "LEARNINGS.md"
@@ -296,7 +296,7 @@ def record_learnings(worktree: Path, message: str, stage: Path) -> str:
     with path.open("a") as out:
         out.write(f"\n## {heading}\n\n{body}\n")
     (stage / "learnings-commit.txt").write_text(message)
-    evidence = review_evidence(worktree, stage)
+    evidence = review_evidence(worktree, run_dir or stage / "run")
     ledger = f"test/shiploop_e2e/{learning_records.LEDGER.name}"
     records = [ledger] if (worktree / ledger).is_file() else []
     git(worktree, "add", "test/shiploop_e2e/LEARNINGS.md", *([evidence] if evidence else []), *records)
@@ -328,7 +328,14 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument(f"--{role}-host", choices=sorted(hosts.HOSTS))
         p.add_argument(f"--{role}-model")
         p.add_argument(f"--{role}-effort")
-    p.add_argument("--permission-mode", default="auto")
+    permissions = p.add_mutually_exclusive_group()
+    permissions.add_argument("--permission-mode", default="auto")
+    permissions.add_argument("--codex-auto-review", action="store_const", const=hosts.CODEX_AUTO_REVIEW,
+                             dest="permission_mode")
+    evidence = p.add_mutually_exclusive_group()
+    evidence.add_argument("--review-run", type=Path, help="review and record an existing published exploration run without "
+                          "launching a new builder; with --qualify, use its findings before a registered comparison")
+    evidence.add_argument("--record", help="with --qualify, use this admitted learning record without re-running discovery")
     p.add_argument("--run-max-turns", type=int, default=None)  # no turn limit unless one is asked for
     p.add_argument("--improve-max-turns", type=int, default=None)  # no turn limit unless asked
     p.add_argument("--max-budget-usd", type=float, default=None, help="per Claude process, default none; Grok has no spend cap")
@@ -349,6 +356,11 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     if args.iterations < 1:
         raise SystemExit("--iterations must be at least 1")
+    if args.record and not args.qualify:
+        raise SystemExit("--record requires --qualify")
+    if args.permission_mode == hosts.CODEX_AUTO_REVIEW and (
+            args.host != "codex" or role_profile(args, "improver")["host"] != "codex"):
+        raise SystemExit("--permission-mode auto-review requires a Codex subject and improver")
     if args.qualify:
         import cycle
         return cycle.loop(args)
@@ -376,6 +388,12 @@ def main(argv: list[str] | None = None) -> int:
     clean_streak = idle_streak = 0
     stop = f"reached --iterations {args.iterations}"
     tested_source = None
+    if args.review_run:
+        import cycle
+        opened = cycle.assess_published(worktree, out, args)
+        journal(learnings, [f"- retained run: {args.review_run.resolve()}", f"- records: {', '.join(opened) or 'none'}"])
+        print(f"assessment: {learnings}")
+        return 0
     for index in range(1, args.iterations + 1):
         if boundary.qualification_snapshot(HERE, [args.case]) != frozen_evaluator:
             stop = "frozen evaluator inputs changed; start a new exploration round"
@@ -391,7 +409,7 @@ def main(argv: list[str] | None = None) -> int:
                        check=True, stdout=subprocess.DEVNULL)
         run_args = ["--case", args.case, "--host", args.host, "--output", str(stage / "run"),
                     "--plugin-dir", str(stage / "build" / "plugins" / "skill-craft"),
-                    "--permission-mode", args.permission_mode,
+                    *hosts.permission_args(args.permission_mode),
                     *(["--max-turns", str(args.run_max_turns)] if args.run_max_turns else []),
                     *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
                     *(["--timeout", str(args.run_timeout)] if args.run_timeout else [])]

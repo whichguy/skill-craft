@@ -42,7 +42,7 @@ and after it stops. A multi-case suite command without a single `--only` selecti
 is rejected. Authorized ShipLoop repairs, Improve, publication, installation
 refresh and a fresh no-model check happen between retained attempts. Retest the
 affected case before continuing; keep failures and unrun cases in campaign
-accounting. See [the operator checkpoint](../SKILL.md#review-each-case-before-continuing).
+accounting. See [the operator checkpoint](../AUDIT.md#review-each-case-before-continuing).
 
 The first step in a family is a new-project run. Its product must return to the
 original repository before the next step may start. Each later step is a new

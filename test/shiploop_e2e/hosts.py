@@ -66,6 +66,11 @@ GROK_DEFAULT_MODEL = "grok-4.6"
 GROK_DEFAULT_EFFORT = "xhigh"
 CODEX_DEFAULT_MODEL = "gpt-6.1-sol"
 CODEX_DEFAULT_EFFORT = "medium"
+CODEX_AUTO_REVIEW = "auto-review"
+
+
+def permission_args(mode: str) -> list[str]:
+    return ["--codex-auto-review"] if mode == CODEX_AUTO_REVIEW else ["--permission-mode", mode]
 
 
 def resolve_role(name: str, overrides: dict | None = None) -> dict:
@@ -518,8 +523,9 @@ class CodexHost(Host):
     """``codex exec --json`` in a throwaway CODEX_HOME; its stream is translated to Grok's shape.
 
     Codex has no turn cap or dollar figure: ``max_turns`` and ``max_budget_usd``
-    are not applied, and cost is reported as unknown. The session runs with
-    ``danger-full-access`` and no approvals, as the other hosts run unattended.
+    are not applied, and cost is reported as unknown. The auto-review route
+    uses the workspace sandbox and automatic review of individual commands.
+    Legacy launches keep their original permission settings.
 
     Codex runs a plugin's hooks (``hooks/codex.json``: the keepalive, its session-end hook, the status display) only
     once they are trusted, and a throwaway CODEX_HOME holds no trust, so ``argv`` passes
@@ -549,11 +555,31 @@ class CodexHost(Host):
         return f"${skill} {prompt}"
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
-             max_budget_usd=None, plugin_dir=None, resume=None, allow=()):
-        # `allow` is not used: this host runs with approval_policy "never", so no action waits for a permission.
+             max_budget_usd=None, plugin_dir=None, resume=None, allow=(), workspace_state=None):
+        if permission_mode not in ("auto", "never", "read-only", CODEX_AUTO_REVIEW):
+            raise ValueError(f"unsupported Codex permission mode: {permission_mode}")
         prompt_file.write_bytes(prompt.encode("utf-8"))
+        legacy = "read-only" if permission_mode == "read-only" else "danger-full-access"
+        permissions = ["-s", legacy, "-c", 'approval_policy="never"']
+        if permission_mode == CODEX_AUTO_REVIEW:
+            # The working directory and the sibling ShipLoop workspace need
+            # writes. The harness's own evidence lives outside both.
+            recovery = (
+                f"This run owns the disposable checkout {Path(cwd).resolve()}. "
+                "Git initialization, worktree creation and commits in that checkout are expected. "
+                "If a command in this run is refused because its Git metadata is protected, "
+                "retry that exact command with exec_command sandbox_permissions set to require_escalated "
+                "and a justification naming the checked-out path, so it receives individual automatic review."
+            )
+            permissions = ["--approve-for-me",
+                           *(["--add-dir", str(workspace_state.resolve())] if workspace_state is not None else []),
+                           "-c", f"developer_instructions={json.dumps(recovery)}",
+                           "-c", "sandbox_workspace_write.exclude_slash_tmp=true",
+                           "-c", "sandbox_workspace_write.exclude_tmpdir_env_var=true",
+                           "-c", "sandbox_workspace_write.network_access=false",
+                           "-c", "sandbox_workspace_write.writable_roots=[]"]
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",
-                "-s", "danger-full-access", "-c", 'approval_policy="never"',
+                *permissions,
                 "--dangerously-bypass-hook-trust", "-C", str(cwd),
                 # Keep default native workers on this launch's resolved model, including explicit overrides and resumes.
                 "-c", f"agents.default_subagent_model={json.dumps(model)}"]

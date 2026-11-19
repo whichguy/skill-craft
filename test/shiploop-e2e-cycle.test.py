@@ -610,6 +610,49 @@ class CycleTest(unittest.TestCase):
         self.assertIn("Product comparison.", message)
         self.assertIn("Improvement remains unmeasured", message)
 
+    def test_published_exploration_reuses_exact_retained_run(self):
+        run_dir = self.temp / "published"
+        run_dir.mkdir()
+        args = argparse.Namespace(**{**vars(self.args), "review_run": run_dir, "host": "codex",
+                                     "model": "requested-sol", "effort": "medium"})
+        expected = boundary.fingerprint(cycle.HERE, runner.catalog()[args.case])
+        installed = run_dir / "cache"
+        published = self.worktree / "plugins" / runner.PLUGIN_NAME
+        for plugin in (installed, published):
+            for leaf in ("shiploop", "improve"):
+                card = plugin / "skills" / leaf / "SKILL.md"
+                card.parent.mkdir(parents=True)
+                card.write_text("fixture")
+        versions = {"source": "marketplace", "gate": [], "released": {"origin_main": self.tip, "local_head": self.tip},
+                    **runner.skill_digests(installed)}
+        driver = {"host": args.host, "model": args.model, "effort": args.effort,
+                  "permission_mode": iterate.hosts.CODEX_AUTO_REVIEW}
+        result = {"case": args.case, "host": args.host, "model": args.model, "effort": args.effort,
+                  "invoked": {"pass": True}, "plugin": {"pass": True}, "boundary": expected,
+                  "versions": versions, **driver}
+        (run_dir / "result.json").write_text(json.dumps(result))
+        stage = self.temp / "assessment"
+        invocation = {"case": args.case, "versions": versions, "plugin_dir": str(installed),
+                      "fresh_product": True, "argv": ["codex", "exec", "--approve-for-me"], **driver}
+
+        with mock.patch.object(runner, "main", side_effect=AssertionError("must not launch")), \
+                mock.patch.object(cycle, "assess_exploration", return_value=["retained-finding"]) as assess:
+            with self.assertRaisesRegex(SystemExit, "original result and launch record"):
+                cycle.assess_published(self.worktree, stage, args)
+            (run_dir / "invocation.json").write_text(json.dumps(invocation))
+            self.assertEqual(cycle.assess_published(self.worktree, stage, args), ["retained-finding"])
+            assess.assert_called_once_with(self.worktree, stage, args, run_dir.resolve())
+            for changed in ({**invocation, "fresh_product": False}, {**invocation, "argv": ["codex", "exec"]}):
+                (run_dir / "invocation.json").write_text(json.dumps(changed))
+                with self.assertRaisesRegex(SystemExit, "does not match"):
+                    cycle.assess_published(self.worktree, self.temp / "rejected", args)
+            (run_dir / "invocation.json").write_text(json.dumps(invocation))
+            result["boundary"] = {**expected, "case": "changed"}
+            (run_dir / "result.json").write_text(json.dumps(result))
+            with self.assertRaisesRegex(SystemExit, "does not match"):
+                cycle.assess_published(self.worktree, self.temp / "rejected", args)
+            assess.assert_called_once()
+
     def explore_with_judgments(self, answers):
         """cycle.explore over a qualified fake review and a fake judge that answers from `answers` (a list of validity words).
         Returns the judge's assessment ids, in call order, and the review_sha256 each ledger write was given."""
@@ -998,7 +1041,8 @@ class CycleTest(unittest.TestCase):
                                   effort=None, permission_mode="auto")
         calls = []
 
-        def select(ledger, case=None, generality=None):
+        def select(ledger, case=None, generality=None, *, records=None):
+            self.assertIsNone(records)
             calls.append((case, generality))
 
         with mock.patch.object(iterate, "new_worktree", return_value=(self.worktree, "auto/test")), \
@@ -1006,6 +1050,19 @@ class CycleTest(unittest.TestCase):
                 mock.patch.object(cycle, "explore", return_value=[]):
             cycle.loop(args)
         self.assertEqual(calls, [("user-listing", "csv-report")] * 2)
+
+    def test_retained_review_without_admission_does_not_run_another_case_or_old_record(self):
+        args = argparse.Namespace(case="hello", generality_case="csv-report", calibration=None, tolerance=0.25,
+                                  attempts=3, output=self.temp / "no-admission", iterations=1, host="codex",
+                                  model="requested-sol", effort="medium", permission_mode="auto-review",
+                                  review_run=self.temp / "retained")
+        self.assertEqual(lr.select(self.ledger, args.case, args.generality_case), self.record)
+        with mock.patch.object(iterate, "new_worktree", return_value=(self.worktree, "auto/test")), \
+                mock.patch.object(cycle, "assess_published", return_value=[]), \
+                mock.patch.object(cycle, "explore", side_effect=AssertionError("would duplicate discovery")), \
+                mock.patch.object(cycle, "qualify", side_effect=AssertionError("would test an unrelated record")):
+            self.assertEqual(cycle.loop(args), 0)
+        self.assertIn("no eligible record from the requested assessment", (args.output / "LOOP.md").read_text())
 
     def test_a_malformed_calibration_report_is_a_refusal_not_a_traceback(self):
         path = self.temp / "bad.json"

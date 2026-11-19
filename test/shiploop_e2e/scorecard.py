@@ -705,6 +705,12 @@ def score(run, *, required_case=_CURRENT_CASE) -> dict:
             "accuracy": accuracy(result, unmeasured, required_case),
             "enterprise": {"observed": False, "reason": NOT_YET, "floor": NOT_APPLICABLE},
             "fidelity": fidelity(run_metrics, unmeasured), "efficiency": efficiency(run_metrics, unmeasured)}
+    for setting in ("permission_mode", "timeout_seconds"):
+        if setting in result:
+            card["driver"][setting] = result[setting]
+    for key in ("shiploop_sha256", "improve_sha256"):
+        if key in versions:
+            card["versions"][key] = versions[key]
     card["floors"] = {name: card[name]["floor"] for name in ("accuracy", "enterprise", "fidelity")}
     graded = result.get("boundary") if isinstance(result.get("boundary"), dict) else {}
     card["boundary"] = {**{name: graded.get(name) for name in ("evaluator", "oracle", "case")},

@@ -389,6 +389,26 @@ class VersionGateTest(unittest.TestCase):
     def test_marketplace_is_the_default_source_and_a_plugin_dir_means_checkout(self):
         self.assertEqual(run.parser().parse_args([]).source, "marketplace")
 
+    def test_scoped_install_checks_actual_bytes_and_executable_modes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            expected, installed = (Path(temporary) / name for name in ("expected", "cache"))
+            for root in (expected, installed):
+                for leaf in ("shiploop", "improve"):
+                    script = root / "skills" / leaf / "script"
+                    script.parent.mkdir(parents=True)
+                    script.write_text("same version")
+                    script.chmod(0o755)
+            checked = {"gate": []}
+            run.verify_skill_install(expected, installed, checked)
+            self.assertEqual(checked["gate"], [])
+            self.assertEqual(len(checked["shiploop_sha256"]), 64)
+            (installed / "skills/shiploop/script").chmod(0o644)
+            (installed / "skills/improve/script").write_text("stale bytes with same version")
+            refused = {"gate": []}
+            run.verify_skill_install(expected, installed, refused)
+            self.assertEqual(refused["gate"], ["installed shiploop differs from the selected build",
+                                               "installed improve differs from the selected build"])
+
     def test_gate_passes_only_when_head_catalog_and_installed_versions_agree(self):
         self.assertEqual(run.version_gate(self.RELEASED, "1.4.0", "0.37.0"), [])
         behind = dict(self.RELEASED, local_head="b" * 40)
@@ -1057,6 +1077,27 @@ class CodexHostTest(unittest.TestCase):
         self.assertLess(resumed.index("--json"), resumed.index("resume"))
         self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
         self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6.1-sol", "medium", True))
+
+    def test_auto_review_keeps_both_launches_in_the_workspace(self):
+        codex = hosts.host("codex", "codex-bin")
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary).resolve()
+            workspace_state = output / ".shiploop-runs"
+            for resume in (None, "thread-1"):
+                argv = codex.argv(prompt="continue" if resume else "build it", prompt_file=output / "prompt",
+                                  cwd=output / "work", model="gpt-6.2-sol", effort="medium",
+                                  permission_mode=hosts.CODEX_AUTO_REVIEW, max_turns=None, resume=resume,
+                                  workspace_state=workspace_state)
+                self.assertIn("--approve-for-me", argv)
+                self.assertEqual(argv[argv.index("--add-dir") + 1], str(workspace_state))
+                self.assertNotIn("danger-full-access", argv)
+                self.assertNotIn('approval_policy="never"', argv)
+                self.assertIn("sandbox_workspace_write.network_access=false", argv)
+                self.assertIn("sandbox_workspace_write.exclude_slash_tmp=true", argv)
+            with self.assertRaisesRegex(ValueError, "unsupported Codex permission mode"):
+                codex.argv(prompt="build it", prompt_file=output / "typo", cwd=output / "work",
+                           model="gpt-6.2-sol", effort="medium", permission_mode="auto_review", max_turns=None)
+            self.assertFalse((output / "typo").exists())
 
     def test_env_is_an_isolated_codex_home_linking_only_auth(self):
         with tempfile.TemporaryDirectory() as temp:
