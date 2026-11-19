@@ -177,7 +177,13 @@ def _load_calibration(path: Path, cases: list[str], *, driver: dict | None = Non
         if not isinstance(cal_floors, list) or list(cal_floors) != list(floors):
             raise ValueError("the calibration floors do not match this comparison's floors: calibrate again")
     sealed = calibration.get("attempts_sealed")
-    if sealed is not None and (isinstance(sealed, bool) or not isinstance(sealed, int) or sealed < 2 * attempts):
+    if sealed is not None and (isinstance(sealed, bool) or not isinstance(sealed, int)):
+        raise ValueError(f"the calibration sealed too few attempts ({sealed}) for {attempts} per arm")
+    registered = calibration.get("attempts_registered")
+    if (sealed is not None and registered is not None
+            and not isinstance(registered, bool) and isinstance(registered, int) and sealed < registered):
+        raise ValueError(f"the calibration sealed only {sealed} of {registered} registered attempts")
+    if sealed is not None and sealed < 2 * attempts:
         raise ValueError(f"the calibration sealed too few attempts ({sealed}) for {attempts} per arm")
     for case in cases:
         entry = cal_cases.get(case) or {}
@@ -185,11 +191,15 @@ def _load_calibration(path: Path, cases: list[str], *, driver: dict | None = Non
             raise ValueError(f"the calibration has {entry['unknown']} unknown attempt(s) for {case}")
         if "attempts" in entry and entry["attempts"] < 2 * attempts:
             raise ValueError(f"the calibration has too few attempts for {case} ({entry['attempts']} < {2 * attempts})")
+        if "successes" in entry and entry.get("attempts", 0) >= 2 and entry["successes"] < 2:
+            raise ValueError(f"the calibration has too few successes for {case} ({entry['successes']})")
         if "false_decision" in entry:
             rates = (entry.get("false_decision") or {}).get(metric)
             compared = rates.get("compared", 0) if isinstance(rates, dict) else 0
-            if compared < 1:
-                raise ValueError(f"the calibration has no usable {metric} splits for {case}")
+            splits = entry.get("splits")
+            min_usable = min(splits, max(2 * attempts, 6)) if isinstance(splits, int) and splits > 0 else 1
+            if compared < min_usable:
+                raise ValueError(f"the calibration has too few usable {metric} splits for {case} ({compared} < {min_usable})")
     return {"attempts": attempts, "tolerance": recommended["tolerance"],
             "metric": metric, "sha256": now["sha256"],
             "report_sha256": hashlib.sha256(raw).hexdigest(),
@@ -933,6 +943,40 @@ def explore(worktree: Path, stage: Path, args) -> list[str]:
     return assess_exploration(worktree, stage, args, stage / "run")
 
 
+def _argv_flag_value(argv, flag: str) -> str | None:
+    if not isinstance(argv, (list, tuple)):
+        return None
+    for index, token in enumerate(argv[:-1]):
+        if token == flag and isinstance(argv[index + 1], str):
+            return argv[index + 1]
+    return None
+
+
+def _published_permission_ok(driver: dict, expected_mode: str | None, result: dict, invocation: dict) -> bool:
+    argv = invocation.get("argv") or ()
+    res_mode = result.get("permission_mode")
+    inv_mode = invocation.get("permission_mode")
+    if driver["host"] == "codex" and expected_mode in (None, hosts.CODEX_AUTO_REVIEW):
+        return (res_mode == hosts.CODEX_AUTO_REVIEW
+                and inv_mode == hosts.CODEX_AUTO_REVIEW
+                and "--approve-for-me" in argv)
+    if expected_mode == hosts.CODEX_AUTO_REVIEW:
+        return False
+    if res_mode != inv_mode or inv_mode == hosts.CODEX_AUTO_REVIEW:
+        return False
+    if inv_mode is not None and expected_mode is not None and inv_mode != expected_mode:
+        return False
+    if driver["host"] in ("claude", "grok") and expected_mode is not None:
+        return _argv_flag_value(argv, "--permission-mode") == expected_mode
+    if driver["host"] == "codex" and expected_mode is not None:
+        if "--approve-for-me" in argv:
+            return False
+        sandbox = _argv_flag_value(argv, "-s")
+        expected_sandbox = "read-only" if expected_mode == "read-only" else "danger-full-access"
+        return sandbox == expected_sandbox
+    return True
+
+
 def assess_published(worktree: Path, stage: Path, args) -> list[str]:
     """Admit learning from an exact published discovery without rebuilding its product."""
     import run as runner
@@ -951,13 +995,7 @@ def assess_published(worktree: Path, stage: Path, args) -> list[str]:
     installed = runner.skill_digests(Path(invocation.get("plugin_dir") or run_dir / "missing-plugin"))
     published = runner.skill_digests(worktree / "plugins" / runner.PLUGIN_NAME)
     expected_mode = getattr(args, "permission_mode", None)
-    if driver["host"] == "codex" and (expected_mode is None or expected_mode == hosts.CODEX_AUTO_REVIEW):
-        permission_ok = (result.get("permission_mode") == hosts.CODEX_AUTO_REVIEW
-                         and invocation.get("permission_mode") == hosts.CODEX_AUTO_REVIEW
-                         and "--approve-for-me" in invocation.get("argv", ()))
-    else:
-        permission_ok = (result.get("permission_mode") == expected_mode
-                         and invocation.get("permission_mode") == expected_mode)
+    permission_ok = _published_permission_ok(driver, expected_mode, result, invocation)
     if (result.get("case") != args.case or any(result.get(key) != value for key, value in driver.items())
             or invocation.get("case") != args.case or any(invocation.get(key) != value for key, value in driver.items())
             or versions.get("source") != "marketplace" or versions.get("gate") != []

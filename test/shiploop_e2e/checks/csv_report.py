@@ -54,10 +54,12 @@ def unit() -> None:
     summary = {}
     for line in reversed(done.stdout.splitlines()):
         try:
-            summary = json.loads(line)
-            break
+            parsed = json.loads(line)
         except ValueError:
             continue
+        if isinstance(parsed, dict) and "executed" in parsed:
+            summary = parsed
+            break
     executed = int(summary.get("executed", 0)) if isinstance(summary, dict) else 0
     ran = int(summary.get("ran", 0)) if isinstance(summary, dict) else 0
     skipped = int(summary.get("skipped", 0)) if isinstance(summary, dict) else 0

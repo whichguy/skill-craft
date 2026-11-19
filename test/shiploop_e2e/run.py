@@ -2708,7 +2708,7 @@ def parser() -> argparse.ArgumentParser:
     mode = p.add_mutually_exclusive_group()
     p.add_argument("--case", default="hello", help="case name from cases.json (default: hello)")
     p.add_argument("--environment-binding", type=Path, metavar="ABS_JSON",
-                   help="operator-owned environment binding for a leased grok-chat-outcome discovery attempt")
+                   help="retired Salesforce hosted-outcome environment binding flag (refused)")
     mode.add_argument("--suite", help="run a suite from suites.json in order (focused: one style in depth; "
                                    "breadth: one case per style); --output becomes the suite directory")
     p.add_argument("--baseline", type=Path, default=BASELINES,
@@ -4114,7 +4114,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     args = parser().parse_args(argv)
     if args.permission_mode == hosts.CODEX_AUTO_REVIEW and not args.resume_run and args.host != "codex":
         raise SystemExit("--permission-mode auto-review requires --host codex")
-    hosted = None
     if args.environment_binding is not None:
         raise SystemExit("hosted environment binding was retired with Salesforce hosted-outcome cases")
     if args.inspect_recovery:
@@ -4143,7 +4142,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         return baseline_report_main(args)
     if args.runs or args.json or args.release_gate:
         raise SystemExit("--runs, --json and --release-gate belong to --baseline-report")
-    if not hosted and not args.prompt and (args.preflight_only or not (args.resume_run or args.suite)):
+    if not args.prompt and (args.preflight_only or not (args.resume_run or args.suite)):
         require_case_readiness(args.case, catalog().get(args.case, {}))
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
@@ -4392,8 +4391,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
 
         done = None
         try:
-            if hosted:
-                launch_kw["hosted_state"] = hosted[2]
             done = launch(*launch_args, before_start=begin, **launch_kw)
         finally:
             if started:  # a launch refused before any host ran leaves no session behind
@@ -4420,7 +4417,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if why := hosts.ollama_ready(args.model):
             raise SystemExit(f"--backend ollama: {why}. Nothing was started.")
     env = host.env(out / "home")
-    hosted_identity = {}
     earlier_platform = earlier_result.get("platform") or {}
     # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
     # crash leaves result.json holding an older one, so the record the cleanup itself writes (platform/cleanup-record.json) wins.
@@ -4497,7 +4493,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 # The run already has a result.json worth more than a refusal stub; leave it as it was.
                 raise SystemExit("version gate: " + "; ".join(versions["gate"]))
             (out / "result.json").write_text(json.dumps({"case": name, "pass": False, "versions": versions,
-                                                         "output": str(out), **hosted_identity}, indent=2) + "\n")
+                                                         "output": str(out)}, indent=2) + "\n")
             raise SystemExit("version gate: " + "; ".join(versions["gate"]) + f" (see {out / 'result.json'})")
     else:
         plugin = None
@@ -4604,19 +4600,21 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
     launch_settings = {}
+    fresh_product = earlier.get("fresh_product") if resumed else not any(work.iterdir())
     if args.permission_mode == hosts.CODEX_AUTO_REVIEW:
         launch_settings["permission_mode"] = args.permission_mode
-        launch_settings["fresh_product"] = earlier.get("fresh_product") if resumed else not any(work.iterdir())
+        launch_settings["fresh_product"] = fresh_product
     if args.timeout:
         launch_settings["timeout_seconds"] = args.timeout
     invocation = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort, "argv": cli,
                   **launch_settings,
+                  **({"fresh_product": fresh_product} if fresh_product is not None else {}),
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
                   "owner_note_at": owner_note_at, "needs": needs, "environment": start_environment,
                   **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
-                  "planning_review": planning_review, "improve_skill": improve_skill, **hosted_identity,
+                  "planning_review": planning_review, "improve_skill": improve_skill,
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
                                           **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
@@ -4640,7 +4638,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if not args.quiet:
         print(f"shiploop e2e case={name} host={args.host}" + (f" backend={backend}" if backend not in (None, "anthropic") else "")
               + f" model={args.model} effort={args.effort} work={work}", flush=True)
-        if not regrade and not hosted:
+        if not regrade:
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
@@ -4715,11 +4713,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     # killed rather than finished; the case declares 8 hours so a full game build can complete without a hand-typed
     # flag. A platform case's checks also cost time the timeout does not cover, which is why the cap is generous.
     cap = args.timeout or (catalog().get(args.case, {}) if args.case else {}).get("timeout") or float("inf")
-    if hosted:
-        remaining = attempt.read(state_dir / "start.json")["build_until"] - time.time()
-        if remaining <= 0:
-            raise SystemExit("hosted deadline expired before the builder invocation")
-        cap = remaining
     deadline = time.monotonic() + cap
     note_watcher = (owner_note.Watcher(out, the_cli, owner_note_at, lambda: live_run_dir(out)).start()
                     if owner_note_at and not regrade else None)
@@ -4986,17 +4979,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
            "planning_seconds": metrics.planning_unmeasured(run_metrics.get("planning"))}
     identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
     runner_pass = all(verdicts)
-    if hosted:
-        outcome, outcome_basis = None, "hosted discovery requires independent product observations"
-        hosted_identity["runner_pass"] = runner_pass
     result = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort,
               **launch_settings,
-              "pass": None if hosted else runner_pass, "invoked": invoked, "plugin": plugin, "versions": versions, **hosted_identity,
+              "pass": runner_pass, "invoked": invoked, "plugin": plugin, "versions": versions,
               # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
               # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
-              "prompt_sha256": (hosted_identity.get("delivered_opening_sha256") or
-                                masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output)),
+              "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
               # The route the run began with, read from what its start left on disk (start_route.py; a probe records the first one
               # its watcher saw): workspace (the isolated entry, once its run has a state), direct (init), or null where ShipLoop
               # never started a run.
@@ -5062,7 +5051,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             handle.write(json.dumps(row) + "\n")
 
     mark = lambda ok: "PASS" if ok else "FAIL"  # noqa: E731
-    print(f"{'DISCOVERY' if hosted else 'STOPPED' if stop_seen and not runner_pass else mark(runner_pass)}  "
+    print(f"{'STOPPED' if stop_seen and not runner_pass else mark(runner_pass)}  "
           f"shiploop e2e case={name} host={args.host}  output={out}")
     print(f"  versions  {versions['source']}: skill-craft {versions['plugin_version']}, "
           f"ShipLoop {versions['shiploop_version']}")

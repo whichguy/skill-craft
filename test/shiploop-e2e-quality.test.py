@@ -1776,11 +1776,17 @@ class QualityThroughMainTest(e2e.CaseRunCase):
 
         def export(out):
             order.append("export")
+            seen.setdefault("export_quality", []).append(
+                "quality" in json.loads((out / "result.json").read_text())
+            )
             return "review export: fake"
 
         with mock.patch.object(quality, "measure", side_effect=spy), mock.patch.object(run, "review_export", side_effect=export):
             code, result, printed, out = self.finished()
-        self.assertEqual(order, ["export", "measure"], "the Run Review export is written before the phase")
+        self.assertEqual(order, ["export", "measure", "export"],
+                         "the Run Review export is written before the phase and refreshed after quality finishes")
+        self.assertEqual(seen["export_quality"], [False, True],
+                         "the pre-quality export precedes the block and the post-quality refresh sees result['quality']")
         self.assertEqual(len(seen["row_rows"]), 1, "and so is the baseline row")
         self.assertNotIn("quality", json.loads(seen["row_rows"][0]))
         self.assertNotIn("quality", seen["on_disk"], "the record that exists today is on disk before the phase starts")

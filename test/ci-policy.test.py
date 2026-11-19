@@ -14,7 +14,6 @@ import unittest
 import ci_policy as policy
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURES = ("delayed-setup", "setup-save-boundary", "turn-and-action-correlation", "app-owned-controls")
 
 
 class CIPolicyTests(unittest.TestCase):
@@ -163,7 +162,7 @@ class CIPolicyTests(unittest.TestCase):
             self.assertEqual(result.returncode == 0, version in {"v24.1.0", "26.0.0"})
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         setups = workflow.split('      - uses: actions/setup-node@v7\n')[1:]
-        self.assertEqual(len(setups), 3)
+        self.assertEqual(len(setups), 2)
         for setup in setups:
             settings, next_step = setup.split('      - name:', 1)
             self.assertIn("node-version: '*'", settings)
@@ -209,15 +208,15 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("fromJSON(needs.plan.outputs.groups)", workflow)
         # Check every Python setup, rather than accepting one floating block while another stays pinned.
         setups = workflow.split("      - uses: actions/setup-python@v7\n")[1:]
-        self.assertEqual(len(setups), 4)
+        self.assertEqual(len(setups), 3)
         for setup in setups:
             settings = setup.split("      - ", 1)[0]
             self.assertEqual(re.findall(r"(?m)^          python-version: (.+)$", settings), ["'3.x'"])
             self.assertEqual(re.findall(r"(?m)^          check-latest: (.+)$", settings), ["true"])
         self.assertIn("node-version: '*'", workflow)
-        self.assertEqual(workflow.count("check-latest: true"), 7)
+        self.assertEqual(workflow.count("check-latest: true"), 5)
         runners = re.findall(r"(?m)^    runs-on: (.+)$", workflow)
-        self.assertEqual(len(runners), 5)
+        self.assertEqual(len(runners), 4)
         self.assertEqual(set(runners), {"ubuntu-latest"})
         self.assertIn("fail-fast: false", workflow)
         self.assertIn('--output "$RUNNER_TEMP/hermetic-$TEST_GROUP"', workflow)
@@ -234,10 +233,12 @@ class CIPolicyTests(unittest.TestCase):
         self.assertNotIn("secrets.", workflow)
         self.assertNotIn("run-integration", workflow)
         self.assertNotIn("--release-sync", workflow)
+        self.assertNotIn("browser-fixtures", workflow)
+        self.assertNotIn("grok-chat-full-ui", workflow)
 
     def test_selected_quick_shards_receive_the_planned_range_and_cannot_be_suppressed(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        checks = workflow.split("\n  checks:\n", 1)[1].split("\n  browser-fixtures:\n", 1)[0]
+        checks = workflow.split("\n  checks:\n", 1)[1].split("\n  release-boundary:\n", 1)[0]
         self.assertIn("needs: plan", checks)
         self.assertIn("needs.plan.outputs.tier == 'quick' && '0' || '1'", checks)
         self.assertIn("name: ${{ needs.plan.outputs.tier }} / ${{ matrix.group }}", checks)
@@ -245,9 +246,6 @@ class CIPolicyTests(unittest.TestCase):
         self.assertNotIn("max-parallel", checks)
         self.assertNotIn("continue-on-error", checks)
         self.assertNotIn("\n    if:", checks)
-        browser = workflow.split("\n  browser-fixtures:\n", 1)[1].split("\n  release-boundary:\n", 1)[0]
-        self.assertIn("needs: plan", browser)
-        self.assertNotIn("\n    if:", browser)
         step = checks.split("      - name: Hermetic group\n", 1)[1].split("      - name:", 1)[0]
         commands = "\n".join(line[10:] for line in step.split("        run: |\n", 1)[1].splitlines())
         self.write("test/run-all.sh", 'printf "%s\\n" "$@" > "$RUNNER_TEMP/args"\n')
@@ -283,7 +281,7 @@ class CIPolicyTests(unittest.TestCase):
 
     def test_checks_job_turns_git_background_maintenance_off_before_it_runs_the_suites(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        job = workflow.split("\n  checks:\n", 1)[1].split("\n  browser-fixtures:\n", 1)[0]
+        job = workflow.split("\n  checks:\n", 1)[1].split("\n  release-boundary:\n", 1)[0]
         setting = "git config --global maintenance.auto false"
         # A commit makes git start a detached `git maintenance run --auto`, which holds objects/maintenance.lock for a
         # moment; fixtures that inventory or copy a tree right after a commit lost the lock to it on CI four times.
@@ -305,97 +303,16 @@ class CIPolicyTests(unittest.TestCase):
     def test_actual_aggregate_commands_reject_every_incomplete_job_state(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         gate = workflow.split("\n  hermetic:\n", 1)[1]
-        self.assertIn("needs: [plan, checks, browser-fixtures, release-boundary]", gate)
+        self.assertIn("needs: [plan, checks, release-boundary]", gate)
         self.assertIn("if: ${{ always() }}", gate)
         commands = "\n".join(line[10:] for line in gate.split("        run: |\n", 1)[1].splitlines())
         summary = self.root / "summary"
-        for plan, checks, browser, boundary in itertools.product(("success", "failure", "cancelled", "skipped", ""), repeat=4):
-            env = dict(os.environ, PLAN_RESULT=plan, CHECKS_RESULT=checks, BROWSER_RESULT=browser, BOUNDARY_RESULT=boundary, TIER="full",
+        for plan, checks, boundary in itertools.product(("success", "failure", "cancelled", "skipped", ""), repeat=3):
+            env = dict(os.environ, PLAN_RESULT=plan, CHECKS_RESULT=checks, BOUNDARY_RESULT=boundary, TIER="full",
                        SOURCE_SHA=self.base, GITHUB_STEP_SUMMARY=str(summary))
             result = subprocess.run(["bash", "-c", commands], env=env)
-            self.assertEqual(result.returncode == 0, plan == checks == browser == boundary == "success",
-                             (plan, checks, browser, boundary))
-
-    def test_browser_fixtures_use_recorded_source_and_retain_real_chrome_evidence(self):
-        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        job = workflow.split("\n  browser-fixtures:\n", 1)[1].split("\n  release-boundary:\n", 1)[0]
-        self.assertIn("ref: ${{ needs.plan.outputs.source_sha }}", job)
-        self.assertIn('export BROWSER_EXECUTABLE_PATH="$(command -v google-chrome)"', job)
-        self.assertIn("--ignore-scripts playwright@latest", job)
-        inventory = job.split("        fixture: [", 1)[1].split("]", 1)[0].split(", ")
-        self.assertEqual(tuple(inventory), FIXTURES)
-        self.assertIn("fail-fast: false", job)
-        self.assertIn("name: browser / ${{ matrix.fixture }}", job)
-        self.assertIn("FIXTURE: ${{ matrix.fixture }}", job)
-        self.assertIn('node "test/fixtures/grok-chat-full-ui/$FIXTURE.cjs" 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/$FIXTURE.log"', job)
-        self.assertLess(job.index('node "test/fixtures/grok-chat-full-ui/'), job.index('name: Checkout unchanged'))
-        self.assertIn('node --version | tee', job)
-        self.assertIn('playwright-version.log', job)
-        self.assertIn('ci_policy.py guard --expected-sha "$EXPECTED_SHA"', job)
-        self.assertLess(job.index("uses: actions/setup-python@v7"), job.index("run: python3 -B"))
-        self.assertIn("name: browser-fixtures-${{ matrix.fixture }}", job)
-        self.assertIn("if: ${{ always() }}", job.split("name: Checkout unchanged", 1)[1])
-        self.assertIn("if-no-files-found: error", job)
-        self.assertNotIn("continue-on-error", job)
-
-    def test_browser_pipeline_propagates_failures_and_retains_each_log(self):
-        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        job = workflow.split("\n  browser-fixtures:\n", 1)[1].split("\n  release-boundary:\n", 1)[0]
-        # Execute the actual step bodies with controlled commands. Implicit
-        # Actions bash uses -e only: a successful tee can hide a failed fixture.
-        steps = {}
-        for name in ("Prepare browser fixture runtime", "Rendered UI evidence regressions"):
-            step = job.split("      - name: " + name + "\n", 1)[1].split("\n      - name:", 1)[0]
-            body = step.split("        run: |\n", 1)[1]
-            commands = "\n".join(line[10:] for line in body.splitlines() if line.startswith("          "))
-            shell = (["bash", "--noprofile", "--norc", "-eo", "pipefail"]
-                     if "        shell: bash\n" in step else ["bash", "-e"])
-            steps[name] = (shell, commands)
-        self.assertIn("if: ${{ always() }}", job.split("name: Retain browser fixture evidence", 1)[1])
-        binary = self.root / "bin"
-        binary.mkdir()
-        scripts = {
-            "npm": 'printf "install output\\n"\n[ "$PIPELINE_FAILURE" != install ]',
-            "google-chrome": 'printf "chrome output\\n"\n[ "$PIPELINE_FAILURE" != chrome ]',
-            "node": 'printf "node output %s\\n" "$1"\n[ "$PIPELINE_FAILURE" != "$1" ]',
-        }
-        for name, body in scripts.items():
-            path = binary / name
-            path.write_text("#!/bin/sh\n" + body + "\n")
-            path.chmod(0o700)
-        prepare = "Prepare browser fixture runtime"
-        render = "Rendered UI evidence regressions"
-        cases = [("install", "install.log"), ("chrome", "chrome-version.log")]
-        cases.extend(("test/fixtures/grok-chat-full-ui/" + fixture + ".cjs", fixture + ".log")
-                     for fixture in FIXTURES)
-        cases.extend(("", fixture + ".log") for fixture in FIXTURES)
-        for index, (failure, log) in enumerate(cases):
-            with self.subTest(failed_command=failure or "none"):
-                runtime = self.root / ("runtime-" + str(index))
-                logs = runtime / "browser-fixtures"
-                env = dict(os.environ, PATH=str(binary) + os.pathsep + os.environ["PATH"],
-                           RUNNER_TEMP=str(runtime), PIPELINE_FAILURE=failure,
-                           FIXTURE=Path(log).stem if failure not in ("install", "chrome") else FIXTURES[0],
-                           PLAYWRIGHT_MODULE_PATH=str(runtime / "unused-module"))
-                results = []
-                for name in (prepare, render):
-                    shell, commands = steps[name]
-                    result = subprocess.run([*shell, "-c", commands], cwd=self.root, env=env,
-                                            capture_output=True, text=True)
-                    results.append(result)
-                    if result.returncode:
-                        break
-                self.assertEqual(results[-1].returncode != 0, bool(failure),
-                                 results[-1].stdout + results[-1].stderr)
-                self.assertIn("output", (logs / log).read_text())
-                if failure not in ("install", "chrome"):
-                    fixture_log = env["FIXTURE"] + ".log"
-                    self.assertEqual({path.name for path in logs.glob("*.log")},
-                                     {"install.log", "chrome-version.log", "node-version.log",
-                                      "playwright-version.log", fixture_log})
-                    self.assertIn("node output", (logs / fixture_log).read_text())
-                    for version in ("node-version.log", "playwright-version.log"):
-                        self.assertIn("node output", (logs / version).read_text())
+            self.assertEqual(result.returncode == 0, plan == checks == boundary == "success",
+                             (plan, checks, boundary))
 
     def test_plan_cli_records_actual_checkout_and_rejects_wrong_candidate(self):
         event = self.root / "event.json"

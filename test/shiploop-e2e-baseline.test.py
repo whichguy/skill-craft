@@ -2105,12 +2105,13 @@ class ReleaseGateTest(unittest.TestCase):
         self.assertEqual(hello["driver"], "claude/claude-sonnet-5-5/-")
         old = gate["styles"]["cli-files"]
         self.assertEqual((old["driver"], old["shiploop_releases_since"]), (None, 3), "a row with no span is dated by its date")
-        self.assertIsNone(gate["styles"]["hosted-platform"])
+        self.assertNotIn("hosted-platform", gate["styles"])
+        self.assertIsNone(gate["styles"]["brownfield"])
         text = run.render_release_gate(gate)
         self.assertIn("origin/main publishes skill-craft 2.9.0 / ShipLoop 1.9.0", text)
         self.assertIn("smoke             hello 2026-10-10, skill-craft 1.27.0 / ShipLoop 0.59.0 (claude/claude-sonnet-5-5/-); "
                       "2 ShipLoop release(s) since", text)
-        self.assertIn("hosted-platform   no marketplace pass recorded", text)
+        self.assertIn("brownfield        no marketplace pass recorded", text)
         self.assertEqual(sorted(gate["styles"]), sorted({c["style"] for c in json.loads(run.CASES.read_text()).values()}))
 
     def test_an_unreadable_ref_is_named_and_the_passes_are_still_listed(self):

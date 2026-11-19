@@ -90,23 +90,22 @@ projected times do not establish a measured CI speedup. The local `python-floor`
 selector retains all 76 legacy component suites using the caller's `python3`;
 it does not select a separate interpreter or establish minimum-version qualification.
 
-Checks and browser fixtures start independently after planning; release-boundary
-runs independently of planning. Four browser matrix jobs run the fixed delayed-setup, setup-save-boundary,
-turn-and-action-correlation and app-owned-controls fixtures concurrently, each
-retaining its fixture log alongside Node, Playwright, installation and Chrome
-version logs. GitHub runner isolation owns each job’s process lifecycle. Source
-guards run after the work they verify, and artifacts are retained even on failure.
-The final gate requires the complete selected matrix, browser and boundary jobs.
+Checks start after planning; `release-boundary` runs independently of planning.
+GitHub runner isolation owns each job’s process lifecycle. Source guards run
+after the work they verify, and artifacts are retained even on failure. The
+final `hermetic` gate requires planning, the complete selected check matrix,
+and the release-boundary job.
 
 Server-side merge protection is a separate repository setting; this workflow
 does not enable it.
 
 CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
-fresh versions through setup actions. Every Python setup, including browser fixtures,
-uses `python-version: '3.x'` with `check-latest: true`. The declared minimum is
-3.15; when latest stable advances to 3.16, CI no longer exercises that minimum.
-Node uses `node-version: '*'` with
-`check-latest: true`; a source-owned guard after every setup rejects prereleases.
+fresh versions through setup actions. Every Python setup uses
+`python-version: '3.x'` with `check-latest: true`. ShipLoop itself requires
+Python 3.9+, and the source E2E harness requires 3.13+ on macOS (`os.waitid`)
+and 3.9+ on Linux; CI exercises latest stable Python on Linux rather than an
+older floor. Node uses `node-version: '*'` with `check-latest: true`; a
+source-owned guard after every setup rejects prereleases.
 Receipts record the versions actually used. Summary counts distinguish selected affected targets, policy-deferred targets and suites assigned to the other quick shard. The summary CLI independently verifies the planned base and change paths before catalog selection. Full runs discard the change base, so their affected change scope is UNAVAILABLE.
 Chain and integration suites use the repository's own Plan Dispatcher package
 (`skills/plan-dispatcher`), so a dispatcher change is exercised by them at once. Older
@@ -171,15 +170,11 @@ applicable. It runs
 local suite alone does not perform these additional CI checkout and boundary
 checks.
 
-Full regression runs the source E2E apparatus with `check_suite.py --suite all`
-once. Its named diagnostic groups intentionally overlap; do not concatenate them
-to claim full coverage. Quick always runs its `mock` group and also runs `all` when that cataloged
-runner is directly edited, as partial evidence;
-full also runs that group separately, which costs about two seconds. The copied-package mock in core remains separate because
-it checks relocation and package binding. The apparatus uses synthetic evidence
-and portable recorded source fixtures, with no model calls. The recorded GAS
-products carry provenance and run everywhere; missing fixtures fail instead of
-skipping a required regression case.
+The `e2e-apparatus` family covers the source planning-boundary and
+planning-comparison suites (`test/shiploop-e2e-planning-boundary.test.py` and
+`test/shiploop-e2e-planning-comparison.test.py`) using synthetic fixtures, with
+no model calls. The bundled Grok/GAS audit harness and its `check_suite.py`
+runner were retired when `shiploop-e2e-audit` unified around `test/shiploop_e2e/`.
 
 `shiploop-package-integrity` statically checks the ShipLoop package: every
 relative Markdown link resolves, every reference is reachable by name from the

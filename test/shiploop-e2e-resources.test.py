@@ -2483,6 +2483,40 @@ class LifecyclePruneTests(unittest.TestCase):
                 self.assertTrue((new_run / "home").is_dir(), "fresh run untouched")
                 self.assertTrue((bad_run / "home").is_dir(), "incomplete run untouched")
 
+    def test_prune_rejects_nan_and_skips_locked_or_dirty_runs_in_dry_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            now = 2_000_000_000.0
+            with self.assertRaisesRegex(ValueError, "finite non-negative"):
+                run.lifecycle.prune(root, older_than_days=float("nan"), apply=False, now=now)
+            with self.assertRaisesRegex(ValueError, "finite non-negative"):
+                run.lifecycle.prune(root, older_than_days=float("inf"), apply=False, now=now)
+
+            locked_run = root / "old-locked"
+            dirty_run = root / "old-dirty"
+            for folder in (locked_run, dirty_run):
+                (folder / "home").mkdir(parents=True)
+                (folder / "home" / "blob.bin").write_bytes(b"x" * 1024)
+                (folder / "work").mkdir()
+                (folder / "invocation.json").write_text('{"case": "hello"}\n')
+                os.utime(folder / "invocation.json", (now - 10 * 86400, now - 10 * 86400))
+
+            complete = {"complete": True, "missing": [], "head": "abc", "after": {"head": "abc", "tree": "def"}}
+            hold = run.listeners.hold_case(locked_run)
+            self.assertIsNotNone(hold)
+            try:
+                with mock.patch.object(run.lifecycle, "evidence", return_value=complete), \
+                        mock.patch.object(run.lifecycle.delivery, "fingerprint",
+                                          return_value={"clean": False, "reason": "untracked file"}):
+                    preview = run.lifecycle.prune(root, older_than_days=7, apply=False, now=now)
+            finally:
+                hold.close()
+            self.assertEqual(preview["candidates"], [])
+            self.assertEqual(preview["reclaimable_bytes"], 0)
+            reasons = {row["run"]: row["reason"] for row in preview["skipped"]}
+            self.assertIn("holds", reasons[str(locked_run)])
+            self.assertIn("clean Git fingerprint", reasons[str(dirty_run)])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1454,13 +1454,62 @@ class Wave2IntegrityTests(unittest.TestCase):
                 ({**base, "driver": {**driver, "model": "other"}}, "driver"),
                 ({**base, "floors": ["accuracy"]}, "floors"),
                 ({**base, "attempts_sealed": 0}, "sealed too few"),
+                ({**base, "attempts_sealed": 4, "attempts_registered": 6}, "sealed only 4 of 6"),
                 ({**base, "cases": {**base["cases"], "hello": {"attempts": 6, "unknown": 2,
                                                                 "false_decision": {"tokens": {"compared": 2}}}}},
                  "unknown attempt"),
+                ({**base, "cases": {**base["cases"], "hello": {"attempts": 6, "unknown": 0, "splits": 20, "successes": 6,
+                                                                "false_decision": {"tokens": {"compared": 2}}}}},
+                 "too few usable tokens splits"),
+                ({**base, "cases": {**base["cases"], "hello": {"attempts": 6, "unknown": 0, "splits": 20, "successes": 1,
+                                                                "false_decision": {"tokens": {"compared": 20}}}}},
+                 "too few successes"),
             ):
                 path.write_text(json.dumps(bad))
                 with self.subTest(needle=needle), self.assertRaisesRegex(ValueError, needle):
                     cycle.load_calibration(path, list(CASES), driver=driver, floors=["accuracy", "fidelity"])
+
+    def test_assess_published_accepts_non_codex_default_mode_and_checks_cli_argv(self):
+        harness = CycleTest()
+        harness.setUp()
+        try:
+            run_dir = harness.temp / "published-claude"
+            run_dir.mkdir()
+            args = argparse.Namespace(**{**vars(harness.args), "review_run": run_dir, "host": "claude",
+                                         "model": "claude-sonnet-5-5", "effort": None, "permission_mode": "auto"})
+            expected = boundary.fingerprint(cycle.HERE, runner.catalog()[args.case])
+            installed = run_dir / "cache"
+            published = harness.worktree / "plugins" / runner.PLUGIN_NAME
+            for plugin in (installed, published):
+                for leaf in ("shiploop", "improve"):
+                    card = plugin / "skills" / leaf / "SKILL.md"
+                    card.parent.mkdir(parents=True)
+                    card.write_text("fixture")
+            versions = {"source": "marketplace", "gate": [],
+                        "released": {"origin_main": harness.tip, "local_head": harness.tip},
+                        **runner.skill_digests(installed)}
+            driver = {"host": "claude", "model": "claude-sonnet-5-5", "effort": None}
+            # run.py omits top-level permission_mode for non-auto-review hosts and passes --permission-mode in argv.
+            result = {"case": args.case, "invoked": {"pass": True}, "plugin": {"pass": True},
+                      "boundary": expected, "versions": versions, **driver}
+            invocation = {"case": args.case, "versions": versions, "plugin_dir": str(installed),
+                          "fresh_product": True,
+                          "argv": ["claude", "-p", "prompt", "--permission-mode", "auto"], **driver}
+            (run_dir / "result.json").write_text(json.dumps(result))
+            (run_dir / "invocation.json").write_text(json.dumps(invocation))
+
+            with mock.patch.object(cycle, "assess_exploration", return_value=["claude-finding"]) as assess:
+                self.assertEqual(cycle.assess_published(harness.worktree, harness.temp / "assess-ok", args),
+                                 ["claude-finding"])
+                assess.assert_called_once()
+                # Mismatched argv permission mode must still be refused.
+                (run_dir / "invocation.json").write_text(json.dumps({
+                    **invocation, "argv": ["claude", "-p", "prompt", "--permission-mode", "bypassPermissions"],
+                }))
+                with self.assertRaisesRegex(SystemExit, "does not match"):
+                    cycle.assess_published(harness.worktree, harness.temp / "assess-bad", args)
+        finally:
+            harness.doCleanups()
 
     def test_incremental_follows_case_is_refused_before_invoking_improver(self):
         with self.assertRaisesRegex(ValueError, "user-teams.*follows user-listing"):

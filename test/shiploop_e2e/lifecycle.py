@@ -30,6 +30,7 @@ import argparse
 import contextlib
 import fcntl
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -780,6 +781,21 @@ def _bundle_holds(bundle: Path, head: str) -> bool:
         return _git("--git-dir", scratch + "/clone", "cat-file", "-e", head + "^{commit}").returncode == 0
 
 
+def _dispose_work_blocker(out: Path, kept: dict) -> str | None:
+    work = out / "work"
+    if not work.is_symlink() and work.exists():
+        if not work.is_dir():
+            return "work/ exists but is not a real directory: cannot verify it"
+        current = delivery.fingerprint(work)
+        after = kept["after"]
+        if not _clean_fingerprint(current):
+            reason = current.get("reason", "Git status is dirty or malformed") if isinstance(current, dict) else "malformed fingerprint"
+            return f"work/ does not have an observed clean Git fingerprint ({reason})"
+        if current["head"] != after["head"] or current["tree"] != after["tree"]:
+            return "work/ no longer matches the recorded delivery.after HEAD/tree"
+    return None
+
+
 def dispose(out, parts=HEAVY) -> dict:
     """Remove the heavy folders of a run that is over, keeping its records, logs and delivery bundle. Refused (nothing removed)
     while a harness holds the case, while a recorded group is alive, or while the evidence is incomplete. Idempotent: a folder
@@ -798,17 +814,9 @@ def dispose(out, parts=HEAVY) -> dict:
         kept = evidence(out)
         if not kept["complete"]:
             return {"disposed": False, "removed": [], "refused": "the evidence is not complete", "missing": kept["missing"]}
-        work = out / "work"
-        if not work.is_symlink() and work.exists():
-            if not work.is_dir():
-                return {"disposed": False, "removed": [], "refused": "work/ exists but is not a real directory: cannot verify it"}
-            current = delivery.fingerprint(work)
-            after = kept["after"]
-            if not _clean_fingerprint(current):
-                reason = current.get("reason", "Git status is dirty or malformed") if isinstance(current, dict) else "malformed fingerprint"
-                return {"disposed": False, "removed": [], "refused": f"work/ does not have an observed clean Git fingerprint ({reason})"}
-            if current["head"] != after["head"] or current["tree"] != after["tree"]:
-                return {"disposed": False, "removed": [], "refused": "work/ no longer matches the recorded delivery.after HEAD/tree"}
+        blocker = _dispose_work_blocker(out, kept)
+        if blocker:
+            return {"disposed": False, "removed": [], "refused": blocker}
         removed = []
         for name in parts:
             target = out / name
@@ -824,6 +832,12 @@ def dispose(out, parts=HEAVY) -> dict:
 
 
 def _dir_bytes(path: Path) -> int:
+    if path.is_symlink():
+        return 0
+    if path.is_file():
+        with contextlib.suppress(OSError):
+            return path.stat().st_size
+        return 0
     total = 0
     for entry in path.rglob("*"):
         if entry.is_symlink() or not entry.is_file():
@@ -844,8 +858,11 @@ def prune(runs_root: Path, *, older_than_days: float = 7.0, apply: bool = False,
     root = Path(runs_root).expanduser().resolve()
     if not root.is_dir():
         raise ValueError(f"{root} is not a directory")
-    if not isinstance(older_than_days, (int, float)) or isinstance(older_than_days, bool) or older_than_days < 0:
-        raise ValueError("older_than_days must be a non-negative number")
+    if (isinstance(older_than_days, bool) or not isinstance(older_than_days, (int, float))
+            or not math.isfinite(older_than_days) or older_than_days < 0):
+        raise ValueError("older_than_days must be a finite non-negative number")
+    if now is not None and (isinstance(now, bool) or not isinstance(now, (int, float)) or not math.isfinite(now)):
+        raise ValueError("now must be a finite timestamp")
     cutoff = (time.time() if now is None else now) - older_than_days * 86400.0
     candidates, disposed, skipped = [], [], []
     for folder in environment.run_folders(root):
@@ -866,11 +883,27 @@ def prune(runs_root: Path, *, older_than_days: float = 7.0, apply: bool = False,
         reclaim_bytes = sum(_dir_bytes(folder / name) for name in heavy_present)
         row = {"run": str(folder), "parts": heavy_present, "bytes": reclaim_bytes}
         if not apply:
+            if listeners.case_alive(folder):
+                skipped.append({"run": str(folder), "reason": f"a harness holds {folder / listeners.LOCK_NAME}"})
+                continue
+            try:
+                alive = [group["pgid"] for group in open_groups(folder)
+                         if same_leader(group.get("leader"), table([group["pgid"]]).get(group["pgid"]))]
+            except listeners.Unobserved as exc:
+                skipped.append({"run": str(folder), "reason": f"the process table cannot be read ({exc})"})
+                continue
+            if alive:
+                skipped.append({"run": str(folder), "reason": f"recorded groups {alive} are alive: run cleanup first"})
+                continue
             kept = evidence(folder)
             if not kept["complete"]:
                 skipped.append({"run": str(folder), "reason": "evidence incomplete", "missing": kept["missing"]})
-            else:
-                candidates.append(row)
+                continue
+            blocker = _dispose_work_blocker(folder, kept)
+            if blocker:
+                skipped.append({"run": str(folder), "reason": blocker})
+                continue
+            candidates.append(row)
             continue
         outcome = dispose(folder, parts=parts)
         if outcome["disposed"]:

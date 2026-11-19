@@ -167,21 +167,18 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   disjoint membership and changed-range inputs are preserved. This scheduling
   threshold is not a timeout or coverage cap; projected gains await measurement.
   Full runs five groups: `core`, three deterministic ShipLoop shards and
-  `e2e-apparatus`, one job per group, covering all 207 unique suites once.
+  `e2e-apparatus`, one job per group, covering all 190 unique suites once.
   The local `python-floor` selector retains its 76-suite legacy component subset
   using the caller's `python3`; it is not a separate interpreter validation job.
-  Repository tooling needs Python 3.15 or newer; ShipLoop's own scripts need only what their
-  code uses (3.9, `shiploop_pyfloor.FLOOR`). All CI Python setups, including browser
-  fixtures, use `python-version: '3.x'` with `check-latest: true` to qualify
-  latest stable Python. When that advances to 3.16, CI no longer exercises the
-  declared 3.15 minimum; this is not ongoing minimum-version qualification.
-  Checks and browser fixtures run independently after planning; release-boundary
-  is independent of planning. Four fixed browser matrix jobs run delayed-setup, setup-save-boundary,
-  turn-and-action-correlation and app-owned-controls concurrently, each retaining
-  its fixture log and runtime versions. GitHub runner isolation owns cleanup. Post-work source guards and always-retained
-  artifacts follow each workload. The
+  ShipLoop's own scripts need Python 3.9+ (`shiploop_pyfloor.FLOOR`), and the
+  source E2E harness needs Python 3.13+ on macOS (`os.waitid` in `listeners.py`)
+  and 3.9+ on Linux. All three CI Python setups use `python-version: '3.x'` with
+  `check-latest: true` to qualify latest stable Python on Linux (not older-floor
+  qualification). Checks run after planning; `release-boundary` runs
+  independently of planning. GitHub runner isolation owns cleanup. Post-work
+  source guards and always-retained artifacts follow each workload. The
   fail-closed `hermetic` status is the aggregate gate; its summary states the
-  tier and tested SHA. All three Node setups float to the latest stable (`*`,
+  tier and tested SHA. Both Node setups float to the latest stable (`*`,
   `check-latest: true`) and immediately reject prereleases with a shared guard.
   Checks independently validate receipts against the planned base and changed paths;
   full runs discard the base and report affected change scope as UNAVAILABLE.
