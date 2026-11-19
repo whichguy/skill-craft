@@ -599,11 +599,14 @@ def version_gate(released: dict, plugin_version: str | None, shiploop_version: s
     return problems
 
 
-def export_released(out: Path, revision: str = "origin/main") -> Path:
+def export_released(out: Path, revision: str = "origin/main", *, include_source: bool = False) -> Path:
     """origin/main's plugins/skill-craft, byte for byte: the payload the marketplace serves."""
     target = out / "marketplace"
     target.mkdir()
-    archive = subprocess.run(["git", "-C", str(ROOT), "archive", revision, f"plugins/{PLUGIN_NAME}"],
+    members = [f"plugins/{PLUGIN_NAME}"]
+    if include_source:
+        members.extend(("skills/shiploop", "skills/improve"))
+    archive = subprocess.run(["git", "-C", str(ROOT), "archive", revision, *members],
                              check=True, capture_output=True).stdout
     subprocess.run(["tar", "-x", "-C", str(target)], input=archive, check=True)
     return target / "plugins" / PLUGIN_NAME
@@ -744,8 +747,8 @@ def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None
         if released["local_head"] != released["origin_main"] or git("status", "--porcelain", "--untracked-files=all"):
             versions["gate"].append("the marketplace improvement trial needs a clean checkout of current origin/main")
         else:
-            expected = export_released(out, released["origin_main"])
-            if skill_digests(ROOT) != skill_digests(expected):
+            expected = export_released(out, released["origin_main"], include_source=True)
+            if skill_digests(expected.parent.parent) != skill_digests(expected):
                 versions["gate"].append("published ShipLoop or Improve differs from source on current main")
             verify_skill_install(expected, plugin_dir, versions)
     print(preflight_line(versions), flush=True)

@@ -409,6 +409,33 @@ class VersionGateTest(unittest.TestCase):
             self.assertEqual(refused["gate"], ["installed shiploop differs from the selected build",
                                                "installed improve differs from the selected build"])
 
+    def test_scoped_source_export_excludes_ignored_checkout_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "source"
+            out = Path(temporary) / "out"
+            root.mkdir()
+            out.mkdir()
+            for tree in (root, root / "plugins" / run.PLUGIN_NAME):
+                for name in ("shiploop", "improve"):
+                    card = tree / "skills" / name / "SKILL.md"
+                    card.parent.mkdir(parents=True)
+                    card.write_text(name)
+            (root / ".gitignore").write_text(".ruff_cache/\n")
+            git = ["git", "-C", str(root), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test",
+                   "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false"]
+            subprocess.run([*git, "init", "-q"], check=True)
+            subprocess.run([*git, "add", ".gitignore", "skills", "plugins"], check=True)
+            subprocess.run([*git, "commit", "-qm", "fixture"], check=True)
+            cache = root / "skills" / "shiploop" / ".ruff_cache"
+            cache.mkdir()
+            (cache / "untracked").write_text("ordinary local cache")
+
+            with mock.patch.object(run, "ROOT", root):
+                published = run.export_released(out, "HEAD", include_source=True)
+            self.assertNotEqual(run.skill_digests(root), run.skill_digests(published))
+            self.assertEqual(run.skill_digests(published.parent.parent), run.skill_digests(published))
+            self.assertFalse((published.parent.parent / "skills/shiploop/.ruff_cache").exists())
+
     def test_gate_passes_only_when_head_catalog_and_installed_versions_agree(self):
         self.assertEqual(run.version_gate(self.RELEASED, "1.4.0", "0.37.0"), [])
         behind = dict(self.RELEASED, local_head="b" * 40)
