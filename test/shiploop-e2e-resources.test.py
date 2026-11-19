@@ -2440,5 +2440,49 @@ class LeftBehindReadmeTest(unittest.TestCase):
         self.assertNotIn("taking the harness and its host with it", readme)
 
 
+class LifecyclePruneTests(unittest.TestCase):
+    """Opt-in lifecycle.prune disposes heavy folders of old finished runs without touching fresh or incomplete ones."""
+
+    def test_prune_dry_run_and_apply_respect_age_completeness_and_preserve_logs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            now = 2_000_000_000.0
+            old_run = root / "old-complete"
+            new_run = root / "fresh-complete"
+            bad_run = root / "old-incomplete"
+            for folder in (old_run, new_run, bad_run):
+                (folder / "home").mkdir(parents=True)
+                (folder / "home" / "blob.bin").write_bytes(b"x" * 2048)
+                (folder / "invocation.json").write_text('{"case": "hello"}\n')
+                (folder / "events.jsonl").write_text("{}\n")
+                (folder / "stderr.txt").write_text("")
+                (folder / "timeline.jsonl").write_text("")
+                (folder / "result.json").write_text('{"case": "hello", "pass": true}\n')
+            os.utime(old_run / "invocation.json", (now - 10 * 86400, now - 10 * 86400))
+            os.utime(bad_run / "invocation.json", (now - 10 * 86400, now - 10 * 86400))
+            os.utime(new_run / "invocation.json", (now - 1 * 86400, now - 1 * 86400))
+
+            complete = {"complete": True, "missing": [], "head": "abc", "after": {"head": "abc", "tree": "def"}}
+            incomplete = {"complete": False, "missing": ["delivery bundle"], "head": None, "after": None}
+
+            def fake_evidence(path):
+                return complete if Path(path).resolve() != bad_run else incomplete
+
+            with mock.patch.object(run.lifecycle, "evidence", side_effect=fake_evidence):
+                preview = run.lifecycle.prune(root, older_than_days=7, apply=False, now=now)
+                self.assertFalse(preview["applied"])
+                self.assertEqual([row["run"] for row in preview["candidates"]], [str(old_run)])
+                self.assertEqual(preview["reclaimable_bytes"], 2048)
+                self.assertTrue((old_run / "home").is_dir(), "dry-run must not delete anything")
+
+                applied = run.lifecycle.prune(root, older_than_days=7, apply=True, now=now)
+                self.assertTrue(applied["applied"])
+                self.assertEqual([row["run"] for row in applied["disposed"]], [str(old_run)])
+                self.assertFalse((old_run / "home").exists(), "heavy folder removed on --apply")
+                self.assertTrue((old_run / "events.jsonl").is_file(), "logs preserved")
+                self.assertTrue((new_run / "home").is_dir(), "fresh run untouched")
+                self.assertTrue((bad_run / "home").is_dir(), "incomplete run untouched")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -43,13 +43,6 @@
       "\\bdraughts\\b",
       "\\bking me\\b"
     ],
-    "chess-salesforce": [
-      "\\bchess\\b"
-    ],
-    "battleship-salesforce": [
-      "\\bSLBattle",
-      "\\bbattleships?\\b"
-    ],
     "user-listing": [
       "\\buser[- ]listing\\b"
     ],
@@ -81,26 +74,6 @@
     "ticket-import": [
       "\\bhelp[- ]?desk\\b",
       "\\bticket[- ]import\\b"
-    ],
-    "battleship-salesforce-ui": [
-      "\\bSLNavUi",
-      "\\bbattleships?\\b",
-      "\\bbattle cell\\b",
-      "\\bships left\\b"
-    ],
-    "grok-chat-salesforce": [
-      "\\bSLGrokChat"
-    ],
-    "grok-chat-salesforce-full": [
-      "\\bSLGrokChat"
-    ],
-    "grok-chat-outcome": [
-      "\\bgrok[- ]bot\\b"
-    ],
-    "gym-membership-salesforce": [
-      "\\bSLGym",
-      "\\bgym[- ]membership\\b",
-      "\\bcoaching kiosk\\b"
     ],
     "ticket-assignment-tests": [
       "\\bhelp[- ]?desk\\b",

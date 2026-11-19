@@ -73,11 +73,31 @@ class QualificationTest(unittest.TestCase):
             return promotion.load_registration(path)
 
     def test_discovery_case_is_refused_by_strict_registration(self):
-        name = "grok-chat-outcome"
-        reg = self.registration_payload({name: "capability"})
-        self.assertIs(scorecard.requires_acceptance(name, reg["qualification"]["cases"][name]), False)
-        with self.assertRaisesRegex(SystemExit, "grok-chat-outcome.*discovery-only"):
-            promotion._strict_registration(reg, json.dumps(reg).encode())
+        with tempfile.TemporaryDirectory() as tmp:
+            harness = Path(tmp) / "test" / "shiploop_e2e"
+            shutil.copytree(HARNESS, harness)
+            name = "synthetic-discovery"
+            prompt_path = harness / "scenarios" / name / "BUILDER_PROMPT.md"
+            readiness_path = harness / "scenarios" / name / "READINESS.json"
+            prompt_path.parent.mkdir(parents=True)
+            prompt_bytes = b"$skill-craft:shiploop Build the discovery fixture.\n"
+            prompt_path.write_bytes(prompt_bytes)
+            readiness_path.write_text(json.dumps({"scenario": name, "live_launch": "BLOCKED", "launch_blockers": ["setup"]}))
+            cases = json.loads((harness / "cases.json").read_text())
+            cases[name] = {
+                "style": "hosted-platform", "discovery_only": True,
+                "prompt_file": f"scenarios/{name}/BUILDER_PROMPT.md",
+                "prompt_sha256": hashlib.sha256(prompt_bytes).hexdigest(),
+                "readiness_file": f"scenarios/{name}/READINESS.json",
+                "checks": [],
+            }
+            (harness / "cases.json").write_text(json.dumps(cases))
+            with mock.patch.object(sys.modules[__name__], "HARNESS", harness), \
+                    mock.patch.object(promotion, "__file__", str(harness / "promotion.py")):
+                reg = self.registration_payload({name: "capability"})
+                self.assertIs(scorecard.requires_acceptance(name, reg["qualification"]["cases"][name]), False)
+                with self.assertRaisesRegex(SystemExit, f"{name}.*discovery-only"):
+                    promotion._strict_registration(reg, json.dumps(reg).encode())
 
     def card(self, reg, arm, case, *, passed=True, start=None, no_start=False, attempt_id=None, run=None, build=None,
              tokens=100, minutes=10, cost=1.0, fidelity=None, correctness=True,
@@ -518,12 +538,24 @@ class FileBackedCaseTest(unittest.TestCase):
         self.harness = self.root / "test" / "shiploop_e2e"
         self.harness.mkdir(parents=True)
         self.cases = json.loads(run.CASES.read_text())
-        self.case = self.cases[self.NAME]
-        self.prompt = self.harness / self.case["prompt_file"]
-        self.readiness = self.harness / self.case["readiness_file"]
+        self.prompt = self.harness / "scenarios" / self.NAME / "BUILDER_PROMPT.md"
+        self.readiness = self.harness / "scenarios" / self.NAME / "READINESS.json"
         self.prompt.parent.mkdir(parents=True)
-        for path in (self.prompt, self.readiness):
-            shutil.copyfile(HARNESS / path.relative_to(self.harness), path)
+        prompt_bytes = b"$skill-craft:shiploop\nBuild the synthetic file-backed discovery app.\n"
+        self.prompt.write_bytes(prompt_bytes)
+        self.readiness.write_text(json.dumps({
+            "scenario": self.NAME, "live_launch": "BLOCKED",
+            "launch_blockers": ["canonical org", "verified startup reset", "independent read-only observation"],
+        }))
+        self.case = {
+            "style": "hosted-platform",
+            "discovery_only": True,
+            "prompt_file": f"scenarios/{self.NAME}/BUILDER_PROMPT.md",
+            "prompt_sha256": hashlib.sha256(prompt_bytes).hexdigest(),
+            "readiness_file": f"scenarios/{self.NAME}/READINESS.json",
+            "checks": [],
+        }
+        self.cases[self.NAME] = self.case
         self.baseline = self.root / "baseline.jsonl"
         self.baseline.write_bytes(b"prior baseline\n")
         self.out = self.root / "output"
@@ -568,7 +600,6 @@ class FileBackedCaseTest(unittest.TestCase):
         suites = json.loads(run.SUITES.read_text())
         self.assertTrue(all(name not in suite["cases"] + suite.get("gate", [])
                             for key, suite in suites.items() if not key.startswith("_")))
-        self.assertNotIn(name, json.loads((HARNESS / "adapter" / "allowlist.json").read_text())["cases"])
 
     def test_operator_ready_fixture_reaches_real_codex_argv_with_exact_prompt_and_empty_workspace(self):
         # Mock an operator assertion and the host environment. This tests runner additions, not inherited PATH or E2E_*.
@@ -858,6 +889,7 @@ class FileBackedCaseTest(unittest.TestCase):
         for name, expected in ((self.NAME, self.prompt.read_bytes()),
                                ("hello", self.cases["hello"]["prompt"].encode("utf-8"))):
             with (self.subTest(name=name),
+                  mock.patch.object(packet_anatomy, "__file__", str(self.harness / "packet_anatomy.py")),
                   mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as child):
                 packet_anatomy.walk(self.root / f"walk-{name}", case=name)
                 commands = [call.args[0] for call in child.call_args_list]

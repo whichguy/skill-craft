@@ -890,7 +890,7 @@ class PlanSizing(unittest.TestCase):
                 self.assertLessEqual({"A", "B", "C", "T"}, set(exp["arms"]))
 
     def test_each_replay_seeds_at_step_plan_with_its_plan_records_and_the_packet_names_its_item(self):
-        for name in ("sf-chess-engine", "sf-chess-board-entry", "node-battleship-server", "node-chess-engine"):
+        for name in ("node-battleship-server", "node-chess-engine"):
             spec = step_slice.load_step_case(name)
             with self.subTest(case=name):
                 work = self.tmp / name / "work"
@@ -902,22 +902,6 @@ class PlanSizing(unittest.TestCase):
                 self.assertEqual(seeded["stage"], "step-plan")
                 self.assertIn(spec["work_item"]["title"], _next(CLI, seeded["run_dir"]))
                 self.assertTrue((work / "docs" / "shiploop" / "spec.md").read_text().startswith("# "))
-
-    def test_fake_sf_is_first_on_both_paths_and_answers_without_a_real_org(self):
-        from unittest import mock  # noqa: PLC0415
-        out = self.tmp / "out"
-        out.mkdir()
-        env = {"PATH": "/usr/bin:/bin"}
-        with mock.patch.dict("os.environ", {}):
-            shim = step_slice.fake_sf(step_slice.load_step_case("sf-chess-engine"), out, env)
-            import os  # noqa: PLC0415
-            self.assertEqual(shutil.which("sf", path=os.environ["PATH"]), shim["shim"])
-        self.assertEqual(shutil.which("sf", path=env["PATH"]), shim["shim"])
-        done = subprocess.run(["sf", "org", "list", "--json"], env=env, capture_output=True, text=True)
-        self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertIn('"alias": "de"', done.stdout)
-        self.assertTrue(Path(shim["log"]).read_text().strip())
-        self.assertIsNone(step_slice.fake_sf(step_slice.load_step_case("node-chess-engine"), out, {}))
 
     def _gate(self, overlay_name: str, cases: dict) -> dict:
         """Each case's outcome from _check_step_sizing on arm T's navigator with the overlay applied."""

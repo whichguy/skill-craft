@@ -329,25 +329,17 @@ class ExpectationTest(HarnessCase):
         self.assertIn("_strptime", sys.modules)  # importing run loaded it
 
     def test_a_platform_case_declares_its_own_timeout_and_the_flag_still_wins(self):
-        """chess-salesforce ran to a hand-typed 4-hour cap with ShipLoop still active at test-spec, and all 124 of its
-        saved runs were killed rather than finished (2026-10-18 and after). A case whose work outlives the usual cap
-        says so once in cases.json; a caller can still override it.
-        """
-        cases = run.catalog()
-        for case in ("chess-salesforce", "battleship-salesforce", "battleship-salesforce-ui",
-                     "gym-membership-salesforce"):
-            with self.subTest(case=case):
-                self.assertEqual(cases[case].get("timeout"), 8 * 3600,
-                                 "a hosted-platform case declares 8 hours")
+        """A case whose work outlives the usual cap may declare `timeout` in seconds; an explicit --timeout still wins."""
+        cases = {**run.catalog(), "long-hosted": {"style": "hosted-platform", "timeout": 8 * 3600}}
         self.assertIsNone(cases["hello"].get("timeout"), "an ordinary case stays uncapped")
 
         # Resolution: the flag wins, then the case, then unbounded.
         def cap(case, flag):
             args = types.SimpleNamespace(timeout=flag, case=case)
-            return args.timeout or (run.catalog().get(args.case, {}) if args.case else {}).get("timeout") \
+            return args.timeout or (cases.get(args.case, {}) if args.case else {}).get("timeout") \
                 or float("inf")
-        self.assertEqual(cap("chess-salesforce", None), 8 * 3600)
-        self.assertEqual(cap("chess-salesforce", 600), 600, "an explicit --timeout wins")
+        self.assertEqual(cap("long-hosted", None), 8 * 3600)
+        self.assertEqual(cap("long-hosted", 600), 600, "an explicit --timeout wins")
         self.assertEqual(cap("hello", None), float("inf"))
 
     def test_budget_is_should_level_and_read_from_the_run_timeline(self):

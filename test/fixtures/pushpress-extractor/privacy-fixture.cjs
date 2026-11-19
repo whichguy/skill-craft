@@ -25,7 +25,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const browserTools = require('../../shiploop_e2e/checks/battleship_ui_browser.cjs');
+const browserTools = require('./browser-tools.cjs');
 const site = require('./synthetic-page.cjs');
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');

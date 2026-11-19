@@ -2683,17 +2683,19 @@ class PlatformPrefixTest(PlatformCase):
         self.assertIn("has no platform prefix to rename", str(refused.exception))
 
     def test_both_salesforce_cases_rename_completely(self):
-        cases = json.loads((Path(run.HERE) / "cases.json").read_text())
-        for name, new in (("battleship-salesforce", "SLBtlHk7f3a"), ("chess-salesforce", "SLChsHk7f3a")):
-            with self.subTest(name=name):
-                old = cases[name]["platform"]["prefix"]
-                renamed = json.dumps(run.with_prefix(cases[name], new))
+        for old, new in (("SLBattle", "SLBtlHk7f3a"), ("SLChess", "SLChsHk7f3a")):
+            sample = {
+                "prompt": f"Build {old}Controller and {run._camel_prefix(old)}Board.",
+                "checks": [f"python3 check.py --prefix {old}"],
+                "platform": {"kind": "salesforce", "org": "de", "prefix": old, "cleanup": f"clean --prefix {old}"},
+            }
+            with self.subTest(old=old):
+                renamed = json.dumps(run.with_prefix(sample, new))
                 for spelling in run.prefix_spellings("salesforce", old):
                     self.assertNotIn(spelling, renamed)
                 for spelling in run.prefix_spellings("salesforce", new):
                     self.assertIn(spelling, renamed)
-                self.assertTrue(all(f"--prefix {new}" in check for check in run.with_prefix(cases[name], new)["checks"]
-                                    if "_salesforce.py" in check), "every org check names the prefix")
+                self.assertIn(f"--prefix {new}", run.with_prefix(sample, new)["checks"][0])
 
 
 class DeliverySnapshotRunTest(PlatformCase):
@@ -2826,8 +2828,8 @@ class HostAllowTest(unittest.TestCase):
                 run.validate_platform("c", {"cleanup": "c", "host_allow": bad})
             self.assertIn("host_allow", str(raised.exception))
 
-    def test_the_chess_salesforce_case_allows_the_guarded_sf_and_the_cd_that_precedes_it(self):
-        rules = run.case_platform("chess-salesforce")["host_allow"]
+    def test_host_allow_rules_accept_command_and_cd_patterns(self):
+        rules = run.validate_platform("c", {"cleanup": "c", "host_allow": ["Bash(sf *)", "Bash(cd *)"]})["host_allow"]
         self.assertIn("Bash(sf *)", rules)
         self.assertIn("Bash(cd *)", rules)
 

@@ -160,9 +160,6 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-intent-continuity.test.py",
     "test/shiploop-e2e-learning-records.test.py",
     "test/shiploop-e2e-cycle.test.py",
-    "test/shiploop-e2e-adapter.test.py",
-    "test/shiploop-e2e-adapter-steps.test.py",
-    "test/shiploop-e2e-adapter-engine.test.py",
     "test/shiploop-e2e-runrecord.test.py",
     "test/shiploop-e2e-slice.test.py",
     "test/shiploop-e2e-fidelity.test.py",
@@ -173,19 +170,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-packet-anatomy.test.py",
     "test/shiploop-e2e-render-diff.test.py",
     "test/shiploop-e2e-commit-counters.test.py",
-    "test/shiploop-e2e-chess-salesforce.test.py",
-    "test/shiploop-e2e-battleship-salesforce.test.py",
-    "test/shiploop-e2e-battleship-ui.test.py",
-    "test/shiploop-e2e-grok-chat-salesforce.test.py",
-    "test/shiploop-e2e-grok-chat-full.test.py",
-    "test/shiploop-e2e-grok-chat-full-ui.test.py",
-    "test/shiploop-e2e-grok-chat-full-oracle.test.py",
-    "test/shiploop-e2e-grok-chat-full-quality.test.py",
-    "test/shiploop-e2e-gym-membership-salesforce.test.py",
-    "test/shiploop-e2e-gym-ui.test.py",
-    "test/shiploop-e2e-release-slice.test.py",
     "test/shiploop-e2e-platform.test.py",
-    "test/shiploop-e2e-sf-guard.test.py",
     "test/shiploop-e2e-status-card.test.py",
     "test/shiploop-e2e-efficiency.test.py",
     "test/shiploop-e2e-dodges.test.py",
@@ -350,18 +335,7 @@ _PLANNING_APPARATUS_SUITES = (
            "python3", "-B", "test/shiploop-e2e-planning-comparison.test.py"),
 )
 
-_HOSTED_OUTCOME_SUITE = _suite(
-    "hosted-outcome", "e2e-apparatus", "test/shiploop-e2e-hosted-outcome.test.py",
-    "python3", "-B", "test/shiploop-e2e-hosted-outcome.test.py",
-)
-
-_OUTCOME_EVALUATION_SUITE = _suite(
-    "outcome-evaluation", "e2e-apparatus", "test/shiploop-e2e-outcome-evaluation.test.py",
-    "python3", "-B", "test/shiploop-e2e-outcome-evaluation.test.py",
-)
-
-SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, *_PLANNING_APPARATUS_SUITES,
-          _HOSTED_OUTCOME_SUITE, _OUTCOME_EVALUATION_SUITE)
+SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, *_PLANNING_APPARATUS_SUITES)
 
 GROUPS = (
     "all",
@@ -467,9 +441,6 @@ QUICK_MAX_SECONDS = 120.0
 _FULL_ONLY_IDS = frozenset({
     "plan-dispatcher-mutants", "shiploop-full-runtime", "shiploop-workspace",
     "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-directory",
-    # The ShipLoop adapter's contract tests (plan 3.1): a test that fails other sessions' quick tier whenever they touch the harness is a cost
-    # they did not ask for, so these run in the full tier only; the facade reads harness code through a bridge, and a break shows there.
-    "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine",
 })
 # These previously eligible suites exceeded the old two-minute estimate in the
 # full CI receipt recorded in suite_durations.json. Keep their coverage, explicitly.
@@ -477,7 +448,7 @@ _FULL_ONLY_IDS = frozenset({
 _QUICK_OVER_BUDGET_IDS = frozenset({
     "shiploop-navigator-contract", "shiploop-actual-improve-cli", "shiploop-loops",
     "shiploop-test-loop", "shiploop-keepalive", "shiploop-skill-calls",
-    "shiploop-e2e-slice", "shiploop-e2e-chess-salesforce", "shiploop-e2e-platform",
+    "shiploop-e2e-slice", "shiploop-e2e-platform",
     "shiploop-e2e-stages", "shiploop-e2e-stage-live", "shiploop-e2e-brownfield-tickets",
     "shiploop-callback-contract",
 })
@@ -502,13 +473,6 @@ _PATH_SUITE_IDS = {
     "test/shiploop_e2e/planning_boundary.py": ("planning-comparison",),
     "test/shiploop_e2e/planning_trace.py": ("planning-boundary", "planning-comparison"),
     "test/shiploop_e2e/planning_evidence.py": ("planning-comparison",),
-    "test/shiploop_e2e/cases.json": (_HOSTED_OUTCOME_SUITE.id,),
-    "test/shiploop_e2e/checks/sf_guard.py": (_HOSTED_OUTCOME_SUITE.id,),
-    "test/shiploop_e2e/lifecycle.py": (_HOSTED_OUTCOME_SUITE.id,),
-    "test/shiploop_e2e/run.py": (_HOSTED_OUTCOME_SUITE.id,),
-    "test/shiploop_e2e/hosted_outcome/evaluation.py": (_OUTCOME_EVALUATION_SUITE.id,),
-    "test/shiploop_e2e/scenarios/grok-chat-outcome/evaluation.example.json": (_OUTCOME_EVALUATION_SUITE.id,),
-    "test/shiploop_e2e/scenarios/grok-chat-outcome/OUTCOME_REVIEW.md": (_OUTCOME_EVALUATION_SUITE.id,),
     # The E2E spec has three logical readers; the original harness suite is now three components.
     "test/shiploop_e2e/SPEC.md": (*_E2E_SPLIT_IDS, "shiploop-navigator-contract", "shiploop-run-review"),
     # The packet obligation ledger and its checker; the code that writes the text its anchors live in is in
@@ -572,8 +536,6 @@ _PREFIX_SUITE_IDS = {
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
     "agents/in-parallel.md": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
-    "test/shiploop_e2e/hosted_outcome/": (_HOSTED_OUTCOME_SUITE.id,),
-    "test/shiploop_e2e/scenarios/grok-chat-outcome/": (_HOSTED_OUTCOME_SUITE.id,),
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
     # The packets and commits regrade of the saved runs, its mutation record and the script that wrote them.

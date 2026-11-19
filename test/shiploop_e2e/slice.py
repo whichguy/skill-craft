@@ -235,29 +235,6 @@ def seed_state(case: dict, out: Path, env: dict) -> dict | None:
             "files": sorted(str(p.relative_to(target)) for p in target.rglob("*") if p.is_file())}
 
 
-def fake_sf(case: dict, out: Path, env: dict) -> dict | None:
-    """A case's ``fake_sf`` ({"orgs": "de"}): fake_sf.py first on PATH as ``sf`` (<output>/shim), with its org state and
-    call log under <output>/fake-sf, so no command of the slice can reach a real org through ``sf`` (this machine has a
-    logged-in one). The shim goes into the host's environment, which every command ShipLoop and the host run inherits,
-    and into this process's own, which the case checks at grading (run.run_checks) and a regrade inherit."""
-    spec = case.get("fake_sf")
-    if not spec:
-        return None
-    shim, folder = out / "shim", out / "fake-sf"
-    shim.mkdir(exist_ok=True)
-    folder.mkdir(exist_ok=True)
-    sf = shim / "sf"
-    sf.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(HERE / 'fake_sf.py'))} \"$@\"\n")
-    sf.chmod(0o755)
-    fake = {"FAKE_SF_STATE": str(folder / "state.json"), "FAKE_SF_LOG": str(folder / "calls.jsonl"),
-            "FAKE_SF_ORGS": str(spec.get("orgs") or "de")}
-    for environment in (env, os.environ):
-        environment.update(PATH=f"{shim}{os.pathsep}{environment.get('PATH', '')}", **fake)
-        if shutil.which("sf", path=environment["PATH"]) != str(sf):
-            raise SystemExit(f"fake_sf: {sf} is not the first sf on PATH")
-    return {"shim": str(sf), "log": fake["FAKE_SF_LOG"], "orgs": fake["FAKE_SF_ORGS"]}
-
-
 def overshoot(state: dict, item: str) -> list[str]:
     """Accepted results past the slice: an outer stage, or an inner stage of another work item."""
     return [row.get("stage") for row in state.get("history") or [] if isinstance(row, dict) and (
@@ -595,7 +572,6 @@ def regrade(out: Path, quiet: bool) -> int:
     seeded = invocation["seeded"]
     identity = {k: invocation.get(k) for k in ("case", "host", "model", "delegation")}
     case = load_step_case(invocation["case"])
-    fake_sf(case, out, {})  # the case checks rerun here; never against a real org
     return finish(out, Path(seeded["run_dir"]), seeded, case, earlier["sessions"],
                   {**identity, "regraded": True}, quiet, invocation.get("stop_after"))
 
@@ -659,7 +635,6 @@ def _main(argv: list[str] | None, held: list) -> int:
                           improve_skill=str(run.improve_card(plugin_dir)) if args.planning_review == "none" else "",
                           implementation=delivery)
     target = seed_state(case, out, env)
-    shim = fake_sf(case, out, env)
     run_dir = Path(seeded["run_dir"])
     if args.stop_after == "plan":
         initial = read_state(run_dir) or {}
@@ -679,7 +654,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "resume_prompt": args.resume_prompt,
                   "seed_at": args.seed_at, "stop_after": args.stop_after, "ref": args.ref, "overlay": applied,
                   "seed_from": delivery and {key: delivery[key] for key in ("source", "action", "base_tree", "tree")},
-                  "opening_note": note or None, "seed_state": target, "fake_sf": shim,
+                  "opening_note": note or None, "seed_state": target,
                   "planning_review": args.planning_review or stage_spec.DEFAULT_PLANNING_REVIEW}
     (out / "invocation.json").write_text(json.dumps(invocation, indent=2) + "\n")
     (out / "prompt.txt").write_text(case["prompt"] + "\n")

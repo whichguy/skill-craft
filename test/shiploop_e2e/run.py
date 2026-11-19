@@ -318,21 +318,19 @@ def catalog() -> dict:
     return cases
 
 
-@functools.cache
-def salesforce_library():
-    """checks/chess_salesforce.py, the Salesforce library both platform cases share, loaded by path (it is an oracle, not a module
-    of this folder)."""
-    spec = importlib.util.spec_from_file_location("shiploop_e2e_chess_salesforce", HERE / "checks" / "chess_salesforce.py")
-    library = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(library)
-    return library
+def _camel_prefix(prefix: str) -> str:
+    """Lower leading capitals before a CamelCase tail (`SLBattle` -> `slBattle`, `ABC` -> `abc`)."""
+    match = re.match(r"^([A-Z]+)(?=[A-Z][a-z])|^([A-Z]+)$", prefix)
+    if match:
+        head = match.group(1) or match.group(2)
+        return head.lower() + prefix[len(head):]
+    return prefix[:1].lower() + prefix[1:]
 
 
 def prefix_spellings(kind: str, prefix: str) -> tuple[str, ...]:
-    """Every spelling a platform kind gives a prefix in a case's text. Salesforce names Apex classes, tabs, apps and permission
-    sets with it as it is (SLBattle) and a component with its leading capitals lowered (slBattle: lwc_prefix)."""
+    """Every spelling a platform kind gives a prefix in a case's text."""
     if kind == "salesforce":
-        return prefix, salesforce_library().lwc_prefix(prefix)
+        return prefix, _camel_prefix(prefix)
     raise SystemExit(f"--platform-prefix: a {kind!r} platform does not say how its items spell a prefix")
 
 
@@ -4118,11 +4116,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         raise SystemExit("--permission-mode auto-review requires --host codex")
     hosted = None
     if args.environment_binding is not None:
-        from hosted_outcome import attempt
-        try:
-            hosted = attempt.authorize(args.environment_binding, argv, args)
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            raise SystemExit(f"hosted environment binding refused: {exc}") from None
+        raise SystemExit("hosted environment binding was retired with Salesforce hosted-outcome cases")
     if args.inspect_recovery:
         import recovery
         context = recovery.inspect_context(args.inspect_recovery, args.recovery_phase)
@@ -4313,9 +4307,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                 raise SystemExit("pre-invoked prompt_file does not support --seed-at or --planning-review none")
             selected_host = the_host(args)
             exact_opening = case_opening(selected_host, args.skill or selected_host.skill, prompt, preinvoked=True)
-            if hosted:
-                from hosted_outcome import binding
-                exact_opening = binding.opening(exact_opening, hosted[0])
         seed_built = seed_materials(name, args.seed_at)  # refused here, before the folder, the install and the platform
         platform_spec = case_platform(name)
         if args.stop_after_start and platform_spec:
@@ -4430,15 +4421,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             raise SystemExit(f"--backend ollama: {why}. Nothing was started.")
     env = host.env(out / "home")
     hosted_identity = {}
-    if hosted:
-        from hosted_outcome import binding
-        data, binding_sha, state_dir = hosted
-        env = binding.guard_path(data, env, state_dir, SHELL_STARTUP_FILES, hosts.PYTHON_PIN_DIR,
-                                 shell_resolution_problems)
-        hosted_identity = {"environment_binding_sha256": binding_sha, "original_prompt_sha256": data["prompt_sha256"],
-                           "delivered_opening_sha256": binding.sha(exact_opening.encode("utf-8")),
-                           "product_acceptance": "UNKNOWN", "evaluator": "UNQUALIFIED",
-                           "host_scope": "guarded default CLI path; broad host authority remains reachable"}
     earlier_platform = earlier_result.get("platform") or {}
     # The run's last cleanup or keep: a Ctrl-C or a crash ends the run before result.json is written, and a later invocation's
     # crash leaves result.json holding an older one, so the record the cleanup itself writes (platform/cleanup-record.json) wins.
@@ -4505,16 +4487,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                              "Start the case again.")
     elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
-        if hosted and not versions["gate"]:
-            if versions["released"]["origin_main"] != attempt.read(state_dir / "start.json")["build"]:
-                versions["gate"].append("origin/main moved from the operator's expected marketplace build")
-            published = export_released(out, versions["released"]["origin_main"])
-            for skill_name in ("shiploop", "improve"):
-                expected = tree_digest(published / "skills" / skill_name)
-                installed = tree_digest(plugin_dir / "skills" / skill_name)
-                if not expected or expected != installed:
-                    versions["gate"].append(f"installed {skill_name} bytes differ from current publication")
-                versions[f"{skill_name}_sha256"] = installed
         if not resumed:
             require_improve_card(planning_review, plugin_dir)  # the install above is the only host CLI that could run before this
         if resumed:

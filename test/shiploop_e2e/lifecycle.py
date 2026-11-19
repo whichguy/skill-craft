@@ -823,14 +823,86 @@ def dispose(out, parts=HEAVY) -> dict:
         lock.close()
 
 
+def _dir_bytes(path: Path) -> int:
+    total = 0
+    for entry in path.rglob("*"):
+        if entry.is_symlink() or not entry.is_file():
+            continue
+        with contextlib.suppress(OSError):
+            total += entry.stat().st_size
+    return total
+
+
+def prune(runs_root: Path, *, older_than_days: float = 7.0, apply: bool = False,
+          parts=HEAVY, now: float | None = None) -> dict:
+    """Inspect or dispose heavy folders of finished runs under ``runs_root`` older than ``older_than_days``.
+
+    Dry-run by default (``apply=False``). When ``apply=True``, delegates each eligible run to ``dispose()``, which
+    refuses active, locked, or incomplete runs and always preserves logs, records, and delivery bundles. Never removes
+    Git worktrees, branches, or files outside ``HEAVY``.
+    """
+    root = Path(runs_root).expanduser().resolve()
+    if not root.is_dir():
+        raise ValueError(f"{root} is not a directory")
+    if not isinstance(older_than_days, (int, float)) or isinstance(older_than_days, bool) or older_than_days < 0:
+        raise ValueError("older_than_days must be a non-negative number")
+    cutoff = (time.time() if now is None else now) - older_than_days * 86400.0
+    candidates, disposed, skipped = [], [], []
+    for folder in environment.run_folders(root):
+        inv = folder / "invocation.json"
+        if not inv.is_file():
+            continue
+        heavy_present = [name for name in parts if (folder / name).exists() and not (folder / name).is_symlink()]
+        if not heavy_present:
+            continue
+        try:
+            mtime = inv.stat().st_mtime
+        except OSError as exc:
+            skipped.append({"run": str(folder), "reason": f"unreadable invocation.json: {exc}"})
+            continue
+        if mtime > cutoff:
+            skipped.append({"run": str(folder), "reason": f"newer than {older_than_days} day(s)"})
+            continue
+        reclaim_bytes = sum(_dir_bytes(folder / name) for name in heavy_present)
+        row = {"run": str(folder), "parts": heavy_present, "bytes": reclaim_bytes}
+        if not apply:
+            kept = evidence(folder)
+            if not kept["complete"]:
+                skipped.append({"run": str(folder), "reason": "evidence incomplete", "missing": kept["missing"]})
+            else:
+                candidates.append(row)
+            continue
+        outcome = dispose(folder, parts=parts)
+        if outcome["disposed"]:
+            disposed.append({**row, "removed": outcome["removed"]})
+        else:
+            skipped.append({"run": str(folder), "reason": outcome.get("refused") or "dispose refused"})
+    return {
+        "root": str(root), "older_than_days": older_than_days, "applied": apply,
+        "candidates": candidates, "disposed": disposed, "skipped": skipped,
+        "reclaimable_bytes": sum(item["bytes"] for item in (disposed if apply else candidates)),
+    }
+
+
 # ---------------------------------------------------------------- command line
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("action", choices=("cleanup", "dispose"))
+    parser.add_argument("action", choices=("cleanup", "dispose", "prune"))
     parser.add_argument("output", type=Path)
+    parser.add_argument("--older-than-days", type=float, default=7.0,
+                        help="prune: minimum age in days before a finished run is eligible (default 7)")
+    parser.add_argument("--apply", action="store_true",
+                        help="prune: actually dispose heavy folders (default is dry-run)")
     args = parser.parse_args(argv)
     out = args.output.expanduser().resolve()
+    if args.action == "prune":
+        try:
+            found = prune(out, older_than_days=args.older_than_days, apply=args.apply)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from None
+        print(json.dumps(found, indent=2))
+        return 0
     if not (out / "invocation.json").is_file():
         raise SystemExit(f"{out} is not a run's output folder (no invocation.json)")
     if args.action == "dispose":

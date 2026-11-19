@@ -726,14 +726,14 @@ class CycleTest(unittest.TestCase):
         self.assertEqual(self.git("rev-parse", "HEAD~1"), self.tip)
 
     def test_launch_all_serializes_same_org_attempts_until_a_clean_receipt_is_sealed(self):
-        cases = {"chess-salesforce": 1, "battleship-salesforce": 1, "hello": 1}
+        cases = {"csv-report": 1, "seat-reservations": 1, "hello": 1}
         root, plugins = self.scheduler_epoch("clean-target-queue", cases)
-        chess = runner.case_platform("chess-salesforce")
-        battleship = runner.case_platform("battleship-salesforce")
-        self.assertEqual((chess["kind"], chess["org"]), (battleship["kind"], battleship["org"]))
-        self.assertNotEqual(chess["prefix"], battleship["prefix"])
-
-        spawned, started, violations = self.run_scheduler(root, plugins)
+        declarations = {
+            "csv-report": {"kind": "hosted", "org": "org-a", "prefix": "AppA"},
+            "seat-reservations": {"kind": "hosted", "org": "org-a", "prefix": "AppB"},
+        }
+        with mock.patch.object(runner, "case_platform", side_effect=lambda case: declarations.get(case)):
+            spawned, started, violations = self.run_scheduler(root, plugins)
 
         attempts = epoch.registration(root)["attempts"]
         expected = {row["id"] for row in attempts}
@@ -867,23 +867,18 @@ class CycleTest(unittest.TestCase):
                          "two assessments before the call plus one more, not three more")
 
     def test_launch_all_leaves_unclean_targets_queued_while_other_targets_and_local_runs_complete(self):
-        cases = {"chess-salesforce": 2, "battleship-salesforce": 2, "csv-report": 2, "hello": 1}
+        cases = {"seat-reservations": 2, "temperature-report": 2, "csv-report": 2, "hello": 1}
         root, plugins = self.scheduler_epoch("blocked-target-queue", cases)
-        real_case_platform = runner.case_platform
-        base = real_case_platform("chess-salesforce")
         declarations = {
-            "chess-salesforce": {**base, "org": "org-a"},
-            "battleship-salesforce": {**base, "org": "org-b", "prefix": "SLBattle"},
-            "csv-report": {**base, "org": "org-c", "prefix": "SLReport"},
+            "seat-reservations": {"kind": "hosted", "org": "org-a", "prefix": "AppA"},
+            "temperature-report": {"kind": "hosted", "org": "org-b", "prefix": "AppB"},
+            "csv-report": {"kind": "hosted", "org": "org-c", "prefix": "AppC"},
         }
-        cleanup = {"chess-salesforce": None,
-                   "battleship-salesforce": {"ran": True, "ok": False},
+        cleanup = {"seat-reservations": None,
+                   "temperature-report": {"ran": True, "ok": False},
                    "csv-report": {"ran": True, "ok": True, "kept": True}}
 
-        def declared_target(case):
-            return declarations.get(case, real_case_platform(case))
-
-        with mock.patch.object(runner, "case_platform", side_effect=declared_target):
+        with mock.patch.object(runner, "case_platform", side_effect=lambda case: declarations.get(case)):
             spawned, started, violations = self.run_scheduler(root, plugins, cleanup)
 
         attempts = epoch.registration(root)["attempts"]

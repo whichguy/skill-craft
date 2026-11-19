@@ -1,24 +1,48 @@
 {
   "_about": "Step-slice cases (slice.py): one work item, run from step-plan to the end of its inner loop on a fixture repository. The prompt is the step's request; work_item is what the seed records as the plan's only item; checks run in a clean export of the product worktree's HEAD; expect_paths are fnmatch patterns the item's commits must touch. A case with a seeded_defect plants a latent defect its own checks do not exercise: probe commands (run by seeded_defects.py on the final tree, never part of the verdicts) fail when the defect survived, and tree names the reference trees under fixtures/ (naive: what a run with no review leaves; fixed: the corrected tree) that prove the probe tells them apart. Experiment cases (experiment.py, experiments.json) may add seed_records ({stage: fields} merged into the synthetic result of each stage the seed records, so a seed at test-spec carries a step plan), seed_state ({env, from}: a local target outside the checkout that keeps state, pre-loaded from a fixture; slice.seed_state), focused (the item's focused command an evaluator reruns) and stand_ins (fixtures/stand-ins/<case>/<name>: alternative implementations an evaluator swaps into the final tree).",
   "node-add-function": {
-    "shape": {"steps": [1, 2], "about": "One small function."},
+    "shape": {
+      "steps": [
+        1,
+        2
+      ],
+      "about": "One small function."
+    },
     "fixture": "node-base",
     "prompt": "In this Node.js project, add a function slugify(text) to src/strings.js and export it. It lower-cases the text, turns every run of characters that are not a-z or 0-9 into one hyphen, and trims hyphens from both ends: slugify('  Hello, World! ') returns 'hello-world' and slugify('') returns ''. A non-string argument throws a TypeError, like the other helpers. Cover it with node:test tests; npm test must pass.",
-    "work_item": {"id": "W1", "title": "Add slugify(text) to src/strings.js",
-                  "context": "Lower-case; each run of non [a-z0-9] characters becomes one hyphen; trim hyphens at both ends; TypeError for a non-string; node:test tests."},
-    "expect_paths": ["src/strings.js", "test/*.test.js"],
+    "work_item": {
+      "id": "W1",
+      "title": "Add slugify(text) to src/strings.js",
+      "context": "Lower-case; each run of non [a-z0-9] characters becomes one hyphen; trim hyphens at both ends; TypeError for a non-string; node:test tests."
+    },
+    "expect_paths": [
+      "src/strings.js",
+      "test/*.test.js"
+    ],
     "checks": [
       "node --test",
       "node -e \"const {slugify}=require('./src/strings');const a=require('assert');a.equal(slugify('  Hello, World! '),'hello-world');a.equal(slugify('A--b__c'),'a-b-c');a.equal(slugify(''),'');a.throws(()=>slugify(1),TypeError)\""
     ]
   },
   "node-fix-bug": {
-    "shape": {"steps": [1, 1], "about": "One bug fix is one step."},
+    "shape": {
+      "steps": [
+        1,
+        1
+      ],
+      "about": "One bug fix is one step."
+    },
     "fixture": "node-base",
     "prompt": "In this Node.js project, paginate() in src/paginate.js loses the last page whenever the number of items is not a multiple of the page size: paginate([1,2,3,4,5], 3, 2) returns no items and reports 2 pages, but it should return { page: 3, pages: 3, items: [5] }. Fix the bug and add a regression test; npm test must pass.",
-    "work_item": {"id": "W1", "title": "Fix paginate() dropping the last partial page",
-                  "context": "paginate([1,2,3,4,5], 3, 2) must return { page: 3, pages: 3, items: [5] }; add a regression test."},
-    "expect_paths": ["src/paginate.js", "test/*.test.js"],
+    "work_item": {
+      "id": "W1",
+      "title": "Fix paginate() dropping the last partial page",
+      "context": "paginate([1,2,3,4,5], 3, 2) must return { page: 3, pages: 3, items: [5] }; add a regression test."
+    },
+    "expect_paths": [
+      "src/paginate.js",
+      "test/*.test.js"
+    ],
     "checks": [
       "node --test",
       "node -e \"const {paginate}=require('./src/paginate');const a=require('assert');a.deepEqual(paginate([1,2,3,4,5],3,2),{page:3,pages:3,items:[5]});a.deepEqual(paginate([1,2,3,4],2,2),{page:2,pages:2,items:[3,4]});a.deepEqual(paginate([],1,2).items,[])\""
@@ -27,21 +51,40 @@
   "node-add-route": {
     "fixture": "node-base",
     "prompt": "In this Node.js project, add a health route to the HTTP server in src/server.js: GET /health answers 200 with the JSON body {\"ok\":true} and a content-type of application/json. The existing routes must keep working. Cover it with a node:test test; npm test must pass.",
-    "work_item": {"id": "W1", "title": "Add GET /health to src/server.js",
-                  "context": "GET /health -> 200, application/json, body {\"ok\":true}; existing routes unchanged; node:test test."},
-    "expect_paths": ["src/server.js", "test/*.test.js"],
+    "work_item": {
+      "id": "W1",
+      "title": "Add GET /health to src/server.js",
+      "context": "GET /health -> 200, application/json, body {\"ok\":true}; existing routes unchanged; node:test test."
+    },
+    "expect_paths": [
+      "src/server.js",
+      "test/*.test.js"
+    ],
     "checks": [
       "node --test",
       "node -e \"const {createServer}=require('./src/server');const s=createServer();s.listen(0,'127.0.0.1',async()=>{const b='http://127.0.0.1:'+s.address().port;const r=await fetch(b+'/health');const ok=r.status===200&&/application\\/json/.test(r.headers.get('content-type'))&&JSON.stringify(await r.json())==='{\\\"ok\\\":true}'&&(await fetch(b+'/users/1')).status===200;s.close();process.exit(ok?0:1)})\""
     ]
   },
   "node-rename": {
-    "shape": {"steps": [1, 1], "about": "A mechanical rename is one step."},
+    "shape": {
+      "steps": [
+        1,
+        1
+      ],
+      "about": "A mechanical rename is one step."
+    },
     "fixture": "node-base",
     "prompt": "In this Node.js project, rename getUser to findUser everywhere: its definition and export in src/users.js, its use in src/server.js, and the tests. Behaviour must not change and no getUser alias may remain. npm test must pass.",
-    "work_item": {"id": "W1", "title": "Rename getUser to findUser across the project",
-                  "context": "Definition, export, server use and tests; no behaviour change; no getUser left anywhere."},
-    "expect_paths": ["src/users.js", "src/server.js", "test/*.test.js"],
+    "work_item": {
+      "id": "W1",
+      "title": "Rename getUser to findUser across the project",
+      "context": "Definition, export, server use and tests; no behaviour change; no getUser left anywhere."
+    },
+    "expect_paths": [
+      "src/users.js",
+      "src/server.js",
+      "test/*.test.js"
+    ],
     "checks": [
       "node --test",
       "! grep -rn getUser src test",
@@ -469,376 +512,6 @@
       }
     }
   },
-  "sf-chess-engine": {
-    "fixture": "chess-sf-w1",
-    "prompt": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLChess`, so that the board opens in the org and the work can still be removed afterwards: a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`). Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, profiles, labels or flows), and do not change profiles or permission sets. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: `e1g1`, `e1c1`, `e8g8`, `e8c8`), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination, the board shows whose turn it is and the game status (check, checkmate, stalemate), refuses an illegal destination, lets a pawn promote (queen is acceptable as the default) and has a New game button. It calls `SLChessController` and renders what comes back. `SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`, returning a `List<String>`, `applyMove(String fen, String move)`, returning the new FEN as a `String`, and `status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them. The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one, so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`). The work will be graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`), each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org, at least 8 Apex test methods in all: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit, and so that a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too. Do not stop until the tests pass in the org.",
-    "work_item": {
-      "context": "Ready: empty worktree (run/scratch/baseline-find.txt) and accepted spec R-2, R-3, R-4, R-5, and NFR-1. Harness: docs/shiploop/environment.md section Harnesses and suites. Alias de is logged in. Never run sf org display. Done: sfdx-project.json sourceApiVersion 68.0, .gitignore lists .sf/ and .sfdx/, SLChessEngine public static methods, SLChessEngineTest TC_1 through TC_14, SLChessBudgetTest TC_19 and TC_20, and no forbidden metadata directories. Confirm by: sf project deploy start --target-org de, then the tap class commands for SLChessEngineTest and SLChessBudgetTest; pass when both exit 0 and those method ids are ok. Compare the whole FEN strings in spec R-4. Run the human twins beside the tap commands and do not put them in test_commands. Seam: the tests call SLChessEngine. Apex has no CJS/ESM split. AD-1 is the integer mailbox. This item settles A5 and A7. There is no prior product behavior to preserve. Revalidate the spec oracles if spec.md changes.",
-      "id": "W1",
-      "title": "DX project and SLChessEngine with rule and budget tests"
-    },
-    "expect_paths": [
-      "force-app/main/default/classes/SLChessBudgetTest.cls",
-      "force-app/main/default/classes/SLChessBudgetTest.cls-meta.xml",
-      "force-app/main/default/classes/SLChessEngine.cls",
-      "force-app/main/default/classes/SLChessEngine.cls-meta.xml",
-      "force-app/main/default/classes/SLChessEngineTest.cls",
-      "force-app/main/default/classes/SLChessEngineTest.cls-meta.xml",
-      "sfdx-project.json"
-    ],
-    "checks": [
-      "test -f sfdx-project.json && test -f force-app/main/default/classes/SLChessEngine.cls"
-    ],
-    "seed_records": {
-      "plan": {
-        "summary": "Design basis: the baseline is an empty checkout and the delta is a new DX project. State is one FEN in the component; Apex stores nothing, so a crash leaves no row. The channel is one Apex request per click, with no cache and no push. Deploy is sf project deploy start --target-org de, granted for this run only. The UI is the simple board the request names: buttons, text status, queen promotion, New game, and no animation. Route: five-lens dependency audit only, not a source-aware-native Backchain child, because the graph is three serial steps. backchain-check is valid and incomplete (three residual risks) at run/backchain/nav-d2013d4adb7148ff984ccc6e5e48872e/check-63ff919839af.json. W1, W2, and W3 all write force-app, so the serial queue is the file-conflict control. R-1 is split: W1 owns the project and class prefix, W3 owns the bundle and entry metadata. R-10's full deploy is W3's done check; system-test repeats the three tap classes. No README. Do not edit Chess or SLBattle metadata. Plan review: CustomTab list metadata shows Chess and SLBattle_Board, and PermissionSetTabSetting has no row for those names among 72711 rows, so neither read settles A4. W3 records both and does not add a permission set. W2 runs the human class command beside its tap command.",
-        "concerns": {
-          "W1": [
-            {
-              "applies": "no",
-              "id": "ui",
-              "reason": "The engine has no screen."
-            },
-            {
-              "anchor": "SLChessEngine static FEN methods",
-              "applies": "yes",
-              "decision": "Public static startFen, legalMoves, applyMove, and status. IllegalMoveException on an illegal move.",
-              "id": "api",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "messaging",
-              "reason": "No platform events or email."
-            },
-            {
-              "anchor": "FEN string",
-              "applies": "yes",
-              "decision": "The caller holds the FEN. A throw leaves that string unchanged. Apex stores no rows.",
-              "id": "state",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "migrate-before",
-              "reason": "The checkout has no product data."
-            },
-            {
-              "applies": "no",
-              "id": "migrate-after",
-              "reason": "No schema is introduced."
-            },
-            {
-              "applies": "no",
-              "id": "switchover",
-              "reason": "Existing Chess and SLBattle metadata stay untouched."
-            },
-            {
-              "applies": "no",
-              "id": "concurrency",
-              "reason": "One transaction and no shared rows."
-            },
-            {
-              "anchor": "org de Apex",
-              "applies": "yes",
-              "decision": "Rules run as synchronous Apex in org de. No local Apex compiler.",
-              "id": "platform-services",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "scale",
-              "reason": "One position per call, not a load test."
-            },
-            {
-              "anchor": "no credentials",
-              "applies": "yes",
-              "decision": "No SOQL, no DML, no sf org display, no tokens in source.",
-              "id": "security",
-              "owner_stage": "step-plan"
-            },
-            {
-              "anchor": "Limits.getCpuTime",
-              "applies": "yes",
-              "decision": "TC_19 and TC_20 record CPU time. TC_19's 2000 ms bound is assumption A5.",
-              "id": "observability",
-              "owner_stage": "step-plan"
-            },
-            {
-              "anchor": "sfdx-project.json",
-              "applies": "yes",
-              "decision": "sourceApiVersion 68.0 and .gitignore entries for .sf/ and .sfdx/.",
-              "id": "config",
-              "owner_stage": "step-plan"
-            },
-            {
-              "anchor": "AD-1 mailbox",
-              "applies": "yes",
-              "decision": "Integer squares 0-63. FEN only at the public boundary. Depth 2 must finish under 10000 ms.",
-              "id": "performance",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "accessibility",
-              "reason": "No rendered UI in this item."
-            }
-          ]
-        },
-        "assumptions": [
-          {
-            "assumption": "Start depth-2 is 400, position 6 has 46 legal moves, and one synchronous Apex transaction allows 10000 ms CPU.",
-            "disposition": "evidenced",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/notes/research.md",
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
-            ],
-            "id": "A1"
-          },
-          {
-            "assumption": "A two-square pawn push sets the en-passant square even when no capture is legal.",
-            "disposition": "evidenced",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
-            ],
-            "id": "A2"
-          },
-          {
-            "assumption": "Alias de is the Developer Edition org 00D000000000000AAA and the CLI can read it.",
-            "check": "Read-only org list and Organization query, with no sf org display.",
-            "disposition": "probed",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/org-read.json"
-            ],
-            "id": "A3"
-          },
-          {
-            "id": "A5",
-            "assumption": "Position-6 legalMoves finishes in under 2000 ms, the plan's reading of well inside 10000 ms.",
-            "disposition": "open",
-            "settle": "SLChessBudgetTest.TC_19 reads Limits.getCpuTime() after legalMoves on position 6.",
-            "reason": "If a correct engine exceeds 2000 ms, record the time and keep the 46-move assertion.",
-            "due_item": "W1"
-          },
-          {
-            "assumption": "This host has no browser tool that can open the board.",
-            "check": "search_tool for a browser tool, recorded before any product UI existed.",
-            "disposition": "probed",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/probe-browser.txt"
-            ],
-            "id": "A6"
-          },
-          {
-            "id": "A7",
-            "assumption": "sf project deploy start --target-org de can add this project's metadata and does not delete unrelated org metadata.",
-            "disposition": "open",
-            "settle": "W1's first deploy of the engine slice. Pass when the command exits 0 and names only this project's files.",
-            "reason": "Discovery only read the org. The request grants this deploy, and the command has not been run.",
-            "due_item": "W1"
-          }
-        ]
-      }
-    },
-    "shape": {
-      "steps": [
-        3,
-        null
-      ],
-      "about": "The engine item: run 4 put it in one step of 7 criteria (793 lines, 21 minutes)."
-    },
-    "source": "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6 worktree a6044d1, the W1 step-plan point",
-    "fake_sf": {
-      "orgs": "de"
-    }
-  },
-  "sf-chess-board-entry": {
-    "fixture": "chess-sf-w3",
-    "prompt": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLChess`, so that the board opens in the org and the work can still be removed afterwards: a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`). Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, profiles, labels or flows), and do not change profiles or permission sets. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: `e1g1`, `e1c1`, `e8g8`, `e8c8`), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination, the board shows whose turn it is and the game status (check, checkmate, stalemate), refuses an illegal destination, lets a pawn promote (queen is acceptable as the default) and has a New game button. It calls `SLChessController` and renders what comes back. `SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`, returning a `List<String>`, `applyMove(String fen, String move)`, returning the new FEN as a `String`, and `status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them. The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one, so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`). The work will be graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`), each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org, at least 8 Apex test methods in all: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit, and so that a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too. Do not stop until the tests pass in the org.",
-    "work_item": {
-      "context": "Ready: W2 is done, so SLChessController is deployed and TC_15 through TC_18 passed. Done: bundle slChessBoard, tab SLChess_Board, app SLChess, flexipage SLChess_Board, matching AD-2 and AD-4. Confirm by: the TC_META shell in docs/shiploop/environment.md exits 0, and sf project deploy start --target-org de exits 0. Also read slChessBoard.html for turn text, the status words, square buttons, and New game (TC_UI_SOURCE). UI-1 is unconfirmable here: no browser tool (run/scratch/probe-browser.txt). After deploy, record the CustomTab list and any PermissionSetTabSetting whose name contains SLChess_Board. Those reads do not settle A4: the same reads see Chess and SLBattle_Board and no setting row for them. Do not create a permission set or edit a profile. Queen is the only promotion control. Simple Lightning skin, no animation. Owns R-1 metadata, R-7, R-8, R-10 deploy, F-1, F-2, NFR-3, and NFR-6.",
-      "id": "W3",
-      "title": "slChessBoard, tab, Lightning app, and flexipage"
-    },
-    "expect_paths": [
-      "force-app/main/default/applications/SLChess.app-meta.xml",
-      "force-app/main/default/flexipages/SLChess_Board.flexipage-meta.xml",
-      "force-app/main/default/lwc/slChessBoard/slChessBoard.css",
-      "force-app/main/default/lwc/slChessBoard/slChessBoard.html",
-      "force-app/main/default/lwc/slChessBoard/slChessBoard.js",
-      "force-app/main/default/lwc/slChessBoard/slChessBoard.js-meta.xml",
-      "force-app/main/default/tabs/SLChess_Board.tab-meta.xml"
-    ],
-    "checks": [
-      "test -f force-app/main/default/lwc/slChessBoard/slChessBoard.js && test -f force-app/main/default/tabs/SLChess_Board.tab-meta.xml"
-    ],
-    "seed_records": {
-      "plan": {
-        "summary": "Design basis: the baseline is an empty checkout and the delta is a new DX project. State is one FEN in the component; Apex stores nothing, so a crash leaves no row. The channel is one Apex request per click, with no cache and no push. Deploy is sf project deploy start --target-org de, granted for this run only. The UI is the simple board the request names: buttons, text status, queen promotion, New game, and no animation. Route: five-lens dependency audit only, not a source-aware-native Backchain child, because the graph is three serial steps. backchain-check is valid and incomplete (three residual risks) at run/backchain/nav-d2013d4adb7148ff984ccc6e5e48872e/check-63ff919839af.json. W1, W2, and W3 all write force-app, so the serial queue is the file-conflict control. R-1 is split: W1 owns the project and class prefix, W3 owns the bundle and entry metadata. R-10's full deploy is W3's done check; system-test repeats the three tap classes. No README. Do not edit Chess or SLBattle metadata. Plan review: CustomTab list metadata shows Chess and SLBattle_Board, and PermissionSetTabSetting has no row for those names among 72711 rows, so neither read settles A4. W3 records both and does not add a permission set. W2 runs the human class command beside its tap command.",
-        "concerns": {
-          "W3": [
-            {
-              "anchor": "slChessBoard",
-              "applies": "yes",
-              "decision": "Simple 8x8 button board, piece then destination, queen promotion, New game. No drag and no animation, because the request says simple.",
-              "id": "ui",
-              "owner_stage": "step-plan"
-            },
-            {
-              "anchor": "controller import",
-              "applies": "yes",
-              "decision": "The component calls SLChessController and renders the returned FEN and status.",
-              "id": "api",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "messaging",
-              "reason": "One request per click. No push channel."
-            },
-            {
-              "anchor": "in-memory FEN",
-              "applies": "yes",
-              "decision": "The component holds one FEN until New game or reload. An illegal click does not change it.",
-              "id": "state",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "migrate-before",
-              "reason": "No existing board state."
-            },
-            {
-              "applies": "no",
-              "id": "migrate-after",
-              "reason": "No stored game to move."
-            },
-            {
-              "applies": "no",
-              "id": "switchover",
-              "reason": "New tab and app names. Do not edit Chess or SLBattle."
-            },
-            {
-              "applies": "no",
-              "id": "concurrency",
-              "reason": "Two people share one screen. No second session."
-            },
-            {
-              "anchor": "Lightning tab and app",
-              "applies": "yes",
-              "decision": "Custom tab, Lightning app with Standard navigation, and one flexipage. No other metadata types.",
-              "id": "platform-services",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "scale",
-              "reason": "One board on one screen."
-            },
-            {
-              "anchor": "no perm set",
-              "applies": "yes",
-              "decision": "Do not add a permission set or edit a profile. CustomTab list and PermissionSetTabSetting do not prove the tab opens. A4 stays open.",
-              "id": "security",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "observability",
-              "reason": "The board shows status text. CPU stays in the Apex tests."
-            },
-            {
-              "anchor": "Lightning targets",
-              "applies": "yes",
-              "decision": "js-meta exposes lightning__Tab and lightning__AppPage and isExposed true.",
-              "id": "config",
-              "owner_stage": "step-plan"
-            },
-            {
-              "applies": "no",
-              "id": "performance",
-              "reason": "No client timing budget was requested."
-            },
-            {
-              "anchor": "text and buttons",
-              "applies": "yes",
-              "decision": "Turn and status are text. Squares are buttons with piece and coordinate names. No WCAG level.",
-              "id": "accessibility",
-              "owner_stage": "step-plan"
-            }
-          ]
-        },
-        "assumptions": [
-          {
-            "assumption": "Start depth-2 is 400, position 6 has 46 legal moves, and one synchronous Apex transaction allows 10000 ms CPU.",
-            "disposition": "evidenced",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/notes/research.md",
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
-            ],
-            "id": "A1"
-          },
-          {
-            "assumption": "A two-square pawn push sets the en-passant square even when no capture is legal.",
-            "disposition": "evidenced",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
-            ],
-            "id": "A2"
-          },
-          {
-            "assumption": "Alias de is the Developer Edition org 00D000000000000AAA and the CLI can read it.",
-            "check": "Read-only org list and Organization query, with no sf org display.",
-            "disposition": "probed",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/org-read.json"
-            ],
-            "id": "A3"
-          },
-          {
-            "id": "A4",
-            "assumption": "A new Lightning tab is visible to the System Administrator without a permission set or profile edit.",
-            "disposition": "open",
-            "settle": "After deploy, list CustomTab and query PermissionSetTabSetting for a name containing SLChess_Board. Neither read settles visibility. A person opening /lightning/n/SLChess_Board would.",
-            "reason": "The same reads list Chess and SLBattle_Board and find no PermissionSetTabSetting row for them among 72711 rows. No browser tool exists, and this run must not add a permission set.",
-            "due_item": "W3"
-          },
-          {
-            "assumption": "This host has no browser tool that can open the board.",
-            "check": "search_tool for a browser tool, recorded before any product UI existed.",
-            "disposition": "probed",
-            "evidence": [
-              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/probe-browser.txt"
-            ],
-            "id": "A6"
-          }
-        ]
-      }
-    },
-    "shape": {
-      "steps": [
-        2,
-        null
-      ],
-      "separate": [
-        [
-          [
-            "**/lwc/**"
-          ],
-          [
-            "**/tabs/**",
-            "**/applications/**",
-            "**/flexipages/**"
-          ]
-        ]
-      ],
-      "about": "A component and the org entry metadata that opens it: two layers, one step in run 4."
-    },
-    "source": "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6 worktree 5383110, the W3 step-plan point",
-    "fake_sf": {
-      "orgs": "de"
-    }
-  },
   "node-battleship-server": {
     "fixture": "battleship-w2",
     "prompt": "Build a small single-player Battleship game served by a Node.js HTTP server with no npm dependencies. server.js starts the server on the port in the PORT environment variable (default 3000). GET / serves a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid. GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\"game\": id, \"row\": r, \"col\": c} returns JSON with \"result\" set to \"miss\", \"hit\" or \"sunk\" and \"gameOver\" true once every ship is sunk. Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`.",
@@ -1095,5 +768,369 @@
     "checks": [
       "node --check server.js"
     ]
+  },
+  "sf-chess-engine": {
+    "fixture": "chess-sf-w1",
+    "prompt": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLChess`, so that the board opens in the org and the work can still be removed afterwards: a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`). Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, profiles, labels or flows), and do not change profiles or permission sets. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: `e1g1`, `e1c1`, `e8g8`, `e8c8`), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination, the board shows whose turn it is and the game status (check, checkmate, stalemate), refuses an illegal destination, lets a pawn promote (queen is acceptable as the default) and has a New game button. It calls `SLChessController` and renders what comes back. `SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`, returning a `List<String>`, `applyMove(String fen, String move)`, returning the new FEN as a `String`, and `status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them. The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one, so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`). The work will be graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`), each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org, at least 8 Apex test methods in all: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit, and so that a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too. Do not stop until the tests pass in the org.",
+    "work_item": {
+      "context": "Ready: empty worktree (run/scratch/baseline-find.txt) and accepted spec R-2, R-3, R-4, R-5, and NFR-1. Harness: docs/shiploop/environment.md section Harnesses and suites. Alias de is logged in. Never run sf org display. Done: sfdx-project.json sourceApiVersion 68.0, .gitignore lists .sf/ and .sfdx/, SLChessEngine public static methods, SLChessEngineTest TC_1 through TC_14, SLChessBudgetTest TC_19 and TC_20, and no forbidden metadata directories. Confirm by: sf project deploy start --target-org de, then the tap class commands for SLChessEngineTest and SLChessBudgetTest; pass when both exit 0 and those method ids are ok. Compare the whole FEN strings in spec R-4. Run the human twins beside the tap commands and do not put them in test_commands. Seam: the tests call SLChessEngine. Apex has no CJS/ESM split. AD-1 is the integer mailbox. This item settles A5 and A7. There is no prior product behavior to preserve. Revalidate the spec oracles if spec.md changes.",
+      "id": "W1",
+      "title": "DX project and SLChessEngine with rule and budget tests"
+    },
+    "expect_paths": [
+      "force-app/main/default/classes/SLChessBudgetTest.cls",
+      "force-app/main/default/classes/SLChessBudgetTest.cls-meta.xml",
+      "force-app/main/default/classes/SLChessEngine.cls",
+      "force-app/main/default/classes/SLChessEngine.cls-meta.xml",
+      "force-app/main/default/classes/SLChessEngineTest.cls",
+      "force-app/main/default/classes/SLChessEngineTest.cls-meta.xml",
+      "sfdx-project.json"
+    ],
+    "checks": [
+      "test -f sfdx-project.json && test -f force-app/main/default/classes/SLChessEngine.cls"
+    ],
+    "seed_records": {
+      "plan": {
+        "summary": "Design basis: the baseline is an empty checkout and the delta is a new DX project. State is one FEN in the component; Apex stores nothing, so a crash leaves no row. The channel is one Apex request per click, with no cache and no push. Deploy is sf project deploy start --target-org de, granted for this run only. The UI is the simple board the request names: buttons, text status, queen promotion, New game, and no animation. Route: five-lens dependency audit only, not a source-aware-native Backchain child, because the graph is three serial steps. backchain-check is valid and incomplete (three residual risks) at run/backchain/nav-d2013d4adb7148ff984ccc6e5e48872e/check-63ff919839af.json. W1, W2, and W3 all write force-app, so the serial queue is the file-conflict control. R-1 is split: W1 owns the project and class prefix, W3 owns the bundle and entry metadata. R-10's full deploy is W3's done check; system-test repeats the three tap classes. No README. Do not edit Chess or SLBattle metadata. Plan review: CustomTab list metadata shows Chess and SLBattle_Board, and PermissionSetTabSetting has no row for those names among 72711 rows, so neither read settles A4. W3 records both and does not add a permission set. W2 runs the human class command beside its tap command.",
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "The engine has no screen."
+            },
+            {
+              "anchor": "SLChessEngine static FEN methods",
+              "applies": "yes",
+              "decision": "Public static startFen, legalMoves, applyMove, and status. IllegalMoveException on an illegal move.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No platform events or email."
+            },
+            {
+              "anchor": "FEN string",
+              "applies": "yes",
+              "decision": "The caller holds the FEN. A throw leaves that string unchanged. Apex stores no rows.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "The checkout has no product data."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema is introduced."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "Existing Chess and SLBattle metadata stay untouched."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "One transaction and no shared rows."
+            },
+            {
+              "anchor": "org de Apex",
+              "applies": "yes",
+              "decision": "Rules run as synchronous Apex in org de. No local Apex compiler.",
+              "id": "platform-services",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "One position per call, not a load test."
+            },
+            {
+              "anchor": "no credentials",
+              "applies": "yes",
+              "decision": "No SOQL, no DML, no sf org display, no tokens in source.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "Limits.getCpuTime",
+              "applies": "yes",
+              "decision": "TC_19 and TC_20 record CPU time. TC_19's 2000 ms bound is assumption A5.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "sfdx-project.json",
+              "applies": "yes",
+              "decision": "sourceApiVersion 68.0 and .gitignore entries for .sf/ and .sfdx/.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "AD-1 mailbox",
+              "applies": "yes",
+              "decision": "Integer squares 0-63. FEN only at the public boundary. Depth 2 must finish under 10000 ms.",
+              "id": "performance",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No rendered UI in this item."
+            }
+          ]
+        },
+        "assumptions": [
+          {
+            "assumption": "Start depth-2 is 400, position 6 has 46 legal moves, and one synchronous Apex transaction allows 10000 ms CPU.",
+            "disposition": "evidenced",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/notes/research.md",
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "A two-square pawn push sets the en-passant square even when no capture is legal.",
+            "disposition": "evidenced",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Alias de is the Developer Edition org 00D000000000000AAA and the CLI can read it.",
+            "check": "Read-only org list and Organization query, with no sf org display.",
+            "disposition": "probed",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/org-read.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "id": "A5",
+            "assumption": "Position-6 legalMoves finishes in under 2000 ms, the plan's reading of well inside 10000 ms.",
+            "disposition": "open",
+            "settle": "SLChessBudgetTest.TC_19 reads Limits.getCpuTime() after legalMoves on position 6.",
+            "reason": "If a correct engine exceeds 2000 ms, record the time and keep the 46-move assertion.",
+            "due_item": "W1"
+          },
+          {
+            "assumption": "This host has no browser tool that can open the board.",
+            "check": "search_tool for a browser tool, recorded before any product UI existed.",
+            "disposition": "probed",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/probe-browser.txt"
+            ],
+            "id": "A6"
+          },
+          {
+            "id": "A7",
+            "assumption": "sf project deploy start --target-org de can add this project's metadata and does not delete unrelated org metadata.",
+            "disposition": "open",
+            "settle": "W1's first deploy of the engine slice. Pass when the command exits 0 and names only this project's files.",
+            "reason": "Discovery only read the org. The request grants this deploy, and the command has not been run.",
+            "due_item": "W1"
+          }
+        ]
+      }
+    },
+    "shape": {
+      "steps": [
+        3,
+        null
+      ],
+      "about": "The engine item: run 4 put it in one step of 7 criteria (793 lines, 21 minutes)."
+    },
+    "source": "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6 worktree a6044d1, the W1 step-plan point"
+  },
+  "sf-chess-board-entry": {
+    "fixture": "chess-sf-w3",
+    "prompt": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`. Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token). Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`. Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLChess`, so that the board opens in the org and the work can still be removed afterwards: a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`). Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, profiles, labels or flows), and do not change profiles or permission sets. The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder. `SLChessEngine` is a public class with static methods only; a position is a FEN string. `startFen()` returns the standard start position. `legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically. `applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). `status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: `e1g1`, `e1c1`, `e8g8`, `e8c8`), en passant, promotion to q, r, b or n, check, checkmate and stalemate. The component `slChessBoard` renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination, the board shows whose turn it is and the game status (check, checkmate, stalemate), refuses an illegal destination, lets a pawn promote (queen is acceptable as the default) and has a New game button. It calls `SLChessController` and renders what comes back. `SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`, returning a `List<String>`, `applyMove(String fen, String move)`, returning the new FEN as a `String`, and `status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them. The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one, so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`). The work will be graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`), each game in one anonymous Apex run. Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org, at least 8 Apex test methods in all: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class). Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit, and so that a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too. Do not stop until the tests pass in the org.",
+    "work_item": {
+      "context": "Ready: W2 is done, so SLChessController is deployed and TC_15 through TC_18 passed. Done: bundle slChessBoard, tab SLChess_Board, app SLChess, flexipage SLChess_Board, matching AD-2 and AD-4. Confirm by: the TC_META shell in docs/shiploop/environment.md exits 0, and sf project deploy start --target-org de exits 0. Also read slChessBoard.html for turn text, the status words, square buttons, and New game (TC_UI_SOURCE). UI-1 is unconfirmable here: no browser tool (run/scratch/probe-browser.txt). After deploy, record the CustomTab list and any PermissionSetTabSetting whose name contains SLChess_Board. Those reads do not settle A4: the same reads see Chess and SLBattle_Board and no setting row for them. Do not create a permission set or edit a profile. Queen is the only promotion control. Simple Lightning skin, no animation. Owns R-1 metadata, R-7, R-8, R-10 deploy, F-1, F-2, NFR-3, and NFR-6.",
+      "id": "W3",
+      "title": "slChessBoard, tab, Lightning app, and flexipage"
+    },
+    "expect_paths": [
+      "force-app/main/default/applications/SLChess.app-meta.xml",
+      "force-app/main/default/flexipages/SLChess_Board.flexipage-meta.xml",
+      "force-app/main/default/lwc/slChessBoard/slChessBoard.css",
+      "force-app/main/default/lwc/slChessBoard/slChessBoard.html",
+      "force-app/main/default/lwc/slChessBoard/slChessBoard.js",
+      "force-app/main/default/lwc/slChessBoard/slChessBoard.js-meta.xml",
+      "force-app/main/default/tabs/SLChess_Board.tab-meta.xml"
+    ],
+    "checks": [
+      "test -f force-app/main/default/lwc/slChessBoard/slChessBoard.js && test -f force-app/main/default/tabs/SLChess_Board.tab-meta.xml"
+    ],
+    "seed_records": {
+      "plan": {
+        "summary": "Design basis: the baseline is an empty checkout and the delta is a new DX project. State is one FEN in the component; Apex stores nothing, so a crash leaves no row. The channel is one Apex request per click, with no cache and no push. Deploy is sf project deploy start --target-org de, granted for this run only. The UI is the simple board the request names: buttons, text status, queen promotion, New game, and no animation. Route: five-lens dependency audit only, not a source-aware-native Backchain child, because the graph is three serial steps. backchain-check is valid and incomplete (three residual risks) at run/backchain/nav-d2013d4adb7148ff984ccc6e5e48872e/check-63ff919839af.json. W1, W2, and W3 all write force-app, so the serial queue is the file-conflict control. R-1 is split: W1 owns the project and class prefix, W3 owns the bundle and entry metadata. R-10's full deploy is W3's done check; system-test repeats the three tap classes. No README. Do not edit Chess or SLBattle metadata. Plan review: CustomTab list metadata shows Chess and SLBattle_Board, and PermissionSetTabSetting has no row for those names among 72711 rows, so neither read settles A4. W3 records both and does not add a permission set. W2 runs the human class command beside its tap command.",
+        "concerns": {
+          "W3": [
+            {
+              "anchor": "slChessBoard",
+              "applies": "yes",
+              "decision": "Simple 8x8 button board, piece then destination, queen promotion, New game. No drag and no animation, because the request says simple.",
+              "id": "ui",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "controller import",
+              "applies": "yes",
+              "decision": "The component calls SLChessController and renders the returned FEN and status.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "One request per click. No push channel."
+            },
+            {
+              "anchor": "in-memory FEN",
+              "applies": "yes",
+              "decision": "The component holds one FEN until New game or reload. An illegal click does not change it.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing board state."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No stored game to move."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "New tab and app names. Do not edit Chess or SLBattle."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "Two people share one screen. No second session."
+            },
+            {
+              "anchor": "Lightning tab and app",
+              "applies": "yes",
+              "decision": "Custom tab, Lightning app with Standard navigation, and one flexipage. No other metadata types.",
+              "id": "platform-services",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "One board on one screen."
+            },
+            {
+              "anchor": "no perm set",
+              "applies": "yes",
+              "decision": "Do not add a permission set or edit a profile. CustomTab list and PermissionSetTabSetting do not prove the tab opens. A4 stays open.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "observability",
+              "reason": "The board shows status text. CPU stays in the Apex tests."
+            },
+            {
+              "anchor": "Lightning targets",
+              "applies": "yes",
+              "decision": "js-meta exposes lightning__Tab and lightning__AppPage and isExposed true.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No client timing budget was requested."
+            },
+            {
+              "anchor": "text and buttons",
+              "applies": "yes",
+              "decision": "Turn and status are text. Squares are buttons with piece and coordinate names. No WCAG level.",
+              "id": "accessibility",
+              "owner_stage": "step-plan"
+            }
+          ]
+        },
+        "assumptions": [
+          {
+            "assumption": "Start depth-2 is 400, position 6 has 46 legal moves, and one synchronous Apex transaction allows 10000 ms CPU.",
+            "disposition": "evidenced",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/notes/research.md",
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "A two-square pawn push sets the en-passant square even when no capture is legal.",
+            "disposition": "evidenced",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/worktree/docs/shiploop/spec.md"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Alias de is the Developer Edition org 00D000000000000AAA and the CLI can read it.",
+            "check": "Read-only org list and Organization query, with no sf org display.",
+            "disposition": "probed",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/org-read.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "id": "A4",
+            "assumption": "A new Lightning tab is visible to the System Administrator without a permission set or profile edit.",
+            "disposition": "open",
+            "settle": "After deploy, list CustomTab and query PermissionSetTabSetting for a name containing SLChess_Board. Neither read settles visibility. A person opening /lightning/n/SLChess_Board would.",
+            "reason": "The same reads list Chess and SLBattle_Board and find no PermissionSetTabSetting row for them among 72711 rows. No browser tool exists, and this run must not add a permission set.",
+            "due_item": "W3"
+          },
+          {
+            "assumption": "This host has no browser tool that can open the board.",
+            "check": "search_tool for a browser tool, recorded before any product UI existed.",
+            "disposition": "probed",
+            "evidence": [
+              "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6/run/scratch/probe-browser.txt"
+            ],
+            "id": "A6"
+          }
+        ]
+      }
+    },
+    "shape": {
+      "steps": [
+        2,
+        null
+      ],
+      "separate": [
+        [
+          [
+            "**/lwc/**"
+          ],
+          [
+            "**/tabs/**",
+            "**/applications/**",
+            "**/flexipages/**"
+          ]
+        ]
+      ],
+      "about": "A component and the org entry metadata that opens it: two layers, one step in run 4."
+    },
+    "source": "/Users/dadleet/e2e-runs/20261020/chess-sf-full-9e52e8/.shiploop-runs/work-20261021-030256-ada3c6 worktree 5383110, the W3 step-plan point"
   }
 }

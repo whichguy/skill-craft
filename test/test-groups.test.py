@@ -133,7 +133,8 @@ class TestGroupTests(unittest.TestCase):
         # Splitting the aggregate adds two; the full Grok case adds four suites (2026-11-07).
         # Roundtable adds one opt-in calibration suite (2026-11-07).
         # Nonblocking recovery adds one real-worktree suite (2026-11-12).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 142)
+        # Retiring the Closed Loop adapter (3 suites) and all Salesforce/hosted suites (12 ShipLoop + 2 apparatus) brings SHIPLOOP_SUITES to 127.
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 127)
         # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
@@ -145,11 +146,8 @@ class TestGroupTests(unittest.TestCase):
         # Backchain was retired (owner decision 2026-11-16): backchain-chunks and backchain-toolkit left with it, so core is 61
         # and all suites two fewer; backchain-graph stays, because its library moved into ShipLoop.
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
-        # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
-        # The ShipLoop adapter's three contract suites (2026-11-15: queries, steps, real engine with fake hosts) make 209.
-        # Hosted outcome discovery and evaluation each add a hermetic apparatus suite (2026-11-18).
-        # The bundled Grok/GAS audit harness (shiploop-e2e-apparatus and shiploop-mock-replay) retired (2026-11-19).
-        self.assertEqual(len(suite_catalog.SUITES), 207)
+        # Bundled Grok/GAS harness (2 suites), Closed Loop ShipLoop adapter (3 suites), and Salesforce/hosted cases (14 suites) retired (2026-11-19).
+        self.assertEqual(len(suite_catalog.SUITES), 190)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -297,37 +295,6 @@ class TestGroupTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(planning.isdisjoint(suite_catalog.targeted((path,))))
 
-    def test_hosted_outcome_apparatus_is_selected_for_its_sources(self) -> None:
-        suite, = (s for s in suite_catalog.select(("e2e-apparatus",)) if s.id == "hosted-outcome")
-        self.assertNotIn(suite, suite_catalog.smoke())
-        for path in (
-            suite.path,
-            "test/shiploop_e2e/run.py",
-            "test/shiploop_e2e/cases.json",
-            "test/shiploop_e2e/checks/sf_guard.py",
-            "test/shiploop_e2e/lifecycle.py",
-            "test/shiploop_e2e/hosted_outcome/attempt.py",
-            "test/shiploop_e2e/hosted_outcome/binding.py",
-            "test/shiploop_e2e/scenarios/grok-chat-outcome/BUILDER_PROMPT.md",
-            "test/shiploop_e2e/scenarios/grok-chat-outcome/READINESS.json",
-        ):
-            with self.subTest(path=path):
-                for group in ("quick", "affected"):
-                    self.assertIn(suite, suite_catalog.select((group,), (path,)), group)
-
-    def test_outcome_evaluation_apparatus_is_selected_for_its_sources(self) -> None:
-        suite, = (s for s in suite_catalog.select(("e2e-apparatus",)) if s.id == "outcome-evaluation")
-        self.assertNotIn(suite, suite_catalog.smoke())
-        for path in (
-            suite.path,
-            "test/shiploop_e2e/hosted_outcome/evaluation.py",
-            "test/shiploop_e2e/scenarios/grok-chat-outcome/evaluation.example.json",
-            "test/shiploop_e2e/scenarios/grok-chat-outcome/OUTCOME_REVIEW.md",
-        ):
-            with self.subTest(path=path):
-                for group in ("quick", "affected"):
-                    self.assertIn(suite, suite_catalog.select((group,), (path,)), group)
-
     def test_planning_boundary_timeline_does_not_turn_retained_fixtures_into_hubs(self) -> None:
         fixtures = TEST_DIR / "fixtures/fidelity"
         timeline = next(fixtures.glob("*/.shiploop-runs/*/run/timeline[.]json"))
@@ -419,12 +386,12 @@ class TestGroupTests(unittest.TestCase):
                              [s.id for s in suite_catalog.select([group], changed)])
 
     def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
-        # All 207 rows after retiring the bundled Grok/GAS audit harness (2026-11-19).
+        # All 190 rows after retiring the bundled harness, Closed Loop adapter, and Salesforce suites (2026-11-19).
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "432d2dce0067533646ccf183ffc6a95563d89aaa9744d673df70bc9cf61ec9e3")
+        self.assertEqual(digest, "a5d87ecb26697c9e112f7e6467f72617cdd1b974b95fe08edc1b973cbce301fc")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])
@@ -442,7 +409,6 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(suite_catalog._FULL_ONLY_IDS, {
             "plan-dispatcher-mutants", "shiploop-full-runtime", "shiploop-workspace",
             "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-directory",
-            "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine",
         })
         paths = [suite.path for suite in suite_catalog.SUITES]
         before = suite_catalog.quick(paths)
@@ -1114,13 +1080,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
     FAMILY = {*E2E_SPLIT, "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
               "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality",
               "shiploop-e2e-packet-anatomy", "shiploop-e2e-render-diff", "shiploop-e2e-commit-counters", "shiploop-e2e-slice",
-              "shiploop-e2e-chess-salesforce", "shiploop-e2e-battleship-salesforce", "shiploop-e2e-release-slice", "shiploop-e2e-platform",
-              "shiploop-e2e-battleship-ui",
-              "shiploop-e2e-grok-chat-salesforce",
-              "shiploop-e2e-grok-chat-full", "shiploop-e2e-grok-chat-full-ui",
-              "shiploop-e2e-grok-chat-full-oracle", "shiploop-e2e-grok-chat-full-quality",
-              "shiploop-e2e-gym-membership-salesforce", "shiploop-e2e-gym-ui",
-              "shiploop-e2e-sf-guard", "shiploop-e2e-status-card",
+              "shiploop-e2e-platform", "shiploop-e2e-status-card",
               "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page", "shiploop-e2e-experiments",
               "shiploop-e2e-sdlc-probes", "shiploop-e2e-review-attribution", "shiploop-e2e-ticket-semantics",
               "shiploop-e2e-scope-discovery", "shiploop-e2e-stage-oracle", "shiploop-e2e-stage-build", "shiploop-e2e-stages",
@@ -1130,7 +1090,6 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-user-directory",
               "shiploop-e2e-recovery", "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-roundtable", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle",
-              "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine",
               "shiploop-e2e-predecessor", "shiploop-e2e-predecessor-wiring", "shiploop-e2e-intent-continuity"}
 
     def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:
