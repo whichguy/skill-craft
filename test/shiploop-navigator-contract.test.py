@@ -3357,8 +3357,6 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "diagram states both schedules",
         ("references/planning-experiments.md", "imports it with the Improve stage's `complete`"):
             "says how the plan child's confirmation is imported; the file opens with what a `planning_review: none` run lacks",
-        ("../shiploop-e2e-audit/harness/README.md", "An action with an Improve record needs its Improve stage's `complete`"):
-            "says how a recorded Improve stage is completed; promises none",
         ("references/delivery-authority.md", "Before an Improve campaign converges, resolve contradictions"):
             "names any Improve campaign, not a planning child; the specification and the plan are the example's documents",
         ("references/environment-lifecycle.md", "not permission to execute inside `plan` or its Improve review"):
@@ -3387,7 +3385,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         names = ["SKILL.md", "README.md", *sorted(str(p.relative_to(self.SKILL)) for p in (self.SKILL / "commands").glob("*.md")),
                  *sorted(str(p.relative_to(self.SKILL)) for p in (self.SKILL / "references").glob("*.md"))]
         found = {name: self.SKILL / name for name in names}
-        for name in ("harness/MOCK-REPLAY.md", "harness/README.md", "SKILL.md"):
+        for name in ("SKILL.md", "IMPROVE.md"):
             found["../shiploop-e2e-audit/" + name] = self.AUDIT / name
         return found
 
@@ -3461,8 +3459,6 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             for needle in needles:
                 with self.subTest(document=name, needle=needle):
                     self.assertIn(needle, text)
-        mock = " ".join((self.AUDIT / "harness" / "MOCK-REPLAY.md").read_text(encoding="utf-8").split())
-        self.assertIn("planning_review", mock)
 
 
 class EightStageInnerLoopCliTests(unittest.TestCase):

@@ -21,11 +21,7 @@ import shlex
 import stat
 
 import metrics
-
-_HELPER = Path(__file__).resolve().parents[2] / "skills/shiploop-e2e-audit/harness/planning_trace.py"
-_SPEC = importlib.util.spec_from_file_location("shiploop_e2e_planning_trace", _HELPER)
-planning_trace = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(planning_trace)
+import planning_trace
 
 _WRAPPER = re.compile(r"/bin/(?:sh|bash|zsh) +-(?:l)?c +'([^'\r\n]*)'")
 _SHELL = re.compile(r"""(?:[a-zA-Z0-9_./:@+=, -]|'[a-zA-Z0-9_./:@+=, -]*'|"[a-zA-Z0-9_./:@+=, -]*")*""")

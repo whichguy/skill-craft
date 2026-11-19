@@ -145,9 +145,7 @@ Changing any of these files selects the E2E family. The three components count
 as one logical consumer when deciding whether a shared source is a hub.
 
 The quick baseline is three core suites (`test-groups`, `ci-policy`,
-`skill-frontmatter`), the apparatus's no-model mock replay
-(`shiploop-mock-replay`, `check_suite.py --suite mock`: captured agent results
-drive the real navigator, about two seconds) and ten ShipLoop suites
+`skill-frontmatter`) and ten ShipLoop suites
 (`no-model-launch`, `navigator-contract`, `navigator-v4`, `stopped-improve`,
 `packet-bounds`, `navigator-dry-run`, `status-display`, `narrative`,
 `stage-spec` and `planning-handoff`).
@@ -199,8 +197,6 @@ changes being checked.
 ```sh
 SHIPLOOP_TEST_BASE="$(git -C . rev-parse origin/main)"
 
-python3 -B skills/shiploop-e2e-audit/harness/check_suite.py \
-  --suite mock --skill-root skills/shiploop --list
 SHIPLOOP_PROGRESS=off PYTHONDONTWRITEBYTECODE=1 \
   python3 -B test/shiploop-progress.test.py
 bash test/run-all.sh --group quick --changed-from "$SHIPLOOP_TEST_BASE"
@@ -369,29 +365,9 @@ registered once in the ShipLoop inventory. Its synthetic tests check apparatus
 contracts; they do not reproduce the original model trials. Private raw study
 evidence is not part of the published fixture set.
 
-The [ShipLoop E2E harness](../skills/shiploop-e2e-audit/harness/README.md)
-separately supports offline observer, receipt, game-oracle, and synthetic-host
-checks:
-
-```sh
-python3 skills/shiploop-e2e-audit/harness/check_suite.py --suite regressions
-python3 -m unittest discover -s skills/shiploop-e2e-audit/harness -p 'test_*.py'
-```
-
-These no-model apparatus checks are independent of live Grok runs. Retained
-external-product cases are explicitly opt-in and reported as skipped when their
-fixtures are unavailable; those skips do not establish product behavior. The
-aggregate full-runtime test also exercises one real protocol 4 intake prefix
-through synthetic host-stream observations. Neither synthetic observations nor
-an offline suite pass proves model compliance, a working hosted game, or a
-deployment. Live host/browser/MCP tests remain explicit authorized experiments,
-not default CI dependencies.
-
-The core `installed-skill-invocation` check includes the bundled mock path from
-an empty unrelated directory, covering marketplace-style audit binding without
-launching a model. Live Grok audits remain separate opt-in E2E work: use the
-audit harness's `xhigh` setting and its 7,200-second cap, then assess retained
-stdout/stderr and product evidence independently of quick or full hermetic CI.
+The [ShipLoop E2E harness](shiploop_e2e/README.md) is the single harness driven
+by `skills/shiploop-e2e-audit/`. Live host/browser/MCP tests remain explicit
+authorized experiments, not default CI dependencies.
 
 ### Host and environment targets
 

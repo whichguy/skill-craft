@@ -148,7 +148,8 @@ class TestGroupTests(unittest.TestCase):
         # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
         # The ShipLoop adapter's three contract suites (2026-11-15: queries, steps, real engine with fake hosts) make 209.
         # Hosted outcome discovery and evaluation each add a hermetic apparatus suite (2026-11-18).
-        self.assertEqual(len(suite_catalog.SUITES), 209)
+        # The bundled Grok/GAS audit harness (shiploop-e2e-apparatus and shiploop-mock-replay) retired (2026-11-19).
+        self.assertEqual(len(suite_catalog.SUITES), 207)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -224,7 +225,7 @@ class TestGroupTests(unittest.TestCase):
     def test_quick_is_a_light_baseline_plus_the_suites_matching_changed_files(self) -> None:
         baseline = {suite.id for suite in suite_catalog.quick()}
         self.assertEqual(baseline, {suite.id for suite in suite_catalog.select(("quick",))})
-        self.assertTrue({"test-groups", "ci-policy", "skill-frontmatter", "shiploop-mock-replay",
+        self.assertTrue({"test-groups", "ci-policy", "skill-frontmatter",
                          "shiploop-navigator-v4"} <= baseline)
         self.assertLess(len(baseline), 17)
         cases = {
@@ -281,10 +282,8 @@ class TestGroupTests(unittest.TestCase):
             "test/shiploop_e2e/slice.py": comparison,
             "test/shiploop_e2e/planning_boundary.py": planning,
             "test/shiploop_e2e/planning_comparison.py": comparison,
-            "skills/shiploop-e2e-audit/harness/planning_evidence.py": comparison,
-            "skills/shiploop-e2e-audit/harness/planning_trace.py": planning,
-            "skills/shiploop-e2e-audit/harness/capture.py": comparison,
-            "skills/shiploop-e2e-audit/harness/evidence.py": comparison,
+            "test/shiploop_e2e/planning_evidence.py": comparison,
+            "test/shiploop_e2e/planning_trace.py": planning,
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
@@ -420,12 +419,12 @@ class TestGroupTests(unittest.TestCase):
                              [s.id for s in suite_catalog.select([group], changed)])
 
     def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
-        # All 208 rows at 971b767e7a113d202cd421bf0bf88bba48b9d0b1, including hosted-outcome.
+        # All 207 rows after retiring the bundled Grok/GAS audit harness (2026-11-19).
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
-                   for s in suite_catalog.SUITES if s.id != "outcome-evaluation"]
+                   for s in suite_catalog.SUITES]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "d7a112cb48f4e8af005bbd9755e624250e3acbeb744f5cfabe4e79e1c18bfaef")
+        self.assertEqual(digest, "432d2dce0067533646ccf183ffc6a95563d89aaa9744d673df70bc9cf61ec9e3")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])
@@ -443,7 +442,6 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(suite_catalog._FULL_ONLY_IDS, {
             "plan-dispatcher-mutants", "shiploop-full-runtime", "shiploop-workspace",
             "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-directory",
-            "shiploop-e2e-apparatus",
             "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine",
         })
         paths = [suite.path for suite in suite_catalog.SUITES]
@@ -482,7 +480,7 @@ class TestGroupTests(unittest.TestCase):
                      *(f"test/{identifier}.test.py" for identifier in E2E_SPLIT)):
             with self.subTest(path=path):
                 self.assertEqual(suite_catalog.targeted([path]),
-                                 {*suite_catalog._E2E_FAMILY_IDS, "shiploop-e2e-apparatus"})
+                                 {*suite_catalog._E2E_FAMILY_IDS})
                 self.assertGreaterEqual({suite.id for suite in suite_catalog.prompt([path])}, E2E_SPLIT)
 
     def test_split_support_and_components_are_protected_from_candidate_edits(self) -> None:

@@ -16,9 +16,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = ROOT / "test/shiploop_e2e"
-AUDIT = ROOT / "skills/shiploop-e2e-audit/harness"
-sys.path[:0] = [str(HARNESS), str(AUDIT)]
-import evidence as audit_archive  # noqa: E402
+sys.path[:0] = [str(HARNESS)]
 import planning_comparison as comparison  # noqa: E402
 import slice as step_slice  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -185,36 +183,15 @@ class ConsumerTest(unittest.TestCase):
         self.assertFalse(result["admitted"])
         self.assertEqual(result["boundary"]["status"], "incomplete")
 
-    def test_archive_walker_keeps_only_declared_portable_set_and_verifies_offline(self):
+    def test_captured_planning_bundle_verifies_offline_after_source_removal(self):
         fixture = self.fixture
         result = self.finalize_slice()
         pin = result["planning_evidence"]["capture"]["manifest_sha256"]
-        (fixture.out / comparison.BUNDLE_NAME / "state.md").write_text("outside portable set", encoding="utf-8")
-        archive = self.root / "archive"
-        archived = audit_archive.capture_run_artifacts([fixture.out], archive)
-        rows = [row for row in archived["artifacts"] if row["kind"] == "planning-evidence"]
-        self.assertEqual(len(rows), 1, archived)
-        self.assertEqual(rows[0]["archive_path"], f"planning-evidence/{pin}/planning-evidence.json")
-        self.assertEqual(rows[0]["sha256"], pin)
-        archived_bundle = (archive / rows[0]["archive_path"]).parent
-        self.assertFalse((archived_bundle / "state.md").exists())
-        self.assertNotIn("planning-evidence/state.md", [row["relative_path"] for row in archived["artifacts"]])
-        audit_archive.inspect_run_artifacts(archived)
-
-        (fixture.out / comparison.PIN_NAME).write_text("0" * 64 + "\n", encoding="ascii")
-        refused = audit_archive.capture_run_artifacts([fixture.out], archive)
-        self.assertTrue(any(row["reason"] == "planning-evidence-invalid" for row in refused["skipped"]), refused)
-        self.assertFalse(any(row["kind"] == "planning-evidence" for row in refused["artifacts"]))
-        bundle = fixture.out / comparison.BUNDLE_NAME
-        relocated = bundle.rename(self.root / "undeclared-bundle")
-        bundle.symlink_to(relocated, target_is_directory=True)
-        (fixture.out / comparison.PIN_NAME).write_text(pin + "\n", encoding="ascii")
-        refused = audit_archive.capture_run_artifacts([fixture.out], archive)
-        self.assertTrue(any(row["reason"] == "planning-evidence-invalid" for row in refused["skipped"]), refused)
-        shutil.rmtree(relocated)
+        copied_bundle = self.root / "archived-planning-evidence"
+        shutil.copytree(fixture.out / comparison.BUNDLE_NAME, copied_bundle)
         shutil.rmtree(fixture.out)  # removes the worktree, Git object database, run and original bundle
         completed = subprocess.run(
-            [sys.executable, "-B", str(AUDIT / "planning_evidence.py"), "verify", "--bundle-dir", str(archived_bundle),
+            [sys.executable, "-B", str(HARNESS / "planning_evidence.py"), "verify", "--bundle-dir", str(copied_bundle),
              "--manifest-sha256", pin, "--run-id", self.expected.run_id, "--plan-action", self.expected.plan_action,
              "--improve-action", self.expected.improve_action, "--producer-revision", str(self.expected.producer_revision),
              "--seed-sha256", self.expected.seed_sha256, "--repo", self.expected.repo, "--repo-prefix", ".",

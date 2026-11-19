@@ -4,22 +4,18 @@ The simplest end-to-end check of ShipLoop, and a loop that uses it to improve
 the skill. A request goes into a brand-new empty directory, ShipLoop runs it
 headlessly, the result is graded, a reviewer asks what the skill should learn,
 and an improver applies what keeps the core premise. Then the edited skill is
-rebuilt and run again. The heavier Grok campaign lives in
-`skills/shiploop-e2e-audit`.
+rebuilt and run again. The `skills/shiploop-e2e-audit` skill drives this
+repository harness directly.
 
 Use Python 3.13 or newer on macOS (for `os.waitid` in `listeners.py`) or Python
 3.9 or newer on Linux (`python3` on PATH; ShipLoop itself requires Python 3.9+).
 No particular Python manager or third-party dependency is required.
 
-The opt-in [gym membership scenario](GYM_MEMBERSHIP.md) records a reusable four-journey Salesforce business app challenge.
-The harness launches ShipLoop in a separate fresh context; scenario preparation contains no gym app implementation.
-
-This directory's `run.py` and `cases.json` are the **repository harness**. The installed
-`shiploop-e2e-audit` skill has its own bundled harness and catalog under
-`skills/shiploop-e2e-audit/harness/`; it does not include this directory's gym case.
-Package builds exclude `test/`, so merging changes here makes them available from a
-checkout, without changing the installed skill. A plugin release is needed when its
-packaged source changes, not merely because this harness changed.
+This directory's `run.py`, `iterate.py`, and `cases.json` are the **single E2E
+harness**. Package builds exclude `test/`, so merging changes here makes them
+available from a checkout without changing the installed skill. A plugin release
+is needed when packaged skill sources under `skills/` change, not merely because
+this harness changed.
 
 ## Inspect and repair retained evidence
 

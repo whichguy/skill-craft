@@ -15,18 +15,10 @@ import tempfile
 
 import metrics
 import planning_boundary
+import planning_evidence
+import planning_trace
 
-_AUDIT = Path(__file__).resolve().parents[2] / "skills/shiploop-e2e-audit/harness"
-# The audit helper also runs directly inside its installed package and imports
-# its sibling reader by name.
-sys.path.insert(0, str(_AUDIT))
-try:
-    import planning_evidence
-    import planning_trace
-finally:
-    sys.path.pop(0)
-
-_SHIPLOOP = _AUDIT.parents[1] / "shiploop/scripts"
+_SHIPLOOP = Path(__file__).resolve().parents[2] / "skills/shiploop/scripts"
 sys.path.insert(0, str(_SHIPLOOP))
 try:
     import shiploop_store as store

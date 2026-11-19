@@ -342,40 +342,6 @@ _CORE_SUITES = (
 
 SHIPLOOP_SUITES = tuple(_shiploop(path) for path in _SHIPLOOP_PATHS)
 
-_APPARATUS_SUITE = _suite(
-    "shiploop-e2e-apparatus",
-    "e2e-apparatus",
-    "skills/shiploop-e2e-audit/harness/check_suite.py",
-    "python3",
-    "-B",
-    "skills/shiploop-e2e-audit/harness/check_suite.py",
-    "--suite",
-    "all",
-    "--skill-root",
-    "skills/shiploop",
-    # Release runs took 14:49 to 18:19 on the CI runner and one hit 1,200 s on 2026-10-10 (a slow runner, same code: its rerun passed in
-    # 20 min including setup). A ceiling, not a tuning value: the job's own limit is 60 minutes.
-    timeout_seconds=1_800,
-)
-
-# The apparatus's no-model replay slice: captured agent results drive the real
-# navigator, and each stage, action, owner and status must match its fixture.
-# It takes seconds, so quick runs it for every change; full also runs it
-# inside the apparatus's ``--suite all``.
-_MOCK_REPLAY_SUITE = _suite(
-    "shiploop-mock-replay",
-    "e2e-apparatus",
-    "skills/shiploop-e2e-audit/harness/check_suite.py",
-    "python3",
-    "-B",
-    "skills/shiploop-e2e-audit/harness/check_suite.py",
-    "--suite",
-    "mock",
-    "--skill-root",
-    "skills/shiploop",
-    timeout_seconds=300,
-)
-
 # These apparatus IDs stay outside the ShipLoop leaf and legacy aggregate stem matches.
 _PLANNING_APPARATUS_SUITES = (
     _suite("planning-boundary", "e2e-apparatus", "test/shiploop-e2e-planning-boundary.test.py",
@@ -394,8 +360,8 @@ _OUTCOME_EVALUATION_SUITE = _suite(
     "python3", "-B", "test/shiploop-e2e-outcome-evaluation.test.py",
 )
 
-SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, *_PLANNING_APPARATUS_SUITES,
-          _HOSTED_OUTCOME_SUITE, _OUTCOME_EVALUATION_SUITE, _APPARATUS_SUITE)
+SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, *_PLANNING_APPARATUS_SUITES,
+          _HOSTED_OUTCOME_SUITE, _OUTCOME_EVALUATION_SUITE)
 
 GROUPS = (
     "all",
@@ -501,7 +467,6 @@ QUICK_MAX_SECONDS = 120.0
 _FULL_ONLY_IDS = frozenset({
     "plan-dispatcher-mutants", "shiploop-full-runtime", "shiploop-workspace",
     "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-directory",
-    "shiploop-e2e-apparatus",
     # The ShipLoop adapter's contract tests (plan 3.1): a test that fails other sessions' quick tier whenever they touch the harness is a cost
     # they did not ask for, so these run in the full tier only; the facade reads harness code through a bridge, and a break shows there.
     "shiploop-e2e-adapter", "shiploop-e2e-adapter-steps", "shiploop-e2e-adapter-engine",
@@ -516,7 +481,7 @@ _QUICK_OVER_BUDGET_IDS = frozenset({
     "shiploop-e2e-stages", "shiploop-e2e-stage-live", "shiploop-e2e-brownfield-tickets",
     "shiploop-callback-contract",
 })
-_QUICK_CORE_IDS = frozenset({"test-groups", "ci-policy", "skill-frontmatter", "shiploop-mock-replay"})
+_QUICK_CORE_IDS = frozenset({"test-groups", "ci-policy", "skill-frontmatter"})
 
 # Repository files whose suites a name match would not find.
 _PATH_SUITE_IDS = {
@@ -535,9 +500,8 @@ _PATH_SUITE_IDS = {
     "test/shiploop_e2e/metrics.py": ("planning-boundary", "planning-comparison"),
     "test/shiploop_e2e/slice.py": ("planning-comparison",),
     "test/shiploop_e2e/planning_boundary.py": ("planning-comparison",),
-    "skills/shiploop-e2e-audit/harness/planning_trace.py": ("planning-boundary", "planning-comparison"),
-    "skills/shiploop-e2e-audit/harness/capture.py": ("planning-comparison",),
-    "skills/shiploop-e2e-audit/harness/evidence.py": ("planning-comparison",),
+    "test/shiploop_e2e/planning_trace.py": ("planning-boundary", "planning-comparison"),
+    "test/shiploop_e2e/planning_evidence.py": ("planning-comparison",),
     "test/shiploop_e2e/cases.json": (_HOSTED_OUTCOME_SUITE.id,),
     "test/shiploop_e2e/checks/sf_guard.py": (_HOSTED_OUTCOME_SUITE.id,),
     "test/shiploop_e2e/lifecycle.py": (_HOSTED_OUTCOME_SUITE.id,),
@@ -588,8 +552,7 @@ _ROW_ONLY_PATHS = frozenset({
 _E2E_FAMILY_IDS = tuple(suite.id for suite in SHIPLOOP_SUITES
                         if suite.id.startswith("shiploop-e2e-"))
 # Shared fixtures and compatibility exports are consumed across this family.
-# The old aggregate stem also targeted the full-only apparatus; preserve that mapping.
-_PATH_SUITE_IDS.update({path: (*_E2E_FAMILY_IDS, _APPARATUS_SUITE.id) for path in _E2E_TEST_PATHS})
+_PATH_SUITE_IDS.update({path: _E2E_FAMILY_IDS for path in _E2E_TEST_PATHS})
 
 # The public skill composes the existing adapter suites without renaming persisted schemas.
 _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.groups)

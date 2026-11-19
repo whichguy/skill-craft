@@ -33,7 +33,6 @@
     "note": "Observed full-tier Linux durations at four workers, excluding Python-floor duplicate runs. The shared check_suite.py path records the mock command, not the full apparatus. Scheduling estimates only; quick eligibility is explicit policy."
   },
   "seconds": {
-    "skills/shiploop-e2e-audit/harness/check_suite.py": 11.481,
     "test/agent-harness-boundaries.test.py": 21.178,
     "test/agent-harness-delivery.test.py": 4.456,
     "test/agent-harness.test.py": 59.434,
