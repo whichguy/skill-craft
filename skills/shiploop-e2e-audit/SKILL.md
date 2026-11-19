@@ -25,12 +25,12 @@ second harness.
 
 The six-step loop is:
 
-1. **Iterate** ShipLoop headlessly on a real case in an isolated workspace.
+1. **Iterate** ShipLoop headlessly on a test case in a brand-new, independent, isolated product Git repository folder (`$RUN/work`, created fresh per run outside `skill-craft`).
 2. **Evaluate** product checks, held-out quality, and an independent read-only review + judge.
 3. **Decide** whether ShipLoop itself needs to improve, and record learnings in the repo.
 4. **Plan** one bounded, generic hypothesis with a falsifiable prediction.
 5. **Change** `skills/shiploop/` at owner-selected `max` effort and verify with the `quick` test tier.
-6. **Rerun & promote** via a qualified `promotion/5` comparison, release on `PROMOTE`, and repeat.
+6. **Rerun & promote** via a qualified `promotion/5` comparison (each attempt in its own fresh isolated product Git repo folder), release on `PROMOTE`, and repeat.
 
 ## Host and runtime matrix
 
@@ -41,7 +41,9 @@ The six-step loop is:
 | Python | `python3` — 3.13+ on macOS (`os.waitid` in `listeners.py`), 3.9+ on Linux (ShipLoop itself requires 3.9+). |
 | Git | Configured committer identity (`git -c user.useConfigOnly=true var GIT_COMMITTER_IDENT`) before spending model runs. |
 
-ShipLoop's builder runs independently. Never coach the builder, complete its
-callbacks, or modify its product or selected packages during a trial. Keep raw
-run outputs outside the source checkout and retain compact evidence in the repo
-for every terminal attempt.
+ShipLoop's builder runs independently as a test-case run inside its own new,
+isolated Git repository folder — never inside `$SOURCE` (`skill-craft`) and
+never reusing a prior run's product directory. Never coach the builder, complete
+its callbacks, or modify its product or selected packages during a trial. Keep
+raw run outputs outside the source checkout and retain compact evidence in the
+repo for every terminal attempt.

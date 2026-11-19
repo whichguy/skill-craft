@@ -17,7 +17,17 @@ It authorizes ordinary preflight and local campaign work within the stated scope
 
 3. Choose fresh external directories outside `$SOURCE` for `$RUN`, `$ASSESSMENT`,
    and the persistent `$BASELINES` JSONL ledger. Never create `$RUN` or
-   `$ASSESSMENT` before invoking the script.
+   `$ASSESSMENT` before invoking the script: `run.py` enforces that `$RUN` is
+   new and outside `$SOURCE`, creates a brand-new isolated product directory at
+   `$RUN/work`, and sets `GIT_CEILING_DIRECTORIES=$RUN` so Git never walks up
+   into an enclosing repository.
+   - **Every ShipLoop invocation is an isolated test-case run in a new Git repo
+     folder:** greenfield cases start in an empty `$RUN/work` where ShipLoop
+     initializes its own fresh Git repository; brownfield cases (`ticket-import`,
+     `ticket-assignment-tests`, `user-listing`) copy the pinned fixture into a
+     new `$RUN/work` and initialize a fresh, independent Git repository (`git
+     init` + base commit) there before ShipLoop starts. Never run ShipLoop inside
+     `$SOURCE` or reuse an earlier run's product repo folder.
 4. Read the full relevant Git commit messages and `test/shiploop_e2e/LEARNINGS.md`
    for the affected area before planning any ShipLoop change, so prior
    measurements, rejected approaches, and owner decisions carry forward.
@@ -128,8 +138,8 @@ On `PROMOTE`:
    entry to `main` (ensuring `test/shiploop_e2e/LEARNINGS.md` sits at or after
    the ShipLoop commit so `scripts/release.py`'s preflight passes).
 2. Run `scripts/release.py` and `scripts/release-push.py`, verify CI and a
-   fresh marketplace install, then rerun the affected case from equivalent
-   inputs in a new `$RUN` directory.
+   fresh marketplace install, then rerun the affected test case in a brand-new
+   `$RUN` directory with a fresh, independent product Git repository folder.
 
 On `DROP`, `UNDECIDED`, or `NO_CANDIDATE`: keep the tip unchanged, retain the
 learning commit explaining why, and proceed to the next hypothesis.
