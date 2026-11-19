@@ -55,17 +55,18 @@ Pick a local case whose oracle can fail meaningfully:
   early before invoking the improver.
 
 For Codex campaigns, resolve the latest available Sol and Astra families from
-the current official model catalog, using Sol `medium` for the subject and
-fresh Astra `high` sessions for reviewer and judge. Leave the improver at the
-harness default (`max`: Codex Sol `max`, or Claude Sonnet `max` via
-`--improver-host claude`; do not pass `--improver-effort medium`).
+the current official model catalog (currently `gpt-6.2-sol` and `gpt-6.2-astra`),
+using Sol `xhigh` for the subject and fresh Astra `high` sessions for reviewer
+and judge. Leave the improver at the harness default (`max`: Codex Sol `max`, or
+Claude Sonnet `max` via `--improver-host claude`; do not pass `--improver-effort
+medium`).
 
 Run the published build:
 
 ```sh
 python3 -B "$SOURCE/test/shiploop_e2e/run.py" \
   --case "$CASE" --source marketplace \
-  --host codex --model "$SOL" --effort medium --codex-auto-review \
+  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
   --output "$RUN" --baseline "$BASELINES"
 ```
 
@@ -83,7 +84,7 @@ new `--output`; each assessment uses its own `assessment_id` and writes
 ```sh
 python3 -B "$SOURCE/test/shiploop_e2e/iterate.py" \
   --case "$CASE" --review-run "$RUN" --output "$ASSESSMENT" \
-  --host codex --model "$SOL" --effort medium --codex-auto-review \
+  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
   --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
   --judge-host codex --judge-model "$ASTRA" --judge-effort high \
   --improver-host codex --improver-model "$SOL"
@@ -119,7 +120,7 @@ explicitly stated, unmeasured pair (`--attempts N --tolerance T`):
 python3 -B "$LEARNING_WORKTREE/test/shiploop_e2e/iterate.py" \
   --qualify --iterations 1 --case "$CASE" --record "$RECORD_ID" \
   --attempts 3 --tolerance 0.25 \
-  --host codex --model "$SOL" --effort medium --codex-auto-review \
+  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
   --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
   --judge-host codex --judge-model "$ASTRA" --judge-effort high \
   --improver-host codex --improver-model "$SOL" \

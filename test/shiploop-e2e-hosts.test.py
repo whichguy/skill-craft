@@ -256,10 +256,10 @@ class GrokPreemptTest(unittest.TestCase):
 
 
 class GrokRunTest(HarnessCase):
-    def test_grok_xhigh_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
-        self.assertEqual(run.parser().parse_args([]).host, "grok")
+    def test_codex_sol_xhigh_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
+        self.assertEqual(run.parser().parse_args([]).host, "codex")
         self.assertEqual(hosts.HOST_DEFAULTS["grok"], {"model": "grok-4.6", "effort": "xhigh"})
-        self.assertEqual(hosts.HOST_DEFAULTS["codex"], {"model": "gpt-6.1-sol", "effort": "medium"})
+        self.assertEqual(hosts.HOST_DEFAULTS["codex"], {"model": "gpt-6.2-sol", "effort": "xhigh"})
         self.assertEqual(hosts.HOST_DEFAULTS["claude"]["model"], "claude-sonnet-5-5")
 
     def test_done_run_passes_in_an_isolated_profile_from_an_empty_directory(self):
@@ -675,8 +675,8 @@ class CodexRunTest(HarnessCase):
         self.assertTrue(seen["auth_is_symlink"])
         self.assertEqual(Path(seen["codex_home"]), Path(result["output"]) / "home" / ".codex")
         argv = seen["argv"]
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
-        self.assertIn("model_reasoning_effort=medium", argv)
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.2-sol")
+        self.assertIn("model_reasoning_effort=xhigh", argv)
         self.assertTrue(result["invoked"]["pass"], result["invoked"])
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
         self.assertTrue(result["committed"]["pass"], result["committed"])
@@ -1103,7 +1103,7 @@ class CodexHostTest(unittest.TestCase):
         self.assertEqual(resumed[-3:], ["resume", "thread-1", "continue"])
         self.assertLess(resumed.index("--json"), resumed.index("resume"))
         self.assertEqual(codex.invoke("skill-craft:shiploop", "x"), "$skill-craft:shiploop x")
-        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6.1-sol", "medium", True))
+        self.assertEqual((codex.model, codex.effort, codex.resumable), ("gpt-6.2-sol", "xhigh", True))
 
     def test_auto_review_keeps_both_launches_in_the_workspace(self):
         codex = hosts.host("codex", "codex-bin")

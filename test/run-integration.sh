@@ -19,7 +19,7 @@ Optional commands (never part of default CI):
   marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
   shiploop-e2e [--case NAME | --prompt TEXT --check CMD] [run.py options]
                     Run ShipLoop live from one prompt in a new empty directory
-                    (Grok, grok-4.6, xhigh effort, by default) and grade it. Costs money.
+                    (Codex, gpt-6.2-sol, xhigh effort, by default) and grade it. Costs money.
   shiploop-stages [SELECTOR ...] [--samples N] [--jobs J] [stages.py live options]
                     Run the stage suite's live tier: a model follows one packet of a
                     built scenario, a script grades it, samples repeat. Costs money.

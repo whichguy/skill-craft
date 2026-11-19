@@ -59,13 +59,14 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # The host an E2E run drives when no --host is given. An explicitly selected Claude host runs Claude's own models
 # (Sonnet 5.5, backend "anthropic") like every other Claude caller; `--backend ollama` selects a model the local Ollama
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
-# Grok 4.6 at extra-high is the driver profile for new work (owner, 2026-11-10), replacing Codex GPT-6.1 Sol at medium
-# (owner, 2026-11-08) as the subject. The reviewer, judge and improver profiles stay on Codex (ROLE_DEFAULTS).
-RUN_DEFAULT_HOST = "grok"
+# Codex GPT-6.2 Sol at extra-high is the driver profile for new work (owner, 2026-11-19), replacing Grok 4.6 at
+# extra-high (owner, 2026-11-10) and earlier Codex GPT-6.1 Sol at medium (owner, 2026-11-08). Reviewer and judge use
+# Codex GPT-6.2 Astra at high, and the improver uses Codex GPT-6.2 Sol at max (ROLE_DEFAULTS).
+RUN_DEFAULT_HOST = "codex"
 GROK_DEFAULT_MODEL = "grok-4.6"
 GROK_DEFAULT_EFFORT = "xhigh"
-CODEX_DEFAULT_MODEL = "gpt-6.1-sol"
-CODEX_DEFAULT_EFFORT = "medium"
+CODEX_DEFAULT_MODEL = "gpt-6.2-sol"
+CODEX_DEFAULT_EFFORT = "xhigh"
 CODEX_AUTO_REVIEW = "auto-review"
 
 
@@ -729,13 +730,14 @@ class CodexTranslator:
 
 HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
-# Owner-selected profiles for new work: the driver is Grok 4.6 at extra-high (2026-11-10); reviewer and judge stay Codex
-# Astra high (2026-11-08). The improver is Codex GPT-6.1 Sol at max, or Claude Sonnet 5.5 at max with --improver-host
-# claude (owner, 2026-11-15, replacing Sol medium). Recorded and explicit profiles remain authoritative.
+# Owner-selected profiles for new work (2026-11-19): the driver is Codex GPT-6.2 Sol at extra-high (replacing Grok 4.6
+# xhigh, 2026-11-10); reviewer and judge are Codex GPT-6.2 Astra at high (replacing GPT-6 Astra high, 2026-11-08); and
+# the improver is Codex GPT-6.2 Sol at max, or Claude Sonnet 5.5 at max with --improver-host claude (replacing Sol 6.1
+# max, 2026-11-15). Recorded and explicit profiles remain authoritative.
 ROLE_DEFAULTS = {
     "subject": {"host": RUN_DEFAULT_HOST, **HOST_DEFAULTS[RUN_DEFAULT_HOST]},
-    "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
-    "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
+    "reviewer": {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"},
+    "judge": {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"},
     "improver": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": "max"},
 }
 # A role whose effort holds on whichever host it moves to (an explicit effort still wins): the improver runs at max on

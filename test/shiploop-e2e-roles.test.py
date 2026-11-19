@@ -26,12 +26,12 @@ import slice as step_slice
 
 class RoleDefaultsTest(unittest.TestCase):
     def test_role_profiles_and_independent_overrides(self):
-        self.assertEqual(hosts.RUN_DEFAULT_HOST, "grok")
+        self.assertEqual(hosts.RUN_DEFAULT_HOST, "codex")
         expected = {
-            "subject": {"host": "grok", "model": "grok-4.6", "effort": "xhigh"},
-            "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
-            "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
-            "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "max"},
+            "subject": {"host": "codex", "model": "gpt-6.2-sol", "effort": "xhigh"},
+            "reviewer": {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"},
+            "judge": {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"},
+            "improver": {"host": "codex", "model": "gpt-6.2-sol", "effort": "max"},
         }
         self.assertEqual(hosts.ROLE_DEFAULTS, expected)
         for role, profile in expected.items():
@@ -56,8 +56,8 @@ class RoleDefaultsTest(unittest.TestCase):
             hosts.resolve_role("unknown")
 
     def test_run_slice_and_experiment_parser_defaults_and_overrides(self):
-        self.assertEqual(run.parser().parse_args([]).host, "grok")
-        self.assertEqual(step_slice.parser().parse_args([]).host, "grok")
+        self.assertEqual(run.parser().parse_args([]).host, "codex")
+        self.assertEqual(step_slice.parser().parse_args([]).host, "codex")
         run_override = run.parser().parse_args(["--host", "claude", "--model", "sonnet-override", "--effort", "high"])
         self.assertEqual((run_override.host, run_override.model, run_override.effort),
                          ("claude", "sonnet-override", "high"))
@@ -65,7 +65,7 @@ class RoleDefaultsTest(unittest.TestCase):
         self.assertEqual((overridden.host, overridden.model, overridden.effort),
                          ("grok", "grok-override", "medium"))
 
-        for args, expected in ((["run", "E1", "--arm", "A"], "grok"),
+        for args, expected in ((["run", "E1", "--arm", "A"], "codex"),
                                (["run", "E1", "--arm", "A", "--host", "claude"], "claude")):
             with self.subTest(args=args), mock.patch.object(experiment, "run", return_value=0) as launch, \
                     contextlib.redirect_stdout(io.StringIO()):
@@ -73,7 +73,7 @@ class RoleDefaultsTest(unittest.TestCase):
             self.assertEqual(launch.call_args.args[3], expected)
 
     def test_grok_driver_defaults_reach_the_real_argv_builder(self):
-        args = run.parser().parse_args([])
+        args = run.parser().parse_args(["--host", "grok"])
         args.grok_bin = "fake-grok"
         selected = run.the_host(args)
         self.assertEqual((selected.name, selected.model, selected.effort),
@@ -88,21 +88,21 @@ class RoleDefaultsTest(unittest.TestCase):
         self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "xhigh")
 
     def test_codex_run_defaults_reach_the_real_argv_builder(self):
-        args = run.parser().parse_args(["--host", "codex"])
+        args = run.parser().parse_args([])
         args.codex_bin = "fake-codex"
         selected = run.the_host(args)
         self.assertEqual((selected.name, selected.model, selected.effort),
-                         ("codex", "gpt-6.1-sol", "medium"))
+                         ("codex", "gpt-6.2-sol", "xhigh"))
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             argv = selected.argv(prompt="hello", prompt_file=root / "prompt.txt", cwd=root,
                                  model=args.model or selected.model, effort=args.effort or selected.effort,
                                  permission_mode=args.permission_mode, max_turns=args.max_turns)
         self.assertEqual(argv[0:2], ["fake-codex", "exec"])
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
-        self.assertIn("model_reasoning_effort=medium", argv)
-        self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', argv)
-        self.assertIn("agents.default_subagent_reasoning_effort=medium", argv)
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.2-sol")
+        self.assertIn("model_reasoning_effort=xhigh", argv)
+        self.assertIn('agents.default_subagent_model="gpt-6.2-sol"', argv)
+        self.assertIn("agents.default_subagent_reasoning_effort=xhigh", argv)
 
     def test_improver_default_max_and_explicit_high_reach_codex_argv(self):
         agent = hosts.CodexHost("fake-codex")
@@ -128,9 +128,9 @@ class RoleDefaultsTest(unittest.TestCase):
                     self.assertEqual(argv[-1], "-")
                     self.assertEqual(launch.call_args.kwargs["stdin_payload"], b"Improve this fixture.")
                     self.assertEqual((root / effort / "prompt.txt").read_bytes(), b"Improve this fixture.")
-                    self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
+                    self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.2-sol")
                     self.assertIn(f"model_reasoning_effort={effort}", argv)
-                    self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', argv)
+                    self.assertIn('agents.default_subagent_model="gpt-6.2-sol"', argv)
                     self.assertIn(f"agents.default_subagent_reasoning_effort={effort}", argv)
 
     def test_codex_resume_sets_child_defaults_from_the_saved_or_overridden_identity(self):
@@ -186,12 +186,12 @@ class RoleDefaultsTest(unittest.TestCase):
         import stages
         args = stages._parser()[0].parse_args(["live", "--dry-run"])
         driver = stages.resolve_driver(args)
-        self.assertEqual((driver.name, driver.model, driver.effort), ("grok", "grok-4.6", "xhigh"))
+        self.assertEqual((driver.name, driver.model, driver.effort), ("codex", "gpt-6.2-sol", "xhigh"))
         for parser in (run.parser(), step_slice.parser()):
             help_text = parser.format_help()
-            self.assertIn("grok-4.6", help_text)
+            self.assertIn("gpt-6.2-sol", help_text)
             self.assertNotIn("grok-4.7", help_text)
-            self.assertIn("gpt-6.1-sol", help_text, "Codex stays a selectable host and its profile is still named")
+            self.assertIn("grok-4.6", help_text, "Grok stays a selectable host and its profile is still named")
 
     def test_role_specific_overrides_stay_distinct_from_the_subject(self):
         args = argparse.Namespace(host="codex", model="subject-only", effort="low")
@@ -204,7 +204,7 @@ class RoleDefaultsTest(unittest.TestCase):
                              {"host": "codex", "model": role + "-model", "effort": role + "-effort"})
         self.assertEqual(hosts.resolve_role("judge", {"model": "gpt-6.1-sol", "effort": "high"}),
                          {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"})
-        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], "gpt-6-astra")
+        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], "gpt-6.2-astra")
 
     def test_old_codex_resume_launch_keeps_recorded_model_and_effort(self):
         recorded = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}

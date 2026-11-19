@@ -72,12 +72,12 @@ class ReviewDiscoveryContractTest(unittest.TestCase):
             self.assertTrue(stdin_payload)
             self.assertEqual(stdin_payload, (run_dir / "review" / "prompt.txt").read_bytes())
             self.assertEqual(argv[argv.index("-s") + 1], "read-only")
-            self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-astra")
+            self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.2-astra")
             self.assertIn("model_reasoning_effort=high", argv)
-            self.assertIn('agents.default_subagent_model="gpt-6-astra"', argv)
+            self.assertIn('agents.default_subagent_model="gpt-6.2-astra"', argv)
             self.assertIn("agents.default_subagent_reasoning_effort=high", argv)
             self.assertNotIn("resume", argv, "an independent review starts a fresh session")
-            self.assertEqual(verdict["driver"], {"host": "codex", "model": "gpt-6-astra", "effort": "high"})
+            self.assertEqual(verdict["driver"], {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"})
 
     def test_a_material_clause_free_challenge_is_valid_and_survives_as_owner_work(self):
         payload = review_payload()
@@ -248,7 +248,7 @@ class JudgeContractTest(unittest.TestCase):
         self.assertEqual(get_host.call_args_list[0].args, ("codex", "codex"))
         self.assertEqual(len(launched), 2, "a failed judge is not retried through another host")
         self.assertEqual([item[0][item[0].index("-s") + 1] for item in launched], ["read-only", "read-only"])
-        for (argv, *_), model in zip(launched, ("gpt-6-astra", "gpt-6.1-sol")):
+        for (argv, *_), model in zip(launched, ("gpt-6.2-astra", "gpt-6.1-sol")):
             self.assertEqual(argv[argv.index("-m") + 1], model)
             self.assertIn("model_reasoning_effort=high", argv)
             self.assertIn(f'agents.default_subagent_model="{model}"', argv)
@@ -293,7 +293,7 @@ class JudgeContractTest(unittest.TestCase):
             second = review.review(self.run_dir, prior_learnings="", model="gpt-6.1-terra", effort="xhigh",
                                    assessment_id="review-b")
 
-        self.assertEqual((calls[0]["model"], calls[0]["effort"]), ("gpt-6-astra", "high"))
+        self.assertEqual((calls[0]["model"], calls[0]["effort"]), ("gpt-6.2-astra", "high"))
         self.assertEqual((calls[1]["model"], calls[1]["effort"]), ("gpt-6.1-terra", "xhigh"))
         first_receipt = first["review_receipt"]
         second_receipt = second["review_receipt"]

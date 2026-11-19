@@ -97,7 +97,7 @@ class EpochTest(unittest.TestCase):
             self.assertEqual(epoch.state(self.root)["publication"], "not_performed")
         self.assertEqual((self.root / epoch.LEDGER).read_bytes(), original)
         profiles = json.loads((self.root / "roles.json").read_text())
-        self.assertEqual(profiles["improver"], {"host": "codex", "model": "gpt-6.1-sol", "effort": "max"})
+        self.assertEqual(profiles["improver"], {"host": "codex", "model": "gpt-6.2-sol", "effort": "max"})
 
     def test_both_arms_use_the_registered_permissions_timeout_and_review_roles(self):
         driver = {"host": "codex", "model": "requested-sol", "effort": "medium",
@@ -255,7 +255,7 @@ class EpochTest(unittest.TestCase):
             output = Path(argv[argv.index("--output") + 1])
             output.mkdir()
             (output / "result.json").write_text('{"pass": false}')
-            self.assertEqual(argv[argv.index("--model") + 1], "grok-4.6")
+            self.assertEqual(argv[argv.index("--model") + 1], "gpt-6.2-sol")
             self.assertEqual(argv[argv.index("--effort") + 1], "xhigh")
             return 1
         with mock.patch.object(runner, "main", side_effect=fake):
@@ -335,8 +335,8 @@ class EpochTest(unittest.TestCase):
                 mock.patch.object(judge, "judge", return_value=verdict) as independent:
             event = epoch.review_attempt(self.root, "control-hello")
         self.assertEqual(event["kind"], "reviewed")
-        self.assertEqual(reviewer.call_args.kwargs["model"], "gpt-6-astra")
-        self.assertEqual(independent.call_args.kwargs["model"], "gpt-6-astra")
+        self.assertEqual(reviewer.call_args.kwargs["model"], "gpt-6.2-astra")
+        self.assertEqual(independent.call_args.kwargs["model"], "gpt-6.2-astra")
         self.assertEqual(reviewer.call_args.kwargs["effort"], "high")
         self.assertEqual(independent.call_args.kwargs["effort"], "high")
         self.assertEqual(reviewer.call_args.kwargs["assessment_id"], independent.call_args.kwargs["assessment_id"])

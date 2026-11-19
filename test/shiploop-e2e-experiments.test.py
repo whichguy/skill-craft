@@ -623,15 +623,15 @@ class LaunchProfiles(unittest.TestCase):
 
     def test_run_pins_the_new_default_on_an_empty_output(self):
         def complete(argv):
-            self.assertEqual(argv[argv.index("--host") + 1], "grok")
-            self.assertIn("--model=grok-4.6", argv)
+            self.assertEqual(argv[argv.index("--host") + 1], "codex")
+            self.assertIn("--model=gpt-6.2-sol", argv)
             self.assertIn("--effort=xhigh", argv)
-            self._sample("B", host="grok", model="grok-4.6", effort="xhigh")
+            self._sample("B", host="codex", model="gpt-6.2-sol", effort="xhigh")
             return subprocess.CompletedProcess(argv, 0)
 
         with mock.patch.object(experiment.subprocess, "run", side_effect=complete) as launched, \
                 contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(experiment.run("Q", "B", 1, "grok", self.out, []), 0)
+            self.assertEqual(experiment.run("Q", "B", 1, "codex", self.out, []), 0)
             launched.assert_called_once()
 
     def test_queue_refuses_a_profile_change_before_any_dispatch_even_without_early_stop(self):
@@ -1087,7 +1087,7 @@ class RoundSpeedups(unittest.TestCase):
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
     def test_r3_on_todays_shiploop_differs_only_in_the_bound_and_runs_on_the_default_host(self):
-        """R3 keeps its original arm shape; new dispatches use the owner-selected Sol/medium default from 2026-11-08.
+        """R3 keeps its original arm shape; new dispatches use the owner-selected Codex GPT-6.2 Sol xhigh default.
         Cg is ShipLoop as shipped, T the same commit with the sizing bullet before the bound."""
         source = overlay.SCRIPTS / "shiploop_prompts.py"
         for exp_id, case in (("E6D2-K2", "node-chess-engine"), ("E6D2-K4", "node-battleship-server")):
@@ -1106,7 +1106,7 @@ class RoundSpeedups(unittest.TestCase):
         launched = []
         with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
             experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
-            self.assertEqual(launched[0][4], "grok")  # New runs use the owner-selected Grok 4.6 xhigh subject profile.
+            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Codex GPT-6.2 Sol xhigh subject profile.
 
     def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
         """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""
