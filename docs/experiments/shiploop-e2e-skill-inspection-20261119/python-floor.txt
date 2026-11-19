@@ -1,0 +1,41 @@
+# What Python the E2E skill's code needs, found by running it (2026-11-19, macOS, origin/main d1bc14e4)
+
+## Parse check: every .py file in skills/shiploop-e2e-audit (50) and test/shiploop_e2e (137), with ast.parse
+Python 3.9.6, 3.11.15, 3.13.17, 3.15.1: 0 of 187 files fail to parse. No syntax needs anything newer than 3.9.
+
+## The two runtime needs, called directly
+listeners.unreaped is the builder wait loop's check: run.py calls it as 'while listeners.unreaped(proc.pid) == "running"'.
+It uses os.waitid, which macOS Python gained in 3.13. zip(strict=True) is used by the bundled game oracles (oracle_games.py, verify_tictactoe.py).
+
+| Python | listeners.unreaped (os.waitid) | zip(..., strict=True) |
+|---|---|---|
+| 3.9.6 | AttributeError: module 'os' has no attribute 'waitid' | TypeError: zip() takes no keyword arguments |
+| 3.11.15 | AttributeError: module 'os' has no attribute 'waitid'. Did you mean: 'waitpid'? | works |
+| 3.13.17 | works: running | works |
+| 3.15.1 | works: running | works |
+
+So on macOS a real run of the source harness needs Python 3.13 or newer; on Linux os.waitid exists in every 3.x.
+The hermetic suites cannot show this: test/shiploop-e2e-hosts.test.py skips its process-group tests when os.waitid is missing
+(@unittest.skipUnless(os.name == "posix" and hasattr(os, "waitid"), ...)), so they pass on 3.11 while a real run fails.
+(test/run_suites.py has its own ctypes waitid for Darwin; listeners.py does not.)
+The bundled game oracles need 3.10. Nothing found needs 3.15, which the skill's documents state.
+
+## Suites, run with python3 first on PATH (the skill's full check suite and the source-harness suites a campaign uses)
+py3.15 rc=0 468s skills/shiploop-e2e-audit/harness/check_suite.py | Ran 362 tests in 468.471s | OK
+py3.15 rc=0 61s test/shiploop-e2e-hosts.test.py | Ran 144 tests in 60.682s | OK
+py3.15 rc=0 43s test/shiploop-e2e-cycle.test.py | Ran 65 tests in 42.061s | OK
+py3.15 rc=0 20s test/shiploop-e2e-epoch.test.py | Ran 39 tests in 19.843s | OK
+py3.15 rc=0 0s test/shiploop-e2e-roles.test.py | Ran 10 tests in 0.095s | OK
+py3.15 rc=0 75s test/shiploop-e2e-analysis.test.py | Ran 299 tests in 74.994s | OK
+py3.15 rc=0 16s test/shiploop-e2e-qualification.test.py | Ran 41 tests in 15.674s | OK
+py3.15 rc=0 1s test/shiploop-e2e-discovery.test.py | Ran 15 tests in 0.011s | OK
+py3.13 rc=0 464s skills/shiploop-e2e-audit/harness/check_suite.py | Ran 362 tests in 464.121s | OK
+py3.13 rc=0 63s test/shiploop-e2e-hosts.test.py | Ran 144 tests in 62.270s | OK
+py3.13 rc=0 46s test/shiploop-e2e-cycle.test.py | Ran 65 tests in 45.380s | OK
+py3.13 rc=0 20s test/shiploop-e2e-epoch.test.py | Ran 39 tests in 20.330s | OK
+py3.13 rc=0 1s test/shiploop-e2e-roles.test.py | Ran 10 tests in 0.088s | OK
+py3.13 rc=0 72s test/shiploop-e2e-analysis.test.py | Ran 299 tests in 71.576s | OK
+py3.13 rc=0 15s test/shiploop-e2e-qualification.test.py | Ran 41 tests in 15.446s | OK
+py3.13 rc=0 1s test/shiploop-e2e-discovery.test.py | Ran 15 tests in 0.008s | OK
+
+Every suite passed on 3.15.1 and 3.13.17. The full runs on 3.11 and 3.9 were stopped: the direct calls above already show where they fail, and the hosts suite skips its process-group tests where os.waitid is missing.

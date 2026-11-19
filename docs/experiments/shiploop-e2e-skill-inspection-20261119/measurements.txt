@@ -1,0 +1,49 @@
+# Measurements for the shiploop-e2e-audit inspection, 2026-11-19, at origin/main d1bc14e4ba94edcab016917c452b53dd60b73634
+
+## Size (git ls-files, lines)
+skills/shiploop (the skill under test): 56352 lines, 123 files
+skills/shiploop-e2e-audit (card, guides, bundled harness): 30639 lines, 118 files
+test/shiploop_e2e code (*.py *.html *.cjs *.js): 83217 lines
+test/shiploop_e2e docs (*.md): 21274 lines
+test/shiploop-e2e-*.test.py suites: 68555 lines in 70 files
+Salesforce/hosted/platform-named code in test/shiploop_e2e (by file name, an underestimate): 14173 lines; such suites: 14996 lines
+
+## Growth since 2026-10-20 (git log --numstat, added/removed lines)
+skills/shiploop                +19159 -17997
+test/shiploop_e2e              +106478 -5734
+skills/shiploop-e2e-audit      +2465 -650
+test/shiploop-e2e-*            +47928 -1291
+Python only, test/shiploop_e2e + suites: +93185 -4939
+
+## Suite time (test/suite_durations.json 'seconds', recorded from CI run 42438464059)
+total 8580s over 200 suites; E2E apparatus suites 4030s (47%); closed-loop adapter suites 581s (adapter-steps alone 428s)
+
+## CI on main, 2026-11-18 (gh run list): failures
+2026-11-19T05:45 3c81b3ae0 feat(shiploop-e2e-audit): run clean local improvement campaigns without manual preflight
+2026-11-18T22:08 59f59e13b test(e2e): select an available login shell in the fake Codex host
+2026-11-18T21:40 61aebfced test(e2e): isolate fake Salesforce child process signals
+2026-11-18T20:35 43ed88b4c test(e2e): retain reviewable Salesforce generations and grade actual coverage
+2026-11-16T19:53 3d277e4ab test(closed-loop): validate current card metadata after generated releases
+2026-11-16T16:42 7a04fc044 build: standardize the supported Python minimum and every CI job on latest stable Python
+
+## Bundled harness modules: last non-release change
+run.py: 2026-10-17 fix(shiploop): false and misleading packet sentences, the Work item ranges and the check-
+verify_suite.py: 2026-09-24 feat: one supported version of every skill, runtime and contract
+oracle_games.py: 2026-09-19 feat(shiploop-e2e-audit): review one case at a time and add Salesforce checkers
+grok_adapter.py: 2026-10-29 Merge origin/main (ab672180) into the per-step iteration, a second time (design T §9.1 s
+dag_replay.py: 2026-10-28 feat(shiploop): verify is retired; its gates and its entry-point trace move into each ste
+gas_artifact.py: 2026-09-18 Release namespaced packages and ShipLoop 0.16.0 (#6)
+salesforce_proof.py: 2026-09-19 feat(shiploop-e2e-audit): review one case at a time and add Salesforce checkers
+mock_grok.py: 2026-09-18 Release namespaced packages and ShipLoop 0.16.0 (#6)
+capture.py: 2026-11-08 test(shiploop): prove recorded Plan stop and bind initial quote evidence
+evidence.py: 2026-11-08 test(shiploop): prove recorded Plan stop and bind initial quote evidence
+
+## E2E cases: checks and held-out acceptance (test/shiploop_e2e/cases.json)
+hello: checks=2 held-out acceptance=none
+csv-report: checks=5 held-out acceptance=none
+temperature-report: checks=6 held-out acceptance=none
+unit-converter: checks=7 held-out acceptance=none
+word-report: checks=7 held-out acceptance=none
+checkers: checks=4 held-out acceptance=yes
+user-listing: checks=3 held-out acceptance=yes
+ticket-assignment: checks=3 held-out acceptance=yes
