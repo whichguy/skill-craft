@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-18
 
+### skill-craft 3.3.0
+
+- Skills: shiploop-e2e-audit 1.1.0
+
+### shiploop-e2e-audit 1.1.0
+
+- Add a local improvement route that automatically checks a clean published baseline, reuses the retained run for review, and carries the selected Codex settings through candidate comparisons. Keep the detailed audit and hosted workflows available from the same skill.
+
 ### skill-craft 3.2.0
 
 - Skills: shiploop 2.2.0

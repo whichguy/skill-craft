@@ -6,7 +6,7 @@ description: >-
   review, and qualified candidate comparisons. Use for self-improving ShipLoop,
   ShipLoop E2E campaigns, mock or live audits, package checks, or retained-run review.
   Hosted cases use their dedicated test environment and evidence requirements.
-version: 1.0.0
+version: 1.1.0
 license: MIT
 platforms:
   - linux
