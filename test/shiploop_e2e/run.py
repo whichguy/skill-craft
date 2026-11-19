@@ -5262,6 +5262,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     else:
         result["quality"] = block
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    if isinstance(result.get("quality"), dict) and (result["quality"].get("observed") or result["quality"].get("declared")):
+        review_export(out)
     print(f"  quality   {quality.line(result['quality'])}")
     return 0 if runner_pass else 1
 

@@ -7,9 +7,9 @@ and an improver applies what keeps the core premise. Then the edited skill is
 rebuilt and run again. The heavier Grok campaign lives in
 `skills/shiploop-e2e-audit`.
 
-Use Python 3.15 or newer for this repository harness. If needed, install a
-supported interpreter locally and put its `python3` first on PATH; no particular
-Python manager or new third-party dependency is required.
+Use Python 3.13 or newer on macOS (for `os.waitid` in `listeners.py`) or Python
+3.9 or newer on Linux (`python3` on PATH; ShipLoop itself requires Python 3.9+).
+No particular Python manager or third-party dependency is required.
 
 The opt-in [gym membership scenario](GYM_MEMBERSHIP.md) records a reusable four-journey Salesforce business app challenge.
 The harness launches ShipLoop in a separate fresh context; scenario preparation contains no gym app implementation.

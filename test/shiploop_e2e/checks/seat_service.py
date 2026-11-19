@@ -16,7 +16,6 @@ import contextlib
 import json
 import os
 from pathlib import Path
-import re
 import socket
 import subprocess
 import sys
@@ -89,11 +88,35 @@ def expect(got: tuple[int, dict], status: int, what: str, **fields) -> dict:
     return body
 
 
+UNIT_PROBE = (
+    "import json, sys, unittest; "
+    "suite = unittest.defaultTestLoader.discover('.'); "
+    "result = unittest.TextTestRunner(verbosity=0).run(suite); "
+    "executed = result.testsRun - len(result.skipped); "
+    "print(json.dumps({'ran': result.testsRun, 'executed': executed, "
+    "'skipped': len(result.skipped), 'failures': len(result.failures), "
+    "'errors': len(result.errors), 'ok': result.wasSuccessful()})); "
+    "sys.exit(0 if executed >= 1 and result.wasSuccessful() else 1)"
+)
+
+
 def unit() -> None:
-    done = subprocess.run([sys.executable, "-m", "unittest"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=300)
-    ran = re.search(r"Ran (\d+) tests?", done.stderr)
-    if done.returncode != 0 or not ran or int(ran.group(1)) < 1:
-        fail("python3 -m unittest must pass and run at least one test:\n" + done.stderr[-800:])
+    done = subprocess.run([sys.executable, "-B", "-c", UNIT_PROBE], capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL, timeout=300)
+    summary = {}
+    for line in reversed(done.stdout.splitlines()):
+        try:
+            summary = json.loads(line)
+            break
+        except ValueError:
+            continue
+    executed = int(summary.get("executed", 0)) if isinstance(summary, dict) else 0
+    ran = int(summary.get("ran", 0)) if isinstance(summary, dict) else 0
+    skipped = int(summary.get("skipped", 0)) if isinstance(summary, dict) else 0
+    if done.returncode != 0 or executed < 1 or not summary.get("ok"):
+        fail(f"unittest must pass with at least one executed non-skipped test "
+             f"(ran={ran} executed={executed} skipped={skipped}):\n{done.stderr[-800:]}")
+    print(f"unittest ran={ran} executed={executed} skipped={skipped}")
 
 
 def contract() -> None:

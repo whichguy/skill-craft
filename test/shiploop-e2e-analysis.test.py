@@ -4320,5 +4320,55 @@ class GitDiscoveryTests(unittest.TestCase):
         self.assertIn("/a", env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
 
 
+class UnitCheckRequiresExecutedTests(unittest.TestCase):
+    """Catalog and script unittest checks refuse suites where every test is skipped or absent."""
+
+    def _run_cmd(self, argv_or_shell, cwd: Path, shell: bool = False) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(argv_or_shell, cwd=cwd, shell=shell, capture_output=True, text=True, timeout=60)
+
+    def test_csv_and_seat_unit_checks_reject_skipped_only_and_report_counts(self):
+        checks_dir = ROOT / "test" / "shiploop_e2e" / "checks"
+        for script in ("csv_report.py", "seat_service.py"):
+            with self.subTest(script=script), tempfile.TemporaryDirectory() as tmp:
+                work = Path(tmp)
+                (work / "test_only_skip.py").write_text(
+                    "import unittest\nclass T(unittest.TestCase):\n"
+                    "    @unittest.skip('skipped')\n    def test_a(self): pass\n",
+                    encoding="utf-8",
+                )
+                skipped = self._run_cmd([sys.executable, "-B", str(checks_dir / script), "unit"], work)
+                self.assertNotEqual(skipped.returncode, 0, skipped.stdout + skipped.stderr)
+                self.assertIn("executed=0", skipped.stdout + skipped.stderr)
+
+                (work / "test_pass.py").write_text(
+                    "import unittest\nclass T2(unittest.TestCase):\n    def test_ok(self): self.assertEqual(1, 1)\n",
+                    encoding="utf-8",
+                )
+                passed = self._run_cmd([sys.executable, "-B", str(checks_dir / script), "unit"], work)
+                self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+                self.assertIn("ran=2 executed=1 skipped=1", passed.stdout)
+
+    def test_catalog_unittest_commands_reject_skipped_only_suites(self):
+        cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text(encoding="utf-8"))
+        for case_name, idx in (("hello", 1), ("temperature-report", 0)):
+            cmd = cases[case_name]["checks"][idx]
+            with self.subTest(case=case_name), tempfile.TemporaryDirectory() as tmp:
+                work = Path(tmp)
+                (work / "test_skip.py").write_text(
+                    "import unittest\nclass T(unittest.TestCase):\n"
+                    "    @unittest.skip('skip')\n    def test_a(self): pass\n",
+                    encoding="utf-8",
+                )
+                skipped = self._run_cmd(cmd, work, shell=True)
+                self.assertNotEqual(skipped.returncode, 0, skipped.stdout + skipped.stderr)
+                (work / "test_ok.py").write_text(
+                    "import unittest\nclass T2(unittest.TestCase):\n    def test_ok(self): pass\n",
+                    encoding="utf-8",
+                )
+                passed = self._run_cmd(cmd, work, shell=True)
+                self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+                self.assertIn("ran=2 executed=1 skipped=1", passed.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

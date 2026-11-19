@@ -284,11 +284,11 @@ def throwaway_keychain(home: Path) -> Path | None:
 # zsh interactive (.zshrc), bash login (the first of .bash_profile, .profile) and bash interactive (.bashrc). run.pin_shell_path uses them too.
 SHELL_STARTUP_FILES = (".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile")
 
-# python3, in every shell a model may use in a throwaway HOME, is this harness's own interpreter. ShipLoop refuses a Python older than its
-# minimum (skills/shiploop/scripts/shiploop_pyfloor.py, 3.15 since 7a04fc044edb4418e92551c5619c48192862575b), and Codex and Grok run commands
-# in login shells, where path_helper puts /usr/bin first: a throwaway HOME has none of the owner's startup files, so python3 was Apple's
-# 3.9.6. A model then either substituted python3.15 or reported a missing prerequisite, and a run's outcome depended on that choice, not on
-# the change under test (2026-11-18, docs/closed-loop-journal.md R15). The pin is the guarded commands' mechanism (run.pin_shell_path):
+# python3, in every shell a model may use in a throwaway HOME, is this harness's own interpreter. ShipLoop itself runs on
+# Python 3.9+ (skills/shiploop/scripts/shiploop_pyfloor.py, 12c8f967b868f0f51994ba76d2176adc94a989ac), while Codex and Grok run commands
+# in login shells where macOS path_helper puts /usr/bin first: a throwaway HOME has none of the owner's startup files, so python3 fell
+# back to Apple's 3.9.6 instead of the harness's interpreter. Pinning python3 keeps the child on the same interpreter across shells
+# so a run's outcome does not depend on which Python happened to sit first on PATH (2026-11-18, docs/closed-loop-journal.md R15). The pin is the guarded commands' mechanism (run.pin_shell_path):
 # a marked PATH line in each startup file, which runs after path_helper, and the same folder first in the environment's PATH for shells
 # that read no startup file.
 PYTHON_PIN_DIR = ".skill-craft-e2e/python"
