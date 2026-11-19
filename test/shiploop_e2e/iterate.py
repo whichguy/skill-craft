@@ -138,9 +138,11 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args, prompt: str
     git_config = Path.home() / ".gitconfig"
     env = agent.env(stage / "home", git_config if git_config.is_file() else None)
     base = git(worktree, "rev-parse", "HEAD")
+    improver_permission = args.permission_mode if profile["host"] == "codex" else (
+        "auto" if args.permission_mode == hosts.CODEX_AUTO_REVIEW else args.permission_mode)
     argv, stdin_payload = agent.prepare(prompt=prompt or improver_prompt(worktree, findings, base, reviewer.last_commit_messages(worktree)),
                       prompt_file=stage / "prompt.txt", cwd=worktree, model=profile["model"],
-                      effort=profile["effort"], permission_mode=args.permission_mode,
+                      effort=profile["effort"], permission_mode=improver_permission,
                       max_turns=args.improve_max_turns, max_budget_usd=args.max_budget_usd)
     held_out = boundary.held_out_files(cases)
     with boundary.withheld(worktree, held_out) as withheld:
@@ -358,9 +360,8 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--iterations must be at least 1")
     if args.record and not args.qualify:
         raise SystemExit("--record requires --qualify")
-    if args.permission_mode == hosts.CODEX_AUTO_REVIEW and (
-            args.host != "codex" or role_profile(args, "improver")["host"] != "codex"):
-        raise SystemExit("--permission-mode auto-review requires a Codex subject and improver")
+    if args.permission_mode == hosts.CODEX_AUTO_REVIEW and args.host != "codex":
+        raise SystemExit("--permission-mode auto-review requires a Codex subject")
     if args.qualify:
         import cycle
         return cycle.loop(args)
@@ -391,8 +392,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.review_run:
         import cycle
         opened = cycle.assess_published(worktree, out, args)
-        journal(learnings, [f"- retained run: {args.review_run.resolve()}", f"- records: {', '.join(opened) or 'none'}"])
-        print(f"assessment: {learnings}")
+        journal(learnings, [f"- retained run: {args.review_run.resolve()}", f"- records: {', '.join(opened) or 'none'}",
+                            f"- receipt: {out / 'assessment.json'}"])
+        print(f"assessment: {learnings}\n  receipt:  {out / 'assessment.json'}\n  worktree: {worktree}\n  branch:   {branch}")
+        if opened:
+            print(f"  next:     python3 -B {worktree / 'test' / 'shiploop_e2e' / 'iterate.py'} "
+                  f"--qualify --iterations 1 --case {args.case} --record {opened[0]} "
+                  "(add --calibration FILE or --attempts N --tolerance T)")
         return 0
     for index in range(1, args.iterations + 1):
         if boundary.qualification_snapshot(HERE, [args.case]) != frozen_evaluator:

@@ -4827,6 +4827,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                        else stop_cause(stop_file) if stop_seen
                        else f"resume budget spent ({args.max_resumes})")
     if not regrade:
+        if (args.permission_mode == hosts.CODEX_AUTO_REVIEW
+                and (not invocation_path.is_file() or invocation_path.read_bytes() != invocation_bytes)):
+            raise SystemExit("launch evidence changed during the scoped run")
         if stop_seen:
             stop_file.unlink(missing_ok=True)  # consumed: the request is answered, a later resume starts clean
             if resume_stop == "host is not resumable":

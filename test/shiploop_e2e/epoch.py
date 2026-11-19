@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -438,6 +439,8 @@ def launch(root: Path, attempt_id: str, plugin: Path) -> dict:
     """Dispatch one attempt. The lock is held while the intent is recorded and while the result is sealed, never
     while the run itself runs, so the epoch's other attempts can be launched beside it."""
     import run as runner
+    if threading.current_thread() is threading.main_thread():
+        runner.install_termination_handlers()
     with locked(root, INTENT_WAIT):
         intent = launch_intent(root, attempt_id, plugin)
     driver = intent["driver"]
@@ -535,7 +538,12 @@ def decide(root: Path) -> dict:
     # Even an otherwise qualified comparison cannot claim a completed learning cycle without its scoped reviews.
     incomplete = [a["id"] for a in state(root)["attempts"] if a["status"] != "reviewed"]
     if result["decision"] == "PROMOTE" and incomplete:
-        result = {**result, "decision": "UNDECIDED", "reasons": ["required discovery review incomplete: " + ", ".join(incomplete)]}
+        result = {**result,
+                  "numeric_decision": result["decision"],
+                  "numeric_reasons": list(result.get("reasons") or []),
+                  "incomplete_reviews": incomplete,
+                  "decision": "UNDECIDED",
+                  "reasons": ["required discovery review incomplete: " + ", ".join(incomplete)]}
     append(root, "decision", result=result)
     return result
 

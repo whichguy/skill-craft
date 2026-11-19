@@ -42,10 +42,13 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import math
 import os
+import re
 import secrets
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -117,20 +120,37 @@ def _interruption_artifact_dir(worktree: Path, stage: Path) -> Path:
     return requested
 
 
-def load_calibration(path: Path, cases: list[str]) -> dict:
+def _expected_driver(args) -> dict:
+    driver = hosts.resolve_role("subject", {"host": getattr(args, "host", None),
+                                            "model": getattr(args, "model", None),
+                                            "effort": getattr(args, "effort", None)})
+    driver = {key: driver[key] for key in ("host", "model", "effort")}
+    if getattr(args, "permission_mode", None) == hosts.CODEX_AUTO_REVIEW:
+        driver["permission_mode"] = hosts.CODEX_AUTO_REVIEW
+    if getattr(args, "run_timeout", None):
+        driver["timeout_seconds"] = args.run_timeout
+    return driver
+
+
+def load_calibration(path: Path, cases: list[str], *, driver: dict | None = None,
+                     floors: list[str] | None = None) -> dict:
     """attempts and tolerance from an A/A calibration, refused when it did not calibrate a case, cannot decide its
-    metric, was scored by other scoring files than this checkout's, or is not a calibration report at all."""
+    metric, was scored by other scoring files than this checkout's, measured a different driver or floors, lacks
+    usable sealed attempts, or is not a calibration report at all."""
     try:
-        return _load_calibration(path, cases)
+        return _load_calibration(path, cases, driver=driver, floors=floors)
     except (KeyError, TypeError, AttributeError) as error:
         raise ValueError(f"{path} is a malformed calibration report: {error!r}") from None
 
 
-def _load_calibration(path: Path, cases: list[str]) -> dict:
-    calibration = json.loads(path.read_text())
+def _load_calibration(path: Path, cases: list[str], *, driver: dict | None = None,
+                      floors: list[str] | None = None) -> dict:
+    raw = path.read_bytes()
+    calibration = json.loads(raw.decode("utf-8"))
     if calibration.get("contract") != spread.CONTRACT:
         raise ValueError(f"{path} is not a {spread.CONTRACT} report")
-    missing = [case for case in cases if case not in (calibration.get("cases") or {})]
+    cal_cases = calibration.get("cases") or {}
+    missing = [case for case in cases if case not in cal_cases]
     if missing:
         raise ValueError("the calibration did not calibrate " + ", ".join(missing))
     catalog = json.loads((HERE / "cases.json").read_text())
@@ -142,8 +162,38 @@ def _load_calibration(path: Path, cases: list[str]) -> dict:
     if recommended.get("tolerance") is None:
         raise ValueError(f"the calibration cannot decide {recommended.get('metric')} at {recommended.get('attempts')} "
                          f"attempts: {recommended.get('why')}")
-    return {"attempts": recommended["attempts"], "tolerance": recommended["tolerance"],
-            "metric": recommended["metric"], "sha256": now["sha256"], "measured": True, "basis": now["sha256"]}
+    attempts = recommended["attempts"]
+    metric = recommended["metric"]
+    if driver is not None:
+        cal_driver = calibration.get("driver")
+        if not isinstance(cal_driver, dict):
+            raise ValueError("the calibration records no driver profile: calibrate for this driver")
+        for key in ("host", "model", "effort", "permission_mode", "timeout_seconds"):
+            if cal_driver.get(key) != driver.get(key):
+                raise ValueError(f"the calibration driver {key!r} ({cal_driver.get(key)!r}) does not match "
+                                 f"the requested driver ({driver.get(key)!r}): calibrate for this driver")
+    if floors is not None:
+        cal_floors = calibration.get("floors")
+        if not isinstance(cal_floors, list) or list(cal_floors) != list(floors):
+            raise ValueError("the calibration floors do not match this comparison's floors: calibrate again")
+    sealed = calibration.get("attempts_sealed")
+    if sealed is not None and (isinstance(sealed, bool) or not isinstance(sealed, int) or sealed < 2 * attempts):
+        raise ValueError(f"the calibration sealed too few attempts ({sealed}) for {attempts} per arm")
+    for case in cases:
+        entry = cal_cases.get(case) or {}
+        if entry.get("unknown", 0):
+            raise ValueError(f"the calibration has {entry['unknown']} unknown attempt(s) for {case}")
+        if "attempts" in entry and entry["attempts"] < 2 * attempts:
+            raise ValueError(f"the calibration has too few attempts for {case} ({entry['attempts']} < {2 * attempts})")
+        if "false_decision" in entry:
+            rates = (entry.get("false_decision") or {}).get(metric)
+            compared = rates.get("compared", 0) if isinstance(rates, dict) else 0
+            if compared < 1:
+                raise ValueError(f"the calibration has no usable {metric} splits for {case}")
+    return {"attempts": attempts, "tolerance": recommended["tolerance"],
+            "metric": metric, "sha256": now["sha256"],
+            "report_sha256": hashlib.sha256(raw).hexdigest(),
+            "measured": True, "basis": now["sha256"]}
 
 
 UNMEASURED = "stated, not measured"
@@ -171,7 +221,8 @@ def resolve_calibration(args, cases: list[str]) -> dict:
     if report is not None:
         if tolerance is not None or attempts is not None:
             raise ValueError("--calibration is the measured basis: do not also pass --tolerance or --attempts")
-        return load_calibration(report, cases)
+        import promotion as promo
+        return load_calibration(report, cases, driver=_expected_driver(args), floors=list(promo.DEFAULT_FLOORS))
     if tolerance is None or attempts is None:
         raise ValueError("a cycle needs --calibration (spread.py's report of an A/A epoch), or --tolerance and "
                          "--attempts together, which are recorded as unmeasured")
@@ -188,9 +239,9 @@ def calibration_phrase(basis: str) -> str:
 
 def registration_template(cases: dict[str, str], control: str, candidate: str, driver: dict, attempts: int,
                           tolerance: float, metric: str, budget: dict | None = None) -> dict:
-    """A promotion/5 product_change registration: `cases` maps each case to its role."""
+    """A promotion/5 product_change registration: `cases` maps each case to its role, interleaved by arm."""
     rows = [{"id": f"{arm}-{case}-{n}", "arm": arm, "case": case}
-            for case in cases for arm in ("control", "candidate") for n in range(1, attempts + 1)]
+            for case in cases for n in range(1, attempts + 1) for arm in ("control", "candidate")]
     return {"contract": "promotion/5", "purpose": "product_change",
             "cases": {case: {"role": role, "attempts": attempts} for case, role in cases.items()},
             "arms": {"control": {"shiploop_build": control, "driver": driver},
@@ -729,15 +780,27 @@ def qualify(worktree: Path, loop: str, record_id: str, stage: Path, args, calibr
     return result
 
 
+def _require_non_incremental_cases(cases: list[str]) -> None:
+    """Guided --qualify registrations carry no predecessor binding; refuse incremental `follows` cases before spending
+    improver or review model calls."""
+    catalog = json.loads((HERE / "cases.json").read_text())
+    incremental = [case for case in cases if (catalog.get(case) or {}).get("follows")]
+    if incremental:
+        joined = ", ".join(f"{case} (follows {catalog[case]['follows']})" for case in incremental)
+        raise ValueError(f"guided --qualify does not bind predecessors for incremental case(s): {joined}; "
+                         "use explicit epoch.py init with a reviewed predecessor registration instead")
+
+
 def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, calibration: dict) -> dict:
     """One improver cycle in the worktree (HEAD is the loop tip); see the module docstring."""
     import iterate
+    cases = [args.case] + ([args.generality_case] if args.generality_case else [])
+    _require_non_incremental_cases(cases)
     ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
     record = learning_records.improver_view(record_id, ledger)
     tip = _git(worktree, "rev-parse", "HEAD")
     stage.mkdir(parents=True)
     control_plugin = build(worktree, stage / "control-build")  # the tip, before the improver changes anything
-    cases = [args.case] + ([args.generality_case] if args.generality_case else [])
     prompt = one_record_prompt(worktree, record, tip, cases, calibration)
     change = iterate.improve(worktree, [], stage / "improve", args, prompt=prompt)
     def no_usable_candidate(change: dict, crossed: str | None, improve_dir: Path) -> dict:
@@ -813,6 +876,16 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
             worktree, stage, record_id, record, result["decision"], reason, tip, candidate_sha,
             calibration, cases, note, candidate_details=candidate_source(worktree, tip, candidate_sha))
         return result
+    if not iterate.quick_suite(worktree, tip, stage / "quick-tier.log"):
+        note = apply_decision(worktree, loop, record_id, tip, candidate_sha, "REJECTED")
+        reason = f"Quick test tier failed on candidate {candidate_sha} (see {stage / 'quick-tier.log'})"
+        learning_records.append("rejected_at_purpose", record_id, ledger, reason=reason[:500])
+        result = {"decision": "RED_QUICK_SUITE", "reasons": [reason], "tip_note": note,
+                  "quick_tier_log": str(stage / "quick-tier.log")}
+        result["learnings_commit"] = commit_terminal_learning(
+            worktree, stage, record_id, record, result["decision"], reason, tip, candidate_sha,
+            calibration, cases, note, candidate_details=candidate_source(worktree, tip, candidate_sha))
+        return result
     candidate_plugin = build(worktree, stage / "candidate-build")
     driver = hosts.resolve_role("subject", {"host": args.host, "model": args.model, "effort": args.effort})
     driver = {key: driver[key] for key in ("host", "model", "effort")}
@@ -877,6 +950,14 @@ def assess_published(worktree: Path, stage: Path, args) -> list[str]:
     revision = _git(worktree, "rev-parse", "HEAD")
     installed = runner.skill_digests(Path(invocation.get("plugin_dir") or run_dir / "missing-plugin"))
     published = runner.skill_digests(worktree / "plugins" / runner.PLUGIN_NAME)
+    expected_mode = getattr(args, "permission_mode", None)
+    if driver["host"] == "codex" and (expected_mode is None or expected_mode == hosts.CODEX_AUTO_REVIEW):
+        permission_ok = (result.get("permission_mode") == hosts.CODEX_AUTO_REVIEW
+                         and invocation.get("permission_mode") == hosts.CODEX_AUTO_REVIEW
+                         and "--approve-for-me" in invocation.get("argv", ()))
+    else:
+        permission_ok = (result.get("permission_mode") == expected_mode
+                         and invocation.get("permission_mode") == expected_mode)
     if (result.get("case") != args.case or any(result.get(key) != value for key, value in driver.items())
             or invocation.get("case") != args.case or any(invocation.get(key) != value for key, value in driver.items())
             or versions.get("source") != "marketplace" or versions.get("gate") != []
@@ -884,9 +965,7 @@ def assess_published(worktree: Path, stage: Path, args) -> list[str]:
             or released.get("origin_main") != revision or released.get("local_head") != revision
             or not all(installed.values()) or installed != published
             or any(versions.get(key) != digest for key, digest in installed.items())
-            or result.get("permission_mode") != hosts.CODEX_AUTO_REVIEW
-            or invocation.get("permission_mode") != hosts.CODEX_AUTO_REVIEW
-            or "--approve-for-me" not in invocation.get("argv", ())
+            or not permission_ok
             or invocation.get("timeout_seconds") != result.get("timeout_seconds")
             or (getattr(args, "run_timeout", None) and invocation.get("timeout_seconds") != args.run_timeout)
             or (not (case.get("base") or case.get("follows")) and
@@ -899,6 +978,15 @@ def assess_published(worktree: Path, stage: Path, args) -> list[str]:
     return assess_exploration(worktree, stage, args, run_dir)
 
 
+def _fresh_assessment_id(run_dir: Path, stage: Path) -> str:
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "-", stage.name).strip("-.") or "assess"
+    stem = stem[:40]
+    while True:
+        candidate = f"{stem}-{secrets.token_hex(4)}"
+        if not (run_dir / f"review-{candidate}").exists() and not (run_dir / f"review-judge-{candidate}").exists():
+            return candidate
+
+
 def assess_exploration(worktree: Path, stage: Path, args, run_dir: Path) -> list[str]:
     """Use one fresh read-only reviewer and judge, then record the evidence and any discoveries."""
     import iterate
@@ -906,9 +994,13 @@ def assess_exploration(worktree: Path, stage: Path, args, run_dir: Path) -> list
     import review as reviewer
     tip = _git(worktree, "rev-parse", "HEAD")
     ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
+    base_id = (_fresh_assessment_id(run_dir, stage)
+               if getattr(args, "review_run", None) is not None or (run_dir / "review").exists() else None)
+    review_kwargs = {"assessment_id": base_id} if base_id is not None else {}
     verdict = reviewer.review(run_dir, **iterate.role_profile(args, "reviewer"),
                               prior_learnings=reviewer.last_commit_messages(worktree),
-                              records=learning_records.reviewer_view(ledger))
+                              records=learning_records.reviewer_view(ledger), **review_kwargs)
+    stage.mkdir(parents=True, exist_ok=True)
     if not (verdict.get("validity") or {}).get("discovery_qualified"):
         validity = verdict.get("validity") if isinstance(verdict.get("validity"), dict) else {}
         status = validity.get("status") or "unknown"
@@ -918,10 +1010,18 @@ def assess_exploration(worktree: Path, stage: Path, args, run_dir: Path) -> list
         commit_terminal_learning(worktree, stage, None, None, "INVALID_REVIEW", reason, tip, None,
                                  None, [args.case], note,
                                  exploration_run_summary(run_dir / "result.json"))
+        (stage / "assessment.json").write_text(json.dumps({
+            "status": "invalid_review", "reason": reason, "assessment_id": base_id,
+            "run_dir": str(run_dir), "opened_records": [], "worktree": str(worktree),
+        }, indent=2) + "\n")
         return []
     for asked in range(JUDGE_ASSESSMENTS):  # the first judgment keeps its folder name; each later one gets its own
-        judged = judge.judge(run_dir, verdict, **iterate.role_profile(args, "judge"),
-                             **({"assessment_id": f"retry-{asked}"} if asked else {}))
+        if base_id is not None:
+            judge_id = f"{base_id}-retry-{asked}" if asked else base_id
+            judge_kwargs = {"assessment_id": judge_id}
+        else:
+            judge_kwargs = {"assessment_id": f"retry-{asked}"} if asked else {}
+        judged = judge.judge(run_dir, verdict, **iterate.role_profile(args, "judge"), **judge_kwargs)
         if (judged.get("validity") or {}).get("status") == "valid":
             break
     routes = judge.admitted(verdict, judged)
@@ -932,6 +1032,17 @@ def assess_exploration(worktree: Path, stage: Path, args, run_dir: Path) -> list
     verdict["judge"], verdict["actionable"], verdict["learning_records"] = judged, routes["implementation"], opened
     sha = _git(worktree, "rev-parse", "HEAD")
     iterate.record_learnings(worktree, iterate.learnings_message(0, args, sha, result, verdict, []), stage, run_dir=run_dir)
+    branch = _git(worktree, "rev-parse", "--abbrev-ref", "HEAD")
+    next_command = (
+        f"python3 -B {shlex.quote(str(worktree / 'test' / 'shiploop_e2e' / 'iterate.py'))} "
+        f"--qualify --iterations 1 --case {shlex.quote(args.case)} --record {shlex.quote(opened[0])}"
+        if opened else None
+    )
+    (stage / "assessment.json").write_text(json.dumps({
+        "status": "admitted" if opened else "clean", "assessment_id": base_id,
+        "run_dir": str(run_dir), "opened_records": opened,
+        "worktree": str(worktree), "branch": branch, "next_command": next_command,
+    }, indent=2) + "\n")
     return opened
 
 
@@ -945,6 +1056,7 @@ def loop(args) -> int:
         for case in cases:
             if not boundary.qualification_eligible(frozen["cases"][case]):
                 raise ValueError(f"case {case!r} is discovery-only or has an invalid discovery_only marker")
+        _require_non_incremental_cases(cases)
     except ValueError as error:
         raise SystemExit(f"--qualify: {error}")
     name = f"shiploop-loop-{secrets.token_hex(3)}"

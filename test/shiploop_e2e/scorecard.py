@@ -340,7 +340,7 @@ def fidelity(run_metrics: dict, unmeasured: dict) -> dict:
     return block
 
 
-def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
+def efficiency(run_metrics: dict, unmeasured: dict, result: dict | None = None) -> dict:
     span = run_metrics.get("span") or {}
     minutes = (round((span["ended"] - span["started"]) / 60, 1)
                if isinstance(span.get("started"), (int, float)) and isinstance(span.get("ended"), (int, float)) else None)
@@ -378,8 +378,20 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
     editing = reviews.get("edited_children") if isinstance(reviews.get("edited_children"), int) else None
     if reviewed is None and editing is not None and attribution is not None:
         editing = None
+    totals_lower_bound = metrics.lower_bound(run_metrics)
+    if isinstance(result, dict) and result.get("host") == "codex":
+        unmeasured["efficiency.turns_scope"] = "Codex turns count completed items, not API round-trips"
+        subagents = (run_metrics.get("context") or {}).get("subagents") if isinstance(run_metrics.get("context"), dict) else None
+        subagent_calls = subagents.get("calls") if isinstance(subagents, dict) else 0
+        auto_review = result.get("permission_mode") == "auto-review"
+        if (isinstance(subagent_calls, int) and subagent_calls > 0) or auto_review:
+            totals_lower_bound = True
+            unmeasured["efficiency.tokens_scope"] = (
+                "Codex token totals cover only the parent thread; native subagent workers and/or "
+                "automatic approval reviews sit outside that figure"
+            )
     block = {"minutes": minutes, "cost_usd": run_metrics.get("cost_usd"),
-             "totals_lower_bound": metrics.lower_bound(run_metrics), "turns": run_metrics.get("turns"),
+             "totals_lower_bound": totals_lower_bound, "turns": run_metrics.get("turns"),
              "tokens": tokens.get("processed"), "output_tokens": tokens.get("output"),
              "refusals": len(run_metrics["shiploop_failures"]) if isinstance(run_metrics.get("shiploop_failures"), list) else None,
              "improve_children": run_metrics.get("improve_children"), "planning_minutes": planning,
@@ -704,7 +716,7 @@ def score(run, *, required_case=_CURRENT_CASE) -> dict:
             "validity": validity(run, result, run_metrics, unmeasured, required_case),
             "accuracy": accuracy(result, unmeasured, required_case),
             "enterprise": {"observed": False, "reason": NOT_YET, "floor": NOT_APPLICABLE},
-            "fidelity": fidelity(run_metrics, unmeasured), "efficiency": efficiency(run_metrics, unmeasured)}
+            "fidelity": fidelity(run_metrics, unmeasured), "efficiency": efficiency(run_metrics, unmeasured, result)}
     for setting in ("permission_mode", "timeout_seconds"):
         if setting in result:
             card["driver"][setting] = result[setting]

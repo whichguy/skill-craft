@@ -128,11 +128,15 @@ def observe(cards: list[dict], measure: str, floors: list[str]) -> tuple[float |
         successes = sum(1 for card in cards if promotion._strict_outcome(card, floors)[0] is True)
         return promotion._strict_per_success(cards, measure, successes)
     if measured == "floor":
-        known = [(card.get("floors") or {}).get(measure) for card in cards]
-        known = [value for value in known if value in ("pass", "fail")]
-        if not known:
-            return None, f"no attempt observed the {measure} floor"
-        return known.count("pass") / len(known), None
+        values = []
+        for card in cards:
+            validity = card.get("validity") if isinstance(card.get("validity"), dict) else {}
+            correctness = (validity.get("correctness") or {}).get("valid") if validity else True
+            value = (card.get("floors") or {}).get(measure)
+            if correctness is not True or value not in ("pass", "fail"):
+                return None, f"incomplete or invalid observation of the {measure} floor"
+            values.append(value)
+        return values.count("pass") / len(values), None
     values = [_path(card, measure) for card in cards]
     numbers = [value for value in values if _finite(value)]
     if len(numbers) < len(values):

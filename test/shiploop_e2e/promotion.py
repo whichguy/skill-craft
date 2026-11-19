@@ -755,6 +755,8 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
         add_evidence_error(None, "run receipts include unregistered attempt IDs: " + ", ".join(extra_ids))
     for name, sides in actual_by_case.items():
         digests = []
+        observed_builds: list[tuple[str, ...] | None] = []
+        observed_models: list[tuple[str, ...] | None] = []
         for entries in sides.values():
             for card, _row in entries:
                 grading = card.get("boundary") if isinstance(card.get("boundary"), dict) else {}
@@ -763,8 +765,25 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
                     case_issues[name].append(f"{name}: every attempt needs recorded evaluator, oracle, and case digests")
                 else:
                     digests.append(values)
+                validity_block = card.get("validity") if isinstance(card.get("validity"), dict) else {}
+                raw_builds = validity_block.get("host_builds")
+                if isinstance(raw_builds, list) and raw_builds and all(isinstance(b, str) and b for b in raw_builds):
+                    observed_builds.append(tuple(sorted(set(raw_builds))))
+                else:
+                    observed_builds.append(None)
+                raw_models = validity_block.get("models_served")
+                if isinstance(raw_models, list) and raw_models and all(isinstance(m, str) and m for m in raw_models):
+                    observed_models.append(tuple(sorted(set(raw_models))))
+                else:
+                    observed_models.append(None)
         if len(set(digests)) > 1:
             case_issues[name].append(f"{name}: attempts were graded by different evaluator, oracle, or case digests")
+        non_null_builds = {item for item in observed_builds if item is not None}
+        if non_null_builds and (len(non_null_builds) > 1 or any(item is None for item in observed_builds)):
+            case_issues[name].append(f"{name}: control and candidate arms ran on different or missing observed host CLI builds")
+        non_null_models = {item for item in observed_models if item is not None}
+        if non_null_models and (len(non_null_models) > 1 or any(item is None for item in observed_models)):
+            case_issues[name].append(f"{name}: control and candidate arms recorded different or missing observed served models")
         for issue in dict.fromkeys(case_issues[name]):
             add_evidence_error(None, issue)
             for entries in sides.values():

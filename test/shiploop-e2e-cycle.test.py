@@ -224,13 +224,14 @@ class CycleTest(unittest.TestCase):
         return []
 
     def run_cycle(self, decision="DROP", candidate_tokens=1_200_000, review=None, improver=None, launch=None,
-                  builder=None, calibration=None):
+                  builder=None, calibration=None, quick_ok=True):
         def cards(root):
             return (epoch.registration(root), json.loads((root / "prediction.json").read_text()),
                     [card("hello"), card("csv-report")], [card("hello", candidate_tokens), card("csv-report")])
         review = review or mock.Mock(return_value={"validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok",
                                                   "prediction_follows": True})
         with mock.patch.object(iterate, "improve", side_effect=improver or self.improver()), \
+                mock.patch.object(iterate, "quick_suite", return_value=quick_ok), \
                 mock.patch.object(purpose_check, "review", review), \
                 mock.patch.object(cycle, "build", side_effect=builder or self.build), \
                 mock.patch.object(cycle, "launch_all", side_effect=launch or self.launch_all), \
@@ -382,6 +383,7 @@ class CycleTest(unittest.TestCase):
         self.assertEqual(first["decision"], "NO_CANDIDATE")
         second_args = argparse.Namespace(**vars(self.args))
         with mock.patch.object(iterate, "improve", side_effect=self.improver(record=next_record)), \
+                mock.patch.object(iterate, "quick_suite", return_value=True), \
                 mock.patch.object(purpose_check, "review", mock.Mock(return_value={
                     "validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok",
                                                   "prediction_follows": True})), \
@@ -451,6 +453,7 @@ class CycleTest(unittest.TestCase):
 
         second_args = argparse.Namespace(**vars(self.args))
         with mock.patch.object(iterate, "improve", side_effect=observe_second_status), \
+                mock.patch.object(iterate, "quick_suite", return_value=True), \
                 mock.patch.object(purpose_check, "review", mock.Mock(return_value={
                     "validity": {"status": "valid"}, "verdict": "aligned", "summary": "ok",
                                                   "prediction_follows": True})), \
@@ -1419,6 +1422,103 @@ class CalibrationKitTest(unittest.TestCase):
         self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
         self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", script.read_text(),
                       "a seal binds every overlapping run under the runs root, so another session's runs must not be neighbours")
+
+
+class Wave2IntegrityTests(unittest.TestCase):
+    """Wave 2 hardening: calibration binding, interleaved arms, quick_suite gate, follows precheck, retryable assessment."""
+
+    def test_registration_template_interleaves_control_and_candidate_arms(self):
+        template = cycle.registration_template({"hello": "regression"}, "c1", "c2",
+                                               {"host": "codex", "model": "m", "effort": "medium"}, 3, 0.2, "tokens")
+        self.assertEqual([row["id"] for row in template["attempts"]], [
+            "control-hello-1", "candidate-hello-1",
+            "control-hello-2", "candidate-hello-2",
+            "control-hello-3", "candidate-hello-3",
+        ])
+
+    def test_load_calibration_rejects_foreign_driver_floors_zero_sealed_and_unknown_attempts(self):
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        driver = {"host": "codex", "model": "gpt-6.2-sol", "effort": "medium"}
+        base = {
+            "contract": spread.CONTRACT,
+            "driver": driver,
+            "floors": ["accuracy", "fidelity"],
+            "attempts_sealed": 6,
+            "cases": {c: {"attempts": 6, "unknown": 0, "false_decision": {"tokens": {"compared": 20}}} for c in CASES},
+            "scoring": spread.scoring_digest({c: catalog[c] for c in CASES}),
+            "recommended": {"attempts": 3, "tolerance": 0.2, "metric": "tokens"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cal.json"
+            path.write_text(json.dumps(base))
+            loaded = cycle.load_calibration(path, list(CASES), driver=driver, floors=["accuracy", "fidelity"])
+            self.assertEqual(loaded["tolerance"], 0.2)
+            self.assertTrue(loaded["report_sha256"])
+
+            for bad, needle in (
+                ({**base, "driver": {**driver, "model": "other"}}, "driver"),
+                ({**base, "floors": ["accuracy"]}, "floors"),
+                ({**base, "attempts_sealed": 0}, "sealed too few"),
+                ({**base, "cases": {**base["cases"], "hello": {"attempts": 6, "unknown": 2,
+                                                                "false_decision": {"tokens": {"compared": 2}}}}},
+                 "unknown attempt"),
+            ):
+                path.write_text(json.dumps(bad))
+                with self.subTest(needle=needle), self.assertRaisesRegex(ValueError, needle):
+                    cycle.load_calibration(path, list(CASES), driver=driver, floors=["accuracy", "fidelity"])
+
+    def test_incremental_follows_case_is_refused_before_invoking_improver(self):
+        with self.assertRaisesRegex(ValueError, "user-teams.*follows user-listing"):
+            cycle._require_non_incremental_cases(["user-teams"])
+
+    def test_red_quick_suite_rejects_before_building_or_launching_arms(self):
+        harness = CycleTest()
+        harness.setUp()
+        try:
+            launched = mock.Mock(side_effect=AssertionError("must not launch arms when quick_suite is red"))
+            result, _ = harness.run_cycle(quick_ok=False, launch=launched)
+            self.assertEqual(result["decision"], "RED_QUICK_SUITE")
+            launched.assert_not_called()
+        finally:
+            harness.doCleanups()
+
+    def test_published_assessment_is_retryable_with_distinct_assessment_ids_and_receipt(self):
+        harness = CycleTest()
+        harness.setUp()
+        try:
+            run_dir = harness.temp / "retained-run"
+            run_dir.mkdir()
+            (run_dir / "result.json").write_text(json.dumps({"process": {"elapsed_seconds": 1.0}, "checks": []}))
+            seen_ids = []
+
+            def fake_review(target, **kwargs):
+                aid = kwargs.get("assessment_id")
+                seen_ids.append(aid)
+                stage_dir = target / (f"review-{aid}" if aid else "review")
+                stage_dir.mkdir(exist_ok=False)
+                return {"validity": {"discovery_qualified": True, "status": "valid"}, "discoveries": []}
+
+            def fake_judge(target, _verdict, **kwargs):
+                aid = kwargs.get("assessment_id")
+                stage_dir = target / (f"review-judge-{aid}" if aid else "review-judge")
+                stage_dir.mkdir(exist_ok=False)
+                return {"review_sha256": "abc", "validity": {"status": "valid"}, "assessments": []}
+
+            args = argparse.Namespace(**{**vars(harness.args), "review_run": run_dir})
+            with mock.patch.object(reviewer, "review", side_effect=fake_review), \
+                    mock.patch.object(judge, "judge", side_effect=fake_judge), \
+                    mock.patch.object(iterate, "learnings_message", return_value="learnings"), \
+                    mock.patch.object(iterate, "record_learnings"):
+                cycle.assess_exploration(harness.worktree, harness.temp / "assess-1", args, run_dir)
+                cycle.assess_exploration(harness.worktree, harness.temp / "assess-2", args, run_dir)
+            self.assertEqual(len(seen_ids), 2)
+            self.assertTrue(all(seen_ids))
+            self.assertNotEqual(seen_ids[0], seen_ids[1])
+            receipt = json.loads((harness.temp / "assess-2" / "assessment.json").read_text())
+            self.assertEqual(receipt["status"], "clean")
+            self.assertEqual(receipt["assessment_id"], seen_ids[1])
+        finally:
+            harness.doCleanups()
 
 
 if __name__ == "__main__":

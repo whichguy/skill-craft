@@ -219,6 +219,28 @@ class RoleDefaultsTest(unittest.TestCase):
             self.assertEqual(argv[argv.index("-m") + 1], recorded["model"])
             self.assertIn("model_reasoning_effort=xhigh", argv)
 
+    def test_codex_auto_review_allows_claude_max_improver_with_auto_permission(self):
+        agent = hosts.ClaudeHost("fake-claude")
+        args = argparse.Namespace(case="hello", host="codex", model="gpt-6.2-sol", effort="medium",
+                                  permission_mode=hosts.CODEX_AUTO_REVIEW, improver_host="claude",
+                                  improve_max_turns=None, max_budget_usd=None, improve_timeout=30)
+
+        def finish(_argv, _cwd, _env, events_path, _stderr, _timeout, **_kwargs):
+            events_path.touch()
+            return {"status": "exited", "returncode": 0}
+
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.object(agent, "env", return_value={}), \
+                mock.patch.object(hosts, "host", return_value=agent), \
+                mock.patch.object(hosts, "run_agent", side_effect=finish) as launch, \
+                mock.patch.object(iterate, "git", return_value="deadbeef"):
+            root = Path(folder)
+            iterate.improve(root, [], root / "stage", args, prompt="fixture")
+        argv = launch.call_args.args[0]
+        self.assertEqual(argv[0], "fake-claude")
+        self.assertEqual(argv[argv.index("--effort") + 1], "max")
+        self.assertEqual(argv[argv.index("--permission-mode") + 1], "auto")
+
 
 if __name__ == "__main__":
     unittest.main()

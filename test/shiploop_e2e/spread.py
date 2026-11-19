@@ -147,16 +147,29 @@ def case_spread(cards: list[dict], floors: list[str], k: int, limit: int) -> dic
 
 def recommend(cases: dict, metric: str, k: int) -> dict:
     by_case = {}
+    reasons = []
     for name, report in cases.items():
+        if report.get("unknown", 0):
+            by_case[name] = None
+            reasons.append(f"{name} has {report['unknown']} unknown attempt(s)")
+            continue
         rates = report["false_decision"].get(metric)
-        by_case[name] = (None if not rates else
-                         next((t for t in GRID if rates[f"{t:.2f}"] <= THRESHOLD), None))
+        compared = rates.get("compared", 0) if isinstance(rates, dict) else 0
+        min_usable = min(report.get("splits", 0), max(2 * k, 6)) if report.get("splits", 0) else max(2 * k, 6)
+        if not rates or compared < min_usable or (report.get("successes", 0) < 2 and report.get("attempts", 0) >= 2):
+            by_case[name] = None
+            reasons.append(f"{name} has too few usable {metric} splits ({compared})")
+            continue
+        by_case[name] = next((t for t in GRID if rates[f"{t:.2f}"] <= THRESHOLD), None)
     usable = [t for t in by_case.values() if t is not None]
     tolerance = max(usable) if usable and len(usable) == len(by_case) else None
+    why = None
+    if tolerance is None:
+        why = ("; ".join(reasons) if reasons else
+               f"no tolerance in {GRID[0]}..{GRID[-1]} keeps false {metric} decisions at or under {THRESHOLD} on every "
+               "case at this many attempts: more attempts, or this metric cannot decide")
     return {"attempts": k, "metric": metric, "threshold": THRESHOLD, "tolerance": tolerance, "by_case": by_case,
-            "why": None if tolerance is not None else
-            f"no tolerance in {GRID[0]}..{GRID[-1]} keeps false {metric} decisions at or under {THRESHOLD} on every "
-            "case at this many attempts: more attempts, or this metric cannot decide"}
+            "why": why}
 
 
 def calibrate(root: Path, k: int = 3, metric: str = "tokens", limit: int = 5000) -> dict:

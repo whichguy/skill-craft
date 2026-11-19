@@ -739,9 +739,29 @@ class EpochLaunchAndPredictionTest(unittest.TestCase):
             for thread in threads:
                 thread.join(120)
         self.assertEqual(errors, [])
-        rows = real_events(self.root)  # refuses a duplicated or skipped sequence number
+        self.assertEqual(rows := real_events(self.root), rows)  # keep existing block anchor
         self.assertEqual([row["sequence"] for row in rows], list(range(1, len(rows) + 1)))
         self.assertEqual([row["status"] for row in epoch.state(self.root)["attempts"]], ["recorded", "recorded"])
+
+    def test_launch_installs_termination_handlers_on_main_thread(self):
+        def fake(argv):
+            output = Path(argv[argv.index("--output") + 1])
+            output.mkdir()
+            (output / "result.json").write_text('{"pass": true}')
+            return 0
+        with mock.patch.object(runner, "install_termination_handlers") as install, \
+                mock.patch.object(runner, "main", side_effect=fake):
+            epoch.launch(self.root, "control-hello", self.plugin)
+        install.assert_called_once()
+
+    def test_decide_preserves_numeric_promote_verdict_when_review_is_incomplete(self):
+        promoted = {"contract": "promotion/5", "decision": "PROMOTE", "reasons": ["tokens fell 30%"], "cases": {}, "notes": []}
+        with mock.patch.object(epoch.promotion, "decide", return_value=promoted):
+            decision = epoch.decide(self.root)
+        self.assertEqual(decision["decision"], "UNDECIDED")
+        self.assertEqual(decision["numeric_decision"], "PROMOTE")
+        self.assertEqual(decision["numeric_reasons"], ["tokens fell 30%"])
+        self.assertEqual(decision["incomplete_reviews"], ["control-hello", "candidate-hello"])
 
 
 if __name__ == "__main__":

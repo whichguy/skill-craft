@@ -22,6 +22,7 @@ import learning_records as lr
 import prediction
 import purpose_check
 import review
+import scorecard
 import spread
 
 FLOORS = ["accuracy", "fidelity"]
@@ -821,6 +822,43 @@ class PurposeCheckTest(unittest.TestCase):
         self.assertIn("any change would meet it", " ".join(purpose_check.decide(passed, {
             "validity": {"status": "valid"}, "verdict": "aligned", "prediction_follows": False,
             "prediction_note": "any change would meet it"})["reasons"]))
+
+
+class Wave2MeasurementTests(unittest.TestCase):
+    """Wave 2: sparse spread refusal, strict floor observation, Codex partial tokens."""
+
+    def test_spread_refuses_recommendation_when_unknown_attempts_dominate(self):
+        unknown_card = {
+            "floors": {"accuracy": "unobserved", "fidelity": "pass"},
+            "validity": {"correctness": {"valid": None}, "attribution": {"valid": True}, "timing": {"valid": True}},
+            "efficiency": {"tokens": 1000, "totals_lower_bound": False},
+        }
+        cards = [card(tokens=1000), card(tokens=1010)] + [unknown_card] * 4
+        report = {"csv-report": spread.case_spread(cards, FLOORS, 3, 5000)}
+        rec = spread.recommend(report, "tokens", 3)
+        self.assertIsNone(rec["tolerance"])
+        self.assertIn("unknown", rec["why"])
+
+    def test_prediction_observe_does_not_drop_unknown_floor_attempts(self):
+        unknown_card = {
+            "case": "hello",
+            "floors": {"accuracy": "unobserved", "fidelity": "pass"},
+            "validity": {"correctness": {"valid": True}},
+        }
+        val, why = prediction.observe([card(ok=True), unknown_card], "accuracy", FLOORS)
+        self.assertIsNone(val)
+        self.assertIn("incomplete", why)
+
+    def test_codex_subagents_or_auto_review_mark_tokens_as_lower_bound(self):
+        for label, result, run_metrics in (
+            ("subagents", {"host": "codex"}, {"unreported_sessions": 0, "context": {"subagents": {"calls": 2}}}),
+            ("auto-review", {"host": "codex", "permission_mode": "auto-review"}, {"unreported_sessions": 0}),
+        ):
+            unmeasured = {}
+            eff = scorecard.efficiency(run_metrics, unmeasured, result)
+            self.assertTrue(eff["totals_lower_bound"], label)
+            self.assertIn("efficiency.tokens_scope", unmeasured)
+            self.assertIn("efficiency.turns_scope", unmeasured)
 
 
 if __name__ == "__main__":

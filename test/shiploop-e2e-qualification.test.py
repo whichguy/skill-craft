@@ -81,7 +81,7 @@ class QualificationTest(unittest.TestCase):
 
     def card(self, reg, arm, case, *, passed=True, start=None, no_start=False, attempt_id=None, run=None, build=None,
              tokens=100, minutes=10, cost=1.0, fidelity=None, correctness=True,
-             attributed=True, timed=True, lower=False, driver=None):
+             attributed=True, timed=True, lower=False, driver=None, host_build="host-build-1"):
         attempt_id = attempt_id or f"{arm}:{case}"
         if no_start:
             start = None
@@ -123,7 +123,7 @@ class QualificationTest(unittest.TestCase):
                   "versions": {"plugin_sha256": build, "plugin_version": "1.0", "shiploop_version": "1.0"},
                   "boundary": {"evaluator": "e" * 12, "oracle": "o" * 12, "case": f"c-{case}"},
                   "environment": {"mixed_host": not attributed,
-                                  "environments": [{"host": driver["host"], "host_build": "host-build-1"}]},
+                                  "environments": [{"host": driver["host"], "host_build": host_build}]},
                   "left_behind": {"observed": True, "survived": []},
                   "quality": {"held_out_seen": 0},
                   "delivery": {"before": {**product, "bundle": "delivery/work.bundle"}, "after": dict(product)}}
@@ -486,6 +486,26 @@ class QualificationTest(unittest.TestCase):
                 path.write_text(json.dumps(bad))
                 with self.assertRaises(SystemExit):
                     promotion.load_registration(path)
+
+    def test_mismatched_observed_host_cli_builds_across_arms_prevent_promotion(self):
+        reg = self.registration({"hello": "regression"}, efficiency=["tokens"])
+        same_ctrl, same_cand = self.arms(
+            reg,
+            control=[self.card(reg, "control", "hello", tokens=1000, start=2000, host_build="codex 0.170.0")],
+            candidate=[self.card(reg, "candidate", "hello", tokens=750, start=4000, host_build="codex 0.170.0")],
+        )
+        self.assertEqual(self.decide(reg, same_ctrl, same_cand)["decision"], "PROMOTE")
+
+        diff_ctrl, diff_cand = self.arms(
+            reg,
+            control=[self.card(reg, "control", "hello", run=self.runs / "diff-ctrl", tokens=1000, start=6000,
+                               host_build="codex 0.170.0")],
+            candidate=[self.card(reg, "candidate", "hello", run=self.runs / "diff-cand", tokens=750, start=8000,
+                                 host_build="codex 0.171.0")],
+        )
+        verdict = self.decide(reg, diff_ctrl, diff_cand)
+        self.assertEqual(verdict["decision"], "UNDECIDED")
+        self.assertTrue(any("host CLI builds" in err for err in verdict["reasons"]), verdict)
 
 
 class FileBackedCaseTest(unittest.TestCase):
