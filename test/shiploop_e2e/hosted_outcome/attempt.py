@@ -12,6 +12,7 @@ from checks.sf_guard import force_app_sha256, write_once
 from hosted_outcome import binding as b
 
 ATTEMPT_ENV = "HOSTED_OUTCOME_ATTEMPT"
+MAX_CAMPAIGN_SECONDS = 24 * 60 * 60
 
 
 def read(path):
@@ -463,8 +464,8 @@ def execute(binding_path, *, campaign, build, codex_bin, model, baseline, deadli
         now = time.time()
         build_until = deadline - observation_seconds - teardown_seconds
         observe_until = deadline - teardown_seconds
-        b.require(now < build_until < observe_until < deadline <= now + 28800,
-                  "deadline must fit the remaining eight hours with observation and teardown reserves")
+        b.require(now < build_until < observe_until < deadline <= now + MAX_CAMPAIGN_SECONDS,
+                  "deadline must fit a 24-hour window with observation and teardown reserves")
         argv = ["--case", b.CASE, "--environment-binding", str(binding_path), "--host", "codex",
                 "--codex-bin", str(codex_bin), "--model", model, "--effort", "medium", "--source", "marketplace",
                 "--output", str(out), "--baseline", str(baseline)]

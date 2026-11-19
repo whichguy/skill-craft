@@ -231,7 +231,8 @@ class Operator:
 
     def preflight(self, now=None):
         now = time.time() if now is None else now
-        require(now < self.build_until < self.deadline <= now + 28800, "OUTSIDE_LAUNCH_BUDGET")
+        require(now < self.build_until < self.deadline <= now + attempt.MAX_CAMPAIGN_SECONDS,
+                "OUTSIDE_LAUNCH_BUDGET")
         require(all(hosted_binding.recent(stamp, age, now) for stamp, age in self.receipts.values()),
                 "BINDING_RECEIPTS_STALE")
         model = self.latest_sol(now)

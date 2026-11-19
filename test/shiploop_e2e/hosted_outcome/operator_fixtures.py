@@ -492,6 +492,36 @@ class OperatorFixtures(FixtureCase):
         self.assertEqual([row["fullName"] for row in fixture.sf.metadata["ApexClass"]], ["ForeignClass"])
         self.assertEqual(fixture.sf.jobs[FOREIGN_JOB]["Status"], "Queued")
 
+    def test_day_long_launch_window_and_upper_bound(self):
+        for identity, excess in enumerate((0, 60), start=1):
+            with self.subTest(excess=excess):
+                fixture = self.layout(identity)
+                deadline = fixture.now + 24 * 60 * 60 + excess
+                fixture.config.update(deadline=deadline, observation_seconds=900, teardown_seconds=600)
+                fixture.config_path.unlink()
+                op.write(fixture.config_path, fixture.config)
+                fixture.authorized = ref(fixture.config_path)["sha256"]
+
+                code, prepared, err = fixture.command("preflight", authorized=False)
+                if excess:
+                    self.assertEqual(code, 1)
+                    self.assertIn("OUTSIDE_LAUNCH_BUDGET", err)
+                    self.assertEqual(fixture.command("run")[0], 1)
+                    self.assertFalse(fixture.sf.calls)
+                    self.assertFalse(fixture.launches)
+                    self.assertFalse(fixture.state.exists())
+                    continue
+
+                self.assertEqual(code, 0, (prepared, err))
+                self.assertEqual(prepared["deadline"], deadline)
+                self.assertEqual(prepared["build_until"], deadline - 1500)
+                code, result, err = fixture.command("run")
+                self.assertEqual(code, 0, (result, err))
+                self.verify_cleanup(fixture, result)
+                start = attempt.read(fixture.state / "start.json")
+                self.assertEqual(start["deadline"], deadline)
+                self.assertEqual(start["build_until"], deadline - 1500)
+
     def test_two_fresh_layouts_with_distinct_targets_and_preserved_sets_then_replay(self):
         for identity in (1, 3):
             with self.subTest(identity=identity):
