@@ -1,0 +1,30 @@
+The brief each judge received (two independent Claude Opus 5.5 agents per packet; PACKET and OUT differ per agent).
+
+You are judging reviewer reports against a known fix. Read the file PACKET to its end; it is long, so read it in
+parts and do not stop early. Use no other file.
+
+The packet holds several cases. Each case shows:
+1. A fix that a later review made to the code: its commit message, its code and test patch, and that reviewer's own
+   notes.
+2. Six reports, A to F. Each was written earlier by a different reviewer who read the code as it stood before the
+   fix and was not told about it.
+
+For each report, decide whether it found the defect the fix corrected:
+- caught: one of its numbered findings names the same defect, the same wrong behaviour or the same missing test for
+  the same behaviour, closely enough that acting on that finding would produce the fix in substance (the same
+  behaviour change, or a test of the same behaviour at the same boundary). Wording and exact code may differ.
+- near: a finding concerns the same function, input or symptom but does not identify the defect itself; acting on
+  it would not necessarily produce the fix.
+- missed: no finding relates to it.
+
+When the fix changes code and adds a test for it, the code defect decides. When the fix only adds or changes tests,
+the behaviour and boundary those tests check decide: a finding that the same behaviour at the same boundary is
+untested is caught. Judge each report on its own. Length and number of findings earn nothing. A report that says
+the behaviour is correct, or lists it among things it tried without calling it a defect, has not caught it.
+
+Write one JSON object per line to the file OUT, six lines per case, in the packet's order, and nothing else in that
+file:
+{"case": "c01", "report": "A", "verdict": "caught", "finding": 2, "why": "one sentence"}
+verdict is caught, near or missed; finding is the number of the finding that decided it, or null.
+
+Reply with only the count of each verdict.

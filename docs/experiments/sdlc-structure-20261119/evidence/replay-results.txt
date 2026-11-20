@@ -1,0 +1,71 @@
+cases 18; reports 108; verdicts missing 0
+judges agree on 99% of reports (kappa 0.98); on caught against not caught 99% (kappa 0.96)
+verdicts, judge A / judge B: {'missed': 68, 'near': 26, 'caught': 14} / {'missed': 68, 'near': 27, 'caught': 13}
+
+== caught, counted when both judges (registered) say caught ==
+M1 one plain reader: 6 of 54 reports (11%, 95% interval 5% to 22%)
+M2 three plain readers: 3 of 18 cases (17%)
+M3 three lens readers:  4 of 18 cases (22%)
+   M3 minus M2: +1 cases; lens only ['c07', 'm07']; plain only ['c11']; sign test p 1.00
+   M2 minus M1: +6% points
+   lens reports that caught: 7 of 54; any of the six readers: 5 of 18
+   lens behaviour             4 of 18  ['c05', 'c07', 'c08', 'm07']
+   lens tests                 2 of 18  ['c05', 'm07']
+   lens documents and craft   1 of 18  ['c05']
+   plain draw p1               2 of 18
+   plain draw p2               1 of 18
+   plain draw p3               3 of 18
+   items of one step: plain reports 6 of 33; three plain 3 of 11; three lens 3 of 11
+   longer items: plain reports 0 of 21; three plain 0 of 7; three lens 1 of 7
+
+== caught, counted when either judge say caught ==
+M1 one plain reader: 6 of 54 reports (11%, 95% interval 5% to 22%)
+M2 three plain readers: 3 of 18 cases (17%)
+M3 three lens readers:  5 of 18 cases (28%)
+   M3 minus M2: +2 cases; lens only ['c07', 'c10', 'm07']; plain only ['c11']; sign test p 0.62
+   M2 minus M1: +6% points
+   lens reports that caught: 8 of 54; any of the six readers: 6 of 18
+   lens behaviour             5 of 18  ['c05', 'c07', 'c08', 'c10', 'm07']
+   lens tests                 2 of 18  ['c05', 'm07']
+   lens documents and craft   1 of 18  ['c05']
+   plain draw p1               2 of 18
+   plain draw p2               1 of 18
+   plain draw p3               3 of 18
+   items of one step: plain reports 6 of 33; three plain 3 of 11; three lens 4 of 11
+   longer items: plain reports 0 of 21; three plain 0 of 7; three lens 1 of 7
+
+reports a judge called near and neither called caught: 26
+
+== exploratory, not registered: the reader had the same behaviour in hand (both judges say caught or near) ==
+plain reports 21 of 54; lens reports 19 of 54
+cases: any of three plain 11 of 18; any of three lens 10 of 18; any of the six 13 of 18; the behaviour lens alone 10 of 18
+near reports where both judges' sentences say the reader argued for another outcome (reject or bound the input, or call the rejection correct): 16 of 26, in cases ['c01', 'c02', 'c03', 'c07', 'c11', 'm07']
+
+case example            fix                                                  p1   p2   p3   lb   lt   ld
+c01  csv-report         fix: accept large integer quantities on newer Py      .    .    .    .    .    .
+c02  csv-report         Handle long CSV fields                                .    .    .    .    .    .
+c03  csv-report         Handle unrestricted unit counts on modern Python      .    .    .    .    .    .
+c04  csv-report         Handle long CSV fields                                .    .    .    .    .    .
+c05  csv-report         Test half-even revenue ties                         yes  yes  yes  yes  yes  yes
+c06  csv-report         Accept signed zero units                              .    .    .    .    .    .
+c07  custom             Support valid large integer fields across Python      .    .    .  yes    .    .
+c08  seat-reservations  Reject invalid Unicode event IDs                    yes    .  yes  yes    .    .
+c09  shared-expenses    Preserve encoded group IDs in request paths           .    .    .    .    .    .
+c10  shared-expenses    fix: preserve encoded group IDs in request routi      .    .    .  one    .    .
+c11  user-listing       Preserve large page numbers in listing responses      .    .  yes    .    .    .
+m01  shared-expenses    Test special member names and group isolation         .    .    .    .    .    .
+m02  ticket-assignment  Fix repeated ticket filters                           .    .    .    .    .    .
+m03  ticket-assignment  Show assignee in ticket details                       .    .    .    .    .    .
+m04  ticket-assignment  Honor every repeated ticket filter                    .    .    .    .    .    .
+m05  ticket-import      test: verify imported ticket notifications are d      .    .    .    .    .    .
+m06  ticket-sla         test: verify escalation across service restarts       .    .    .    .    .    .
+m07  user-listing       Preserve large page numbers in listing responses      .    .    .  yes  yes    .
+(yes: both judges say caught; one: one judge; .: neither)
+
+== cost and conduct ==
+plain  per reader: median 59 s, $0.19, 7 turns, 5 findings; total $10.29, 262 findings in 54 reports
+lens   per reader: median 61 s, $0.19, 7 turns, 5 findings; total $10.88, 269 findings in 54 reports
+all 108 readers: $21.18; no report 0; timed out 0; served models ['claude-sonnet-5-5']
+one case's six readers, slowest reader: median 85 s; sum of the six: median 396 s
+shared case folder unchanged after its six readers: 18 of 18 cases
+readers the path audit flagged for a path under another reader's or case's folder: [('c08', 'lt'), ('m02', 'ld')]; readers that named another path outside their two folders: 2

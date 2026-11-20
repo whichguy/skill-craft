@@ -1,0 +1,36 @@
+{"case": "c07", "report": "A", "verdict": "near", "finding": 2, "why": "Reports the same 4300-digit integer conversion crash but for a huge price, and proposes rejecting large values rather than lifting the limit for valid large units."}
+{"case": "c07", "report": "B", "verdict": "caught", "finding": 1, "why": "Names a units value over 4300 digits crashing int() with a traceback and suggests sys.set_int_max_str_digits(0) plus a test."}
+{"case": "c07", "report": "C", "verdict": "missed", "finding": null, "why": "Findings cover underscore prices and exponent hangs in Fraction, not the integer digit limit on long units."}
+{"case": "c07", "report": "D", "verdict": "missed", "finding": null, "why": "No finding concerns large integer inputs or the conversion limit."}
+{"case": "c07", "report": "E", "verdict": "missed", "finding": null, "why": "Its exponent-price hang is a different defect from the int digit-limit traceback on long units."}
+{"case": "c07", "report": "F", "verdict": "missed", "finding": null, "why": "No finding relates to large integer fields."}
+{"case": "c08", "report": "A", "verdict": "missed", "finding": null, "why": "No finding concerns surrogate or unencodable event IDs."}
+{"case": "c08", "report": "B", "verdict": "caught", "finding": 1, "why": "Identifies lone-surrogate ids passing valid_id and crashing SQLite, proposing the encode check and a 400 test."}
+{"case": "c08", "report": "C", "verdict": "near", "finding": 3, "why": "Concerns event ID validation and non-ASCII ids but not lone surrogates that fail UTF-8 encoding."}
+{"case": "c08", "report": "D", "verdict": "caught", "finding": 1, "why": "Same surrogate-id defect in valid_id with the same encode check and 400 regression test."}
+{"case": "c08", "report": "E", "verdict": "missed", "finding": null, "why": "No finding concerns unencodable Unicode ids."}
+{"case": "c08", "report": "F", "verdict": "caught", "finding": 1, "why": "Same lone-surrogate defect, same valid_id encode fix and 400 test."}
+{"case": "c09", "report": "A", "verdict": "near", "finding": 3, "why": "Asks for round-trip tests of percent-encoded group ids but does not identify dot-segment normalization."}
+{"case": "c09", "report": "B", "verdict": "near", "finding": 2, "why": "Concerns encoded group-id path handling (malformed escapes), not URL normalization of encoded dot segments."}
+{"case": "c09", "report": "C", "verdict": "missed", "finding": null, "why": "No finding concerns path parsing of group ids."}
+{"case": "c09", "report": "D", "verdict": "near", "finding": 3, "why": "Concerns decoding of the group id segment but only malformed escapes, not dot-segment normalization."}
+{"case": "c09", "report": "E", "verdict": "near", "finding": 1, "why": "Targets the same new URL parse line and even suggests splitting request.url, but the defect named is a crash on invalid targets, not lost dot-segment ids."}
+{"case": "c09", "report": "F", "verdict": "missed", "finding": null, "why": "No finding concerns request path parsing or encoded ids."}
+{"case": "c10", "report": "A", "verdict": "missed", "finding": null, "why": "No finding concerns URL normalization or encoded group ids."}
+{"case": "c10", "report": "B", "verdict": "missed", "finding": null, "why": "No finding concerns path routing of group ids."}
+{"case": "c10", "report": "C", "verdict": "missed", "finding": null, "why": "Probed a %2F id but reported nothing about routing of encoded ids."}
+{"case": "c10", "report": "D", "verdict": "near", "finding": 6, "why": "Notes an untested URL-encoded group id but not dot-segment normalization making ids unreachable."}
+{"case": "c10", "report": "E", "verdict": "missed", "finding": null, "why": "No finding concerns request path handling."}
+{"case": "c10", "report": "F", "verdict": "caught", "finding": 5, "why": "Identifies that ids . and .. are collapsed by URL path normalisation so created groups answer 404, the same defect."}
+{"case": "c11", "report": "A", "verdict": "near", "finding": 3, "why": "Notes huge pages echoed imprecisely but proposes rejecting them with 400, the opposite of preserving them."}
+{"case": "c11", "report": "B", "verdict": "near", "finding": 3, "why": "Sees a huge valid page rejected and another misechoed, but proposes rejecting pages above MAX_SAFE_INTEGER rather than accepting them exactly."}
+{"case": "c11", "report": "C", "verdict": "near", "finding": 3, "why": "Asks for a huge-page test with a documented echo but does not identify the rejection or loss of exact value."}
+{"case": "c11", "report": "D", "verdict": "near", "finding": 2, "why": "Notes rounded echo of huge pages and suggests rejecting them, not preserving them."}
+{"case": "c11", "report": "E", "verdict": "caught", "finding": 3, "why": "Identifies that a 400-digit page is rejected though R-3 sets no upper bound and offers making such pages 200 with a test."}
+{"case": "c11", "report": "F", "verdict": "near", "finding": 1, "why": "Notes huge pages echoed as rounded floats but proposes isSafeInteger rejection."}
+{"case": "m01", "report": "A", "verdict": "missed", "finding": null, "why": "No finding concerns prototype-like member names or group isolation."}
+{"case": "m01", "report": "B", "verdict": "missed", "finding": null, "why": "No finding concerns special member names or group isolation."}
+{"case": "m01", "report": "C", "verdict": "near", "finding": 3, "why": "Concerns member names as balance object keys (integer-like key order), not prototype-named members or group isolation."}
+{"case": "m01", "report": "D", "verdict": "missed", "finding": null, "why": "No finding concerns special member names or group isolation."}
+{"case": "m01", "report": "E", "verdict": "missed", "finding": null, "why": "No finding concerns special member names or group isolation."}
+{"case": "m01", "report": "F", "verdict": "missed", "finding": null, "why": "No finding concerns special member names or group isolation."}

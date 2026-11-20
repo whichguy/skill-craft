@@ -4,7 +4,7 @@ Living journal for one question from the owner (2026-11-19): is ShipLoop's stage
 planning sequence, how the dependency graph is made, and how the inner loop executes it, and should any of it change?
 
 Evidence folder: `docs/experiments/sdlc-structure-20261119/` (scripts, their outputs under `evidence/`, the judges'
-inputs and verdicts under `judge/`). Nothing in `skills/` changed in this round.
+inputs and verdicts under `judge/`, and round 3's under `judge-replay/`). Nothing in `skills/` changed in any round.
 
 ## Round 1 (2026-11-19): where the time goes, what each planning level contributes, what each review changes
 
@@ -282,6 +282,7 @@ case measured (LEARNINGS, the per-step ask-agent route).
 - **F11 (interim).** The read-only work large enough to share is the finding half of the reviews, which are a third
   of a run. It fits inside one stage, under one owner and one completion, so it needs no change to the cursor, the
   gates or the directory rule. Whether several lens readers find more than one reviewer is not measured.
+  *Measured 2026-11-20 for the step review (round 3, F13): they do not, on the recorded misses.*
 - **F12 (interim, two runs).** Step overlap is the only large time prize (R13) and it is a two-writer shape. The
   earlier study priced a worktree per attempt at 0 to 11 seconds over a shared checkout (contract section 7, E13),
   so the same directory buys nothing for writers; it would also need a test file per step and one serial point for
@@ -292,6 +293,8 @@ case measured (LEARNINGS, the per-step ask-agent route).
 1. Discuss Ask Agent in one place first: read-only lens workers inside the `step-plan` review and the step review,
    the two reviews that change something about one time in three (R6 to R8). The owner of the review applies the
    edits and completes once. The plan already names the units: each step's criteria and paths.
+   *Superseded 2026-11-20 for the step review: round 3 found no gain from three lens readers or three plain
+   readers on 18 recorded misses, so this is withdrawn there. The step-plan review was not tested.*
 2. Do not pursue two writers in one directory. If step overlap is wanted for slow hosts, it is the worktree route
    already studied, and its first requirement is that each step declares its own test file.
 3. Add no planning-time "may overlap" marker now: computed from today's plans it would be wrong for every pair (R14).
@@ -393,7 +396,113 @@ with the same name in `/tmp` (`/tmp/x.csv`) at the same time, so readers that ru
 outside the directory they share. Apparatus fix before the counted run: each reviewer gets its own `TMPDIR` and a
 rule to create temporary files only in its own folder. The lens wording was not changed.
 
-## Evidence (both rounds)
+### Results (run 2026-11-20; the design above was committed first as e68a5fc4be47fd030f783ef2e250105683b60b4a)
+
+**R16. The run** (`evidence/replay-results.txt`, `judge-replay/reviewers.json`). 108 reviewers ran, twelve at a
+time, in about 12 minutes. Every one returned a report; none timed out; all were served by `claude-sonnet-5-5`.
+Per reader, median: 60 seconds, $0.19, 7 turns, 5 findings. $21.18 in all. A case's six readers were done when the
+slowest finished, a median 85 seconds (396 seconds if run one after another).
+
+**R17. The judges** (`judge-replay/out-A-*.jsonl`, `out-B-*.jsonl`). The two judges gave the same verdict on 107 of
+108 reports (kappa 0.98). The one difference is c10's behaviour-lens report, caught for one and near for the other.
+
+**R18. The registered measures.** Counted when both judges say caught; the either-judge count in brackets.
+
+| Measure | Result |
+|---|---|
+| M1, one plain reader | 6 of 54 reports, 11% (95% interval 5% to 22%) |
+| M2, three plain readers | 3 of 18 cases, 17% |
+| M3, three lens readers | 4 of 18 cases, 22% (5 of 18) |
+| Any of the six readers | 5 of 18 cases (6 of 18) |
+| By lens | behaviour 4 (5), tests 2, documents and craft 1 |
+| Items of one step, three plain / three lens | 3 of 11 / 3 of 11 |
+| Longer items, three plain / three lens | 0 of 7 / 1 of 7 |
+
+Which cases: c05 (a missing test of half-even ties) by all six; c08 (invalid Unicode IDs) by two plain readers and
+the behaviour lens; c07 (large integers) by the behaviour lens only; c11 (large page numbers) by one plain reader;
+m07 (the same defect in a longer item) by the behaviour and tests lenses. Thirteen cases were caught by no reader.
+By distinct defect, 4 of the 12 were caught at least once.
+
+**R19. What the readers did see** (exploratory, not registered). Counting a report when both judges say caught or
+near, a reader had the same behaviour in hand in 21 of 54 plain reports and 19 of 54 lens reports; in 11 of 18
+cases for three plain readers, 10 of 18 for three lens readers, and 10 of 18 for the behaviour lens alone. In 16 of
+the 26 near reports, across 6 cases, both judges' sentences say the reader argued for another outcome than the fix:
+reject or bound the input, or call the rejection correct, where the end-of-work review made the code accept it (a
+5,000-digit unit count, a 400-digit page number, a field over the CSV parser's limit).
+
+**R20. Volume.** The 108 reports hold 531 numbered findings, 262 from the plain readers and 269 from the lens
+readers: about 5 a reader and about 30 a case. Only the one finding per case that matches the fix was checked.
+
+**R21. Conduct outside the shared folder** (`replay_conduct.py`, `evidence/replay-conduct.txt`). All 18 case
+folders had the same manifest before and after their six readers. 106 of the 108 readers ran the code or its tests
+in their own copy. Outside the shared folder they could still disturb each other:
+
+- 7 readers stopped processes by a name pattern (`pkill -f`). Three patterns were wide enough to match another
+  reader's process or anything else on the machine: `server.py`, `tree/server.js` and `node --test`.
+- In 3 cases two readers of the same case used the same network port; one reader's output shows an
+  address-in-use error.
+- One reader wrote its scratch copies in the folder above its own. In the rehearsal three readers wrote
+  `/tmp/x.csv` at once.
+- 49 readers hit a permission error first, because a copy of a read-only tree is read-only too.
+
+The path audit flagged two readers (c08 tests lens, m02 documents lens). I read both commands: one listed and
+cleaned the folder above its own, the other named a path that does not exist. Neither read the judges' key, a
+report, another case, an original run or this repository, so the rerun rule did not apply; neither report was
+judged caught.
+
+### Registered readings
+
+- **No lens effect is seen.** Three lens readers caught 1 case more than three plain readers (4 against 3; the
+  bar was 3 cases).
+- **More readers do not add over one by the bar.** Three plain readers reach 17% of cases against 11% for one
+  (6 points; the bar was 15).
+- **Three readers catch few.** 17% and 22% of cases, under a quarter. The registered consequence: fresh readers
+  do not find these defects; leave the step review as it is and let the end-of-work review keep catching them.
+
+### Findings
+
+- **F13 (firm for these cases).** Read-only reviewers at the step, plain or lens, do not reproduce what the
+  end-of-work review finds. Six readers together found its defect in 5 of 18 cases.
+- **F14 (interim).** Many of these fixes are a judgement about a limit nobody stated. In 6 cases readers had the
+  very input in hand and argued for the opposite outcome (R19). More readers then bring conflicting advice that
+  one owner still has to settle; the disagreement is about the spec, not about reading skill.
+- **F15 (exploratory).** Within the lens arm the behaviour lens did the work: it caught 4 of 18 by itself, the
+  tests and documents lenses added no case, and it alone had the behaviour in hand as often as three lens readers
+  together. A single reader that runs the code against the spec's inputs is the only form that showed anything,
+  and it was not a registered arm.
+- **F16 (firm).** The cost of readers is not money or time (19 cents and a minute each). It is triage: about 30
+  unverified findings a step from six readers, where the recorded step review edits anything in 36% of steps.
+- **F17 (firm).** Readers do not step on each other in the directory they share: 18 of 18 folders were untouched.
+  Readers that run code step on each other outside it, through process names, ports and shared temporary names
+  (R21). A contract for concurrent readers needs four lines: your own temporary folder, your own ports, stop only
+  process IDs you started, and copy the tree with write permission.
+
+### Recommendation (owner's decisions; nothing built)
+
+1. Do not add read-only reviewers to the step review, as lenses or as extra plain readers, and leave Improve's
+   independent review unselected in ShipLoop's binding. The end-of-work review is the second look that finds
+   these defects and it already runs one stage later.
+2. Round 2's first recommendation (discuss Ask Agent for read-only lens workers inside the step-plan review and
+   the step review) is withdrawn for the step review. The step-plan review was not tested: the records hold no
+   list of what it missed, and nothing here argues for it.
+3. If concurrent readers are used anywhere, give them F17's four rules. `report-only` and the drift check protect
+   the directory and nothing else.
+4. Not measured, for the owner to weigh: seven of the 18 fixes are about how large an input may be (integer
+   digits, field length, page number), and in six of those cases readers argued for rejecting what the fix
+   accepts. Where the spec states the limit, a reviewer has something to check instead of something to decide.
+
+### Limits
+
+- The yardstick is one reviewer's fix (terra's end-of-work review). A reader's other findings, about 5 a report,
+  were not checked; some may be real defects that no recorded review found. The replay cannot say.
+- Sonnet 5.5 read what terra wrote and reviewed. Another reader model, or the same model as the writer, may differ.
+- 18 cases, 12 distinct defects, 8 small example applications; one run per reader; M1's interval is 5% to 22%.
+- Readers reported and did not fix. Improve's loop lets a reviewer change the code and check again.
+- Both judges are the same model; a lens report can give its lens away by what it covers.
+- Two readers' `pkill -f` patterns (`node --test`, `server.py`) could have ended unrelated processes on this
+  machine while they ran; whether they did was not checked.
+
+## Evidence (all rounds)
 
 | File | Holds |
 |---|---|
@@ -410,6 +519,13 @@ rule to create temporary files only in its own folder. The lens wording was not 
 | `evidence/task-sizes.txt` | seconds per read-mostly piece by host (R15) |
 | `judge/diffs-1.txt`, `judge/diffs-2.txt`, `judge/diff-key.json` | the 136 diffs as the judges saw them, and which run each came from |
 | `judge/out-A-*.jsonl`, `judge/out-B-*.jsonl` | each judge's verdict and reason per diff |
+| `evidence/replay-cases.txt`, `judge-replay/cases.json` | round 3: how the 18 cases were chosen, and which run each is |
+| `evidence/replay-briefs.txt`, `evidence/replay-judge-brief.txt` | round 3: the plain and lens briefs, and the judges' brief |
+| `judge-replay/packet-*.txt`, `judge-replay/key.json` | round 3: each fix and the six reports as the judges saw them, and which letter was which reader |
+| `judge-replay/out-A-*.jsonl`, `judge-replay/out-B-*.jsonl` | round 3: each judge's verdict and reason per report |
+| `judge-replay/reviewers.json` | round 3: seconds, turns, dollars, tokens, findings and the path audit per reader |
+| `evidence/replay-results.txt` | round 3: the registered measures, the per-case table, the exploratory cuts, cost (R16 to R20) |
+| `evidence/replay-conduct.txt` | round 3: kills by name, shared ports and other conduct outside the shared folder (R21) |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
@@ -417,3 +533,10 @@ To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list th
 `score_judges.py judge`; round 2: `overlap_ceiling.py`, `write_set_fidelity.py`, `shared_files.py`,
 `task_sizes.py`, each `<work>/census.json`). The run folders are outside the repository and may be pruned; the outputs above are the
 record.
+
+Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
+recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),
+`replay_build.py <work>`, `replay_run.py <work>` (108 headless Claude Code sessions; about $21),
+`replay_judge_packets.py <work> judge-replay 3`, two judges per packet with `evidence/replay-judge-brief.txt`,
+then `replay_score.py judge-replay` and `replay_conduct.py <work>`. The reviewers' full streams (about 25 MB) stay
+in the working folder and are not in the repository.

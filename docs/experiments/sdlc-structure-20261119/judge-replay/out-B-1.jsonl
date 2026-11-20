@@ -1,0 +1,36 @@
+{"case": "c01", "report": "A", "verdict": "near", "finding": 1, "why": "Hits the same 4300-digit integer conversion limit, but through a huge price exponent in _money and proposes rejecting the input, not accepting large unit counts."}
+{"case": "c01", "report": "B", "verdict": "missed", "finding": null, "why": "No finding concerns large integer units or the interpreter's digit conversion limit; finding 4 is about a price exponent hanging Fraction."}
+{"case": "c01", "report": "C", "verdict": "missed", "finding": null, "why": "Its huge-exponent finding is a Fraction hang on prices, unrelated to rejecting large unit integers."}
+{"case": "c01", "report": "D", "verdict": "missed", "finding": null, "why": "No finding relates to large unit values or the integer string conversion limit."}
+{"case": "c01", "report": "E", "verdict": "missed", "finding": null, "why": "Findings cover rounding, read errors and whitespace tests, nothing about large unit integers."}
+{"case": "c01", "report": "F", "verdict": "near", "finding": 5, "why": "Observes that 5000-digit units are rejected with the 4300-digit limit message, but treats the rejection as correct and only asks for a better reason text, the opposite of the fix."}
+{"case": "c02", "report": "A", "verdict": "missed", "finding": null, "why": "No finding concerns long CSV fields or csv.field_size_limit."}
+{"case": "c02", "report": "B", "verdict": "missed", "finding": null, "why": "No finding concerns fields above the csv default size limit."}
+{"case": "c02", "report": "C", "verdict": "missed", "finding": null, "why": "No finding relates to long CSV fields."}
+{"case": "c02", "report": "D", "verdict": "missed", "finding": null, "why": "No finding relates to the csv field size limit."}
+{"case": "c02", "report": "E", "verdict": "near", "finding": 4, "why": "Notes that a field over the size limit exits 1 as a read failure, but calls that handled behaviour and wants it tested as a read error rather than accepted."}
+{"case": "c02", "report": "F", "verdict": "missed", "finding": null, "why": "No finding relates to long CSV fields."}
+{"case": "c03", "report": "A", "verdict": "missed", "finding": null, "why": "Its large-number finding is a price exponent hang; nothing about large unit counts or the digit limit."}
+{"case": "c03", "report": "B", "verdict": "missed", "finding": null, "why": "No finding concerns large unit integers."}
+{"case": "c03", "report": "C", "verdict": "near", "finding": 1, "why": "Identifies the 5000-digit units traceback from the 4300-digit limit, but proposes bounding and rejecting such rows instead of accepting them by lifting the limit."}
+{"case": "c03", "report": "D", "verdict": "near", "finding": 2, "why": "Names the 5000-digit units crash from the digit limit, but its change rejects or catches the row rather than accepting the valid value."}
+{"case": "c03", "report": "E", "verdict": "missed", "finding": null, "why": "No finding relates to large unit counts."}
+{"case": "c03", "report": "F", "verdict": "near", "finding": 1, "why": "Hits the same 4300-digit limit in money() via a 1E+400000 price, but for prices and proposes rejecting the input, not accepting large units."}
+{"case": "c04", "report": "A", "verdict": "missed", "finding": null, "why": "No finding concerns long CSV fields or the parser field limit."}
+{"case": "c04", "report": "B", "verdict": "missed", "finding": null, "why": "Mentions the untested csv.Error branch but never long fields or the field size limit."}
+{"case": "c04", "report": "C", "verdict": "missed", "finding": null, "why": "No finding relates to long CSV fields."}
+{"case": "c04", "report": "D", "verdict": "missed", "finding": null, "why": "No finding relates to the csv field size limit."}
+{"case": "c04", "report": "E", "verdict": "missed", "finding": null, "why": "No finding relates to long CSV fields."}
+{"case": "c04", "report": "F", "verdict": "missed", "finding": null, "why": "No finding relates to long CSV fields."}
+{"case": "c05", "report": "A", "verdict": "caught", "finding": 1, "why": "Says no test reaches a half-even tie, shows half-up survives, and asks for tie cases including by_region."}
+{"case": "c05", "report": "B", "verdict": "caught", "finding": 2, "why": "Says the rounding test never reaches a tie and asks for single-row tie cases pinning half-even."}
+{"case": "c05", "report": "C", "verdict": "caught", "finding": 1, "why": "Says no test exercises a tie and asks for tie rows in separate regions expecting half-even results."}
+{"case": "c05", "report": "D", "verdict": "caught", "finding": 1, "why": "Says no test hits a tie and asks for tie sub-cases, by_region included, asserting half-even."}
+{"case": "c05", "report": "E", "verdict": "caught", "finding": 1, "why": "Shows a half-up mutant passes and asks for tie cases on revenue and by_region."}
+{"case": "c05", "report": "F", "verdict": "caught", "finding": 1, "why": "Says no test checks the half-even tie rule and asks for 0.005, 0.015 and 0.025 tie cases."}
+{"case": "c06", "report": "A", "verdict": "missed", "finding": null, "why": "No finding says that -0 units are wrongly rejected."}
+{"case": "c06", "report": "B", "verdict": "missed", "finding": null, "why": "No finding concerns signed-zero units."}
+{"case": "c06", "report": "C", "verdict": "missed", "finding": null, "why": "No finding concerns -0 units being rejected by the units regex."}
+{"case": "c06", "report": "D", "verdict": "missed", "finding": null, "why": "No finding concerns signed-zero units."}
+{"case": "c06", "report": "E", "verdict": "missed", "finding": null, "why": "It probed -0 units but no finding reports their rejection as a defect."}
+{"case": "c06", "report": "F", "verdict": "missed", "finding": null, "why": "No finding concerns -0 units being rejected."}

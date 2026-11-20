@@ -1,0 +1,16 @@
+readers: 108; ran the code or its tests: 106
+readers that stopped processes by a name pattern: 7
+  c04 lb: pkill -f "report.py p.csv"
+  c06 lb: pkill -f "tree/report.py pr/x.csv"
+  c07 p3: pkill -f "report.py fx/t.csv"
+  c08 p1: pkill -f "server.py"
+  c09 p3: pkill -f "tree/server.js"
+  m01 lt: pkill -f "lt/tree"
+  m06 lt: pkill -f "node --test"
+ports used by more than one reader of the same case: 3
+  c08 port 8123: p1, p2
+  c10 port 48123: lb, p1
+  m01 port 45871: lb, p1
+readers whose output shows an address-in-use error: [('m01', 'p1')]
+readers that wrote in /tmp or in the folder above their own: [('c08', 'lt')]
+readers that hit a permission error (their copy of the tree keeps its read-only mode): 49

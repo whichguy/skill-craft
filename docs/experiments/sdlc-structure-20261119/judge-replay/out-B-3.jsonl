@@ -1,0 +1,36 @@
+{"case": "m02", "report": "A", "verdict": "near", "finding": 2, "why": "Notes that a repeated assignee takes the first value as an unasserted parse edge, but does not call it a defect and its proposed change does not intersect or validate repeated filters."}
+{"case": "m02", "report": "B", "verdict": "missed", "finding": null, "why": "Findings cover CLI assertions, the show output and spec records, not repeated query parameters."}
+{"case": "m02", "report": "C", "verdict": "near", "finding": 6, "why": "Mentions a repeated assignee taking the first value only as an untested parse branch; the proposed tests do not cover repeated filters or treat first-wins as wrong."}
+{"case": "m02", "report": "D", "verdict": "missed", "finding": null, "why": "Findings concern knowledge docs, show output, CLI assertions and style; none touch repeated filter parameters."}
+{"case": "m02", "report": "E", "verdict": "missed", "finding": null, "why": "Covers exact-case matching and unit tests for parsing, but never repeated filter occurrences."}
+{"case": "m02", "report": "F", "verdict": "missed", "finding": null, "why": "Findings cover CLI table assertions, show output and stale docs, not repeated filters."}
+{"case": "m03", "report": "A", "verdict": "missed", "finding": null, "why": "Reports the dash placeholder collision in the list table, not the show detail view lacking the assignee."}
+{"case": "m03", "report": "B", "verdict": "missed", "finding": null, "why": "Findings cover raw assertions, dash ambiguity, README wrapping and changelog date; nothing about show omitting assignee."}
+{"case": "m03", "report": "C", "verdict": "missed", "finding": null, "why": "Ran show but reported no defect there; findings concern raw assertions, README and changelog."}
+{"case": "m03", "report": "D", "verdict": "missed", "finding": null, "why": "Findings concern weekly-report coverage, raw assertions, cwd and mutation records, not the show view."}
+{"case": "m03", "report": "E", "verdict": "missed", "finding": null, "why": "Findings concern knowledge records, changelog, README wrap and test style, not the missing assignee in show."}
+{"case": "m03", "report": "F", "verdict": "missed", "finding": null, "why": "Findings concern raw assertion, requires, README wrap and changelog; show is not discussed."}
+{"case": "m04", "report": "A", "verdict": "near", "finding": 2, "why": "Observes that a repeated parameter yields only the first value and lists it as an untested case, but does not identify first-wins as violating the all-filters rule or propose intersecting all occurrences."}
+{"case": "m04", "report": "B", "verdict": "missed", "finding": null, "why": "Findings concern show output and loose CLI and filter assertions, with no mention of repeated parameters."}
+{"case": "m04", "report": "C", "verdict": "missed", "finding": null, "why": "Findings cover show output, unit tests for intersection and whitespace, and README; repeated filters are not raised."}
+{"case": "m04", "report": "D", "verdict": "missed", "finding": null, "why": "Explicitly states first value wins on a repeated parameter as behaving per spec, so it did not call it a defect."}
+{"case": "m04", "report": "E", "verdict": "missed", "finding": null, "why": "Findings cover stale knowledge, null rendering, CLI assertions and docs; no repeated filter finding."}
+{"case": "m04", "report": "F", "verdict": "missed", "finding": null, "why": "Findings cover show output, unvalidated assignee value, style and README; not repeated filters."}
+{"case": "m05", "report": "A", "verdict": "missed", "finding": null, "why": "No finding concerns delivery of imported ticket notifications through the worker."}
+{"case": "m05", "report": "B", "verdict": "missed", "finding": null, "why": "Findings concern validation tests, body limit and TC-4 escaping, not worker delivery of import notifications."}
+{"case": "m05", "report": "C", "verdict": "missed", "finding": null, "why": "Findings concern paths, body limit, docs and error wrapping, not notification delivery."}
+{"case": "m05", "report": "D", "verdict": "missed", "finding": null, "why": "Findings concern unknown-field and body-limit tests only."}
+{"case": "m05", "report": "E", "verdict": "missed", "finding": null, "why": "Findings concern body limit test, validation placement and docs; no notification delivery test."}
+{"case": "m05", "report": "F", "verdict": "missed", "finding": null, "why": "Findings concern README paths, changelog, docs and 400 assertions, not worker delivery."}
+{"case": "m06", "report": "A", "verdict": "missed", "finding": null, "why": "Reports no findings."}
+{"case": "m06", "report": "B", "verdict": "missed", "finding": null, "why": "Concerns urgent wording end to end and mutation records, not escalation across service restarts with a changed on-call."}
+{"case": "m06", "report": "C", "verdict": "missed", "finding": null, "why": "Findings concern stale spec and architecture text and wording assertions; the AD-5 mention of persisted restart is about status wording, not the missing restart test."}
+{"case": "m06", "report": "D", "verdict": "missed", "finding": null, "why": "Findings concern a stale spec line and TC_10 style, not restart coverage."}
+{"case": "m06", "report": "E", "verdict": "missed", "finding": null, "why": "Findings concern docs, imports and template readability, not service restart escalation."}
+{"case": "m06", "report": "F", "verdict": "missed", "finding": null, "why": "Findings concern a stale spec line, changelog and imports; no restart coverage gap."}
+{"case": "m07", "report": "A", "verdict": "caught", "finding": 1, "why": "Identifies rounding above 2^53 and the wrong 400 for 309-digit pages, and proposes keeping them valid with empty items and echoing the page the client sent, with a TC_2 (a) test."}
+{"case": "m07", "report": "B", "verdict": "near", "finding": 1, "why": "Notes the lossy echo of huge pages but proposes rejecting them with 400, the opposite of the fix."}
+{"case": "m07", "report": "C", "verdict": "near", "finding": 1, "why": "Identifies the inexact echo and wrong 400 but proposes isSafeInteger rejection rather than exact preservation."}
+{"case": "m07", "report": "D", "verdict": "near", "finding": 2, "why": "Names the inexact echo and the Infinity 400 but leaves the rule open, offering rejection or merely documenting empty items, without requiring an exact echo."}
+{"case": "m07", "report": "E", "verdict": "caught", "finding": 1, "why": "Identifies inexact echo of huge pages and offers accepting them with empty items and an exact page, plus a test."}
+{"case": "m07", "report": "F", "verdict": "near", "finding": 2, "why": "Notes the lossy echo for huge pages but proposes either rejection or documenting acceptance, not exact preservation."}

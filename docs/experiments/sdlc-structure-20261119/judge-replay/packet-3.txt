@@ -1,0 +1,1463 @@
+################ CASE m02 ################
+
+---- The end-of-work review's fix: commit message ----
+Fix repeated ticket filters
+
+Key learnings: every occurrence of a filter must participate in the intersection and be validated.
+Regression test: TC_4 (a)
+
+---- The fix: code and test patch ----
+diff --git a/src/tickets/query.js b/src/tickets/query.js
+index c53f99f..820a7e4 100644
+--- a/src/tickets/query.js
++++ b/src/tickets/query.js
+@@ -18,16 +18,19 @@ const MAX_LIMIT = 100;
+ function parseListQuery(params) {
+   const filters = {};
+   if (params.has('status')) {
+-    const status = params.get('status');
+-    if (!isStatus(status)) throw new InvalidError(`status must be one of ${STATUSES.join(', ')}`);
+-    filters.status = status;
++    const statuses = params.getAll('status');
++    if (!statuses.every(isStatus)) throw new InvalidError(`status must be one of ${STATUSES.join(', ')}`);
++    filters.status = statuses.length === 1 ? statuses[0] : statuses;
+   }
+   if (params.has('priority')) {
+-    const priority = params.get('priority');
+-    if (!isPriority(priority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
+-    filters.priority = priority;
++    const priorities = params.getAll('priority');
++    if (!priorities.every(isPriority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
++    filters.priority = priorities.length === 1 ? priorities[0] : priorities;
++  }
++  if (params.has('assignee')) {
++    const assignees = params.getAll('assignee').map((value) => value || null);
++    filters.assignee = assignees.length === 1 ? assignees[0] : assignees;
+   }
+-  if (params.has('assignee')) filters.assignee = params.get('assignee') || null;
+   return { filters, limit: parseLimit(params), after: params.has('cursor') ? decodeCursor(params.get('cursor')) : null };
+ }
+ 
+@@ -43,7 +46,7 @@ function parseLimit(params) {
+ function matchesFilters(ticket, filters) {
+   const given = Object.entries(filters).filter(([, value]) => value !== undefined);
+   if (given.length === 0) return true;
+-  return given.every(([field, value]) => ticket[field] === value);
++  return given.every(([field, value]) => (Array.isArray(value) ? value : [value]).every((v) => ticket[field] === v));
+ }
+ 
+ module.exports = { DEFAULT_LIMIT, MAX_LIMIT, matchesFilters, parseListQuery };
+diff --git a/test/assignment.test.js b/test/assignment.test.js
+index 50098fb..1618e28 100644
+--- a/test/assignment.test.js
++++ b/test/assignment.test.js
+@@ -173,3 +173,15 @@ test('TC_4 listing intersects all filters and CLI displays assignees', async (t)
+     assert.equal(rows[4][4] ?? '', '');
+   });
+ });
++
++test('TC_4 (a) repeated filters all constrain the listing', async () => {
++  const { withService, ticketBody } = require('./helpers');
++  await withService({}, async (api) => {
++    const ticket = (await api.post('/tickets', ticketBody({ priority: 'high' }))).body;
++    await api.put(`/tickets/${ticket.id}/assignee`, { assignee: 'Joe' });
++    assert.equal((await api.get('/tickets?assignee=Joe&assignee=Joe')).body.items.length, 1);
++    assert.deepEqual((await api.get('/tickets?assignee=Joe&assignee=Ann')).body.items, []);
++    assert.deepEqual((await api.get('/tickets?status=open&status=in_progress')).body.items, []);
++    assert.equal((await api.get('/tickets?priority=high&priority=invalid')).status, 400);
++  });
++});
+
+---- The end-of-work reviewer's own notes ----
+---
+classification: non-trivial
+exit: unsatisfied
+continuation: allowed
+---
+Read: self-review (inline default); complete product diff, API request contract, query parser, store, persistence, notification path, tests, documentation and recent history.
+Found: The parser used only the first instance of each query parameter, so conflicting repeated filters violated the requirement that every given filter match. The new regression failed before the fix with a Joe ticket returned for Joe and Ann.
+Changed: Validate all repeated status and priority values and intersect every occurrence, including assignee; document this behavior. Added TC_4 (a), which also confirms duplicate equal values and invalid second priority.
+Checked: Pre-fix focused run failed in run/notes/repeated-filter-red.log; after fix focused 6 and full 123 tests pass, syntax and ShipLoop lint exit 0. Knowledge and source return obligations remain recorded.
+Class: non-trivial because repeated filters could expose tickets that fail a supplied constraint.
+
+## Handoff
+### State and remaining work
+Repeated-filter fix, test and API docs are ready for scoped review commit; revised carry-forward result records the decision. A further review is required. The guarded return and release verification remain pending.
+### Current learnings
+All filter occurrences are validated and matched; old data files normalize missing assignee to null and outbox event keys use audit sequence. The local candidate is not yet returned to the source checkout.
+### Evidence
+run/notes/repeated-filter-red.log, review checks.md and run/inbox/nav-e712bf8c0395484e8250c323717a2924-final-result.md.
+
+
+---
+classification: trivial
+exit: satisfied
+continuation: allowed
+---
+Read: self-review (inline default); request, complete product changes, repeated-filter fix c9c46d4, tests, knowledge, weekly report and recent seven commit messages.
+Found: The revised parser validates every status and priority and matches each repeated value; distinct filter types intersect before pagination. Assignment uses a bounded validated name, checks active status, leaves no-op state intact, persists old/new records and delivers through the worker. Raw columns used by weekly report retain positions. The queue contains no other planned work; final integration and source return remain outer stages.
+Changed: none.
+Checked: The pre-fix repeated-filter test failed and after the fix focused 6 and full 123 tests passed; lint and syntax passed. Traced valid, 64-character and invalid HTTP requests through validation and store; checked null and legacy file paths against tests. Durable knowledge, no-skill decision and pending delivery checks are recorded.
+Class: trivial; no additional material defect found.
+
+## Handoff
+### State and remaining work
+Candidate includes commit c9c46d42d273 and the pending carry-forward knowledge; revised result records repeated-filter behavior. The source checkout still needs guarded return after integrated release checks.
+### Current learnings
+Validate every occurrence of a filter; assignment notifications use audit-sequence keys so pending notices are not suppressed. Existing version 1 files lack the field and load as null.
+### Evidence
+Review checks.md, run/notes/repeated-filter-red.log and run/inbox/nav-e712bf8c0395484e8250c323717a2924-final-result.md.
+
+======== m02 REPORT A ========
+FINDINGS
+1. file: src/format.js | where: `details` (the `fields` list and `ticket[field] ?? '-'`) | weight: minor
+   problem: `show` now prints an assignee line (`-` when unassigned). R-3 and C4 only ask for the `list` table and `list --raw`, and no test or doc covers `show`. The change to `details` is unrequested and unverified. `show` has no test at all.
+   basis: R-3 says "CLI listing shows assignee in table and raw listing". `grep -n "details\|show" test/*.js` finds no CLI `show` test. The README does not mention the new `show` line.
+   change: Either revert the `details` change, or keep it and add a test case TC_4 (b). That test runs `main(['--data', file, 'show', id])` for an assigned and an unassigned ticket and asserts the `assignee  Joe` and `assignee  -` lines. Add a README sentence too.
+2. file: test/assignment.test.js | where: TC_4, filter section | weight: minor
+   problem: Only one combination with `assignee=` (empty value, unassigned) is exercised, and only alone. I ran `store.list({filters:{assignee:null,priority:'low'}})` and got 0 items, which is correct, but no test checks it. If the null filter were skipped when another filter is present, nothing would catch it. The parse edge cases are also unasserted: `assignee=%20` yields `" "` and matches nothing, `assignee` without `=` yields null, and a repeated `assignee` takes the first value. The `assignee=` check also has a single page (one unassigned ticket), so unassigned filtering across a page boundary with a cursor is untested.
+   basis: R-3 says `assignee=` selects null, "intersected with every other filter before pagination". My probe `parseListQuery('assignee')` printed `{"assignee":null}`. `status=open&assignee=` printed `{"status":"open","assignee":null}`.
+   change: Add TC_4 (a). It requests `/tickets?assignee=&priority=high&limit=1` with at least two unassigned high tickets, follows the cursor, and checks that an unassigned low ticket is excluded. It also adds `parseListQuery` assertions to test/query.test.js for `assignee=`, a bare `assignee`, and `assignee=%20`.
+3. file: CHANGELOG.md, package.json | where: top of CHANGELOG.md, version 1.4.0 | weight: minor
+   problem: The assignment feature is user-visible, but neither the CHANGELOG nor the version was touched by any step. The newest section is still 1.4.0 and has no mention of assignment, the `assignee` filter, or the new CLI column.
+   basis: CONTRIBUTING.md line 42: "Bump the version in `package.json` and add a section to `CHANGELOG.md` in the same pull request." The raw-column change is the kind of thing an operator reading the changelog would need to know. The step plan's declared paths do not mention either file.
+   change: If the item's paths allow it, add a section to CHANGELOG.md and bump the version. Otherwise raise it as a send-back to the step plan.
+4. file: scripts/weekly-report.js | where: header comment and `count` | weight: minor
+   problem: `list --raw` now emits a fifth column, an empty trailing field for unassigned tickets. The report's only consumer of the raw format has no test that runs it against the new format. The new README text says the script reads "the first four columns", and the script's own header comment still says "reads the columns by position: 1 id, 2 status, 3 priority, 4 title". Nothing checks that the report still counts correctly with five columns.
+   basis: The existing suite has no weekly-report test (`grep -n "weekly" test/*.js` found nothing). TC_4 only checks the raw rows directly. R-4 says to preserve the weekly report's compatibility.
+   change: Add TC_4 (c). It runs `count(rawLines)` or the script against a data file that contains assigned and unassigned tickets. It asserts the status and priority counts and the total.
+
+The core behaviour is correct. The `some` to `every` change in `matchesFilters` gives intersection, the filter is applied before pagination, and the `assignee` parameter is exact-match, with an empty value selecting null. `npm test` passed all 122 tests, and my store probe gave correct results.
+
+READ: review-focus.md, step-change.diff, src/tickets/query.js, src/format.js, bin/tickets.js, scripts/weekly-report.js, src/tickets/validate.js, src/store.js (list, create), src/persistence.js (assignee parts), docs/api.md, README.md, CHANGELOG.md, CONTRIBUTING.md (grep), docs/shiploop/spec.md, records/fields/nav-9b9495719d834551936e7c0fa77be89b-S4-proof.md, step-plan result (grep).
+RAN: cp -R CASE/tree ./tree; npm test (122 pass, 0 fail); node probes of `parseListQuery` with `assignee`, `assignee=%20`, a repeated `assignee`, `status=open&assignee=` and `assignee=joe&priority=high`; a `matchesFilters` probe; a store probe for `list` with `assignee:null` across pages, `assignee:null` plus `priority:'low'`, and a case-mismatched `assignee:'joe'`; `node bin/tickets.js --assignee x list` (rejected as an unknown option); greps for assignee, filters, weekly and show usage.
+
+======== m02 REPORT B ========
+FINDINGS
+1. file: test/assignment.test.js | where: TC_4, the CLI assertions (`assert.match(output, /Joe/)`, `assert.equal(rows[4][4] ?? '', '')`) | weight: minor
+   problem: The CLI checks are too loose to catch some breakages. The table assertions only match `ASSIGNEE`, `Joe` and `Ann` anywhere in the output. They don't check the unassigned `-`, or that each name sits in the ASSIGNEE column of its own row. `rows[4][4] ?? ''` passes whether the raw column is present and empty or missing altogether. The test's oracle says "CLI table and raw display names and unassigned values", so the unassigned table value is not asserted.
+   basis: TC_4 oracle in the test-spec result. I ran `rawLine`/`table` on an unassigned ticket. It printed `"T-0001\topen\tlow\ta\t"`, and the table showed `-` under ASSIGNEE. No test would fail if either of those changed.
+   change: In TC_4, split the table output into lines. Assert the header order includes `ASSIGNEE` between `REQUESTER` and `UPDATED`. Assert the T-0005 row has `-` in the ASSIGNEE column and the T-0001 row has `Joe` there. Replace the raw check with `assert.equal(rows[4].length, 5); assert.equal(rows[4][4], '')`. Title these as `TC_4 (a)`.
+
+2. file: src/format.js | where: `details()`: `fields` now includes `assignee`, rendered as `?? '-'` | weight: minor
+   problem: This changes the `show` output, which the step's criterion doesn't call for. C4/R-3 and request S9 cover only the listing. No test covers the change, and README does not mention it in its `show` section.
+   basis: C4 and R-3: "CLI listing shows assignee in table and raw listing". I confirmed by probe that `show` prints `assignee   -`. The only test file that mentions `details` is test/errors.test.js, which is unrelated.
+   change: Either drop the `details` change, or keep it and add an assertion in `TC_4 (a)` that `main(['--data', file, 'show', id])` prints `assignee` with `Joe` or `-`. If kept, add one README sentence saying `show` includes the assignee.
+
+3. file: docs/shiploop/spec.md (or architecture.md) | where: R-3, the S4 evidence line | weight: minor
+   problem: The step found that `matchesFilters` combined filters with OR (`some`) although docs/api.md already promised AND. It changed this to `every`, but the document result says "No change" for architecture. Spec R-3 doesn't record that this was a fix to existing behaviour. The knowledge home has no record of it.
+   basis: The S4 implement result `learned`: "The former query implementation combined filters with OR despite API documentation". Review focus: record "something the step showed that KNOWLEDGE does not record".
+   change: Append to the R-3 line, ending with the step's mark: "Existing status and priority filters previously combined with OR; they now intersect as docs/api.md always stated. (W1/S4)"
+
+READ: review-focus.md, step-change.diff, records/request.md, records/fields/…S4-proof.md, results (test-spec, S4 implement), lint gate for S4, mutation1 record, tree/docs/shiploop/spec.md, tree/docs/shiploop/architecture.md, tree/src/tickets/query.js, tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/docs/api.md, tree/README.md, tree/CHANGELOG.md, tree/CONTRIBUTING.md, tree/test/assignment.test.js
+RAN: cp -R CASE/tree ./tree; npm test (122 passed, 0 failed); the S4 Proof command (exit 0); node bin/tickets.js --help; a `node -e` probe of `rawLine`, `table`, `details` and `matchesFilters` on an unassigned ticket; greps of docs and tests
+
+======== m02 REPORT C ========
+FINDINGS
+1. file: test/assignment.test.js | where: TC_4, CLI table and raw assertions (`assert.match(output, /Joe/)`, `assert.equal(rows[4][4] ?? '', '')`) | weight: material
+   problem: TC_4's oracle requires the CLI to show unassigned values as well as names. The test never checks the table's unassigned marker `-`, the position of the ASSIGNEE column, or that the raw line has a fifth field for an unassigned ticket. The `?? ''` in the raw assertion lets a missing column pass.
+   basis: I ran four mutants of src/format.js against `node --test test/assignment.test.js`. Changing `ticket.assignee ?? '-'` to `ticket.assignee` gave pass 5 fail 0. Dropping `?? ''` in `rawLine` gave pass 5 fail 0. Dropping `'assignee'` from RAW_COLUMNS was caught (pass 4 fail 1) and renaming the header was caught (pass 4 fail 1). The recorded mutation run sampled only one mutant, in query.js.
+   change: Assert the exact table output. Split the header line on runs of whitespace and check that ASSIGNEE sits between REQUESTER and UPDATED. Check that the unassigned row shows `-` in that column. Replace `rows[4][4] ?? ''` with `assert.equal(rows[4].length, 5); assert.equal(rows[4][4], '')`. Title it TC_4 (a).
+
+2. file: src/format.js | where: `details()`, the `'assignee'` field and `?? '-'` | weight: minor
+   problem: `show` output changed, but R-3 asks only for the listing (table and raw). Nothing tests this change, and README does not document it. It is work no criterion asks for, and its behaviour is unchecked.
+   basis: R-3 says "CLI listing shows assignee in table and raw listing". Removing `'assignee'` from the `details` fields gave pass 5 fail 0 on test/assignment.test.js.
+   change: Revert the `details` change. If it is wanted, record it as a decision, document it in the README `show` section, and add TC_4 (b) asserting that `show` prints `assignee  Joe` and `assignee  -`.
+
+3. file: src/format.js | where: `rawLine`, `ticket[column] ?? ''` | weight: minor
+   problem: The `?? ''` is dead code. `Array.prototype.join` already renders null and undefined as an empty string. It also suggests that missing id, status or title values are tolerated.
+   basis: Language rule: `[null, undefined].join('\t')` gives `'\t'`. Removing the `?? ''` left every test passing, as the mutant run above shows.
+   change: Use `ticket[column]` and rely on `join`. If the guard is kept, add a comment saying why.
+
+4. file: src/tickets/query.js | where: file header comment and the `parseListQuery` docstring | weight: minor
+   problem: The header example `GET /tickets?status=open&priority=high&limit=20&cursor=...` and the docstring say nothing of the new `assignee` filter. They also say nothing about `assignee=` selecting null, which is the one non-obvious rule the code adds.
+   basis: Code craft 3 requires the docstring to state the contract of the public function. This one changed, and its comment now disagrees with the behaviour.
+   change: Add `assignee=<name>` to the header example. State in the docstring that an empty `assignee` becomes the null filter and that filters combine with AND.
+
+5. file: CHANGELOG.md | where: top of file, no new entry | weight: minor
+   problem: Three user-visible changes are not recorded: the `assignee` filter, the extra CLI/raw column, and the fix that makes filters combine with AND. The old `some` behaviour was a bug, since docs/api.md already said "matches every filter". The step documented this in api.md and the README but left the changelog out. The weekly-report contract, "first four columns by position", is also unrecorded.
+   basis: The changelog records every earlier public change per release, such as `list --raw` in 1.4.0. The done criterion is "each changed public behaviour is documented where users and maintainers look".
+   change: Add an unreleased entry covering `?assignee=`, the appended ASSIGNEE and raw fifth column, and the OR-to-AND filter fix.
+
+6. file: test/query.test.js | where: `parseListQuery` and `matchesFilters` unit tests | weight: minor
+   problem: No unit test covers the new `parseListQuery` and `matchesFilters` branches. These are `assignee=` giving null, `assignee=Joe`, `assignee=%20` or a repeated `assignee` (which take the exact or first value), and the AND semantics at unit level. They are covered only by the one HTTP test, and the S4 Proof also checks the `assignee=` case.
+   basis: `matchesFilters` is exported and changed from `some` to `every`. Existing tests in query.test.js are single-filter only, and the task says existing tests stay unchanged.
+   change: Add TC_4 (c) as a new test in test/assignment.test.js. Check `matchesFilters({status:'closed',assignee:'joe'}, {status:'open',assignee:'joe'})` is false. Check that `parseListQuery('assignee=')` gives `filters.assignee === null` and `assignee=%20` gives `' '`.
+
+READ: review-focus.md, step-change.diff, tree/src/tickets/query.js, tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/docs/api.md, tree/README.md, tree/CHANGELOG.md, tree/docs/shiploop/spec.md, tree/docs/shiploop/architecture.md, tree/test/query.test.js, tree/test/helpers.js, tree/test/assignment.test.js, records/results/nav-7d0baa8dbd0245e786b9529752f6f7ba.md, records/results/nav-4e8bd9e2bcf84bc68b2d46b305ef943d.md, records/tests/nav-83aa38e6e5c04ec5b3e03600fb4eadce-mutation1.md
+RAN: cp -R CASE/tree ./tree; `npm test` in the copy (122 pass, 0 fail); seven sed mutants of src/format.js and src/tickets/query.js, each run with `node --test test/assignment.test.js`. The first batch (all pass 5 fail 0, "table dash removed", "raw ?? removed", "raw assignee column dropped", "show assignee dropped", "empty filter not null", "header rename") never applied the mutants, because the copy was read-only, so I discarded it. The rerun on a writable copy gave:
+- table dash removed: pass 5, fail 0
+- raw `?? ''` removed: pass 5, fail 0
+- raw assignee column dropped: pass 4, fail 1
+- show assignee dropped: pass 5, fail 0
+- empty filter not null: pass 4, fail 1
+- header renamed: pass 4, fail 1
+- unrelated control mutant (`UPDATED` column title changed): pass 5, fail 0
+
+======== m02 REPORT D ========
+FINDINGS
+1. file: docs/shiploop/environment.md | where: "## ID convention" (TC_3 "filters and CLI", TC_4 "persistence and compatibility") and "## Platform facts" ("List query currently ORs filters, which must change") | weight: material
+   problem: The knowledge home contradicts the code and tests. The IDs in test/assignment.test.js, spec.md and the test-spec result are TC_1 store assignment, TC_2 persistence, TC_3 HTTP assignment and TC_4 listing/CLI. environment.md maps TC_3 to filters and CLI and TC_4 to persistence. It also still says the list query ORs filters, though `matchesFilters` now uses `.every` and S4 fixed that. The document stage reported "environment: No change", so it missed both.
+   basis: `test/assignment.test.js` titles `TC_3 HTTP assignment…` and `TC_4 listing intersects…`. `src/tickets/query.js` `matchesFilters` uses `given.every`. The test-spec result defines TC_4 as criterion C4 / R-3 (listing).
+   change: Rewrite the ID convention to TC_1 store assignment and notification, TC_2 persistence and legacy, TC_3 HTTP assignment, TC_4 filters and CLI. Change the "ORs filters" sentence to "filters intersect (every given filter must match), `src/tickets/query.js`". Mark the harness line as passed (node:test, 122 tests) instead of "Planned, not passed".
+
+2. file: README.md and docs/api.md | where: README "Command line" (the `show` example) and docs/api.md "List tickets" | weight: minor
+   problem: `details()` in src/format.js now prints an `assignee` line (`-` when unassigned), so `show` output changed. Neither README nor api.md records that, and no test covers it. I removed the `assignee` field from `details` in my copy of src/format.js, and test/assignment.test.js still passed (5 of 5). The api.md filter note, "A filter value that is not a status or a priority is `invalid`", also omits that `assignee` accepts any string and is never `invalid`, including values with surrounding whitespace, which match nothing.
+   basis: the step-change.diff hunk in `details`; the mutation run on my copy; `parseListQuery` does no validation for assignee.
+   change: Add a README sentence that `show` lists the assignee. Add one api.md sentence on assignee matching and validation. Add a test `TC_4 (a)` that asserts `show` prints `assignee  -` when unassigned and `assignee  Joe` when assigned.
+
+3. file: test/assignment.test.js | where: TC_4, the CLI table and raw assertions | weight: minor
+   problem: The table check is only `/ASSIGNEE/`, `/Joe/` and `/Ann/`, so it does not check the `-` for an unassigned ticket that README and the TC_4 oracle ("unassigned values") promise. I removed both `?? '-'` fallbacks and the ASSIGNEE column's `-` in my copy, and the test still passed. The raw check `rows[4][4] ?? ''` also passes if the trailing column is missing, so it does not confirm the documented "empty when unassigned" column.
+   basis: the TC_4 oracle in the test-spec result; README line 70; the mutation described above, which passed 5 of 5.
+   change: Assert the table's unassigned ticket row contains `-` in the ASSIGNEE position (for example a regex on the unassigned ticket's row). Make the raw check `assert.equal(rows[4].length, 5)` and `assert.equal(rows[4][4], '')`.
+
+4. file: test/assignment.test.js | where: TC_4 body, the `require` calls (`fs`, `os`, `path`, `withService`, `ticketBody`, `main`) | weight: minor
+   problem: The module requires sit inside the test function, while the file's header already holds the other imports and the house style is top-level requires. This is a style break that does not match the "match the house" rule.
+   basis: Code craft rule 1; lines 3-7 of the file against lines 134-139.
+   change: Move the requires to the top of the file.
+
+5. file: src/tickets/query.js | where: the header comment example and the `parseListQuery` docstring | weight: minor
+   problem: The example query `GET /tickets?status=open&priority=high&limit=20&cursor=…` and the docstring do not mention the new `assignee` filter. The docstring says only "a value it cannot use is an InvalidError", but `assignee=` maps to `null`, meaning unassigned, and any other string is accepted unvalidated. Code craft 3 asks that the contract state this.
+   basis: Code craft rule 3; `if (params.has('assignee')) filters.assignee = params.get('assignee') || null;`.
+   change: Add `assignee=<name>` and `assignee=` (unassigned) to the example, and one docstring line saying assignee is not validated and empty means null.
+
+6. file: docs/shiploop/architecture.md | where: AD-1 / the stage result's "architecture: No change: AD-1 already records filter and raw-position decisions" | weight: minor
+   problem: AD-1 records the raw-position decision but says nothing about the filters changing from OR to AND, a behaviour change to existing listings. AD-2 says only "query combines filters". The result's claim that AD-1 records the filter decision is not accurate. The change from OR to AND also has no decision record or changelog line (CONTRIBUTING asks for these on release, and the item's paths do not declare them).
+   basis: architecture.md AD-1 and AD-2 text against the `.some` to `.every` change in the diff.
+   change: Add one sentence to AD-1: "Listing filters intersect (AND); previously they were OR'd, matching docs/api.md." If the item's paths allow it, add a CHANGELOG line for the behaviour change.
+
+READ: review-focus.md, step-change.diff, docs/shiploop/spec.md, architecture.md, environment.md, CONTRIBUTING.md, README.md, docs/api.md, CHANGELOG.md, src/tickets/query.js, src/format.js, scripts/weekly-report.js, test/assignment.test.js, the test-spec result (records/results/nav-4e8bd9e2…), the S4 lint gate record
+RAN: npm test in a copy of the tree (122 pass, 0 fail); a probe of `details` and `table` output for a null assignee; a mutation on my copy that removed the `?? '-'` fallbacks and the `assignee` field from `details`, after which `node --test test/assignment.test.js` still passed 5 of 5
+
+======== m02 REPORT E ========
+FINDINGS
+1. file: test/assignment.test.js | where: TC_4, table assertions (`assert.match(output, /ASSIGNEE/)`, `/Joe/`, `/Ann/`) | weight: material
+   problem: No test checks how an unassigned ticket shows in the CLI table, although the unassigned ticket is in the fixture (`tickets[4]`). Changing `ticket.assignee ?? '-'` to `?? ''` or `?? 'zz'` in `src/format.js` leaves all 5 tests passing.
+   basis: The TC_4 oracle says "CLI table and raw display names and unassigned values", and README says the table shows `-` when unassigned. I ran both mutants against `node --test test/assignment.test.js`; each printed `pass 5 fail 0`.
+   change: In TC_4, split the table output into lines, find the line holding `tickets[4].id`, and assert it contains the `-` placeholder in the ASSIGNEE column. Also assert the `Joe` and `Ann` lines sit on their own tickets' rows.
+2. file: test/assignment.test.js | where: TC_4, `assert.equal(rows[4][4] ?? '', '')` | weight: material
+   problem: `?? ''` makes the assertion pass whether the raw line has an empty fifth column or no fifth column. It does not check "assignee (empty when unassigned)". It also does not show that the unassigned line keeps the same number of tab-separated fields.
+   basis: README documents the raw line as five tab-separated columns, with the assignee empty when unassigned. The assertion cannot fail if the column is missing for null tickets.
+   change: Assert `rows[4].length === 5` and `rows[4][4] === ''`. Also assert `rows[i].length === 5` for every row.
+3. file: test/assignment.test.js | where: TC_4, the HTTP filter queries (only `Joe` and `Ann` are used) | weight: material
+   problem: Nothing tests the "exact" part of the assignee filter. A case-insensitive comparison, so `assignee=joe` matches `Joe`, passes all 5 tests. No test uses a differently-cased or partial value, and no test checks that the filter rejects a name that is only a prefix.
+   basis: R-3 says "GET /tickets accepts assignee=<name> for exact matching". The Proof uses `joe`, but only as matching itself. I replaced the comparison in `src/tickets/query.js` with `String(a).toLowerCase() === String(b).toLowerCase()`; the run printed `pass 5 fail 0`.
+   change: Add TC_4 (a): `GET /tickets?assignee=joe` and `assignee=Jo` each return an empty `items` list while `assignee=Joe` returns the ticket.
+4. file: test/assignment.test.js, test/query.test.js | where: TC_4 only; `matchesFilters` and `parseListQuery` have no assignee or AND case at unit level | weight: minor
+   problem: The conjunction change and the assignee parsing (`assignee=` gives null, absent gives no key) are covered only through one end-to-end test. The existing `test/query.test.js` still checks single filters only. A multi-filter regression is reported only by the large TC_4.
+   basis: `test/query.test.js` has no case with two filters or with assignee.
+   change: Add a TC_4 sub-case in `test/assignment.test.js`, or a unit test, covering `matchesFilters` with two filters where only one matches, and `parseListQuery('assignee=')` giving `{assignee: null}`. Existing tests stay untouched; the new one goes in `assignment.test.js`.
+5. file: src/format.js, test/assignment.test.js | where: `details()` now has an `assignee` row with `?? '-'`; `rawLine` has `?? ''` | weight: minor
+   problem: The `show` output change is in no criterion's test, so dropping the assignee row from `details` leaves all 5 tests passing. `?? ''` in `rawLine` is behaviour-neutral, because `Array.join` already renders null as empty; no test can fail on it.
+   basis: Mutants `'requester', 'assignee'` → `'requester'` and `ticket[column] ?? ''` → `ticket[column]` both gave `pass 5 fail 0`. R-3 names only listing (table and raw).
+   change: Either drop the `details` change and the redundant `?? ''`, or add a TC_4 assertion for the `show` output with the assignee and `-`.
+6. file: records/tests/nav-83aa…-mutation1.md (the S4 mutation evidence) | where: `mutants`, `sample_size` | weight: minor
+   problem: The only mutant recorded for the step is one comparison flip in `query.js`, so the mutation run says nothing about `format.js` (the CLI display half of C4) or the `|| null` handling. I found survivors in `format.js` (findings 1, 2 and 5) and in the exactness of the comparison (finding 3).
+   basis: The record shows `"mutants"` with 1 entry (`query.js:46 === → !==`, killed), `product_files` including `src/format.js`, and 1 killed out of 1.
+   change: Rerun mutation with `format.js` mutants (placeholder, column drop) and a comparison-semantics mutant after adding the assertions above.
+
+READ: review-focus.md, step-change.diff, records/results/nav-4e8bd9e2… (test-spec), nav-83aa38e6… (test result), records/tests/*-mutation1.md and *-verify1.md, records/fields/*S4-proof.md, tree/src/format.js, tree/src/tickets/query.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/test/assignment.test.js, tree/test/query.test.js, tree/README.md, tree/docs/api.md
+RAN: cp -R CASE/tree ./tree; grep over tree/test for matchesFilters/rawLine/table/details; a mutant harness (scripts_rv/mut.sh) that copies the tree, applies one edit and runs `node --test test/assignment.test.js`. Mutants and results: table `??'-'`→`??''` (pass 5, survived); table `'-'`→`'zz'` (pass 5, survived); rawLine `?? ''` removed (pass 5, survived, equivalent mutant); case-insensitive compare (pass 5, survived); `every`→`some` (fail 1, killed); `|| null` removed (fail 1, killed); raw `assignee` column dropped (fail 1, killed); details assignee row dropped (pass 5, survived); priority, status and assignee parsing each ignored (fail 1 each, killed)
+
+======== m02 REPORT F ========
+FINDINGS
+1. file: test/assignment.test.js | where: TC_4, the CLI table assertions (`assert.match(output, /Joe/)`) and the unassigned filter query `/tickets?assignee=` | weight: minor
+   problem: The test never checks how the table shows an unassigned ticket (`-`), and never checks that the ASSIGNEE column sits between REQUESTER and UPDATED. The null filter (`assignee=`) is only tried on its own, never together with another filter such as `status=open&assignee=`.
+   basis: The TC_4 oracle in the test-spec result says "CLI table and raw display names and unassigned values". I read `src/format.js` and the test and ran nothing to mutate them, so by inspection changing `ticket.assignee ?? '-'` to `?? ''` in the table would still pass. The mutation record shows a single mutant, in `query.js`, and none in `format.js`.
+   change: Add TC_4 (a), a sub-case of TC_4. Assert the unassigned ticket's table row has `-` in the ASSIGNEE column (split the header and row on whitespace and compare by index). Also query `?status=open&assignee=` and expect only the unassigned open tickets.
+2. file: src/format.js | where: `details()`, the new `'assignee'` field and `?? '-'` | weight: minor
+   problem: `tickets show` output now prints an assignee line. R-3 asks only for the table and raw listing, and no test or doc covers `show`.
+   basis: The R-3 text in docs/shiploop/spec.md says "CLI listing shows assignee in table and raw listing". The step's S4 criterion and the TC_4 oracle name only list output. README.md describes only `list` for this change. Grep for `details` and `show` in test/*.js finds no test of the CLI `show` output.
+   change: Either revert the `details()` change as unrequested work, or keep it and add a TC_4 (b) that runs `main(['--data', file, 'show', id])` and checks the `assignee  Joe` line and the `-` line. If kept, add one README sentence on it.
+3. file: docs/shiploop/environment.md | where: "## Platform facts" and "## ID convention" | weight: minor
+   problem: Two lines are wrong or stale. "List query currently ORs filters, which must change" is no longer true now that `matchesFilters` uses `every`. The ID convention lists "TC_3 filters and CLI, TC_4 persistence and compatibility", but the test-spec, spec.md and the tests use TC_2 for persistence, TC_3 for the HTTP endpoint and worker delivery, and TC_4 for filters and CLI.
+   basis: In the test-spec result, TC_4 is the C4/R-3 filter and CLI case. `test/assignment.test.js` titles TC_4 "listing intersects all filters and CLI displays assignees". The document stage reported "environment: No change", which the code and tests contradict.
+   change: Edit the platform line to say filters now intersect (src/tickets/query.js, `every`). Correct the ID convention to TC_1 assignment lifecycle and notification, TC_2 persistence and legacy, TC_3 HTTP assignment, TC_4 listing filters and CLI.
+4. file: docs/shiploop/spec.md | where: R-3, and "Implementation pending." | weight: minor
+   problem: The R-3 paragraph still ends "Implementation pending." even though this step implements it and adds the TC_4 line.
+   basis: The step added "HTTP filter intersections and CLI output are exercised by TC_4. (W1/S4)" immediately below the unchanged "pending" text, so the two lines disagree. spec.md takes only new lines ending with the step's mark.
+   change: Make no edit to the existing line, because spec.md takes only new lines. Instead, make the new S4 line state plainly that R-3 is implemented and confirmed by TC_4, e.g. "R-3 is implemented; filter intersection, `assignee=` null selection and the CLI columns are confirmed by TC_4. (W1/S4)"
+
+READ: review-focus.md, step-change.diff, records/fields/…S4-proof.md, records/results (S4 test result, test-spec result, step-plan result paths), records/tests/…mutation1.md, tree/src/tickets/query.js, tree/src/format.js, tree/src/store.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/test/query.test.js, tree/test/helpers.js, tree/test/assignment.test.js, tree/docs/api.md, tree/README.md, tree/docs/shiploop/spec.md, environment.md, architecture.md, tree/CHANGELOG.md
+RAN: cp -R CASE/tree ./tree; npm test in the copy (122 tests, 122 pass, 0 fail); grep and sed reads of the tree. I did not run the Proof command or any mutation.
+
+
+################ CASE m03 ################
+
+---- The end-of-work review's fix: commit message ----
+Show assignee in ticket details
+
+Key learnings: Ticket detail views should expose the same assignment as listings.
+Regression test: TC_4 (a)
+
+---- The fix: code and test patch ----
+diff --git a/src/format.js b/src/format.js
+index f0bd9b9..b7499fe 100644
+--- a/src/format.js
++++ b/src/format.js
+@@ -46,10 +46,10 @@ function describeChanges(changes) {
+ 
+ /** One ticket in full, then its history. */
+ function details(ticket, history) {
+-  const fields = ['status', 'priority', 'requester', 'created', 'updated'];
++  const fields = ['status', 'priority', 'requester', 'assignee', 'created', 'updated'];
+   const width = Math.max(...fields.map((field) => field.length));
+   const lines = [`${ticket.id}  ${ticket.title}`];
+-  for (const field of fields) lines.push(`  ${field.padEnd(width)}  ${ticket[field]}`);
++  for (const field of fields) lines.push(`  ${field.padEnd(width)}  ${ticket[field] ?? '-'}`);
+   lines.push('', 'History');
+   for (const entry of history) {
+     lines.push(`  ${minute(entry.at)}  ${entry.actor}  ${entry.action}  ${describeChanges(entry.changes)}`);
+diff --git a/test/assignment.test.js b/test/assignment.test.js
+index f0f6140..c4f0097 100644
+--- a/test/assignment.test.js
++++ b/test/assignment.test.js
+@@ -138,3 +138,11 @@ test('TC_4 command-line lists assignees and preserves raw columns', (t) => {
+   assert.deepEqual(rows[1].slice(0, 4), [two.id, 'open', 'normal', 'Network']);
+   assert.equal(rows[1][4] || '', '');
+ });
++
++
++test('TC_4 (a) command-line show includes the current assignee', () => {
++  const { details } = require('../src/format');
++  const ticket = { id: 'T-0001', title: 'Printer', status: 'open', priority: 'normal', requester: 'R',
++    assignee: 'Alice', created: '2026-01-01T00:00:00Z', updated: '2026-01-01T00:00:00Z' };
++  assert.match(details(ticket, []), /assignee\s+Alice/);
++});
+
+---- The end-of-work reviewer's own notes ----
+---
+classification: non-trivial
+exit: unsatisfied
+continuation: allowed
+---
+Read: self-review (inline default), original request, all implementation diffs, tests, CLI detail path, persistence and outbox, and recent history.
+Found: individual CLI show omitted assignee, leaving one ticket view inconsistent with the requirement that every ticket show it.
+Changed: added assignee to detail output with a null placeholder and TC_4 (a) regression.
+Checked: focused test failed before fix, focused and full suites passed afterward (123 tests), lint clean. Assignment, invalid inputs, filter intersection and notification behavior are covered by existing cases.
+Class: non-trivial, a visible field was absent.
+
+## Handoff
+### State and remaining work
+Detail view now exposes assignee; another full review is required.
+### Current learnings
+Check individual ticket views in addition to list output.
+### Evidence
+See run/notes/show-red.log, show-green.log and show-full.log.
+
+
+---
+classification: trivial
+exit: satisfied
+continuation: allowed
+---
+Read: self-review (inline default), complete assignment diff, original request, HTTP validation, outbox delivery, persistence, filter and CLI tests, and history including 2e8247f.
+Found: assigned and null detail fields now render consistently; existing request tests cover valid, boundary and invalid bodies and combined filters. Legacy loading and distinct pending notifications are checked. No other material violation found.
+Changed: none.
+Checked: focused and full 123-test passes after last edit; lint passed and pre-fix detail test failed. All four product surfaces and current queue were reviewed.
+Class: trivial; this is a full no-change review.
+
+## Handoff
+### State and remaining work
+Candidate has assignment and CLI detail coverage; system verification and source return remain.
+### Current learnings
+Older files, pending reassignments and raw positional consumers require preservation.
+### Evidence
+See run/notes/show-full.log and test/assignment.test.js.
+
+======== m03 REPORT A ========
+FINDINGS
+1. file: src/format.js | where: TABLE_COLUMNS, ASSIGNEE column (`ticket.assignee ?? '-'`) | weight: minor
+   problem: The table shows an unassigned ticket as `-`, and a ticket assigned to an agent literally named `-` also shows `-`. The two look the same. The validator accepts `-` as a name (it only checks trimmed, non-empty, at most 64 characters, no control characters). README.md says "a dash means unassigned", and no test covers the collision.
+   basis: I ran a probe (a store that assigns T-0001 to `-`, then `node bin/tickets.js --data d.json list`). T-0001 (assigned to `-`) and T-0003 (unassigned) both printed `-` in the ASSIGNEE column. `list --raw` kept them apart (`A\t-` against `C\t`). The table is the only view of the assignee, so a reader can't tell these two apart.
+   change: Either reject a bare `-` in `validate.assignment`, or print a placeholder no valid name can equal, such as an empty cell or `(none)`. Add a TC_4 sub-case "TC_4 (a)" that assigns `-` and checks the table row differs from an unassigned row.
+
+READ: review-focus.md, step-change.diff, tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/src/tickets/validate.js, tree/docs/shiploop/spec.md, tree/test/assignment.test.js (TC_4 portion), grep of assignee across tree/src
+RAN: `npm test` in a copy of the tree: 122 pass, 0 fail.
+RAN: a probe script (in lb/p.js, outside the tree) that creates a persisted store with a `-` assignee, a non-ASCII assignee (`Zoë Ünï`) and an unassigned ticket. Then `bin/tickets.js list`, `list --raw | od -c` and `scripts/weekly-report.js --json` against the resulting file; the table output is the basis for finding 1. In the raw output the first four columns kept their positions, and the weekly report counted 3 tickets.
+RAN: the same data file with `assignee` removed from every ticket, to mimic a legacy file; the table showed `-` and the raw output ended with an empty fifth column.
+
+======== m03 REPORT B ========
+FINDINGS
+1. file: tree/test/assignment.test.js | where: `TC_4`, last assertion `assert.equal(rows[1][4] || '', '')` | weight: minor
+   problem: For the unassigned ticket the test accepts a missing fifth field as well as an empty one, so it would not notice if the raw line lost its assignee column. The table check `\s+-` also never checks the ASSIGNEE column's position.
+   basis: The TC_4 oracle says "inspect table and raw first four fields and appended assignee". `rawLine` prints `"a\ts\tp\tt\t"` for an unassigned ticket (probe run), so the field is present and empty. Without `|| ''` the assertion would hold exactly.
+   change: Assert `assert.equal(rows[1].length, 5)` and `assert.equal(rows[1][4], '')`. Assert that the table header begins `ID\s+STATUS\s+PRIORITY\s+ASSIGNEE\s+REQUESTER`.
+2. file: tree/src/format.js | where: `TABLE_COLUMNS` ASSIGNEE value `ticket.assignee ?? '-'` | weight: minor
+   problem: The dash marks "unassigned" in the table, but `assignment()` in validate.js accepts `-` as a real agent name, so the table cannot tell the two apart. No test covers this.
+   basis: `validate.js:61` accepts any trimmed non-empty text up to 64 characters. README line 70 documents "a dash means unassigned".
+   change: Either accept the ambiguity and add one sentence to the README, or add a TC_4 sub-case "TC_4 (a)" that assigns `-` and shows what the table prints.
+3. file: tree/README.md | where: lines 70-71 (Command line paragraph) | weight: minor
+   problem: The edit left two lines of 170 and 146 characters inside a paragraph that is otherwise wrapped at about 120. The rewrap reformats a line this step did not need to change.
+   basis: `awk 'length>120'` flags lines 70 and 71. The base text wrapped at roughly 120 characters.
+   change: Rewrap the paragraph at 120 characters with the same wording.
+4. file: tree/CHANGELOG.md | where: `## 1.5.0` heading | weight: minor
+   problem: The heading has no release date, while every other section has one, e.g. `## 1.4.0 (2025-09-15)`.
+   basis: The existing CHANGELOG convention, which CONTRIBUTING "Releases" asks the change to follow.
+   change: Add the release date to the heading.
+
+Checks that turned up nothing:
+- The step does its task: `RAW_COLUMNS` appends `assignee` at position 5, so the first four raw positions stay as they were. The table gains an ASSIGNEE column.
+- The proof's pattern `/Alice/` is satisfied.
+- `npm test` passed 122 of 122 in my copy.
+- The `--raw` spawn test checks the real CLI against a persisted file.
+- `docs/api.md` already covers the API.
+- The spec line follows the existing `(W1/S4)` convention.
+- Version bump, CHANGELOG and README changes are within the planned paths.
+
+READ: review-focus.md, step-change.diff, tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/CONTRIBUTING.md, tree/README.md, tree/CHANGELOG.md, tree/docs/api.md, tree/docs/shiploop/architecture.md, tree/docs/shiploop/environment.md, tree/docs/shiploop/spec.md, tree/src/tickets/validate.js, tree/test/assignment.test.js, records/results/nav-ee07225cf37f435f8df88ccf907aad2f.md, records/results/nav-66a4f8a6ea834e1698a1ef8db39f7a75.md (grep only), records/tests/nav-433c116ecb854bd38c9f0d3049f25e9f-mutation1.md
+RAN: cp -R tree into the working directory; `npm test` in the copy (122 pass, 0 fail); `node -e` probes of `rawLine` with null and undefined assignee and of `table` with a `-` assignee; `awk` for lines over 120 characters in README.md; greps over the tree and docs
+
+======== m03 REPORT C ========
+FINDINGS
+1. file: test/assignment.test.js | where: TC_4, last assertion (`assert.equal(rows[1][4] || '', '')`) | weight: minor
+   problem: The unassigned row's raw assignee is checked with `|| ''`, so a line that ends after the title (no fifth field, `undefined`) passes as well as the correct `title\t`. The README promises an empty fifth column for unassigned tickets, and this test would not catch that column going missing. It also never runs `scripts/weekly-report.js`, the consumer that depends on the positions.
+   basis: I ran `list --raw` on a store with one assigned and one unassigned ticket. The output was `T-0002\topen\tlow\tB\t\n`, which has five fields. The assertion `undefined || ''` would also equal `''`. The spec's R-4 and TC_4 oracle ask for the first four fields plus the appended assignee.
+   change: Replace the last two assertions with `assert.equal(rows[1].length, 5)` and `assert.equal(rows[1][4], '')`. Add a sub-case `TC_4 (a)` that runs `scripts/weekly-report.js --data <file> --json` on the same file and asserts `total` 2, `byStatus.open` 2, `byPriority.high` 1 and `byPriority.normal` 1.
+
+2. file: README.md | where: "Command line" paragraph, lines 70-71 | weight: minor
+   problem: The edited sentences now run to 170 and 146 characters, while the surrounding prose wraps at 120. Separately, the `scripts/weekly-report.js` header comment still lists only "1 id, 2 status, 3 priority, 4 title" without saying a fifth, assignee column exists. That is accurate but incomplete.
+   basis: `awk 'length>120'` on README.md flags lines 70 and 71. The step's own diff introduced both lines.
+   change: Re-wrap the paragraph at 120 characters. Optionally add "(5 assignee, unused)" to the report's header comment.
+
+3. file: CHANGELOG.md | where: `## 1.5.0` heading | weight: minor
+   problem: Every other release heading carries a date, for example `## 1.4.0 (2025-09-15)`. This one has none.
+   basis: CONTRIBUTING.md "Releases" asks for a CHANGELOG section with each version bump, and the existing sections follow the `(date)` form.
+   change: Add the release date to the heading when the version is cut.
+
+Everything else checked out. Beyond those three:
+- The step's proof exits 0, and the full `npm test` passes (122 tests, 0 failures).
+- I ran the CLI by hand on a store with one assigned and one unassigned ticket. The table shows the ASSIGNEE column and a dash for unassigned. In `--raw` output the first four fields are unchanged and the fifth is empty for unassigned.
+- `weekly-report --json` still counted correctly.
+- Legacy tickets with no assignee render as a dash in the table and as an empty field in raw output.
+- Only the declared paths changed.
+
+READ: review-focus.md, step-change.diff, tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/docs/shiploop/{spec,architecture,environment}.md, tree/CONTRIBUTING.md, tree/CHANGELOG.md, tree/README.md, tree/docs/api.md, tree/docs/operations.md, tree/test/assignment.test.js, records/results/{nav-ee07225c…,nav-66a4f8a6…,nav-433c116e…}.md, records/tests/*mutation1.md
+RAN: cp -R of the tree into the working directory; `npm test` (122 pass); the step's proof command (exit 0); a probe script that builds a persisted store with one assigned and one unassigned ticket; `bin/tickets.js list`, `list --raw` (checked with `od -c`) and `show`; `scripts/weekly-report.js --json`; `awk 'length>120'` and grep on README.md and docs/api.md
+
+======== m03 REPORT D ========
+FINDINGS
+1. file: test/assignment.test.js | where: `TC_4 command-line lists assignees and preserves raw columns` | weight: material
+   problem: R-4 says the first four raw columns stay in the positions `scripts/weekly-report.js` reads, but no test runs the weekly report, or any `list --raw` consumer, against a file that has an assigned ticket. TC_4 only checks the raw output itself. No other test file covers the weekly report or `format.js`.
+   basis: I ran `node scripts/weekly-report.js --data ../d.json --json` on a file holding one assigned ticket whose title contains a tab. It printed correct counts (`total:1`, open 1, high 1). That works today, but nothing in the suite asserts it, so a change to what the report reads would go unnoticed. The test-spec oracle names the "raw first four fields"; the spec clause names the weekly-report positions.
+   change: Add `TC_4 (a)`, a spawn of `node scripts/weekly-report.js --data <file> --json` against the same temp file. Assert `total` is 2 and that `byStatus.open` and the priority counts match the tickets, which covers the compatibility consumer.
+
+2. file: test/assignment.test.js | where: TC_4, final assertion `assert.equal(rows[1][4] || '', '')` | weight: minor
+   problem: This assertion also passes when an unassigned raw line has no fifth field at all, because `undefined || ''` is `''`. The test therefore does not pin the "appended assignee, empty when unassigned" contract that the README states.
+   basis: The README says "assignee (empty when unassigned)". The test-spec oracle says the "appended assignee" is inspected. I checked these mutants by hand: a literal `'null'` in the raw line, a swapped column order, an extra raw column, and a changed table placeholder were all caught. Dropping the fifth field would not be caught.
+   change: Assert `assert.equal(rows[1].length, 5)` and `assert.equal(rows[1][4], '')`, or use `assert.deepEqual(rows[1], [two.id, 'open', 'normal', 'Network', ''])`.
+
+3. file: test/assignment.test.js | where: TC_4, `run` helper using `spawnSync(process.execPath, ['bin/tickets.js', ...])` | weight: minor
+   problem: The script path is relative and no `cwd` option is set, so the test passes only when it is started from the tree root. Run from any other directory, it fails for a reason unrelated to the behaviour.
+   basis: Read from the code. `npm test` and the recorded commands run from TREE, so they pass: I ran `npm test` and got 122 pass, 0 fail.
+   change: Use `path.join(__dirname, '..', 'bin', 'tickets.js')`, as `scripts/weekly-report.js` does.
+
+4. file: records/tests/nav-433c116ecb854bd38c9f0d3049f25e9f-mutation1.md (the S4 test-stage mutation record) | where: `disposition: skipped`, `mutants: []` | weight: minor
+   problem: The recorded mutation check ran no mutants ("no changed product line matched an operator"). It gives no evidence that TC_4 can fail, so the record backs none of the criterion.
+   basis: My own mutants on `src/format.js` all made the focused suite fail (4 pass, 1 fail). The mutants were:
+   - an extra raw column
+   - table placeholder `''`
+   - table placeholder `'none'`
+   - raw `null` printed as `'null'`
+   - title and assignee swapped in the raw columns
+   - assignee column moved last in the table
+   So TC_4 does catch these breakages; the record simply does not show it.
+   change: Treat the mutation record as no evidence for C4. If a mutation record is wanted, hand-seed the mutants above.
+
+READ: review-focus.md, step-change.diff, tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/test/assignment.test.js, records/results/nav-ee07225cf37f435f8df88ccf907aad2f.md (test-spec), records/tests/*mutation1.md, records/tests/*verify1.md (first 60 lines), records/request.md (grep)
+RAN: cp -R of the tree into my working directory; `npm test` in the copy (122 pass, 0 fail); `node --test test/assignment.test.js` on the unmodified copy (5 pass, 0 fail) and on six hand-made mutants of `src/format.js`, each of which failed one test; a small node script that built a data file with an assigned ticket, then `node scripts/weekly-report.js --data ../d.json --json`
+
+======== m03 REPORT E ========
+FINDINGS
+1. file: docs/shiploop/spec.md (also docs/shiploop/architecture.md) | where: the added line under R-4, "Observed CLI table and raw output in TC_4 (W1/S4)."; AD-2's "raw fields retain existing positions" | weight: minor
+   problem: The line records no behaviour. The step decided that the raw listing appends `assignee` as a fifth column, empty when unassigned. It also decided the table shows the assignee as the fourth column, with `-` for unassigned. Neither decision is in spec.md or architecture.md. They appear only in the S4 implement result and in README.md.
+   basis: The S4 result `decisions` field reads "Append raw assignee after existing positional fields; use dash in table for null." The docs result's knowledge field says "Existing CLI format design retained", which is not accurate. The focus file asks that something the step showed, such as a decision or clarified requirement, be recorded in KNOWLEDGE.
+   change: Reword the spec.md line to say what TC_4 observed: "table has an ASSIGNEE column showing `-` when unassigned; `list --raw` appends assignee as column 5, empty when unassigned; columns 1-4 unchanged (TC_4, W1/S4)." Add the same fifth-column and dash rule to AD-2.
+
+2. file: CHANGELOG.md | where: heading `## 1.5.0` | weight: minor
+   problem: Every other release heading carries a date, for example `## 1.4.0 (2025-09-15)`. The new one has none.
+   basis: The CHANGELOG.md diff against the existing headings. CONTRIBUTING.md "Releases" says to add a section for each release, and the existing sections are all dated.
+   change: Add the release date to the heading, `## 1.5.0 (<date>)`, or state in the docs result why it is left undated.
+
+3. file: README.md | where: "Command line" paragraph beginning "`list` prints a table with an assignee column" | weight: minor
+   problem: The edit left the paragraph unevenly wrapped: the first line is about 130 characters and the others about 115. The rest of the file wraps near 120, so the diff is noisier than the change.
+   basis: The README.md diff. The surrounding paragraphs wrap at about 120 characters.
+   change: Re-wrap the paragraph at the file's existing width. No wording change.
+
+4. file: test/assignment.test.js | where: `TC_4 command-line lists assignees and preserves raw columns` | weight: minor
+   problem: The test does not follow the file's structure or the other tests' style. It requires `fs`, `os`, `path`, `child_process` and `createPersistence` inside the test body, while the file's other imports sit at the top. It spawns `'bin/tickets.js'` relative to the process cwd, so it fails when `node --test` is run from another directory. The unassigned-row check `rows[1][4] || ''` also passes if the column is missing entirely, not only when it is empty.
+   basis: The test source, and the TC_4 oracle "inspect table and raw first four fields and appended assignee", which expects a present, empty fifth column.
+   change: Move the requires to the top of the file. Resolve the CLI path with `path.join(__dirname, '..', 'bin', 'tickets.js')` and pass `cwd` to `spawnSync`. Assert `rows[1].length === 5` and `rows[1][4] === ''`.
+
+READ: review-focus.md, step-change.diff, tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/src/tickets/validate.js, tree/test/assignment.test.js, tree/README.md, tree/CHANGELOG.md, tree/CONTRIBUTING.md, tree/docs/shiploop/{spec,architecture,environment}.md, tree/docs/api.md (grep), tree/package.json (grep), records/results/nav-3a8f7ba6eb1947308867fbe82b3666f0.md, records/results/nav-66a4f8a6ea834e1698a1ef8db39f7a75.md, records/results/nav-ee07225cf37f435f8df88ccf907aad2f.md, records/lint/nav-3a8f7ba6eb1947308867fbe82b3666f0.gate1.md
+RAN: none (grep and file reads only, nothing executed)
+
+======== m03 REPORT F ========
+FINDINGS
+1. file: test/assignment.test.js | where: TC_4, last assertion `assert.equal(rows[1][4] || '', '')` | weight: minor
+   problem: The assertion also passes when the unassigned raw row has no fifth field at all, because `undefined || ''` is `''`. The README now says the column is "empty when unassigned", but the test doesn't check that the column is present.
+   basis: I ran `rawLine` on a ticket with `assignee: null` and on one with no `assignee` property. Both print `"T\topen\tnormal\tx\t"`, so the code is correct today. A change that dropped the trailing tab for unassigned tickets would still pass this test.
+   change: Replace the last assertion with `assert.equal(rows[1].length, 5); assert.equal(rows[1][4], '');`.
+2. file: test/assignment.test.js | where: TC_4, the `require` calls for fs, os, path, spawnSync and createPersistence inside the test body | weight: minor
+   problem: The other tests in this file and the repo's convention put `require` calls at the top of the file. These sit inside the function.
+   basis: The first lines of `test/assignment.test.js` show top-level requires. CONTRIBUTING.md asks for house style (Code craft rule 1).
+   change: Move the five requires to the top of the file.
+3. file: README.md | where: lines 70-71 (Command line paragraph) | weight: minor
+   problem: The edit turned a paragraph wrapped at about 120 columns into lines of 170 and 146 characters, which reformats existing text.
+   basis: `awk 'length>120'` reports README.md lines 70 and 71 at 170 and 146 characters. This step introduced them; the other long README lines (29-31, 57) are not in this diff.
+   change: Re-wrap the paragraph at about 120 columns with the same wording.
+4. file: CHANGELOG.md | where: `## 1.5.0` heading | weight: minor
+   problem: The new heading has no release date, but the existing entry reads `## 1.4.0 (2025-09-15)`.
+   basis: CHANGELOG.md. CONTRIBUTING.md says to add a section per release.
+   change: Add the release date in the same `(YYYY-MM-DD)` form, or record why it is left open.
+
+The README says the table shows a dash for unassigned tickets. An agent literally named `-` would look unassigned in the table, but the raw output is unambiguous, so I did not report it.
+
+READ: review-focus.md, step-change.diff, records/results/nav-66a4f8a6ea834e1698a1ef8db39f7a75.md (partial), records/tests/*mutation1.md (partial), tree/src/format.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/docs/shiploop/{spec,environment,architecture}.md, tree/CONTRIBUTING.md, tree/README.md, tree/CHANGELOG.md, tree/docs/api.md (grep), tree/test/assignment.test.js
+RAN: cp -R of the tree; `npm test` (122 pass); `node --test test/assignment.test.js` (5 pass); a node one-liner calling `rawLine` and `table` with null, missing and "-" assignees; grep and awk for line lengths and the assignee docs
+
+
+################ CASE m04 ################
+
+---- The end-of-work review's fix: commit message ----
+Honor every repeated ticket filter
+
+Key learnings: URLSearchParams.get silently discards repeated filter values; parse and validate every occurrence when all filters must match.
+Regression test: TC_3 (a)
+
+---- The fix: code and test patch ----
+diff --git a/src/tickets/query.js b/src/tickets/query.js
+index c53f99f..cbadb92 100644
+--- a/src/tickets/query.js
++++ b/src/tickets/query.js
+@@ -18,16 +18,19 @@ const MAX_LIMIT = 100;
+ function parseListQuery(params) {
+   const filters = {};
+   if (params.has('status')) {
+-    const status = params.get('status');
+-    if (!isStatus(status)) throw new InvalidError(`status must be one of ${STATUSES.join(', ')}`);
+-    filters.status = status;
++    const statuses = params.getAll('status');
++    if (!statuses.every(isStatus)) throw new InvalidError(`status must be one of ${STATUSES.join(', ')}`);
++    filters.status = statuses.length === 1 ? statuses[0] : statuses;
+   }
+   if (params.has('priority')) {
+-    const priority = params.get('priority');
+-    if (!isPriority(priority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
+-    filters.priority = priority;
++    const priorities = params.getAll('priority');
++    if (!priorities.every(isPriority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
++    filters.priority = priorities.length === 1 ? priorities[0] : priorities;
++  }
++  if (params.has('assignee')) {
++    const assignees = params.getAll('assignee').map((value) => value || null);
++    filters.assignee = assignees.length === 1 ? assignees[0] : assignees;
+   }
+-  if (params.has('assignee')) filters.assignee = params.get('assignee') || null;
+   return { filters, limit: parseLimit(params), after: params.has('cursor') ? decodeCursor(params.get('cursor')) : null };
+ }
+ 
+@@ -43,7 +46,8 @@ function parseLimit(params) {
+ function matchesFilters(ticket, filters) {
+   const given = Object.entries(filters).filter(([, value]) => value !== undefined);
+   if (given.length === 0) return true;
+-  return given.every(([field, value]) => ticket[field] === value);
++  return given.every(([field, value]) =>
++    Array.isArray(value) ? value.every((item) => ticket[field] === item) : ticket[field] === value);
+ }
+ 
+ module.exports = { DEFAULT_LIMIT, MAX_LIMIT, matchesFilters, parseListQuery };
+diff --git a/test/assignment.test.js b/test/assignment.test.js
+index 0775571..932ef8d 100644
+--- a/test/assignment.test.js
++++ b/test/assignment.test.js
+@@ -167,3 +167,19 @@ test('TC_3 combined assignee filters, pagination and CLI output', async (t) => {
+   assert.equal(report.byStatus.open, 3);
+   assert.equal(report.byPriority.high, 3);
+ });
++
++test('TC_3 (a) repeated filters all apply and all values are validated', async () => {
++  const { withService, ticketBody } = require('./helpers');
++  await withService({}, async (api) => {
++    await api.post('/tickets', ticketBody({ priority: 'high' }));
++    await api.put('/tickets/T-0001/assignee', { assignee: 'Ada' });
++    const ids = (response) => response.body.items.map((ticket) => ticket.id);
++    assert.deepEqual(ids(await api.get('/tickets?assignee=Ada&assignee=Ada')), ['T-0001']);
++    assert.deepEqual(ids(await api.get('/tickets?assignee=Ada&assignee=Bob')), []);
++    assert.deepEqual(ids(await api.get('/tickets?assignee=Ada&assignee=')), []);
++    assert.deepEqual(ids(await api.get('/tickets?status=open&status=in_progress')), []);
++    assert.deepEqual(ids(await api.get('/tickets?priority=high&priority=normal')), []);
++    assert.equal((await api.get('/tickets?status=open&status=invalid')).status, 400);
++    assert.equal((await api.get('/tickets?priority=high&priority=invalid')).status, 400);
++  });
++});
+
+---- The end-of-work reviewer's own notes ----
+---
+classification: non-trivial
+exit: unsatisfied
+continuation: allowed
+---
+Read: Latest seven commit messages, full product diff against the initial base, carry-forward result, handoff, query parser, API documentation and assignment tests.
+Found: Repeated filter parameters silently discarded all but the first, contrary to matching every filter supplied; later invalid status or priority values were ignored.
+Changed: Parse and validate every occurrence, require every value to match, document repeated filters, and add a regression test with matching, conflicting, empty, and invalid values.
+Checked: The regression failed before the fix and passed after; npm test passed 122 tests; ShipLoop lint reported no findings, with syntax and whitespace checks.
+Class: Non-trivial behavior fix. A subsequent full review is required.
+
+## Handoff
+The carry-forward candidate contains the completed ticket assignment feature and knowledge. This pass repaired repeated filters and added TC_3 (a). All 122 tests pass and lint has no findings. The runtime requires another full review after this material change. System test and guarded source return remain in the parent workflow. No push or deployment is authorized.
+
+
+---
+classification: trivial
+exit: satisfied
+continuation: allowed
+---
+Read: Latest seven commit messages, complete feature diff and all changed product files, knowledge files, carry-forward result and prior review.
+Found: The repeated-filter fix applies every occurrence and validates every status and priority; existing scalar filter callers remain supported. Assignment, persistence, notification, CLI and documentation align with the request. No material defect found.
+Changed: No files changed in this pass.
+Checked: node --test test/assignment.test.js passed all 5 assignment tests; prior full npm test passed 122, and ShipLoop lint reported no findings on the unchanged candidate.
+Class: Trivial; no changes or material findings.
+
+## Handoff
+Ticket assignment and knowledge are complete in the isolated worktree. Repeated filters were repaired in 8b0fed3; the assignment suite passes 5 tests and full suite passed 122. The carry-forward result records no pending sibling work and no skill needed; system testing and guarded source return remain. The latest pass found no material defect. No push or deployment is authorized.
+
+======== m04 REPORT A ========
+FINDINGS
+1. file: src/format.js | where: `details` (fields list, line 49) | weight: minor
+   problem: This step added `assignee` to the `show` output without being asked, and it prints the raw `null` for an unassigned ticket. The `list` table shows `unassigned` for the same ticket. No test covers `show`.
+   basis: I ran `details` on a new ticket and it printed `  assignee   null`. `table` printed `unassigned`. R-3 asks only for assignee in the list table and raw formats, and TC_3 never calls `show`.
+   change: Render a null assignee in `details` as `unassigned`, using the same helper the table uses, so the two agree. Add TC_3 (a), which runs `bin/tickets.js show T-0003` and asserts an `assignee` line of `unassigned`, plus the assigned name for T-0001.
+
+2. file: test/query.test.js | where: `matchesFilters` and `parseListQuery` describe blocks | weight: minor
+   problem: The existing unit tests exercise only one filter at a time, so they would not catch `every` reverting to `some`. They also have no assignee cases: a name, the empty value mapping to null, a whitespace-only value, and a repeated parameter.
+   basis: The Proof and the base-versus-step contrast rely on the intersection. Only the HTTP-level TC_3 covers it, and the mutation run tried only one operator flip, on `===`. My probe printed `{ assignee: ' ' }` for `assignee=%20`, and the first value only for a repeated parameter.
+   change: Add TC_3 (b) as unit tests next to the existing ones. `matchesFilters({status:'open',assignee:'Ada'},{status:'closed',assignee:'Ada'})` is false. `matchesFilters({assignee:null},{assignee:null})` is true. `parseListQuery('assignee=')` gives `{assignee:null}`. Pin the whitespace behaviour, or trim the value and say so in docs/api.md.
+
+3. file: CHANGELOG.md, docs/decisions/0009-ticket-assignment.md | where: the 1.5.0 entry and the Decision paragraph | weight: minor
+   problem: Changing `matchesFilters` from `some` to `every` changes how the existing `status` and `priority` filters behave together. Before, `?status=open&priority=urgent` returned tickets matching either filter. Neither the changelog nor the decision record mentions it. The changelog says only that assignee filtering was added.
+   basis: Diff of `src/tickets/query.js` line 46. docs/api.md already said "matches every filter", so this fixes code that contradicted its documentation. Consumers who relied on the old behaviour are not told.
+   change: Add a changelog line such as "Fixed: combined status and priority filters now return only tickets matching all of them." State the same in the decision record's Consequences.
+
+4. file: docs/shiploop/environment.md | where: `## ID convention` | weight: minor
+   problem: It says "TC_2 persistence and delivery, TC_3 filters and CLI, TC_4 regression". The real cases are TC_1 (store, persistence, notifications), TC_2 (HTTP assignment) and TC_3 (filters and CLI), and there is no TC_4. This step showed the mapping, and KNOWLEDGE was not corrected.
+   basis: `test/assignment.test.js` titles for TC_1, TC_2 and TC_3, and the test-spec result.
+   change: Edit that line to match the actual TC names, and drop TC_4 or mark it as the full `npm test`.
+
+5. file: README.md, scripts/weekly-report.js | where: README.md line 71 (the raw columns sentence) and the header comment, line 8 of the script | weight: minor
+   problem: README line 71 runs to 146 columns, and the README wraps at 120. The README does not say that `list` now has an ASSIGNEE column showing `unassigned`. The script's comment still lists only columns 1–4 as the ones it reads, which is accurate but now incomplete next to the README.
+   basis: awk reported README.md line 71 at length 146. The README `list` paragraph names no table columns.
+   change: Rewrap the sentence. Add "the table also shows ASSIGNEE, `unassigned` when empty". Optionally add "5 assignee (unused)" to the script comment.
+
+READ: review-focus.md, step-change.diff, records/results (step-plan and test-spec), records/tests/*mutation1.md, tree/src/format.js, tree/src/tickets/query.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/docs/api.md, tree/README.md, tree/CONTRIBUTING.md, tree/docs/shiploop/{spec,architecture,environment}.md, tree/test/assignment.test.js, tree/test/query.test.js
+RAN: copied the tree to ./tree; `npm test` (121 pass, 0 fail); `node bin/tickets.js --help`; a one-line node probe of `details`, `table`, `rawLine` and `parseListQuery` on a new ticket (printed `assignee null` in `show`, `unassigned` in the table, a raw line ending in a tab, and the whitespace and repeated-parameter results above); awk for lines over 120 columns in README.md and the decision record; grep for filter and assignee mentions across docs and tests. I did not run the step's Proof command.
+
+======== m04 REPORT B ========
+FINDINGS
+1. file: test/assignment.test.js | where: TC_3 (CLI part); src/format.js:49 `details` | weight: material
+   problem: This step added `assignee` to the `show` output (`details()`), but no test runs `show` or calls `details`. It also prints the literal text `null` for an unassigned ticket, while the `list` table prints `unassigned`.
+   basis: I removed `'assignee'` from the `fields` array in `details` and ran `node --test test/assignment.test.js test/query.test.js`. It printed `pass 13 fail 0`, so the removal went unnoticed. A probe `details({...assignee:null},[])` printed the line `  assignee   null`. R-3 and TC_3 name the table and raw list output only. `show` is an unrequested change that nothing exercises.
+   change: Add `TC_3 (a)` that runs `bin/tickets.js show T-0001` and `show T-0003` against the file-backed fixture. It should assert the exact `assignee  Ada` line and the chosen unassigned text. Make `details` use the same `?? 'unassigned'` rule as the table, or revert the `details` change if `show` is out of scope.
+2. file: test/assignment.test.js | where: TC_3, the CLI table and raw assertions and the filter assertions | weight: minor
+   problem: Several boundaries are only partly pinned. The table is checked with the bare regexes `/Ada/`, `/Bob/` and `/unassigned/`, which do not tie a name to its ticket row or to the ASSIGNEE column. The raw output is checked for rows 0 and 2 only, so the Bob row and the in-progress Ada row (`T-0002`, `T-0004`) are not asserted. No test covers `assignee=ada` (case), `assignee=%20` (whitespace), or `assignee=Ada&status=in_progress`. `test/query.test.js` has no unit case for `parseListQuery('assignee=')` returning `null`, or for `matchesFilters` with `{assignee:null}` or two filters. Intersection is covered only through the slow HTTP test.
+   basis: Every mutant I tried on the table, raw column order, `|| null` and `every` was caught by TC_3. Wrong-row or wrong-column mappings, and exact-match behaviour for assignee, are checked nowhere. The step's own mutation run applied one mutant, `===` to `!==`, out of the 8 it sampled. The `some`/`every` change was not in it.
+   change: Assert the full `rows` array from `list --raw`, `[T-0001..T-0004]` with their assignee fields. Match each table row with a pattern such as `/T-0002\s+open\s+normal\s+\S+\s+Bob/`. Add `TC_3 (b)` for case and whitespace exactness and for `assignee=Ada&status=in_progress`. Add unit cases in `test/query.test.js` for `assignee=` giving `null`, and for `matchesFilters` requiring all given filters, including a mismatched status with a matching assignee.
+READ: review-focus.md, step-change.diff, records/results (test-spec and test S3), records/tests (mutation1, verify1), tree/src/format.js, tree/src/tickets/query.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/src/store.js (assignee lines), tree/test/assignment.test.js, tree/test/query.test.js, tree/test/helpers.js, tree/docs/shiploop/spec.md
+RAN: cp -R of the tree; `npm test` (121 pass, 0 fail); nine manual mutants against `node --test test/assignment.test.js test/query.test.js` (eight caught, `details` dropping assignee not caught); a one-line probe of `details`/`table` output for an unassigned ticket
+
+======== m04 REPORT C ========
+FINDINGS
+1. file: src/format.js | where: `details()` field list (line 49) | weight: minor
+   problem: This step added `assignee` to `show` output, which R-3 and the step task don't ask for. An unassigned ticket prints `assignee   null`, while the `list` table prints `unassigned`. No test checks `show`.
+   basis: `node -e` calling `details()` with `assignee:null` printed `  assignee   null`. R-3 and C3 cover only the two list formats, and no test in test/ calls `details` or `show`.
+   change: Either remove `assignee` from `details`, or keep it and print `ticket.assignee ?? 'unassigned'`. If kept, add a TC_3 (a) sub-case that runs `bin/tickets.js show T-0003` and asserts `assignee   unassigned`, and `show T-0001` and asserts `assignee   Ada`.
+
+2. file: test/query.test.js | where: `describe('matchesFilters')` and `parseListQuery` cases | weight: minor
+   problem: The unit tests for the changed functions were not extended. Intersection, the `assignee=` → `null` mapping, and the match of an unassigned ticket (`null === null`) are covered only through the integration test TC_3. The behaviour of a filter value with whitespace (`assignee=%20Ada`) is untested and undocumented: stored names are trimmed on PUT but the filter is not trimmed, so such a filter matches nothing.
+   basis: `grep` of test/*.js found no assignee or multi-filter case in query.test.js. The only recorded mutant (`===` → `!==`) was killed by the TC_3 integration run, not by a unit test.
+   change: Add `TC_3 (a)` to test/assignment.test.js, or cases in test/query.test.js. They should assert `matchesFilters({assignee:null,status:'open'},{assignee:null,status:'open'})` is true, and that `{assignee:'Ada',status:'closed'}` against `{assignee:'Ada',status:'open'}` is false. They should also assert `parseListQuery(new URLSearchParams('assignee=')).filters.assignee === null`. Then either trim the filter value or state in docs/api.md that it is matched exactly.
+
+3. file: README.md | where: "Command line" section, `list` paragraph (line 71) | weight: minor
+   problem: The README documents the raw output (empty assignee when unassigned). It does not document that the `list` table shows an ASSIGNEE column with the literal `unassigned`. The edited line is 146 characters long, but the file wraps at about 120.
+   basis: README.md diff touches only the raw-column sentence. `src/format.js` TABLE_COLUMNS prints `unassigned`.
+   change: Add one sentence that the table has an ASSIGNEE column showing `unassigned` for unassigned tickets, and rewrap the paragraph.
+
+READ: review-focus.md, step-change.diff, records/results (step-plan and test-spec), tree/docs/shiploop/spec.md, tree/docs/shiploop/architecture.md, tree/src/format.js, tree/src/tickets/query.js, tree/src/tickets/validate.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/docs/api.md, tree/README.md, tree/test/assignment.test.js, the records/tests verify and mutation runs, and part of tree/test/query.test.js (via grep).
+RAN: `cp -R` of the tree into my working directory; `npm test` (121 pass, 0 fail); the step's Proof one-liner (exit 0, printed `proofok`); a `node -e` call of `details()` with a null assignee (printed `assignee   null`); `grep` and `awk` checks of test and doc references and line lengths.
+
+======== m04 REPORT D ========
+FINDINGS
+1. file: src/format.js | where: `details` (fields list, line ~49) and `TABLE_COLUMNS` ASSIGNEE (line 27) | weight: material
+   problem: `show` prints `assignee   null` for an unassigned ticket, while `list` prints `unassigned` for the same ticket, so the CLI displays an unassigned ticket two ways. The `details` change has no test: no test in test/ calls `show` or `details` (`grep -n show test/*.js` finds only unrelated hits). The step's tests would not notice if the line were removed or printed `undefined`.
+   basis: I built a data file with T-0001 unassigned and ran `node bin/tickets.js --data d.json show T-0001`, which printed `  assignee   null`. `list` on the same file printed `unassigned`. TC_3 only runs `list`, `list --raw` and the weekly report.
+   change: Make `details` use the same unassigned wording as the table, with one shared helper. Add a test, `TC_3 (a)`, that runs `show` on an assigned ticket and an unassigned one and asserts the assignee line for each.
+
+2. file: src/format.js | where: `TABLE_COLUMNS` ASSIGNEE value `ticket.assignee ?? 'unassigned'` | weight: minor
+   problem: A valid agent can be named `unassigned`, which the 1–64 character rule allows. The table cell for that agent then looks the same as the cell for an unassigned ticket. Raw output does not have this problem, because it leaves the field empty.
+   basis: I assigned T-0002 to the agent `unassigned`. Both rows would render `unassigned`; only the header and the raw output tell them apart. No test covers this.
+   change: Use a placeholder that is not a valid agent name, such as `-` or `(none)`, and pin the choice in a test. Alternatively, record in the docs that the table text is ambiguous.
+
+3. file: test/assignment.test.js | where: `TC_3` table assertions (`assert.match(table, /Ada/)` etc.) | weight: minor
+   problem: The table checks are loose regexes against the whole output. They do not check that each assignee sits in the ASSIGNEE column of its own ticket's row. A mix-up of assignees between rows, or a swap with REQUESTER, would still pass. The raw check also leaves out T-0002 (Bob) and T-0004 (in progress, Ada). The table has no check that an unassigned ticket shows `unassigned`.
+   basis: The assertions are `assert.match(table, /ASSIGNEE/)`, `/Ada/`, `/Bob/` and `/unassigned/`. R-3 says "CLI table/raw/report cases" should confirm the display per ticket.
+   change: Parse the table rows by header position and assert the exact assignee cell per ticket id. Assert the full `rows` array for the raw output.
+
+4. file: scripts/weekly-report.js | where: header comment, "reads the columns by position: 1 id, 2 status, 3 priority, 4 title" | weight: minor
+   problem: The comment lists four raw columns, but the raw output now has a fifth, assignee. The comment is out of date. Nothing in the step's tests or docs picks this up.
+   basis: `RAW_COLUMNS` in src/format.js now has five entries. README line 71 documents the fifth column.
+   change: Add `5 assignee (empty when unassigned)` to the comment, or say the script ignores columns after the third.
+
+I ran the filter parsing and the HTTP filter cases, and they behave as the spec says. `assignee=` gives null, `assignee=%20` matches nothing, the first value wins when the parameter repeats, and `every` intersects the filters. `npm test` passes (121 tests). The CLI has no `--assignee` option and `list --assignee Ada` exits 2. The request does not ask for one, so I did not report it.
+
+READ: review-focus.md, step-change.diff, records/request.md, tree/docs/shiploop/spec.md, src/format.js, src/tickets/query.js, bin/tickets.js, scripts/weekly-report.js, src/store.js (list, assign), src/persistence.js (grep), src/app.js (grep), test/assignment.test.js (diff), test/query.test.js, test/helpers.js, docs/api.md and README.md (grep)
+RAN: cp -R of the tree; npm test (121 passed); a node probe of `parseListQuery` and `matchesFilters` with empty, whitespace, repeated and bare `assignee` values; a script that built a data file through `withService` and PUT assignee calls; `bin/tickets.js list`, `show T-0001`, `show T-0002` and `list --raw` on that file; `scripts/weekly-report.js`; `bin/tickets.js list --assignee Ada` (exit 2); greps for assignee and show in the docs and tests. One `cat -A` call failed on macOS, and the node stack trace above it came from that same command's closed pipe.
+
+======== m04 REPORT E ========
+FINDINGS
+1. file: docs/shiploop/environment.md | where: "Platform facts" (the `src/tickets/query.js currently uses OR` sentence) and "Suite commands" (the "planned" focused, smoke and full commands) | weight: material
+   problem: Two knowledge lines are now false. `matchesFilters` now uses `every`, but environment.md still says query.js "currently uses OR … requires correction". The suite commands are still labelled "planned after implementation" although `test/assignment.test.js` and TC_1–TC_3 exist and run. The document stage reported "environment: No change".
+   basis: `src/tickets/query.js:46` reads `given.every(...)`. The step result nav-f52b… "learned" records the OR→AND correction as something the step showed. `npm test` passed 121 tests (117 baseline plus 4), which confirms the suite commands now exist and work.
+   change: Rewrite the Platform facts sentence to say that query.js intersects filters (fixed in W1/S3) and that docs/api.md already specified AND. Change "planned" to the observed state for `node --test test/assignment.test.js` and `npm test`.
+
+2. file: src/format.js | where: `TABLE_COLUMNS` ASSIGNEE value, and `details()` field list | weight: material
+   problem: The ticket's unassigned state prints three different ways. The table shows `unassigned`, raw shows an empty field, and `tickets show` prints the string `null`. In the table an agent literally named "unassigned" is indistinguishable from no agent. The `details()` change (the `show` output) has no test, and neither README nor spec R-3 mentions it.
+   basis: I ran `bin/tickets.js show` on a ticket with no assignee, which printed `assignee   null`. `list` on the same file printed `unassigned`. A ticket assigned to "unassigned" also printed `unassigned` in the table. TC_3 never calls `show`. The reviewed stage's summary and the spec's R-3 line say only "table and raw output".
+   change: Pick one rendering for null. I would use a shared helper or constant, and a placeholder like `-` or `(none)` that is not a valid agent name. Use it in both the table and `details()`. Add a TC_3 (a) sub-case: `show` of an assigned and an unassigned ticket asserts the assignee line. Record the chosen display in spec R-3, with the step's mark (W1/S3), and in README "Command line".
+
+3. file: test/assignment.test.js | where: TC_3 CLI assertions (the `table` regexes, and `rows` checked only at indexes 0 and 2) | weight: minor
+   problem: The table checks are `assert.match(table, /Ada/)`, `/Bob/` and `/unassigned/` on the whole output. They would pass if the assignee appeared in the wrong column, or if every row showed the wrong value. The raw row for Bob (`rows[1]`) and the in-progress T-0004 are not asserted. The listed `require`s sit inside the test body, and there is a double blank line before the test.
+   basis: Oracle TC_3: "Exact ids, cursors, CLI names, unassigned display". The assertions are not row-exact for the table.
+   change: Split the table output into lines and cells. Assert the ASSIGNEE cell per row, for example `['T-0001', …, 'Ada', …]`, and assert `rows[1]` as `['T-0002','open','normal','Second','Bob']`. Move the requires to the top of the file next to the existing ones, and remove the extra blank line.
+
+4. file: src/tickets/query.js and test/query.test.js | where: the header comment, `parseListQuery` line 30, and `describe('matchesFilters')` | weight: minor
+   problem: The header example `GET /tickets?status=open&priority=high&limit=…` omits `assignee`. The mapping of an empty value to `null`, which means "unassigned", is the only non-obvious line and has no comment. CONTRIBUTING.md says each module has its own `test/<module>.test.js`. query.test.js has no case for `assignee=` parsing and none for two filters together. The AND behaviour is covered only through the HTTP-level TC_3.
+   basis: CONTRIBUTING "Tests". Code craft rule 3: comment the why. The `||` also turns a value that is an empty string after URL decoding into null.
+   change: Add `assignee=Ada` to the header example and a short comment on the empty→null mapping. Add to query.test.js: `query('assignee=')` gives `{assignee: null}`, `query('assignee=Ada')` gives `{assignee: 'Ada'}`, and `matchesFilters({status:'open',priority:'high',assignee:null},{status:'open',assignee:null,priority:'low'})` is false.
+
+5. file: README.md | where: "Command line" paragraph after `list --raw` | weight: minor
+   problem: The edited sentence is now a very long line that breaks the file's roughly 120-column wrapping. The paragraph says `list` "prints a table" but does not say the table gains an ASSIGNEE column. The README's intro and "How it fits together" still speak only of "notifications to requesters", although assigned agents are now notified.
+   basis: The README diff hunk at line 68, compared with the surrounding wrapped paragraphs.
+   change: Rewrap the paragraph. Add "the table has an ASSIGNEE column". Change the intro bullet to "notifications to requesters and assigned agents".
+
+READ: review-focus.md, step-change.diff, request.md, records results (test-spec, step-plan, S3 implement), tests/mutation1.md, lint gate S3, tree docs/shiploop/{spec,architecture,environment}.md, CONTRIBUTING.md, README.md, docs/api.md, docs/decisions/{0008,0009,README,template}.md, CHANGELOG.md, src/format.js, src/tickets/query.js, bin/tickets.js, scripts/weekly-report.js, test/query.test.js, test/assignment.test.js (head and TC_3), grep of "assignee" across src and docs
+RAN: cp -R of the case tree into the working directory; `npm test` in the copy (121 pass, 0 fail); a one-off probe script (a service with a file, two tickets, one assigned to "unassigned"; then `bin/tickets.js list`, `show T-0001`, `show T-0002` and `list --assignee Ada`), whose copy and data file I deleted afterwards. The two earlier probe attempts failed on sed and path errors before running anything.
+
+======== m04 REPORT F ========
+FINDINGS
+1. file: src/format.js | where: `details` (line ~49, `fields` list) | weight: minor
+   problem: `show` now prints an `assignee` line, but nothing tests it. For an unassigned ticket it prints the literal text `null`, while `list` shows `unassigned`.
+   basis: `details` interpolates `${ticket[field]}`, and the table column uses `ticket.assignee ?? 'unassigned'`. TC_3 only runs `list`, `list --raw` and the weekly report, so a break in `show` would go unnoticed.
+   change: Render the `show` assignee the same way as the table (`unassigned` when null). Add a sub-case `TC_3 (a)` to test/assignment.test.js that runs `bin/tickets.js show T-0001` and `show T-0003` and asserts `assignee  Ada` and `assignee  unassigned`.
+2. file: src/tickets/query.js | where: `parseListQuery`, the `assignee` line (~30) | weight: minor
+   problem: The assignee filter value is not checked against the name rules from R-1 (trimmed, single line, at most 64 characters). A value such as `%20` becomes the filter `' '` and silently matches nothing. No test covers this edge.
+   basis: I ran `parseListQuery(new URLSearchParams("assignee=%20")).filters`, which printed `{ assignee: ' ' }`. Code craft 2 asks for validation at the door.
+   change: Either record in docs/api.md that the filter is an exact match with no validation, or reject over-long and whitespace-only values with `InvalidError`. Add `TC_3 (b)` in test/assignment.test.js, or test/query.test.js, for the chosen behaviour.
+3. file: test/assignment.test.js | where: TC_3, lines ~128–130 | weight: minor
+   problem: TC_3 re-requires `./helpers` inside the test body, although TC_2 (line 84) already does the same. There is a doubled blank line before the test. Several lines run past 120 characters (156, 165).
+   basis: Code craft 1 (match the house); no lint is configured, so this is style only.
+   change: Hoist the `./helpers` and `execFileSync` imports to the top of the file, remove the extra blank line, and wrap the long lines.
+4. file: README.md | where: line 71 (the `list --raw` paragraph) | weight: minor
+   problem: The edit left a 146-character line in a document wrapped at about 120, so the paragraph no longer reflows.
+   basis: `awk 'length>120'` flagged README.md:71. That flag is the only evidence, and the file already has other long lines (29–31, 57).
+   change: Re-wrap the paragraph and keep the "must keep their positions" sentence intact.
+
+READ: review-focus.md, step-change.diff, tree/src/format.js, tree/src/tickets/query.js, tree/bin/tickets.js, tree/scripts/weekly-report.js, tree/docs/shiploop/{spec,architecture,environment}.md, tree/docs/api.md, tree/README.md, tree/CONTRIBUTING.md, tree/docs/decisions/template.md, tree/test/assignment.test.js, tree/test/query.test.js, records/results (step-plan and test-spec results), records/tests/*verify1.md and *mutation1.md
+RAN: cp -R CASE/tree ./tree; npm test (121 pass, 0 fail); node -e probe of parseListQuery and matchesFilters (`assignee=%20` gives `{ assignee: ' ' }`; `matchesFilters` with `undefined` vs `null` gives false); awk line-length check on README.md and test/assignment.test.js
+
+
+################ CASE m05 ################
+
+---- The end-of-work review's fix: commit message ----
+test: verify imported ticket notifications are delivered
+
+Key learnings: Exercise the existing worker with imported events to observe the requester notification boundary.
+
+---- The fix: code and test patch ----
+diff --git a/test/import.test.js b/test/import.test.js
+index 8529af2..f854356 100644
+--- a/test/import.test.js
++++ b/test/import.test.js
+@@ -113,3 +113,22 @@ test('TC-4 imports 5000 escaped maximum tickets within 10 seconds and persists e
+     fs.rmSync(dir, { recursive: true, force: true });
+   }
+ });
++
++test('imported tickets are delivered by the existing notification worker', async () => {
++  await withService({ workerIntervalMs: 10 }, async (api, service) => {
++    const response = await api.post('/tickets/import', { tickets: [
++      ticketBody({ requester: 'alice' }), ticketBody({ requester: 'bob' }),
++    ] });
++    assert.equal(response.status, 201);
++    const deadline = Date.now() + 3000;
++    while (service.notifier.delivered.length < 2 && Date.now() < deadline) {
++      await new Promise((resolve) => setTimeout(resolve, 10));
++    }
++    assert.deepEqual(service.notifier.delivered.map(({ ticket, type, to }) => [ticket, type, to]), [
++      ['T-0001', 'ticket.created', 'alice'], ['T-0002', 'ticket.created', 'bob'],
++    ]);
++    const outbox = await api.get('/admin/outbox');
++    assert.equal(outbox.body.pending.length, 0);
++    assert.equal(outbox.body.sent.length, 2);
++  });
++});
+
+---- The end-of-work reviewer's own notes ----
+---
+classification: non-trivial
+exit: unsatisfied
+continuation: allowed
+---
+Read: self-review (inline default), whole W1 diff, original request, spec, src/app.js, src/store.js, worker and notifier, test/import.test.js and test/service.test.js; recent history and S1/S2 test evidence.
+Found: Existing import tests establish queued notifications, and existing service tests establish worker delivery for single tickets, but no test drives an imported ticket all the way through the worker. The user explicitly requires requesters to be notified, so an integrated observation is warranted. No unsupported mutant dispositions were recorded (S2 killed 8/8).
+Changed: Added a real worker integration case importing two tickets and checking the two delivered notification recipients, ticket IDs and sent outbox state. No product behavior changed.
+Checked: Focused tests, rg check, npm test and lint exited 0 after the edit. The added case fails against the clean S1 baseline with 404 (run/scratch/worker-base.txt). The fixed clock and worker timer follow existing test helpers and the case waits at most three seconds.
+Class: non-trivial because the user-visible notification completion boundary gained coverage; another pass is required.
+## Handoff
+### State and remaining work
+W1 code and tests remain in the isolated worktree; the new test verifies actual worker delivery for two imported tickets. Commit via improve-pass and review again. System and release checks remain.
+### Current learnings
+Queued events use the same worker path as single creates; the integration test observes delivery and sent state, not merely enqueueing.
+### Evidence
+src/worker.js, src/notifier.js, test/import.test.js, checks.md and run/scratch/worker-base.txt.
+
+
+---
+classification: trivial
+exit: satisfied
+continuation: allowed
+---
+Read: self-review (inline default), original request, completed W1 changes, tests, docs, current knowledge and last seven Git messages; prior test and review records.
+Found: R-1–R-3 map to the import endpoint, store and focused tests: input validation occurs before actor/store mutation; ordered IDs and audit/outbox are checked; the new worker test observes deliveries; persistent 5000 test measures response and restart. Existing suite remains unchanged and passes alongside new tests. No pending corrective item or unsupported mutation disposition was found. Source return and independent assembled checks are still owned by release stages. No reusable repository skill is needed.
+Changed: none this pass.
+Checked: Reconciled request with actual code and tests, reviewed prior base failures and current focused/full-suite results (123 tests), and inspected worker integration for event ordering and bounded wait. The pre-implementation baseline remains separate. No material issue remains in W1 scope.
+Class: trivial; no new change or finding.
+## Handoff
+### State and remaining work
+W1 candidate includes worker integration test commit 8645a4101297 and both implementation steps. Import carry-forward and proceed to system verification and guarded return.
+### Current learnings
+HTTP input is fully validated before batch creation; audit and outbox effects use the shared create path. The worker integration proves notifications reach the configured notifier locally.
+### Evidence
+README, docs/api.md, src/app.js, src/store.js, test/import*.test.js, checks.md, run/scratch/worker-base.txt and prior S2 test records.
+
+======== m05 REPORT A ========
+FINDINGS
+1. file: CHANGELOG.md (and package.json) | where: not changed by the step | weight: minor
+   problem: The step adds a new public endpoint and a new request-body limit but adds no changelog section and no version bump.
+   basis: CONTRIBUTING.md line 42 says "Bump the version in `package.json` and add a section to `CHANGELOG.md` in the same pull request." `head CHANGELOG.md` shows 1.4.0 as the latest entry and nothing about import. step-change.diff touches neither file.
+   change: Add a 1.5.0 changelog entry for `POST /tickets/import` and its 10 MiB body limit, and bump the version in package.json, if these files are in the item's paths. If not, record the omission as a send-back.
+
+2. file: src/app.js | where: the `/tickets/import` handler, `Math.max(maxBodyBytes, IMPORT_BODY_BYTES)` | weight: minor
+   problem: The `Math.max` branch can never choose `maxBodyBytes`, yet docs/api.md and README say the limit is "the larger of 10 MiB and MAX_BODY_BYTES". Config caps `MAX_BODY_BYTES` at 1 MiB, so the limit is always 10 MiB. No test covers the case where `maxBodyBytes` is larger than 10 MiB, which only a direct `createApp` caller could reach.
+   basis: src/config.js:44 `wholeNumber(..., { min: 1024, max: 1024 * 1024 })`. The step's own tests only exercise the 10 MiB boundary.
+   change: Either use `IMPORT_BODY_BYTES` alone and say "10 MiB" in the docs, or add a `createApp({maxBodyBytes: 11 * 1024 * 1024})` test that accepts a body over 10 MiB so the `Math.max` is exercised.
+
+3. file: src/store.js and test/import.test.js | where: `createMany`, which calls `this.save()` after mutating memory; no test covers a failed save | weight: minor
+   problem: If the data-file save throws, the import answers 500 but all of its tickets, audit entries, outbox events and consumed IDs stay in memory, and the next successful save persists them. A client that gets a 500 and retries creates duplicates.
+   basis: Probe with `persistence.save` throwing "disk full": an import of 2 tickets returned `500 {"error":{"code":"internal",...}}`, the snapshot held 2 tickets, and the next `POST /tickets` got `T-0003`. Single `create` behaves the same way, so this precedes the step. The request says "all of them, or none" for imports, and no test checks that a failed import leaves nothing behind.
+   change: Decide whether failure atomicity is in scope. If it is, snapshot `nextNumber` and the collection sizes before the batch and roll back on a save error. If not, record the limitation in the spec or docs and add a test that pins the chosen behaviour.
+
+4. file: test/import.test.js | where: TC-3 | weight: minor
+   problem: The invalid-item cases cover a null item, an array item, an empty title and an unknown field. They do not cover an invalid priority, a control character, an over-length title, or a non-object string or number item at a given index. TC-3 also never checks that an invalid import against a persistent store leaves the data file untouched. A regression that sent an item down a different validator would not be caught.
+   basis: My probe returned correct 400s with `tickets[0]: priority must be one of ...`, `tickets[0]: title must be a single line of text` and `tickets[1]: title must be at most 200 characters`, but none of these are asserted in the recorded tests.
+   change: Add `{tickets:[ticketBody(), ticketBody({priority:'zzz'})]}`, a tab in the title, a 201-character title and a string item to TC-3's `invalid` table. Add one `dataFile` case that asserts the file is not created after an invalid import.
+
+READ: review-focus.md, step-change.diff, request.md, tree/docs/shiploop/spec.md, src/app.js, src/http.js, src/store.js, src/errors.js, src/tickets/validate.js, src/tickets/ids.js, src/router.js, src/persistence.js, src/server.js, src/outbox.js, src/audit.js, src/config.js (grep), test/helpers.js, test/import.test.js, CHANGELOG.md, CONTRIBUTING.md, package.json, records/tests/…-mutation1.md (head)
+RAN: cp -R CASE/tree ./tree; npm test (121 pass, 0 fail); ../scratch/probe.js (three consecutive 5000-ticket imports against a data file took 124/301/297 ms, with IDs reaching T-15000; edge inputs: null/string/number/array items, bad priority, control character, over-length title, unknown top-level and `__proto__` fields, trailing garbage, top-level array, trailing-slash route, GET on the import path, blank actor); ../scratch/p2.js (save-failure probe)
+
+======== m05 REPORT B ========
+FINDINGS
+1. file: test/import.test.js | where: TC-3 (the invalid-body loop, the `{}`, `{ tickets: null }`, `{ tickets: 'no' }`, `Array(5001)` and `'{'` bodies) | weight: material
+   problem: No test sends an unknown top-level field such as `{"tickets":[],"extra":1}`, which the code rejects with 400 "unknown field: extra". I deleted `validate.onlyFields(input, ['tickets'])` from the route and all 4 focused tests still passed. This behaviour is also not written down in `docs/api.md` or the spec. The spec line "Whitespace and unknown fields remain bounded by the import body limit" could be read as allowing them.
+   basis: Mutant run `node --test test/import-store.test.js test/import.test.js` printed `pass 4 fail 0` with `onlyFields` removed. A probe of `{"tickets":[],"extra":1}` returned `400 unknown field: extra`.
+   change: Add TC-3 (a): POST `{ tickets: [], extra: 1 }` and assert 400 with code `invalid`, a message matching `/unknown field/`, and unchanged state. If unknown fields are meant to be tolerated, fix the code and spec instead and test that.
+
+2. file: test/import.test.js | where: TC-3, the non-array, over-limit, malformed and bad-actor loop | weight: minor
+   problem: These cases assert only `status === 400`, not the error code or which rule fired. `{}`, `{tickets:null}`, `'no'` and 5001 items could all fail for the wrong reason and the test would still pass. Primitive items (`'x'`, `5`) and the "ticket must be an object" message are never asserted either. Removing `|| Array.isArray(item)` or narrowing the `typeof` check passed unnoticed, though the status is still 400 through other paths.
+   basis: Mutants for `arrayItem` and `typeofItem` printed `pass 4 fail 0`. The case oracle says "400 errors identify first invalid index" and the spec says non-array and oversized arrays return 400.
+   change: Assert `error.code === 'invalid'` and a message regex per body (`/tickets must be an array/`, `/at most 5000/`, `/valid JSON/`, `/X-Actor/`). Add `'x'` and `5` as items at a known index and assert `tickets\[i\]: ticket must be an object`.
+
+3. file: test/import.test.js | where: TC-3 body-limit checks (`atLimit`) | weight: minor
+   problem: The documented rule is "10 MiB or MAX_BODY_BYTES, whichever is larger". Only the 10 MiB side is tested, with the default 64 KiB setting. Replacing `Math.max(maxBodyBytes, IMPORT_BODY_BYTES)` with `IMPORT_BODY_BYTES` passes. A configured limit above 10 MiB, which the README and `docs/api.md` promise to honour, would silently be cut to 10 MiB with no test failing.
+   basis: The `maxIgnoreCfg` mutant printed `pass 4 fail 0`.
+   change: Add TC-3 (b): `withService({ maxBodyBytes: 11 * 1024 * 1024 }, ...)` posts a padded empty-array body larger than 10 MiB and expects 201. Also check that a non-import route stays at the configured limit when it is below 10 MiB.
+
+4. file: test/import.test.js | where: TC-4 | weight: minor
+   problem: Only the title is JSON-escaped, and the 64-character requester is plain. The test name and spec R-3 say "maximum escaped valid fields", but the worst-case body (both fields escaped, about 8 MB) is never sent. After the restart, only T-5000's title is checked. The persisted actor, order of the other tickets, and event contents are not checked.
+   basis: In the TC-4 body, `.replaceAll(title, ...)` rewrites the title only. Restart assertions are the three counts plus the title of `/tickets/T-5000`.
+   change: Escape the requester as well (`\u0062` × 64). After the restart, assert `T-0001` and `T-2500` fields, one audit entry's actor and action, and one outbox event's `to` and `type`.
+
+READ: review-focus.md, step-change.diff, records/results/nav-6861c612…md (test-spec), records/fields/…S2-proof.md, records/tests/…mutation1.md, records/tests/…verify1.md, records/results/nav-f8e5e986…md, tree/test/helpers.js, tree/test/import.test.js, tree/test/import-store.test.js, tree/src/http.js, tree/src/app.js, tree/src/store.js, tree/src/tickets/validate.js, tree/src/router.js, tree/docs/shiploop/spec.md, tree/test/api.test.js (body-limit test)
+RAN: cp -R of the tree into the work directory; `node --test test/import-store.test.js test/import.test.js` (4 passed); `npm test` (121 tests, 121 passed). Nine mutants of src/app.js and src/store.js, each run against the focused tests. Four survived: `onlyFields` removed, `Math.max` replaced by the constant, the `Array.isArray` check removed, the `typeof` check narrowed. Five were killed: index off by one, save on every call, actor fixed to `system`, limit constant raised, save on an empty batch. One probe of four malformed bodies through `withService`, which returned the 400 messages quoted above. The first mutant attempt failed because the copy was read-only, so I discarded those results and reran after `chmod -R u+w`.
+
+======== m05 REPORT C ========
+FINDINGS
+1. file: README.md | where: Configuration table, `MAX_BODY_BYTES` row | weight: material
+   problem: This file is outside the item's declared paths (`src/store.js`, `src/app.js`, `test/import-store.test.js`, `test/import.test.js`, `docs/api.md`, plus the knowledge home), yet the step edited it. The new text, "allow at least 10 MiB", also contradicts how the limit works: `src/config.js:44` caps `MAX_BODY_BYTES` at 1 MiB (`max: 1024*1024`). The import limit is therefore always exactly 10 MiB, never "at least".
+   basis: The step diff touches README.md. The step-plan result lists `paths` without README. The review focus says a file changed outside the item's paths is a defect. `grep` of `src/config.js` shows `wholeNumber(env,'MAX_BODY_BYTES',…,{min:1024,max:1024*1024})`.
+   change: Revert the README edit, or have the plan declare README.md. If it stays, say "imports allow up to 10 MiB regardless of this setting".
+
+2. file: src/app.js | where: `/tickets/import` handler, `readJson(req, { limit: Math.max(maxBodyBytes, IMPORT_BODY_BYTES) })` | weight: minor
+   problem: `Math.max` is a fallback with no present need. The only configured source of `maxBodyBytes` is capped at 1 MiB, so the max always yields 10 MiB. The same "10 MiB or `MAX_BODY_BYTES`, whichever is larger" wording is repeated in `docs/api.md` and `environment.md`. That describes a case no configuration can reach, and it misleads readers.
+   basis: Code craft rules 1 and 5 (no option or fallback without a present need). `src/config.js:44` caps the value at 1 MiB, and `createApp` is only built from `config.maxBodyBytes` in `src/server.js:26`.
+   change: Use `IMPORT_BODY_BYTES` directly. State "10 MiB" in the docs. Or, if `createApp` callers may pass a larger value, record that reason in one line in the comment above the constant.
+
+3. file: docs/shiploop/architecture.md | where: `## Decisions`, AD-1 | weight: material
+   problem: The step made a design decision that is not recorded. It chose a fixed 10 MiB import body floor, a 5000-item cap, all-or-nothing validation before `createMany`, and a per-item error message of the form `tickets[i]: …`. The step's own result lists the 10 MiB floor under `decisions`. AD-1 still carries only the planning text ("must accommodate…"). The document result's claim that "AD-1 already covers the chosen import allowance" is false for the actual value and rule.
+   basis: The focus file asks for "something the step showed that KNOWLEDGE does not record (a decision)". `architecture.md` has only the planning-time AD-1. The implement result, `decisions[0]`, is "Use a 10 MiB import floor…".
+   change: Edit AD-1 in place, or add AD-2. It should say the import route reads up to 10 MiB, other routes keep `maxBodyBytes`, and the 10 MiB comes from 5000 × (200 title + 64 requester) characters at 6 bytes each as `\uXXXX` escapes. It should also say validation of the whole array precedes any store call. Change the "Due implementation/test" line to say it is done.
+
+4. file: docs/shiploop/environment.md | where: `## Platform facts`, `## Harnesses and suites`, the appended last line | weight: minor
+   problem: The appended sentence sits at the end of "Prepared readiness", away from the sections it belongs to. It leaves two stale statements: "The default 65536-byte request limit is too small…; configuration and preservation of existing endpoint limits need design", and "Tests are planned, not passed". The tests now exist and pass. The step also showed a runnable command, `node --test test/import.test.js`, that is not recorded.
+   basis: `test/import.test.js` runs 3 passing tests (my run). The environment.md text still reads "Planned… Tests are planned, not passed".
+   change: Move the limit fact into Platform facts and replace the "need design" clause. Mark the harness as built, with the test files and the focused command.
+
+5. file: docs/api.md | where: "Import tickets" section | weight: minor
+   problem: The section does not document these behaviours:
+   - A missing or non-array `tickets` returns 400.
+   - More than 5000 items returns 400.
+   - An unknown top-level field returns 400.
+   - A body over the import limit returns 400.
+   - The `X-Actor` header is used for each audit entry (the section says only "usual audit entry").
+   Its failure statement, "invalid item returns 400 with index", also does not give the message form `tickets[<i>]: <reason>`.
+   basis: `src/app.js` throws `tickets must be an array`, `tickets must have at most 5000 items` and `onlyFields(['tickets'])`. TC-3 asserts all of them. The docs cover none of these cases.
+   change: Add one sentence or a short list for these cases and for the actor, and show an example error message.
+
+6. file: src/app.js | where: the `catch` inside the `input.tickets.map` callback | weight: minor
+   problem: The original `InvalidError` is rewrapped into a new `InvalidError` built by string concatenation (`tickets[${index}]: ${error.message}`), with no `cause`. The original error and stack are lost. The message is assembled from fragments instead of coming from a catalog or a named-placeholder sentence.
+   basis: Code craft rule 2 ("keep the original cause when rethrowing") and rule 7. Per CONTRIBUTING, no catalog exists, so one whole sentence with placeholders would be the house route.
+   change: Pass `{ cause: error }` if `InvalidError` supports it, or add an index-prefixing option in `src/errors.js`. Add a test (`TC-3 (a)`) that the message has the form `tickets[1]: title must not be empty`.
+
+7. file: CHANGELOG.md / package.json | where: release entry | weight: minor
+   problem: A new public endpoint is added, but no CHANGELOG section or version bump is made. CONTRIBUTING requires both "in the same pull request", and the step plan did not declare those files.
+   basis: CONTRIBUTING "Releases" and "for anything that changes the API… record the decision".
+   change: Have the plan declare CHANGELOG.md and package.json and add a 1.5.0 entry, or record in the result why the release is deferred.
+
+READ: review-focus.md, step-change.diff, tree/docs/shiploop/{spec,architecture,environment}.md, tree/docs/api.md, tree/README.md, tree/CONTRIBUTING.md, tree/CHANGELOG.md (head), tree/docs/decisions/README.md, tree/src/{http,store,config,server,app}.js, tree/src/tickets/validate.js, tree/test/{import,import-store,api,helpers}.test.js (headers), records/results/{step-plan, S2 implement}, records/lint S2 gate
+
+RAN: `cat`/`grep` inspections of the files above; copied the tree to `./t` in my working directory and ran `node --test test/import.test.js`, which passed 3 of 3 (TC-2, TC-3, TC-4).
+
+======== m05 REPORT D ========
+FINDINGS
+1. file: test/import.test.js | where: TC-3 `invalid` and non-array lists (around lines 405-420) | weight: minor
+   problem: No test sends an import body with a top-level field other than `tickets`. The handler's `validate.onlyFields(input, ['tickets'])` check is therefore unguarded. `docs/api.md` also says nothing about rejecting it.
+   basis: I deleted that line from a copy of `src/app.js` and ran `node --test test/import.test.js test/import-store.test.js`. It printed pass 4, fail 0. With the line in place, `POST /tickets/import {"tickets":[],"x":1}` returns 400 "unknown field: x".
+   change: Add `TC-3 (a)`: post `{ tickets: [], extra: 1 }` and `{ tickets: [ticketBody()], extra: 1 }`. Assert 400, code `invalid` and message `/unknown field: extra/`, and that the state is empty. Add one sentence to the import section of `docs/api.md` that unknown top-level fields are rejected.
+
+2. file: src/app.js | where: line 34, `Math.max(maxBodyBytes, IMPORT_BODY_BYTES)`; and `docs/api.md` line 73 | weight: minor
+   problem: `src/config.js` caps `MAX_BODY_BYTES` at 1 MiB, so in the running service the `Math.max` always resolves to the 10 MiB constant. The "whichever is larger" wording in `docs/api.md`, `docs/shiploop/environment.md` and the README describes a case the service can't reach. Only a direct `createApp({maxBodyBytes > 10 MiB})` call could reach it, and no test covers that case. Replacing the expression with `IMPORT_BODY_BYTES` passes all four import tests.
+   basis: `src/config.js` line 44 has `max: 1024 * 1024`. I made the replacement in a copy and ran the same command. It printed pass 4, fail 0.
+   change: Either use `IMPORT_BODY_BYTES` directly and state in the docs that the import limit is a fixed 10 MiB, or keep the `Math.max` and add `TC-4 (a)`. That test would call `createApp` with `maxBodyBytes` above 10 MiB and expect an import body between the two limits to be accepted.
+
+READ: review-focus.md; step-change.diff (the full file, via the persisted output); tree/src/http.js, src/tickets/validate.js, src/store.js (createMany region), src/router.js, src/app.js, src/config.js (grep); tree/docs/shiploop/architecture.md and spec.md; tree/docs/api.md, README.md and test/import.test.js (via the diff and grep); records/fields S2-proof; records/tests mutation1; records/lint gate; test/helpers.js (grep)
+RAN: copied the tree to ./tree; `npm test` (121 pass, 0 fail); four one-line mutations of src/app.js in the copy, each followed by `node --test test/import.test.js test/import-store.test.js`, with app.js restored each time. Removing top-level onlyFields printed pass 4, fail 0. Removing the index prefix printed pass 3, fail 1. Using `IMPORT_BODY_BYTES` alone printed pass 4, fail 0. Allowing array items printed pass 4, fail 0 (equivalent: `newTicket` still rejects an array with a 400 naming the index). Also a probe script posting unknown-field, bad-priority and array bodies, which gave the expected 400s.
+
+======== m05 REPORT E ========
+FINDINGS
+1. file: test/import.test.js | where: TC-3 (no case for a configured `MAX_BODY_BYTES` above 10 MiB) | weight: material
+   problem: The import limit is `Math.max(maxBodyBytes, IMPORT_BODY_BYTES)` and docs/api.md says "10 MiB or `MAX_BODY_BYTES`, whichever is larger". Every test runs with the default 64 KiB setting, so the `maxBodyBytes` side of the `Math.max` is never exercised. A fixed 10 MiB limit would still pass.
+   basis: On a copy of the tree I changed `src/app.js` so the import route used `IMPORT_BODY_BYTES` alone. `node --test test/import.test.js test/api.test.js` printed pass 20, fail 0. Separately, with `withService({maxBodyBytes: 12 MiB})` an 11 MiB whitespace-padded import returned 201 as documented, but no recorded test does this.
+   change: Add `TC-3 (a)`: start `withService({ maxBodyBytes: 12 * 1024 * 1024 }, ...)`. Post an import padded to 11 MiB and expect 201. Post a body over 12 MiB and expect 400. Post the same 11 MiB body to `/tickets` and expect 400. This also checks that the larger import limit does not leak to other routes.
+
+2. file: src/app.js | where: `router.post('/tickets/import', ...)` handler, lines 33-51 | weight: minor
+   problem: The import validation (array check, size cap, per-item object check, index prefixing) is written inline in the route handler. The house pattern is for `src/tickets/validate.js` to hold the request-body checks and for the handler to call one validator and one store method. Nothing tests the validation without HTTP.
+   basis: Rule 1 (match the house). The `createApp` docstring in `src/app.js` says handlers "read and validate the request, call one store method". `validate.js` opens with "Request bodies, checked before they reach the store."
+   change: Move the checks into `validate.importTickets(body, limit)` in `src/tickets/validate.js`, with a contract docstring. Have the handler call it and then `store.createMany`.
+
+3. file: docs/shiploop/environment.md | where: the last line, appended after "## Prepared readiness", and "## Platform facts" | weight: minor
+   problem: The new import-limit sentence sits under "Prepared readiness" with no heading of its own. "Platform facts" still says the 65536-byte limit is too small and that "configuration and preservation of existing endpoint limits need design", but the design is now built. The targeted command `node --test test/import-store.test.js test/import.test.js` is not recorded under "## Commands".
+   basis: The review focus says KNOWLEDGE lines the code contradicts must be fixed in place, and a new command must be recorded. The "Harnesses and suites" paragraph still says "Tests are planned, not passed".
+   change: Move the sentence into "## Platform facts" and replace the "need design" wording with the built behaviour. Add the targeted import test command to "## Commands". Update the "planned, not passed" wording.
+
+4. file: docs/shiploop/architecture.md | where: AD-1 | weight: minor
+   problem: The step settled the concrete import limits: a 10 MiB floor on the import body, `max(MAX_BODY_BYTES, 10 MiB)`, and a 5000-item cap. AD-1 says only "must accommodate ... while retaining normal endpoint behavior". The result claims "AD-1 already covers" this, but the chosen floor and the rule are not recorded.
+   basis: The review focus says a decision the step showed must be recorded in KNOWLEDGE.
+   change: Append one line to AD-1 recording the 10 MiB import floor, the `max()` rule, the 5000-item cap and the reason (5000 × 200-character titles as `\uXXXX` escapes is about 8 MB).
+
+5. file: README.md | where: `MAX_BODY_BYTES` row | weight: minor
+   problem: README.md is outside the step plan's declared paths (`src/store.js`, `src/app.js`, `test/import-store.test.js`, `test/import.test.js`, `docs/api.md`). The edit itself is accurate; the plan should have declared the file.
+   basis: The focus file's rule that a file changed outside the item's paths is a defect. I checked the plan's `paths` in `nav-09ea24f4...md`.
+   change: Keep the README edit, since without it the README would contradict the behaviour. Record the path as an addition to the item's paths, or note in the result why it was needed.
+
+READ: review-focus.md, step-change.diff, records/results/nav-09ea24f4…md (step plan), records/results/nav-6861c612…md (test-spec), records/fields/…S2-proof.md, records/lint/nav-a18413ca…gate1.md, records/tests/…mutation1.md (first part), tree/src/app.js, src/http.js, src/errors.js, src/tickets/validate.js, src/store.js (createMany and create), test/helpers.js, test/import.test.js, docs/api.md, docs/shiploop/{spec,environment,architecture}.md, README.md, CONTRIBUTING.md, CHANGELOG.md, package.json
+RAN: `cp -R CASE/tree ./tree`; `npm test` in the copy (121 pass, 0 fail); a `withService` probe with `maxBodyBytes` of 12 MiB (11 MiB import → 201; unknown top-level field → 400; bad priority → 400 `tickets[0]: priority must be one of …`; 5001 items → 400; 11 MiB body to `/tickets` → 400); a mutation of my copy's `src/app.js` (`Math.max` removed) followed by `node --test test/import.test.js test/api.test.js` (pass 20, fail 0)
+
+======== m05 REPORT F ========
+FINDINGS
+1. file: README.md | where: the `MAX_BODY_BYTES` row of the configuration table (the diff's only README hunk) | weight: material
+   problem: The step changed README.md, which is not one of the step's declared paths. S2 declares only `src/app.js`, `test/import.test.js` and `docs/api.md`, and the plan's item paths add `src/store.js`, `test/import-store.test.js` and the knowledge home.
+   basis: The review focus lists "a file changed outside the item's paths". The plan result's `paths` and S2's `paths` do not include README.md, and the step text says a file outside them is a send-back.
+   change: Either revert the README hunk and record the gap for the plan to declare, or have the plan add README.md to the item paths. The edit itself is correct: README documents `MAX_BODY_BYTES`, and the import exception belongs there.
+2. file: CHANGELOG.md and package.json (not touched) | where: the whole change | weight: minor
+   problem: A new public endpoint was added with no CHANGELOG section and no version bump.
+   basis: CONTRIBUTING.md:42 says "Bump the version in `package.json` and add a section to `CHANGELOG.md` in the same pull request". CHANGELOG.md has a section for every earlier feature, and the diff touches neither file.
+   change: Add a 1.5.0 CHANGELOG entry for `POST /tickets/import` and bump the version. This needs the plan to declare both files, so otherwise record it as a plan-level gap.
+3. file: docs/api.md | where: the "Import tickets" section (lines 67-74) | weight: minor
+   problem: The section does not say which bodies are rejected beyond the invalid-item case. A missing or non-array `tickets`, an unknown top-level field, a non-object item (for example `null`) and more than 5000 items all return 400, with messages such as `tickets must be an array` and `tickets[0]: ticket must be an object`, but none are described. It also does not say that the actor header is checked and that an over-long one rejects the whole import.
+   basis: I probed the endpoint. `{tickets:['x']}` gave 400 `tickets[0]: ticket must be an object`. `{tickets:{length:1}}` gave 400 `tickets must be an array`. `{tickets:[...],x:1}` gave 400 `unknown field: x`. The "Done when" for this stage says each changed public behaviour is documented, and the spec's R-1 requires missing, non-array and oversized arrays to return 400.
+   change: Add one sentence listing the rejected bodies: a missing or non-array `tickets`, more than 5000 items, an item that is not an object, an unknown top-level field, and an `X-Actor` over 64 characters. State that each returns 400 and creates nothing.
+4. file: test/import.test.js | where: TC-3, the loop over `{}`, `{ tickets: null }`, `{ tickets: 'no' }`, the 5001-item array and `'{'`, and the `x-actor` case | weight: minor
+   problem: These cases assert only `status === 400`, not `error.code` or the reason. A 400 from an unrelated cause would pass, and the 5001-item and bad-actor rejections are not tied to their own messages.
+   basis: The invalid-index cases check code and message. These do not, so TC-3 would still pass if the 5000-limit check were replaced by a different 400 source. The state and next-ID checks at the end do catch any side effect.
+   change: Assert `code === 'invalid'` in the loop. Add a message match for the 5001 case (`/at most 5000/`) and the actor case (`/X-Actor/`). Add TC-3 (a): an item with a non-string title and one with a bad priority, asserting `tickets[i]: title must be a string` and `tickets[i]: priority must be one of`. Today the only coverage of the shared `newTicket` rules through the import route is an empty title and an unknown field.
+
+Not findings: `npm test` passes 121 of 121 on my copy of the tree. The route validates the whole array before `store.createMany`, errors carry the item index, and the 5000 × 200-character escaped payload fits under 10 MiB. The KNOWLEDGE additions are consistent with the code.
+
+READ: review-focus.md, step-change.diff, tree/src/http.js, tree/src/tickets/validate.js, tree/src/store.js (createMany region), tree/src/app.js (via diff), tree/test/import.test.js (via diff), tree/docs/api.md, tree/docs/shiploop/{spec,architecture,environment}.md, tree/CHANGELOG.md, tree/CONTRIBUTING.md, records/fields/…S2-proof.md, records/results/nav-09ea24f4…md (step plan), records/tests/…mutation1.md
+RAN: cp -R CASE/tree ./tree; npm test (121 pass, 0 fail); a one-off probe script (`probe.js` in my working directory) posting five malformed imports to /tickets/import: all returned 400 with the messages quoted above, and 0 tickets were created; grep for paths and CHANGELOG in the plan and CONTRIBUTING
+
+
+################ CASE m06 ################
+
+---- The end-of-work review's fix: commit message ----
+test: verify escalation across service restarts
+
+Key learnings: Persisted event history must survive whole service restarts and each notification uses the current on-call agent.
+
+---- The fix: code and test patch ----
+diff --git a/test/escalation.test.js b/test/escalation.test.js
+index e60fdbe..ce00224 100644
+--- a/test/escalation.test.js
++++ b/test/escalation.test.js
+@@ -134,3 +134,32 @@ test('TC_10 escalation notification names its priority and keeps legacy urgent w
+   const urgent = render({ type: 'ticket.escalated', ticket: 'T-0002', data: { title: 'Urgent', priority: 'urgent' } });
+   assert.match(urgent.body, /Urgent ticket T-0002/);
+ });
++
++test('TC_8 (a) service restart preserves both escalation records and current on-call recipient', async (t) => {
++  const { loadConfig } = require('../src/config');
++  const { withService, ticketBody } = require('./helpers');
++  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ticket-service-sla-'));
++  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
++  const clock = manualClock();
++  const base = { ...loadConfig({ ESCALATE_HIGH_MINUTES: '1', WORKER_INTERVAL_MS: '0' }),
++    port: 0, dataFile: path.join(dir, 'tickets.json'), clock };
++  let id;
++  await withService({ ...base, oncall: 'Ada' }, async (api, service) => {
++    id = (await api.post('/tickets', ticketBody({ priority: 'high' }))).body.id;
++    clock.advance(60001);
++    service.worker.tick();
++    assert.deepEqual(service.notifier.delivered.filter((e) => e.type === 'ticket.escalated').map((e) => e.to), ['Ada']);
++  });
++  await withService({ ...base, oncall: 'Bea' }, async (api, service) => {
++    clock.advance(120000);
++    service.worker.tick();
++    assert.deepEqual(service.notifier.delivered.filter((e) => e.type === 'ticket.escalated').map((e) => [e.ticket, e.to]), [[id, 'Bea']]);
++  });
++  await withService({ ...base, oncall: 'Cai' }, async (api, service) => {
++    clock.advance(600000);
++    service.worker.tick();
++    assert.equal(service.notifier.delivered.filter((e) => e.type === 'ticket.escalated').length, 0);
++    const report = (await api.get('/admin/outbox')).body;
++    assert.equal(report.sent.filter((e) => e.type === 'ticket.escalated' && e.ticket === id).length, 2);
++  });
++});
+
+---- The end-of-work reviewer's own notes ----
+---
+classification: non-trivial
+exit: unsatisfied
+continuation: allowed
+---
+Read: Self-review (inline default) of original request, all changed code, existing tests, decisions, knowledge files and seven recent commit messages.
+Found: Existing tests reopened a store but did not exercise the second notification through successive whole service instances with changed ONCALL. This was a material integration coverage gap for the requested restart guarantee. Also removed a trailing blank line flagged by diff check in inherited knowledge.
+Changed: Added TC_8 (a) with three service instances, persistent data, two different on-call recipients and a third scan that must not produce another event; trimmed documentation whitespace.
+Checked: Focused suite 8 passed, npm test 135 passed, syntax checks passed and lint reports zero findings; run/notes/end-review-focused.log and end-review-full.log. Service one creates and escalates a high ticket; after exactly two configured waits service two delivers to Bea; service three sees exactly two persisted sent events and sends none. The prior requirement had no high or second escalation, so this case distinguishes the original baseline.
+Class: non-trivial due to missing service restart coverage; a fresh review remains required.
+
+## Handoff
+### State and remaining work
+Added TC_8 (a) against whole services with a shared disposable data file. Existing candidate implements priority waits, continuous eligibility, durable two-event limit and current ONCALL. ShipLoop must commit this pass through its prescribed command, then review again and complete system/release checks.
+### Current learnings
+Store reconstruction alone did not prove service startup, worker wiring and delivery after restart. No remote target exists; file-backed mode is the durability boundary.
+### Evidence
+run/notes/end-review-focused.log, end-review-full.log, test/escalation.test.js, src/store.js, src/server.js and docs/shiploop/spec.md R-6.
+
+
+---
+classification: trivial
+exit: satisfied
+continuation: allowed
+---
+Read: Self-review (inline default) of the original request, store eligibility and persistence, worker wiring, configuration and template, new full-service restart case, test results, knowledge and recent seven commits.
+Found: Each priority threshold, no-oncall behavior, two-event cap, status/assignment continuity and message recipient is implemented and covered at a relevant boundary. TC_8 (a) now verifies both escalation records across successive service startups. Legacy equal-time ordering remains conservative as documented. No material defect found in this second pass.
+Changed: None; prior pass committed the restart integration case as 9ef1b62f0fc6.
+Checked: Focused suite 8 passed, full suite 135 passed, syntax and lint checks passed after last edit. Compared R-6 and decision 10 to behavior, including optional in-memory mode and existing at-least-once delivery. No remaining work item, but system and release gates remain.
+Class: trivial after reviewing the complete candidate and prior correction.
+
+## Handoff
+### State and remaining work
+All implementation and local tests complete, with full service restart coverage committed. System testing, final delivery review and guarded source return remain.
+### Current learnings
+Keep both outbox events, even pending or dead, and record the audit sequence for continuous eligibility. DATA_FILE is required for restart persistence; old event ordering can be ambiguous at equal timestamps.
+### Evidence
+run/notes/end-review-focused.log and end-review-full.log, test/escalation.test.js, src/store.js, src/config.js and docs/decisions/0010-priority-escalation.md.
+
+======== m06 REPORT A ========
+FINDINGS
+none
+
+I walked `render` for a high event, an urgent event, a legacy event with no `priority`, and an escalation delivered through the worker.
+- **High ticket:** the body starts "High ticket", and the Proof exits 0.
+- **Urgent and legacy events:** both start "Urgent ticket".
+- **Worker path:** `escalateUrgent` writes `priority` into the event data (`src/store.js:203`), so the template wording follows the ticket's priority at escalation time.
+- **TC_10:** it would fail if the wording were forced to "Urgent", forced to "High", or if the legacy case broke. It checks the recipient, the ticket ID and the title.
+- **Test run:** `node --test test/escalation.test.js` passed 3/3, including TC_10.
+- **Docs:** the spec line citing TC_10 matches the test. No README or operations text describes the wording, so none disagrees with the code.
+
+READ: review-focus.md, step-change.diff, src/templates.js, src/store.js (escalateUrgent), src/worker.js (grep), test/escalation.test.js, docs/shiploop/spec.md, README.md, docs/operations.md, CHANGELOG.md, records/results/nav-e856e6fe3ed64b68826af626e50465a0.md (TC_10 oracle)
+RAN: cp -R CASE/tree ./tree; the step's Proof one-liner (exit 0); node --test test/escalation.test.js (3 pass, 0 fail); grep for escalation text in src and docs
+
+======== m06 REPORT B ========
+FINDINGS
+1. file: test/escalation.test.js | where: TC_10, lines 117-136 | weight: minor
+   problem: No test delivers an urgent ticket through the store, outbox and worker and checks that its message says "Urgent". The urgent wording is only checked by calling `render` on a hand-built event. If the store stamped every escalation event with `priority: 'high'`, the end-to-end path would call urgent tickets "High" and nothing would fail.
+   basis: I changed `src/store.js:203` to `priority: 'high'` in my copy of the tree and ran `node --test test`. It printed `pass 133 / fail 0`. The only delivered-message assertions are `/High ticket/` at line 129 for a high ticket. The urgent assertions at lines 133-135 use `render` only, and the bulk tests at `test/bulk-escalation.test.js:138-141` check ticket and recipient but not the body. C3 requires that high tickets are described as high and that urgent wording stays meaningful.
+   change: In TC_10, add a second delivery inside `withService` with an urgent ticket. Advance the clock past `escalateMinutes`, tick the worker, and assert the delivered body matches `/Urgent ticket/` and does not match `/High/`. Also add `assert.doesNotMatch(events[0].body, /Urgent/)` to the high case.
+
+2. file: records/tests/nav-75ab7bb54ebf4973a59eaa733363c137-mutation1.md | where: `disposition: skipped` | weight: minor
+   problem: The recorded mutation run covered nothing for S3. It reports "no mutants: no changed product line matched an operator" with `candidates: 0`, so the `src/templates.js` ternary has no recorded mutation evidence. The only evidence that TC_10 fails when the wording breaks comes from my own mutants.
+   basis: The record shows `"mutants": []` and `"skipped": "no mutants..."`. My manual mutants of the ternary were all caught by TC_10. These were: always 'Urgent', always 'High', an inverted condition, lowercase 'high', a stray 'Urgent' suffix, and dropping `priority` from the event data. The mutant that sets `priority: 'high'` for every event was not caught (finding 1).
+   change: Record the manual ternary mutants as the evidence for C3, or add them to the mutation run. The test change in finding 1 closes the one mutant that survived.
+
+READ: review-focus.md, step-change.diff, records/results/nav-e856e6fe3ed64b68826af626e50465a0.md (TC_10 oracle), records/tests/nav-75ab7bb54ebf4973a59eaa733363c137-mutation1.md, tree/src/templates.js, tree/src/store.js (lines 170-205), tree/src/worker.js, tree/test/escalation.test.js, tree/test/bulk-escalation.test.js (lines 130-145)
+RAN: copied the tree into the working directory; `node --test test/escalation.test.js` (3 of 3 passed); full `node --test test` with six one-line mutants of `src/templates.js` and `src/store.js` (each caught by TC_10 except the `store.js` constant-high mutant, which passed 133 of 133); one extra mutant (`legacy-throws`) hung until killed and is not counted.
+
+======== m06 REPORT C ========
+FINDINGS
+1. file: docs/shiploop/spec.md | where: line 38, the R-6 sentence ending "(W1/S1)" | weight: minor
+   problem: The sentence still says "S2 and S3 still own service configuration and wording". S2 and S3 are both done, with TC_9 and TC_10, so KNOWLEDGE now contradicts the tree. The step did not touch it, and its result says nothing in KNOWLEDGE needed changing.
+   basis: spec.md lines 38-42 sit next to the new S2 and S3 coverage lines. The S3 result's `knowledge.spec` says only "R-6 cites TC_10 and W1/S3".
+   change: Add a new line inside R-6, ending with the step's mark (W1/S3), saying service configuration and wording are now covered by TC_9 and TC_10. The spec rule allows only new lines ending with the step's mark, so the old S1 line stays as it is.
+
+2. file: docs/shiploop/architecture.md | where: AD-5 (line 8) | weight: minor
+   problem: AD-5 still ends "Accepted for implementation; verify old-file readback, real worker and persisted restart." and does not record the wording decision. The decision is that a high ticket's escalation says "High", and every other priority and legacy events without a priority say "Urgent". The S3 result says "AD-5 already names the notification template", but line 21 only says templates.js "renders both priorities".
+   basis: The step showed the wording rule and the legacy fallback (templates.js:23). KNOWLEDGE has no line recording them.
+   change: Append one sentence to AD-5 stating the wording rule and that legacy events without a priority keep "Urgent". Drop or update the "Accepted for implementation" status once the step has verified it.
+
+3. file: test/escalation.test.js | where: TC_10, lines 117-136 | weight: minor
+   problem: The test has two parts. The real-worker part covers the high wording and delivery to the on-call agent. The render part covers the legacy and urgent wording, but only with `/Urgent ticket T-000N/`, and the high case never asserts that "Urgent" is absent. The step's mutation run was skipped ("no changed product line matched an operator"), so nothing checked that these assertions catch a break.
+   basis: Oracle: "High notification says high, urgent and legacy messages remain meaningful." I ran the Proof and it exited 0. `npm test` printed 134/134 passing. Reading the ternary, swapping its branches would fail both the high and the urgent assertions, so the main behaviour is covered.
+   change: Add `assert.doesNotMatch(events[0].body, /Urgent/)` in TC_10. Optionally add a (a) sub-case that renders `{priority: 'high'}` with an `undefined` title, to pin that the escalation text still renders.
+
+READ: review-focus.md, step-change.diff, records/results/nav-cc53b1fd….md (step plan), records/results/nav-e856e6fe….md (test-spec), records/lint/nav-cda480bf….gate1.md, records/tests/…-mutation1.md, tree/src/templates.js, tree/src/store.js (lines 160-210), tree/test/escalation.test.js, tree/docs/shiploop/spec.md, tree/docs/shiploop/architecture.md, tree/README.md and docs/operations.md (escalation sections), CHANGELOG.md
+RAN: cp -R of the case tree into my working directory; `npm test` in the copy (134 tests, 134 pass, 0 fail); the step's Proof `node -e '…render(…priority:"high")…'` (exit 0); grep for escalation wording across docs and src
+
+======== m06 REPORT D ========
+FINDINGS
+1. file: docs/shiploop/spec.md | where: line 38 (the W1/S1 line under R-6) | weight: minor
+   problem: The line still says "S2 and S3 still own service configuration and wording". S2 and S3 are now done, and lines 40 and 42 of the same spec say so. The knowledge home therefore contradicts itself.
+   basis: I read spec.md lines 36-42. Line 38 says S2/S3 still own the work, while line 40 (TC_9, W1/S2) and line 42 (TC_10, W1/S3) record it as done. The focus file requires fixing a KNOWLEDGE line that the code or tests contradict.
+   change: Edit line 38 to end after "...TC_8 in test/escalation.test.js. (W1/S1)". The mark requirement for spec.md still holds, so a fix that only removes the stale clause needs to be recorded as such. The document stage's result said spec "cites TC_10" and never mentioned this stale line.
+2. file: test/escalation.test.js | where: TC_10 (lines 118-119 and 134-136) | weight: minor
+   problem: TC_10 asserts the legacy and `urgent` wording only through `render`, and the high wording only through a service run. No assertion covers a high event that is rendered directly, or an event whose priority is missing. Also, `render` and the helpers are required inside the test body, while the file already imports its other modules at the top.
+   basis: The TC_10 test-spec oracle (records/results/nav-e856e6…) asks for "legacy urgent event lacking priority still renders correctly". The legacy case is covered. The inline `require` calls differ from the top-level imports used for the other modules (lines 3-11). The same style appears in TC_9 at line 73, so it is a house habit, not a new departure.
+   change: Optional. Move `render` and `withService` / `ticketBody` to the top of the file with the other imports.
+
+READ: review-focus.md, step-change.diff, tree/src/templates.js, tree/src/store.js (grep), tree/test/escalation.test.js, tree/docs/shiploop/spec.md, tree/docs/shiploop/architecture.md, tree/README.md and tree/docs/operations.md (grep), tree/CHANGELOG.md (grep), records/results (test-spec and test S3 results), records/tests mutation1
+RAN: cp -R CASE/tree ./tree; node --test test/bulk-escalation.test.js test/escalation.test.js (7 pass, 0 fail); the step's Proof `node -e` assert (exit 0); grep for escalated and priority usage in src
+
+======== m06 REPORT E ========
+FINDINGS
+1. file: docs/shiploop/environment.md | where: line 121 ("New case titles include standalone TC_8.") and the "Priority escalation test strategy" section | weight: minor
+   problem: The knowledge home still lists only TC_8 as the new escalation case. The step and S2 added TC_9 and TC_10 in test/escalation.test.js, and neither is recorded here. The focused-suite note also says "planned", although the cases now exist and pass.
+   basis: `grep -rn "TC_9\|TC_10" docs/shiploop/environment.md` prints nothing. spec.md cites TC_9 and TC_10, so the two knowledge files disagree. The step result says "environment: existing harness and commands remain accurate", which misses this.
+   change: Change line 121 to "New case titles include standalone TC_8, TC_9 and TC_10", and note that the high-wait wiring and the message wording are covered by TC_9 and TC_10.
+
+2. file: docs/operations.md (and README.md line 60) | where: "Escalation records" section, line 58 | weight: minor
+   problem: The step changes what the on-call agent reads. A high ticket's message now begins "High ticket …" instead of "Urgent ticket …", and events from before this change, which carry no priority, still render as "Urgent". No user-facing or maintainer doc records this. The step result says "no new product documentation was needed".
+   basis: The `ticket.escalated` template in src/templates.js:21-24 now depends on `event.data.priority`. `grep -rn -i "was escalated\|Urgent ticket" docs README.md` finds no wording description. The done-condition is "each changed public behaviour is documented where users and maintainers look".
+   change: Add one sentence to operations.md: "The message names the ticket's priority (High or Urgent); escalation events recorded before this release have no priority and read Urgent."
+
+3. file: docs/shiploop/spec.md | where: line 38, the W1/S1 note under R-6 | weight: minor
+   problem: The line still says "S2 and S3 still own service configuration and wording", but S2 and S3 are now both done and noted on lines 40 and 42. The file is stale and self-contradictory.
+   basis: spec.md lines 38, 40 and 42. The focus file says spec.md takes only new lines ending with the step's mark, so this cannot be fixed in place.
+   change: Report to the spec owner and leave it. Otherwise reword line 38 to drop the ownership clause.
+
+4. file: test/escalation.test.js | where: TC_10, lines 118-119 | weight: minor
+   problem: `render` and `withService`/`ticketBody` are required inside the test body. TC_9 already does the same at lines 73-74, but the file's other imports sit at the top. This is a copy of an in-body import habit and makes the dependencies harder to see.
+   basis: Code craft rule 1 (match the house) and rule 9. All other imports in the file (lines 3-11) are at the top.
+   change: Move `require('../src/templates')` and `require('./helpers')` to the top-level imports, for TC_9 and TC_10 together.
+
+5. file: src/templates.js | where: line 23, the `ticket.escalated` body | weight: minor
+   problem: An inline nested ternary inside a template literal makes a line of about 130 characters. The rule that unknown or missing priority renders "Urgent" is implicit. Nothing says why a missing priority must read "Urgent" (events recorded before this change carry no priority).
+   basis: Code craft rules 3-4, because the invariant and the reason the code cannot say belong in a short comment. TC_10 asserts the behaviour, but the file's header comment does not mention it.
+   change: Compute `const label = event.data.priority === 'high' ? 'High' : 'Urgent';` with a one-line comment such as "// Events recorded before priority escalation carry no priority and read Urgent." Then use `${label}` in the body.
+
+READ: review-focus.md, step-change.diff, src/templates.js, src/store.js (escalateUrgent), test/escalation.test.js, docs/shiploop/spec.md, architecture.md, environment.md, README.md, docs/operations.md, CHANGELOG.md, docs/decisions/0010-priority-escalation.md, package.json, records/results (test-spec, test S3, mutation run)
+RAN: none (the tests were not run; every finding comes from reading the files and from grep)
+
+======== m06 REPORT F ========
+FINDINGS
+1. file: docs/shiploop/spec.md | where: line 38, the S1 paragraph under R-6 | weight: minor
+   problem: The line says "S2 and S3 still own service configuration and wording". S2 and S3 are now done, and lines 40 and 42 record TC_9 and TC_10, so the line is stale and contradicts them.
+   basis: I read the spec. Line 38 says S2 and S3 are still pending, while lines 40 and 42 cite TC_9 and TC_10 as covering that work. The focus file requires a KNOWLEDGE line that the code or tests contradict to be fixed in place.
+   change: Reword line 38 to cover only the store, audit marker and outbox behaviour of TC_8, and drop the clause about S2 and S3 still owning work. Keep the (W1/S1) mark.
+
+2. file: CHANGELOG.md | where: the 1.6.0 entry | weight: minor
+   problem: Notification text changed for users and agents. Escalation messages for high tickets now begin "High ticket …" instead of "Urgent ticket …". The 1.6.0 entry doesn't mention it, and the stage result says no product documentation was needed.
+   basis: I read src/templates.js, CHANGELOG.md, README.md and docs/operations.md. The wording appears in none of the docs. The stage's done-when requires each changed public behaviour to be documented where users look.
+   change: Add to the 1.6.0 bullet or as a second bullet: "Escalation notifications for high-priority tickets say 'High' instead of 'Urgent'."
+
+3. file: test/escalation.test.js | where: TC_10, the `require('../src/templates')` and `require('./helpers')` calls inside the test body | weight: minor
+   problem: Every other import in the file sits at the top, but TC_10 requires `render`, `withService` and `ticketBody` inside the test body. The `withService` and `ticketBody` requires are not shown at the top, so TC_8 and TC_9 appear to import them in their own bodies too, and the pattern repeats rather than being a one-off.
+   basis: Rule 1 (match the house). I ran the file as it stands and TC_10 passes, so this is style only.
+   change: Hoist the requires to the file header, or leave them as is if TC_9 does the same and the house tolerates it.
+
+Walk-through of the changed paths, with no defect found:
+- A valid high ticket renders "High ticket …". TC_10 checks this through the real worker and notifier, with recipient and ticket ID.
+- A legacy event with no priority renders "Urgent ticket …".
+- An event with priority urgent renders "Urgent ticket …".
+- A missing or unknown priority falls back to "Urgent", the pre-change wording, and S3 records this as a decision.
+- The priority comes from the event data stored at enqueue time in src/store.js:203, so a later priority change does not alter an already-queued message.
+- `render` is internal and unchanged in its contract.
+- TC_10 would fail on base, because the base template says "Urgent" for every escalation. A template that said "High" for every escalation would fail the urgent and legacy assertions.
+- The Proof command exits 0. Focused run: 7 of 7 passed. Full `npm test`: 134 of 134 passed.
+- No other files changed outside the step. The mutation check was skipped because no mutants matched an operator. I judged the tests adequate by inspection.
+
+READ: review-focus.md, step-change.diff, records/results (the S3 implement, S3 test, test-spec and S3 document results), records/tests/*mutation1.md, tree/src/templates.js, tree/src/store.js (priority and event data), tree/test/escalation.test.js, tree/docs/shiploop/spec.md, tree/docs/shiploop/architecture.md (AD lines), tree/README.md, tree/docs/operations.md, tree/CHANGELOG.md
+RAN: cp -R of the case tree into ./tree; node --test test/bulk-escalation.test.js test/escalation.test.js (7 of 7 passed); npm test (134 of 134 passed); the Proof node -e command (exit 0); grep checks for the wording in docs
+
+
+################ CASE m07 ################
+
+---- The end-of-work review's fix: commit message ----
+Preserve large page numbers in listing responses
+
+Key learnings: JSON numeric page values must retain decimal digits beyond JavaScript integer precision.
+Regression test: TC_2
+
+---- The fix: code and test patch ----
+diff --git a/src/server.js b/src/server.js
+index 14d5f3a..eff529c 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -21,17 +21,21 @@ function createServer() {
+       const sizeText = url.searchParams.get('size') ?? '10';
+       const page = Number(pageText);
+       const size = Number(sizeText);
+-      if (!/^\d+$/.test(pageText) || !Number.isInteger(page) || page < 1) {
++      if (!/^\d+$/.test(pageText) || /^0+$/.test(pageText)) {
+         return send(res, 400, { error: 'page must be a whole number of at least 1' });
+       }
+       if (!/^\d+$/.test(sizeText) || !Number.isInteger(size) || size < 1 || size > 100) {
+         return send(res, 400, { error: 'size must be a whole number from 1 to 100' });
+       }
+       const start = (page - 1) * size;
+-      return send(res, 200, {
+-        page, size, total: users.length, pages: Math.ceil(users.length / size),
++      const result = {
++        size, total: users.length, pages: Math.ceil(users.length / size),
+         items: users.slice(start, start + size),
+-      });
++      };
++      // Preserve an arbitrarily large page number as a JSON number, without rounding it.
++      const pageJson = pageText.replace(/^0+/, '');
++      res.writeHead(200, { 'content-type': 'application/json' });
++      return res.end(`{"page":${pageJson},${JSON.stringify(result).slice(1)}`);
+     }
+     const match = /^\/users\/(\d+)$/.exec(url.pathname);
+     if (req.method === 'GET' && match) {
+diff --git a/test/list-users.test.js b/test/list-users.test.js
+index c9430f6..8f300f7 100644
+--- a/test/list-users.test.js
++++ b/test/list-users.test.js
+@@ -65,3 +65,15 @@ test('TC_3 GET /users rejects invalid pagination values', async () => {
+     }
+   });
+ });
++
++test('TC_2 (a) preserves arbitrarily large whole page numbers', async () => {
++  await withServer(async (base) => {
++    for (const page of ['9007199254740993', '1' + '0'.repeat(309)]) {
++      const response = await fetch(`${base}/users?page=${page}`);
++      assert.equal(response.status, 200);
++      const text = await response.text();
++      assert.ok(text.startsWith(`{"page":${page},`));
++      assert.deepEqual(JSON.parse(text).items, []);
++    }
++  });
++});
+
+---- The end-of-work reviewer's own notes ----
+---
+classification: non-trivial
+exit: unsatisfied
+continuation: allowed
+---
+Read: self-review (inline default), original request, full server, test suite, spec and recent history.
+Found: page has no upper bound in the request, but Number conversion rounded 9007199254740993 and rejected an overflow-sized whole number; reproduced rounded JSON before change.
+Changed: Validate decimal page text, preserve its numeric JSON representation without rounding, and add TC_2 (a) for exact large values. The regex makes the inserted value numeric-only.
+Checked: Focused suite 4 passed, full npm test 11 passed, lint exit 0; checked empty and invalid pages remain rejected, normal and filtered pages retained.
+Class: non-trivial contract correction, with regression test.
+
+## Handoff
+### State and remaining work
+Review corrected implementation and tests again. System test and guarded return remain.
+### Current learnings
+Page has no requested upper bound; JSON numeric literal must preserve large digits. Filter precedes pagination; size is bounded 1–100.
+### Evidence
+See src/server.js, test/list-users.test.js TC_2 (a), spec R-2, reviews/checks.md and baseline notes.
+
+
+---
+classification: trivial
+exit: satisfied
+continuation: allowed
+---
+Read: self-review (inline default), complete server and tests, README, spec R-1–R-4, prior review and recent history including 0c161a3.
+Found: Valid filtered pages, boundary size 100 and invalid page and size are tested; page digits are constrained before raw JSON output, leading zeros are removed and arbitrarily large values produce empty pages without rounding the literal. No mutation disposition was used. GET by id remains separate.
+Changed: none.
+Checked: Reconciled prior defect fix and 11 passing tests and lint in checks.md; reviewed array order, filter-before-slice, defaults, error names and documented behavior. The remaining system suite and return are owned by outer stages.
+Class: trivial; no further material finding.
+
+## Handoff
+### State and remaining work
+Large page fix and test committed 0c161a3. Carry-forward can import; system checks and guarded return remain.
+### Current learnings
+Raw numeric page serialization is limited to validated digits to retain unbounded integer text; size stays bounded. No new reusable skill warranted.
+### Evidence
+See src/server.js, test/list-users.test.js, README, spec and reviews/checks.md.
+
+======== m07 REPORT A ========
+FINDINGS
+1. file: src/server.js | where: GET /users handler, page parsing (`Number(pageText)` plus `Number.isInteger(page)`) | weight: minor
+   problem: A very large `page` is not handled as the whole number it is. A value above 2^53 is echoed as a different number. A value of about 309 or more digits gets HTTP 400 with "page must be a whole number of at least 1", although it is a whole number of at least 1 and the spec expects an empty "items".
+   basis: I ran `page=9007199254740993` and got 200 with `"page":9007199254740992`. `page=99999999999999999999` returned `"page":100000000000000000000`. `page=` followed by 400 nines returned 400 with the "whole number of at least 1" message, which is wrong for that input. R-2 and R-3 (and request S5/S6) say a whole number >=1 is valid and a page after the last gives empty items. `size` cannot hit this because it is capped at 100.
+   change: Add a check that the digit string is a safe integer. For a digit string that is too large, either keep it a valid out-of-range page with `items: []`, or answer 400 with a message that says "too large". Echo the `page` the client sent in the first case. Add a test case for it, for example TC_2 (a) `page=99999999999999999999` and TC_3 (a) for the over-long value, whichever behaviour is chosen.
+
+2. file: test/list-users.test.js | where: TC_2 and TC_3 | weight: minor
+   problem: Several behaviours are not tested, so a regression in them would pass. Leading zeros are accepted (`page=01` gives 200 with page 1, `size=007` gives size 7). A repeated parameter uses the first value (`page=1&page=x` gives 200, `page=2&page=1` gives page 2). `page=1&foo=bar&name=A` ignores the unknown parameter while paginating. Two invalid parameters together are checked page first. The 400 response is not checked for `application/json`. The valid lower and upper bounds are checked only partly: size=100 appears only as a bare size check. There is no case for `page=1&size=0`, or for `size=100&page=2` with items in id order across multiple pages.
+   basis: I ran these probes against the tree and the outputs above are the current behaviour. TC_2 and TC_3 contain none of these inputs. Request S6/S7 ("any other query parameter is ignored") and the focus file's "boundary and invalid input" rule apply.
+   change: Add TC_2 (a) for the valid forms (leading zeros, an unknown parameter alongside page/size, duplicate parameters, size=100 with page=2). Add TC_3 (a) that, for an invalid-pair case such as `page=0&size=0`, checks the content-type and that the error text names `page`. Pick the oracle for duplicates and leading zeros from the spec before asserting, and record the choice if the spec stays silent.
+
+READ: review-focus.md, step-change.diff, request.md, current-system-baseline.md, tree/src/server.js, tree/src/users.js, tree/docs/shiploop/spec.md
+RAN: cp -R tree into my working directory then npm test in the copy (10/10 pass); a probe script that started the server and fetched 15 pagination queries (leading zeros, huge numbers, duplicates, full-width digit, whitespace, unknown parameter, boundaries) and printed status, content-type and body.
+
+======== m07 REPORT B ========
+FINDINGS
+1. file: src/server.js | where: GET /users page and size validation (lines ~25–30) | weight: minor
+   problem: `page` is checked only with `/^\d+$/` and `Number.isInteger`, so a huge value passes and is echoed back in exponent form. `page=99999999999999999999999` returns 200 with `"page":1e+23`, which is not a whole-number page and loses precision. Leading zeros are also accepted silently (`page=007` returns `page:7`). Neither case is tested, and the spec does not say whether leading zeros are allowed.
+   basis: I ran a probe against the tree copy. `page=99999999999999999999999` printed `200 {"page":1e+23,...,"items":[]}` and `page=007` printed `200 {"page":7,...}`. R-3 says page must be a "whole number >=1".
+   change: Use `Number.isSafeInteger(page)` so oversized pages get 400 with the page error. Add `TC_3 (a)` with `page=99999999999999999999999` expecting 400. Either reject leading zeros or state in R-3 that they are accepted.
+
+2. file: src/server.js | where: createServer docstring and the two validation blocks | weight: minor
+   problem: The `createServer` docstring still says only "An HTTP server for the user store". It does not state the new GET /users contract: `name`, `page` and `size` parameters, the array-versus-object response, and 400 on invalid values. The page and size checks are two near-identical blocks (regex, `Number`, range check, message).
+   basis: Code craft rules 3 and 9. The README and spec document the contract, but the entry point's own docstring does not.
+   change: Extend the docstring to give the query contract and the error response. Extract one small helper such as `parseBoundedInt(text, min, max)` used for both parameters.
+
+3. file: docs/shiploop/environment.md | where: "Harnesses and suites" and "ID convention" | weight: minor
+   problem: This knowledge file is now stale. It says "Tests are planned, not passed" and "Planned: …". It says new tests use "TC_1 through TC_4 for requirements R-1 through R-4", but only TC_1 to TC_3 exist and R-4 is covered by the existing suite. The step's result says "environment: No change".
+   basis: `npm test` in the tree copy ran 10 tests, 10 passed, 0 failed. `node --test test/list-users.test.js` is therefore a working command with TC_1 to TC_3 present. The recorded test-spec result lists only TC_1 to TC_3.
+   change: Edit environment.md in place. State that the focused and full commands are observed passing. Describe the IDs as TC_1 to TC_3 for R-1 to R-3, with R-4 covered by the existing suite and the lookup assertion in TC_1.
+
+4. file: test/list-users.test.js | where: TC_3 | weight: minor
+   problem: TC_3 only asserts that the error text contains the parameter name when one invalid parameter is sent. It never sends a valid `page` with an invalid `size` (or the reverse), so it cannot show the error names the offending parameter and not the other one. It does not cover both parameters invalid at once. It also does not assert that valid boundary values (`page=1`, `size=1`, `size=100`) are accepted next to an invalid one. `size=100` is checked in TC_2 only.
+   basis: The TC_3 oracle says "status 400 JSON error names bad parameter". The mutation record shows 0 survivors, but those mutants do not cover this path.
+   change: Add `TC_3 (a)`: `page=1&size=0` returns 400 with an error matching `/size/` and not `/page/`. Add `page=0&size=5` the same way for `page`, and `page=abc&size=abc` returning the page error.
+
+READ: review-focus.md, step-change.diff, tree/src/server.js, src/paginate.js, src/strings.js, src/users.js, test/list-users.test.js, README.md, docs/shiploop/{spec,architecture,environment}.md, records/results (step-plan, test-spec, spec), records/tests/…mutation1.md
+RAN: cp -R CASE/tree ./tree; npm test in the copy (10/10 passed); a probe script against createServer for `page=007`, a 23-digit `page`, `size=099`, `page=1&page=x`, `page=abc&size=abc`, `name=ada&page=2`, a full-width digit `page`, and `size=1&name=`
+
+======== m07 REPORT C ========
+FINDINGS
+1. file: src/server.js | where: GET /users handler, page validation (lines 22-27) | weight: minor
+   problem: A page above 2^53 is accepted but echoed as a different number, and the "too large to represent" branch has no test. `Number.isInteger(page)` is reachable only for Infinity, and `Number.isInteger(size)` is unreachable.
+   basis: Probe `page=9007199254740993` returned 200 with `"page":9007199254740992`, which is not the page the client asked for. `page=` followed by 400 nines returned 400 with the "whole number of at least 1" error, which describes the input wrongly. No test exercises either case, so removing `Number.isInteger(page)` would go unnoticed.
+   change: Use `Number.isSafeInteger` in place of `Number.isInteger`. Drop the redundant `size` check, since the `/^\d+$/` regex and the 1–100 range already cover it. Add `TC_3 (a)`, which requests `page=9007199254740993` and `page=<400 nines>` and asserts 400 with an error naming `page`.
+
+2. file: test/list-users.test.js | where: TC_3 | weight: minor
+   problem: TC_3 only sends one invalid parameter at a time, so the interaction of the two checks is untested. If the size check were skipped whenever `page` is valid (or the reverse), nothing would fail. The accepted-leading-zero behaviour is also untested.
+   basis: The TC_3 loop builds `new URLSearchParams({ [parameter]: value })` with a single key. Probe `page=2&size=0` returned 400 naming size, `page=0&size=0` returned 400 naming page, and `page=01&size=007` returned 200 with size 7. None of these is asserted.
+   change: Add `TC_3 (b)` with three requests: `page=2&size=0` gives 400 matching /size/, `page=0&size=5` gives 400 matching /page/, and `page=01&size=007` gives 200 with page 1 and size 7. Alternatively, reject leading zeros in the code and in the docs.
+
+3. file: docs/shiploop/environment.md | where: "Harnesses and suites", "ID convention" | weight: minor
+   problem: The file is stale after this step. It still says "Tests are planned, not passed", and it says new tests use TC_1 through TC_4, but no TC_4 exists; the R-4 lookup check sits inside TC_1. The result also claims "No change: planned harness and commands worked".
+   basis: `npm test` in the copy printed 10 pass, 0 fail, and test/list-users.test.js holds only TC_1 to TC_3. The environment file says otherwise.
+   change: Update the line to say the harness is verified and the cases are TC_1 to TC_3, with R-4 covered by the existing suite plus the lookup assertion in TC_1.
+
+4. file: docs/shiploop/spec.md | where: R-3 (and R-2) | weight: minor
+   problem: The knowledge home does not record behaviour this step showed. The `page` error takes precedence over the `size` error when both are invalid. Only ASCII digits are accepted, so `+1`, `1e2` and a space are rejected while `01` is accepted. When a parameter is repeated, the first value is used.
+   basis: The probes `page=0&size=0`, `page=01&size=007`, `page=1&page=x` and the fullwidth digit `page=%EF%BC%91` returned 400 for the fullwidth digit and the behaviour described above for the rest. Neither spec.md nor README.md mentions any of it.
+   change: Append one line ending with `(W1/S2)` inside R-3 stating these rules. State them in the README as well if they are meant to be contractual.
+
+READ: review-focus.md, step-change.diff, records/request.md, tree/docs/shiploop/{spec,architecture,environment}.md, tree/src/server.js, tree/src/paginate.js, tree/test/list-users.test.js, records/results/nav-2f240e…(step-plan), nav-362f4e…(test-spec), records/fields S2-proof, records/notes/current-system-baseline.md, records/tests/…mutation1.md, the S2 result
+RAN: cp -R of the tree into the working directory; `npm test` in the copy (10 pass, 0 fail); `node probe.js` (a one-off probe of the oversize, leading-zero, both-invalid, repeated-parameter and fullwidth-digit inputs, with the outputs quoted above)
+
+======== m07 REPORT D ========
+FINDINGS
+1. file: test/list-users.test.js | where: TC_3 (lines 49–62) and TC_2 | weight: material
+   problem: Every invalid value is tested alone, so no test sends one bad parameter next to a valid one. A change that skipped validating `page` whenever `size` is present, or `size` whenever `page` is present, would pass the suite. TC_2 and TC_3 also never combine pagination with an ignored parameter or an upper-case `name`.
+   basis: I read the test file. R-3 requires any invalid `page` or `size` to return 400, and S7 says other query parameters are ignored. I probed `page=1&size=0` and `page=0&size=0`, which return 400 by the code's behaviour, but no test asserts them. The mutation run lists 8 mutants, all killed, and none touches this path.
+   change: Add `TC_3 (a)`, asserting 400 and an `error` naming the bad parameter for `page=0&size=2`, `page=1&size=0`, `page=abc&size=5` and `page=1&size=` (valid one, invalid other). Add `TC_2 (a)`, asserting that `?name=ALAN&foo=bar&page=1&size=1` returns the full metadata object, with `total` 1 and `items` `[users[2]]`.
+2. file: src/server.js | where: lines 22–28, `Number(pageText)` after the `/^\d+$/` check | weight: minor
+   problem: A very large whole-number `page` is accepted and echoed back as a different number. `page=99999999999999999999` returns `"page":100000000000000000000`, so the response `page` no longer equals the requested value. A string of more than 308 digits turns into `Infinity` and gets a 400 whose message wrongly says the value is not a whole number. The spec and the README are silent on an upper bound.
+   basis: I ran the probe against a copy of the tree. `page=99999999999999999999` returned 200 with `page:100000000000000000000`. The server's behaviour here comes from `Number()` precision, not from any stated rule.
+   change: Decide the rule and record it in R-3 with the step's mark. Either reject values above `Number.MAX_SAFE_INTEGER` with the 400 `page` error (`Number.isSafeInteger`), or document that large pages return empty `items`. Add `TC_3 (b)` pinning the chosen behaviour for `page=99999999999999999999`.
+3. file: docs/shiploop/spec.md | where: R-3 and R-2 step lines | weight: minor
+   problem: The step observed behaviour that no document records. Leading zeros are accepted (`page=001` returns page 1). When `page` or `size` is repeated, the first value wins (`page=1&page=2` returns page 1). When both are invalid, only the `page` error is reported.
+   basis: Probe outputs above. The step's document stage says only that the knowledge home got "W1/S2 locators", and the spec's R-3 does not say which rule applies in these cases.
+   change: Append one line ending in `(W1/S2)` under R-3 stating these three behaviours. Cover the first-wins, leading-zero and page-error-first cases with a test, for example inside `TC_3 (a)`.
+
+READ: review-focus.md, step-change.diff, records/request.md, records/fields/nav-2f240e3c…-S2-proof.md, records/results/nav-2f240e3c…md (head), records/results/nav-362f4e7d…md, records/results/nav-0b52f6b1…md, records/tests/nav-0b52f6b1…-mutation1.md, records/lint/nav-a7c8b210…gate1.md, tree/src/server.js, tree/src/users.js, tree/src/paginate.js, tree/test/list-users.test.js, tree/docs/shiploop/{spec,architecture,environment}.md, tree/README.md
+RAN: copied the tree into the working directory and ran `npm test` there (10/10 pass, 0 fail); ran a probe script `node probe.js` against `createServer`, sending `page=001`, `page=1&size=0`, `page=0&size=0`, `page=1&page=2`, `page=99999999999999999999`, `size=2&page=2&foo=bar`, `NAME=ada&size=5`, `page=%EF%BC%91`, `size=100&page=1` and `name=&page=1&size=1`.
+
+======== m07 REPORT E ========
+FINDINGS
+1. file: test/list-users.test.js | where: TC_3 and TC_2 (no test for very large page values); src/server.js:24-29 | weight: material
+   problem: A whole-number `page` beyond the safe-integer range is accepted and echoed back inexactly, and no test covers it. `page=99999999999999999999999` returns 200 with `"page":1e+23`. `page=9007199254740993` returns 200 with `"page":9007199254740992`. R-2 requires the response to carry the requested page, and R-3 says the value must be a whole number ≥1. The response is wrong, and no test would catch it either way.
+   basis: I ran probe.js against the copied tree and got both responses above. TC_2 and TC_3 only use pages 1–3 and small invalid values.
+   change: Add a test case, TC_3 (a), for a huge page, and decide the oracle. Either reject it with 400 (the code would need a `Number.isSafeInteger` check) or accept it and return empty `items` with an exact `page`. Assert the chosen outcome.
+
+2. file: test/list-users.test.js | where: TC_2 (out-of-range and last-page boundary) | weight: minor
+   problem: Only one empty-page case is tested (`page=3&size=2`, a partial last page). The exact-fit boundary is not tested: `page=2&size=3` with total 3 should return `pages:1`, empty `items` and status 200 (the probe confirms this). A `start`/`pages` off-by-one on a full last page would not be caught, and `size=3` is never used.
+   basis: The assertions in TC_2 only use `size` 1, 2, 10 and 100. R-2 asks for "partial and empty pages".
+   change: Add TC_2 (a): `page=1&size=3` returns all three users with `pages:1`, and `page=2&size=3` returns `items:[]` with `pages:1`.
+
+3. file: test/list-users.test.js | where: TC_3 (no tests for combined or ordering cases) | weight: minor
+   problem: Four behaviours the code has are unasserted. (a) With both parameters invalid, the `page` error wins. (b) Validation runs regardless of filtering, so `name=zz&page=0` returns 400. (c) A valid `size` paired with an invalid `page`, and the reverse, is never tested. (d) Leading-zero values (`page=01`, `size=00100`) are accepted as 1 and 100, and nothing records whether that is intended. TC_3 only sends one parameter at a time.
+   basis: The probe returned 400 with a `page` message for `page=x&size=x` and for `name=ada&page=0`, and 200 for `page=01`. No test would fail if any of these changed.
+   change: Add TC_3 (a), a combined-parameter case that asserts each error names the first offending parameter. Add a case in which a valid `page` or `size` sits beside an invalid one. Pin the leading-zero decision either way.
+
+4. file: test/list-users.test.js | where: TC_3 and TC_2 (repeated parameters) | weight: minor
+   problem: Repeated parameters are untested. `page=1&page=x` returns 200 because only the first value is read, so a bad second value is silently ignored. R-3 says to reject invalid values, and the spec does not say how duplicates behave.
+   basis: The probe printed 200 with the default-page payload for `page=1&page=x`.
+   change: Add a test that pins the chosen behaviour (400, or first-wins). Record the decision in the spec.
+
+5. file: test/list-users.test.js | where: TC_1 and the R-4 lookup check | weight: minor
+   problem: The "unchanged lookup" check only sends `/users/1?name=missing`. Nothing checks that pagination parameters are ignored on `/users/:id`, which is the part this step could affect. I confirmed `/users/1?page=0&size=x` returns 200, but no test does.
+   basis: The TC_1 oracle says "existing lookup remains valid". S2 adds `page` and `size` handling beside the lookup route.
+   change: Add TC_3 (b), or a TC_1 sub-case, that asserts `/users/1?page=0&size=x` returns 200 with user 1, and `/users/99?page=0` returns 404.
+
+6. file: records/tests/nav-0b52f6b1996e44d4b66a87b8094da51c-mutation1.md (evidence only) | where: `sample_size` 8 of 13 `candidates` | weight: minor
+   problem: Only 8 of the 13 mutation candidates were run, so the "0 survived" result does not cover the whole change. The mutants on the defaults, the `has('size')` branch, the `Math.ceil` call and the `items` slice were not in the sample. The existing assertions probably kill them, but the record does not show it.
+   basis: `"candidates": 13, "sample_size": 8, "killed": 8`.
+   change: Rerun the mutation check on all 13 candidates, or state in the test result which ones were skipped and why.
+
+READ: review-focus.md; step-change.diff; the test-spec result (nav-362f…), the test S2 result (nav-0b52…) and its mutation record; the S2 proof field; tree/docs/shiploop/spec.md; tree/test/list-users.test.js; tree/src/server.js; tree/package.json
+RAN: copied the tree to ./tree; `cd tree && npm test` (10/10 pass); `node probe.js` against the copied server with 12 probe requests (large and unsafe page, duplicate page, both invalid, invalid page with filter, `%2B1`, `01`, `00100`, `page=2&size=3`, unknown parameter, and the lookup route with page and size parameters)
+
+======== m07 REPORT F ========
+FINDINGS
+1. file: docs/shiploop/environment.md | where: "## Harnesses and suites" ("Tests are planned, not passed. Run new focused tests against baseline…") and "## ID convention" ("TC_1 through TC_4 for requirements R-1 through R-4") | weight: minor
+   problem: Both lines are stale. `test/list-users.test.js` now holds TC_1, TC_2 and TC_3, and `npm test` passes 10 of 10. There is no TC_4, and TC_1 also covers R-4 (lookup). The document stage recorded "environment: No change: planned harness and commands worked", but the file still says the tests are not yet written or run.
+   basis: `npm test` in a copy of the tree printed `tests 10, pass 10, fail 0`. `grep TC_` in `test/list-users.test.js` finds only TC_1, TC_2 and TC_3. The test-spec result defines only TC_1 to TC_3.
+   change: Reword the harness paragraph as observed fact: the focused command and `npm test` pass, and the new tests are in `test/list-users.test.js`. Change the ID line to say TC_1 covers R-1 and R-4 lookup, TC_2 covers R-2 and TC_3 covers R-3, and that no TC_4 exists.
+
+2. file: src/server.js | where: the `page` and `size` validation in the GET /users handler (the `/^\d+$/` tests) and the echoed `page` | weight: minor
+   problem: Behaviour the step introduced is neither tested nor recorded in the README, spec.md or AD-1. Leading zeros are accepted (`page=01` gives 200 with page 1, `size=007` gives 200 with size 7). A digit string beyond safe-integer range is accepted, and the response echoes a lossy number: `page=99999999999999999999999` returns `"page":1e+23` with empty items. The echoed `page` therefore no longer equals the requested page. R-3 says "whole number" and the step made these calls without recording them.
+   basis: I ran probes against a copy of the tree. `page=01` returned 200 `{"page":1,…}`. `size=007` returned 200 `{"size":7,…}`. `page=99999999999999999999999` returned 200 `{"page":1e+23,"size":10,"total":3,"pages":1,"items":[]}`. TC_3 has no such value, and the README does not mention it.
+   change: Decide the rule and record it in one line under R-3 in spec.md, ending in `(W1/S2)`: either reject leading zeros and values above `Number.MAX_SAFE_INTEGER`, or state that they are accepted. Add TC_3 (a), listed as a sub-case of TC_3: `page=01`, `size=007` and a 25-digit page. Each must either return the 400 error or match the documented echo.
+
+3. file: src/server.js | where: the page and size validation blocks | weight: minor
+   problem: The two blocks are near-copies (regex test, `Number`, `isInteger`, range check, 400 send). The limits 10 and 100 are hard-coded in the code and in the message string. The error text names the parameter and constraint but not the received value, so a client or log cannot tell which input was rejected. The `Number.isInteger` check after `/^\d+$/` only catches an `Infinity` overflow, and nothing says so.
+   basis: Code craft rules 2 and 13 (reject with argument, constraint and received value; no hard-coded limits) and rules 4 and 9 (no near-copies, no comment-free redundant checks). Rule 1 asks for house style: `send(res, 404, { error: 'not found' })` is the house error shape, and the step keeps it.
+   change: Add one helper such as `parseWholeNumber(text, name, min, max)` that returns the number or the error message. Declare `DEFAULT_PAGE`, `DEFAULT_SIZE` and `MAX_SIZE` as named constants and use them in the message. Include the received value, for example `size must be a whole number from 1 to 100, got "101"`. Add a one-line comment saying the `isInteger` check exists to reject digit strings that overflow to Infinity. Keep TC_3's `match(error, /page|size/)` assertion unchanged.
+
+4. file: README.md | where: the new pagination paragraph (the line added after the `?name=ada` sentence) | weight: minor
+   problem: The paragraph omits behaviour R-2 states and a user needs: a page past the last returns an empty `items`, and `?name=` combined with pagination applies the filter first (the README says "filtering happens before pagination", which is fine). `README.md` is also outside the item's declared paths (`src/server.js` and `test/list-users.test.js`) and is not part of KNOWLEDGE. The step plan never declared it.
+   basis: R-2 in spec.md ("out-of-range pages have empty items"); `page=3&size=2` returns `items: []` with 200 in TC_2. The step plan's `paths` list has no README.md.
+   change: Add "A page past the last returns an empty `items` array with HTTP 200." to the README paragraph. Record that the README edit is deliberate (the docs stage's own mandate) in the step notes so the path exception is explicit.
+
+READ: review-focus.md, step-change.diff, tree/README.md, tree/package.json, tree/src/server.js, tree/src/paginate.js, tree/src/strings.js, tree/docs/shiploop/{spec,architecture,environment}.md, tree/test/list-users.test.js, tree/test/paginate.test.js, records/request.md, records/results/{step-plan nav-2f24…, test-spec nav-362f…, implement S2 nav-a7c8…, test S2 nav-0b52…}, records/lint/nav-a7c8…gate1.md, records/tests/…-mutation1.md, records/notes/current-system-baseline.md
+RAN: cp -R CASE/tree ./tree; npm test (10 of 10 pass); a node one-liner probing `page=01`, `size=007`, `page=1&page=x`, a 23-digit page, `size=1&page=2&name=`, `page=%2B1` and `page=1&size=0&x` over loopback; grep of the mutation record (0 survivors, 8 killed of 13 candidates)
+

@@ -1,0 +1,36 @@
+{"case": "m02", "report": "A", "verdict": "near", "finding": 2, "why": "Notes that a repeated assignee takes the first value only as an unasserted parse edge, not as a defect violating intersection, and proposes no repeated-filter test."}
+{"case": "m02", "report": "B", "verdict": "missed", "finding": null, "why": "No finding concerns repeated query parameters."}
+{"case": "m02", "report": "C", "verdict": "near", "finding": 6, "why": "Mentions a repeated assignee taking the first value as untested parse behaviour but does not call it a defect or propose intersecting and validating every occurrence."}
+{"case": "m02", "report": "D", "verdict": "missed", "finding": null, "why": "No finding concerns repeated query parameters."}
+{"case": "m02", "report": "E", "verdict": "missed", "finding": null, "why": "Unit-test finding covers assignee= and two distinct filters, not repeated occurrences of one filter."}
+{"case": "m02", "report": "F", "verdict": "missed", "finding": null, "why": "No finding concerns repeated query parameters."}
+{"case": "m03", "report": "A", "verdict": "missed", "finding": null, "why": "Concerns the dash placeholder collision in the table, not the show/details view lacking the assignee."}
+{"case": "m03", "report": "B", "verdict": "missed", "finding": null, "why": "No finding about the show command omitting the assignee."}
+{"case": "m03", "report": "C", "verdict": "missed", "finding": null, "why": "Ran show but reported nothing about it omitting the assignee."}
+{"case": "m03", "report": "D", "verdict": "missed", "finding": null, "why": "No finding about the details view omitting the assignee."}
+{"case": "m03", "report": "E", "verdict": "missed", "finding": null, "why": "No finding about the details view omitting the assignee."}
+{"case": "m03", "report": "F", "verdict": "missed", "finding": null, "why": "No finding about the details view omitting the assignee."}
+{"case": "m04", "report": "A", "verdict": "near", "finding": 2, "why": "Lists a repeated parameter (first value only) among untested parse cases but does not identify discarding later values as a defect or ask that every occurrence apply."}
+{"case": "m04", "report": "B", "verdict": "missed", "finding": null, "why": "Filter-test finding covers case, whitespace and combined distinct filters, not repeated parameters."}
+{"case": "m04", "report": "C", "verdict": "missed", "finding": null, "why": "No finding concerns repeated filter parameters."}
+{"case": "m04", "report": "D", "verdict": "missed", "finding": null, "why": "Explicitly judged first-value-wins on repeated parameters as correct per spec."}
+{"case": "m04", "report": "E", "verdict": "missed", "finding": null, "why": "No finding concerns repeated filter parameters."}
+{"case": "m04", "report": "F", "verdict": "missed", "finding": null, "why": "Assignee filter finding concerns whitespace and length validation, not repeated values."}
+{"case": "m05", "report": "A", "verdict": "missed", "finding": null, "why": "No finding about imported tickets' notifications being delivered through the worker."}
+{"case": "m05", "report": "B", "verdict": "missed", "finding": null, "why": "No finding about worker delivery of imported notifications."}
+{"case": "m05", "report": "C", "verdict": "missed", "finding": null, "why": "No finding about worker delivery of imported notifications."}
+{"case": "m05", "report": "D", "verdict": "missed", "finding": null, "why": "No finding about worker delivery of imported notifications."}
+{"case": "m05", "report": "E", "verdict": "missed", "finding": null, "why": "No finding about worker delivery of imported notifications."}
+{"case": "m05", "report": "F", "verdict": "missed", "finding": null, "why": "No finding about worker delivery of imported notifications."}
+{"case": "m06", "report": "A", "verdict": "missed", "finding": null, "why": "Reports no findings."}
+{"case": "m06", "report": "B", "verdict": "missed", "finding": null, "why": "Concerns urgent wording end to end, not escalation across service restarts with a changed on-call."}
+{"case": "m06", "report": "C", "verdict": "missed", "finding": null, "why": "Findings concern stale docs and wording assertions, not restart coverage."}
+{"case": "m06", "report": "D", "verdict": "missed", "finding": null, "why": "Findings concern stale spec line and wording tests, not restart coverage."}
+{"case": "m06", "report": "E", "verdict": "missed", "finding": null, "why": "Findings concern docs and style, not restart coverage."}
+{"case": "m06", "report": "F", "verdict": "missed", "finding": null, "why": "Findings concern docs and imports, not restart coverage."}
+{"case": "m07", "report": "A", "verdict": "caught", "finding": 1, "why": "Identifies rounding above 2^53 and the wrong 400 for 309+ digits, and offers keeping them valid with the exact page echoed plus a TC_2 (a) test."}
+{"case": "m07", "report": "B", "verdict": "near", "finding": 1, "why": "Identifies the lossy echo of huge pages but proposes rejecting them with isSafeInteger, the opposite behaviour change."}
+{"case": "m07", "report": "C", "verdict": "near", "finding": 1, "why": "Identifies the rounded echo and the 400 for huge values but proposes rejecting them with isSafeInteger."}
+{"case": "m07", "report": "D", "verdict": "near", "finding": 2, "why": "Identifies the inexact echo and Infinity 400 but offers rejecting or merely documenting empty items, not preserving the exact page."}
+{"case": "m07", "report": "E", "verdict": "caught", "finding": 1, "why": "Identifies the inexact echo of huge pages and offers accepting them with empty items and an exact page, with a test."}
+{"case": "m07", "report": "F", "verdict": "near", "finding": 2, "why": "Notes the lossy echo of huge pages but offers rejecting or documenting acceptance, not preserving the exact value."}
