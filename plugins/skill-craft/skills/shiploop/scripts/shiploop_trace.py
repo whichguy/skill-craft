@@ -44,6 +44,7 @@ _READ_ROOTS = ContextVar("trace_read_roots", default=())
 TRACE_FILE = "trace.jsonl"
 SENT_DIR = "packets/sent"
 PAGE = "trace.html"
+CONTENT = "trace-content.js"  # the open page loads it for an in-place update; the observer writes it beside PAGE
 SCHEMA = "shiploop-trace/v1"
 SKILL_CALLS = "skill-calls.jsonl"
 # Guard: a runaway run cannot grow the append-only trace without end.  Past this size it stops growing and the reader
@@ -1161,17 +1162,21 @@ def page_texts(root: str | Path, model: Mapping[str, Any]) -> dict[str, str]:
     return texts
 
 
-def render_html(root: str | Path, model: Mapping[str, Any], *, texts=None) -> str:
-    """The self-contained page: the template with the model and the packet texts inlined."""
-    from shiploop_trace_page import DATA_MARK, PAGE  # only the page needs the template, not every command or hook
-
+def page_payload(root: str | Path, model: Mapping[str, Any], *, texts=None) -> str:
+    """The model and the packet texts as the JSON the page inlines (and ``CONTENT`` carries): screened, ASCII."""
     data = dict(model)
     data["texts"] = page_texts(root, model) if texts is None else texts
     data["events"] = [{**event, **{name: _screened(event[name]) for name in ("text", "error")
                                    if isinstance(event.get(name), str)}} for event in model["events"]]
     # Every "<" escaped: "</script>" or "<!--<script>" in a prompt must not end or re-open the script element.
-    payload = json.dumps(observation_io.screen(data), ensure_ascii=True, separators=(",", ":")).replace("<", "\\u003c")
-    return PAGE.replace(DATA_MARK, payload, 1)
+    return json.dumps(observation_io.screen(data), ensure_ascii=True, separators=(",", ":")).replace("<", "\\u003c")
+
+
+def render_html(root: str | Path, model: Mapping[str, Any], *, texts=None, payload: str | None = None) -> str:
+    """The self-contained page: the template with the model and the packet texts inlined (or a ``page_payload``)."""
+    from shiploop_trace_page import DATA_MARK, PAGE  # only the page needs the template, not every command or hook
+
+    return PAGE.replace(DATA_MARK, page_payload(root, model, texts=texts) if payload is None else payload, 1)
 
 
 def write_html(root: str | Path, path: str | Path | None = None, *, now: float | None = None, model=None, texts=None) -> Path:
@@ -1181,6 +1186,18 @@ def write_html(root: str | Path, path: str | Path | None = None, *, now: float |
     return target
 
 
+def write_live(root: str | Path, *, model: Mapping[str, Any], texts=None) -> None:
+    """Write the page and its update file from one payload: RUN/trace.html and RUN/trace-content.js (the model's
+    ``version``, when the observer sets one, is how an open page knows the content changed).
+
+    ``CONTENT`` goes first: a page told by the observer that a new version exists finds the content already there.
+    """
+    payload = page_payload(root, model, texts=texts)
+    run = Path(root)
+    store.atomic_write_text(run / CONTENT, "window.__shiploopTrace&&window.__shiploopTrace(" + payload + ");\n")
+    store.atomic_write_text(run / PAGE, render_html(root, model, texts=texts, payload=payload))
+
+
 def source_key(root: str | Path, *, model=None, texts=None) -> tuple[Any, ...]:
     """Fingerprint all displayed inputs, excluding heartbeat and wall-clock elapsed."""
     import shiploop_story as story_data
@@ -1188,6 +1205,7 @@ def source_key(root: str | Path, *, model=None, texts=None) -> tuple[Any, ...]:
     value = dict(model)
     value.pop("generated", None)
     value.pop("observed_at", None)
+    value.pop("version", None)  # the observer stores this key in the model it publishes: it cannot depend on itself
     value["observer"] = {k: v for k, v in value.get("observer", {}).items() if k != "observed_at"}
     value["run"] = {k: v for k, v in model["run"].items() if k != "elapsed"}
     value["sources"] = [{k:v for k,v in row.items() if k != "observed_at" and not (row.get("path") == "progress-observations.jsonl" and k in ("sha256", "changed_at", "rows"))} for row in value.get("sources", [])]

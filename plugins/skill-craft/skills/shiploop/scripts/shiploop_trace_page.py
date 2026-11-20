@@ -11,7 +11,7 @@ PAGE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ShipLoop Run Trace</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'self'; img-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <style>
 :root {
   --bg: #f6f6f3; --panel: #ffffff; --ink: #1c1c1e; --muted: #6b6b70; --line: #e2e2de; --chip: #f0f0ec;
@@ -205,7 +205,81 @@ button:disabled { opacity: .5; cursor: default; }
 </aside>
 <script>
 const TRACE = /*TRACE-DATA*/null;
-(function () {
+
+// ---------------------------------------------------------------- live updates
+// While a run is watched, the observer rewrites progress-version.js about every 2 s (one call to
+// window.__shiploopVersion: the key of the displayed content) and trace-content.js when that content changes (one
+// call to window.__shiploopTrace: the same model that is inlined above). A file: page cannot fetch, so each is
+// loaded as a sibling script. The page re-renders in place with the new model and never reloads. Nothing below
+// closes over a model except `pending`, so a re-render lets the old model go.
+const LIVE_SECONDS = 5;
+const LIVE = {on: false, version: undefined, requested: undefined, received: undefined, fetching: false,
+  pending: null, observedAt: "", timer: null, loads: Date.now()};
+// Busy: the packet viewer is open, a search box or note is being typed in, or text is selected.
+function liveBusy() {
+  const viewer = document.getElementById("viewer");
+  const active = document.activeElement;
+  const typing = !!active && (active.type === "search" || active.tagName === "TEXTAREA");
+  const selection = window.getSelection();
+  const selecting = !!selection && !selection.isCollapsed && String(selection).length > 0;
+  return !!(viewer && viewer.classList.contains("open")) || typing || selecting;
+}
+// One sibling script, removed when it has run (or failed: the file may not exist yet, or the observer may have stopped).
+function liveLoad(name, done) {
+  const script = document.createElement("script");
+  const finish = () => { script.remove(); if (done) done(); };
+  script.onload = finish;
+  script.onerror = finish;
+  script.src = name + "?t=" + (++LIVE.loads);
+  document.head.appendChild(script);
+}
+function liveSchedule() {
+  clearTimeout(LIVE.timer);
+  LIVE.timer = null;
+  if (LIVE.on) LIVE.timer = setTimeout(liveTick, LIVE_SECONDS * 1000);
+}
+function liveTick() {
+  LIVE.timer = null;
+  if (!LIVE.on) return;
+  if (LIVE.pending && !liveBusy()) return liveApply(LIVE.pending);
+  liveLoad("progress-version.js", null);
+  liveSchedule();
+}
+// Re-render with a new model where the reader stands: bootTrace replaces the page's children from the same
+// sessionStorage state (open groups, filters, search text), and the scroll position is restored in the same task.
+function liveApply(model) {
+  clearTimeout(LIVE.timer);
+  LIVE.timer = null;
+  LIVE.pending = null;
+  const y = window.scrollY;
+  try { bootTrace(model); } finally { liveSchedule(); }
+  window.scrollTo(0, y);
+}
+function liveShowObserved() {
+  const node = document.getElementById("observer-read");
+  if (node && LIVE.observedAt) node.textContent = LIVE.observedAt;
+}
+window.__shiploopVersion = (v) => {
+  if (!v || typeof v !== "object") return;
+  if (typeof v.observed_at === "string" && v.observed_at) { LIVE.observedAt = v.observed_at; liveShowObserved(); }
+  const key = typeof v.trace === "string" ? v.trace : "";
+  // Already showing it, or already received the content asked for under this key (a model without a version still
+  // polls: its first key is new, and the key it was fetched for is then remembered).
+  if (!LIVE.on || !key || LIVE.fetching || key === LIVE.version || key === LIVE.received) return;
+  LIVE.fetching = true;
+  LIVE.requested = key;
+  liveLoad("trace-content.js", () => { LIVE.fetching = false; });
+};
+window.__shiploopTrace = (model) => {
+  if (!model || typeof model !== "object" || !model.run) return;
+  LIVE.received = LIVE.requested !== undefined ? LIVE.requested : model.version;
+  if (LIVE.on && !liveBusy()) liveApply(model);
+  else LIVE.pending = model;
+};
+// Escape closes the packet viewer: one listener for the page's life, not one per render.
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.getElementById("viewer-close").click(); });
+
+function bootTrace(TRACE) {
   if (!TRACE) return;
   const KINDS = ["command", "packet", "hook", "skill", "accepted"];
   const store = {
@@ -296,7 +370,6 @@ const TRACE = /*TRACE-DATA*/null;
     const text = document.getElementById("viewer-text").textContent;
     if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
   };
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.getElementById("viewer-close").click(); });
 
   // ---------------------------------------------------------------- header, now, plan
   function runSpanLabel(status) {
@@ -319,7 +392,7 @@ const TRACE = /*TRACE-DATA*/null;
             : "Wall-clock run age at capture; not measured execution duration."}, runSpanLabel(run.status) + ": " + span(["done", "halted"].includes(run.status) && !run.last_event ? null : run.elapsed)),
         run.last_event ? el("span", {title: run.last_event}, "last event " + when(run.last_event)) : null,
         el("span", {title: TRACE.generated}, "page written " + when(TRACE.generated)), el("span", {}, "times in " + ZONE),
-        watchable ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); schedule(); }}), " watch display (reload every 10 s)") : null),
+        watchable ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); LIVE.on = ui.live; liveSchedule(); }}), " live updates (checks every 5 s, no reload)") : null),
       run.traced ? null : el("p", {class: "note"}, "This run predates the trace: steps come from state.md and timeline.json, and each packet is its last copy, not every copy sent."),
       run.traced && run.untraced_steps ? el("p", {class: "note"}, "The trace began at " + when(run.traced_since) + ": the " + run.untraced_steps + " steps accepted before it come from state.md and timeline.json, each with its packet's last copy.") : null,
       // Not measured is not zero: a run before the trace recorded no packets, refusals, hook stops or commands.
@@ -624,7 +697,7 @@ const TRACE = /*TRACE-DATA*/null;
     if (target) { target.open = true; rememberOpen(); target.scrollIntoView({behavior: "smooth", block: "start"}); }
   }
 
-  // ---------------------------------------------------------------- page, live reload
+  // ---------------------------------------------------------------- page
   function save() { store.set("ui", ui); }
   function sourceCoverage() {
     const story = TRACE.story || {};
@@ -638,8 +711,8 @@ const TRACE = /*TRACE-DATA*/null;
     const overview = rows.length ? num(rows.length) + " source records · " +
       [...statuses].map(([status, count]) => num(count) + " " + status).join(" · ") :
       "Per-source coverage unavailable in this trace generation.";
-    const clocks = (entries) => el("dl", {class: "coverage-clocks"}, entries.map(([label, value]) =>
-      el("div", {}, el("dt", {}, label), el("dd", {}, value === null || value === undefined || value === "" ? "unknown" : value))));
+    const clocks = (entries) => el("dl", {class: "coverage-clocks"}, entries.map(([label, value, id]) =>
+      el("div", {}, el("dt", {}, label), el("dd", id ? {id} : {}, value === null || value === undefined || value === "" ? "unknown" : value))));
     const sources = rows.map((row) => el("article", {class: "card"},
       el("strong", {}, (row.id || "Source") + " · " + (row.status || "unknown")),
       el("div", {class: "mono"}, row.path || "Path not recorded"),
@@ -655,7 +728,7 @@ const TRACE = /*TRACE-DATA*/null;
         sources));
     details.addEventListener("toggle", () => store.set("coverage-open", details.open));
     return el("section", {}, el("h2", {}, "Coverage and clocks"),
-      clocks([["Observer last successful read", TRACE.observed_at],
+      clocks([["Observer last successful read", TRACE.observed_at, "observer-read"],
         ["Recorded run activity", story.last_event_at || run.last_event], ["Content generated", TRACE.generated]]),
       el("p", {class: "coverage-overview"}, overview + (warnings.length ? " · " + num(warnings.length) + " coverage warnings (details below)" : "")),
       el("p", {class: "note"}, "Watching this display does not establish execution or product acceptance."),
@@ -673,26 +746,14 @@ const TRACE = /*TRACE-DATA*/null;
         " · trace.jsonl " + num(run.trace_bytes) + " bytes" + (run.capped ? " (stopped growing at its cap)" : "") +
         " · state.md stays the authority; this page is a display.")].filter(Boolean));
   }
-  let timer = null;
-  function schedule() {
-    clearTimeout(timer);
-    if (!watchable || !ui.live) return;
-    timer = setTimeout(() => {
-      const typing = document.activeElement && (document.activeElement.type === "search" || document.activeElement.tagName === "TEXTAREA");
-      const selection = window.getSelection();
-      const selecting = selection && !selection.isCollapsed && String(selection).length > 0;
-      const busy = viewer.classList.contains("open") || typing || selecting;
-      if (busy) return schedule();
-      store.set("scroll", window.scrollY);
-      location.reload();
-    }, 10000);
-  }
   render();
-  const scroll = store.get("scroll", null);
-  if (scroll !== null) { window.scrollTo(0, scroll); store.set("scroll", null); }
   if (ui.open && TRACE.texts[ui.open.file] !== undefined) openPacket(ui.open.file, ui.open.label, ui.open.info);
-  schedule();
-})();
+  LIVE.version = TRACE.version;
+  LIVE.on = watchable && ui.live;
+  liveShowObserved();
+}
+bootTrace(TRACE);
+liveSchedule();
 </script>
 </body>
 </html>

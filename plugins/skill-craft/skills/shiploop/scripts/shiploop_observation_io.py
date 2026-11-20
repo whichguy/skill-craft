@@ -178,6 +178,28 @@ def capture(root, relative, limit, observed_at, previous=None):
     return {"raw": b"", "source": source, "generation": "missing"}
 
 
+def unchanged(root, relative, previous):
+    """True when one file still matches a retained good capture: a single no-follow stat, never a read.
+
+    The file must be a regular single-link file with the captured device:inode, mtime and size.
+    Any doubt (including a missing path or a capture that was not "ok") is False, so the caller reads fresh.
+    """
+    try:
+        if not previous or previous["source"]["status"] != "ok":
+            return False
+        parts = _relative_parts(relative)
+        directory = _parent_fd(root, parts[:-1])
+        try:
+            now = os.stat(parts[-1], dir_fd=directory, follow_symlinks=False)
+        finally:
+            os.close(directory)
+        return (stat.S_ISREG(now.st_mode) and now.st_nlink == 1
+                and f"{now.st_dev}:{now.st_ino}" == previous["generation"]
+                and now.st_mtime_ns == previous["mtime_ns"] and now.st_size == len(previous["raw"]))
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
 def stream(captured):
     rows, coverage = store.parse_jsonl_bytes(captured["raw"], coverage=True)
     source = captured["source"]

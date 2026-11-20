@@ -36,9 +36,28 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 Open `<run>/progress.html` as an ordinary HTML file. After a successful `init`,
 `next`, `resume`, callback, `pause`, or `halt`, the CLI ensures one read-only
 background observer for that run. It samples about every two seconds and
-publishes a complete page when recorded inputs change, plus a periodic heartbeat.
-The open page reloads about every five seconds. No web server, browser file
-permission, external asset, or model call is required.
+publishes a complete page only when what the page shows has changed. No web
+server, browser file permission, external asset, or model call is required.
+
+The open page never reloads itself. About every five seconds it loads a small
+script the observer keeps beside the page, `progress-version.js`, which names
+the current version of each page and the time of the observer's last good
+sample; the observer rewrites that one file at every sample, so it is also the
+heartbeat. When the version is the one the page already shows, only the "data
+age" line moves. When it differs, the page loads `progress-content.js` (the
+page's `<main>`, written together with the page) and swaps in place just the
+blocks whose content changed: a block the reader has open, the scroll position
+and the search text stay as they are, and nothing flickers. A page opened as a
+file and a page served by the [browser viewer](#browser-viewer) update the same
+way, because a `file:` page cannot fetch but can load a sibling script; the
+page's content security policy admits its own inline script and those sibling
+scripts and no connection of any other kind. An update waits while text is
+selected. Checked in Chrome; other browsers are not measured.
+
+The page opens with where the run stands (the phase strip and the current
+focus), then the visit journal. The lists that grow with the run, the evidence
+previews and the per-source coverage, are folded under a line that counts them
+by status and open on request; a link to one preview opens the fold it is in.
 
 At the first successful startup, the host shares the packet's absolute HTML link
 with the user: "You can use this HTML file to track changes during this ShipLoop
@@ -83,6 +102,19 @@ hardlink, special-file and out-of-root references are refused. Missing or withhe
 files have explicit placeholders. The existing privacy screen recognizes only
 specific credential patterns, not every possible secret.
 
+A status on the page says what was recorded, in plain words. A command shows
+`ok`, or `refused`, `not passed` (a `check`), `held`, `interrupted` or `crashed`
+with its exit code; a packet shows `sent`; a hook shows its decision; a kind
+with no status of its own shows alone. An Until receipt, a check answer, an
+expectations record and a test record are listed for a visit only when the file
+exists: most stages never write most of them, and a file that was never due is
+not "missing". Every such record is read for its status. The preview budget
+(160 files) bounds only whose content is embedded: a record past it shows `not
+embedded` beside its real status, and a packet preview past it shows `not
+loaded`. The events of an Improve pass appear under the visit the pass reviewed,
+marked `Improve pass`; a preparation or release stage, which belongs to no work
+item, shows `run-wide`.
+
 The page distinguishes last recorded activity, last successful observation and
 content generation. Each optional source reports its coverage: missing, unsafe,
 partial or retained stale content cannot masquerade as a complete fresh read.
@@ -94,16 +126,20 @@ Engine status, recorded execution status, product acceptance, source return and
 owner hold are separate facts. Only the engine state comes from ShipLoop state;
 external lifecycle assertions require a run-bound producer observation and show
 the scope beside their producer. Unknown
-stays unknown. An Until file named `terminal` can still contain an active receipt.
+stays unknown: once a producer reports any of the four, each one it did not
+report shows `unknown`. With no producer reporting at all, which is the ordinary
+run, the page shows the engine row and one line saying the other four are not
+reported, instead of four rows of `unknown`. An Until file named `terminal` can still contain an active receipt.
 Visit duration is recorded or inferred dwell, not a measure of model compute;
 overlapping command times and reused checks must not be added into an execution
 total.
 
 Its stale indicator means observation may have stopped; a fresh observation is
 not proof the agent is running. **Pause updates** affects only the browser, never
-ShipLoop. Browser storage restrictions may prevent restoring reading position;
-manual refresh and the full saved content remain available. Background-tab
-throttling and busy run locks can delay refresh, so timing is not a real-time
+ShipLoop: a paused page stops checking, and **Check now** takes one update. The
+reader's own browser reload restores the reading position where browser storage
+permits; the full saved content remains available without it. Background-tab
+throttling and busy run locks can delay an update, so timing is not a real-time
 guarantee.
 
 Use the same selected package's CLI and exact run directory:
@@ -120,13 +156,15 @@ python3 "$CLI" view --run-dir "$RUN_DIR" --serve    # the same pages in a browse
 `--start`, `--watch` or `--serve` reenables observation after `--stop`. A one-shot
 snapshot refuses to compete with an existing observer. `--interval` selects the
 sampling interval (default two seconds); `--idle-timeout` defaults to 1800 seconds
-without recorded activity. Heartbeat-only publications do not reset that clock.
+without recorded activity. A sample that finds nothing new rewrites only the
+version script and does not reset that clock.
 An idle observer exits and a later packet can restart
 it. Set `SHIPLOOP_PROGRESS=off` in a command's environment to suppress automatic
 startup, for example in a hermetic harness. It does not stop an existing observer
 or disable explicit `view` commands.
 
-Only the observer writes `progress.html`. It holds a separate singleton lock and
+Only the observer writes `progress.html`, `trace.html` and their three scripts
+(`progress-version.js`, `progress-content.js`, `trace-content.js`). It holds a separate singleton lock and
 briefly takes the existing run lock to capture state and timeline once for both
 pages, then releases it before reading optional streams and rendering. It skips pending transactions
 without recovering them, never writes authoritative state, and never accepts
@@ -206,13 +244,16 @@ that ran it would block on a server that never exits, and a server ShipLoop star
 would be a command the host's hooks never saw. Later packets do not repeat it.
 
 The viewer only reads; the observer still owns every page. It answers GET and HEAD for the
-three pages above and nothing else: 405 for any write method, 404 for any other path, 403 for
-a page that is a symbolic link or has a second hard link. It refuses a request whose `Host` is
+three pages above and the three scripts an open page loads to update in place
+(`progress-version.js`, `progress-content.js`, `trace-content.js`), and nothing else: 405 for
+any write method, 404 for any other path, 403 for
+a file that is a symbolic link or has a second hard link. It refuses a request whose `Host` is
 not its own address, so a page on another site cannot read the run through a name it points
 at 127.0.0.1. It listens on the loopback address only and sets `no-store` and a content
-security policy that allows only the page's own inline script and style. While it runs, any
-process on this machine can read the pages. It adds no push: the page still reloads on its
-timer. Primary evidence navigation opens embedded previews, including over HTTP;
+security policy that allows only the page's own inline script and style and those three
+scripts. While it runs, any
+process on this machine can read the pages. It adds no push: a served page checks the version
+script on its timer and updates in place, exactly as a page opened as a file does. Primary evidence navigation opens embedded previews, including over HTTP;
 disk paths remain selectable for manual inspection. Progress and trace use
 relative page links, and the saved-report link points at the viewer's own `/report.html`.
 
@@ -308,11 +349,15 @@ reconciliation replaced count as superseded.
 beside the expansion), the plan grid (its legend names only what the run shows
 and never animates), each step's events with filters and search, and each
 packet's text as sent, screened for credentials. Times show in the viewer's time
-zone, with UTC in the tooltip. The progress observer rewrites the page as the run
-changes. Active and blocked pages can reload every ten seconds unless a packet
-is open, a search is being typed or live updates are off. Reloading a blocked
-page only checks for newly published evidence; it does not imply the builder is
-running or resume the run. Done and halted pages remain final.
+zone, with UTC in the tooltip. The progress observer rewrites the page, and its
+content script `trace-content.js`, when the trace's displayed content changes. An
+open active or blocked page never reloads: it checks `progress-version.js` about
+every five seconds and, when the trace's version moved, loads the content script
+and redraws in place, keeping the scroll position, the open steps, the filters
+and the search text. An update waits while a packet is open, a search is being
+typed or text is selected, and the checks stop while live updates are off. A
+check on a blocked page only looks for newly published evidence; it does not
+imply the builder is running or resume the run. Done and halted pages remain final.
 
 ## Where it appears
 

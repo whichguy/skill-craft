@@ -88,6 +88,74 @@ def _observation_activity(row):
     return {key: value for key, value in row.items() if key not in ("observed_at", "logged_at")}
 
 
+def _exit_code(row):
+    code = row.get("exit")
+    return code if isinstance(code, int) and not isinstance(code, bool) else None
+
+
+def _event_status(name, kind, row, code):
+    """Plain words for one trace/skill-call row; same refusal vocabulary as `event_line` in shiploop_trace.py.
+
+    The raw exit code stays on the event beside this. Kinds without a status word get None, never a placeholder.
+    """
+    if name == "skill-calls.jsonl" or kind == "skill":
+        gate = row.get("gate")
+        return gate if isinstance(gate, str) and gate else "called"
+    if kind == "command":
+        if code is None:
+            return None
+        if code == 0:
+            return "ok"
+        word = ("held" if row.get("held") else "not passed" if row.get("verb") == "check"
+                else "interrupted" if row.get("crashed") == "KeyboardInterrupt"
+                else "crashed" if row.get("crashed") else "refused")
+        return f"{word} (exit {code})"
+    if kind == "packet":
+        return "sent again (same text)" if row.get("repeat") else "sent"
+    if kind == "hook":
+        decision = row.get("decision")
+        return decision if isinstance(decision, str) and decision else None
+    return None
+
+
+def _packet_summary(row):
+    """E.g. "W2 improve packet (reviewing document), 1,504 chars, printed whole"; absent parts are omitted."""
+    text = " ".join(str(row[key]) for key in ("item", "stage") if row.get(key)) + " packet"
+    text = text.strip()
+    if row.get("reviewed"):
+        text += f" (reviewing {row['reviewed']})"
+    parts = [text]
+    chars, printed = row.get("chars"), row.get("printed")
+    if isinstance(chars, int) and not isinstance(chars, bool):
+        parts.append(f"{chars:,} chars")
+    if row.get("whole"):
+        parts.append("printed whole")
+    elif isinstance(printed, int) and not isinstance(printed, bool):
+        parts.append(f"printed head {printed:,} chars")
+    return ", ".join(parts)
+
+
+def _record_status(record):
+    """Status of one structured record; an expectations record reports how many of its checks matched."""
+    results = record.get("results")
+    if record.get("schema") == "shiploop-expectations/v1" and isinstance(results, list) and results:
+        matched = sum(1 for result in results if isinstance(result, dict) and result.get("matches") is True)
+        return f"{matched} of {len(results)} matched"
+    return record.get("status", record.get("answer", record.get("disposition", record.get("passed"))))
+
+
+def _listing(root, directory):
+    """Sorted names in one run subdirectory, read through the same no-follow descriptors; none when absent or unsafe."""
+    try:
+        fd = capture._parent_fd(root, (directory,))
+        try:
+            return sorted(os.listdir(fd))
+        finally:
+            os.close(fd)
+    except (OSError, ValueError):
+        return []
+
+
 def _record_binding(record, action, state, root, relative):
     """Display provenance, never the engine's acceptance/contract validator."""
     if not isinstance(record, dict):
@@ -152,9 +220,18 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
     lifecycle["engine"] = {"status": state.get("status"), "summary": state.get("status_reason") or "Engine state.",
                             "at": None, "producer": "state.md", "evidence": []}
 
-    def read(relative, limit=EVIDENCE_BYTES):
+    def read(relative, limit=EVIDENCE_BYTES, *, reuse=False):
         if relative not in captures:
-            value = capture.capture(root, relative, limit, observed_at, previous.get(relative))
+            prior = previous.get(relative)
+            if reuse and prior and capture.unchanged(root, relative, prior):
+                # Same file by device:inode, mtime and size: keep its bytes, only the read clock moves.
+                source = dict(prior["source"], observed_at=observed_at)
+                if source.get("message", "").startswith("Source replaced"):
+                    source["message"] = ""
+                value = {"raw": prior["raw"], "source": source, "generation": prior["generation"],
+                         "mtime_ns": prior["mtime_ns"]}
+            else:
+                value = capture.capture(root, relative, limit, observed_at, prior)
             captures[relative] = value
             sources.append(value["source"])
         return captures[relative]
@@ -278,9 +355,12 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
                                                           "expected_sha256": expected.lower() if expected else None})
                         if eid:
                             refs.append(eid)
-            summary = row.get("error") or row.get("why") or row.get("text") or row.get("verb") or row.get("skill") or kind
+            code = _exit_code(row)
+            summary = (row.get("error") or row.get("why") or row.get("text") or row.get("verb") or row.get("skill")
+                       or (_packet_summary(row) if kind == "packet" else kind))
             event = {"id": sid, "kind": kind, "at": row.get("at"), "action": action or contextual,
-                     "stage": row.get("stage")[0] if kind == "command" and isinstance(row.get("stage"), list) and row["stage"] else row.get("stage"), "summary": str(summary), "status": row.get("exit"),
+                     "stage": row.get("stage")[0] if kind == "command" and isinstance(row.get("stage"), list) and row["stage"] else row.get("stage"), "summary": str(summary),
+                     "status": _event_status(name, kind, row, code), "exit": code,
                      "duration_ms": row.get("ms") if isinstance(row.get("ms"), (float, int)) else None,
                      "binding": binding, "source": source, "evidence": refs}
             events.append(event)
@@ -332,22 +412,19 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
     if not current and state.get("status") != "done":
         warnings.append("Current action is unknown in retained state; no active visit or action-bound evidence inferred.")
     if current and current not in {v["action"] for v in visits}:
+        reviewed = improve.get("action_id") if improve else None
         visits.append({"id": "visit:" + current, "action": current, "stage": stage, "parent_stage": parent_stage, "item": item,
+                       "reviewed_action": reviewed if isinstance(reviewed, str) and reviewed else None,
                        "status": state.get("status"), "summary": state.get("status_reason", "Current visit."),
                        "started_at": previous_end, "ended_at": None, "duration_seconds": None,
                        "duration_basis": "inferred visit dwell", "events": [], "evidence": []})
     # Plan preview priorities independently of chronological visit presentation.
     # Current gates first, then all recent/prior Until receipts, then checks and
     # other structured records, and finally prompt copies. Missing files do not
-    # spend a successful-preview slot.
-    try:
-        fd = capture._parent_fd(root, ("tests",))
-        try:
-            test_names = sorted(os.listdir(fd))
-        finally:
-            os.close(fd)
-    except (OSError, ValueError):
-        test_names = []
+    # spend a successful-preview slot. Each structured directory is listed once and
+    # only names that exist become candidates: most stages write none of them.
+    test_names = _listing(root, "tests")
+    listed = {directory: set(_listing(root, directory)) for directory in ("loops", "checks", "expectations")}
     structured = []
     for recency, visit in enumerate(reversed(visits)):
         action = visit["action"]
@@ -358,7 +435,9 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
                 continue
         except ValueError:
             continue
-        candidates = [f"loops/{action}-terminal.json", f"checks/{action}.md", f"expectations/{action}.md"]
+        candidates = [f"{directory}/{action}{suffix}" for directory, suffix in
+                      (("loops", "-terminal.json"), ("checks", ".md"), ("expectations", ".md"))
+                      if action + suffix in listed[directory]]
         names = ["tests/" + name for name in test_names if name.startswith(action + "-") and name.endswith(".md")]
         candidates += names
         for relative in candidates:
@@ -374,25 +453,36 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
             if eid:
                 visit["evidence"].append(eid)
 
+    # The file budget bounds how many previews embed their content. A structured record
+    # (Until receipt, check, expectations, test) is always read, so its event reports the
+    # record's own status; past the budget it is read but not embedded.
+    structured_paths = {relative for _, relative, _ in structured}
+    left_out = f"Preview left out at the {EVIDENCE_FILES}-file display budget; the record itself was read."
     loaded = omitted_previews = 0
+    not_embedded = set()
     for relative in sorted(evidence_by_path, key=lambda path: priorities[path]):
         entry = evidence_by_path[relative]
-        if loaded >= EVIDENCE_FILES:
+        over_budget = loaded >= EVIDENCE_FILES
+        if over_budget and relative not in structured_paths:
             omitted_previews += 1
             message = "Preview omitted at the bounded file budget; source was not read in this generation."
-            entry.update(status="unavailable", summary=message)
+            entry.update(status="not loaded", summary=message)
             sources.append({"id": relative, "path": relative, "status": "partial", "observed_at": None,
                             "changed_at": None, "last_event_at": None, "rows": 0, "omitted": None, "message": message})
             continue
-        value = read(relative)
+        value = read(relative, reuse=True)
         source = value["source"]
+        if over_budget and source.get("sha256") is not None:
+            not_embedded.add(relative)
+            entry.update(sha256=source["sha256"], status="not embedded", content="", summary=left_out)
+            continue
         if source.get("sha256") is not None:
             loaded += 1
         entry.update(sha256=source.get("sha256"), status=source["status"],
                      content=value["raw"].decode("utf-8", errors="replace"),
                      summary=entry["title"] if source["status"] == "ok" else source["message"])
     if omitted_previews:
-        warnings.append(f"{omitted_previews} registered source previews were not read at the {EVIDENCE_FILES}-file display bound; current/recent gates and Until receipts were prioritized. File existence/content beyond that budget is unknown.")
+        warnings.append(f"{omitted_previews} registered source previews were not read at the {EVIDENCE_FILES}-file display bound; structured records are always read, so these are packet copies and producer evidence. File existence/content beyond that budget is unknown.")
 
     for relative, entry in evidence_by_path.items():
         packet_refs = [ref for ref in entry["references"] if "field" in ref]
@@ -432,7 +522,8 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
             try:
                 record = store.observation_json(json.loads(value["raw"]) if relative.endswith(".json") else store.loads(value["raw"].decode("utf-8")))
             except (ValueError, UnicodeError, store.StorageError, RecursionError):
-                message = "Malformed structured evidence; its screened source preview is retained."
+                message = ("Malformed structured evidence; its screened source preview is retained." if relative not in not_embedded
+                           else "Malformed structured evidence; its preview is left out at the display budget.")
                 entry.update(status="partial", summary=message)
                 value["source"].update(status="partial", message=message)
         if record is not None:
@@ -442,10 +533,10 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
         if mismatch:
             entry.update(status="mismatched", summary=provenance)
             warnings.append(provenance + " " + relative)
-        status = (record.get("status", record.get("answer", record.get("disposition", record.get("passed"))))) if isinstance(record, dict) and not mismatch else "mismatched" if mismatch else entry["status"]
+        status = _record_status(record) if isinstance(record, dict) and not mismatch else "mismatched" if mismatch else entry["status"]
         reused = isinstance(record, dict) and bool(record.get("reused"))
         if isinstance(record, dict) and not mismatch:
-            summary = ("Reused result; not a new execution. " if reused else entry["title"] + ": " + str(status if status is not None else "unknown") + ". ")
+            summary = ("Reused result; not a new execution. " if reused else entry["title"] + ": " + str(status if status is not None else "no status recorded") + ". ")
             summary += str(record.get("reason") or record.get("summary") or "") + " " + provenance
         else:
             summary = provenance if mismatch else message
@@ -455,10 +546,27 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
                        "at": at, "action": visit["action"], "stage": visit["stage"], "summary": summary, "status": status,
                        "duration_ms": None, "binding": binding, "source": {"path": relative, "line": 1,
                        "sha256": entry["sha256"]}, "evidence": [eid]})
-        entry["summary"] = summary
+        entry["summary"] = summary + (" " + left_out if relative in not_embedded and left_out not in summary else "")
+    # An Improve pass is not a history row: its events belong to the visit it reviewed.
+    visit_by_action = {v["action"]: v for v in visits if v["action"]}
+    improve_parent = {}
+    for reviewed, record in (state.get("improve_results") or {}).items():
+        child = record.get("improve_action") if isinstance(record, dict) else None
+        if isinstance(reviewed, str) and isinstance(child, str) and child and reviewed in visit_by_action and child not in visit_by_action:
+            improve_parent[child] = reviewed
+            phase = record.get("runtime_phase")
+            visit_by_action[reviewed]["improve"] = {"action": child, "phase": phase if isinstance(phase, str) else None}
+    for event in events:
+        if event.get("action") in improve_parent:
+            event["improve_of"] = improve_parent[event["action"]]
     for visit in visits:
         # Unknown actions are separate history rows, never a common null join key.
-        own = [e for e in events if e.get("action") == visit["action"]] if visit["action"] else [
+        # The stage an active Improve pass is reviewing has no history row yet: its packet, checks and callback
+        # show in the one current visit, with the pass's own events.
+        reviewed = visit.get("reviewed_action")
+        reviewed = reviewed if reviewed and reviewed not in visit_by_action else None
+        own = [e for e in events if e.get("action") == visit["action"] or e.get("improve_of") == visit["action"]
+               or (reviewed and e.get("action") == reviewed)] if visit["action"] else [
             e for e in events if e["id"] == "accepted:" + visit["id"][len("visit:"):]]
         visit["events"] = [e["id"] for e in own]
         visit["evidence"] = list(dict.fromkeys(visit["evidence"] + [ref for e in own for ref in e["evidence"]]))
@@ -476,7 +584,7 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
              "lifecycle": lifecycle, "observations": observations,
              "last_event_at": latest["at"] if latest else None,
              "last_knowledge_at": last_knowledge_at,
-             "coverage": {"preview_candidates": len(evidence_by_path), "previews_read": loaded, "previews_not_read": omitted_previews,
+             "coverage": {"preview_candidates": len(evidence_by_path), "previews_read": loaded, "previews_not_read": omitted_previews, "previews_not_embedded": len(not_embedded),
                           "scope": "Registered source candidates only; not an inventory of every on-disk artifact."},
              "warnings": list(dict.fromkeys(warnings))}
     story = capture.screen(story)

@@ -1,8 +1,11 @@
 """Read-only run observer: publish a portable HTML snapshot, never drive a run.
 
 The observer lock owns all progress output. The separate run lock is held only
-while sampling, without recovery. A browser reloads the complete HTML file;
-there is no model call or writable workflow mirror. The one listener is the
+while sampling, without recovery. The pages are rewritten only when what they
+show changes. Every sample rewrites one small version script instead; an open
+page loads it in the background and, when its version moved, loads the content
+script and swaps the changed blocks in place, so the browser never reloads the
+page. There is no model call or writable workflow mirror. The one listener is the
 opt-in read-only viewer of ``shiploop_progress_serve``, which the user starts
 with ``view --serve``; the observer never starts it.
 """
@@ -12,6 +15,7 @@ import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
+import hashlib
 import json
 import math
 import os
@@ -26,11 +30,14 @@ from typing import Any, Sequence
 import shiploop_store as store
 
 PAGE = "progress.html"
+# Sibling scripts of the pages, loaded by a <script> tag because a file: page cannot fetch. VERSION is tiny and
+# rewritten at every sample; CONTENT carries the page's <main> and is rewritten with the page.
+VERSION = "progress-version.js"
+CONTENT = "progress-content.js"
 LOCK = ".progress.lock"
 STATUS = "progress-observer.json"
 STOP = ".progress-stop"
 DISABLED = ".progress-disabled"
-HEARTBEAT = 10.0
 STALE_AFTER = 30.0
 IDLE_TIMEOUT = 1800.0
 
@@ -134,19 +141,52 @@ def sample(root: Path, *, optional_cache=None) -> dict | None:
     return data.build_snapshot(root, core=core, optional_cache=optional_cache)
 
 
+def _call(name: str, value: Any) -> str:
+    """One line of JavaScript that hands ``value`` to the open page's ``window.<name>``, when the page defines it."""
+    payload = json.dumps(value, ensure_ascii=True, separators=(",", ":")).replace("<", "\\u003c")
+    return "window." + name + "&&window." + name + "(" + payload + ");\n"
+
+
+def page_key(source: Any, mode: str, final: bool, error: str, trace_status: str) -> str:
+    """The version of one published page: its displayed sources and the observer facts the page shows. The
+    observer's clock is left out, so a sample that found nothing new keeps the key and rewrites no page.
+    """
+    value = json.dumps([source, mode, bool(final), error, trace_status], sort_keys=True, ensure_ascii=True)
+    return hashlib.sha256(value.encode("ascii")).hexdigest()[:32]
+
+
 def publish(root: Path, snapshot: dict, *, mode: str, interval: float,
-            final: bool = False, error: str = "") -> None:
-    """Write the progress page for ``snapshot`` with the observer's mode, interval, finality and error."""
+            final: bool = False, error: str = "", version: str = "") -> str:
+    """Write the progress page and its content script for ``snapshot`` with the observer's mode, interval,
+    finality and error; returns the page's version.
+    """
     import shiploop_progress_render as renderer
 
     value = {key: value for key, value in snapshot.items() if not key.startswith("_")}
+    publication = snapshot.get("trace_publication")
+    version = version or page_key(snapshot.get("source_fingerprint"), mode, final, error,
+                                  publication.get("status", "") if isinstance(publication, dict) else "")
     value["observer"] = {"mode": mode, "interval_seconds": interval,
                          "refresh_seconds": 5, "stale_after_seconds": STALE_AFTER,
-                         "final": final, "error": error}
+                         "final": final, "error": error, "version": version}
     from shiploop_observation_io import screen
     # Preserve undecodable filename code points visibly without failing UTF-8 publication.
-    rendered = renderer.render(screen(value)).encode("utf-8", errors="backslashreplace").decode("utf-8")
-    _write(root, PAGE, rendered)
+    title, main = (text.encode("utf-8", errors="backslashreplace").decode("utf-8")
+                   for text in renderer.render_main(screen(value)))
+    # The content script first: a page that reads the new version must find the new content.
+    _write(root, CONTENT, _call("__shiploopProgress", {"version": version, "title": title, "main": main}))
+    _write(root, PAGE, renderer.page(title, main))
+    return version
+
+
+def announce(root: Path, *, progress: str, trace: Any, observed_at: Any, status: str) -> None:
+    """Rewrite the version script: the versions of both pages and the time of the observer's last good sample.
+    This is the observer's heartbeat, so an idle run costs one small write per sample and no page rewrite.
+    """
+    _write(root, VERSION, _call("__shiploopVersion", {
+        "schema": "shiploop-progress-version/v1", "progress": progress or "",
+        "trace": trace[0] if isinstance(trace, tuple) and trace else "",
+        "observed_at": observed_at, "status": status}))
 
 
 def _refresh_trace(root: Path, key: Any, snapshot=None, *, mode: str = "snapshot",
@@ -161,7 +201,8 @@ def _refresh_trace(root: Path, key: Any, snapshot=None, *, mode: str = "snapshot
     texts = trace.page_texts(root, model)
     current = trace.source_key(root, model=model, texts=texts)
     if force or current != key:
-        trace.write_html(root, model=model, texts=texts)
+        model["version"] = current[0]
+        trace.write_live(root, model=model, texts=texts)
     return current
 
 
@@ -182,7 +223,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
         trace_key = None
         activity_fingerprint = None
         optional_cache = {}
-        published = 0.0
+        published = ""  # the version of the progress page last written
         changed = time.monotonic()
         terminal_since = None
         code = 0
@@ -219,46 +260,55 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                             terminal_since = clock
                         # The first terminal capture remains watchable until reconciliation.
                         final = terminal and watch and clock - terminal_since >= interval
-                        heartbeat = clock - published >= HEARTBEAT
+                        mode = "watch" if watch else "snapshot"
                         trace_error = ""
                         try:
-                            trace_key = _refresh_trace(root, trace_key, current,
-                                                       mode="watch" if watch else "snapshot",
-                                                       final=final, force=heartbeat or final or not watch)
+                            # Rewritten when the trace's own key moves; finality and mode are part of that key.
+                            trace_key = _refresh_trace(root, trace_key, current, mode=mode,
+                                                       final=final, force=not watch)
                         except (OSError, ValueError, KeyError, TypeError, store.StorageError):
                             trace_error = "Trace publication failed; retained trace page may be stale."
                             current.setdefault("warnings", []).append(trace_error)
                         current["trace_publication"] = {"status": "unavailable" if trace_error else "ok",
                                                          "observed_at": current["observed_at"], "message": trace_error}
-                        publication_changed = last is not None and last.get("trace_publication", {}).get("status") != current["trace_publication"]["status"]
-                        if source_key != fingerprint or publication_changed or trace_error or heartbeat or final or not watch:
-                            publish(root, current, mode="watch" if watch else "snapshot",
-                                    interval=interval, final=final, error=trace_error)
-                            published = clock
+                        key = page_key(source_key, mode, final, trace_error, current["trace_publication"]["status"])
+                        if key != published or not watch:
+                            published = publish(root, current, mode=mode, interval=interval, final=final,
+                                                error=trace_error, version=key)
                         last, fingerprint = current, source_key
                         activity_fingerprint = activity_key
+                        status = "final" if final else "watching" if watch else "snapshot"
                         _write(root, STATUS, json.dumps({
                             "schema": "shiploop-progress-observer/v1", "instance": instance,
                             "pid": os.getpid(), "run_id": current["run"]["id"],
                             "revision": current["run"]["revision"], "observed_at": current["observed_at"],
-                            "status": "final" if final else "watching" if watch else "snapshot",
+                            "status": status,
                             "trace_publication": current["trace_publication"],
                         }, sort_keys=True) + "\n")
+                        # Last, so a page told of a version always finds that version's content already written.
+                        announce(root, progress=published, trace=trace_key,
+                                 observed_at=current["observed_at"], status=status)
                         if final or not watch:
                             reason = "final" if final else "snapshot"
                             break
                 except (OSError, ValueError, KeyError, TypeError, store.StorageError) as exc:
                     from shiploop_observation_io import screen
                     reason = screen("observation unavailable: " + str(exc))
-                    # Keep last good content and its old observed_at; errors are not progress.
-                    if last is not None and clock - published >= HEARTBEAT:
-                        try:
-                            trace_key = _refresh_trace(root, trace_key, last, mode="watch",
-                                                       error=reason, force=True)
-                        except (OSError, ValueError, KeyError, TypeError, store.StorageError):
-                            pass  # Keep retrying; the progress page still exposes the failure.
-                        publish(root, last, mode="watch", interval=interval, error=reason)
-                        published = clock
+                    # Keep last good content and its old observed_at; errors are not progress. One publication
+                    # per distinct failure shows it; the version script then tells open pages to take it.
+                    if last is not None:
+                        key = page_key(fingerprint, "watch", False, reason,
+                                       last.get("trace_publication", {}).get("status", ""))
+                        if key != published:
+                            try:
+                                trace_key = _refresh_trace(root, trace_key, last, mode="watch",
+                                                           error=reason, force=True)
+                            except (OSError, ValueError, KeyError, TypeError, store.StorageError):
+                                pass  # The progress page still exposes the failure.
+                            published = publish(root, last, mode="watch", interval=interval, error=reason,
+                                                version=key)
+                            announce(root, progress=published, trace=trace_key,
+                                     observed_at=last["observed_at"], status="watching")
                     if not watch or last is None:
                         code = 2
                         break
@@ -280,8 +330,10 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                             trace_error = "Trace publication failed; retained trace page may be stale."
                         last["trace_publication"] = {"status": "unavailable" if trace_error else "ok",
                                                      "observed_at": last["observed_at"], "message": trace_error}
-                        publish(root, last, mode="snapshot", interval=interval,
-                                error="; ".join(filter(None, (reason, trace_error))))
+                        published = publish(root, last, mode="snapshot", interval=interval,
+                                            error="; ".join(filter(None, (reason, trace_error))))
+                        announce(root, progress=published, trace=trace_key,
+                                 observed_at=last["observed_at"], status=reason)
                 except (OSError, ValueError, TypeError, KeyError, store.StorageError):
                     reason += "; final display publication failed"
                 # Status cleanup is independent of rendering the final page.
