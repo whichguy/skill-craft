@@ -502,6 +502,118 @@ judged caught.
 - Two readers' `pkill -f` patterns (`node --test`, `server.py`) could have ended unrelated processes on this
   machine while they ran; whether they did was not checked.
 
+## Round 4 (2026-11-20): where does the build loop iterate, and are the order, the step criteria or the Until Loop the cause?
+
+### Question
+
+Owner, 2026-11-20: execution is slow when the first implementation is only moderately correct, running real tests
+then finds gaps in the logic, and the model iterates to tune it. Are the planning stages, the inner-loop stages, the
+Until Loop and the step criteria ordered and used appropriately, or is some of it unnecessary? The intended drivers
+are less capable than the strongest models: GPT Sol 6.2 at medium, Claude Sonnet 5.5 at high, Grok 4.6 at extra
+high. Research the outside world, but prioritize side experiments on ShipLoop itself or pieces of it.
+
+Consumer: the owner's decisions on what to optimize for those drivers. Nothing in `skills/` changes in this round.
+
+### How to evaluate it (the frame used below)
+
+A run can lose time to an imperfect first implementation in only a few places, and each leaves a record:
+
+1. the step's own Proof fails at `implement` (ShipLoop's step-proof records and the model's own runs);
+2. the tests written at `test` fail and the product code is changed (the model's own test runs, and the Git tree
+   ShipLoop snapshots at every lint gate, diffed for product-code lines);
+3. ShipLoop refuses the `test` result (the refused command's own output says why);
+4. the step review or the end-of-work review changes product code (the review snapshots);
+5. a system test or the acceptance stage sends work back;
+6. the delivered product still fails checks the model never saw (the E2E harness's held-out acceptance).
+
+For each place the questions are: how often does it fire, what does it cost, and was the fix needed for the
+product to be right by a yardstick the model never saw. The last one is answered by grading every snapshot of a
+run, not only the delivered product, with the held-out checks.
+
+### Method
+
+Offline, on the 273 finished runs of round 1's census (no model called):
+
+- **Iteration census** (`iteration_census.py`): per build step, the model's own test runs and their exit codes
+  inside `implement` and `test`, ShipLoop's refusals and their reasons, the Until Loop receipt's iteration count,
+  and the product-code lines changed during `test`, during `document` and by the step review, from the trees
+  ShipLoop snapshots (`lint/<action>.*.md`, `improve/<action>-bind.md`, the step commit).
+- **Turn census** (`turn_census.py`): each tool call is charged the seconds from the end of the call before it to
+  its own end, and classed by what it touches (the Until Loop runtime, a ShipLoop callback, a packet fetch, run
+  records, the skill's guides, review notes, the knowledge home, the product's tests, the product).
+- **Snapshot acceptance** (`snapshot_acceptance.py`): for the 92 finished runs whose case has held-out acceptance,
+  each snapshot (the last step's base, `implement` accepted, `test` accepted, before the step review, the step
+  commit, before the end-of-work review, delivered) is exported and graded by the harness's own
+  `quality.acceptance`. Exploratory: no reading was registered before the data.
+- **Outside evidence**: three Claude Opus 5.5 research agents (published measurements, open-source harness
+  designs, practitioner and vendor reports); their reports are in `research/` with the briefs they were given.
+
+Live, registered below before any counted slice ran: step slices of the inner loop on the owner's three drivers.
+
+### Registered design: inner-loop slices on the target drivers (written and committed before any counted slice ran)
+
+**Apparatus.** `test/shiploop_e2e/slice.py`: one work item run from `step-plan` to the end of `carry-forward` on a
+fixture repository, the stages before `step-plan` recorded without doing them, inline delegation, this checkout's
+build of ShipLoop 2.3.0, no overlay. Outputs under `/Users/dadleet/e2e-runs-sdlc4/20261120/`.
+
+**Cases** (`step_cases.json`).
+
+- `tickets-assign`: one endpoint added to an existing help-desk service of about 1,700 source lines (a brownfield
+  change of one step).
+- `shared-expenses-w1`: a small service built from an empty repository whose rules must be exact (equal and exact
+  splits with left-over cents, balances, greedy settlements with ties, restart, concurrent writes); earlier runs
+  split it into 3 or 4 steps.
+
+**Drivers.** Codex `gpt-6.2-sol` at medium; Claude `claude-sonnet-5-5` at high; Grok `grok-4.6` at xhigh; and, as
+the reference the E2E default uses, Codex `gpt-6.2-sol` at xhigh. One slice per driver and case first, a second
+where time allows. Grok runs `tickets-assign` only: a background task here is ended at about two hours and a slice
+cannot be resumed, so its slice is given 105 minutes.
+
+**Yardstick the model never sees.**
+
+- `tickets-assign`: 14 of the 18 held-out checks of the full `ticket-assignment` case
+  (`checks/ticket_assignment_accept`): the six "unchanged" checks (`ticket-lifecycle-unchanged`,
+  `listing-unchanged`, `notifications-unchanged`, `restart-keeps-state`, `cli-raw-columns`, `old-data-loads`) and
+  the eight that the slice's request asks for (`assign-and-unassign`, `assignee-validation`,
+  `assign-state-and-missing`, `assign-same-agent-noop`, `assign-audited`, `assignee-notified`,
+  `assignee-persists`, `old-tickets-unassigned`). The other four test the listing filter and the command line,
+  which the one-step request leaves out; they are expected to fail everywhere and are reported, not scored. If
+  one of the 14 fails on every slice for a reason tied to the missing filter, it is reported apart, not rescored.
+- `shared-expenses-w1`: the six checks of the full `shared-expenses` case (`checks/expense_service.py`: unit,
+  contract, split, settle, restart, concurrency). The slice's own check is only `node --check server.js`.
+
+**Measures**, each per slice.
+
+- M1: minutes for the slice and per stage, with reviews apart.
+- M2: share of the model's time by kind of command (turn census).
+- M3: iterations of each stage's Until Loop (the receipt's `action_number`).
+- M4: the model's own failing test runs inside `test`, and product-code lines changed during `test`, during
+  `document` and by the step review.
+- M5: refusals of the `test` result and their reasons.
+- M6: hidden checks passing at each snapshot: `implement` accepted, `test` accepted, before the step review, the
+  step commit, the end of the slice.
+
+**Readings**, stated before the data.
+
+- *The first implementation is what iterates* on a driver if its `implement` snapshot of the last step fails a
+  hidden check in at least half of that driver's slices and a later stage of the same slice makes it pass. Then
+  giving the implementer executable tests first is worth a registered comparison. If every `implement` snapshot
+  passes every hidden check, the first implementation is not where these runs lose time.
+- *Ceremony is the cost* on a driver if the Until Loop runtime, callbacks, packet fetches, run records, guides
+  and review notes together take at least half of the model's time.
+- *The stage Until Loop does not iterate* on these drivers if at least 90% of stage loops end on their first
+  iteration.
+
+**Limits known before the run.** One or two slices per cell, two small cases, a seeded start (the spec is the
+request and no planning stage ran), and slices that run at the same time may meet on a network port. The hidden
+`tickets-assign` checks were written for the larger request.
+
+**Budget and failures.** At most $20 for a Claude slice, about $90 in all. A slice that ends without its
+`carry-forward` accepted is reported as it ended and run once more.
+
+**Not in this registration.** A slice with the stage Until Loop switched off in a build copy (an overlay) was
+considered; it would be registered by itself after the records are read.
+
 ## Evidence (all rounds)
 
 | File | Holds |
