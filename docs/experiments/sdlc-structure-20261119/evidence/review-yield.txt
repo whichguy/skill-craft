@@ -1,0 +1,12 @@
+finished runs 273; with a pass log 273; planning_review values {'stage': 271, 'none': 2}
+reviewed stage       reviews  edited non-trivial  tree  result  median lines when edited  median s  mean s  time in no-edit reviews
+document                 436     36%         30%   36%     16%                        14        21      43                     51%
+step-plan                365     37%         39%    1%     36%                         5        19      38                     26%
+system-test-author       283      4%          4%    3%      1%                        12        13      20                     69%
+carry-forward            278     15%         15%   15%      3%                        14        16      27                     70%
+release-plan             275     13%         13%    8%     12%                         6        14      26                     53%
+spec                     270     28%         28%   28%      0%                         3        22      33                     46%
+test-strategy            270     24%         24%   24%      0%                         2        15      26                     40%
+plan                     270      6%          7%    2%      6%                        15        14      25                     58%
+all reviews: 2447; review seconds in reviews that edited nothing: 49%
+reviews that edited something or had a non-trivial pass (written to samples): {'release-plan': 36, 'step-plan': 142, 'spec': 75, 'test-strategy': 65, 'plan': 19, 'document': 155, 'carry-forward': 42, 'system-test-author': 11}

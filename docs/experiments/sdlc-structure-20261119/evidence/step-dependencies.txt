@@ -1,0 +1,7 @@
+step plans read: 431 from 420 runs
+steps per plan: {1: 303, 2: 53, 3: 46, 4: 23, 5: 3, 8: 1, 9: 1, 11: 1}
+plans with 2+ steps: 128
+of those: deps missing on some step 0; list order breaks a dep 0; pure serial chain 90 (70%); graph wider than one 32 (25%)
+max width: {1: 96, 2: 19, 3: 10, 4: 2, 5: 1}
+dependency-independent step pairs: 122; of those sharing a file path: 5 (4%); plans with an independent, file-disjoint pair: 32
+work items in the accepted plan's queue: {1: 281, 2: 1}

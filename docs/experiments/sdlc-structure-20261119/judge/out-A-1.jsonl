@@ -1,0 +1,68 @@
+{"item": "D002", "verdict": "substance", "gate": false, "why": "Proof replaced by inline two-file run asserting exact aggregated JSON; regression flags folded into focused suite."}
+{"item": "D003", "verdict": "sharpening", "gate": false, "why": "Adds plan assumptions A3/A4 on boundary strictness and legacy same-timestamp handling, already evidenced in spec and research."}
+{"item": "D004", "verdict": "substance", "gate": false, "why": "Adds exit 0 when no invalid rows and declares non-finite prices invalid."}
+{"item": "D005", "verdict": "substance", "gate": false, "why": "Proofs now check rendered notification, persistence round-trip of assignee, and 400 for empty assignee."}
+{"item": "D006", "verdict": "sharpening", "gate": false, "why": "Spells out what TC_1-TC_4 each cover; drops architecture real-boundary paragraph."}
+{"item": "D007", "verdict": "sharpening", "gate": false, "why": "Names the exact CSV header and adds a worked example of the stated aggregation rule."}
+{"item": "D008", "verdict": "substance", "gate": false, "why": "Proof adds a module docstring check; regression suite entry merged into focused."}
+{"item": "D009", "verdict": "sharpening", "gate": false, "why": "Rewords the trailing-newline assumption as the recorded default for ambiguous wording."}
+{"item": "D010", "verdict": "substance", "gate": false, "why": "Adds concrete import case incl. trimmed titles, default priority, index of first invalid item, and next ID not consumed after rejection."}
+{"item": "D011", "verdict": "substance", "gate": false, "why": "Adds requirement that malformed JSON and unknown game IDs return JSON errors without crash, plus specific move cases."}
+{"item": "D012", "verdict": "substance", "gate": false, "why": "Adds edge cases: half-cent ties, non-finite prices, fractional units, multiline record lines, bad rows before missing file."}
+{"item": "D014", "verdict": "substance", "gate": false, "why": "Requires create and mutation responses to include current comments so existing equality tests stay valid."}
+{"item": "D015", "verdict": "substance", "gate": false, "why": "Proofs add default 240 check, exact-threshold boundaries, null oncall, and reset after assign/unassign."}
+{"item": "D016", "verdict": "substance", "gate": false, "why": "Proof expanded from one unfiltered query to name/team filters, case mismatch, empty and pagination cases."}
+{"item": "D018", "verdict": "sharpening", "gate": false, "why": "Adds concrete acceptance examples with values for rules already stated (aggregation, header-only, invalid rows, missing file)."}
+{"item": "D019", "verdict": "substance", "gate": false, "why": "Adds request mapping and decides CLI output keeps 1.4.0 columns without due; boundary overdue note; removes backfill updated claim."}
+{"item": "D020", "verdict": "substance", "gate": false, "why": "Adds criterion C2: timed 5000-ticket file-backed import with reload, and extends proof to check it."}
+{"item": "D021", "verdict": "sharpening", "gate": false, "why": "Removes architecture file; states stage timing, smoke suite and fixture ownership for existing checks."}
+{"item": "D022", "verdict": "sharpening", "gate": false, "why": "Adds worked example of equal split remainder, balances and settlements already specified."}
+{"item": "D023", "verdict": "sharpening", "gate": false, "why": "Adds replayable Apex scenarios illustrating stated member, check-in and access rules."}
+{"item": "D025", "verdict": "sharpening", "gate": false, "why": "Records a probed assumption that outbox enqueue handles 5000 tickets, with benchmark evidence."}
+{"item": "D026", "verdict": "substance", "gate": false, "why": "Adds planned cases: perft counts, named mates, castling, en passant, promotions, stalemate, CPU measurement."}
+{"item": "D027", "verdict": "substance", "gate": false, "why": "Splits work into group step with new proof asserting 201/409/400, and expense step with own criterion."}
+{"item": "D028", "verdict": "substance", "gate": false, "why": "Proof moves from pure functions to HTTP with restart and concurrency checks; task export contract changed."}
+{"item": "D029", "verdict": "sharpening", "gate": false, "why": "Names the exact final marker HOOK_CONTINUATION_CHECKPOINT instead of 'the exact final marker'."}
+{"item": "D030", "verdict": "substance", "gate": false, "why": "Proof adds multi-file half-cent rounding, header-only and multiple invalid-row line checks."}
+{"item": "D031", "verdict": "substance", "gate": false, "why": "Proof adds more invalid-row and rounding cases; TC_6 command quoting fixed so it would run; docstring must mention sales."}
+{"item": "D032", "verdict": "substance", "gate": false, "why": "Corrects expectation: server.js exists and must pass node --check, not be absent."}
+{"item": "D034", "verdict": "sharpening", "gate": false, "why": "Flips api, messaging, state, concurrency, security, observability concerns to applies with decisions restating spec."}
+{"item": "D036", "verdict": "substance", "gate": false, "why": "Proof inlined and expanded: invalid member lists, 404 methods, __proto__ ids, write-failure 500 without state change."}
+{"item": "D037", "verdict": "substance", "gate": false, "why": "Adds concrete pagination oracle and requires unsetting PAGE_SIZE before baseline and full-suite runs."}
+{"item": "D038", "verdict": "sharpening", "gate": false, "why": "Criterion text names specific assertions (20 moves, FEN, illegal e2e5, 400); regression entry merged."}
+{"item": "D040", "verdict": "sharpening", "gate": false, "why": "States exact checkpoint line and marker text instead of referring to specified ones."}
+{"item": "D041", "verdict": "unclear", "gate": false, "why": "Inline proofs replaced by scratch file paths whose content is not shown."}
+{"item": "D045", "verdict": "substance", "gate": false, "why": "Adds partial-team rejection case to TC-6; rewording elsewhere; drops architecture section."}
+{"item": "D046", "verdict": "substance", "gate": false, "why": "Limits second escalation to urgent/high and permits updating superseded once-only test assertions."}
+{"item": "D047", "verdict": "substance", "gate": false, "why": "Appends full npm test run to the proof."}
+{"item": "D048", "verdict": "substance", "gate": false, "why": "Proof adds audit actor, next ID T-0003, 5000-item timing and full suite run."}
+{"item": "D049", "verdict": "unclear", "gate": false, "why": "Proof changed from npm test to a scratch script whose content is not shown."}
+{"item": "D050", "verdict": "substance", "gate": false, "why": "Adds non-object element cases and before/after snapshot comparison; command put in code block."}
+{"item": "D051", "verdict": "substance", "gate": false, "why": "Adds example requiring next single create to get T-0003 after rejected batch."}
+{"item": "D052", "verdict": "sharpening", "gate": false, "why": "Adds worked 100-cent split example with tie order for already stated rules."}
+{"item": "D053", "verdict": "sharpening", "gate": false, "why": "Adds probed assumption that no SLChess Apex classes existed, with evidence."}
+{"item": "D054", "verdict": "sharpening", "gate": false, "why": "Removes architecture file and adds a concrete oracle example for stated rules."}
+{"item": "D055", "verdict": "sharpening", "gate": false, "why": "Adds worked equal/exact split, settlement and restart example of existing rules."}
+{"item": "D056", "verdict": "substance", "gate": false, "why": "Adds null/array/scalar invalid items, multiple-invalid case, and 5000-item payload fitting body bound with multibyte values."}
+{"item": "D057", "verdict": "substance", "gate": false, "why": "Specifies client harness: Node test runner with mock LightningElement covering selection, reset, async errors."}
+{"item": "D058", "verdict": "substance", "gate": false, "why": "Proof replaced from self-written unittest to independent CLI script asserting outputs, exits and docstring."}
+{"item": "D059", "verdict": "substance", "gate": false, "why": "Proof adds check that server.js contains a Service contract section."}
+{"item": "D060", "verdict": "sharpening", "gate": false, "why": "Adds concrete oracle with half-even example for stated rounding rule; drops architecture file."}
+{"item": "D061", "verdict": "substance", "gate": false, "why": "Adds that status moves including reopen must not change due; specifies clock injection and T-0001."}
+{"item": "D062", "verdict": "substance", "gate": false, "why": "Adds checks of audit actor and comment data per addition and no audit on failure."}
+{"item": "D063", "verdict": "substance", "gate": false, "why": "Adds AD-3: candidate state with write-rename before publish, reject unsafe cumulative arithmetic."}
+{"item": "D067", "verdict": "sharpening", "gate": false, "why": "Adds replayable example for already stated aggregation and invalid-row rules."}
+{"item": "D068", "verdict": "substance", "gate": false, "why": "Proofs replaced from test-name runs to independent HTTP proofs with restart, validation and concurrency."}
+{"item": "D069", "verdict": "sharpening", "gate": false, "why": "Describes what TC_1-TC_4 will assert and their stage ownership; drops architecture file."}
+{"item": "D070", "verdict": "substance", "gate": false, "why": "Requires IDs with reserved characters to be encoded; adds reservation replay example."}
+{"item": "D071", "verdict": "substance", "gate": false, "why": "Fixes proof escaping so combining-accent and newline cases test real characters; regression merged."}
+{"item": "D072", "verdict": "substance", "gate": false, "why": "Proofs move to HTTP with outbox check and persistence round-trip; task adds C4."}
+{"item": "D073", "verdict": "sharpening", "gate": false, "why": "Adds replay example of assignment events, no-op, 409 and filters already specified."}
+{"item": "D075", "verdict": "sharpening", "gate": false, "why": "Adds arithmetic oracle and TC-to-area mapping; drops architecture file."}
+{"item": "D076", "verdict": "substance", "gate": false, "why": "Proof uses real file persistence via TicketStore.open instead of in-memory snapshot."}
+{"item": "D077", "verdict": "substance", "gate": false, "why": "Adds backward-compatible defaults for omitted dueHours/dueTimes, overdue+priority AND case, and TC-34 config test."}
+{"item": "D078", "verdict": "substance", "gate": false, "why": "Proofs expanded: repeat assignees, no-op, legacy load, delivery, validation bounds, 409 states, 404; deps added."}
+{"item": "D079", "verdict": "substance", "gate": false, "why": "Replaces fixed port with PORT=0 and requires server to print LISTENING port."}
+{"item": "D080", "verdict": "sharpening", "gate": false, "why": "Adds concrete two-file oracle example; drops architecture file."}
+{"item": "D082", "verdict": "substance", "gate": false, "why": "Adds test file to paths and task to update the superseded case-sensitive assertion."}
+{"item": "D083", "verdict": "record", "gate": false, "why": "Assumption A3 moved from open to probed with evidence path and reworded."}

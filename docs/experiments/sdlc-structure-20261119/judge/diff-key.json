@@ -1,0 +1,1090 @@
+[
+ {
+  "item": "D002",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-76076543f4844bdeb5b4530dad9119f7",
+  "chars": 1434
+ },
+ {
+  "item": "D003",
+  "stage": "plan",
+  "case": "ticket-sla",
+  "host": "codex",
+  "action": "nav-218bef12395a4fd48a58fdd2c461665d",
+  "chars": 938
+ },
+ {
+  "item": "D004",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-a679f08095a04d18bad6b7765644cd43",
+  "chars": 735
+ },
+ {
+  "item": "D005",
+  "stage": "step-plan",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-8964524122034f1bbbea301ed6df5071",
+  "chars": 1968
+ },
+ {
+  "item": "D006",
+  "stage": "test-strategy",
+  "case": "user-summary-status",
+  "host": "codex",
+  "action": "nav-27bc4cfc27e0445699f3b8f238df0877",
+  "chars": 1435
+ },
+ {
+  "item": "D007",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-d8876cf601064782bf618582581a054c",
+  "chars": 1602
+ },
+ {
+  "item": "D008",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-536d0db98e444645b72b6162cf06bd1f",
+  "chars": 517
+ },
+ {
+  "item": "D009",
+  "stage": "plan",
+  "case": "hello",
+  "host": "codex",
+  "action": "nav-a4817ede271c47ccb3bbd3a3cbf59310",
+  "chars": 285
+ },
+ {
+  "item": "D010",
+  "stage": "spec",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-45d3de4b0a374e34bf6d8b86c01215b4",
+  "chars": 1800
+ },
+ {
+  "item": "D011",
+  "stage": "spec",
+  "case": "checkers",
+  "host": "codex",
+  "action": "nav-84d46d7f75224216ad68bef0a17bc72c",
+  "chars": 1753
+ },
+ {
+  "item": "D012",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-bb3ca702e5a1467088441fbb4b31b5e8",
+  "chars": 1203
+ },
+ {
+  "item": "D014",
+  "stage": "spec",
+  "case": "ticket-comments",
+  "host": "codex",
+  "action": "nav-cce066c7ce884128a896db6553fdac97",
+  "chars": 1135
+ },
+ {
+  "item": "D015",
+  "stage": "step-plan",
+  "case": "ticket-sla",
+  "host": "codex",
+  "action": "nav-928c2b3fd79d44ebb6ba5ddf4494c221",
+  "chars": 4037
+ },
+ {
+  "item": "D016",
+  "stage": "step-plan",
+  "case": "user-summary-status",
+  "host": "codex",
+  "action": "nav-1458729ea25046578a1f5aa793ef1d45",
+  "chars": 1931
+ },
+ {
+  "item": "D018",
+  "stage": "spec",
+  "case": "custom",
+  "host": "codex",
+  "action": "nav-27beae532d914bc088461fd16c95c06c",
+  "chars": 963
+ },
+ {
+  "item": "D019",
+  "stage": "spec",
+  "case": "ticket-due-times",
+  "host": "grok",
+  "action": "nav-ad21b47dc3ff421a95d43338d0769026",
+  "chars": 29147
+ },
+ {
+  "item": "D020",
+  "stage": "step-plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-cad83f7daac24b25958482cf1221bfe7",
+  "chars": 3335
+ },
+ {
+  "item": "D021",
+  "stage": "test-strategy",
+  "case": "user-listing",
+  "host": "codex",
+  "action": "nav-a619b5b79d904f70a23433f4d910dffa",
+  "chars": 1212
+ },
+ {
+  "item": "D022",
+  "stage": "spec",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-d3b207a38823411d8512e9fadc792ed3",
+  "chars": 825
+ },
+ {
+  "item": "D023",
+  "stage": "spec",
+  "case": "gym-membership-salesforce",
+  "host": "codex",
+  "action": "nav-4f7a90eb4fc14911b3d701e88ea98a3d",
+  "chars": 2442
+ },
+ {
+  "item": "D025",
+  "stage": "plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-bea5e3b0ed194c5589abb602f445d083",
+  "chars": 637
+ },
+ {
+  "item": "D026",
+  "stage": "test-strategy",
+  "case": "chess-salesforce",
+  "host": "codex",
+  "action": "nav-ba41118284cb4876af88967bfdfac7fd",
+  "chars": 2356
+ },
+ {
+  "item": "D027",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-615004effb344efcacabc943de9177fd",
+  "chars": 3259
+ },
+ {
+  "item": "D028",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-a92a1d5419354694b8a9b0ab3b0dc4d3",
+  "chars": 3652
+ },
+ {
+  "item": "D029",
+  "stage": "spec",
+  "case": "hello-hook-continuation",
+  "host": "codex",
+  "action": "nav-9346388accb546eca3a5a4d8ad94d9cf",
+  "chars": 1144
+ },
+ {
+  "item": "D030",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-397041b791ff4e29a1b1a7e8eb587e19",
+  "chars": 3919
+ },
+ {
+  "item": "D031",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-3e5168500eb643d28524fc89f92ad2f9",
+  "chars": 2307
+ },
+ {
+  "item": "D032",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-cdfc05c932684abfa5a1d4afd4d314b9",
+  "chars": 926
+ },
+ {
+  "item": "D034",
+  "stage": "plan",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-a51caa6ddb5842629861723f8686406f",
+  "chars": 4212
+ },
+ {
+  "item": "D036",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-f2f4c29a6a6b4cf68fed56e6165c350a",
+  "chars": 17925
+ },
+ {
+  "item": "D037",
+  "stage": "test-strategy",
+  "case": "user-page-size",
+  "host": "codex",
+  "action": "nav-f289a0885ba348d8b9d5e15dfbd718c3",
+  "chars": 2991
+ },
+ {
+  "item": "D038",
+  "stage": "step-plan",
+  "case": "chess-salesforce",
+  "host": "codex",
+  "action": "nav-0ba77fef3c804f4c806a7443f68afa56",
+  "chars": 908
+ },
+ {
+  "item": "D040",
+  "stage": "spec",
+  "case": "hello-hook-continuation",
+  "host": "codex",
+  "action": "nav-7391202b80d14f6eb528cbe52b49a47b",
+  "chars": 910
+ },
+ {
+  "item": "D041",
+  "stage": "step-plan",
+  "case": "ticket-escalation",
+  "host": "codex",
+  "action": "nav-004c337ce37e4be19c7c218277f33251",
+  "chars": 2199
+ },
+ {
+  "item": "D045",
+  "stage": "test-strategy",
+  "case": "user-intent-continuity",
+  "host": "codex",
+  "action": "nav-9a3f349164af474cb64d255fe43cc1fe",
+  "chars": 3489
+ },
+ {
+  "item": "D046",
+  "stage": "spec",
+  "case": "ticket-sla",
+  "host": "codex",
+  "action": "nav-338f7cf5331b43b096c92e609e223af0",
+  "chars": 3399
+ },
+ {
+  "item": "D047",
+  "stage": "step-plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-b94f02df0f4f4ae3991d0d36e81aa9c1",
+  "chars": 2668
+ },
+ {
+  "item": "D048",
+  "stage": "step-plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-e31ea682bbd84135b43dd7c5299c933a",
+  "chars": 1982
+ },
+ {
+  "item": "D049",
+  "stage": "step-plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-bdb2e32732a447ecb4973a55fb89bbe1",
+  "chars": 178
+ },
+ {
+  "item": "D050",
+  "stage": "test-strategy",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-bbd671f7755948909498e5c59f07d475",
+  "chars": 3003
+ },
+ {
+  "item": "D051",
+  "stage": "spec",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-71d4b560f5ab48efbea2d4312c62de87",
+  "chars": 1623
+ },
+ {
+  "item": "D052",
+  "stage": "spec",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-f2b710e2505949f09ad0ed2c6c75ff48",
+  "chars": 816
+ },
+ {
+  "item": "D053",
+  "stage": "plan",
+  "case": "chess-salesforce",
+  "host": "codex",
+  "action": "nav-1524e37a492b46fea9c9c4b161996fbe",
+  "chars": 657
+ },
+ {
+  "item": "D054",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-63b777afebf0468c8c77992f694f277e",
+  "chars": 1287
+ },
+ {
+  "item": "D055",
+  "stage": "spec",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-76f07b5605c147829e5ee87d95712c52",
+  "chars": 879
+ },
+ {
+  "item": "D056",
+  "stage": "spec",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-204d627046f94b1c841f7ce986fc0c1b",
+  "chars": 1710
+ },
+ {
+  "item": "D057",
+  "stage": "test-strategy",
+  "case": "chess-salesforce",
+  "host": "codex",
+  "action": "nav-66e0224dec5b4cf182c8b4a0efda5c93",
+  "chars": 3787
+ },
+ {
+  "item": "D058",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-0772e8985e3346b3940a8db10222b77b",
+  "chars": 1524
+ },
+ {
+  "item": "D059",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-92478a17d5164af7a79b0552ad1900fa",
+  "chars": 419
+ },
+ {
+  "item": "D060",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-575c84335d0f47f4850a151c41f31523",
+  "chars": 1182
+ },
+ {
+  "item": "D061",
+  "stage": "spec",
+  "case": "ticket-due-times",
+  "host": "grok",
+  "action": "nav-5ac52bd5917f4015a82d60b1b64f938e",
+  "chars": 8416
+ },
+ {
+  "item": "D062",
+  "stage": "test-strategy",
+  "case": "ticket-comments",
+  "host": "codex",
+  "action": "nav-f8424a4603ed4035b628be282e4e5c48",
+  "chars": 3057
+ },
+ {
+  "item": "D063",
+  "stage": "plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-ff83e11d0b5f4523863e0ee12b26c9bc",
+  "chars": 623
+ },
+ {
+  "item": "D067",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-85d2c4689d2147feb04cef2c56b20db3",
+  "chars": 937
+ },
+ {
+  "item": "D068",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-98afb59ca8964a6bb5e0d63088de1a55",
+  "chars": 5262
+ },
+ {
+  "item": "D069",
+  "stage": "test-strategy",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-84d351a69baf4615b2d6d1232bc0e6cd",
+  "chars": 1620
+ },
+ {
+  "item": "D070",
+  "stage": "spec",
+  "case": "seat-reservations",
+  "host": "codex",
+  "action": "nav-dca00e869f8f4ceca65227f3a1a1ad57",
+  "chars": 1664
+ },
+ {
+  "item": "D071",
+  "stage": "step-plan",
+  "case": "custom",
+  "host": "codex",
+  "action": "nav-f0cd8825f16146de8f2911417d0560ac",
+  "chars": 1550
+ },
+ {
+  "item": "D072",
+  "stage": "step-plan",
+  "case": "ticket-escalation",
+  "host": "codex",
+  "action": "nav-53003285ba944a22a0100187bdcd7f90",
+  "chars": 3301
+ },
+ {
+  "item": "D073",
+  "stage": "spec",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-67feb69661a34e61a3fbf7c7e8984a4b",
+  "chars": 1289
+ },
+ {
+  "item": "D075",
+  "stage": "test-strategy",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-faef5906df7c49ffa19848d2db3ad7c9",
+  "chars": 1303
+ },
+ {
+  "item": "D076",
+  "stage": "step-plan",
+  "case": "ticket-sla",
+  "host": "codex",
+  "action": "nav-a26fc9f852644c43a72ee6701279153a",
+  "chars": 1968
+ },
+ {
+  "item": "D077",
+  "stage": "test-strategy",
+  "case": "ticket-due-times",
+  "host": "grok",
+  "action": "nav-f304f929d0aa4fcbbc54ccaaa09b4b19",
+  "chars": 8101
+ },
+ {
+  "item": "D078",
+  "stage": "step-plan",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-ad225095c4704839801e19705a1f8fe4",
+  "chars": 7674
+ },
+ {
+  "item": "D079",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-bee0c8889d6c468e8bb5b0b257cc190f",
+  "chars": 4068
+ },
+ {
+  "item": "D080",
+  "stage": "test-strategy",
+  "case": "custom",
+  "host": "codex",
+  "action": "nav-65b0c3e7e43b410ca3389b87402fb5d3",
+  "chars": 1346
+ },
+ {
+  "item": "D082",
+  "stage": "step-plan",
+  "case": "user-intent-continuity",
+  "host": "codex",
+  "action": "nav-faff96dffc9e4c2cbfedf8db6afa4c3c",
+  "chars": 417
+ },
+ {
+  "item": "D083",
+  "stage": "plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-d3bb761a97b54ae19b901ab3196a2eb2",
+  "chars": 733
+ },
+ {
+  "item": "D084",
+  "stage": "spec",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-823566effcbd40989fab2ef96b4f66a2",
+  "chars": 2746
+ },
+ {
+  "item": "D085",
+  "stage": "test-strategy",
+  "case": "ticket-escalation",
+  "host": "codex",
+  "action": "nav-6387233b337a4887948f597f18e5c6b2",
+  "chars": 4558
+ },
+ {
+  "item": "D086",
+  "stage": "test-strategy",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-096216c9f05e418088d3872aa8b6ec09",
+  "chars": 1860
+ },
+ {
+  "item": "D087",
+  "stage": "spec",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-6ddc8d17f7024d1488711fb658988f5a",
+  "chars": 821
+ },
+ {
+  "item": "D088",
+  "stage": "plan",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-8276497779a845c8b58b0a6f5d3c5c65",
+  "chars": 851
+ },
+ {
+  "item": "D090",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-f4c8263de08d499aa8b42c255863f44f",
+  "chars": 1874
+ },
+ {
+  "item": "D091",
+  "stage": "test-strategy",
+  "case": "ticket-comments",
+  "host": "codex",
+  "action": "nav-dfe34930854141139198aa2e37cdef25",
+  "chars": 2464
+ },
+ {
+  "item": "D092",
+  "stage": "step-plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-a7e874c5a624458b993496f411c4f861",
+  "chars": 3090
+ },
+ {
+  "item": "D095",
+  "stage": "spec",
+  "case": "user-intent-continuity",
+  "host": "codex",
+  "action": "nav-7c8ae6d0d2e94183a528eb987642e734",
+  "chars": 983
+ },
+ {
+  "item": "D096",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-6a6484bb673a415cbef17326f74c4d54",
+  "chars": 402
+ },
+ {
+  "item": "D097",
+  "stage": "test-strategy",
+  "case": "hello",
+  "host": "claude",
+  "action": "nav-89b99635b52f4f70834f8ca03b76f394",
+  "chars": 4031
+ },
+ {
+  "item": "D098",
+  "stage": "test-strategy",
+  "case": "hello",
+  "host": "codex",
+  "action": "nav-20e9a3c3a4ed4505be3ace39f431c351",
+  "chars": 879
+ },
+ {
+  "item": "D099",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-06e683e58d75474480eb9730ee5429b4",
+  "chars": 1142
+ },
+ {
+  "item": "D100",
+  "stage": "test-strategy",
+  "case": "custom",
+  "host": "codex",
+  "action": "nav-d3e16d1dcff44f00b791bf167c25caa8",
+  "chars": 1533
+ },
+ {
+  "item": "D101",
+  "stage": "plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-c77ce3b367d04bc2a567d9ae42a30db3",
+  "chars": 1694
+ },
+ {
+  "item": "D102",
+  "stage": "test-strategy",
+  "case": "user-intent-continuity",
+  "host": "codex",
+  "action": "nav-382cca4c52a5494789ca6311d3a6e73b",
+  "chars": 2804
+ },
+ {
+  "item": "D103",
+  "stage": "plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-7caba21d45c94fe59e5ad21311309561",
+  "chars": 617
+ },
+ {
+  "item": "D104",
+  "stage": "plan",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-88831b42203843a1a34ee947d1dc4c4d",
+  "chars": 1795
+ },
+ {
+  "item": "D105",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-872925f5164949fdb74ae3791e055967",
+  "chars": 903
+ },
+ {
+  "item": "D106",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-a823abf107a549928db9429facaefae9",
+  "chars": 930
+ },
+ {
+  "item": "D108",
+  "stage": "plan",
+  "case": "ticket-due-times",
+  "host": "grok",
+  "action": "nav-2e6c1b162fe24b3ebaee525a7befff14",
+  "chars": 22865
+ },
+ {
+  "item": "D109",
+  "stage": "spec",
+  "case": "user-listing",
+  "host": "codex",
+  "action": "nav-9c60e79fa423491794c48ab72daf27fc",
+  "chars": 794
+ },
+ {
+  "item": "D111",
+  "stage": "plan",
+  "case": "battleship-salesforce",
+  "host": "codex",
+  "action": "nav-ffc82e5bcca2422e8ed253dfb2ad44e0",
+  "chars": 2816
+ },
+ {
+  "item": "D112",
+  "stage": "step-plan",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-597e4bb515384233b7e7bc4fc533036d",
+  "chars": 3229
+ },
+ {
+  "item": "D113",
+  "stage": "plan",
+  "case": "ticket-due-times",
+  "host": "grok",
+  "action": "nav-c03f512203f2498d8ebc00c6f929a7c5",
+  "chars": 20934
+ },
+ {
+  "item": "D114",
+  "stage": "step-plan",
+  "case": "hello",
+  "host": "grok",
+  "action": "nav-678791dc1b21492bba08a4287a62716e",
+  "chars": 1223
+ },
+ {
+  "item": "D115",
+  "stage": "step-plan",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-6cf31a1178234ca78ce9fea4ddba0ded",
+  "chars": 2306
+ },
+ {
+  "item": "D116",
+  "stage": "test-strategy",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-ac94cdd20b8e4fa6969be9771e21a71a",
+  "chars": 1247
+ },
+ {
+  "item": "D117",
+  "stage": "plan",
+  "case": "ticket-due-times",
+  "host": "grok",
+  "action": "nav-ff849af152f949388c660987a32bc5db",
+  "chars": 12728
+ },
+ {
+  "item": "D118",
+  "stage": "spec",
+  "case": "chess-salesforce",
+  "host": "codex",
+  "action": "nav-82504a8ca9714216a2306b49eb36706a",
+  "chars": 3285
+ },
+ {
+  "item": "D119",
+  "stage": "spec",
+  "case": "battleship-salesforce",
+  "host": "codex",
+  "action": "nav-b2e6b5103cfa4f748f25ba85a74f46ef",
+  "chars": 2120
+ },
+ {
+  "item": "D120",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-440c03290d1b447394f8ff8bbc201bbe",
+  "chars": 763
+ },
+ {
+  "item": "D121",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-27527509ebe84fa1964d22eabbcca542",
+  "chars": 1418
+ },
+ {
+  "item": "D122",
+  "stage": "test-strategy",
+  "case": "user-listing",
+  "host": "codex",
+  "action": "nav-2e22553637854951a814fa69a4e7e447",
+  "chars": 1661
+ },
+ {
+  "item": "D123",
+  "stage": "spec",
+  "case": "custom",
+  "host": "codex",
+  "action": "nav-b996464bfe404dfa9a7b9534ec0930bc",
+  "chars": 2766
+ },
+ {
+  "item": "D126",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-9d4a8cfdba8046309c24262c354e4d4c",
+  "chars": 822
+ },
+ {
+  "item": "D127",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-3b6649ffb4a6445aa31c3b7b9a9ec7d0",
+  "chars": 1078
+ },
+ {
+  "item": "D130",
+  "stage": "spec",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-ae6fb4baf2054dcf937cd619501e30c3",
+  "chars": 821
+ },
+ {
+  "item": "D131",
+  "stage": "step-plan",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-c5735652c6cc4f3eace9fa239b792336",
+  "chars": 1967
+ },
+ {
+  "item": "D133",
+  "stage": "spec",
+  "case": "ticket-import",
+  "host": "codex",
+  "action": "nav-405862f8403c4c42ba937fb78e79f523",
+  "chars": 1310
+ },
+ {
+  "item": "D134",
+  "stage": "spec",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-e01f0b237d2947ef9989c8534ac87141",
+  "chars": 920
+ },
+ {
+  "item": "D135",
+  "stage": "test-strategy",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-dbc2db7e8e524cd38cdc7ab37059171d",
+  "chars": 1209
+ },
+ {
+  "item": "D136",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-8bb2322e13964ad4a7cd01db9fd9c6f8",
+  "chars": 5317
+ },
+ {
+  "item": "D137",
+  "stage": "test-strategy",
+  "case": "hello-hook-continuation",
+  "host": "codex",
+  "action": "nav-c2278bc115ba4b03bb236e993915a5af",
+  "chars": 1033
+ },
+ {
+  "item": "D139",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-8bf5bdb0f2484a5f97a9cb8a227e1f6a",
+  "chars": 765
+ },
+ {
+  "item": "D142",
+  "stage": "step-plan",
+  "case": "hello",
+  "host": "codex",
+  "action": "nav-70d8050b1fbd4074ae2868d5b9a9db08",
+  "chars": 750
+ },
+ {
+  "item": "D144",
+  "stage": "test-strategy",
+  "case": "chess-salesforce",
+  "host": "codex",
+  "action": "nav-b0b3f1a3a9f941ea86b303c5da62e6e7",
+  "chars": 2613
+ },
+ {
+  "item": "D145",
+  "stage": "spec",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-097f533bea4b4bc0a9f3439ef3fea23e",
+  "chars": 952
+ },
+ {
+  "item": "D146",
+  "stage": "test-strategy",
+  "case": "seat-reservations",
+  "host": "codex",
+  "action": "nav-921fd068c318422bb8b0c5daabc6d628",
+  "chars": 1096
+ },
+ {
+  "item": "D147",
+  "stage": "test-strategy",
+  "case": "battleship-salesforce",
+  "host": "codex",
+  "action": "nav-b3a67fc53126460da414d816517058d3",
+  "chars": 2152
+ },
+ {
+  "item": "D148",
+  "stage": "step-plan",
+  "case": "ticket-escalation",
+  "host": "codex",
+  "action": "nav-fa27e44185244ce0974544a441efc9d3",
+  "chars": 402
+ },
+ {
+  "item": "D150",
+  "stage": "test-strategy",
+  "case": "ticket-due-times",
+  "host": "grok",
+  "action": "nav-fd489988c87049ffb0f7d6c6b93817b0",
+  "chars": 12530
+ },
+ {
+  "item": "D151",
+  "stage": "spec",
+  "case": "chess-salesforce",
+  "host": "codex",
+  "action": "nav-2d456873b5114da3b66b25fb4f24cc2a",
+  "chars": 3315
+ },
+ {
+  "item": "D153",
+  "stage": "step-plan",
+  "case": "ticket-escalation",
+  "host": "codex",
+  "action": "nav-02cf30bb942048558c74477ddd628ea9",
+  "chars": 7768
+ },
+ {
+  "item": "D154",
+  "stage": "test-strategy",
+  "case": "hello-hook-continuation",
+  "host": "codex",
+  "action": "nav-dba1071d33b1452b91df86f4ec2d27ea",
+  "chars": 1072
+ },
+ {
+  "item": "D155",
+  "stage": "test-strategy",
+  "case": "user-teams",
+  "host": "codex",
+  "action": "nav-d29e72793285475386d5fc42c09f950d",
+  "chars": 2482
+ },
+ {
+  "item": "D156",
+  "stage": "step-plan",
+  "case": "user-listing",
+  "host": "codex",
+  "action": "nav-e8264a8c290e4db5b8616c54c5a4d25a",
+  "chars": 2928
+ },
+ {
+  "item": "D159",
+  "stage": "test-strategy",
+  "case": "hello-hook-continuation",
+  "host": "codex",
+  "action": "nav-73214b1ae68b4ddebe6eeb4e96d33793",
+  "chars": 801
+ },
+ {
+  "item": "D160",
+  "stage": "step-plan",
+  "case": "hello",
+  "host": "codex",
+  "action": "nav-7a7b82e504bf4a4d99c14826aa8d3dde",
+  "chars": 315
+ },
+ {
+  "item": "D161",
+  "stage": "step-plan",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-6e4fea241b93491e8d6a58023f98c13c",
+  "chars": 6125
+ },
+ {
+  "item": "D162",
+  "stage": "spec",
+  "case": "user-listing",
+  "host": "codex",
+  "action": "nav-69c968a37adf493e82f8d387720613ae",
+  "chars": 1805
+ },
+ {
+  "item": "D163",
+  "stage": "test-strategy",
+  "case": "ticket-comments",
+  "host": "codex",
+  "action": "nav-3383b68bf0d044d7940b892c746f6b69",
+  "chars": 2114
+ },
+ {
+  "item": "D166",
+  "stage": "spec",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-681f770dfb214e23ab1fdf3043ed96b8",
+  "chars": 1460
+ },
+ {
+  "item": "D167",
+  "stage": "test-strategy",
+  "case": "hello-startup-contract",
+  "host": "codex",
+  "action": "nav-b37a052c884e44369e2bbf9f5edd73e8",
+  "chars": 907
+ },
+ {
+  "item": "D168",
+  "stage": "plan",
+  "case": "ticket-assignment",
+  "host": "codex",
+  "action": "nav-11cdba3160a7460db4ae56a8e1cf4683",
+  "chars": 2595
+ },
+ {
+  "item": "D169",
+  "stage": "test-strategy",
+  "case": "csv-report",
+  "host": "codex",
+  "action": "nav-d91fd3900aec4c36bef5d57b3b624d95",
+  "chars": 1007
+ },
+ {
+  "item": "D170",
+  "stage": "spec",
+  "case": "user-listing",
+  "host": "codex",
+  "action": "nav-bb406ee7b77f487eb714699340aa42c5",
+  "chars": 1884
+ },
+ {
+  "item": "D171",
+  "stage": "spec",
+  "case": "shared-expenses",
+  "host": "codex",
+  "action": "nav-edea1955e6e84708aafe521d978e02a5",
+  "chars": 925
+ }
+]

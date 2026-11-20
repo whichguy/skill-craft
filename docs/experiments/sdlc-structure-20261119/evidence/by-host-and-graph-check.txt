@@ -1,0 +1,22 @@
+review edit rate by host (ShipLoop's own flags; step review = document; 'code or tests' from the snapshot diff)
+host     step reviews  edited files  code or tests  planning reviews (spec, test-strategy, plan)  edited
+codex             405           37%            35%                                           795     17%
+grok               29           17%             0%                                             9    100%
+claude              2            0%             0%                                             6     33%
+
+finished runs that used the plan-graph check (non-empty run/backchain): 6 of 273
+   ('2026-11-15', 'custom', ['e2e-runs', '2026-11-15', 'backchain-child-csv-729a1e'])
+   ('2026-11-16', 'custom', ['e2e-runs', '2026-11-15', 'backchain-default-none-csv-8df4c5'])
+   ('2026-11-14', 'ticket-due-times', ['e2e-runs-planning-points', '20261114', 'pp-1'])
+   ('2026-11-14', 'ticket-due-times', ['e2e-runs-planning-points', '20261114', 'pp-2'])
+   ('2026-11-14', 'ticket-due-times', ['e2e-runs-planning-points', '20261114', 'pp-4'])
+   ('2026-11-15', 'hello', ['e2e-runs-refusal-probe', '20261115', 'hello-seeded-hook-1'])
+
+review cost per substantive or code-changing edit (share of run time spent in the review / share of reviews with such an edit):
+  step-plan                     5.7% of run time; 31% of reviews;    18 points of run time per such edit
+  spec                          3.8% of run time; 11%..13% of reviews;    29..35 points of run time per such edit
+  test-strategy                 3.1% of run time; 7%..10% of reviews;    31..44 points of run time per such edit
+  plan                          3.0% of run time; 2%..3% of reviews;   100..150 points of run time per such edit
+  document (step review)        7.7% of run time; 32% of reviews;    24 points of run time per such edit
+  carry-forward (end of work)   3.4% of run time; 13% of reviews;    26 points of run time per such edit
+  system-test-author            2.7% of run time; 3% of reviews;    90 points of run time per such edit

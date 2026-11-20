@@ -1,0 +1,68 @@
+{"item": "D084", "verdict": "substance", "gate": false, "why": "Adds null/non-object item cases, concrete id/index oracle, Unicode/escape body-limit case and other-endpoint limit regression test."}
+{"item": "D085", "verdict": "sharpening", "gate": false, "why": "Corrects baseline count, helper description and timing estimates; drops architecture boundary paragraph."}
+{"item": "D086", "verdict": "sharpening", "gate": false, "why": "Adds worked 5-cent three-member oracle and restart check; removes duplicated harness section."}
+{"item": "D087", "verdict": "sharpening", "gate": false, "why": "Adds replayable 10-cent split example illustrating existing rules."}
+{"item": "D088", "verdict": "sharpening", "gate": false, "why": "Marks api/messaging/state concerns applicable with explicit decisions and owner stage instead of 'addressed in W1'."}
+{"item": "D090", "verdict": "substance", "gate": false, "why": "Proof gains multi-file, missing-file and no-argument cases; regression suite merged into focused."}
+{"item": "D091", "verdict": "substance", "gate": false, "why": "Adds audit actor and entry check per comment to notify cases; removes architecture section."}
+{"item": "D092", "verdict": "substance", "gate": false, "why": "Proof adds outbox unchanged, nextNumber 3 and full 5000-id order assertions."}
+{"item": "D095", "verdict": "substance", "gate": false, "why": "Allows changing existing assertions that state superseded case-sensitive team rule instead of requiring unchanged suite."}
+{"item": "D096", "verdict": "record", "gate": true, "why": "Duplicate regression suite entry removed; focused suite flagged minimum and regression."}
+{"item": "D097", "verdict": "sharpening", "gate": true, "why": "Renames TC-n to TC_n, corrects probed unittest docstring output format and notes TC_3-5 are scripted checks."}
+{"item": "D098", "verdict": "sharpening", "gate": true, "why": "ID convention moves TC_1 from method name to docstring so verbose output shows it."}
+{"item": "D099", "verdict": "sharpening", "gate": false, "why": "Adds replayable examples for R-1 rounding, R-2 bad row and R-3 missing file."}
+{"item": "D100", "verdict": "sharpening", "gate": false, "why": "Adds concrete oracle for two files, header-only, invalid row and missing file; removes architecture."}
+{"item": "D101", "verdict": "record", "gate": false, "why": "Appends probe evidence path to work-item context."}
+{"item": "D102", "verdict": "sharpening", "gate": true, "why": "Splits suite commands into fenced blocks; 'case mismatch' reworded to 'case variants'."}
+{"item": "D103", "verdict": "record", "gate": false, "why": "Records probed assumption A3 with evidence file."}
+{"item": "D104", "verdict": "sharpening", "gate": false, "why": "Clarifies checkout-return verification happens at release or handoff."}
+{"item": "D105", "verdict": "sharpening", "gate": false, "why": "Adds three-row replayable example of existing aggregation rule."}
+{"item": "D106", "verdict": "record", "gate": false, "why": "Removes architecture file; adds due-stage note for checks."}
+{"item": "D108", "verdict": "substance", "gate": false, "why": "Requires overdue filter before paginate; corrects persisted document shape (outbox nextId, no root nextEventId)."}
+{"item": "D109", "verdict": "sharpening", "gate": false, "why": "Adds concrete filter and pagination example oracles for stated rules."}
+{"item": "D111", "verdict": "substance", "gate": false, "why": "Browser check moved to execution checkout after deploy and assignment, recheck after source return only if needed."}
+{"item": "D112", "verdict": "substance", "gate": false, "why": "Proof uses configured data file and adds full npm test run."}
+{"item": "D113", "verdict": "sharpening", "gate": false, "why": "Names exact endpoints, expected due strings, clock on restart and exact backfill JSON document."}
+{"item": "D114", "verdict": "sharpening", "gate": false, "why": "C1 check restated as shell test with stripped newline; task wording adjusted."}
+{"item": "D115", "verdict": "substance", "gate": false, "why": "Proof adds half-even .005+.005 rounding case and reworks bad-row line check."}
+{"item": "D116", "verdict": "substance", "gate": false, "why": "Adds malformed JSON, invalid shares, unknown member, persistence failure checks and concurrent sequence/total assertions."}
+{"item": "D117", "verdict": "substance", "gate": false, "why": "Moves overdue parsing to keep parseListQuery default shape; adds probed assumptions on hour defaults and query test."}
+{"item": "D118", "verdict": "substance", "gate": false, "why": "Adds perft 20/400, fool's and scholar's mate replays, castling-check cases and exact tab/app metadata."}
+{"item": "D119", "verdict": "substance", "gate": false, "why": "Adds signatures, permission set and assignment step, 100-shot game oracle, full-domain seed uniqueness requirement."}
+{"item": "D120", "verdict": "sharpening", "gate": false, "why": "Adds replayable example covering existing R-1 to R-4 rules."}
+{"item": "D121", "verdict": "sharpening", "gate": false, "why": "Adds example oracle for two rows."}
+{"item": "D122", "verdict": "record", "gate": true, "why": "Splits suite commands into fenced blocks; removes architecture file."}
+{"item": "D123", "verdict": "substance", "gate": false, "why": "Changes policy from preserving to discarding combining accents after ASCII bases; separators rule corrected."}
+{"item": "D126", "verdict": "sharpening", "gate": false, "why": "Notes zero-test baseline is not a pass and suite must fail against base."}
+{"item": "D127", "verdict": "sharpening", "gate": false, "why": "Adds concrete one-row oracle and missing-file expectation."}
+{"item": "D130", "verdict": "sharpening", "gate": false, "why": "States new node:test cases go under test/ and run in npm test."}
+{"item": "D131", "verdict": "substance", "gate": false, "why": "Proof adds worker delivery check of assignment notification."}
+{"item": "D133", "verdict": "substance", "gate": false, "why": "Requires max-length fields with JSON escapes accepted and whitespace/unknown fields bounded, via HTTP test."}
+{"item": "D134", "verdict": "sharpening", "gate": false, "why": "Adds replayable equal and exact split example."}
+{"item": "D135", "verdict": "sharpening", "gate": false, "why": "Lists per-TC planned case details."}
+{"item": "D136", "verdict": "substance", "gate": false, "why": "Proof adds post-exact balances, invalid expense inputs, tie-ordering settlement and final balance checks."}
+{"item": "D137", "verdict": "sharpening", "gate": true, "why": "ID convention moves TC_1 from method name to docstring."}
+{"item": "D139", "verdict": "record", "gate": false, "why": "Adds due-stage and ownership note; removes architecture."}
+{"item": "D142", "verdict": "sharpening", "gate": true, "why": "C1 drops unittest TC_1 wording; duplicate regression suite merged into focused."}
+{"item": "D144", "verdict": "record", "gate": false, "why": "Adds local Chrome probe note; removes environment harness and command sections."}
+{"item": "D145", "verdict": "sharpening", "gate": false, "why": "Adds replayable accounting example."}
+{"item": "D146", "verdict": "record", "gate": false, "why": "Records loopback transport probe."}
+{"item": "D147", "verdict": "substance", "gate": false, "why": "Adds detailed checks: seed reinit after games, derived hits, invalid bounds, fire after game over, controller counters."}
+{"item": "D148", "verdict": "substance", "gate": true, "why": "Adds node --check command suite covering criterion C4."}
+{"item": "D150", "verdict": "substance", "gate": false, "why": "Extends DT-4 to show and weekly-report JSON; fixes loadConfig overlay binding port 4180 and starting worker."}
+{"item": "D151", "verdict": "sharpening", "gate": false, "why": "Spells out controller method signatures and exact deploy/test commands."}
+{"item": "D153", "verdict": "substance", "gate": false, "why": "Proof adds many invalid reassign bodies with error code and unchanged state checks."}
+{"item": "D154", "verdict": "sharpening", "gate": true, "why": "Splits commands into fenced blocks; notes zero-case run is not a pass."}
+{"item": "D155", "verdict": "substance", "gate": false, "why": "Removes planned R-5 team checks and TC-4/TC-5 cases; AD-2 says USERS gains team fields."}
+{"item": "D156", "verdict": "substance", "gate": false, "why": "Proofs add filter, empty, punctuation, unknown param, defaults and invalid page/size cases."}
+{"item": "D159", "verdict": "sharpening", "gate": false, "why": "States suite must report one executed test; zero-test is not a pass."}
+{"item": "D160", "verdict": "substance", "gate": false, "why": "Expectation changed from running nonexistent hello.py to checking it is absent."}
+{"item": "D161", "verdict": "substance", "gate": false, "why": "C2 widened to exact shares and invalid inputs; proof adds exact-split case; C4 requires both contract comments."}
+{"item": "D162", "verdict": "sharpening", "gate": false, "why": "Adds baseline-store examples for filter and pagination."}
+{"item": "D163", "verdict": "sharpening", "gate": true, "why": "Adds TC_7 focused/full commands and ID convention; removes R-7 architecture paragraph."}
+{"item": "D166", "verdict": "sharpening", "gate": false, "why": "Adds two-row example oracle."}
+{"item": "D167", "verdict": "sharpening", "gate": true, "why": "ID convention moves TC_1 into docstring."}
+{"item": "D168", "verdict": "sharpening", "gate": false, "why": "Marks concerns applicable with explicit decisions and owner stage."}
+{"item": "D169", "verdict": "sharpening", "gate": false, "why": "Adds concrete oracle with malformed line and missing file expectations."}
+{"item": "D170", "verdict": "sharpening", "gate": false, "why": "Adds filter and pagination examples for baseline users."}
+{"item": "D171", "verdict": "sharpening", "gate": false, "why": "Adds 5-cent split acceptance example with restart."}

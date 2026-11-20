@@ -1,0 +1,12 @@
+skipped: {}
+reviews diffed: 2447; diff agrees with ShipLoop's own 'tree changed' flag in 1674 (68%)
+
+reviewed stage       reviews  changed code  changed tests  code or tests  docs/knowledge only  nothing
+document                 436           23%            26%            33%                  18%      49%
+step-plan                365           90%            92%            96%                   4%       1%
+system-test-author       283            1%            17%            18%                  34%      48%
+carry-forward            278           10%            13%            14%                  31%      55%
+release-plan             275            0%            13%            14%                  33%      53%
+plan                     270            1%             1%             1%                   7%      93%
+spec                     270            0%             0%             0%                  29%      71%
+test-strategy            270            0%             0%             0%                  24%      76%

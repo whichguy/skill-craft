@@ -1,0 +1,1345 @@
+=== D002 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -64,3 +64,3 @@
+    ],
+-   "proof": "python3 /Users/dadleet/e2e-runs-f31/20261101-r2/V-csv-report-s3/.shiploop-runs/work-20261102-001044-9520c3/run/scratch/proof.py",
++   "proof": "python3 -c 'exec('\"'\"'import json,pathlib,runpy,subprocess,sys,tempfile\\nrunpy.run_path(\\'\"'\"'/Users/dadleet/e2e-runs-f31/20261101-r2/V-csv-report-s3/.shiploop-runs/work-20261102-001044-9520c3/run/scratch/proof.py\\'\"'\"')\\nwith tempfile.TemporaryDirectory(dir=\\'\"'\"'/Users/dadleet/e2e-runs-f31/20261101-r2/V-csv-report-s3/.shiploop-runs/work-20261102-001044-9520c3/run/scratch\\'\"'\"') as d:\\n p=pathlib.Path(d); h=\"date,region,product,units,unit_price\\\\n\"; (p/\"a.csv\").write_text(h+\"2026-01-01,West,A,2,1.25\\\\n\"); (p/\"b.csv\").write_text(h+\"2026-01-02,East,A,3,2.00\\\\n\"); r=subprocess.run([sys.executable,\"report.py\",str(p/\"a.csv\"),str(p/\"b.csv\")],capture_output=True,text=True); assert r.returncode==0 and not r.stderr and json.loads(r.stdout)=={\"rows\":2,\"revenue\":8.5,\"by_region\":{\"West\":2.5,\"East\":6},\"by_product\":{\"A\":5}},r\\nprint(\"multi-file proof passed\")\\n'\"'\"')'",
+    "skills": [],
+@@ -83,2 +83,4 @@
+    "min_tests": 3,
++   "minimum": true,
++   "regression": true,
+    "suite": "focused"
+@@ -95,7 +97,2 @@
+    "suite": "check"
+-  },
+-  {
+-   "command": "python3 -m unittest -v",
+-   "minimum": true,
+-   "suite": "regression"
+   }
+
+=== D003 | review of the `plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -19,2 +19,19 @@
+    "id": "A2"
++  },
++  {
++   "assumption": "Current priority and settings select the wait at scan time; strict first boundary and inclusive second boundary",
++   "disposition": "evidenced",
++   "evidence": [
++    "/Users/dadleet/e2e-runs-multipass/20261101/r4/R4c-sla-tidy-fix/.shiploop-runs/work-20261101-160731-f06e3e/worktree/docs/shiploop/spec.md",
++    "/Users/dadleet/e2e-runs-multipass/20261101/r4/R4c-sla-tidy-fix/.shiploop-runs/work-20261101-160731-f06e3e/run/notes/research.md"
++   ],
++   "id": "A3"
++  },
++  {
++   "assumption": "For legacy events without an audit sequence, ambiguous same-timestamp transitions are treated conservatively",
++   "disposition": "evidenced",
++   "evidence": [
++    "/Users/dadleet/e2e-runs-multipass/20261101/r4/R4c-sla-tidy-fix/.shiploop-runs/work-20261101-160731-f06e3e/run/notes/research.md"
++   ],
++   "id": "A4"
+   }
+
+=== D004 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -8,3 +8,3 @@ Basis: request S1-S4, S7; new behavior, no previous product. CLI accepts one or
+ ### R-2: Invalid rows
+-Basis: request S5; new behavior. Wrong column count or invalid/negative units or price are skipped and reported with filename and physical starting line; exit 2 if any. Confirm by subprocess tests with malformed rows and valid rows following them.
++Basis: request S5; new behavior. Wrong column count or invalid/negative units or price are skipped and reported with filename and physical starting line; exit 2 if any; otherwise exit 0. Non-finite prices are invalid. Confirm by subprocess tests with malformed rows and valid rows following them.
+ 
+
+=== D005 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -207,3 +207,3 @@
+    ],
+-   "proof": "node -e \"const a=require('node:assert/strict'),{TicketStore}=require('./src/store'),{manualClock}=require('./src/clock'); const s=new TicketStore({clock:manualClock()});let t=s.create({title:'a',priority:'normal',requester:'r'},'x');a.equal(t.assignee,null);t=s.assign(t.id,'Ada','x');a.equal(t.assignee,'Ada');a.equal(s.outboxReport().pending.at(-1).to,'Ada');\"",
++   "proof": "node -e \"const a=require('node:assert/strict'),{TicketStore}=require('./src/store'),{manualClock}=require('./src/clock'),{toDocument,fromDocument}=require('./src/persistence'),{render}=require('./src/templates');const s=new TicketStore({clock:manualClock()});let t=s.create({title:'a',priority:'normal',requester:'r'},'x');a.equal(t.assignee,null);t=s.assign(t.id,'Ada','x');a.equal(t.assignee,'Ada');let e=s.outboxReport().pending.at(-1);a.equal(e.to,'Ada');a.match(render(e).body,/assigned/i);let doc=toDocument(s.snapshot(),new Date());a.equal(fromDocument(doc,x=>Error(x)).tickets[0].assignee,'Ada');\"",
+    "skills": [],
+@@ -236,3 +236,3 @@
+    ],
+-   "proof": "node -e \"const a=require('node:assert/strict'),{withService,ticketBody}=require('./test/helpers');withService({},async api=>{let t=(await api.post('/tickets',ticketBody())).body;let r=await api.put('/tickets/'+t.id+'/assignee',{assignee:'Ada'});a.equal(r.status,200);a.equal(r.body.assignee,'Ada');}).catch(e=>{console.error(e);process.exitCode=1});\"",
++   "proof": "node -e \"const a=require('node:assert/strict'),{withService,ticketBody}=require('./test/helpers');withService({},async api=>{let t=(await api.post('/tickets',ticketBody())).body;let r=await api.put('/tickets/'+t.id+'/assignee',{assignee:'Ada'});a.equal(r.status,200);a.equal(r.body.assignee,'Ada');a.equal((await api.put('/tickets/'+t.id+'/assignee',{assignee:''})).status,400);}).catch(e=>{console.error(e);process.exitCode=1});\"",
+    "skills": [],
+
+=== D006 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -9,4 +9 @@ The user records remain in memory and are served by the HTTP server.
+ The listing and summary use the same exact, case-sensitive team selector.
+-
+-## Real-boundary checks
+-Planned: node:test drives the actual local HTTP server and observes JSON/status for R-3; no deployed target is named. Each test starts and stops its own server; data is process-local. R-1/R-2 preservation is covered by the unchanged full suite. No cache, asynchronous delivery, external permission or remote service is involved.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -26,3 +26,8 @@ Planned R-3 component checks: node:test and fetch against createServer on a uniq
+ ## ID convention
+-New test titles contain TC_1 through TC_4 as separate words; node --test prints these names.
++New test titles contain these IDs as separate words; node --test prints them. Planned, due at test:
++- TC_1: all users and stored team groups via GET /users/summary, including HTTP 200.
++- TC_2: name case and literal substring, exact team and conjunctive combinations via HTTP.
++- TC_3: no matches return zero and empty groups via HTTP.
++- TC_4: valid and malformed pagination, include and unrelated parameters leave the full aggregate unchanged via HTTP.
++Document status and preserved dated history are checked by reviewing spec.md at document stage.
+ 
+
+=== D007 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -5,3 +5,3 @@
+ ### R-1: Local CSV report
+-Basis: 2026-11-01 user request S1-S4, S7. No prior behavior exists. Python 3 standard library CLI `python3 report.py FILE [FILE ...]` reads CSV headers and aggregates valid records across files. JSON stdout contains rows, revenue and region revenues rounded to two decimal places, and product unit totals. A header-only file contributes zero. Decimal ties default to half-even, applied after aggregation. Confirm by CLI unittest with several files, quoted fields, zero values, precision and header-only input. Input files remain unchanged; aggregate state is process-local and discarded on exit. No remote service, shared state or identity applies.
++Basis: 2026-11-01 user request S1-S4, S7. No prior behavior exists. Python 3 standard library CLI `python3 report.py FILE [FILE ...]` reads CSV files with the header `date,region,product,units,unit_price` and aggregates valid records across files. JSON stdout contains rows, revenue and region revenues rounded to two decimal places, and product unit totals. A header-only file contributes zero. Decimal ties default to half-even, applied after aggregation. Confirm by CLI unittest with several files, quoted fields, zero values, precision and header-only input. For example, rows `2026-01-01,West,A,2,1.25` and `2026-01-02,West,A,1,0.50` yield 2 rows, revenue 3.00, West revenue 3.00 and A units 3. Input files remain unchanged; aggregate state is process-local and discarded on exit. No remote service, shared state or identity applies.
+ 
+
+=== D008 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -64,3 +64,3 @@
+    ],
+-   "proof": "python3 -m unittest -v",
++   "proof": "python3 -m unittest -v && python3 -c 'import ast; assert ast.get_docstring(ast.parse(open(\"report.py\").read()))'",
+    "skills": [],
+@@ -83,2 +83,4 @@
+    "min_tests": 3,
++   "minimum": true,
++   "regression": true,
+    "suite": "focused"
+@@ -91,7 +93,2 @@
+    "suite": "check"
+-  },
+-  {
+-   "command": "python3 -m unittest -v",
+-   "minimum": true,
+-   "suite": "regression"
+   }
+
+=== D009 | review of the `plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -3,3 +3,3 @@
+   {
+-   "assumption": "The greeting uses the usual print newline.",
++   "assumption": "The conventional trailing newline is the recorded default for the ambiguous output wording.",
+    "disposition": "evidenced",
+
+=== D010 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -5,3 +5,3 @@
+ ### R-1 Bulk import
+-Basis: request S2-S4, current validation in src/tickets/validate.js. POST /tickets/import accepts an object with a tickets array of 0 to 5000 single-create bodies; validate all in order before changing state. Confirm by HTTP tests including empty, malformed shape, 5001, and mixed valid/invalid inputs. The first invalid item returns 400 with its zero-based index in the error message, with no created ticket, audit event or notification; confirm by HTTP and state tests. Success returns 201 with created count and IDs in input order; confirm by HTTP readback. Invalid JSON and actor follow existing error behavior.
++Basis: request S2-S4, current validation in src/tickets/validate.js. POST /tickets/import accepts an object with a tickets array of 0 to 5000 single-create bodies; validate all in order before changing state. Confirm by HTTP tests including empty, malformed shape, 5001, and mixed valid/invalid inputs. The first invalid item returns 400 with its zero-based index in the error message, with no created ticket, audit event or notification; confirm by HTTP and state tests. Success returns 201 with created count and IDs in input order; confirm by HTTP readback. Invalid JSON and actor follow existing error behavior. On an empty store, import [{"title":" A ","requester":"Ada"},{"title":"B","requester":"Bob","priority":"urgent"}] with X-Actor: operator returns IDs T-0001 and T-0002; GET each ID confirms trimmed titles, normal then urgent priority and requesters. An invalid second item followed by another invalid item returns a message naming index 1, with no new state and the next single create retaining the next ID. Compare audit and outbox before and after rejection.
+ 
+
+=== D011 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -11,3 +11,3 @@ Basis: user request 2026-11-04. GET /api/new creates an independent game and ret
+ ### R-3 Moves and outcome
+-Basis: user request 2026-11-04. POST /api/move accepts game, from and to coordinates and returns ok, turn and winner. Invalid moves preserve state and turn. Legal moves switch turn; diagonal jumps remove the opponent and are mandatory whenever available. Far-row pieces become kings and can move in either direction. Default: each jump switches turn; the player whose opponent has no legal move wins. Confirm with rule and HTTP tests covering invalid, mandatory capture, promotion, and terminal states. Requests are serialized by the Node event loop; no persistence or external service.
++Basis: user request 2026-11-04. POST /api/move accepts game, from and to coordinates and returns ok, turn and winner. Invalid moves preserve state and turn. Legal moves switch turn; diagonal jumps remove the opponent and are mandatory whenever available. Far-row pieces become kings and can move in either direction. Default: each jump switches turn; the player whose opponent has no legal move wins. Confirm with rule and HTTP tests covering invalid coordinates, wrong player, occupied destination, mandatory capture elsewhere on the board, jump removal, both promotion directions, king movement, and terminal states. From a fresh game, [2,1] to [3,0] succeeds and changes turn to black; then [2,3] to [3,2] fails and keeps black turn. Confirm both through HTTP, including the returned board. Malformed JSON and unknown game IDs must produce a JSON error without crashing the server. Requests are serialized by the Node event loop; no persistence or external service.
+ 
+
+=== D012 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,10 +0,0 @@
+-# Architecture
+-
+-## Stack and structure
+-Python 3 standard library; report.py CLI, test_report.py unittest subprocess tests.
+-
+-## Decisions
+-AD-1: Read CSV with csv module and perform decimal arithmetic; serialize numbers as JSON numbers. Buffer the final report until all file reads succeed.
+-
+-## Real-boundary checks
+-Planned local subprocess tests exercise stdout, stderr, exit code and temporary CSV files; no browser, device or remote service applies. R-1 to R-5 are due at the test stage and again for final release verification. The test runner uses isolated temporary input directories and cleans them.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -29 +29,3 @@ python3 -m unittest
+ Focused and smoke: the same command until a larger suite exists.
++
++Planned edge cases: accumulated sub-cent values and exact half-cent ties; reject non-finite prices and fractional units; diagnostics after a multiline quoted record use the next record start line. Exercise bad rows before a missing file to verify exit 1 and empty stdout. Assert valid rows remain in the report even with invalid rows.
+
+=== D014 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -28,3 +28,3 @@ Basis: current request S1-S9, existing HTTP and store conventions in src/app.js,
+ 
+-- POST /tickets/:id/comments with author and body creates a comment and returns 201 with stable id, normalized author, body and created timestamp. GET /tickets/:id returns comments oldest first and [] initially. Confirm by HTTP tests with multiple comments.
++- POST /tickets/:id/comments with author and body creates a comment and returns 201 with stable id, normalized author, body and created timestamp. GET /tickets/:id returns comments oldest first and [] initially. Ticket representations returned by creation and mutations also include the current comments so existing create/get equality remains valid. Confirm by HTTP tests with multiple comments and the unchanged API suite.
+ - Author is a non-empty trimmed name at most 64 characters; body is non-empty text at most 2000 characters, permitting internal newlines. Bad types, blanks, extra fields and over-limit values return 400; limits accepted. Missing ticket returns 404. Confirm by HTTP boundary tests.
+
+=== D015 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -242,3 +242,3 @@
+    ],
+-   "proof": "node -e \"const a=require('node:assert/strict'),{loadConfig}=require('./src/config'),{createService}=require('./src/server');const c=loadConfig({ESCALATE_HIGH_MINUTES:'3'});a.equal(c.escalateHighMinutes,3);let got;const s=createService(c);s.store.escalate=x=>(got=x,{escalated:0});s.worker.tick();a.equal(got.highMinutes,3);a.throws(()=>loadConfig({ESCALATE_HIGH_MINUTES:'-1'}));\"",
++   "proof": "node -e \"const a=require('node:assert/strict'),{loadConfig}=require('./src/config'),{createService}=require('./src/server');const c=loadConfig({ESCALATE_HIGH_MINUTES:'3'});a.equal(c.escalateHighMinutes,3);a.equal(loadConfig({}).escalateHighMinutes,240);let got;const s=createService(c);s.store.escalate=x=>(got=x,{escalated:0});s.worker.tick();a.equal(got.highMinutes,3);a.throws(()=>loadConfig({ESCALATE_HIGH_MINUTES:'-1'}));\"",
+    "skills": [],
+@@ -266,3 +266,3 @@
+    ],
+-   "proof": "node -e \"const a=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{TicketStore}=require('./src/store'),{manualClock}=require('./src/clock'),{createPersistence}=require('./src/persistence');const d=fs.mkdtempSync(path.join(os.tmpdir(),'esc-proof-'));try{const clock=manualClock(),p=createPersistence(path.join(d,'data.json'),{clock});let s=TicketStore.open({clock,persistence:p});s.create({title:'H',requester:'r',priority:'high'},'x');clock.advance(60001);a.equal(s.escalate({oncall:'A',afterMinutes:1,highMinutes:1}).escalated,1);s=TicketStore.open({clock,persistence:p});clock.advance(120000);a.equal(s.escalate({oncall:'B',afterMinutes:1,highMinutes:1}).escalated,1);s=TicketStore.open({clock,persistence:p});a.equal(s.escalate({oncall:'B',afterMinutes:1,highMinutes:1}).escalated,0);a.equal(s.outboxReport().pending.filter(e=>e.type==='ticket.escalated').length,2);}finally{fs.rmSync(d,{recursive:true,force:true})}\"",
++   "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),fs=require('\"'\"'node:fs'\"'\"'),os=require('\"'\"'node:os'\"'\"'),path=require('\"'\"'node:path'\"'\"'),{TicketStore}=require('\"'\"'./src/store'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"'),{createPersistence}=require('\"'\"'./src/persistence'\"'\"');const d=fs.mkdtempSync(path.join(os.tmpdir(),'\"'\"'esc-proof-'\"'\"'));try{const clock=manualClock(),p=createPersistence(path.join(d,'\"'\"'data.json'\"'\"'),{clock});let s=TicketStore.open({clock,persistence:p});const h=s.create({title:'\"'\"'H'\"'\"',requester:'\"'\"'r'\"'\"',priority:'\"'\"'high'\"'\"'},'\"'\"'x'\"'\"');s.create({title:'\"'\"'N'\"'\"',requester:'\"'\"'r'\"'\"',priority:'\"'\"'normal'\"'\"'},'\"'\"'x'\"'\"');clock.advance(60000);a.equal(s.escalate({oncall:'\"'\"'A'\"'\"',afterMinutes:1,highMinutes:1}).escalated,0);clock.advance(1);a.equal(s.escalate({oncall:null,afterMinutes:1,highMinutes:1}).escalated,0);a.equal(s.escalate({oncall:'\"'\"'A'\"'\"',afterMinutes:1,highMinutes:1}).escalated,1);s=TicketStore.open({clock,persistence:p});clock.advance(119999);a.equal(s.escalate({oncall:'\"'\"'B'\"'\"',afterMinutes:1,highMinutes:1}).escalated,0);clock.advance(1);a.equal(s.escalate({oncall:'\"'\"'B'\"'\"',afterMinutes:1,highMinutes:1}).escalated,1);s=TicketStore.open({clock,persistence:p});a.equal(s.escalate({oncall:'\"'\"'B'\"'\"',afterMinutes:1,highMinutes:1}).escalated,0);a.deepEqual(s.outboxReport().pending.filter(e=>e.type==='\"'\"'ticket.escalated'\"'\"').map(e=>e.to),['\"'\"'A'\"'\"','\"'\"'B'\"'\"']);const t=s.create({title:'\"'\"'U'\"'\"',requester:'\"'\"'r'\"'\"',priority:'\"'\"'urgent'\"'\"'},'\"'\"'x'\"'\"');clock.advance(60001);a.equal(s.escalate({oncall:'\"'\"'A'\"'\"',afterMinutes:1,highMinutes:1}).escalated,1);s.assign(t.id,'\"'\"'Alice'\"'\"','\"'\"'actor'\"'\"');s.assign(t.id,null,'\"'\"'actor'\"'\"');clock.advance(120001);a.equal(s.escalate({oncall:'\"'\"'A'\"'\"',afterMinutes:1,highMinutes:1}).escalated,0);}finally{fs.rmSync(d,{recursive:true,force:true})}'",
+    "skills": [],
+
+=== D016 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -14,3 +14,3 @@
+    "id": "C1",
+-   "text": "R-3 unfiltered summary counts stored teams and ignores invalid page. Confirm by: direct HTTP proof and TC_1; pass when total 3, Engineering 2, Support 1 despite invalid page, and focused tests cover filters and empty results."
++   "text": "R-3 returns correct totals and stored team groups, respects name and team filters and ignores non-filter parameters, including invalid pagination. Confirm by: direct HTTP proof and TC_1; pass when the specified fixture-derived counts, empty results and all filter cases match."
+   }
+@@ -63,3 +63,3 @@
+    ],
+-   "proof": "node -e \"const {createServer}=require('./src/server');const s=createServer().listen(0,'127.0.0.1',async()=>{try{const r=await fetch('http://127.0.0.1:'+s.address().port+'/users/summary?page=bad');const b=await r.json();if(r.status!==200||b.total!==3||b.by_team.Engineering!==2||b.by_team.Support!==1)process.exitCode=1;}catch(e){process.exitCode=1}finally{s.close()}})\"",
++   "proof": "node -e 'const assert=require('\"'\"'node:assert/strict'\"'\"');const s=require('\"'\"'./src/server'\"'\"').createServer().listen(0,'\"'\"'127.0.0.1'\"'\"',async()=>{try{for(const [q,total,groups] of [['\"'\"''\"'\"',3,{Engineering:2,Support:1}],['\"'\"'?name=E&team=Engineering'\"'\"',2,{Engineering:2}],['\"'\"'?team=Support'\"'\"',1,{Support:1}],['\"'\"'?name=alan&team=Engineering'\"'\"',0,{}],['\"'\"'?team=engineering'\"'\"',0,{}],['\"'\"'?page=bad&size=0&include=x&other=x'\"'\"',3,{Engineering:2,Support:1}],['\"'\"'?page=2&size=1'\"'\"',3,{Engineering:2,Support:1}]]){const r=await fetch('\"'\"'http://127.0.0.1:'\"'\"'+s.address().port+'\"'\"'/users/summary'\"'\"'+q);const b=await r.json();assert.equal(r.status,200);assert.equal(b.total,total);assert.deepEqual(b.by_team,groups)}}catch(e){console.error(e);process.exitCode=1}finally{s.close()}})'",
+    "skills": [],
+
+=== D018 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -16,2 +16,8 @@ Basis: user request 2026-11-15, S8. `python3 -m unittest` discovers and runs tes
+ 
++## Concrete acceptance cases
++- With header and rows `2026-01-01,West,Tea,2,1.25` and `2026-01-02,West,Tea,1,0.10`, stdout JSON has rows 2, revenue 2.60, by_region West 2.60, by_product Tea 3; status 0 and stderr empty. Independently computed as 2×1.25 + 1×0.10 = 2.60. Multiple files aggregate in the same way.
++- A header-only file produces rows 0, revenue 0.00, empty region and product objects; status 0.
++- A file with a valid row followed by `2026-01-02,West,Tea,-1,2` and a four-column row keeps only the valid row, emits diagnostics for physical lines 3 and 4, and exits 2.
++- A valid file followed by a missing file yields exit 1, empty stdout and an error without traceback on stderr. These are planned subprocess observations, not executed results.
++
+ ## Non-functional requirements
+
+=== D019 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -6,2 +6,19 @@ Sources inspected: request of 2026-11-14 (RUN/request.md S1–S10); `docs/api.md
+ 
++## Request mapping
++
++| Request | Outcome | Acceptance |
++|---|---|---|
++| S1 | Existing Node.js service, no npm packages, `src/server.js`, `npm start` on `PORT`, CLI in `bin/` | R-9, NFR-4 |
++| S2 | Help desk promises response times | Motivation only; no extra clause |
++| S3 | Each ticket gets `due` = created + priority hours (4/24/72/168); hours changeable without a code change | R-1, R-2 |
++| S4 | Due is set once; later hours or priority changes do not move it | R-3 |
++| S5 | Every ticket shows `due`; `GET /tickets?overdue=true` lists only open and in-progress tickets whose due has passed | R-4, R-5 |
++| S6 | Tickets already in the production data file get dues from their own created+priority and keep them | R-6 |
++| S7 | Until `DUE_TIMES` is `on`, the service answers exactly as today | R-7 |
++| S8 | Operators can run 1.4.0 on the new data file; it starts and shows every ticket | R-8 |
++| S9 | Existing behaviour and existing tests still pass as they are | R-9 |
++| S10 | New `node:test` files under `test/`; `npm test` runs them with the existing ones | R-10 |
++
++S5 `due` is the HTTP JSON field. CLI stdout stays the 1.4.0 columns (research A5): `bin/tickets.js` does not read `DUE_TIMES`, and printing file `due` would show it while R-7 is off.
++
+ ## Requirements
+@@ -14,7 +31,7 @@ When a ticket first receives `due`, `due` is `created` plus the configured whole
+ 
+-Replay (clock `2025-09-01T08:00:00.000Z`, default hours): urgent `due` `2025-09-01T12:00:00.000Z`; high `2025-09-02T08:00:00.000Z`; normal `2025-09-04T08:00:00.000Z`; low `2025-09-08T08:00:00.000Z`. Recomputed in RUN/scratch/hour-math.json and RUN/scratch/spec-replay.md.
++Replay (clock `2025-09-01T08:00:00.000Z`, default hours): urgent `due` `2025-09-01T12:00:00.000Z`; high `2025-09-02T08:00:00.000Z`; normal `2025-09-04T08:00:00.000Z`; low `2025-09-08T08:00:00.000Z`. Recomputed with `Date.parse(created) + hours * 3600000` then `toISOString()` (Improve pass 1; same values as RUN/scratch/hour-math.json). First id on an empty store is `T-0001` (`src/tickets/ids.js` `formatId(1)`).
+ 
+-- **Positive:** POST `/tickets` with `priority` `urgent` at that clock yields `due` `2025-09-01T12:00:00.000Z` on the stored ticket.
++- **Positive:** POST `/tickets` with `priority` `urgent` at that clock stores `due` `2025-09-01T12:00:00.000Z` on ticket `T-0001`.
+ - **Failure:** n/a: assignment is determined by `created` and hours; a bad priority is already 400 from `docs/api.md`.
+-- **Boundary:** hours `0` yields `due` equal to `created`.
++- **Boundary:** hours `0` yields `due` equal to `created`. At that instant `now === due`, so an active ticket is overdue (R-5).
+ - **Surface:** stored ticket and, when R-7 is on, HTTP ticket JSON field `due`.
+@@ -22,3 +39,3 @@ Replay (clock `2025-09-01T08:00:00.000Z`, default hours): urgent `due` `2025-09-
+ 
+-**State:** resource is the ticket record in `TicketStore` / `DATA_FILE`. Owner: the store. Before: no `due`. After: `due` set, `updated` unchanged by assignment itself on backfill (R-6); on create, `created` and `updated` are the same instant as today. Recovery: if `DATA_FILE` is set, create saves `due` with the rest of the change (existing temp-file+rename). Unknowns: none.
++**State:** resource is the ticket record in `TicketStore` / `DATA_FILE`. Owner: the store. Before: no `due`. After: `due` set. On create, `created` and `updated` are the same instant as today. Recovery: if `DATA_FILE` is set, create saves `due` with the rest of the change (existing temp-file+rename). Unknowns: none.
+ 
+@@ -34,11 +51,11 @@ Replay (clock `2025-09-01T08:00:00.000Z`, default hours): urgent `due` `2025-09-
+ 
+-`RESPONSE_HOURS_URGENT`, `RESPONSE_HOURS_HIGH`, `RESPONSE_HOURS_NORMAL`, and `RESPONSE_HOURS_LOW` are whole-number hours. Unset or empty uses 4, 24, 72, and 168. A value that is not a whole number in range is `ConfigError` naming the variable; `npm start` exits 2. Names and `wholeNumber` parsing (trim, min 0) are the accepted design (research A2).
++`RESPONSE_HOURS_URGENT`, `RESPONSE_HOURS_HIGH`, `RESPONSE_HOURS_NORMAL`, and `RESPONSE_HOURS_LOW` are whole-number hours via existing `wholeNumber` (trim, min 0, default max). Unset or empty uses 4, 24, 72, and 168. A value that is not a whole number in range is `ConfigError` naming the variable; `npm start` exits 2. Names are the accepted design (research A2). Hours are process config, loaded at start; they are not stored on the ticket.
+ 
+-- **Positive:** `RESPONSE_HOURS_URGENT=2` and a new urgent ticket at `2025-09-01T08:00:00.000Z` has `due` `2025-09-01T10:00:00.000Z`.
++- **Positive:** process with `RESPONSE_HOURS_URGENT=2` and clock `2025-09-01T08:00:00.000Z`; POST urgent yields stored `due` `2025-09-01T10:00:00.000Z` (F-3).
+ - **Failure:** `RESPONSE_HOURS_HIGH=nope` prevents start; message contains `RESPONSE_HOURS_HIGH`.
+-- **Boun
+[... cut: 24147 more characters of this diff ...]
+
+=== D020 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -50,2 +50,7 @@
+    "text": "R-1 and R-2: Valid import returns ordered IDs, records effects, and rejects an invalid item without state change. Confirm by: HTTP and state assertions; pass when all assertions succeed."
++  },
++  {
++   "confirm": "executed",
++   "id": "C2",
++   "text": "R-3: A 5000-ticket HTTP import with file-backed storage completes within 10 seconds and survives reload. Confirm by: timed import and reload; pass when status and count are correct, elapsed is below 10000 ms, and persisted count is 5000."
+   }
+@@ -113,3 +118,4 @@
+    "criteria": [
+-    "C1"
++    "C1",
++    "C2"
+    ],
+@@ -121,5 +127,5 @@
+    ],
+-   "proof": "node -e \"const assert=require('node:assert/strict'); const {withService}=require('./test/helpers'); withService({},async(a,s)=>{let x=await a.post('/tickets/import',{tickets:[{title:'a',requester:'b'},{title:'c',requester:'d'}]}); assert.equal(x.status,201); assert.deepEqual(x.body,{created:2,ids:['T-0001','T-0002']}); let bad=await a.post('/tickets/import',{tickets:[{title:'ok',requester:'b'},null]}); assert.equal(bad.status,400); assert.match(bad.body.error.message,/1/); assert.equal(s.store.snapshot().tickets.length,2); assert.equal(s.store.snapshot().audit.length,2); assert.equal(s.store.snapshot().outbox.events.length,2)}).catch(e=>{console.error(e);process.exitCode=1})\"",
++   "proof": "node -e \"const assert=require('node:assert/strict'); const {withService}=require('./test/helpers'); withService({},async(a,s)=>{let x=await a.post('/tickets/import',{tickets:[{title:'a',requester:'b'},{title:'c',requester:'d'}]}); assert.equal(x.status,201); assert.deepEqual(x.body,{created:2,ids:['T-0001','T-0002']}); let bad=await a.post('/tickets/import',{tickets:[{title:'ok',requester:'b'},null]}); assert.equal(bad.status,400); assert.match(bad.body.error.message,/1/); assert.equal(s.store.snapshot().tickets.length,2); assert.equal(s.store.snapshot().audit.length,2); assert.equal(s.store.snapshot().outbox.events.length,2)}).catch(e=>{console.error(e);process.exitCode=1})\" && node -e \"const assert=require('node:assert/strict'),fs=require('node:fs'); const {withService}=require('./test/helpers'); const file='../run/scratch/import-proof.json'; try{fs.unlinkSync(file)}catch(e){if(e.code!=='ENOENT')throw e} (async()=>{try{await withService({dataFile:file},async(a)=>{const t=Date.now(); const r=await a.post('/tickets/import',{tickets:Array.from({length:5000},(_,i)=>({title:'ticket '+i,requester:'a'}))}); assert.equal(r.status,201); assert.equal(r.body.created,5000); assert.equal(r.body.ids.length,5000); assert.ok(Date.now()-t<10000)}); await withService({dataFile:file},async(a,s)=>assert.equal(s.store.snapshot().tickets.length,5000))}finally{try{fs.unlinkSync(file)}catch(e){if(e.code!=='ENOENT')throw e}}})().catch(e=>{console.error(e);process.exitCode=1})\"",
+    "skills": [],
+-   "task": "Implement C1 and preserve R-3 with batch validation, store effects, and documented endpoint."
++   "task": "Implement C1 and preserve R-3 with batch validation, store effects, and documented endpoint. Confirm C2 using file-backed 5000-item HTTP and reload."
+   }
+@@ -130,3 +136,4 @@
+    "criteria": [
+-    "C1"
++    "C1",
++    "C2"
+    ],
+@@ -141,3 +148,4 @@
+    "criteria": [
+-    "C1"
++    "C1",
++    "C2"
+    ],
+
+=== D021 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# Architecture
+-
+-## Decisions
+-AD-1: Keep the existing user store and HTTP server. Apply name filter before pagination at the GET /users boundary; native URL parsing and array operations need no dependencies. The existing paginate helper floors partial page counts and is not sufficient unchanged.
+-
+-## Real-boundary checks
+-Planned local HTTP component tests exercise real Node server on an ephemeral loopback port, with fresh server setup and close; no external consumer or deployed target was requested. R-1–R-3 check listing and error response, R-4 existing suite checks other modules and lookup. No remote service, cache, async event or data migration exists in this scope.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -33 +33,3 @@ npm test
+ Both local and quick; no remote fixture or tool.
++
++All R-1–R-4 checks are due at the work item test stage; final full suite repeats at system test. Smoke is the focused new HTTP suite. Existing test/server.test.js supplies the loopback pattern, and test/list-users.test.js will own independent fixtures. Revalidate the helper and commands after authoring.
+
+=== D022 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -24 +24,4 @@ Basis S12. Tests under test/ use node:test and run with node --test, covering AP
+ No npm dependencies; confirm source and run tests without installation. Single process concurrent updates must be retained (R-1). No numeric latency or availability targets specified. No UI, remote service, authentication, cache or async job requested. Filesystem errors must not report a successful write.
++
++## Concrete acceptance example
++Create g with members A, B, C (R-2). Record A paying 5 equal (R-3): shares are 2, 2, 1, so balances are A=3, B=-2, C=-1 (R-4). Settlements are B to A 2, then C to A 1. This follows the ordered member remainder and largest balances; all payments zero the balances. These are planned assertions, not observed execution.
+
+=== D023 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -21 +21,10 @@ Basis: S1–S7, S61–S69. Deploy to de, assign only current user, run at least
+ Security and privacy: access controlled server-side and by CRUD/FLS, no credentials logged or stored; confirm negative tests and review. Accessibility: exact accessible labels, visible errors and keyboard-operable standard Salesforce controls; confirm gym-ui and review. Layout should be legible at narrow and wide widths using Salesforce styling, explicit loading/empty/error states and visible focus; validate during browser check. Platform quotas apply; no numerical throughput bound requested. No external availability, payments, integration, concurrency guarantee or background processing is in scope. Existing records persist until changed by authorized workflows; no deletion workflow requested.
++
++## Replayable acceptance cases
++
++- Start with no linked member. Save name Alex Example, email alex@example.invalid, goal Strength, plan Basic. Expect Active and loginUserId equal to the running user; freeze and save goal Mobility; expect Frozen and updated goal. Admin cancels the same member; profile edits preserve Cancelled and self resume refuses. Confirm persisted results through isolated Apex assertions.
++- Admin creates unlinked Basic member Casey Example, casey@example.invalid, goal Balance, Active. First check-in returns a visit and independent training; second on same local date returns the same ID and count 1. Freeze and check in: AuraHandledException and count remains 1. Separately seed yesterday's visit and check in today: new ID and count 2. Confirm using isolated records and direct SOQL assertions.
++- Admin creates Coached member Jordan Example, jordan@example.invalid, goal Endurance, Active. Check-in text includes Endurance; edit goal to Mobility; member360 still reports stored Endurance until a subsequent visit. Confirm test assertions against persisted coaching.
++- A non-admin linked user cannot list, administer or inspect/check in a foreign member, and invalid IDs and inputs refuse without writes; confirm isolated Apex tests. Browser verifier uses freshly created records and exact labels, with reload confirming persistence.
++
++These are planned checks, not executed evidence. System.runAs test users must have suitable object/field permissions without permanent accounts. Test fixtures are isolated and test-created records roll back.
+
+=== D025 | review of the `plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -18,2 +18,11 @@
+    "settle": "Run timed HTTP test with persistence and correct if needed"
++  },
++  {
++   "assumption": "Existing outbox enqueue is feasible for an initially empty 5000-ticket batch",
++   "check": "node outbox enqueue microbenchmark, 5000 unique keys",
++   "disposition": "probed",
++   "evidence": [
++    "/Users/dadleet/e2e-runs-xr/20261031/B-ticket-import-s2/.shiploop-runs/work-20261031-211522-3216a1/worktree/.shiploop-improve/.experiments/nav-e45256bc68a241319051be88cd78f9d7/nav-bea5e3b0ed194c5589abb602f445d083/outbox-probe.txt"
++   ],
++   "id": "A3"
+   }
+
+=== D026 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# Chess architecture
+-## Decisions
+-AD-1: Implement a pure FEN-based Apex engine and a thin controller, with a session-local LWC board. No records or external services.
+-## Real-boundary checks
+-Planned R-1/R-2/R-4: deploy definitions and run native Apex tests in de. Initial alias query succeeded; deployment and test permissions remain unproven. A clean baseline has no classes; inventory before deployment prevents stale classes being treated as candidate evidence. Tests use immutable FEN fixtures and no data changes.
+-Planned R-3: inspect source inventory and deployment output.
+-Planned R-2 UI: in Salesforce Lightning, open SLChess app and board tab; select e2 then e4, observe white pawn at e4 and black to move; select illegal destination and observe unchanged board; New game restores starting position. NOT-REPLAYED: component does not exist, browser automation tool unavailable in this host. Owner: release; consumer interaction remains unverified unless a suitable browser becomes available. CLI checks cannot replace it. No cache, async service or persistent state exists.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -27 +27,9 @@ sf project deploy start --target-org de
+ Apex test methods use descriptive legal Apex identifiers; runner prints class and method.
++
++### Planned cases and verification
++- Start FEN: exactly 20 moves and 400 depth-two replies; assert UCI sorting and exact FEN after e2e4, including e3 target.
++- Fool's mate: f2f3 e7e5 g2g4 d8h4 yields checkmate. Scholar's mate: e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7 yields checkmate. Verify each move is legal before applying.
++- Exercise both colors and both sides of castling, forbidden transit attacks, en passant including discovered check, all promotion pieces, stalemate and illegal moves. Use independent known FENs and exact assertions.
++- Measure CPU for a middlegame move list, depth-two enumeration and about 35 controller plies in single transactions, with tests or anonymous Apex. Record CPU and cases.
++- Metadata inventory must enumerate allowed types and names; test deployment and per-class tests in de before release.
++- Board interaction is planned at the deployed Lightning boundary; absence of a browser tool leaves this check unverified, not passed.
+
+=== D027 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -5,3 +5,4 @@
+    "steps": [
+-    "S1"
++    "S1",
++    "S2"
+    ]
+@@ -11,3 +12,4 @@
+    "steps": [
+-    "S1"
++    "S1",
++    "S2"
+    ]
+@@ -17,3 +19,4 @@
+    "steps": [
+-    "S1"
++    "S1",
++    "S2"
+    ]
+@@ -23,3 +26,4 @@
+    "steps": [
+-    "S1"
++    "S1",
++    "S2"
+    ]
+@@ -29,3 +33,4 @@
+    "steps": [
+-    "S1"
++    "S1",
++    "S2"
+    ]
+@@ -36,5 +41,10 @@
+    "confirm": "executed",
++   "id": "C1",
++   "text": "R-2: group create, duplicate and invalid member list produce 201, 409 and 400. Confirm by: HTTP requests; pass when exact status codes match."
++  },
++  {
++   "confirm": "executed",
+    "from": "A2",
+-   "id": "C1",
+-   "text": "R-1 to R-5: service supports validation, accounting, persistence, deterministic settlements, and simultaneous writes. Confirm by: HTTP tests and independent proof; pass when responses and balances match and survive restart."
++   "id": "C2",
++   "text": "R-1, R-3 to R-5: equal and exact expenses, deterministic balances and settlement, concurrency, restart and unknown groups work. Confirm by: HTTP proof and suite; pass when the asserted values and statuses match."
+   }
+@@ -80,5 +90,20 @@
+    ],
++   "proof": "node -e 'const {spawn}=require(\"node:child_process\"),fs=require(\"node:fs\"),os=require(\"node:os\"),path=require(\"node:path\"),assert=require(\"node:assert/strict\"); const dir=fs.mkdtempSync(path.join(os.tmpdir(),\"group-proof-\")); const c=spawn(process.execPath,[\"server.js\"],{env:{...process.env,PORT:\"0\",DATA_FILE:path.join(dir,\"data.json\")}}); c.stdout.once(\"data\",async b=>{try{let port=String(b).match(/\\d+/)[0]; let send=async data=>(await fetch(`http://127.0.0.1:${port}/groups`,{method:\"POST\",headers:{\"content-type\":\"application/json\"},body:JSON.stringify(data)})).status; assert.equal(await send({id:\"g\",members:[\"A\",\"B\"]}),201);assert.equal(await send({id:\"g\",members:[\"A\",\"B\"]}),409);assert.equal(await send({id:\"x\",members:[\"A\",\"A\"]}),400);console.log(\"group proof passed\")}catch(e){console.error(e);process.exitCode=1}finally{c.once(\"exit\",()=>fs.rmSync(dir,{recursive:true,force:true}));c.kill()}});c.once(\"error\",e=>{console.error(e);process.exitCode=1});'",
++   "skills": [],
++   "task": "Implement group creation and durable group storage for C1. Start server with PORT, DATA_FILE and print its listening port."
++  },
++  {
++   "criteria": [
++    "C2"
++   ],
++   "deps": [
++    "S1"
++   ],
++   "id": "S2",
++   "paths": [
++    "server.js"
++   ],
+    "proof": "node /Users/dadleet/e2e-runs-sp/20261112/fix-forward-smoke/shared-expenses-s1/.shiploop-runs/work-20261113-053513-e8b0ea/run/scratch/proof.js",
+    "skills": [],
+-   "task": "Implement C1 using built-in Node HTTP and durable JSON, including validation, accounting, settlement and concurrent serialization."
++   "task": "Implement C2 expense creation, balances and settlements with serialized durable mutations and unknown-group routing."
+   }
+@@ -89,3 +114,4 @@
+    "criteria": [
+-    "C1"
++    "C1",
++    "C2"
+    ],
+@@ -99,8 +125,5 @@
+    "min_tests": 5,
++   "minimum": true,
++   "regression": true,
+    "suite": "focused"
+-  },
+-  {
+-   "command": "node --test",
+-   "minimum": true,
+-   "suite": "regression"
+   },
+
+=== D028 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -87,5 +87,5 @@
+    ],
+-   "proof": "node -e \"const a=require('node:assert/strict'),s=require('./server.js'); const g=s.makeGroup({id:'g',members:['a','b']}); s.addExpense(g,{payer:'a',cents:3,split:'equal'}); a.deepEqual(s.balances(g),{a:1,b:-1}); a.deepEqual(s.settlements(g),[{from:'b',to:'a',cents:1}]); a.throws(()=>s.addExpense(g,{payer:'x',cents:1,split:'equal'}));\"",
++   "proof": "node -e 'const assert=require('\"'\"'node:assert/strict'\"'\"'),http=require('\"'\"'node:http'\"'\"'),fs=require('\"'\"'node:fs'\"'\"'),os=require('\"'\"'node:os'\"'\"'),path=require('\"'\"'node:path'\"'\"'); const {createServer}=require('\"'\"'./server.js'\"'\"'); (async()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'\"'\"'expense-proof-'\"'\"')),file=path.join(dir,'\"'\"'data.json'\"'\"');let s; try { const start=async()=>{const x=await createServer(file); await new Promise(r=>x.listen(0,'\"'\"'127.0.0.1'\"'\"',r));return x};const req=async(method,url,body)=>{const v=await fetch('\"'\"'http://127.0.0.1:'\"'\"'+s.address().port+url,{method,headers:{'\"'\"'content-type'\"'\"':'\"'\"'application/json'\"'\"'},body:body===undefined?undefined:JSON.stringify(body)});return [v.status,await v.json()]};s=await start();assert.equal((await req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'g'\"'\"',members:['\"'\"'a'\"'\"','\"'\"'b'\"'\"','\"'\"'c'\"'\"']}))[0],201);assert.equal((await req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'g'\"'\"',members:['\"'\"'a'\"'\"','\"'\"'b'\"'\"','\"'\"'c'\"'\"']}))[0],409);assert.equal((await req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'bad'\"'\"',members:['\"'\"'a'\"'\"','\"'\"'a'\"'\"']}))[0],400);assert.equal((await req('\"'\"'GET'\"'\"','\"'\"'/groups/missing/balances'\"'\"'))[0],404);assert.equal((await req('\"'\"'POST'\"'\"','\"'\"'/groups/g/expenses'\"'\"',{payer:'\"'\"'z'\"'\"',cents:1,split:'\"'\"'equal'\"'\"'}))[0],400);assert.deepEqual(await req('\"'\"'POST'\"'\"','\"'\"'/groups/g/expenses'\"'\"',{payer:'\"'\"'a'\"'\"',cents:5,split:'\"'\"'equal'\"'\"'}),[201,{expense:1}]);assert.deepEqual(await req('\"'\"'POST'\"'\"','\"'\"'/groups/g/expenses'\"'\"',{payer:'\"'\"'b'\"'\"',cents:3,split:'\"'\"'exact'\"'\"',shares:{a:3,c:0}}),[201,{expense:2}]);assert.deepEqual((await req('\"'\"'GET'\"'\"','\"'\"'/groups/g/balances'\"'\"'))[1],{a:0,b:1,c:-1});assert.deepEqual((await req('\"'\"'GET'\"'\"','\"'\"'/groups/g/settlements'\"'\"'))[1],[{from:'\"'\"'c'\"'\"',to:'\"'\"'b'\"'\"',cents:1}]);const results=await Promise.all(Array.from({length:20},()=>req('\"'\"'POST'\"'\"','\"'\"'/groups/g/expenses'\"'\"',{payer:'\"'\"'a'\"'\"',cents:3,split:'\"'\"'equal'\"'\"'})));assert.equal(new Set(results.map(x=>x[1].expense)).size,20);assert.ok(results.every(x=>x[0]===201));await new Promise(r=>s.close(r));s=await start();assert.deepEqual((await req('\"'\"'GET'\"'\"','\"'\"'/groups/g/balances'\"'\"'))[1],{a:40,b:-19,c:-21});}finally{if(s)await new Promise(r=>s.close(r));fs.rmSync(dir,{recursive:true,force:true})}})().catch(e=>{console.error(e);process.exitCode=1})'",
+    "skills": [],
+-   "task": "Implement C1 and expose pure makeGroup, addExpense, balances and settlements functions for proof."
++   "task": "Implement C1 and export createServer(dataFile) returning a server that loads the file, so the independent proof can exercise HTTP, restart and concurrency."
+   }
+@@ -105,2 +105,4 @@
+    "min_tests": 4,
++   "minimum": true,
++   "regression": true,
+    "suite": "focused"
+@@ -110,7 +112,2 @@
+    "suite": "check"
+-  },
+-  {
+-   "command": "node --test",
+-   "minimum": true,
+-   "suite": "regression"
+   }
+
+=== D029 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -11,3 +11,3 @@ Request S1, S5: `test_hello.py` contains a standard unittest that runs the progr
+ ### R-3: Continuation
+-Request S2-S4: preserve installed skills and follow ShipLoop to completion. During first implement action after first product write append exactly `partial work recorded\n` to checkpoint.log and emit the exact final marker. Continue the same action and loop after the hook without repeating writes. Confirm by log inspection and navigator history. The checkpoint is local run-owned state delivered in the checkout; no concurrent edits are expected.
++Request S2-S4: preserve installed skills and follow ShipLoop to completion. During first implement action after first product write append exactly `partial work recorded\n` to checkpoint.log and emit one FINAL-channel message containing exactly `HOOK_CONTINUATION_CHECKPOINT`. Continue the same action and loop after the hook without repeating writes. Confirm by log inspection and navigator history. The checkpoint is local run-owned state delivered in the checkout; no concurrent edits are expected.
+ 
+
+=== D030 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -59,3 +59,3 @@
+    ],
+-   "proof": "python3 -c 'exec('\"'\"'import subprocess,sys,tempfile,pathlib,json\\nwith tempfile.TemporaryDirectory() as d:\\n p=pathlib.Path(d)/\"sales.csv\"; p.write_text(\"date,region,product,units,unit_price\\\\n2026-01-01,E,P,2,1.25\\\\nbad,E,P,-1,1\\\\n\")\\n r=subprocess.run([sys.executable,\"report.py\",str(p)],capture_output=True,text=True); x=json.loads(r.stdout); assert r.returncode==2 and x=={\"rows\":1,\"revenue\":2.5,\"by_region\":{\"E\":2.5},\"by_product\":{\"P\":2}} and (str(p)+\":3:\") in r.stderr\\n r=subprocess.run([sys.executable,\"report.py\",str(p),str(p)+\"missing\"],capture_output=True,text=True); assert r.returncode==1 and not r.stdout and \"Traceback\" not in r.stderr\\n r=subprocess.run([sys.executable,\"report.py\"],capture_output=True,text=True); assert r.returncode!=0 and not r.stdout\\n assert __import__(\"ast\").get_docstring(__import__(\"ast\").parse(pathlib.Path(\"report.py\").read_text()))\\nprint(\"proof passed\")'\"'\"')'",
++   "proof": "python3 -c 'exec('\"'\"'import subprocess,sys,tempfile,pathlib,json\\nwith tempfile.TemporaryDirectory() as d:\\n p=pathlib.Path(d)/\"sales.csv\"; p.write_text(\"date,region,product,units,unit_price\\\\n2026-01-01,E,P,2,1.25\\\\nbad,E,P,-1,1\\\\n\")\\n r=subprocess.run([sys.executable,\"report.py\",str(p)],capture_output=True,text=True); x=json.loads(r.stdout); assert r.returncode==2 and x=={\"rows\":1,\"revenue\":2.5,\"by_region\":{\"E\":2.5},\"by_product\":{\"P\":2}} and (str(p)+\":3:\") in r.stderr\\n r=subprocess.run([sys.executable,\"report.py\",str(p),str(p)+\"missing\"],capture_output=True,text=True); assert r.returncode==1 and not r.stdout and \"Traceback\" not in r.stderr\\n r=subprocess.run([sys.executable,\"report.py\"],capture_output=True,text=True); assert r.returncode!=0 and not r.stdout\\n assert __import__(\"ast\").get_docstring(__import__(\"ast\").parse(pathlib.Path(\"report.py\").read_text()))\\nwith tempfile.TemporaryDirectory() as d:\\n p=pathlib.Path(d)/\"a.csv\"; q=pathlib.Path(d)/\"b.csv\"\\n p.write_text(\\'\"'\"'date,region,product,units,unit_price\\\\n2026,E,P,1,0.005\\\\n2026,E,P,1,0.005\\\\n2026,W,Q,2,1.25\\\\n\\'\"'\"')\\n q.write_text(\\'\"'\"'date,region,product,units,unit_price\\\\n2026,W,P,1,0.005\\\\n\\'\"'\"')\\n r=subprocess.run([sys.executable,\\'\"'\"'report.py\\'\"'\"',str(p),str(q)],capture_output=True,text=True); x=json.loads(r.stdout)\\n assert r.returncode==0 and not r.stderr and x=={\\'\"'\"'rows\\'\"'\"':4,\\'\"'\"'revenue\\'\"'\"':2.52,\\'\"'\"'by_region\\'\"'\"':{\\'\"'\"'E\\'\"'\"':0.01,\\'\"'\"'W\\'\"'\"':2.50},\\'\"'\"'by_product\\'\"'\"':{\\'\"'\"'P\\'\"'\"':3,\\'\"'\"'Q\\'\"'\"':2}}\\n p.write_text(\\'\"'\"'date,region,product,units,unit_price\\\\n\\'\"'\"'); r=subprocess.run([sys.executable,\\'\"'\"'report.py\\'\"'\"',str(p)],capture_output=True,text=True); assert r.returncode==0 and json.loads(r.stdout)=={\\'\"'\"'rows\\'\"'\"':0,\\'\"'\"'revenue\\'\"'\"':0,\\'\"'\"'by_region\\'\"'\"':{},\\'\"'\"'by_product\\'\"'\"':{}}\\n p.write_text(\\'\"'\"'date,region,product,units,unit_price\\\\nx,E,P,no,1\\\\nx,E,P,1,-2\\\\nx,E,P,1\\\\n\\'\"'\"'); r=subprocess.run([sys.executable,\\'\"'\"'report.py\\'\"'\"',str(p)],capture_output=True,text=True); assert r.returncode==2 and all(str(p)+\\'\"'\"':\\'\"'\"'+str(i)+\\'\"'\"':\\'\"'\"' in r.stderr for i in (2,3,4)) and json.loads(r.stdout)[\\'\"'\"'rows\\'\"'\"']==0\\nprint(\"proof passed\")'\"'\"')'",
+    "skills": [],
+@@ -78,19 +78,5 @@
+    "min_tests": 4,
++   "minimum": true,
++   "regression": true,
+    "suite": "focused"
+-  },
+-  {
+-   "command": "python3 -m unittest -v",
+-   "criteria": [
+-    "C1",
+-    "C2"
+-   ],
+-   "ids": [
+-    "test_aggregation",
+-    "test_invalid_rows",
+-    "test_unreadable",
+-    "test_no_arguments"
+-   ],
+-   "min_tests": 4,
+-   "minimum": true,
+-   "suite": "regression"
+   },
+
+=== D031 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -64,3 +64,3 @@
+    ],
+-   "proof": "python3 -c 'import json, pathlib, subprocess, sys, tempfile; d=tempfile.TemporaryDirectory(); p=pathlib.Path(d.name)/\"sales.csv\"; p.write_text(\"date,region,product,units,unit_price\\n2020,X,A,2,1.25\\n2020,X,A,-1,2\\n\"); a=subprocess.run([sys.executable,\"report.py\",str(p)],capture_output=True,text=True); o=json.loads(a.stdout); assert a.returncode==2 and o=={\"rows\":1,\"revenue\":2.5,\"by_region\":{\"X\":2.5},\"by_product\":{\"A\":2}} and (str(p)+\":3:\") in a.stderr; b=subprocess.run([sys.executable,\"report.py\",str(p)+\"missing\"],capture_output=True,text=True); assert b.returncode==1 and not b.stdout and b.stderr and \"Traceback\" not in b.stderr; c=subprocess.run([sys.executable,\"report.py\"],capture_output=True,text=True); assert c.returncode!=0 and not c.stdout; import report; assert report.__doc__; print(\"proof passed\")'",
++   "proof": "python3 -c 'exec('\"'\"'import json,pathlib,subprocess,sys,tempfile\\nd=tempfile.TemporaryDirectory(); root=pathlib.Path(d.name); p=root/\"one.csv\"; q=root/\"two.csv\"\\nh=\"date,region,product,units,unit_price\\\\n\"\\np.write_text(h+\"x,East,A,1,0.005\\\\nx,East,A,1,0.005\\\\nx,West,B,2,1.25\\\\nx,East,A,-1,1\\\\nx,East,A,no,1\\\\nx,East,A,1,no\\\\nx,East,A,1,-1\\\\nx,East,A\\\\n\")\\nq.write_text(h+\"x,East,B,1,0.005\\\\n\")\\ndef run(*args): return subprocess.run([sys.executable,\"report.py\",*map(str,args)],capture_output=True,text=True)\\na=run(p,q); o=json.loads(a.stdout)\\nassert a.returncode==2 and o=={\"rows\":4,\"revenue\":2.52,\"by_region\":{\"East\":0.02,\"West\":2.5},\"by_product\":{\"A\":2,\"B\":3}}\\nassert all(f\"{p}:{i}:\" in a.stderr for i in range(5,10))\\nb=run(p,root/\"missing\"); assert b.returncode==1 and not b.stdout and b.stderr and \"Traceback\" not in b.stderr\\nc=run(); assert c.returncode!=0 and not c.stdout\\nimport report; assert report.__doc__ and \"sales\" in report.__doc__.lower()\\nprint(\"proof passed\")'\"'\"')'",
+    "skills": [],
+@@ -88,3 +88,3 @@
+   {
+-   "command": "python3 -c \"import report; assert report.__doc__; print(\"TC_6 ok\")\"",
++   "command": "python3 -c 'import report; assert report.__doc__ and \"sales\" in report.__doc__.lower(); print(\"TC_6 ok\")'",
+    "criteria": [
+
+=== D032 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -58,6 +58,17 @@
+   {
+-   "check": "test ! -e server.js && test ! -e test/service.test.js",
++   "check": "node --check server.js",
+    "id": "E1",
+    "paths": [
+-    "server.js",
++    "server.js"
++   ],
++   "state": "works",
++   "statement": "The partially implemented service is syntactically valid",
++   "steps": [
++    "S1"
++   ]
++  },
++  {
++   "check": "test ! -e test/service.test.js",
++   "id": "E2",
++   "paths": [
+     "test/service.test.js"
+@@ -65,3 +76,3 @@
+    "state": "absent",
+-   "statement": "Service and test are not present on baseline",
++   "statement": "Permanent test file remains absent",
+    "steps": [
+@@ -117,2 +128,4 @@
+    "min_tests": 4,
++   "minimum": true,
++   "regression": true,
+    "suite": "focused"
+@@ -129,7 +142,2 @@
+    "suite": "check"
+-  },
+-  {
+-   "command": "node --test",
+-   "minimum": true,
+-   "suite": "regression"
+   }
+
+=== D034 | review of the `plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -16,23 +16,31 @@
+     "id": "ui",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    },
+    {
+-    "applies": "no",
++    "anchor": "docs/shiploop/spec.md",
++    "applies": "yes",
++    "decision": "Validate and expose assignment and conjunctive filters.",
+     "id": "api",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "owner_stage": "step-plan"
+    },
+    {
+-    "applies": "no",
++    "anchor": "docs/shiploop/spec.md",
++    "applies": "yes",
++    "decision": "Enqueue distinct assignment notifications and test delivery.",
+     "id": "messaging",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "owner_stage": "step-plan"
+    },
+    {
+-    "applies": "no",
++    "anchor": "docs/shiploop/spec.md",
++    "applies": "yes",
++    "decision": "Persist nullable assignee and read legacy records.",
+     "id": "state",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "owner_stage": "step-plan"
+    },
+    {
+-    "applies": "no",
++    "anchor": "docs/shiploop/spec.md",
++    "applies": "yes",
++    "decision": "Read missing legacy field as null without separate migration.",
+     "id": "migrate-before",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "owner_stage": "step-plan"
+    },
+@@ -41,3 +49,3 @@
+     "id": "migrate-after",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    },
+@@ -46,8 +54,10 @@
+     "id": "switchover",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    },
+    {
+-    "applies": "no",
++    "anchor": "docs/shiploop/spec.md",
++    "applies": "yes",
++    "decision": "Use existing synchronous store mutation and outbox semantics.",
+     "id": "concurrency",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "owner_stage": "step-plan"
+    },
+@@ -56,3 +66,3 @@
+     "id": "platform-services",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    },
+@@ -61,13 +71,17 @@
+     "id": "scale",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    },
+    {
+-    "applies": "no",
++    "anchor": "docs/shiploop/spec.md",
++    "applies": "yes",
++    "decision": "Validate bounded input and retain existing service access boundary.",
+     "id": "security",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "owner_stage": "step-plan"
+    },
+    {
+-    "applies": "no",
++    "anchor": "docs/shiploop/spec.md",
++    "applies": "yes",
++    "decision": "Audit each change and expose outbox status.",
+     "id": "observability",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "owner_stage": "step-plan"
+    },
+@@ -76,3 +90,3 @@
+     "id": "config",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    },
+@@ -81,3 +95,3 @@
+     "id": "performance",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    },
+@@ -86,3 +100,3 @@
+     "id": "accessibility",
+-    "reason": "Existing local service conventions apply; no new independent infrastructure or interface."
++    "reason": "No separate change to this concern is requested."
+    }
+
+=== D036 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -131,3 +131,3 @@
+    ],
+-   "proof": "node /Users/dadleet/e2e-runs-sp/20261114/closeout-whole/T-shared-expenses/.shiploop-runs/work-20261114-142440-349c3c/run/scratch/proof.cjs groups && node -e \"const fs=require('node:fs'); const a=require('node:assert/strict'); for(const [p,terms] of [['server.js',['HTTP contract']],['README.md',['PORT','DATA_FILE','node --test','single process']]]) for(const s of terms) a.ok(fs.readFileSync(p,'utf8').includes(s),p+': '+s)\"",
++   "proof": "node -e 'eval(\"const MODE=\\\"groups\\\";\\nconst assert=require('\"'\"'node:assert/strict'\"'\"'),fs=require('\"'\"'node:fs'\"'\"'),os=require('\"'\"'node:os'\"'\"'),path=require('\"'\"'node:path'\"'\"'),{spawn}=require('\"'\"'node:child_process'\"'\"');\\n(async()=>{\\nconst dir=fs.mkdtempSync(path.join(os.tmpdir(),'\"'\"'expense-check-'\"'\"')),file=path.join(dir,'\"'\"'data.json'\"'\"');let child,port;\\nasync function stop(){if(child&&child.exitCode===null){const p=new Promise(r=>child.once('\"'\"'exit'\"'\"',r));child.kill('\"'\"'SIGKILL'\"'\"');await p;}}\\nasync function start(){child=spawn(process.execPath,['\"'\"'server.js'\"'\"'],{env:{...process.env,PORT:'\"'\"'0'\"'\"',DATA_FILE:file},stdio:['\"'\"'ignore'\"'\"','\"'\"'pipe'\"'\"','\"'\"'pipe'\"'\"']});port=await new Promise((r,j)=>{let out='\"'\"''\"'\"',err='\"'\"''\"'\"';const t=setTimeout(()=>j(Error('\"'\"'timeout '\"'\"'+err)),4000);child.stderr.on('\"'\"'data'\"'\"',c=>err+=c);child.stdout.on('\"'\"'data'\"'\"',c=>{out+=c;const m=out.match(/Listening on (\\\\d+)/);if(m){clearTimeout(t);r(m[1]);}});child.once('\"'\"'exit'\"'\"',c=>{clearTimeout(t);j(Error('\"'\"'startup '\"'\"'+c+err));});});}\\nasync function req(method,p,b,status){const r=await fetch('\"'\"'http://127.0.0.1:'\"'\"'+port+p,{method,...(b===undefined?{}:{body:JSON.stringify(b)})});assert.equal(r.status,status,p);return r.json();}\\ntry{\\nawait start();await req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'g'\"'\"',members:['\"'\"'A'\"'\"','\"'\"'B'\"'\"','\"'\"'C'\"'\"']},201);\\nawait req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'g'\"'\"',members:['\"'\"'A'\"'\"','\"'\"'B'\"'\"']},409);\\nfor(const members of [[],['\"'\"'A'\"'\"'],['\"'\"'A'\"'\"','\"'\"'A'\"'\"'],['\"'\"'A'\"'\"','\"'\"''\"'\"'],['\"'\"'A'\"'\"','\"'\"' '\"'\"'],['\"'\"'A'\"'\"',2],null])await req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'bad'\"'\"',members},400);\\nfor(const method of ['\"'\"'GET'\"'\"','\"'\"'POST'\"'\"','\"'\"'DELETE'\"'\"'])await req(method,'\"'\"'/groups/missing/anything'\"'\"',undefined,404);\\nawait req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'__proto__'\"'\"',members:['\"'\"'__proto__'\"'\"','\"'\"'constructor'\"'\"']},201);\\nfs.renameSync(file,file+'\"'\"'.saved'\"'\"');fs.mkdirSync(file);\\nawait req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'failed'\"'\"',members:['\"'\"'A'\"'\"','\"'\"'B'\"'\"']},500);\\nawait req('\"'\"'GET'\"'\"','\"'\"'/groups/failed/balances'\"'\"',undefined,404);\\nfs.rmdirSync(file);fs.renameSync(file+'\"'\"'.saved'\"'\"',file);\\nif(MODE!=='\"'\"'groups'\"'\"'){\\nconst expense='\"'\"'/groups/g/expenses'\"'\"';\\nassert.deepEqual(await req('\"'\"'POST'\"'\"',expense,{payer:'\"'\"'A'\"'\"',cents:5,split:'\"'\"'equal'\"'\"'},201),{expense:1});\\nassert.deepEqual(await req('\"'\"'GET'\"'\"','\"'\"'/groups/g/balances'\"'\"',undefined,200),{A:3,B:-2,C:-1});\\nassert.deepEqual(await req('\"'\"'POST'\"'\"',expense,{payer:'\"'\"'B'\"'\"',cents:3,split:'\"'\"'exact'\"'\"',shares:{A:0,C:3}},201),{expense:2});\\nassert.deepEqual(await req('\"'\"'GET'\"'\"','\"'\"'/groups/g/balances'\"'\"',undefined,200),{A:3,B:1,C:-4});\\nfor(const v of [{payer:'\"'\"'X'\"'\"',cents:2,split:'\"'\"'equal'\"'\"'},{payer:'\"'\"'A'\"'\"',cents:0,split:'\"'\"'equal'\"'\"'},{payer:'\"'\"'A'\"'\"',cents:1.5,split:'\"'\"'equal'\"'\"'},{payer:'\"'\"'A'\"'\"',cents:2,split:'\"'\"'bad'\"'\"'},{payer:'\"'\"'A'\"'\"',cents:2,split:'\"'\"'exact'\"'\"',shares:{X:2}},{payer:'\"'\"'A'\"'\"',cents:2,split:'\"'\"'exact'\"'\"',shares:{A:1}},{payer:'\"'\"'A'\"'\"',cents:2,split:'\"'\"'exact'\"'\"',shares:{A:-1,B:3}}])await req('\"'\"'POST'\"'\"',expense,v,400);\\nconst replies=await Promise.all(Array.from({length:20},()=>req('\"'\"'POST'\"'\"',expense,{payer:'\"'\"'A'\"'\"',cents:3,split:'\"'\"'equal'\"'\"'},201)));assert.deepEqual(replies.map(x=>x.expense).sort((a,b)=>a-b),Array.from({length:20},(_,i)=>i+3));\\nawait stop();await start();assert.deepEqual(await req('\"'\"'GET'\"'\"','\"'\"'/groups/g/balances'\"'\"',undefined,200),{A:43,B:-19,C:-24});assert.deepEqual(await req('\"'\"'POST'\"'\"',expense,{payer:'\"'\"'C'\"'\"',cents:3,split:'\"'\"'equal'\"'\"'},201),{expense:23});\\n}\\nif(MODE==='\"'\"'settlements'\"'\"'){\\nawait req('\"'\"'POST'\"'\"','\"'\"'/groups'\"'\"',{id:'\"'\"'tie'\"'\"',members:['\"'\"'A'\"'\"','\"'\"'B'\"'\"','\"'\"'C'\"'\"','\"'\"'D'\"'\"']},201);\\nfor(const payer of ['\"'\"'A'\"'\"','\"'\"'B
+[... cut: 12925 more characters of this diff ...]
+
+=== D037 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -21,2 +21,4 @@ Planned team TC_8 through TC_10 run against the actual local server and static s
+ 
++Planned page-size checks run locally against the real shared HTTP handler, using a fresh ephemeral loopback server and controlled/restored environment for each case; the base should fail new expectations. No remote or retained target, browser, cache, async channel or event sink applies. Full suite preserves the unrelated endpoints.
++
+ ## Stack
+@@ -35,2 +37 @@ None.
+ 
+-Planned page-size checks run locally against the real shared HTTP handler, using a fresh ephemeral loopback server and controlled/restored environment for each case; the base should fail new expectations. No remote or retained target, browser, cache, async channel or event sink applies. Full suite preserves the unrelated endpoints.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -33,2 +33,6 @@ R-6 and R-7 HTTP component cases (TC_8, TC_9, TC_10): verify all five records an
+ 
++Planned pagination change checks (R-2, R-3, R-7): node:test over actual loopback HTTP with fresh servers and restored PAGE_SIZE environment; assert unset -> 25, configured 2 -> correct page items, valid explicit size overrides it, 50 accepted and 51 rejected with JSON 400 on both routes, invalid config fallback, filters, totals, array shape and unchanged huge-page behavior. Modify only old assertions that encode 10 or 100. Test-first: new tests should fail against base. Test stage owns focused and full checks; system-test and release verify full suite. No fixture persists, accounts or remote targets. Baseline npm test passed 18 cases; new checks planned, not yet run. Revalidate if runtime or server lifecycle changes.
++
++Concrete planned oracle: with PAGE_SIZE=2, GET /users?page=2 yields id 3, size 2, total 3, pages 2; GET /teams?page=2 yields ids 3 and 4, size 2, total 5, pages 3. Tests restore environment and close each server in finally. For a reliable suite, unset PAGE_SIZE before baseline and full-suite runs; tests that deliberately vary it own the setting.
++
+ ## ID convention
+@@ -85,3 +89,2 @@ Observed for this change: Node v26.12.1; `npm test` passed 18 tests on the uncha
+ 
+-Planned pagination change checks (R-2, R-3, R-7): node:test over actual loopback HTTP with fresh servers and restored PAGE_SIZE environment; assert unset -> 25, configured 2 -> correct page items, valid explicit size overrides it, 50 accepted and 51 rejected with JSON 400 on both routes, invalid config fallback, filters, totals, array shape and unchanged huge-page behavior. Modify only old assertions that encode 10 or 100. Test-first: new tests should fail against base. Test stage owns focused and full checks; system-test and release verify full suite. No fixture persists, accounts or remote targets. Baseline npm test passed 18 cases; new checks planned, not yet run. Revalidate if runtime or server lifecycle changes.
+ 
+
+=== D038 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -61,3 +61,3 @@
+    "id": "C1",
+-   "text": "R-1 engine generates legal moves, applies FEN transitions and rejects illegal moves. Confirm by: engine proof; pass when assertions succeed."
++   "text": "R-1 starting position has 20 legal moves, e2e4 produces the specified FEN, illegal e2e5 throws and depth-two count is 400. Confirm by: engine proof; pass when each assertion succeeds."
+   },
+@@ -211,2 +211,4 @@
+    ],
++   "minimum": true,
++   "regression": true,
+    "suite": "focused",
+@@ -215,8 +217,2 @@
+   {
+-   "command": "sf apex run test --target-org de --class-names SLChessEngineTest --synchronous --result-format human --code-coverage",
+-   "minimum": true,
+-   "suite": "regression",
+-   "target": "de Salesforce org"
+-  },
+-  {
+    "command": "sf project deploy start --target-org de --source-dir force-app/main/default/lwc/slChessBoard",
+
+=== D040 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -11,3 +11,3 @@ Basis: S1, S5. `test_hello.py` contains a unittest that executes the script and
+ ### R-3: Delivery continuation
+-Basis: S2-S4. Preserve installed skills; during first implementation action append one checkpoint line after first product write, emit the specified final marker, and resume the same action without repeating the write or restarting its loop. Confirm via checkpoint contents, action records and completion report.
++Basis: S2-S4. Preserve installed skills; during first implementation action append exactly `partial work recorded` and a newline to checkpoint.log after first product write, emit a final message containing exactly `HOOK_CONTINUATION_CHECKPOINT`, and resume the same action without repeating the write or restarting its loop. Confirm via checkpoint contents, action records and completion report.
+ 
+
+=== D041 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -163,3 +163,3 @@
+    ],
+-   "proof": "node -e \"const assert=require('node:assert/strict'); const {withService,ticketBody}=require('./test/helpers'); withService({},async(a)=>{let t=(await a.post('/tickets',ticketBody())).body; await a.put('/tickets/'+t.id+'/assignee',{assignee:'a'}); let x=await a.post('/tickets/reassign',{from:'a',to:'b'}); assert.deepEqual(x.body,{moved:1,ids:[t.id]}); assert.equal((await a.post('/tickets/reassign',{from:'a',to:'a'})).status,400)}).catch(e=>{console.error(e);process.exitCode=1})\"",
++   "proof": "node /Users/dadleet/e2e-runs-multipass/20261031/e2/A1-ticket-escalation/.shiploop-runs/work-20261101-012930-5b0f92/run/scratch/proofs/reassign.js",
+    "skills": [],
+@@ -180,3 +180,3 @@
+    ],
+-   "proof": "node -e \"const assert=require('node:assert/strict'); const {TicketStore}=require('./src/store'); const {manualClock}=require('./src/clock'); let c=manualClock(); let s=new TicketStore({clock:c}); s.create({title:'x',requester:'r',priority:'urgent'},'a'); c.advance(3600001); assert.equal(s.escalateUrgent('oncall',60),1); let t=new TicketStore({clock:c,state:s.snapshot()}); assert.equal(t.escalateUrgent('oncall',60),0)\"",
++   "proof": "node /Users/dadleet/e2e-runs-multipass/20261031/e2/A1-ticket-escalation/.shiploop-runs/work-20261101-012930-5b0f92/run/scratch/proofs/escalate.js",
+    "skills": [],
+@@ -197,3 +197,3 @@
+    ],
+-   "proof": "node -e \"const assert=require('node:assert/strict'); const {loadConfig}=require('./src/config'); const {createService}=require('./src/server'); const {manualClock}=require('./src/clock'); const {silentLogger}=require('./src/log'); let c=manualClock(); let cfg=loadConfig({ONCALL:'oncall',ESCALATE_AFTER_MINUTES:'0'}); let s=createService({...cfg,port:0},{clock:c,log:silentLogger}); s.store.create({title:'x',requester:'r',priority:'urgent'},'a'); c.advance(1); s.worker.tick(); assert.ok(s.notifier.delivered.some(e=>e.type==='ticket.escalated'&&e.to==='oncall'))\"",
++   "proof": "node /Users/dadleet/e2e-runs-multipass/20261031/e2/A1-ticket-escalation/.shiploop-runs/work-20261101-012930-5b0f92/run/scratch/proofs/wiring.js",
+    "skills": [],
+
+=== D045 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -25,5 +25 @@ Keep handlers local to src/server.js and tests under test/; use ephemeral loopba
+ None.
+-
+-### Summary real-boundary checks (planned)
+-
+-TC-6 and TC-7 use node:test and fetch against a fresh local loopback HTTP server. Test default counts, case-insensitive exact team, name intersection, zero matches and ignored invalid pagination. TC-4 checks listing case semantics and pagination; npm test retains unrelated regression checks. No remote target, cache, event or asynchronous service is involved. These checks are planned, not passed.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -19,3 +19,3 @@ No repository-local skill links found in README or repository files.
+ 
+-R-5 checks: node:test store test verifies all three assignments; HTTP component tests start an isolated loopback server on port 0 and close it in finally. Check both teams, name intersection, empty/unknown/case mismatch, filtering before pagination and metadata, exact include on list, paged list and detail, other include values, missing user and unchanged default shape. Existing npm test covers R-1 through R-4, including invalid paging and huge page integers. Run focused and full tests after changes and at release. Static fixtures require no teardown except server closure; Node >=20 and loopback are prerequisites. The baseline suite passed 11 tests; the expanded suite passed 13. No remote target is involved.
++R-5 checks: node:test store test verifies all three assignments; HTTP component tests start an isolated loopback server on port 0 and close it in finally. Check both teams, name intersection, empty/unknown/case differences, filtering before pagination and metadata, exact include on list, paged list and detail, other include values, missing user and unchanged default shape. Existing npm test covers R-1 through R-4, including invalid paging and huge page integers. Run focused and full tests after changes and at release. Static fixtures require no teardown except server closure; Node >=20 and loopback are prerequisites. The baseline suite passed 11 tests; the expanded suite passed 13. No remote target is involved.
+ 
+@@ -69,3 +69,3 @@ Observed: Node v26.12.1 (package.json requires >=20); npm test runs node --test
+ 
+-TC-6: HTTP summary returns all three users grouped Engineering 2 and Support 1, and shared name and case-insensitive exact team filters, their intersection and empty results. TC-7: invalid and valid page, size, include and arbitrary parameters are ignored; all matches counted. TC-4 retains its cases except old lowercase-team expectation changes to match. Full suite covers pagination validation, projection, detail and unrelated utilities. Run planned checks at test and system-test; implementation owner writes them. Focused command once the new file exists:
++TC-6: HTTP summary returns all three users grouped Engineering 2 and Support 1, and shared name and case-insensitive exact team filters, their intersection, empty results and partial-team rejection. TC-7: invalid and valid page, size, include and arbitrary parameters are ignored; all matches counted. TC-4 retains its cases except old lowercase-team expectation changes to match. Full suite covers pagination validation, projection, detail and unrelated utilities. Run planned checks at test and system-test; implementation owner writes them. Focused command once the new file exists:
+ 
+
+=== D046 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -22,3 +22,3 @@ TC_4 exercises combined and unassigned filters, pagination and CLI output. (W1/S
+ ### R-4 Compatibility
+-Basis: user request 2026-10-31, S1, S10-S11; README.md and package.json. Existing Node >=22 service, PORT, all endpoints, persistence, notification and CLI behavior remain functional; no dependencies added. Existing tests remain unchanged; add node:test cases under test and run them through npm test. Confirm full suite and startup through tests.
++Basis: user request 2026-10-31, S1, S10-S11; README.md and package.json. Existing Node >=22 service, PORT, all endpoints, persistence, notification and CLI behavior remain functional; no dependencies added. Existing tests remain unchanged except the once-only escalation assertions explicitly superseded by the 2026-11-01 request; add node:test cases under test and run them through npm test. Confirm full suite and startup through tests.
+ 
+@@ -33,5 +33,6 @@ Basis: request 2026-11-01 S1-S8 supersedes the earlier once-only rule; current s
+ - With ONCALL set, open unassigned urgent tickets strictly older than ESCALATE_AFTER_MINUTES (default 60 whole minutes) and high tickets strictly older than ESCALATE_HIGH_MINUTES (default 240) receive a first escalation. Other priorities, assigned or non-open tickets and tickets at or below their threshold do not. Confirm by clock-controlled worker tests, including configuration validation and default values.
+-- A ticket with one escalation which has continuously remained open and unassigned since that event gets one second escalation at twice its applicable wait after the first; subsequent scans never create a third. Confirm before/at threshold, interruption, repeated scan and restart cases. Current priority and configuration select the wait at scan time; zero is valid.
++- An urgent or high ticket with one escalation which has continuously remained open and unassigned since that event gets one second escalation at twice its applicable wait after the first; subsequent scans never create a third. Confirm before/at threshold, interruption, repeated scan and restart cases. Current priority and configuration select the wait at scan time; zero is valid.
+ - Each event targets current ONCALL and does not assign; without ONCALL no events are generated. Confirm notification delivery, disabled ONCALL and pending-event cases. Existing retry semantics apply; delivery itself may duplicate after a crash.
+ - Store owns retained escalation history and notification, persisted atomically with optional DATA_FILE and restored from version 1 files; the two-event limit survives restarts when DATA_FILE is used. Without it state is volatile as documented. Confirm old-file compatibility and restart tests. A single process serializes changes; no new access or sharing policy is introduced. WORKER_INTERVAL_MS=0 still disables scheduled checks.
++- TC_6 and TC_6 (a) in test/bulk-escalation.test.js continue to exercise the escalation job, durable outbox record, service wiring and configurable threshold; update their superseded once-only assertions and retain the remaining cases.
+ - Replace the superseded requirement and decision and revise tests explicitly stating once-only; preserve all other behavior and tests. Confirm `npm test` and review documentation. No new identity, cache or external service applies.
+
+=== D047 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -146,3 +146,3 @@
+    ],
+-   "proof": "node -e 'const assert=require(\"node:assert/strict\"),fs=require(\"node:fs\"),path=require(\"node:path\");const {withService}=require(\"./test/helpers\");const file=path.join(\"../run/scratch\",\"bulk-proof-\"+process.pid+\".json\");(async()=>{try{await withService({dataFile:file},async api=>{const start=Date.now(),items=Array.from({length:5000},(_,i)=>({title:\"Ticket \"+i,requester:\"user\"}));const a=await api.post(\"/tickets/import\",{tickets:items});assert.equal(a.status,201);assert.equal(a.body.created,5000);assert.deepEqual(a.body.ids,items.map((_,i)=>\"T-\"+String(i+1).padStart(4,\"0\")));assert.ok(Date.now()-start<10000);assert.equal((await api.get(\"/admin/outbox\")).body.pending.length,5000);assert.equal((await api.get(\"/tickets/T-0001/audit\")).body.items.length,1);const b=await api.post(\"/tickets/import\",{tickets:[{title:\"Valid\",requester:\"u\"},{}]});assert.equal(b.status,400);assert.match(b.body.error.message,/1/);assert.equal((await api.get(\"/admin/outbox\")).body.pending.length,5000)});await withService({dataFile:file},async api=>assert.equal((await api.get(\"/tickets/T-5000\")).status,200))}finally{fs.rmSync(file,{force:true})}})().catch(e=>{console.error(e);process.exitCode=1})' && rg -n 'Import tickets' src/store.js",
++   "proof": "node -e 'const assert=require(\"node:assert/strict\"),fs=require(\"node:fs\"),path=require(\"node:path\");const {withService}=require(\"./test/helpers\");const file=path.join(\"../run/scratch\",\"bulk-proof-\"+process.pid+\".json\");(async()=>{try{await withService({dataFile:file},async api=>{const start=Date.now(),items=Array.from({length:5000},(_,i)=>({title:\"Ticket \"+i,requester:\"user\"}));const a=await api.post(\"/tickets/import\",{tickets:items});assert.equal(a.status,201);assert.equal(a.body.created,5000);assert.deepEqual(a.body.ids,items.map((_,i)=>\"T-\"+String(i+1).padStart(4,\"0\")));assert.ok(Date.now()-start<10000);assert.equal((await api.get(\"/admin/outbox\")).body.pending.length,5000);assert.equal((await api.get(\"/tickets/T-0001/audit\")).body.items.length,1);const b=await api.post(\"/tickets/import\",{tickets:[{title:\"Valid\",requester:\"u\"},{}]});assert.equal(b.status,400);assert.match(b.body.error.message,/1/);assert.equal((await api.get(\"/admin/outbox\")).body.pending.length,5000)});await withService({dataFile:file},async api=>assert.equal((await api.get(\"/tickets/T-5000\")).status,200))}finally{fs.rmSync(file,{force:true})}})().catch(e=>{console.error(e);process.exitCode=1})' && rg -n 'Import tickets' src/store.js && npm test",
+    "skills": [],
+
+=== D048 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -142,3 +142,3 @@
+    ],
+-   "proof": "node -e \"const assert=require('node:assert/strict'); const {withService}=require('./test/helpers'); withService({},async api=>{let r=await api.post('/tickets/import',{tickets:[{title:'A',requester:'Ann'},{title:'B',requester:'Bob'}]}); assert.equal(r.status,201); assert.deepEqual(r.body.ids,['T-0001','T-0002']); let bad=await api.post('/tickets/import',{tickets:[{title:'C',requester:'C'},null]}); assert.equal(bad.status,400); assert.match(bad.body.error.message,/1/); assert.equal((await api.get('/admin/outbox')).body.pending.length,2)}).catch(e=>{console.error(e);process.exitCode=1})\"",
++   "proof": "node -e 'const assert=require('\\''node:assert/strict'\\'');const {withService}=require('\\''./test/helpers'\\'');withService({},async api=>{let r=await api.post('\\''/tickets/import'\\'',{tickets:[{title:'\\''A'\\'',requester:'\\''Ann'\\''},{title:'\\''B'\\'',requester:'\\''Bob'\\''}]},{'\\''X-Actor'\\'':'\\''sam'\\''});assert.equal(r.status,201);assert.deepEqual(r.body,{created:2,ids:['\\''T-0001'\\'','\\''T-0002'\\'']});let h=await api.get('\\''/tickets/T-0001/audit'\\'');assert.equal(h.body.items[0].actor,'\\''sam'\\'');let bad=await api.post('\\''/tickets/import'\\'',{tickets:[{title:'\\''C'\\'',requester:'\\''C'\\''},null]});assert.equal(bad.status,400);assert.match(bad.body.error.message,/1/);assert.equal((await api.get('\\''/admin/outbox'\\'')).body.pending.length,2);assert.equal((await api.post('\\''/tickets'\\'',{title:'\\''C'\\'',requester:'\\''C'\\''})).body.id,'\\''T-0003'\\'')}).then(()=>withService({},async api=>{let start=Date.now();let r=await api.post('\\''/tickets/import'\\'',{tickets:Array.from({length:5000},()=>({title:'\\''A'\\'',requester:'\\''Ann'\\''}))});assert.equal(r.status,201);assert.equal(r.body.created,5000);assert.ok(Date.now()-start<10000)})).catch(e=>{console.error(e);process.exitCode=1})' && npm test",
+    "skills": [],
+
+=== D049 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -129,3 +129,3 @@
+    ],
+-   "proof": "npm test",
++   "proof": "node ../run/scratch/import-proof.cjs",
+    "skills": [],
+
+=== D050 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,6 +0,0 @@
+-# Architecture
+-## Decisions
+-### AD-1
+-Reuse validation and store-owned creation effects; validate all items before mutation, save bulk state once. Keep existing route body limit while supporting large import payloads. Confirm through HTTP and persistence tests.
+-## Real-boundary checks
+-Planned local HTTP tests use ephemeral listener and isolated data file. Verify ordered readback, audit, outbox, delivery and restart, invalid batch no side effects, maximum 5000 within 10 seconds. The worker remains responsible for retry and eventual delivery. No remote target, cache or browser is involved. Tests run on fresh fixtures to expose missing implementation.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -12,3 +12,3 @@ No repository-local skill found in README or tracked file index.
+ ## Harnesses and suites
+-Planned: node:test and existing test/helpers.js, local isolated server and temporary DATA_FILE per case, cleanup after tests; no host service or external account. R-1 HTTP cases: empty, valid ordered inputs/readback, invalid multiple items/null/first index with unchanged tickets, outbox and subsequent ID, malformed envelopes and >5000. R-2 verify per-ticket audit actor and outbox, worker delivery and persisted restart. R-3 timed 5000-item real HTTP request with DATA_FILE, maximum field size, full regression suite and package inspection. Tests are planned, not passed; all due in test stage, implementation owner. Existing suite covers remaining behavior; baseline 117 passed.
++Planned: node:test and existing test/helpers.js, local isolated server and temporary DATA_FILE per case, cleanup after tests; no host service or external account. test/helpers.js withService supplies ephemeral port, client cleanup and worker-off default; tests create and remove their own isolated data directories and explicitly exercise delivery with the existing worker interface. R-1 HTTP cases: empty, valid ordered inputs/readback, invalid multiple items/null/first index with unchanged tickets, outbox and subsequent ID, non-object elements, malformed envelopes and >5000; compare before/after persisted snapshots to detect partial mutations. R-2 verify per-ticket audit actor and outbox, worker delivery and persisted restart. R-3 timed 5000-item real HTTP request with DATA_FILE, maximum field size, full regression suite and package inspection. Tests are planned, not passed; all due in test stage, implementation owner. Existing suite covers remaining behavior; baseline 117 passed.
+ ## ID convention
+@@ -16,3 +16,7 @@ Test names use TC_1 (import validation and ordering), TC_2 (effects and persiste
+ ## Commands
+-Focused planned: `node --test test/import.test.js` (isolated local fixtures).
++Focused planned (file does not exist until implementation; expected to fail on baseline):
++```sh
++node --test test/import.test.js
++```
++Uses isolated local fixtures; due in test stage.
+ Full suite:
+
+=== D051 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -5,3 +5,3 @@
+ ### R-1 Bulk import
+-Basis: request S2-S4; existing single validation in src/tickets/validate.js. POST /tickets/import accepts an object with tickets array of 0–5000 items satisfying POST /tickets. Confirm by HTTP tests of empty, valid, malformed and boundary requests. On valid input return 201 with created count and IDs in input order; confirm by reads. On first invalid item return 400 with its zero-based index in the error message and create nothing; confirm by subsequent reads, audit and outbox. Too many or malformed inputs are 400. Existing input semantics remain unchanged. Checks pending implementation.
++Basis: request S2-S4; existing single validation in src/tickets/validate.js. POST /tickets/import accepts an object with tickets array of 0–5000 items satisfying POST /tickets. Confirm by HTTP tests of empty, valid, malformed and boundary requests. On valid input return 201 with created count and IDs in input order; confirm by reads. On first invalid item return 400 with its zero-based index in the error message and create nothing; confirm by subsequent reads, audit and outbox. Too many or malformed inputs are 400. Existing input semantics remain unchanged. For example, from an empty store import [{"title":"A","requester":"R"},{"title":"B","requester":"S"}] yields IDs T-0001 and T-0002 in that order. A subsequent batch with valid item 0 and invalid item 1 returns 400 naming 1, and the next single creation receives T-0003. Confirm the sequence through HTTP and inspect effects. Checks pending implementation.
+ 
+
+=== D052 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -18 +18,4 @@ Basis S1-S2, S11-S12. server.js uses PORT and DATA_FILE, built-in modules only.
+ Correct whole-cent accounting and no lost concurrent requests are confirmed by tests; no numeric performance target was specified. Security identity, UI and accessibility are outside this local API request. Storage errors must not acknowledge an unsaved mutation.
++
++## Replayable accounting example
++Create group g with members A, B, C (R-1), then post an equal expense of 100 cents paid by A (R-2). Shares are 34, 33, 33; balances are A:66, B:-33, C:-33 (R-3). Settlements are B to A 33, then C to A 33: B precedes C in the tied debtor order. These expected values are arithmetic review, not execution evidence; implement HTTP tests to confirm them.
+
+=== D053 | review of the `plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -34,2 +34,11 @@
+    "settle": "Find a working authorized browser and execute UI_1 or retain missing observation."
++  },
++  {
++   "assumption": "No SLChess-prefixed Apex class existed at probe time",
++   "check": "sf data query --target-org de --use-tooling-api --query SELECT Name FROM ApexClass WHERE Name LIKE SLChess%",
++   "disposition": "probed",
++   "evidence": [
++    "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/.shiploop-runs/work-20261105-172612-9d935d/worktree/.shiploop-improve/nav-d539d8ef5a8d4322ae028bec1838e34b/planning-investigation.md"
++   ],
++   "id": "A5"
+   }
+
+=== D054 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,10 +0,0 @@
+-# Architecture
+-
+-## Decisions
+-
+-### AD-1: Local command
+-Use Python standard library csv parsing, exact decimal-based monetary calculation and JSON output. CSV inputs are read-only; transient aggregation is process-local. Stage output until all files are read, so a read failure suppresses stdout.
+-
+-## Real-boundary checks
+-
+-Planned local subprocess cases run `python3 report.py` against isolated CSV fixtures and assert JSON, stderr and exit status for R-1 through R-4. R-5 runs unittest discovery. No remote service or UI exists. No persistent target state; each test creates and tears down its own files. Baseline has no report.py so new cases must fail before implementation.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -39 +39,3 @@ python3 -m unittest -v
+ Baseline exited 0 with zero tests; planned cases have not yet run.
++
++Planned concrete oracle: rows `2026-01-01,East,Pen,2,1.25` and `2026-01-02,East,Pen,1,0.50` must yield 2 rows, revenue 3.00, East 3.00, Pen 3; independently 2×1.25 + 1×0.50 = 3.00. An invalid units `-1` on physical line 2 yields exit 2 and diagnostic line 2; a missing second file yields exit 1 and no stdout. These are planned, not executed.
+
+=== D055 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -21 +21,4 @@ S12: node:test cases under test/ run using node --test and cover these behaviour
+ Correct cent arithmetic and concurrent updates are verified by tests. No numeric performance targets or UI are specified; no deployment or external identity integration is requested. Data remains until the file is removed. Only safe integers are accepted to preserve arithmetic precision.
++
++## Replayable acceptance example
++Create group g with members A, B, C (R-2). A pays 5 cents equally (R-3): shares are A=2, B=2, C=1 and balances are A=3, B=-2, C=-1 (R-4). B pays 3 exactly with shares A=0, B=1, C=2 (R-3): balances become A=3, B=0, C=-3. The settlement is C pays A 3 cents (R-4). Restart and repeat the balance read to confirm R-1. Each request is valid by its stated rule. Test execution remains pending.
+
+=== D056 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -5,3 +5,3 @@
+ ### R-1 Bulk import contract
+-Basis: request S2-S4; existing validation in src/tickets/validate.js. POST /tickets/import accepts an object containing tickets array of zero to 5000 single-ticket bodies. Confirm by HTTP tests for empty, ordinary and 5000 batches. For invalid item, return 400 envelope naming first zero-based index and change no ticket, audit or outbox, including next ID; confirm with HTTP tests. Reject malformed body, missing/non-array tickets and over 5000 with 400; confirm by HTTP tests. Successful response is 201 with created count and IDs in input order; confirm by HTTP test and read-back. Preserve single-ticket rules and existing routes. No prior product requirement is retired.
++Basis: request S2-S4; existing validation in src/tickets/validate.js. POST /tickets/import accepts an object containing tickets array of zero to 5000 single-ticket bodies. Confirm by HTTP tests for empty, ordinary and 5000 batches. For invalid item, including null, arrays and scalars, return 400 envelope naming the first zero-based index and change no ticket, audit or outbox, including next ID; confirm with HTTP tests using multiple invalid items and a subsequent single create. Reject malformed body, missing/non-array tickets and over 5000 with 400; confirm by HTTP tests. Successful response is 201 with created count and IDs in input order; confirm by HTTP test and read-back of distinct titles. A normal maximum-sized 5000-item payload must fit the import body bound; confirm with escaped and multibyte field values. Preserve single-ticket rules and existing routes. No prior product requirement is retired.
+ 
+
+=== D057 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,15 +0,0 @@
+-# Chess architecture
+-
+-## Decisions
+-
+-### AD-1 Stateless FEN engine
+-Implement an Apex rules engine and thin Aura controller, using FEN as the complete position; board state is local to one LWC. This avoids storage, profile changes and remote services.
+-
+-### AD-2 Native delivery
+-Use specified app and LWC custom tab in Salesforce DX; deployment and Apex test execution target de explicitly.
+-
+-## Real-boundary checks
+-
+-- Planned R-1 and R-4: de Apex runtime executes durable test methods with legal-move, FEN, rule edge cases, perft and 35-ply controller transactions; deploy source first. An old target version must not count: deployment completion and source inventory are prerequisites.
+-- Planned R-2 UI_1: authorized Lightning user opens SLChess app and board, sees White to move, clicks e2 then e4, sees pawn on e4 and Black to move; illegal destination leaves FEN unchanged, New game resets; repeat promotion scenario if reachable. Examine loading/error, keyboard, contrast and narrow/wide layout. NOT-REPLAYED: product not deployed and browser capability probe failed. Release owner must establish an authorized interactive browser; a passing Apex test or HTTP response does not replace UI observation.
+-- Planned R-3 local metadata inventory then remote deploy and test; no persistent fixtures, permission changes, caches, async workers or independent service boundaries.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -24,3 +24,3 @@ No repository-local skill, README, index, or AGENTS file existed. ShipLoop is th
+ 
+-Planned R-1 and R-4: Salesforce remote-resident Apex test methods with independent FEN fixtures, sorted move assertions, named games, negative illegal move, special-rule fixtures and perft; fresh test transaction per method, no database fixture, no cleanup. Deployment registers tests and each class runs synchronously in de. R-2 controller uses the same harness; client component needs a lightweight local component harness, to be authored and validated before client verification. R-3 inventory uses a local file scan and target deployment. R-4 has separate perft and controller-game transactions plus CPU observations. R-2 UI: browser rendering and manual interactions in the deployed org; browser probe failed because Playwright module could not load, and no browser tool was found. Release owner must seek a working authorized browser route; otherwise rendered outcome remains unverified. No prior behavior to preserve. All checks planned, none passed.
++Planned R-1 and R-4: Salesforce remote-resident Apex test methods with independent FEN fixtures, sorted move assertions, named games, negative illegal move, special-rule fixtures and perft; fresh test transaction per method, no database fixture, no cleanup. Deployment registers tests and each class runs synchronously in de. R-2 controller uses the same harness; client component needs a local harness, to be authored and validated before client verification: use Node built-in test runner with a mock LightningElement and mocked controller calls, exercising actual component selection, reset, async errors and state transitions; add a focused runner command after authoring. It does not replace rendered UI_1. R-3 inventory uses a local file scan and target deployment. R-4 has separate perft and controller-game transactions plus CPU observations. R-2 UI: browser rendering and manual interactions in the deployed org; browser probe failed because Playwright module could not load, and no browser tool was found. Release owner must seek a working authorized browser route; otherwise rendered outcome remains unverified. No prior behavior to preserve. All checks planned, none passed.
+ 
+
+=== D058 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -70,3 +70,3 @@
+    ],
+-   "proof": "python3 -m unittest -v test_report",
++   "proof": "python3 -c 'import base64; exec(base64.b64decode('\"'\"'aW1wb3J0IGpzb24sIHBhdGhsaWIsIHN1YnByb2Nlc3MsIHN5cywgdGVtcGZpbGUKd2l0aCB0ZW1wZmlsZS5UZW1wb3JhcnlEaXJlY3RvcnkoZGlyPScvVXNlcnMvZGFkbGVldC9lMmUtcnVucy1zcC8yMDI2MTEwMS9jc3YtcmVwb3J0LXMxLy5zaGlwbG9vcC1ydW5zL3dvcmstMjAyNjExMDEtMTUwNzM1LTFkOWVlNi9ydW4vc2NyYXRjaCcpIGFzIGQ6CiBwPXBhdGhsaWIuUGF0aChkKS8ic2FsZXMuY3N2IjsgcC53cml0ZV90ZXh0KCJkYXRlLHJlZ2lvbixwcm9kdWN0LHVuaXRzLHVuaXRfcHJpY2VcbjIwMjYtMDEtMDEsV2VzdCxQZW4sMiwxLjI1XG4iKQogZGVmIHJ1bigqYXJncyk6IHJldHVybiBzdWJwcm9jZXNzLnJ1bihbc3lzLmV4ZWN1dGFibGUsInJlcG9ydC5weSIsKm1hcChzdHIsYXJncyldLGNhcHR1cmVfb3V0cHV0PVRydWUsdGV4dD1UcnVlKQogeD1ydW4ocCk7IGFzc2VydCB4LnJldHVybmNvZGU9PTAgYW5kIG5vdCB4LnN0ZGVyciBhbmQganNvbi5sb2Fkcyh4LnN0ZG91dCk9PXsicm93cyI6MSwicmV2ZW51ZSI6Mi41LCJieV9yZWdpb24iOnsiV2VzdCI6Mi41fSwiYnlfcHJvZHVjdCI6eyJQZW4iOjJ9fQogcC53cml0ZV90ZXh0KHAucmVhZF90ZXh0KCkrImJhZCxyb3dcbiIpOyB4PXJ1bihwKTsgYXNzZXJ0IHgucmV0dXJuY29kZT09MiBhbmQgc3RyKHApKyI6MzoiIGluIHguc3RkZXJyIGFuZCBqc29uLmxvYWRzKHguc3Rkb3V0KVsicm93cyJdPT0xCiB4PXJ1bihwLHBhdGhsaWIuUGF0aChkKS8ibWlzc2luZyIpOyBhc3NlcnQgeC5yZXR1cm5jb2RlPT0xIGFuZCBub3QgeC5zdGRvdXQgYW5kICJUcmFjZWJhY2siIG5vdCBpbiB4LnN0ZGVycgogeD1ydW4oKTsgYXNzZXJ0IHgucmV0dXJuY29kZSE9MCBhbmQgbm90IHguc3Rkb3V0CiBhc3NlcnQgInNhbGVzIiBpbiBwYXRobGliLlBhdGgoInJlcG9ydC5weSIpLnJlYWRfdGV4dCgpLmxvd2VyKCkKIHByaW50KCJDTEkgcHJvb2YgcGFzc2VkIikK'\"'\"'))'",
+    "skills": [],
+
+=== D059 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -85,3 +85,3 @@
+    ],
+-   "proof": "node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s7/.shiploop-runs/work-20261101-182408-86c248/run/scratch/proof.cjs",
++   "proof": "node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s7/.shiploop-runs/work-20261101-182408-86c248/run/scratch/proof.cjs && rg 'Service contract' server.js",
+    "skills": [],
+
+=== D060 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# Architecture
+-
+-## Decisions
+-AD-1: Compose Python standard library CSV, decimal and JSON in report.py; subprocess unittest observes the public CLI.
+-
+-## Real-boundary checks
+-Local subprocess exercises input files, stdout, stderr and exit status; temporary files isolate runs and are removed. No remote services, UI or persistent test state. Input immutability is checked where relevant. All cases planned, not yet passed.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -29 +29,3 @@ python3 -m unittest -v
+ Smoke: same command; all test methods included. Planned; baseline ran zero cases.
++
++Planned concrete oracle: file one has rows `2024-01-01,East,Bar,2,1.25` and `2024-01-02,West,Bar,1,0.005`; file two has `2024-01-03,East,Foo,3,2`. Expected rows 3, revenue 8.50, East 8.50, West 0.00 (half-even), Bar 3, Foo 3. R-1 permits all rows; both files are created before invocation. The subprocess output and exit are observed by unittest; this is planned, not executed. Independently verify error and exit tests and ensure missing file suppresses stdout after a valid file.
+
+=== D061 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -60,5 +60,9 @@ When a ticket is created, `due` is `created` plus the whole-number UTC hours for
+ 
+-Replay (clock `2025-09-01T08:00:00.000Z`, `DUE_TIMES=on`, default hours): `POST /tickets` `{ "title": "VPN drops every hour", "requester": "maria@example.com", "priority": "urgent" }` → `created` `2025-09-01T08:00:00.000Z`, `due` `2025-09-01T12:00:00.000Z`. High → `2025-09-02T08:00:00.000Z`. Normal → `2025-09-04T08:00:00.000Z`. Low → `2025-09-08T08:00:00.000Z`. Recomputed locally: those four sums hold.
++Replay starts from an empty memory store. The test holds the clock and passes it in:
+ 
+-- Positive: those four create responses include the `due` values above. Confirm by: new `node:test` under `test/` starting the service with `dueTimes: true` and `manualClock('2025-09-01T08:00:00.000Z')`. Pass when: each priority’s `due` equals the replay result.
++`const clock = manualClock('2025-09-01T08:00:00.000Z'); await withService({ dueTimes: true, clock }, …)`
++
++(`withService` spreads extra keys onto `createService`; omitted `dueTimes` stays off.) Flag on, default hours. First `POST /tickets` `{ "title": "VPN drops every hour", "requester": "maria@example.com", "priority": "urgent" }` → `id` `T-0001`, `created` `2025-09-01T08:00:00.000Z`, `due` `2025-09-01T12:00:00.000Z`. High → `2025-09-02T08:00:00.000Z`. Normal → `2025-09-04T08:00:00.000Z`. Low → `2025-09-08T08:00:00.000Z`. Recomputed locally: those four sums hold.
++
++- Positive: those four create responses include the `due` values above. Confirm by: new `node:test` under `test/` with the setup above. Pass when: each priority’s `due` equals the replay result.
+ - Failure: `DUE_HOURS_URGENT=nope` prevents start; the message names `DUE_HOURS_URGENT`. Confirm by: `loadConfig` throw in a new test. Pass when: `ConfigError` matches `/DUE_HOURS_URGENT/`.
+@@ -72,5 +76,5 @@ Basis: request 2026-11-14 S4. Add.
+ 
+-After `due` exists on a ticket, changing the ticket’s priority, changing hour settings, or restarting must not change `due`. Assigning `due` is not a PATCH field and does not write an audit `changes.due` entry.
++After `due` exists on a ticket, changing the ticket’s priority, changing hour settings, restarting, or moving status (including reopen from resolved) must not change `due`. Assigning `due` is not a PATCH field and does not write an audit `changes.due` entry.
+ 
+-Replay: T-0001 created urgent at `2025-09-01T08:00:00.000Z` so `due` is `2025-09-01T12:00:00.000Z`. `PATCH /tickets/T-0001` `{ "priority": "low" }` → `priority` `low`, `due` still `2025-09-01T12:00:00.000Z`. Restart with `DUE_HOURS_URGENT=1` → T-0001 `due` unchanged; a new urgent ticket uses one hour.
++Replay: empty store, same clock injection as R-5, flag on. T-0001 created urgent at `2025-09-01T08:00:00.000Z` so `due` is `2025-09-01T12:00:00.000Z`. `PATCH /tickets/T-0001` `{ "priority": "low" }` (open ticket may change priority) → `priority` `low`, `due` still `2025-09-01T12:00:00.000Z`. `POST /tickets/T-0001/transition` `{ "to": "in_progress" }` then `{ "to": "resolved" }` then `{ "to": "open" }` (reopen is allowed from resolved) → `due` still `2025-09-01T12:00:00.000Z`. Restart with `dueHours: { urgent: 1 }` (or `DUE_HOURS_URGENT=1`) → T-0001 `due` unchanged; a new urgent ticket uses one hour.
+ 
+@@ -78,3 +82,3 @@ Replay: T-0001 created urgent at `2025-09-01T08:00:00.000Z` so `due` is `2025-09
+ - Failure: n/a: there is no client error for “trying to move due”; clients cannot send `due` (`unknown field`). Confirm by: `POST` or `PATCH` with `due` answers 400 `invalid`. Pass when: that assertion holds.
+-- Boundary: hour env change plus restart leaves stored `due` in place. Confirm by: create, change hours in config, reopen store on the same file. Pass when: the first ticket’s `due` is unchanged.
++- Boundary: hour change plus reopen of the store leaves stored `due` in place; reopen from resolved also leaves it. Confirm by: create, persist, reopen with different `dueHours`; and the transition walk above. Pass when: the first ticket’s `due` is unchanged in both.
+ - Surface: `GET /tickets/:id`, `PATCH /tickets/:id`, data file after restart.
+@@ -99,3 +103,7 @@ The list includes only tickets whose `status` is `open` or `in_progress` and who
+ 
+-Replay (flag on, default hours, `manualClock` starting `2025-09-01T08:00:00.000Z`):
++Replay starts from an empty memory store. The test holds the clock:
++
++`const clock = manualClock('2025-09-01T08:00:00.000Z'); await withService({ dueTimes: true, clock }, …)`
++
++Flag on, default hours.
+ 
+@@ -112,3 +120,3 @@ Replay (flag on, default hours, `manualClock` starting `2025-09-01T08:00:00.000Z
+ - Failure: `GET /tickets?overdue=false` and `GET /tickets?overdue=1` answer 400 `invalid` when the flag is on. Confirm by: new HTTP test. Pass when: status 400 and `error.code` `invalid`.
+-- Boundary: at the exact due instant `2025-09-01T12:00:00.000Z`, T-0001 is not listed. After step 7 a resolved ticket whose due h
+[... cut: 3416 more characters of this diff ...]
+
+=== D062 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -33,5 +33 @@ Planned local checks use real HTTP listener on ephemeral port, in-process worker
+ Extend the existing CommonJS app/validation/store for the bulk endpoint; reuse assignment audit and event semantics, with one synchronous store operation. Add a worker job before outbox delivery and a durable per-ticket escalation marker in the existing version 1 JSON record, defaulting missing legacy markers to null. Atomically persist marker and event together; no extra database, timer or cache. ONCALL and threshold are service configuration; API remains on the existing internal HTTP boundary. Alternative separate scheduler/storage adds unnecessary infrastructure. The service's single-process ownership and optional DATA_FILE remain the existing operating assumptions. Check legacy load, restart, worker and API boundaries in node:test.
+-
+-### Comment real-boundary checks
+-
+-Planned local HTTP integration and restart tests exercise real router, store and JSON file; worker/notifier tests observe the rendered message. External mail relay is outside this repository; no deployment was requested. Existing synchronous store operations serialize changes; no cache, new access control or remote reconciliation applies.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -115,3 +115,3 @@ Observed: Node >=22, no dependencies; npm test runs node --test (package.json, R
+ 
+-Planned R-8: node:test HTTP component cases using test/helpers.js and isolated server port 0 with worker disabled; test valid creation and retrieval, ordering with equal timestamps, all statuses, validation and unchanged state on errors (TC_Comments_API). Planned outbox and worker checks for self, unassigned, multiple authors, and rendered payload (TC_Comments_Notify). Planned separate temporary data-file fixture with teardown and restart plus pre-change file (TC_Comments_Persist). Existing suite preserves all prior features. npm test is the full suite; node --test test/comments.test.js is focused and smoke. The new test file will be added before implementation for expected-failure control. No remote service, account or browser required.
++Planned R-8: node:test HTTP component cases using test/helpers.js and isolated server port 0 with worker disabled; test valid creation and retrieval, ordering with equal timestamps, all statuses, validation and unchanged state on errors (TC_Comments_API). Planned outbox and worker checks for self, unassigned, multiple authors, and rendered payload (TC_Comments_Notify); check audit actor and comment data on each addition and no audit on failure. Planned separate temporary data-file fixture with teardown and restart plus pre-change file (TC_Comments_Persist). Existing suite preserves all prior features. npm test is the full suite; node --test test/comments.test.js is focused and smoke. The new test file will be added before implementation for expected-failure control. No remote service, account or browser required.
+ 
+
+=== D063 | review of the `plan` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -19 +19,3 @@ No pre-existing conventions.
+ HTTP JSON API; data is held in the configured local JSON file. No remote service.
++
++AD-3: Build a candidate state without changing committed in-memory state; write and rename it before publishing the candidate and returning success. A failed write must leave the prior state usable and return an error. Reject arithmetic that cannot be represented safely, including cumulative balances, rather than silently rounding cents. Test failure handling and cumulative precision at the HTTP boundary.
+
+=== D067 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -18 +18,4 @@ Basis: user request dated 2026-11-01, S8. New behavior. `python3 -m unittest` di
+ Standard-library-only runtime; confirm by imports and execution on Python 3.9. No performance target was specified. CLI is a machine-readable JSON interface, so graphical styling, themes, focus and motion are inapplicable. No network, authentication or retained state is required. Tests and implementation are pending.
++
++## Replayable acceptance example
++A file with header `date,region,product,units,unit_price`, then `2026-01-01,West,Pen,2,1.25` and `2026-01-02,West,Pen,1,0.50`, yields rows 2, revenue 3.00, West 3.00 and Pen 3. R-1 permits both rows; 2 × 1.25 + 1 × 0.50 = 3.00. An invalid third data row `2026-01-03,West,Pen,-1,1` is skipped under R-2, reports line 4 and changes exit to 2 without changing totals. This is a planned fixture, not an executed result.
+
+=== D068 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -101,3 +101,3 @@
+    ],
+-   "proof": "node --test --test-name-pattern=TC_2",
++   "proof": "node -e 'const {spawn}=require(\"node:child_process\"),fs=require(\"node:fs\"),os=require(\"node:os\"),path=require(\"node:path\"),assert=require(\"node:assert/strict\"),net=require(\"node:net\"); (async()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),\"expense-proof-\")); const sock=net.createServer(); await new Promise(r=>sock.listen(0,\"127.0.0.1\",r)); const port=sock.address().port; await new Promise(r=>sock.close(r)); let child; const start=async()=>{child=spawn(process.execPath,[\"server.js\"],{env:{...process.env,PORT:String(port),DATA_FILE:path.join(dir,\"data.json\")},stdio:\"ignore\"}); for(let i=0;i<100;i++){try{await fetch(`http://127.0.0.1:${port}/`);return}catch{await new Promise(r=>setTimeout(r,30))}}throw Error(\"server failed to start\")}; const stop=async()=>{if(child.exitCode===null){child.kill();await new Promise(r=>child.once(\"exit\",r))}}; const req=async(method,url,body)=>{let a=await fetch(`http://127.0.0.1:${port}${url}`,{method,headers:{\"content-type\":\"application/json\"},body:body===undefined?undefined:JSON.stringify(body)}); let t=await a.text();return [a.status,t?JSON.parse(t):null]}; try{await start(); assert.equal((await req(\"POST\",\"/groups\",{id:\"g\",members:[\"A\",\"B\",\"C\"]}))[0],201); assert.equal((await req(\"POST\",\"/groups\",{id:\"g\",members:[\"A\",\"B\"]}))[0],409);assert.equal((await req(\"POST\",\"/groups\",{id:\"bad\",members:[\"A\",\"A\"]}))[0],400); await stop();await start();assert.equal((await req(\"POST\",\"/groups\",{id:\"g\",members:[\"A\",\"B\"]}))[0],409);}finally{await stop();fs.rmSync(dir,{recursive:true,force:true})}})().catch(e=>{console.error(e);process.exitCode=1})'",
+    "skills": [],
+@@ -117,3 +117,3 @@
+    ],
+-   "proof": "node --test",
++   "proof": "node -e 'const {spawn}=require(\"node:child_process\"),fs=require(\"node:fs\"),os=require(\"node:os\"),path=require(\"node:path\"),assert=require(\"node:assert/strict\"),net=require(\"node:net\"); (async()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),\"expense-proof-\")); const sock=net.createServer(); await new Promise(r=>sock.listen(0,\"127.0.0.1\",r)); const port=sock.address().port; await new Promise(r=>sock.close(r)); let child; const start=async()=>{child=spawn(process.execPath,[\"server.js\"],{env:{...process.env,PORT:String(port),DATA_FILE:path.join(dir,\"data.json\")},stdio:\"ignore\"}); for(let i=0;i<100;i++){try{await fetch(`http://127.0.0.1:${port}/`);return}catch{await new Promise(r=>setTimeout(r,30))}}throw Error(\"server failed to start\")}; const stop=async()=>{if(child.exitCode===null){child.kill();await new Promise(r=>child.once(\"exit\",r))}}; const req=async(method,url,body)=>{let a=await fetch(`http://127.0.0.1:${port}${url}`,{method,headers:{\"content-type\":\"application/json\"},body:body===undefined?undefined:JSON.stringify(body)}); let t=await a.text();return [a.status,t?JSON.parse(t):null]}; try{await start(); assert.equal((await req(\"POST\",\"/groups\",{id:\"g\",members:[\"A\",\"B\",\"C\"]}))[0],201); assert.equal((await req(\"POST\",\"/groups\",{id:\"g\",members:[\"A\",\"B\"]}))[0],409);assert.equal((await req(\"POST\",\"/groups\",{id:\"bad\",members:[\"A\",\"A\"]}))[0],400); await stop();await start();assert.deepEqual(await req(\"POST\",\"/groups/g/expenses\",{payer:\"A\",cents:10,split:\"equal\"}),[201,{expense:1}]); assert.deepEqual((await req(\"GET\",\"/groups/g/balances\"))[1],{A:6,B:-3,C:-3}); assert.deepEqual((await req(\"GET\",\"/groups/g/settlements\"))[1],[{from:\"B\",to:\"A\",cents:3},{from:\"C\",to:\"A\",cents:3}]); assert.equal((await req(\"POST\",\"/groups/g/expenses\",{payer:\"Z\",cents:1,split:\"equal\"}))[0],400);assert.equal((await req(\"GET\",\"/groups/missing/balances\"))[0],404); assert.deepEqual(await req(\"POST\",\"/groups/g/expenses\",{payer:\"B\",cents:5,split:\"exact\",shares:{A:5,B:0}}),[201,{expense:2}]); assert.deepEqual((await req(\"GET\",\"/groups/g/balances\"))[1],{A:1,B:2,C:-3}); for(const expense of [{payer:\"A\",cents:0,split:\"equal\"},{payer:\"A\",cents:1.5,split:\"equal\"},{payer:\"A\",cents:1,split:\"weird\"},{payer:\"A\",cents:1,split:\"exact\",shares:{Z:1}},{payer:\"A\",cents:2,split:\"exact\",shares:{B:1}},{payer:\"A\",cents:1,split:\"exact\",shares:{B:-1,A:2}}]) assert.equal((await req(\"POST\",\"/groups/g/expenses\",expense))[0],400); assert.equal((await req(\"POST\",\"/groups/missing/expenses\",{payer:\"A\",cents:1,split:\"equal\"}))[0],404); const results=await Promise.all(Array.from({length:10},()=>req(\"POST\",\"/groups/g/expenses\",{payer:\"A\",cents:3,split:\"exact\",shares:{B:3}}))); assert.deepEqual(results.map(a=>a[1].expense).sort((a,b)=>a-b),[3,4,5,6,7,8,9,10,11,12]); await stop();await start();assert.deepEqual((await req(\"GET\",\"/groups/g/balances\"))[1],{A:31,B:-28,C:-3});}finally{await stop();fs.rmSync(dir,{recursive:true,force:true})}})().catch(e=
+[... cut: 262 more characters of this diff ...]
+
+=== D069 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# Architecture
+-
+-## Decisions
+-AD-1: Extend the existing store, validation, persistence and outbox rather than introduce dependencies. Existing worker delivers new assignment template.
+-
+-## Real-boundary checks
+-Planned local HTTP requests through server, persisted file reload, actual worker notification and CLI process against isolated files. No remote target specified. Cache, remote reconciliation and permission invalidation are inapplicable to this in-process service. Worker retry remains covered by existing suite.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -32 +32,3 @@ npm test
+ ```
++
++All four planned cases are owned by the implementation item, due at its test stage, and rerun in system verification. TC_1 will assert the response and unchanged persisted/audit state across invalid and no-op requests; it will load a v1 file without assignee and reload a changed ticket. TC_2 will assign Alice, Bob, then Alice while the worker is off, assert all three queued recipients, and run the worker to observe deliveries. TC_3 will construct tickets differing in status, priority and assignee and assert only their intersection, including empty value and a cursor. TC_4 will spawn the CLI against saved state and assert displayed assignee and unchanged first four raw fields. The planned focused command cannot pass until test/assignment.test.js is created; the base control should fail on missing behavior after those tests are written. No browser, account, external service or remote tool is involved.
+
+=== D070 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -8,3 +8,3 @@ Request S1-S2. Run server.py with Python 3 standard library, using PORT and DATA
+ ### R-2: Create event
+-Request S3. POST /events with a nonempty string id and positive integer capacity returns 201; duplicate returns 409. Invalid JSON or values return 400. Confirm by HTTP tests with a fresh file, duplicates and boundaries. Integers must fit SQLite signed 64-bit range and booleans are invalid. IDs are URL path segments.
++Request S3. POST /events with a nonempty string id and positive integer capacity returns 201; duplicate returns 409. Invalid JSON or values return 400. Confirm by HTTP tests with a fresh file, duplicates and boundaries. Integers must fit SQLite signed 64-bit range and booleans are invalid. IDs are encoded as URL path segments, including reserved characters.
+ 
+@@ -21 +21,5 @@ Request S7. `python3 -m unittest` discovers and runs meaningful HTTP, validation
+ Standard library only; no requested numerical throughput or UI. No cache, async workflow, authentication, or remote deployment is in scope. Concurrent correctness and restart durability are tested above.
++
++## Replayable acceptance example
++
++Start with a fresh database. Create event `show` with capacity 3 (201). Reserve 2 (201, reserved 2 and remaining 1). Reserve 2 again (409, no change); GET returns capacity 3, reserved 2, remaining 1. Restart on the same file and GET returns the same values. R-2 permits creation, R-3 permits the first reservation and rejects the second, and R-1 preserves the result. The HTTP client observes each response. This is a test plan, not a claimed execution.
+
+=== D071 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -57,3 +57,3 @@
+    ],
+-   "proof": "python3 -c 'import subprocess,sys; cases=[(\"Hello, World!\",\"hello-world\"),(\"café für\",\"cafe-fur\"),(\"e\\\\u0301\",\"e\"),(\"A_2😀東京KßB\",\"a-b\"),(\"!!!\",\"\")]; results=[subprocess.run([sys.executable,\"slug.py\",title],capture_output=True,text=True) for title,_ in cases]; assert all(p.returncode == 0 and p.stdout == expected + \"\\\\n\" and p.stderr == \"\" for p,(_,expected) in zip(results,cases)); p=subprocess.run([sys.executable,\"slug.py\"],capture_output=True,text=True); assert p.returncode == 2 and p.stdout == \"\" and \"TITLE\" in p.stderr; print(\"Policy CLI proof passed\")'",
++   "proof": "python3 -c 'import subprocess,sys; cases=[(\"Hello, World!\",\"hello-world\"),(\"café für\",\"cafe-fur\"),(\"e\"+chr(0x301),\"e\"),(\"A_2😀東京KßB\",\"a-b\"),(\"!!!\",\"\")]; results=[subprocess.run([sys.executable,\"slug.py\",title],capture_output=True,text=True) for title,_ in cases]; assert all(p.returncode == 0 and p.stdout == expected + chr(10) and p.stderr == \"\" for p,(_,expected) in zip(results,cases)); p=subprocess.run([sys.executable,\"slug.py\"],capture_output=True,text=True); assert p.returncode == 2 and p.stdout == \"\" and \"TITLE\" in p.stderr; print(\"Policy CLI proof passed\")'",
+    "skills": [],
+@@ -72,8 +72,5 @@
+    "min_tests": 1,
++   "minimum": true,
++   "regression": true,
+    "suite": "focused"
+-  },
+-  {
+-   "command": "python3 -m unittest discover -v",
+-   "minimum": true,
+-   "suite": "regression"
+   },
+
+=== D072 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -210,5 +210,5 @@
+    ],
+-   "proof": "node -e \"const a=require('node:assert/strict'),v=require('./src/tickets/validate'); a.deepEqual(v.reassign({from:' a ',to:'b'}),{from:'a',to:'b'}); a.throws(()=>v.reassign({from:'a',to:'a'})); const {TicketStore}=require('./src/store'),{manualClock}=require('./src/clock'); let s=new TicketStore({clock:manualClock()}); let t=s.create({title:'x',requester:'r',priority:'normal'},'u'); s.assign(t.id,'a','u'); a.deepEqual(s.reassign('a','b','u'),{moved:1,ids:[t.id]}); a.equal(s.get(t.id).assignee,'b')\" && rg -q 'Reassign active tickets.*moved.*ids' src/store.js",
++   "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'); const {withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"'); withService({},async(api,s)=>{let t=(await api.post('\"'\"'/tickets'\"'\"',ticketBody())).body; await api.put('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/assignee'\"'\"',{assignee:'\"'\"'a'\"'\"'}); let bad=await api.post('\"'\"'/tickets/reassign'\"'\"',{from:'\"'\"'a'\"'\"',to:'\"'\"'a'\"'\"'}); a.equal(bad.status,400); let res=await api.post('\"'\"'/tickets/reassign'\"'\"',{from:'\"'\"'a'\"'\"',to:'\"'\"'b'\"'\"'}); a.equal(res.status,200); a.deepEqual(res.body,{moved:1,ids:[t.id]}); a.equal((await api.get('\"'\"'/tickets/'\"'\"'+t.id)).body.assignee,'\"'\"'b'\"'\"'); let q=s.store.outboxReport().pending.filter(e=>e.type==='\"'\"'ticket.assigned'\"'\"'&&e.to==='\"'\"'b'\"'\"'); a.equal(q.length,1)}).catch(e=>{console.error(e);process.exitCode=1})' && rg -q 'Reassign active tickets.*moved.*ids' src/store.js",
+    "skills": [],
+-   "task": "Implement C1 at HTTP, validation and store boundaries."
++   "task": "Implement C1 and C4 at HTTP, validation and store boundaries."
+   },
+@@ -227,3 +227,3 @@
+    ],
+-   "proof": "node -e \"const a=require('node:assert/strict'),{TicketStore}=require('./src/store'),{manualClock}=require('./src/clock'); const c=manualClock(); let s=new TicketStore({clock:c}); let t=s.create({title:'x',requester:'r',priority:'urgent'},'u'); c.advance(3600001); a.equal(s.escalateUrgent('oncall',60),1); a.equal(s.escalateUrgent('oncall',60),0); a.equal(s.outboxReport().pending.filter(x=>x.type==='ticket.escalated').length,1); a.match(require('./src/templates').render({type:'ticket.escalated',ticket:t.id,data:{title:'x'}}).subject,/Escalat/i)\"",
++   "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{TicketStore}=require('\"'\"'./src/store'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"'),{toDocument,fromDocument}=require('\"'\"'./src/persistence'\"'\"'); const c=manualClock(); let s=new TicketStore({clock:c}); let t=s.create({title:'\"'\"'x'\"'\"',requester:'\"'\"'r'\"'\"',priority:'\"'\"'urgent'\"'\"'},'\"'\"'u'\"'\"'); c.advance(3600001); a.equal(s.escalateUrgent('\"'\"'oncall'\"'\"',60),1); let d=toDocument(s.snapshot(),c.now()); s=new TicketStore({clock:c,state:fromDocument(d,m=>new Error(m))}); a.equal(s.escalateUrgent('\"'\"'oncall'\"'\"',60),0); a.equal(s.outboxReport().pending.filter(x=>x.type==='\"'\"'ticket.escalated'\"'\"').length,1); a.match(require('\"'\"'./src/templates'\"'\"').render({type:'\"'\"'ticket.escalated'\"'\"',ticket:t.id,data:{title:'\"'\"'x'\"'\"'}}).subject,/Escalat/i)'",
+    "skills": [],
+
+=== D073 | review of the `spec` stage ===
+FILE EDITS:
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -21 +21,4 @@ Basis: S1, S10-S11. Keep Node >=22, no dependencies, PORT behavior and existing
+ Keep existing single-line validation and body limit; no new security or auth promise. Preserve atomic data-file replacement and outbox retry behavior. CLI remains text-based and follows existing table styling; no graphical theme, motion, icons, focus states or loading interface applies. No new performance target was requested; paginate existing filtered results.
++
++## Replayable acceptance examples
++Start empty. Create T-0001 with status open and priority high; assign Alice, then Bob, then Alice without running worker. Each assignment is allowed by R-1 and creates one distinct event per R-2: three assignment events to Alice, Bob, Alice; a fourth PUT Alice is a no-op. Transition T-0001 to in_progress, then resolved; a PUT null now returns 409 and leaves Alice intact. Create T-0002 open with priority normal and null assignee. GET /tickets?status=open&priority=high returns neither; GET /tickets?status=open&assignee= returns T-0002. Verify with actual HTTP and outbox assertions, not fixed output. Replay derives IDs from sequential allocation and state transitions from docs/api.md; no implementation run claimed.
+
+=== D075 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# Architecture
+-
+-## Decisions
+-AD-1: Built-in Node HTTP and filesystem, one owning process. Serialize mutations and persist a complete JSON snapshot before success, with atomic replacement; calculate balances from retained expenses. No dependency installs.
+-
+-## Real-boundary checks
+-Planned local component HTTP tests launch a child process and isolated JSON file; restart proves persistence; parallel requests prove no lost writes. No remote service, UI, cache, worker or event sink is in scope. Tests apply settlement transfers independently to computed balances and assert zero.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -33 +33,3 @@ node --test test/service.test.js
+ Both planned; baseline full command exited zero with no cases and is not coverage.
++
++Planned oracle: create g with [A,B,C] (R-2), then A pays 5 equally (R-3): shares are 2,2,1 and balances are A=3,B=-2,C=-1 (R-4); settlements are B->A 2 then C->A 1. This is an arithmetic walkthrough, not an execution. TC_1 covers group validation; TC_2 split and balances; TC_3 exact validation; TC_4 settlement order and ties; TC_5 restart and parallel writes. The missing focused test file is a prerequisite owned by the work item.
+
+=== D076 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -235,3 +235,3 @@
+    ],
+-   "proof": "node -e 'const a=require(\"node:assert/strict\"),{TicketStore}=require(\"./src/store\"),{manualClock}=require(\"./src/clock\"); const clock=manualClock(), s=new TicketStore({clock}); const create=p=>s.create({title:\"x\",requester:\"r\",priority:p},\"a\"), high=create(\"high\"), blocked=create(\"urgent\"); create(\"normal\"); clock.advance(60001); a.equal(s.escalateUrgent(\"on\",1,1),2); s.assign(blocked.id,\"Ada\",\"a\"); s.assign(blocked.id,null,\"a\"); clock.advance(120000); const restored=new TicketStore({clock,state:s.snapshot()}); a.equal(restored.escalateUrgent(\"on\",1,1),1); a.equal(restored.escalateUrgent(\"on\",1,1),0); a.equal(restored.outboxReport().pending.filter(e=>e.type===\"ticket.escalated\"&&e.ticket===high.id).length,2);'",
++   "proof": "node -e 'const a=require(\"node:assert/strict\"),fs=require(\"node:fs\"),os=require(\"node:os\"),path=require(\"node:path\"),{TicketStore}=require(\"./src/store\"),{manualClock}=require(\"./src/clock\"),{createPersistence}=require(\"./src/persistence\"); const dir=fs.mkdtempSync(path.join(os.tmpdir(),\"esc-proof-\")); try { const clock=manualClock(), persistence=createPersistence(path.join(dir,\"data.json\"),{clock}), s=TicketStore.open({clock,persistence}); const create=p=>s.create({title:\"x\",requester:\"r\",priority:p},\"a\"), high=create(\"high\"), blocked=create(\"urgent\"); create(\"normal\"); clock.advance(60001); a.equal(s.escalateUrgent(\"on\",1,1),2); s.assign(blocked.id,\"Ada\",\"a\"); s.assign(blocked.id,null,\"a\"); clock.advance(120000); const restored=TicketStore.open({clock,persistence}); a.equal(restored.escalateUrgent(\"on\",1,1),1); a.equal(restored.escalateUrgent(\"on\",1,1),0); a.equal(restored.outboxReport().pending.filter(e=>e.type===\"ticket.escalated\"&&e.ticket===high.id).length,2); } finally { fs.rmSync(dir,{recursive:true,force:true}); }'",
+    "skills": [],
+
+=== D077 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -48,3 +48,3 @@ Due arithmetic (`created` plus whole-number UTC hours for the priority) lives in
+ - `dueTimes`: `env.DUE_TIMES === 'on'` (boolean; omitted/`createService` default `false`).
+-- `dueHours`: `{ urgent, high, normal, low }` from `DUE_HOURS_URGENT` (default 4), `DUE_HOURS_HIGH` (24), `DUE_HOURS_NORMAL` (72), `DUE_HOURS_LOW` (168). Unset or empty takes the default. Keys are the priority names.
++- `dueHours`: `{ urgent, high, normal, low }` from `DUE_HOURS_URGENT` (default 4), `DUE_HOURS_HIGH` (24), `DUE_HOURS_NORMAL` (72), `DUE_HOURS_LOW` (168). Unset or empty takes the default. Keys are the priority names. `loadConfig({})` and `DUE_HOURS_URGENT=''` (and the other three empty) yield those defaults and `dueTimes: false`. `loadConfig({ DUE_TIMES: 'on', DUE_HOURS_URGENT: '1', DUE_HOURS_HIGH: '2', DUE_HOURS_NORMAL: '3', DUE_HOURS_LOW: '4' })` yields `dueTimes: true` and `dueHours` `{ urgent: 1, high: 2, normal: 3, low: 4 }`.
+ 
+@@ -52,3 +52,3 @@ Due arithmetic (`created` plus whole-number UTC hours for the priority) lives in
+ 
+-- `TicketStore.open({ clock, persistence, dueHours })` and `new TicketStore({ clock, persistence, state, dueHours })`.
++- `TicketStore.open({ clock, persistence, dueHours })` and `new TicketStore({ clock, persistence, state, dueHours })`. Omitted `dueHours` takes `{ urgent: 4, high: 24, normal: 72, low: 168 }` so existing `test/store.test.js` still constructs a store with only `{ clock }`.
+ - `create`: `due = new Date(Date.parse(created) + hours[priority] * 3600 * 1000).toISOString()`. Hours at that moment. Zero hours → `due === created`.
+@@ -60,4 +60,5 @@ Due arithmetic (`created` plus whole-number UTC hours for the priority) lives in
+ 
+-- Ticket bodies from create, get, list items, patch, and transition: include `due` iff `dueTimes`. Strip otherwise (stored `due` may still exist).
+-- `GET /tickets`: `parseListQuery` receives `dueTimes`. Flag off: `overdue` ignored (unknown parameter). Flag on: `overdue=true` sets the list option; other values 400 `invalid`.
++- Omitted `dueTimes` is false (existing `createApp({ store, ... })` and `withService({})` stay flag-off).
++- Ticket bodies from create, get, list items, patch, and transition: include `due` iff `dueTimes`. Strip otherwise (stored `due` may still exist). Resolved and closed GET bodies keep the same stored `due` string.
++- `GET /tickets`: `parseListQuery(params, { dueTimes } = {})` — omitted `dueTimes` is false so existing `test/query.test.js` `parseListQuery(params)` still ignores unknown parameters, `overdue` included. Flag on: `overdue=true` sets the list option; other values 400 `invalid`.
+ - `POST`/`PATCH` with `due`: existing unknown-field 400.
+@@ -99,2 +100,3 @@ Local TC-11 is the automated rollback proof (inlined 1.4.0 ticket keys on a file
+ - `clock.set('2025-09-01T13:00:00.000Z')`; GET → ids `["T-0001"]`.
++- `GET /tickets?overdue=true&priority=urgent` → ids `["T-0001"]`; `GET /tickets?overdue=true&priority=low` → `{ items: [], next: null }` (matcher then overdue AND; ignoring `priority` would still list T-0001).
+ - `POST /tickets/T-0001/transition` `{ "to": "in_progress" }` (open → in_progress allowed); GET still `["T-0001"]`.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -103,2 +103,3 @@ Every check below is planned, not passed. Due stage INNER `test` unless noted. O
+ | TC-21 | R-5 | unit | config | test/due-config.test.js | `loadConfig({ DUE_HOURS_URGENT: 'nope' })` | throws `ConfigError` matching `/DUE_HOURS_URGENT/` |
++| TC-34 | R-5, R-10 | unit | config | test/due-config.test.js | `loadConfig({})` and `loadConfig({ DUE_TIMES: '', DUE_HOURS_URGENT: '', DUE_HOURS_HIGH: '', DUE_HOURS_NORMAL: '', DUE_HOURS_LOW: '' })` | `dueTimes === false`; `dueHours` `{ urgent: 4, high: 24, normal: 72, low: 168 }` |
+ | TC-22 | R-5 | component | HTTP POST | test/due-api.test.js | `{ dueTimes: true, dueHours: { urgent: 1 } }` then `{ urgent: 0 }` | due `2025-09-01T09:00:00.000Z` then `2025-09-01T08:00:00.000Z` |
+@@ -107,5 +108,5 @@ Every check below is planned, not passed. Due stage INNER `test` unless noted. O
+ | TC-24 | R-6 | component | DATA_FILE restart | test/due-persistence.test.js | temp file; stop; start `{ dataFile, dueTimes: true, dueHours: { urgent: 1 } }` | T-0001 due unchanged; new urgent due is created plus one hour |
+-| TC-7 | R-7 | component | HTTP POST then GET | test/due-api.test.js | flag on | both bodies’ `due` equal and match R-5 |
+-| TC-25 | R-7 | component | HTTP GET | test/due-api.test.js | create, in_progress, resolved | GET body has `due` |
+-| TC-8 | R-8 | component | HTTP GET overdue | test/due-api.test.js | R-8 replay through in_progress | at `2025-09-01T13:00:00.000Z` ids `["T-0001"]`; T-0002 absent; in_progress still listed |
++| TC-7 | R-7 | component | HTTP POST, GET, list, PATCH, transition | test/due-api.test.js | flag on, default hours, same clock as R-5 | POST, GET, list item, PATCH (t
+[... cut: 3101 more characters of this diff ...]
+
+=== D078 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -140,3 +140,3 @@
+    ],
+-   "proof": "node -e 'const assert=require('\"'\"'node:assert/strict'\"'\"');const {TicketStore}=require('\"'\"'./src/store'\"'\"');const {manualClock}=require('\"'\"'./src/clock'\"'\"');const s=new TicketStore({clock:manualClock()});const t=s.create({title:'\"'\"'A'\"'\"',priority:'\"'\"'normal'\"'\"',requester:'\"'\"'r'\"'\"'},'\"'\"'x'\"'\"');assert.equal(t.assignee,null);assert.equal(s.assign(t.id,'\"'\"'Alice'\"'\"','\"'\"'x'\"'\"').assignee,'\"'\"'Alice'\"'\"');assert.equal(s.outboxReport().pending.at(-1).to,'\"'\"'Alice'\"'\"');assert.equal(s.assign(t.id,null,'\"'\"'x'\"'\"').assignee,null)'",
++   "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{TicketStore}=require('\"'\"'./src/store'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"'),{toDocument,fromDocument}=require('\"'\"'./src/persistence'\"'\"'),{render}=require('\"'\"'./src/templates'\"'\"');const clock=manualClock(),s=new TicketStore({clock});let t=s.create({title:'\"'\"'A'\"'\"',priority:'\"'\"'normal'\"'\"',requester:'\"'\"'r'\"'\"'},'\"'\"'x'\"'\"');a.equal(t.assignee,null);for(const name of ['\"'\"'Alice'\"'\"','\"'\"'Bob'\"'\"','\"'\"'Alice'\"'\"'])s.assign(t.id,name,'\"'\"'x'\"'\"');let events=s.outboxReport().pending.filter(e=>e.type==='\"'\"'ticket.assigned'\"'\"');a.deepEqual(events.map(e=>e.to),['\"'\"'Alice'\"'\"','\"'\"'Bob'\"'\"','\"'\"'Alice'\"'\"']);events.forEach(e=>a.match(render(e).body,/assigned/i));let before=JSON.stringify(s.snapshot());s.assign(t.id,'\"'\"'Alice'\"'\"','\"'\"'x'\"'\"');a.equal(JSON.stringify(s.snapshot()),before);a.equal(s.history(t.id).at(-1).changes.assignee.to,'\"'\"'Alice'\"'\"');let doc=toDocument(s.snapshot(),clock.now()),loaded=fromDocument(doc,m=>new Error(m));a.equal(loaded.tickets[0].assignee,'\"'\"'Alice'\"'\"');delete doc.tickets[0].assignee;a.equal(fromDocument(doc,m=>new Error(m)).tickets[0].assignee,null);s.assign(t.id,null,'\"'\"'x'\"'\"');a.equal(s.get(t.id).assignee,null);a.equal(s.outboxReport().pending.filter(e=>e.type==='\"'\"'ticket.assigned'\"'\"').length,3);let delivered=[];const {deliverOutbox}=require('\"'\"'./src/worker'\"'\"');deliverOutbox({store:s,notifier:{deliver:e=>{render(e);delivered.push(e)}},log:{warn(){}}}).run();a.deepEqual(delivered.filter(e=>e.type==='\"'\"'ticket.assigned'\"'\"').map(e=>e.to),['\"'\"'Alice'\"'\"','\"'\"'Bob'\"'\"','\"'\"'Alice'\"'\"'])'",
+    "skills": [],
+@@ -156,3 +156,3 @@
+    ],
+-   "proof": "node -e 'const assert=require('\"'\"'node:assert/strict'\"'\"');const {withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"');withService({},async api=>{let t=(await api.post('\"'\"'/tickets'\"'\"',ticketBody())).body;let r=await api.put('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/assignee'\"'\"',{assignee:'\"'\"'Alice'\"'\"'});assert.equal(r.status,200);assert.equal(r.body.assignee,'\"'\"'Alice'\"'\"');assert.equal((await api.put('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/assignee'\"'\"',{assignee:'\"'\"''\"'\"'})).status,400)}).catch(e=>{console.error(e);process.exitCode=1})'",
++   "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"');withService({},async api=>{let t=(await api.post('\"'\"'/tickets'\"'\"',ticketBody())).body,p='\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/assignee'\"'\"';a.equal((await api.put(p,{assignee:'\"'\"'x'\"'\"'.repeat(64)})).status,200);for(const v of ['\"'\"''\"'\"', '\"'\"'x'\"'\"'.repeat(65), 1, {}, false])a.equal((await api.put(p,{assignee:v})).status,400);a.equal((await api.put(p,{})).status,400);a.equal((await api.put(p,{assignee:'\"'\"'x'\"'\"',extra:1})).status,400);let before=(await api.get('\"'\"'/tickets/'\"'\"'+t.id)).body;let hist=(await api.get('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/audit'\"'\"')).body;let out=(await api.get('\"'\"'/admin/outbox'\"'\"')).body;a.deepEqual((await api.put(p,{assignee:'\"'\"'x'\"'\"'.repeat(64)})).body,before);a.deepEqual((await api.get('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/audit'\"'\"')).body,hist);a.deepEqual((await api.get('\"'\"'/admin/outbox'\"'\"')).body,out);a.equal((await api.put(p,{assignee:null})).status,200);await api.post('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/transition'\"'\"',{to:'\"'\"'in_progress'\"'\"'});a.equal((await api.put(p,{assignee:'\"'\"'Alice'\"'\"'})).status,200);await api.post('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/transition'\"'\"',{to:'\"'\"'resolved'\"'\"'});a.equal((await api.put(p,{assignee:null})).status,409);await api.post('\"'\"'/tickets/'\"'\"'+t.id+'\"'\"'/transition'\"'\"',{to:'\"'\"'closed'\"'\"'});a.equal((await api.put(p,{assignee:'\"'\"'Bob'\"'\"'})).status,409);a.equal((await api.put('\"'\"'/tickets/T-9999/assignee'\"'\"',{assignee:'\"'\"'Alice'\"'\"'})).status,404)}).catch(e=>{console.error(e);process.exitCode=1})'",
+    "skills": [],
+@@ -164,3 +164,5 @@
+    ],
+-   "deps": [],
++   "deps": [
++    "S1"
++   ],
+    "id": "S3",
+@@ -169,3 +171,3 @@
+    ],
+-   "proof": "node -e 'con
+[... cut: 2674 more characters of this diff ...]
+
+=== D079 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -97,5 +97,5 @@
+    ],
+-   "proof": "node -e 'const {spawn}=require(\"node:child_process\"),fs=require(\"node:fs\"),os=require(\"node:os\"),path=require(\"node:path\"),assert=require(\"node:assert/strict\");(async()=>{let dir=fs.mkdtempSync(path.join(os.tmpdir(),\"expenses-proof-\"));let s=spawn(process.execPath,[\"server.js\"],{env:{...process.env,PORT:\"19743\",DATA_FILE:path.join(dir,\"data.json\")}});try{let base=\"http://127.0.0.1:19743\";let res;for(let i=0;i<100;i++){try{res=await fetch(base+\"/groups\",{method:\"POST\",body:JSON.stringify({id:\"g\",members:[\"a\",\"b\"]})});break}catch{await new Promise(r=>setTimeout(r,20))}}assert.equal(res.status,201);res=await fetch(base+\"/groups/g/expenses\",{method:\"POST\",body:JSON.stringify({payer:\"a\",cents:3,split:\"equal\"})});assert.equal(res.status,201);assert.deepEqual(await res.json(),{expense:1});res=await fetch(base+\"/groups/g/balances\");assert.deepEqual(await res.json(),{a:1,b:-1});res=await fetch(base+\"/groups/g/settlements\");assert.deepEqual(await res.json(),[{from:\"b\",to:\"a\",cents:1}]);let rs=await Promise.all(Array.from({length:20},()=>fetch(base+\"/groups/g/expenses\",{method:\"POST\",body:JSON.stringify({payer:\"a\",cents:2,split:\"equal\"})})));assert(rs.every(r=>r.status===201));let ns=await Promise.all(rs.map(r=>r.json()));assert.deepEqual(ns.map(v=>v.expense).sort((a,b)=>a-b),Array.from({length:20},(_,i)=>i+2));res=await fetch(base+\"/groups/g/balances\");assert.deepEqual(await res.json(),{a:21,b:-21});console.log(\"TC_1 TC_8 proof passed\")}finally{s.kill();fs.rmSync(dir,{recursive:true,force:true})}})().catch(e=>{console.error(e);process.exitCode=1})'",
++   "proof": "node -e 'const {spawn}=require(\"node:child_process\"),fs=require(\"node:fs\"),os=require(\"node:os\"),path=require(\"node:path\"),assert=require(\"node:assert/strict\");(async()=>{let dir=fs.mkdtempSync(path.join(os.tmpdir(),\"expenses-proof-\"));let s=spawn(process.execPath,[\"server.js\"],{env:{...process.env,PORT:\"0\",DATA_FILE:path.join(dir,\"data.json\")}});try{let port=await new Promise((resolve,reject)=>{let data=\"\";let timer=setTimeout(()=>reject(new Error(\"server did not report port\")),3000);s.stdout.on(\"data\",chunk=>{data+=chunk;let m=data.match(/LISTENING (\\d+)/);if(m){clearTimeout(timer);resolve(m[1])}});s.on(\"exit\",()=>{clearTimeout(timer);reject(new Error(\"server exited\"))})});let base=\"http://127.0.0.1:\"+port;let res;for(let i=0;i<100;i++){try{res=await fetch(base+\"/groups\",{method:\"POST\",body:JSON.stringify({id:\"g\",members:[\"a\",\"b\"]})});break}catch{await new Promise(r=>setTimeout(r,20))}}assert.equal(res.status,201);res=await fetch(base+\"/groups/g/expenses\",{method:\"POST\",body:JSON.stringify({payer:\"a\",cents:3,split:\"equal\"})});assert.equal(res.status,201);assert.deepEqual(await res.json(),{expense:1});res=await fetch(base+\"/groups/g/balances\");assert.deepEqual(await res.json(),{a:1,b:-1});res=await fetch(base+\"/groups/g/settlements\");assert.deepEqual(await res.json(),[{from:\"b\",to:\"a\",cents:1}]);let rs=await Promise.all(Array.from({length:20},()=>fetch(base+\"/groups/g/expenses\",{method:\"POST\",body:JSON.stringify({payer:\"a\",cents:2,split:\"equal\"})})));assert(rs.every(r=>r.status===201));let ns=await Promise.all(rs.map(r=>r.json()));assert.deepEqual(ns.map(v=>v.expense).sort((a,b)=>a-b),Array.from({length:20},(_,i)=>i+2));res=await fetch(base+\"/groups/g/balances\");assert.deepEqual(await res.json(),{a:21,b:-21});console.log(\"TC_1 TC_8 proof passed\")}finally{s.kill();fs.rmSync(dir,{recursive:true,force:true})}})().catch(e=>{console.error(e);process.exitCode=1})'",
+    "skills": [],
+-   "task": "Implement service and document usage for C1 and all listed requirements; add validation and durable serialization."
++   "task": "Implement service and document usage for C1 and all listed requirements; add validation and durable serialization. When PORT=0, report LISTENING followed by the assigned port on stdout for isolated checks."
+   }
+
+=== D080 | review of the `test-strategy` stage ===
+FILE EDITS:
+--- a/docs/shiploop/architecture.md
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# Architecture
+-
+-## Decisions
+-AD-1: A local Python CLI uses csv, decimal and json; subprocess tests observe the real CLI. No external packages, state, services or remote boundary. Input read errors suppress all output.
+-
+-## Real-boundary checks
+-Planned: local subprocess tests observe stdout, stderr and status, including multi-file and unreadable input. Each creates and removes its own fixture. R-4 is documentation only in this delivery. No remote target, host browser or account applies.
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -29 +29,3 @@ python3 -m unittest -v
+ The baseline ran this runner with zero tests; actual case names will be established in test-spec.
++
++Planned concrete oracle: two files, each with the specified header. First has `2026-01-01,West,Pen,2,1.25` and `2026-01-02,East,Pen,1,0.10`; second has `2026-01-03,West,Book,3,0.50`. Expect rows 3, revenue 4.10, by_region West 4.00 and East 0.10, by_product Pen 3 and Book 3, no stderr and status 0. Independent arithmetic: 2×1.25 + 1×0.10 + 3×0.50 = 4.10, West = 4.00. Thus the expected total is 4.10. Invalid row tests assert diagnostics and status as well as resulting JSON; a later missing file must suppress stdout. These checks are planned, not executed.
+
+=== D082 | review of the `step-plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -91,3 +91,4 @@
+    "paths": [
+-    "src/server.js"
++    "src/server.js",
++    "test/team.test.js"
+    ],
+@@ -95,3 +96,3 @@
+    "skills": [],
+-   "task": "Implement C1, preserving existing behavior."
++   "task": "Implement C1 and update only the assertion encoding the superseded case-sensitive rule, so the intermediate regression suite remains valid."
+   },
+
+=== D083 | review of the `plan` stage ===
+STAGE RESULT EDITS (JSON, bookkeeping fields left out):
+@@ -20,8 +20,9 @@
+   {
+-   "assumption": "Safe integers preserve whole-cent arithmetic",
+-   "disposition": "open",
+-   "due_item": "W1",
+-   "id": "A3",
+-   "reason": "JavaScript number precision is bounded",
+-   "settle": "Validate amounts and aggregate boundaries with tests"
++   "assumption": "JavaScript numbers lose integer precision beyond the safe range",
++   "check": "node -e Number.MAX_SAFE_INTEGER boundary comparison",
++   "disposition": "probed",
++   "evidence": [
++    "/Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s7/.shiploop-runs/work-20261101-180948-8e7eaf/worktree/.shiploop-improve/plan-196a2eb2/reviews/number-probe.md"
++   ],
++   "id": "A3"
+   }

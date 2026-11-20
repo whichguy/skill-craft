@@ -1,0 +1,19 @@
+plans 272; assumptions by disposition {'evidenced': 288, 'probed': 142, 'open': 154}; plans with a probed assumption 132; runs with a planning reconciliation 0
+end-of-work (carry-forward) review, by the item's step count: reviews, edited files, edited code or tests
+  1 step    n=200  edited 12%  code or tests 10%
+  2+ steps  n=78   edited 22%  code or tests 21%
+most common refused step-plan commands (text normalised):
+    32  no result file at <path> write the result there (the packet's Result template, filled in) with 
+    27  a test command's criteria must be a nonempty list of distinct criterion IDs
+    22  step N's proof must be one nonblank command line, run from the repository root; join steps with
+    21  a test command's ids must be a nonempty list of test IDs without spaces
+    20  step N's Proof runs test<path> which the item base does not have and no earlier step declares: 
+    17  open plan assumptions A2 name N as due_item; settle each here: an executed criterion with "from
+    15  open plan assumptions A2 name N as due_item; add an expectation for each with "from": "<assumpt
+     6  expectations cite from baseline, plan, which is not an open plan assumption whose due_item is N
+     4  open plan assumptions A1 name N as due_item; settle each here: an executed criterion with "from
+     4  open plan assumptions A4 name N as due_item; settle each here: an executed criterion with "from
+     4  expectation N is works, but server.js does not exist on the item's lint base. A new path needs 
+     3  expectation N is works, but force-app<path> does not exist on the item's lint base. A new path 
+     3  open plan assumptions A3 name N as due_item; settle each here: an executed criterion with "from
+     3  concerns is a list of {"id": "<concern>", "steps": ["N"]}

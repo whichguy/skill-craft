@@ -1,0 +1,39 @@
+items in key 136; judged by A 136; by B 136; by both 136
+exact agreement 88%; Cohen's kappa 0.79 (four labels)
+substance vs not: agreement 92%; kappa 0.84
+confusion (rows judge A, columns judge B):
+               substance  sharpening      record     unclear
+substance             65           2           0           0
+sharpening             9          46           3           0
+record                 0           1           7           1
+unclear                0           0           0           2
+
+reviewed stage   judged  substance A  substance B   both  either  gate (A/B)  reviews that edit  substantive edit per review (both..either)
+step-plan            40          85%          82%    82%     85%         3/3                37%                                  31% .. 31%
+spec                 40          40%          48%    40%     48%         0/0                28%                                  11% .. 13%
+test-strategy        40          32%          38%    30%     40%        8/10                24%                                   7% .. 10%
+plan                 16          25%          44%    25%     44%         0/0                 6%                                    2% .. 3%
+
+examples both judges called substance (judge A's reason):
+  [step-plan] D002: Proof replaced by inline two-file run asserting exact aggregated JSON; regression flags folded into focused suite.
+  [step-plan] D005: Proofs now check rendered notification, persistence round-trip of assignee, and 400 for empty assignee.
+  [step-plan] D008: Proof adds a module docstring check; regression suite entry merged into focused.
+  [spec] D004: Adds exit 0 when no invalid rows and declares non-finite prices invalid.
+  [spec] D010: Adds concrete import case incl. trimmed titles, default priority, index of first invalid item, and next ID not consumed after rejection.
+  [spec] D011: Adds requirement that malformed JSON and unknown game IDs return JSON errors without crash, plus specific move cases.
+  [test-strategy] D012: Adds edge cases: half-cent ties, non-finite prices, fractional units, multiline record lines, bad rows before missing file.
+  [test-strategy] D026: Adds planned cases: perft counts, named mates, castling, en passant, promotions, stalemate, CPU measurement.
+  [test-strategy] D045: Adds partial-team rejection case to TC-6; rewording elsewhere; drops architecture section.
+  [plan] D063: Adds AD-3: candidate state with write-rename before publish, reject unsafe cumulative arithmetic.
+  [plan] D108: Requires overdue filter before paginate; corrects persisted document shape (outbox nextId, no root nextEventId).
+  [plan] D111: Browser check moved to execution checkout after deploy and assignment, recheck after source return only if needed.
+
+examples both judges called sharpening or record:
+  [step-plan] D038: Criterion text names specific assertions (20 moves, FEN, illegal e2e5, 400); regression entry merged.
+  [step-plan] D041: Inline proofs replaced by scratch file paths whose content is not shown.
+  [spec] D007: Names the exact CSV header and adds a worked example of the stated aggregation rule.
+  [spec] D018: Adds concrete acceptance examples with values for rules already stated (aggregation, header-only, invalid rows, missing file).
+  [test-strategy] D006: Spells out what TC_1-TC_4 each cover; drops architecture real-boundary paragraph.
+  [test-strategy] D021: Removes architecture file; states stage timing, smoke suite and fixture ownership for existing checks.
+  [plan] D003: Adds plan assumptions A3/A4 on boundary strictness and legacy same-timestamp handling, already evidenced in spec and research.
+  [plan] D009: Rewords the trailing-newline assumption as the recorded default for ambiguous wording.
