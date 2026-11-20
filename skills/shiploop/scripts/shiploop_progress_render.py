@@ -1,9 +1,15 @@
-"""Render a saved ShipLoop progress snapshot as a self-contained HTML page."""
+"""Render a saved ShipLoop progress snapshot as a self-contained HTML page.
+
+The page is built from keyed blocks (``_keyed``, ``_keyed_list``). While a run is watched, the open page checks a
+small sibling version script in the background and, when the content changed, swaps only the changed blocks in
+place; it never reloads itself.
+"""
 
 from __future__ import annotations
 
 from collections import deque
 from datetime import datetime, timezone
+import hashlib
 from html import escape
 import json
 import math
@@ -35,6 +41,39 @@ def _escape_html(value: Any, default: str = "") -> str:
     if value is None:
         value = default
     return escape(str(value), quote=True)
+
+
+_OPEN_TAG = re.compile(r"<[A-Za-z][A-Za-z0-9]*")
+
+
+def _keyed(html: str, key: str) -> str:
+    """Mark one element as a block the open page can replace on its own. ``data-key`` names the block and
+    ``data-rev`` is a digest of its HTML, so a live update leaves an unchanged block's node alone (the reader's
+    open sections, selection and scroll stay) and swaps only the blocks whose digest moved. An empty string stays
+    empty.
+    """
+    if not html:
+        return ""
+    end = _OPEN_TAG.match(html).end()
+    rev = hashlib.sha256(html.encode("utf-8", errors="backslashreplace")).hexdigest()[:16]
+    return html[:end] + ' data-key="' + _escape_html(key) + '" data-rev="' + rev + '"' + html[end:]
+
+
+def _keyed_list(html: str, key: str) -> str:
+    """Mark an element whose direct children are all keyed blocks (or keyed lists); a live update walks into it
+    and reconciles the children one by one instead of replacing it whole.
+    """
+    end = _OPEN_TAG.match(html).end()
+    return html[:end] + ' data-key="' + _escape_html(key) + '" data-list' + html[end:]
+
+
+def _tally(rows: Any, field: str = "status") -> str:
+    """Counts of one field over mapping rows, most frequent first: ``12 ok, 3 missing``."""
+    counts: dict[str, int] = {}
+    for row in rows:
+        label = _value(row.get(field)) or "no status"
+        counts[label] = counts.get(label, 0) + 1
+    return ", ".join(f"{count} {label}" for label, count in sorted(counts.items(), key=lambda pair: (-pair[1], pair[0])))
 
 
 def _value(value: Any, default: str = "") -> str:
@@ -283,7 +322,7 @@ def _work_items(snapshot: Mapping[str, Any]) -> str:
                 continue
             status = _value(row.get("status"), "unspecified")
             state_class = status.lower() if status.lower() in {
-                "active", "blocked", "done", "pending", "queued", "skipped",
+                "active", "blocked", "current", "done", "pending", "queued", "skipped",
             } else "other"
             dependencies = row.get("dependencies", [])
             if not isinstance(dependencies, (list, tuple)):
@@ -659,6 +698,9 @@ def _evidence_links(ids: Any, evidence: Mapping[str, Any]) -> str:
 
 
 def _story(snapshot: Mapping[str, Any]) -> str:
+    """Render the recorded story panel. Every direct child of the panel is a keyed block, and the visit list and
+    the evidence list are keyed lists, so a live update replaces one visit or one preview and not the panel.
+    """
     story = snapshot.get("story")
     story = story if isinstance(story, Mapping) else {}
     summary = story.get("summary")
@@ -669,44 +711,64 @@ def _story(snapshot: Mapping[str, Any]) -> str:
     by_id = {_value(row.get("id")): row for row in events}
     used = set()
     reason = _blocker_reason(snapshot)
-    parts = ['<section class="panel story" aria-labelledby="story-heading">'
-             '<div class="section-heading"><div><p class="eyebrow">RECORDED STORY</p>'
-             '<h2 id="story-heading">What is happening</h2></div>'
-             '<a class="button" href="trace.html">Open detailed trace →</a></div>'
-             '<dl class="story-summary">']
+    head = ['<div class="story-head"><div class="section-heading"><div><p class="eyebrow">RECORDED STORY</p>'
+            '<h2 id="story-heading">What is happening</h2></div>'
+            '<a class="button" href="trace.html">Open detailed trace →</a></div>'
+            '<dl class="story-summary">']
     for key, label in (("now", "Now"), ("changed", "Changed"), ("waiting", "Waiting"), ("next", "Next")):
-        parts.append('<div><dt>' + label + '</dt><dd>'
-                     + _supporting_copy(summary.get(key) or "Not recorded.", reason) + '</dd></div>')
-    parts.append('</dl><h3>Independent lifecycle</h3><dl class="lifecycle">')
+        head.append('<div><dt>' + label + '</dt><dd>'
+                    + _supporting_copy(summary.get(key) or "Not recorded.", reason) + '</dd></div>')
+    head.append('</dl><h3>Independent lifecycle</h3><dl class="lifecycle">')
     lifecycle = story.get("lifecycle")
     lifecycle = lifecycle if isinstance(lifecycle, Mapping) else {}
     run = snapshot.get("run")
     run = run if isinstance(run, Mapping) else {}
-    for key, label in (("engine", "Engine"), ("execution", "Execution"), ("acceptance", "Product acceptance"),
-                       ("source_return", "Source return"), ("owner_hold", "Owner hold")):
+    labels = (("engine", "Engine"), ("execution", "Execution"), ("acceptance", "Product acceptance"),
+              ("source_return", "Source return"), ("owner_hold", "Owner hold"))
+    # Only a producer's progress-observations.jsonl reports the four external facts. With none reporting, four
+    # rows of "unknown" read as four failures, so one line says the rows are optional and absent.
+    reported = any(isinstance(lifecycle.get(key), Mapping) and lifecycle[key].get("producer")
+                   for key, _ in labels[1:])
+    for key, label in labels if reported else labels[:1]:
         row = lifecycle.get(key)
         if not isinstance(row, Mapping):
             row = {"status": run.get("status", "unknown"), "summary": "Recorded engine state."} if key == "engine" else {}
-        parts.append('<div><dt>' + label + '</dt><dd><strong>'
-                     + _escape_html(row.get("status") or "unknown") + '</strong> · '
-                     + _supporting_copy(row.get("summary") or "No bound producer observation recorded.", reason)
-                     + '<small>Producer: ' + _escape_html(row.get("producer") or "not recorded")
-                     + ' · Scope: ' + _escape_html(row.get("scope") or "unknown (not recorded)")
-                     + ' · At: ' + _escape_html(row.get("at") or "unknown") + '</small>'
-                     + _evidence_links(row.get("evidence"), evidence) + '</dd></div>')
-    parts.append('</dl><div class="section-heading"><h3>Visits, in recorded order</h3>'
-                 '<label class="story-search">Search story <input id="story-search" type="search" '
-                 'placeholder="Stage, event, evidence…"></label></div>'
-                 '<p class="small-note">Repeated stages remain separate visits. Visit dwell is not compute time. '
-                 'Coverage and omitted rows are listed below.</p><ol class="visit-list">')
+        head.append('<div><dt>' + label + '</dt><dd><strong>'
+                    + _escape_html(row.get("status") or "unknown") + '</strong> · '
+                    + _supporting_copy(row.get("summary") or "No bound producer observation recorded.", reason)
+                    + '<small>Producer: ' + _escape_html(row.get("producer") or "not recorded")
+                    + ' · Scope: ' + _escape_html(row.get("scope") or ("this run" if key == "engine" else "unknown (not recorded)"))
+                    + ' · At: ' + _escape_html(row.get("at") or "unknown") + '</small>'
+                    + _evidence_links(row.get("evidence"), evidence) + '</dd></div>')
+    if not reported:
+        head.append('<div><dt>Other lifecycle</dt><dd><strong>not reported</strong> · Execution, product acceptance, '
+                    'source return and owner hold appear here only when a producer writes '
+                    '<code>progress-observations.jsonl</code> for this run. None has, which is the ordinary case: '
+                    'ShipLoop itself records the engine state alone.</dd></div>')
+    head.append('</dl></div>')
+    parts = [_keyed_list('<section class="panel story" aria-labelledby="story-heading">', "story"),
+             _keyed("".join(head), "story-head"),
+             _keyed('<div class="visits-head"><div class="section-heading"><h3>Visits, in recorded order</h3>'
+                    '<label class="story-search">Search story <input id="story-search" type="search" '
+                    'placeholder="Stage, event, evidence…"></label></div>'
+                    '<p class="small-note">Repeated stages remain separate visits. Visit dwell is not compute time. '
+                    'Evidence previews and source coverage are folded below the visits.</p></div>', "visits-head"),
+             _keyed_list('<ol class="visit-list">', "visits")]
 
     def event_html(row: Mapping[str, Any]) -> str:
         source = row.get("source")
-        source = source if isinstance(source, Mapping) else {}
+        # An event names its file and line. The file's byte hash stays with the source's coverage row and its
+        # preview: a journal's hash moves at every appended line, and printing it under each event would change
+        # every visit's block (and redraw it in an open page) each time one line arrives.
+        source = ({key: value for key, value in source.items() if key != "sha256"}
+                  if isinstance(source, Mapping) else {})
         binding = _value(row.get("binding"), "unbound")
+        status = _value(row.get("status")).strip()
+        # A kind with no status of its own (the builder records None) shows the kind alone, never "unknown".
+        heading = (("Improve pass · " if row.get("improve_of") else "") + _value(row.get("kind"), "Event")
+                   + (" · " + status if status else ""))
         return ('<li class="story-event" id="' + _anchor("event", row.get("id")) + '">'
-                '<strong>' + _escape_html(row.get("kind"), "Event") + ' · '
-                + _escape_html(row.get("status"), "unknown") + '</strong><p>'
+                '<strong>' + _escape_html(heading) + '</strong><p>'
                 + _supporting_copy(row.get("summary") or "No summary recorded.", reason) + '</p>'
                 '<small>At: ' + _escape_html(row.get("at") or "unknown")
                 + ' · Binding: ' + _escape_html(binding)
@@ -717,93 +779,112 @@ def _story(snapshot: Mapping[str, Any]) -> str:
     visits = _rows(story.get("visits"))
     for index, row in enumerate(visits):
         key = _value(row.get("id"), "visit-" + str(index))
-        parts.append('<li class="story-searchable"><details class="visit" id="' + _anchor("visit", key)
-                     + '" data-state-key="' + _escape_html(key) + '"><summary><span>'
-                     + _escape_html(row.get("stage"), "Unknown stage") + ' · '
-                     + _escape_html(row.get("item"), "No item recorded") + '</span><strong>'
-                     + _escape_html(row.get("status"), "unknown") + '</strong><small>'
-                     + _supporting_copy(row.get("summary") or "No summary recorded.", reason, limit=190) + '</small><small>Elapsed: '
-                     + _duration(row.get("duration_seconds")) + ' · Basis: '
-                     + _escape_html(row.get("duration_basis"), "unknown") + '</small></summary><div class="visit-body">'
-                     '<small>Action: ' + _escape_html(row.get("action"), "unknown")
-                     + ' · Started: ' + _escape_html(row.get("started_at"), "unknown")
-                     + ' · Ended: ' + _escape_html(row.get("ended_at"), "not recorded")
-                     + '</small><p class="small-note">Full recorded visit summary</p>'
-                     '<pre class="preview" tabindex="0" aria-label="Full recorded visit summary" id="'
-                     + _anchor("visit-summary", key) + '">'
-                     + _supporting_copy(row.get("summary") or "No summary recorded.", reason) + '</pre><ol>')
+        # Preparation and release stages belong to the run, not to one work item.
+        where = _value(row.get("stage"), "Unknown stage") + ' · ' + (_value(row.get("item")) or "run-wide")
+        if isinstance(row.get("improve"), Mapping):
+            where += ' · Improve reviewed'
+        visit = ['<li class="story-searchable"><details class="visit" id="' + _anchor("visit", key)
+                 + '" data-state-key="' + _escape_html(key) + '"><summary><span>'
+                 + _escape_html(where) + '</span><strong>'
+                 + _escape_html(row.get("status"), "unknown") + '</strong><small>'
+                 + _supporting_copy(row.get("summary") or "No summary recorded.", reason, limit=190) + '</small><small>Elapsed: '
+                 + _duration(row.get("duration_seconds")) + ' · Basis: '
+                 + _escape_html(row.get("duration_basis"), "unknown") + '</small></summary><div class="visit-body">'
+                 '<small>Action: ' + _escape_html(row.get("action"), "unknown")
+                 + ' · Started: ' + _escape_html(row.get("started_at"), "unknown")
+                 + ' · Ended: ' + _escape_html(row.get("ended_at"), "not recorded")
+                 + '</small><p class="small-note">Full recorded visit summary</p>'
+                 '<pre class="preview" tabindex="0" aria-label="Full recorded visit summary" id="'
+                 + _anchor("visit-summary", key) + '">'
+                 + _supporting_copy(row.get("summary") or "No summary recorded.", reason) + '</pre><ol>']
         ids = row.get("events")
         for event_id in ids if isinstance(ids, (list, tuple)) else []:
             event_id = _value(event_id)
             if event_id in by_id:
                 # A source event has one stable anchor even if referenced by multiple visits.
                 if event_id in used:
-                    parts.append('<li><a href="#' + _anchor("event", event_id) + '">Inspect referenced event</a></li>')
+                    visit.append('<li><a href="#' + _anchor("event", event_id) + '">Inspect referenced event</a></li>')
                 else:
-                    parts.append(event_html(by_id[event_id]))
+                    visit.append(event_html(by_id[event_id]))
                     used.add(event_id)
             else:
-                parts.append('<li class="muted">Event unavailable: ' + _escape_html(event_id) + '</li>')
-        parts.append('</ol>' + _evidence_links(row.get("evidence"), evidence) + '</div></details></li>')
+                visit.append('<li class="muted">Event unavailable: ' + _escape_html(event_id) + '</li>')
+        visit.append('</ol>' + _evidence_links(row.get("evidence"), evidence) + '</div></details></li>')
+        parts.append(_keyed("".join(visit), key))
     if not visits:
-        parts.append('<li class="empty-state">No visit history recorded in this snapshot.</li>')
+        parts.append(_keyed('<li class="empty-state">No visit history recorded in this snapshot.</li>', "visits-empty"))
     parts.append('</ol>')
     remaining = [row for row in events if _value(row.get("id")) not in used]
     if remaining:
-        parts.append('<details data-state-key="unbound-events"><summary>Other recorded events '
-                     '(not assigned to a displayed visit)</summary><ol>'
-                     + "".join(event_html(row) for row in remaining) + '</ol></details>')
+        parts.append(_keyed('<details class="story-fold" data-state-key="unbound-events"><summary>Other recorded events · '
+                            + str(len(remaining)) + ' not tied to a displayed visit</summary><ol>'
+                            + "".join(event_html(row) for row in remaining) + '</ol></details>', "unbound-events"))
     observations = _rows(story.get("observations"))
     if observations:
-        parts.append('<h3>Producer observations</h3>')
-    for row in observations:
-        parts.append('<article class="observation story-searchable"><h4>'
-                     + _escape_html(row.get("title"), "Observation") + '</h4><p>'
-                     + _escape_html(row.get("summary"), "No summary recorded.") + '</p><small>'
-                     + _escape_html(row.get("kind"), "unknown") + ' · '
-                     + _escape_html(row.get("producer"), "Unknown producer") + ' · Scope: '
-                     + _escape_html(row.get("scope"), "unknown") + ' · Status: '
-                     + _escape_html(row.get("status"), "unknown")
-                     + ' · Event time: ' + _escape_html(row.get("event_at"), "unknown")
-                     + ' · Observed: ' + _escape_html(row.get("observed_at"), "unknown")
-                     + ' · Logged (knowledge available): ' + _escape_html(row.get("logged_at"), "unknown")
-                     + '</small>' + _evidence_links(row.get("evidence"), evidence) + '</article>')
-    parts.append('<h3>Evidence previews</h3>')
+        block = ['<div class="observations"><h3>Producer observations</h3>']
+        for row in observations:
+            block.append('<article class="observation story-searchable"><h4>'
+                         + _escape_html(row.get("title"), "Observation") + '</h4><p>'
+                         + _escape_html(row.get("summary"), "No summary recorded.") + '</p><small>'
+                         + _escape_html(row.get("kind"), "unknown") + ' · '
+                         + _escape_html(row.get("producer"), "Unknown producer") + ' · Scope: '
+                         + _escape_html(row.get("scope"), "unknown") + ' · Status: '
+                         + _escape_html(row.get("status"), "unknown")
+                         + ' · Event time: ' + _escape_html(row.get("event_at"), "unknown")
+                         + ' · Observed: ' + _escape_html(row.get("observed_at"), "unknown")
+                         + ' · Logged (knowledge available): ' + _escape_html(row.get("logged_at"), "unknown")
+                         + '</small>' + _evidence_links(row.get("evidence"), evidence) + '</article>')
+        parts.append(_keyed("".join(block) + '</div>', "observations"))
+    # Hundreds of previews and source rows once pushed everything after them far down the page; both lists now
+    # open on request, under a line that counts them by status.
+    parts.append(_keyed_list('<details class="story-fold" id="evidence-previews" data-state-key="evidence-previews">',
+                             "evidence"))
+    parts.append(_keyed('<summary>Evidence previews · ' + (str(len(evidence_rows)) + ' files: ' + _tally(evidence_rows)
+                                                         if evidence_rows else 'none') + '</summary>',
+                        "evidence-summary"))
     if not evidence_rows:
-        parts.append('<p class="empty-state">No story evidence embedded; key files and trace remain available.</p>')
+        parts.append(_keyed('<p class="empty-state">No story evidence embedded; key files and trace remain available.</p>',
+                            "evidence-empty"))
     for row in evidence_rows:
         anchor = _anchor("evidence", row.get("id"))
-        parts.append('<details class="document story-searchable" id="' + anchor + '" data-state-key="' + anchor
-                     + '"><summary>' + _escape_html(row.get("title"), "Evidence") + ' · '
-                     + _escape_html(row.get("status"), "unknown") + '</summary><div class="document-body"><p>'
-                     + _escape_html(row.get("summary"), "No summary recorded.") + '</p>' + _locator(row)
-                     + ('<pre class="preview" tabindex="0">' + _escape_html(row["content"]) + '</pre>'
-                        if row.get("content") else '<p class="empty-state">Preview missing or withheld; inspect source locator.</p>')
-                     + '</div></details>')
-    parts.append('<h3>Source coverage and freshness</h3><div class="coverage">')
+        parts.append(_keyed('<details class="document story-searchable" id="' + anchor + '" data-state-key="' + anchor
+                            + '"><summary>' + _escape_html(row.get("title"), "Evidence") + ' · '
+                            + _escape_html(row.get("status"), "unknown") + '</summary><div class="document-body"><p>'
+                            + _escape_html(row.get("summary"), "No summary recorded.") + '</p>' + _locator(row)
+                            + ('<pre class="preview" tabindex="0">' + _escape_html(row["content"]) + '</pre>'
+                               if row.get("content") else
+                               '<p class="empty-state">No preview is embedded here; the source path above locates the file.</p>')
+                            + '</div></details>', anchor))
+    parts.append('</details>')
     sources = _rows(story.get("sources"))
+    coverage = ['<details class="story-fold" id="source-coverage" data-state-key="source-coverage">'
+                '<summary>Source coverage and freshness · '
+                + (str(len(sources)) + ' sources: ' + _tally(sources) if sources else 'unavailable')
+                + '</summary><div class="coverage">']
     if not sources:
-        parts.append('<p class="empty-state">Per-source coverage unavailable in this snapshot.</p>')
+        coverage.append('<p class="empty-state">Per-source coverage unavailable in this snapshot.</p>')
     for row in sources:
-        parts.append('<article><strong>' + _escape_html(row.get("id"), "Source") + ' · '
-                     + _escape_html(row.get("status"), "unknown") + '</strong>' + _locator(row)
-                     + '<p>' + _escape_html(row.get("message"), "No additional coverage detail recorded.") + '</p>'
-                     '<small>Observed: ' + _escape_html(row.get("observed_at"), "unknown")
-                     + ' · Changed: ' + _escape_html(row.get("changed_at"), "unknown")
-                     + ' · Last event: ' + _escape_html(row.get("last_event_at"), "unknown")
-                     + ' · Rows: ' + _escape_html(row.get("rows"), "unknown")
-                     + ' · Omitted: ' + _escape_html(row.get("omitted"), "unknown") + '</small></article>')
-    parts.append('</div>')
+        coverage.append('<article><strong>' + _escape_html(row.get("id"), "Source") + ' · '
+                        + _escape_html(row.get("status"), "unknown") + '</strong>' + _locator(row)
+                        + '<p>' + _escape_html(row.get("message"), "No additional coverage detail recorded.") + '</p>'
+                        '<small>Observed: ' + _escape_html(row.get("observed_at"), "unknown")
+                        + ' · Changed: ' + _escape_html(row.get("changed_at"), "unknown")
+                        + ' · Last event: ' + _escape_html(row.get("last_event_at"), "unknown")
+                        + ' · Rows: ' + _escape_html(row.get("rows"), "unknown")
+                        + ' · Omitted: ' + _escape_html(row.get("omitted"), "unknown") + '</small></article>')
+    parts.append(_keyed("".join(coverage) + '</div></details>', "coverage"))
+    tail = ['<div class="story-tail">']
     publication = snapshot.get("trace_publication")
     if isinstance(publication, Mapping):
-        parts.append('<p class="document-summary"><strong>Trace publication: '
-                     + _escape_html(publication.get("status"), "unknown") + '</strong> · '
-                     + _escape_html(publication.get("message"), "") + ' · Observed: '
-                     + _escape_html(publication.get("observed_at"), "unknown") + '</p>')
+        tail.append('<p class="document-summary"><strong>Trace publication: '
+                    + _escape_html(publication.get("status"), "unknown") + '</strong> · '
+                    + _escape_html(publication.get("message"), "") + ' · Observed: '
+                    + _escape_html(publication.get("observed_at"), "unknown") + '</p>')
     warnings = story.get("warnings")
     warnings = warnings if isinstance(warnings, (list, tuple)) else ([warnings] if warnings else [])
     for warning in warnings:
-        parts.append('<p class="document-error">' + _escape_html(warning) + '</p>')
+        tail.append('<p class="document-error">' + _escape_html(warning) + '</p>')
+    parts.append(_keyed("".join(tail) + '</div>', "story-tail"))
     parts.append('</section>')
     return "".join(parts)
 
@@ -928,14 +1009,14 @@ main{max-width:1120px;margin:auto;padding:38px 28px 64px}.masthead{display:flex;
 .toolbar{display:flex;gap:8px;margin-left:auto}.button{font:inherit;font-size:.78rem;font-weight:650;border:1px solid #cddbd1;background:#fff;color:#244c3d;border-radius:8px;padding:7px 11px;cursor:pointer}.button:hover:not(:disabled){background:var(--soft)}.button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #82b7da;outline-offset:2px}.button:disabled{cursor:default;color:#87958d;background:#f5f7f5}.noscript{margin:0 0 20px;padding:10px 14px;border-radius:9px;background:#fff7e6;color:#75541a;font-size:.83rem}
 .phase-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}.phase-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 18px}.phase-top{display:flex;justify-content:space-between;align-items:center}.phase-number{font-size:.7rem;letter-spacing:.13em;color:#8a9a91;font-weight:750}.phase-state{font-size:.73rem;color:var(--muted);font-weight:650}.phase-card h3{margin:7px 0 15px;font-size:1.05rem}.phase-current{border-color:#87b89c;box-shadow:inset 0 0 0 1px #b8dac4}.phase-done .phase-state{color:var(--green)}.phase-current .phase-state{color:var(--green)}.meter{height:5px;border-radius:99px;overflow:hidden;background:#e7ede8}.meter span{display:block;height:100%;background:var(--green);border-radius:inherit}
 .layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.85fr);gap:16px;align-items:start}.column{display:grid;gap:16px}.panel{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px 23px}.section-heading{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:17px}.section-heading h2{margin:0;font-size:1.2rem;letter-spacing:-.02em}.small-note{font-size:.76rem;color:var(--muted)}.focus-row{padding:14px 16px;border-left:3px solid var(--green);background:#f0f6f1;border-radius:0 9px 9px 0}.focus-label{display:block;margin-bottom:3px;font-weight:750;color:#205c46}.focus-row p{margin:0;color:#43574c}.narrative-list{margin-top:17px}.narrative-list h3{margin:0 0 7px;font-size:.79rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.narrative-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.narrative-list li{display:grid;grid-template-columns:minmax(115px,.55fr) minmax(0,1fr);gap:10px;padding-top:8px;border-top:1px solid #edf1ed;font-size:.82rem}.narrative-list strong{color:#365548}.narrative-list li span{color:var(--muted)}
-.empty-state,.muted{color:var(--muted)}.empty-state{margin:5px 0 0;font-size:.88rem}.work-list,.work-card,.work-heading,.work-heading>div,.work-plan,.dependencies{min-width:0;overflow-wrap:anywhere}.work-heading>.pill{max-width:100%;white-space:normal;overflow-wrap:anywhere}.work-list{display:grid;gap:10px}.work-card{border:1px solid #e4ebe6;border-radius:11px;padding:15px 16px}.work-heading{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.work-id{font-size:.7rem;color:var(--muted);font-weight:750;letter-spacing:.08em}.work-heading h3{margin:2px 0 0;font-size:.98rem;line-height:1.35}.pill{display:inline-flex;align-items:center;white-space:nowrap;border-radius:99px;padding:4px 9px;font-size:.68rem;font-weight:700;background:#edf1ee;color:#58665e}.pill-active{background:#e1f1e7;color:#216343}.pill-done,.pill-accepted{background:#e1f1e7;color:#216343}.pill-blocked{background:#f8e6e5;color:#953d42}.pill-pending,.pill-queued{background:#f2f0e9;color:#776738}.work-plan{margin:10px 0 0;color:#53635a;font-size:.83rem}.dependencies{margin:8px 0 0;font-size:.76rem;color:#596b61}.dependencies span{font-weight:700;color:#7a8981}
+.empty-state,.muted{color:var(--muted)}.empty-state{margin:5px 0 0;font-size:.88rem}.work-list,.work-card,.work-heading,.work-heading>div,.work-plan,.dependencies{min-width:0;overflow-wrap:anywhere}.work-heading>.pill{max-width:100%;white-space:normal;overflow-wrap:anywhere}.work-list{display:grid;gap:10px}.work-card{border:1px solid #e4ebe6;border-radius:11px;padding:15px 16px}.work-heading{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.work-id{font-size:.7rem;color:var(--muted);font-weight:750;letter-spacing:.08em}.work-heading h3{margin:2px 0 0;font-size:.98rem;line-height:1.35}.pill{display:inline-flex;align-items:center;white-space:nowrap;border-radius:99px;padding:4px 9px;font-size:.68rem;font-weight:700;background:#edf1ee;color:#58665e}.pill-active,.pill-current{background:#e1f1e7;color:#216343}.pill-done,.pill-accepted{background:#e1f1e7;color:#216343}.pill-blocked{background:#f8e6e5;color:#953d42}.pill-pending,.pill-queued{background:#f2f0e9;color:#776738}.work-plan{margin:10px 0 0;color:#53635a;font-size:.83rem}.dependencies{margin:8px 0 0;font-size:.76rem;color:#596b61}.dependencies span{font-weight:700;color:#7a8981}
 .document-list{display:grid;gap:9px}.document{border:1px solid #e1e9e3;border-radius:10px;overflow:hidden}.document summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px}.document summary::-webkit-details-marker{display:none}.document summary:after{content:"+";order:2;color:#72837a;font-size:1.15rem}.document[open] summary:after{content:"−"}.document-title{min-width:0;overflow-wrap:anywhere;font-weight:700;font-size:.86rem}.document-body{padding:0 14px 14px}.document-summary{margin:0 0 9px;color:#516259;font-size:.81rem}.file-path{overflow-wrap:anywhere;margin:7px 0;color:#78867f;font-size:.72rem}.file-path span{font-weight:750;color:#56685e}.file-link{font-size:.78rem;color:#236747;font-weight:700}.document-error{margin:8px 0;color:var(--rose);font-size:.8rem}.preview,.status-pre{margin:10px 0 0;padding:13px 14px;max-height:420px;overflow:auto;border-radius:8px;background:#f4f6f4;color:#34443b;white-space:pre-wrap;overflow-wrap:anywhere;font: .78rem/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}.preview{border:1px solid #e7ece8}
 .activity-list{list-style:none;margin:0;padding:0}.activity-list li{display:grid;grid-template-columns:10px minmax(0,1fr);gap:12px;position:relative;padding:0 0 18px}.activity-list li:last-child{padding-bottom:0}.activity-marker{width:8px;height:8px;margin-top:7px;border-radius:50%;background:#69a27e;box-shadow:0 0 0 3px #e7f1e9}.activity-content{min-width:0}.activity-meta{display:flex;justify-content:space-between;gap:8px;color:#315d48;font-weight:700;font-size:.77rem}.activity-meta time{font-weight:500;text-align:right;color:#87958d;font-size:.7rem}.activity-summary{margin:4px 0 0;color:#53635a;font-size:.81rem;overflow-wrap:anywhere}.activity-detail{margin:5px 0 0;color:#8a978f;font-size:.7rem}
 .status-details{padding:0}.status-details>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:17px 21px}.status-details>summary::-webkit-details-marker{display:none}.status-details>summary .eyebrow{margin-bottom:1px}.status-details strong{font-size:.91rem}.disclosure{color:var(--green);font-size:.77rem;font-weight:700}.status-pre{margin:0 20px 20px}.terminal-report{padding:17px 20px;border-radius:12px;background:#e8f1eb;color:#3b5a48;font-size:.84rem}.terminal-report a{color:#205b41;font-weight:750}
 .status-summary-copy{display:grid}
 .graph-intro,.graph-note{margin:0 0 12px;color:#596a61;font-size:.81rem}.graph-note{margin:11px 0 0}.graph-group{margin-top:17px;padding-top:16px;border-top:1px solid #e8eee9}.graph-group:first-of-type{margin-top:0;padding-top:0;border-top:0}.graph-group-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.graph-group-heading h3{margin:0;font-size:.96rem}.graph-viewport{max-width:100%;max-height:68vh;overflow:auto;border-radius:10px;outline-offset:3px}.dependency-svg{display:block;max-width:none;background:#f8faf8;border:1px solid #e4ebe6;border-radius:10px}.dependency-edge{fill:none;stroke:#5d806c;stroke-width:2;opacity:.9}.dependency-cycle-edge{stroke:#a23b43;stroke-dasharray:6 4}.graph-node rect{fill:#fff;stroke:#cbd9cf;stroke-width:1.5}.graph-node.status-done rect,.graph-node.status-accepted rect{fill:#edf7f0;stroke:#80ac8d}.graph-node.status-active rect,.graph-node.status-current rect{fill:#f0f6fb;stroke:#7c9db7}.graph-node.status-blocked rect{fill:#fff1ef;stroke:#bd7473}.graph-node-id{font-size:11px;font-weight:750;fill:#315d48}.graph-node-title{font-size:13px;font-weight:650;fill:#20372c}.graph-node-status{font-size:10px;fill:#718078}.graph-group,.graph-text,.graph-text>summary,.graph-text>ul,.graph-text>ul>li,.graph-plan,.graph-dependencies{min-width:0;overflow-wrap:anywhere}.graph-text{margin-top:11px;border:1px solid #e3eae4;border-radius:9px;padding:10px 13px}.graph-text>summary{cursor:pointer;color:#365c46;font-size:.8rem;font-weight:700}.graph-text>ul{margin:10px 0 0;padding-left:21px;display:grid;gap:9px}.graph-text>ul>li{padding-left:2px;color:#40564a;font-size:.8rem}.graph-text-meta{color:#75847b;font-size:.74rem}.graph-plan{margin:4px 0;color:#65756c;font-size:.76rem}.graph-dependencies{margin:5px 0 0;color:#53665b;font-size:.76rem}.graph-diagnostics{margin:11px 0 0;padding:10px 14px 10px 32px;border-radius:8px;background:#fff7e9;color:#785b25;font-size:.77rem}.graph-diagnostics li+li{margin-top:4px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.stop-reason{margin:17px 0 0;padding-top:13px;border-top:1px solid #ffffff32;color:#f1dfb7;font-size:.88rem}
-.story{margin:0 0 18px}.story h3{font-size:1rem;margin:24px 0 10px}.story p{overflow-wrap:anywhere}.story-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}.story-summary>div{border-left:3px solid var(--green);padding:10px 14px;background:#f2f7f3}.story dt{font-weight:750;color:#365548}.story dd{margin:3px 0 0;overflow-wrap:anywhere}.lifecycle{margin:0;display:grid;gap:7px}.lifecycle>div{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.story small{display:block;color:var(--muted);font-size:.75rem;overflow-wrap:anywhere}.visit-list{list-style:none;padding:0 0 0 15px;border-left:2px solid #bdd5c5}.visit-list>li{position:relative;margin:12px 0}.visit-list>li:before{content:"";position:absolute;left:-21px;top:17px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid white}.visit{border:1px solid var(--line);border-radius:9px}.visit>summary{flex-wrap:wrap;cursor:pointer;padding:12px;display:flex;justify-content:space-between;gap:12px;overflow-wrap:anywhere}.visit>summary small{flex-basis:100%}.visit-body{padding:0 14px 14px}.visit-body>ol{padding-left:22px}.story-event{border-top:1px solid var(--line);padding:12px 0}.story-event p{margin:5px 0}.evidence-links{margin:8px 0;font-size:.82rem;overflow-wrap:anywhere}.story a{color:#205b41}.story-search{font-size:.78rem;color:var(--muted)}.story-search input{display:block;max-width:100%;border:1px solid #cddbd1;border-radius:6px;padding:7px;font:inherit}.coverage{min-width:0;overflow-wrap:anywhere;display:grid;grid-template-columns:1fr 1fr;gap:10px}.coverage article,.observation{padding:12px;border:1px solid var(--line);border-radius:8px;min-width:0}.coverage article>strong,.coverage .file-path,.coverage .file-path code{white-space:normal;overflow-wrap:anywhere}.coverage p{font-size:.8rem}.story-searchable[hidden]{display:none!important}.story .document{margin-top:8px}.file-path code{user-select:all}.story :target,.document:target{outline:3px solid #82b7da;outline-offset:3px;scroll-margin-top:20px}
+.narrative-panel{margin:0 0 18px}.layout .narrative-panel{margin:0}.story{margin:0 0 18px}.story-fold{margin-top:16px;border:1px solid var(--line);border-radius:9px;padding:11px 14px}.story-fold>summary{cursor:pointer;font-weight:700;font-size:.9rem;color:#365548;overflow-wrap:anywhere}.story-fold>ol{padding-left:22px}.story-fold .coverage{margin-top:12px}.story code{font-size:.85em}.story h3{font-size:1rem;margin:24px 0 10px}.story p{overflow-wrap:anywhere}.story-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}.story-summary>div{border-left:3px solid var(--green);padding:10px 14px;background:#f2f7f3}.story dt{font-weight:750;color:#365548}.story dd{margin:3px 0 0;overflow-wrap:anywhere}.lifecycle{margin:0;display:grid;gap:7px}.lifecycle>div{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.story small{display:block;color:var(--muted);font-size:.75rem;overflow-wrap:anywhere}.visit-list{list-style:none;padding:0 0 0 15px;border-left:2px solid #bdd5c5}.visit-list>li{position:relative;margin:12px 0}.visit-list>li:before{content:"";position:absolute;left:-21px;top:17px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid white}.visit{border:1px solid var(--line);border-radius:9px}.visit>summary{flex-wrap:wrap;cursor:pointer;padding:12px;display:flex;justify-content:space-between;gap:12px;overflow-wrap:anywhere}.visit>summary small{flex-basis:100%}.visit-body{padding:0 14px 14px}.visit-body>ol{padding-left:22px}.story-event{border-top:1px solid var(--line);padding:12px 0}.story-event p{margin:5px 0}.evidence-links{margin:8px 0;font-size:.82rem;overflow-wrap:anywhere}.story a{color:#205b41}.story-search{font-size:.78rem;color:var(--muted)}.story-search input{display:block;max-width:100%;border:1px solid #cddbd1;border-radius:6px;padding:7px;font:inherit}.coverage{min-width:0;overflow-wrap:anywhere;display:grid;grid-template-columns:1fr 1fr;gap:10px}.coverage article,.observation{padding:12px;border:1px solid var(--line);border-radius:8px;min-width:0}.coverage article>strong,.coverage .file-path,.coverage .file-path code{white-space:normal;overflow-wrap:anywhere}.coverage p{font-size:.8rem}.story-searchable[hidden]{display:none!important}.story .document{margin-top:8px}.file-path code{user-select:all}.story :target,.document:target{outline:3px solid #82b7da;outline-offset:3px;scroll-margin-top:20px}
 @media(max-width:600px){.story-summary,.coverage{grid-template-columns:1fr}.lifecycle>div{grid-template-columns:1fr;gap:1px}.story .section-heading{flex-direction:column;align-items:stretch}.visit>summary{flex-wrap:wrap}}
 footer{margin-top:24px;text-align:center;color:#89968e;font-size:.72rem}
 @media(max-width:800px){main{padding:25px 18px 44px}.layout{grid-template-columns:1fr}.hero{padding:25px 23px}.phase-strip{gap:8px}.phase-card{padding:14px}.toolbar{margin-left:0}}
@@ -965,82 +1046,107 @@ _SCRIPT = r"""
     if (seconds < 86400) return Math.floor(seconds / 3600) + " hr ago";
     return Math.floor(seconds / 86400) + " days ago";
   };
-  const observed = root.dataset.observedAt || "";
-  const staleSetting = Number(root.dataset.staleAfterSeconds);
-  const staleAfter = Number.isFinite(staleSetting) ? Math.max(0, staleSetting) : 30;
-  const mode = root.dataset.mode || "snapshot";
-  const isFinal = root.dataset.final === "true";
-  const changed = root.dataset.sourceChangedAt || "";
-  const changedNode = byId("source-changed-age");
-  const activity = root.dataset.lastActivityAt || "";
-  const activityNode = byId("last-activity-age");
-  const openedNode = byId("page-opened");
+  // The page never reloads itself. A live update changes the attributes of <main> and swaps keyed blocks, so
+  // every setting is read from the element when it is needed, not once at load.
+  const setting = (name, fallback) => {
+    const value = Number(root.dataset[name]);
+    return Number.isFinite(value) ? value : fallback;
+  };
+  const mode = () => root.dataset.mode || "snapshot";
+  const isFinal = () => root.dataset.final === "true";
+  const autoAllowed = () => mode() === "watch" && !isFinal();
+  const openedAt = new Date().toLocaleString();
+  let observedAt = root.dataset.observedAt || "";
+  let paused = false;
+  const announce = (text) => {
+    const node = byId("refresh-state");
+    if (node) node.textContent = text;
+  };
   const updateFreshness = () => {
+    const staleAfter = Math.max(0, setting("staleAfterSeconds", 30));
+    const final = isFinal(), current = mode();
     const observerAge = byId("observer-age");
-    const observedDate = parseDate(observed);
+    const observedDate = parseDate(observedAt);
     if (observerAge) {
+      const prefix = final ? "Final snapshot age: " :
+        (current === "snapshot" ? "Snapshot age: " : "Observer data age: ");
       if (!observedDate) {
-        observerAge.textContent = (isFinal ? "Final snapshot age: " :
-          (mode === "snapshot" ? "Snapshot age: " : "Observer data age: ")) + "unavailable";
+        observerAge.textContent = prefix + "unavailable";
       } else {
         const seconds = Math.max(0, Math.floor((Date.now() - observedDate.getTime()) / 1000));
         const stale = seconds > staleAfter;
-        const prefix = isFinal ? "Final snapshot age: " :
-          (mode === "snapshot" ? "Snapshot age: " : "Observer data age: ");
-        const suffix = isFinal ? " · final snapshot" :
-          (mode === "snapshot" ? " · snapshot mode" : (stale ? " · stale" : " · current"));
-        observerAge.textContent = prefix + ageText(observed) + suffix;
-        observerAge.classList.toggle("freshness-stale", mode === "watch" && !isFinal && stale);
+        const suffix = final ? " · final snapshot" :
+          (current === "snapshot" ? " · snapshot mode" :
+            (paused ? " · updates paused" : (stale ? " · stale" : " · current")));
+        observerAge.textContent = prefix + ageText(observedAt) + suffix;
+        observerAge.classList.toggle("freshness-stale", current === "watch" && !final && !paused && stale);
       }
     }
+    const changed = root.dataset.sourceChangedAt || "";
+    const changedNode = byId("source-changed-age");
     if (changedNode) changedNode.textContent = changed
       ? "Source changed: " + changed + " (" + ageText(changed) + ")"
       : "Source change time: unavailable";
+    const activity = root.dataset.lastActivityAt || "";
+    const activityNode = byId("last-activity-age");
     if (activityNode) activityNode.textContent = activity
       ? "Latest run activity: " + activity + " (" + ageText(activity) + ")"
       : "Latest run activity: none";
-    if (openedNode && !openedNode.dataset.openedAt) {
-      openedNode.dataset.openedAt = new Date().toLocaleString();
-      openedNode.textContent = "Page opened: " + openedNode.dataset.openedAt;
+    const openedNode = byId("page-opened");
+    if (openedNode) openedNode.textContent = "Page opened: " + openedAt;
+  };
+  const updateControls = () => {
+    const toggle = byId("refresh-toggle");
+    if (!toggle) return;
+    if (!autoAllowed()) {
+      toggle.disabled = true;
+      toggle.textContent = isFinal() ? "Final snapshot · updates off" :
+        mode() === "stopped" ? "Observer stopped · updates off" : "Snapshot view · updates off";
+      toggle.setAttribute("aria-pressed", "true");
+    } else {
+      toggle.disabled = false;
+      toggle.textContent = paused ? "Resume updates" : "Pause updates";
+      toggle.setAttribute("aria-pressed", paused ? "true" : "false");
     }
   };
-  updateFreshness();
-  setInterval(updateFreshness, 1000);
 
-  // Served by `shiploop view --serve`, the page cannot open file: links; the viewer publishes the report beside it.
-  if (location.protocol === "http:" || location.protocol === "https:") {
-    document.querySelectorAll("a.offline-source").forEach((link) => {
-      const note = document.createElement("span");
-      note.className = "small-note";
-      note.textContent = "Local source: select the path above to open it on disk.";
-      link.replaceWith(note);
-    });
-    const report = document.querySelector("a.report-link");
-    if (report) report.setAttribute("href", "report.html");
-  }
+  const served = location.protocol === "http:" || location.protocol === "https:";
+  const within = (node, selector) =>
+    (node.matches(selector) ? [node] : []).concat(Array.from(node.querySelectorAll(selector)));
+  // Dress a block that just entered the page: served by `shiploop view --serve`, the page cannot open file:
+  // links, and the viewer publishes the report beside it; a replaced block reopens what the reader had open.
+  const dress = (node, state) => {
+    if (served) {
+      within(node, "a.offline-source").forEach((link) => {
+        const note = document.createElement("span");
+        note.className = "small-note";
+        note.textContent = "Local source: select the path above to open it on disk.";
+        link.replaceWith(note);
+      });
+      within(node, "a.report-link").forEach((link) => link.setAttribute("href", "report.html"));
+    }
+    if (state && state.details && typeof state.details === "object" && !Array.isArray(state.details)) {
+      within(node, "details[data-state-key]").forEach((item) => {
+        const key = item.dataset.stateKey;
+        if (Object.prototype.hasOwnProperty.call(state.details, key)) item.open = !!state.details[key];
+      });
+    }
+  };
 
-  const interval = Math.max(1, Number(root.dataset.refreshSeconds) || 5);
-  const toggle = byId("refresh-toggle");
-  const manual = byId("refresh-now");
-  const announce = byId("refresh-state");
-  const autoAllowed = mode === "watch" && !isFinal;
-  let paused = false;
-  let timer = null;
-  const search = byId("story-search");
   const filterStory = () => {
+    const search = byId("story-search");
     const query = search ? search.value.toLocaleLowerCase() : "";
     document.querySelectorAll(".story-searchable").forEach((node) => {
       node.hidden = !!query && !node.textContent.toLocaleLowerCase().includes(query);
     });
   };
-  if (search) search.addEventListener("input", filterStory);
-  let restoredAnchor = null;
   const stateKey = "shiploop-progress-view:" + location.pathname;
   const viewState = () => {
     const details = {};
     document.querySelectorAll("details[data-state-key]").forEach((node) => {
       details[node.dataset.stateKey] = !!node.open;
     });
+    const search = byId("story-search");
     return {
       scrollY: Math.max(0, window.scrollY || 0),
       details: details,
@@ -1049,54 +1155,27 @@ _SCRIPT = r"""
       paused: paused
     };
   };
+  // Kept for the reader's own browser reload; storage may be refused, and the page still works without it.
   const saveViewState = () => {
-    const state = viewState();
-    try {
-      sessionStorage.setItem(stateKey, JSON.stringify(state));
-      return;
-    } catch (_) {}
-    try {
-      location.hash = "shiploop-view=" + encodeURIComponent(JSON.stringify(state));
-    } catch (_) {}
+    try { sessionStorage.setItem(stateKey, JSON.stringify(viewState())); } catch (_) {}
   };
-  const readFragmentState = () => {
-    const match = location.hash.match(/^#shiploop-view=([^&]*)$/);
-    if (!match) return null;
-    try {
-      return JSON.parse(decodeURIComponent(match[1]));
-    } catch (_) {
-      return null;
-    }
-  };
+  let restoredAnchor = null;
   const restoreViewState = () => {
     let state = null;
     try {
       const saved = sessionStorage.getItem(stateKey);
       if (saved) state = JSON.parse(saved);
     } catch (_) {}
-    if (!state) state = readFragmentState();
     if (!state || typeof state !== "object") return;
     if (typeof state.anchor === "string") restoredAnchor = state.anchor;
-    if (autoAllowed && typeof state.paused === "boolean") paused = state.paused;
-    if (state.details && typeof state.details === "object" && !Array.isArray(state.details)) {
-      document.querySelectorAll("details[data-state-key]").forEach((node) => {
-        const key = node.dataset.stateKey;
-        if (Object.prototype.hasOwnProperty.call(state.details, key)) {
-          node.open = !!state.details[key];
-        }
-      });
-    }
+    if (autoAllowed() && typeof state.paused === "boolean") paused = state.paused;
+    dress(root, state);
+    const search = byId("story-search");
     if (search && typeof state.query === "string") search.value = state.query;
     filterStory();
     const scrollY = Number(state.scrollY);
-    if (Number.isFinite(scrollY) && scrollY > 0) {
-      requestAnimationFrame(() => window.scrollTo(0, scrollY));
-    }
-  };
-  const focusedControl = () => {
-    const active = document.activeElement;
-    return !!(active && active !== document.body &&
-      active.matches("input, textarea, select, [contenteditable=true]"));
+    // Set before the first paint and without the page's smooth scrolling, so nothing visibly moves.
+    if (Number.isFinite(scrollY) && scrollY > 0) window.scrollTo({top: scrollY, left: 0, behavior: "instant"});
   };
   const hasSelection = () => {
     try {
@@ -1106,54 +1185,138 @@ _SCRIPT = r"""
       return false;
     }
   };
-  const reloadPage = () => {
-    saveViewState();
-    location.reload();
+
+  // ---- live updates: a background check, then an in-place swap of the blocks that changed
+  // The first keyed block on screen keeps its place even when blocks above it change height.
+  const scrollAnchor = () => {
+    for (const node of root.querySelectorAll("[data-key]:not([data-list])")) {
+      const box = node.getBoundingClientRect();
+      if (box.height && box.bottom > 0) return {key: node.dataset.key, top: box.top, y: window.scrollY};
+    }
+    return {key: null, top: 0, y: window.scrollY};
+  };
+  const restoreAnchor = (anchor) => {
+    let node = null;
+    if (anchor.key !== null) {
+      for (const candidate of root.querySelectorAll("[data-key]:not([data-list])")) {
+        if (candidate.dataset.key === anchor.key) { node = candidate; break; }
+      }
+    }
+    const top = node && node.getBoundingClientRect().height
+      ? window.scrollY + node.getBoundingClientRect().top - anchor.top : anchor.y;
+    if (Math.abs(top - window.scrollY) >= 1) window.scrollTo({top: top, left: window.scrollX, behavior: "instant"});
+  };
+  // Children of a keyed list are matched by key. A child with the same digest keeps its node; a changed or new
+  // child is imported from the fresh copy; a child the fresh copy no longer has is removed.
+  const reconcile = (live, fresh, changed) => {
+    const old = new Map();
+    for (const node of Array.from(live.children)) {
+      if (node.dataset.key !== undefined) old.set(node.dataset.key, node);
+    }
+    let previous = null;
+    for (const next of Array.from(fresh.children)) {
+      const key = next.dataset.key;
+      if (key === undefined) continue;
+      let node = old.get(key);
+      old.delete(key);
+      if (node && node.hasAttribute("data-list") && next.hasAttribute("data-list")) {
+        reconcile(node, next, changed);
+      } else if (!node || node.dataset.rev !== next.dataset.rev) {
+        const made = document.importNode(next, true);
+        if (node) node.replaceWith(made);
+        node = made;
+        changed.push(made);
+      }
+      const expected = previous ? previous.nextElementSibling : live.firstElementChild;
+      if (node !== expected) live.insertBefore(node, expected);
+      previous = node;
+    }
+    for (const node of old.values()) node.remove();
+  };
+  const apply = (content) => {
+    const parsed = new DOMParser().parseFromString("<!doctype html><body>" + content.main, "text/html");
+    const fresh = parsed.querySelector("[data-progress-view]");
+    if (!fresh) return;
+    const state = viewState();
+    const anchor = scrollAnchor();
+    const changed = [];
+    for (const name of fresh.getAttributeNames()) {
+      if (name.startsWith("data-")) root.setAttribute(name, fresh.getAttribute(name));
+    }
+    reconcile(root, fresh, changed);
+    if (typeof content.title === "string" && content.title) document.title = content.title;
+    observedAt = root.dataset.observedAt || observedAt;
+    for (const node of changed) dress(node, state);
+    filterStory();
+    updateControls();
+    updateFreshness();
+    restoreAnchor(anchor);
+    announce("Page updated in place: " + changed.length + " section" + (changed.length === 1 ? "" : "s") + " changed.");
+  };
+
+  let tick = 0, timer = null, loading = false, pending = null, forced = false;
+  // A file: page cannot fetch, so the check is a sibling script the observer rewrites: it calls back with the
+  // current version. A missing file (no observer yet, or an older run) fails quietly and is tried again.
+  const load = (name, done) => {
+    const node = document.createElement("script");
+    const finish = () => { node.remove(); if (done) done(); };
+    node.onload = finish;
+    node.onerror = finish;
+    node.src = name + "?t=" + (++tick);
+    document.head.appendChild(node);
+  };
+  const applyPending = () => {
+    if (!pending || (paused && !forced)) return;
+    if (hasSelection() && !forced) {
+      announce("An update is waiting while text is selected.");
+      return;
+    }
+    const content = pending;
+    pending = null;
+    forced = false;
+    apply(content);
+    schedule();
+  };
+  window.__shiploopVersion = (info) => {
+    if (!info || typeof info !== "object" || (paused && !forced)) return;
+    const version = typeof info.progress === "string" ? info.progress : "";
+    if (version && version !== root.dataset.version) {
+      if (!loading) {
+        loading = true;
+        load("progress-content.js", () => { loading = false; });
+      }
+      return;
+    }
+    // Same content: only the observer's clock moved, so only the age line changes.
+    forced = false;
+    if (version && typeof info.observed_at === "string" && parseDate(info.observed_at)) {
+      observedAt = info.observed_at;
+      updateFreshness();
+    }
+  };
+  window.__shiploopProgress = (content) => {
+    if (!content || typeof content !== "object" || typeof content.main !== "string") return;
+    pending = content;
+    applyPending();
+  };
+  const check = (manual) => {
+    if (manual) forced = true;
+    if (pending) applyPending();
+    if (!pending) load("progress-version.js");
   };
   const schedule = () => {
     if (timer) clearTimeout(timer);
-    if (!autoAllowed || paused) return;
-    timer = setTimeout(() => {
-      if (hasSelection() || focusedControl()) {
-        if (announce) announce.textContent = "Auto-refresh skipped while text or a reading control is active.";
-        schedule();
-        return;
-      }
-      reloadPage();
-    }, interval * 1000);
+    timer = null;
+    if (!autoAllowed() || paused) return;
+    timer = setTimeout(() => { check(false); schedule(); }, Math.max(1, setting("refreshSeconds", 5)) * 1000);
   };
-  if (toggle) {
-    if (!autoAllowed) {
-      toggle.disabled = true;
-      toggle.textContent = isFinal ? "Final snapshot · updates off" :
-        mode === "stopped" ? "Observer stopped · updates off" : "Snapshot view · updates off";
-      toggle.setAttribute("aria-pressed", "true");
-    } else {
-      toggle.textContent = "Pause updates";
-      toggle.setAttribute("aria-pressed", "false");
-      toggle.addEventListener("click", () => {
-        paused = !paused;
-        toggle.textContent = paused ? "Resume updates" : "Pause updates";
-        toggle.setAttribute("aria-pressed", paused ? "true" : "false");
-        if (announce) announce.textContent = paused
-          ? "Automatic updates paused."
-          : "Automatic updates resume every " + interval + " seconds.";
-        schedule();
-      });
-    }
-  }
-  if (manual) manual.addEventListener("click", reloadPage);
-  restoreViewState();
-  if (toggle && autoAllowed) {
-    toggle.textContent = paused ? "Resume updates" : "Pause updates";
-    toggle.setAttribute("aria-pressed", paused ? "true" : "false");
-  }
+
   // Fragments are stable evidence identities, never filesystem routes. Reveal all ancestors
   // after restoring stored disclosure state (which may otherwise close the target).
   const revealAnchor = (scroll = true) => {
     let id;
     try { id = decodeURIComponent(location.hash.slice(1)); } catch (_) { return; }
-    const target = byId(id);
+    const target = id ? byId(id) : null;
     if (!target) return;
     for (let node = target; node && node !== root; node = node.parentElement) {
       if (node.tagName === "DETAILS") node.open = true;
@@ -1161,20 +1324,51 @@ _SCRIPT = r"""
     }
     if (scroll) requestAnimationFrame(() => target.scrollIntoView({block: "start"}));
   };
-  window.addEventListener("hashchange", revealAnchor);
+  // Blocks are replaced during a live update, so controls are handled here and not on the nodes themselves.
   document.addEventListener("click", (event) => {
-    const link = event.target.closest("a[href^='#']");
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    if (target.closest("#refresh-toggle")) {
+      if (!autoAllowed()) return;
+      paused = !paused;
+      updateControls();
+      updateFreshness();
+      announce(paused ? "Updates paused."
+        : "Updates resumed: checked every " + Math.max(1, setting("refreshSeconds", 5)) + " seconds, changed in place.");
+      if (!paused) check(false);
+      schedule();
+      return;
+    }
+    if (target.closest("#refresh-now")) {
+      check(true);
+      return;
+    }
+    const link = target.closest("a[href^='#']");
     if (link && link.hash === location.hash) revealAnchor();
   });
+  document.addEventListener("input", (event) => {
+    if (event.target && event.target.id === "story-search") filterStory();
+  });
+  window.addEventListener("hashchange", () => revealAnchor());
+  window.addEventListener("pagehide", saveViewState);
+
+  dress(root, null);
+  restoreViewState();
+  updateControls();
+  updateFreshness();
+  setInterval(updateFreshness, 1000);
   revealAnchor(restoredAnchor !== location.hash);
+  if (autoAllowed() && !paused) check(false);
   schedule();
 })();
 </script>
 """
 
 
-def render(snapshot: Mapping[str, Any]) -> str:
-    """Return a self-contained HTML progress view for a ShipLoop snapshot."""
+def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
+    """The browser title and the page's ``<main>`` element for a snapshot. ``<main>`` is a keyed list: each direct
+    child is a keyed block or a keyed list, which is what lets an open page take a live update block by block.
+    """
     run = snapshot.get("run")
     run = run if isinstance(run, Mapping) else {}
     observer = snapshot.get("observer")
@@ -1184,7 +1378,7 @@ def render(snapshot: Mapping[str, Any]) -> str:
     mode = _value(observer.get("mode"), "snapshot").lower()
     if mode not in ("watch", "snapshot", "stopped"):
         mode = "snapshot"
-    # Engine termination precedes observer reconciliation; explicit finality owns refresh.
+    # Engine termination precedes observer reconciliation; explicit finality owns live updates.
     final = (bool(observer["final"]) if "final" in observer else
              _value(run.get("status")).lower() in ("done", "halted"))
     observed_at = _value(snapshot.get("observed_at"))
@@ -1218,76 +1412,94 @@ def render(snapshot: Mapping[str, Any]) -> str:
                        "Snapshot age:" if mode == "snapshot" else "Observer data age:")
 
     parts = [
-        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
-        'style-src \'unsafe-inline\'; script-src \'unsafe-inline\'; img-src \'none\'; '
-        'connect-src \'none\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">'
-        '<meta name="color-scheme" content="light"><title>ShipLoop progress · ' + _escape_html(browser_title) + '</title>',
-        _STYLE,
-        '</head><body><main data-progress-view data-mode="' + _escape_html(mode)
+        '<main data-progress-view data-list data-version="' + _escape_html(observer.get("version"))
+        + '" data-mode="' + _escape_html(mode)
         + '" data-final="' + ("true" if final else "false")
         + '" data-refresh-seconds="' + str(refresh_seconds)
         + '" data-stale-after-seconds="' + str(stale_after_seconds)
         + '" data-observed-at="' + _escape_html(observed_at)
         + '" data-source-changed-at="' + _escape_html(source_changed_at)
         + '" data-last-activity-at="' + _escape_html(latest_activity) + '">',
-        '<div class="masthead"><div class="brand">SHIPLOOP / RUN VIEW</div>'
-        '<div class="schema">' + _escape_html(snapshot.get("schema"), "Progress snapshot") + '</div></div>',
-        '<header class="hero"><div class="hero-top"><div><p class="eyebrow">'
-        + ('REQUEST EXCERPT' if original_request else 'RECORDED GOAL') + '</p>'
-        '<h1>' + _escape_html(heading) + '</h1></div><span class="status-badge status-' + status_class
-        + '">' + _escape_html(status) + '</span></div><p class="prompt">Run details and accepted progress, from the saved snapshot.</p>'
-        '<div class="hero-meta"><span>Run <b>' + _escape_html(run.get("id"), "Unknown") + '</b></span>'
-        '<span>Revision <b>' + _escape_html(run.get("revision"), "Unknown") + '</b></span>'
-        '<span>Stage <b>' + _escape_html(stage) + '</b></span>'
-        + ('<span>Owner <b>' + _escape_html(owner) + '</b></span>' if owner else '')
-        + '</div><details class="request-preview" id="original-request" data-state-key="original-request">'
-        '<summary>Full original request</summary><p class="small-note">Source: saved run prompt (run.prompt); '
-        'missing requests are labeled below. The heading is a display excerpt.</p><pre class="preview" tabindex="0">'
-        + _escape_html(original_request or "Original request not included in this snapshot.") + '</pre></details>'
-        + ('<details class="request-preview" id="recorded-blocker" data-state-key="recorded-blocker">'
-           '<summary>Recorded blocker · ' + _escape_html(_excerpt(reason, 140)) + '</summary>'
-           '<p class="small-note">Source: ' + _escape_html(reason_source) + '. '
-           'This describes the recorded engine/stop condition; independent lifecycle assertions retain their own producer and scope.</p>'
-           '<pre class="preview" tabindex="0">' + _escape_html(reason) + '</pre></details>' if reason else '')
-        + '</header>',
-        '<section class="observer" aria-label="Snapshot freshness and refresh controls">'
-        '<strong id="observer-age">' + _escape_html(freshness_label) + ' calculating…</strong>'
-        '<span id="source-changed-age">Source change time: calculating…</span>'
-        '<span id="last-activity-age">Latest run activity: calculating…</span>'
-        '<span>Content generated: ' + _escape_html(generated_at) + '</span>'
-        '<span id="page-opened">Page opened: calculating…</span>'
-        '<div class="toolbar"><button class="button" id="refresh-toggle" type="button"'
-        + refresh_button_disabled + '>' + _escape_html(refresh_button_label) + '</button>'
-        + '<button class="button" id="refresh-now" type="button">Refresh now</button></div>'
-        '<span id="refresh-state" class="sr-only" aria-live="polite"></span>'
-        + ('<span class="observer-error">Observer error: ' + _escape_html(observer.get("error")) + '</span>'
-           if observer.get("error") else '')
-        + ''.join('<span class="observer-error">Publication ' + _escape_html(key) + ': '
-                  + _escape_html(value) + '</span>' for key, value in observer.items()
-                  if key != "error" and ("error" in key or key == "publication") and value) + '</section>',
-        '<noscript><p class="noscript">This saved snapshot is readable without JavaScript. Browser refresh controls need JavaScript.</p></noscript>',
+        _keyed('<div class="masthead"><div class="brand">SHIPLOOP / RUN VIEW</div>'
+               '<div class="schema">' + _escape_html(snapshot.get("schema"), "Progress snapshot") + '</div></div>',
+               "masthead"),
+        _keyed('<header class="hero"><div class="hero-top"><div><p class="eyebrow">'
+               + ('REQUEST EXCERPT' if original_request else 'RECORDED GOAL') + '</p>'
+               '<h1>' + _escape_html(heading) + '</h1></div><span class="status-badge status-' + status_class
+               + '">' + _escape_html(status) + '</span></div><p class="prompt">Run details and accepted progress, from the saved snapshot.</p>'
+               '<div class="hero-meta"><span>Run <b>' + _escape_html(run.get("id"), "Unknown") + '</b></span>'
+               '<span>Revision <b>' + _escape_html(run.get("revision"), "Unknown") + '</b></span>'
+               '<span>Stage <b>' + _escape_html(stage) + '</b></span>'
+               + ('<span>Owner <b>' + _escape_html(owner) + '</b></span>' if owner else '')
+               + '</div><details class="request-preview" id="original-request" data-state-key="original-request">'
+               '<summary>Full original request</summary><p class="small-note">Source: saved run prompt (run.prompt); '
+               'missing requests are labeled below. The heading is a display excerpt.</p><pre class="preview" tabindex="0">'
+               + _escape_html(original_request or "Original request not included in this snapshot.") + '</pre></details>'
+               + ('<details class="request-preview" id="recorded-blocker" data-state-key="recorded-blocker">'
+                  '<summary>Recorded blocker · ' + _escape_html(_excerpt(reason, 140)) + '</summary>'
+                  '<p class="small-note">Source: ' + _escape_html(reason_source) + '. '
+                  'This describes the recorded engine/stop condition; independent lifecycle assertions retain their own producer and scope.</p>'
+                  '<pre class="preview" tabindex="0">' + _escape_html(reason) + '</pre></details>' if reason else '')
+               + '</header>', "hero"),
+        _keyed('<section class="observer" aria-label="Snapshot freshness and update controls">'
+               '<strong id="observer-age">' + _escape_html(freshness_label) + ' calculating…</strong>'
+               '<span id="source-changed-age">Source change time: calculating…</span>'
+               '<span id="last-activity-age">Latest run activity: calculating…</span>'
+               '<span>Content generated: ' + _escape_html(generated_at) + '</span>'
+               '<span id="page-opened">Page opened: calculating…</span>'
+               '<div class="toolbar"><button class="button" id="refresh-toggle" type="button"'
+               + refresh_button_disabled + '>' + _escape_html(refresh_button_label) + '</button>'
+               + '<button class="button" id="refresh-now" type="button">Check now</button></div>'
+               '<span id="refresh-state" class="sr-only" aria-live="polite"></span>'
+               + ('<span class="observer-error">Observer error: ' + _escape_html(observer.get("error")) + '</span>'
+                  if observer.get("error") else '')
+               + ''.join('<span class="observer-error">Publication ' + _escape_html(key) + ': '
+                         + _escape_html(value) + '</span>' for key, value in observer.items()
+                         if key != "error" and ("error" in key or key == "publication") and value) + '</section>',
+               "observer"),
+        _keyed('<noscript><p class="noscript">This saved snapshot is readable without JavaScript. Updates in place need JavaScript.</p></noscript>',
+               "noscript"),
+        # Where the run stands comes first; the visit journal, however long, follows it.
+        _keyed('<section class="phase-strip" aria-label="Run phases">'
+               + "".join(_phase_card(row, index, bool(snapshot.get("plan_accepted")))
+                         for index, row in enumerate(_phase_rows(facts))) + '</section>', "phases"),
+        _keyed(_narrative(snapshot, facts), "narrative"),
         _story(snapshot),
-        '<section class="phase-strip" aria-label="Run phases">'
-        + "".join(_phase_card(row, index, bool(snapshot.get("plan_accepted")))
-                  for index, row in enumerate(_phase_rows(facts))) + '</section>',
-        '<div class="layout"><div class="column">' + _narrative(snapshot, facts)
-        + _dependency_graphs(snapshot) + _work_items(snapshot)
-        + _documents(snapshot) + _status_details(snapshot)
-        + ('<section class="terminal-report"><strong>Terminal report</strong> · '
-           '<a class="report-link" href="' + _escape_html(terminal_uri) + '">Open the saved report</a></section>'
-           if terminal_uri else '')
-        + '</div><aside class="column">' + activity_html
-        + ('<section class="panel warnings"><div class="section-heading"><div><p class="eyebrow">ATTENTION</p>'
-           '<h2>Warnings</h2></div></div><ul>'
-           + "".join('<li>' + _escape_html(item) + '</li>' for item in warnings
-                     if item is not None)
-           + '</ul></section>' if warnings else '')
+        _keyed_list('<div class="layout">', "layout") + _keyed_list('<div class="column">', "column-main")
+        + _keyed(_dependency_graphs(snapshot), "graphs") + _keyed(_work_items(snapshot), "work-items")
+        + _keyed(_documents(snapshot), "documents") + _keyed(_status_details(snapshot), "status-details")
+        + (_keyed('<section class="terminal-report"><strong>Terminal report</strong> · '
+                  '<a class="report-link" href="' + _escape_html(terminal_uri) + '">Open the saved report</a></section>',
+                  "terminal-report") if terminal_uri else '')
+        + '</div>' + _keyed_list('<aside class="column">', "column-side") + _keyed(activity_html, "activity")
+        + (_keyed('<section class="panel warnings"><div class="section-heading"><div><p class="eyebrow">ATTENTION</p>'
+                  '<h2>Warnings</h2></div></div><ul>'
+                  + "".join('<li>' + _escape_html(item) + '</li>' for item in warnings
+                            if item is not None)
+                  + '</ul></section>', "warnings") if warnings else '')
         + '</aside></div>',
-        '<footer>Generated from a saved progress snapshot. Run activity and observer freshness are shown separately.</footer>',
+        _keyed('<footer>Generated from a saved progress snapshot. Run activity and observer freshness are shown separately.</footer>',
+               "footer"),
         '</main>',
-        _SCRIPT,
-        '</body></html>',
     ]
-    return "".join(parts)
+    return 'ShipLoop progress · ' + browser_title, "".join(parts)
+
+
+def page(title: str, main: str) -> str:
+    """The self-contained page around a ``<main>`` element from ``render_main``."""
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        # 'self' admits only the sibling version and content scripts the observer writes beside the page; a file:
+        # page cannot fetch, so those scripts are how an open page learns of a change without reloading.
+        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
+        'style-src \'unsafe-inline\'; script-src \'unsafe-inline\' \'self\'; img-src \'none\'; '
+        'connect-src \'none\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">'
+        '<meta name="color-scheme" content="light"><title>' + _escape_html(title) + '</title>'
+        + _STYLE + '</head><body>' + main + _SCRIPT + '</body></html>'
+    )
+
+
+def render(snapshot: Mapping[str, Any]) -> str:
+    """Return a self-contained HTML progress view for a ShipLoop snapshot."""
+    return page(*render_main(snapshot))

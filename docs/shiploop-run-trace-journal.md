@@ -48,7 +48,9 @@ for engine verb calls and left the writer as an owner decision. This request is 
 - **Page = `RUN/trace.html`**, one template (`shiploop_trace_page.html`) with the model inlined; the packet texts are
   screened line by line with the progress view's credential screen. The progress observer rewrites it when the trace,
   `state.md` or `skill-calls.jsonl` change; an active run's page reloads every 10 s, held while a packet is open or a
-  search is typed, and a checkbox turns it off.
+  search is typed, and a checkbox turns it off. (Superseded 2026-11-19: the page no longer reloads. It checks
+  `progress-version.js` every 5 s and redraws in place from `trace-content.js`; see
+  [the viewer journal](shiploop-progress-viewer-journal-2026-10-29.md), D8 to D10.)
 - **Old runs still read** from `state.md` and `timeline.json`, and say so.
 
 Rejected: extending `progress.html` (bounded, privacy-checked document previews and 967 lines of Python HTML; the

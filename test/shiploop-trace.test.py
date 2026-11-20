@@ -13,6 +13,8 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -380,6 +382,7 @@ class TraceReaderTests(CliRun):
         path.write_text(path.read_text(encoding="utf-8") + "api_key=sk-live-abcdefghijklmnop1234567890\n", encoding="utf-8")
         printed = self.ok("trace", "--run-dir", str(self.run), "--html").stdout.strip()
         self.assertEqual(printed, str(self.run / trace.PAGE))
+        self.assertFalse((self.run / trace.CONTENT).exists())             # --html writes the page alone
         page = (self.run / trace.PAGE).read_text(encoding="utf-8")
         self.assertNotIn(trace_page.DATA_MARK, page)
         self.assertNotIn("sk-live-abcdefghijklmnop", page)
@@ -820,6 +823,410 @@ class SafeTraceObservationTests(unittest.TestCase):
         accepted = [row for row in model["story"]["events"] if row["kind"] == "accepted"]
         self.assertEqual({row["id"] for row in accepted}, {"accepted:" + action for action in actions})
         self.assertIsNone(next(row for row in accepted if row["action"] == actions[2])["at"])
+
+
+class LiveRun(unittest.TestCase):
+    """A run folder with a state and no trace: enough for the model, the page and its update file."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="trace-live-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.repo = self.root / "repo"
+        self.repo.mkdir()
+        (self.root / ".lock").touch()
+        self.state = navigator.new_state(str(self.repo), "Live trace goal", improve_skill="")
+        (self.root / "state.md").write_text(store.dumps(self.state))
+
+    def watched(self, **extra) -> dict:
+        """The model as the observer publishes it: a watching observer and the key of its displayed content."""
+        model = trace.build(self.root)
+        model["observer"] = {"mode": "watch", "final": False, "error": ""}
+        model["version"] = "key-one"
+        model.update(extra)
+        return model
+
+
+class TraceLiveFilesTests(LiveRun):
+    """The observer writes the page and trace-content.js from one payload; the open page loads the latter."""
+
+    CALL = "window.__shiploopTrace&&window.__shiploopTrace("
+
+    @staticmethod
+    def inlined(page: str) -> str:
+        start = page.index("const TRACE = ") + len("const TRACE = ")
+        return page[start:page.index(";\n", start)]
+
+    def test_write_live_writes_the_page_and_its_update_file_from_one_payload(self) -> None:
+        model = self.watched()
+        order: list[str] = []
+        real_write = store.atomic_write_text
+        def recording(path, text):
+            order.append(Path(path).name)
+            return real_write(path, text)
+        with mock.patch.object(store, "atomic_write_text", side_effect=recording), \
+                mock.patch.object(trace, "page_payload", wraps=trace.page_payload) as payload:
+            self.assertIsNone(trace.write_live(self.root, model=model, texts={}))
+        self.assertEqual(payload.call_count, 1)                           # one payload feeds both files
+        self.assertEqual(order, [trace.CONTENT, trace.PAGE])              # the content is there before the page changes
+        content = (self.root / trace.CONTENT).read_text(encoding="utf-8")
+        self.assertTrue(content.startswith(self.CALL))
+        self.assertTrue(content.endswith(");\n"))
+        self.assertEqual(content.count("\n"), 1)                          # one statement on one line
+        body = content[len(self.CALL):-len(");\n")]
+        inlined = self.inlined((self.root / trace.PAGE).read_text(encoding="utf-8"))
+        self.assertEqual(body, inlined)
+        self.assertEqual(json.loads(body), json.loads(inlined))
+        self.assertEqual(json.loads(body)["version"], "key-one")
+        self.assertEqual(json.loads(body)["run"]["goal"], "Live trace goal")
+        self.assertNotIn("<", body)                                       # "</script>" in a prompt cannot end the file
+        self.assertEqual(trace.CONTENT, "trace-content.js")
+
+    def test_write_live_screens_the_content_file_like_the_page(self) -> None:
+        secret = "api_key=abcdefghijk1234567890"
+        self.state["prompt"] = secret
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        trace.write_live(self.root, model=self.watched(), texts={"packets/a.md": "token: " + secret})
+        for name in (trace.CONTENT, trace.PAGE):
+            self.assertNotIn(secret, (self.root / name).read_text(encoding="utf-8"), name)
+
+    def test_write_html_still_writes_only_the_page(self) -> None:
+        trace.write_html(self.root, model=self.watched(), texts={})
+        self.assertTrue((self.root / trace.PAGE).is_file())
+        self.assertFalse((self.root / trace.CONTENT).exists())
+        self.assertEqual(json.loads(self.inlined((self.root / trace.PAGE).read_text(encoding="utf-8")))["version"], "key-one")
+
+    def test_the_source_key_does_not_depend_on_the_version_it_names(self) -> None:
+        model = self.watched()
+        plain = {key: value for key, value in model.items() if key != "version"}
+        self.assertEqual(trace.source_key(self.root, model=model, texts={}), trace.source_key(self.root, model=plain, texts={}))
+        self.assertEqual(trace.source_key(self.root, model=model, texts={}),
+                         trace.source_key(self.root, model={**model, "version": "key-two"}, texts={}))
+        changed = {**model, "run": {**model["run"], "goal": "Another goal"}}
+        self.assertNotEqual(trace.source_key(self.root, model=model, texts={}), trace.source_key(self.root, model=changed, texts={}))
+
+
+def script_of(page: str) -> str:
+    start = page.rindex("<script>\n") + len("<script>\n")
+    return page[start:page.index("\n</script>", start)]
+
+
+class TraceLivePageTests(LiveRun):
+    """The page checks for new content in the background and re-renders in place; it never reloads."""
+
+    def test_the_page_has_no_reload_and_its_policy_allows_its_own_scripts(self) -> None:
+        page = trace_page.PAGE
+        self.assertNotIn("location.reload", page)
+        self.assertNotIn(".reload(", page)
+        self.assertNotIn("location.href", page)
+        self.assertNotIn("reload every 10 s", page)
+        self.assertIn("live updates (checks every 5 s, no reload)", page)
+        policy = re.search(r'http-equiv="Content-Security-Policy" content="([^"]*)"', page).group(1)
+        directives = {part.split()[0]: part.split()[1:] for part in policy.split(";") if part.strip()}
+        self.assertEqual(directives["script-src"], ["'unsafe-inline'", "'self'"])
+        self.assertEqual(directives["connect-src"], ["'none'"])
+        self.assertEqual(directives["default-src"], ["'none'"])
+        self.assertEqual(directives["img-src"], ["'none'"])
+        # One Escape listener for the page's life, registered outside the function that renders a model.
+        self.assertEqual(page.count('document.addEventListener("keydown"'), 1)
+        self.assertLess(page.index('document.addEventListener("keydown"'), page.index("function bootTrace(TRACE) {"))
+        self.assertIn('"observer-read"', page)                             # the clock the version call updates in place
+
+    def test_the_model_marker_and_data_extraction_points_are_unchanged(self) -> None:
+        page = trace_page.PAGE
+        self.assertEqual(page.count("const TRACE = " + trace_page.DATA_MARK + ";\n"), 1)
+        self.assertEqual(page.count(trace_page.DATA_MARK), 1)
+
+
+@unittest.skipUnless(shutil.which("node"), "Node required for the page-script probes")
+class TraceLiveNodeProbeTests(LiveRun):
+    """The page script run under node with small stand-ins for the browser."""
+
+    CONTROLLER = r"""
+const assert = require('assert');
+const timers = [];
+const setTimeout = (fn, ms) => { const t = {fn, ms, cancelled: false, fired: false}; timers.push(t); return t; };
+const clearTimeout = (t) => { if (t) t.cancelled = true; };
+const heads = [];
+const viewer = {open: false, classList: {contains: (name) => name === 'open' && viewer.open}};
+const observer = {textContent: 'unset'};
+const selection = {isCollapsed: true, toString: () => ''};
+const window = {scrollY: 0, scrolled: [], scrollTo(x, y) { this.scrolled.push([x, y]); this.scrollY = y; }, getSelection: () => selection};
+const document = {
+  activeElement: null, listeners: {},
+  addEventListener(kind, fn) { (this.listeners[kind] = this.listeners[kind] || []).push(fn); },
+  getElementById: (id) => ({viewer, 'observer-read': observer}[id] || null),
+  createElement: (tag) => ({tag, src: '', remove() { const i = heads.indexOf(this); if (i >= 0) heads.splice(i, 1); }}),
+  head: {appendChild: (node) => heads.push(node)},
+};
+const booted = [];
+// The render itself is not under test here: a stand-in that does what bootTrace ends with.
+function bootTrace(model) { booted.push(model); window.scrollY = 0; LIVE.version = model.version; LIVE.on = model.watch !== false; }
+const live = () => timers.filter((t) => !t.cancelled && !t.fired);
+const fire = () => { const t = live()[0]; assert(t, 'a check is scheduled'); assert.equal(t.ms, 5000); t.fired = true; t.fn(); };
+const loads = (name) => heads.filter((s) => s.src.startsWith(name + '?t='));
+"""
+
+    def controller(self) -> str:
+        page = trace_page.PAGE
+        start = page.index("// ---------------------------------------------------------------- live updates")
+        return page[start:page.index("function bootTrace(TRACE) {")]
+
+    def node(self, script: str, *, gc: bool = False) -> None:
+        path = self.root / "probe.js"
+        path.write_text(script, encoding="utf-8")
+        result = subprocess.run([shutil.which("node"), *(["--expose-gc"] if gc else []), str(path)],
+                                capture_output=True, text=True, timeout=60, check=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_version_call_with_the_same_key_requests_nothing_and_a_new_key_requests_the_content_once(self) -> None:
+        self.node(self.CONTROLLER + self.controller() + r"""
+bootTrace({version: 'k1', run: {}}); liveSchedule();
+assert.equal(live().length, 1);
+fire();                                                    // the background check: one version script
+assert.equal(loads('progress-version.js').length, 1);
+assert(/^progress-version\.js\?t=\d+$/.test(heads[0].src), heads[0].src);
+const first = heads[0].src;
+heads[0].onload();                                         // removed once it has run
+assert.equal(heads.length, 0);
+assert.equal(live().length, 1);                            // and the next check is already waiting
+fire(); assert.notEqual(heads[0].src, first); heads[0].onerror();   // a failed load is silent and removed too
+assert.equal(heads.length, 0);
+assert.equal(live().length, 1);
+window.__shiploopVersion({trace: 'k1', observed_at: 'T1', status: 'watching'});
+assert.equal(heads.length, 0);                             // the key on show: nothing requested
+assert.equal(observer.textContent, 'T1');                  // only the observer clock moved
+window.__shiploopVersion({trace: 'k2', observed_at: 'T2'});
+assert.equal(loads('trace-content.js').length, 1);
+window.__shiploopVersion({trace: 'k2', observed_at: 'T3'});
+assert.equal(loads('trace-content.js').length, 1);         // one request at a time
+assert.equal(observer.textContent, 'T3');
+heads[0].onerror();                                        // a failed request is silent, and asked again
+assert.equal(heads.length, 0);
+window.__shiploopVersion({trace: 'k2'});
+assert.equal(loads('trace-content.js').length, 1);
+heads[0].onload();
+for (const odd of [{}, {trace: ''}, {trace: 7}, null, 'text']) {   // malformed calls change nothing
+  window.__shiploopVersion(odd);
+  assert.equal(heads.length, 0);
+}
+""")
+
+    def test_new_content_re_renders_in_place_where_the_reader_stands_and_the_check_goes_on(self) -> None:
+        self.node(self.CONTROLLER + self.controller() + r"""
+bootTrace({version: 'k1', run: {}}); liveSchedule();
+const before = live()[0];
+window.__shiploopVersion({trace: 'k2'});
+window.scrollY = 1234;
+const second = {version: 'k2', run: {}};
+window.__shiploopTrace(second);
+assert.deepEqual(booted.map((m) => m.version), ['k1', 'k2']);
+assert.equal(booted[1], second);
+assert.deepEqual(window.scrolled[window.scrolled.length - 1], [0, 1234]);   // the scroll position is restored
+assert(before.cancelled, 'the old timer is stopped');
+assert.equal(live().length, 1, 'exactly one timer runs');
+heads[0].onload();
+window.__shiploopVersion({trace: 'k2'});                   // it is now the key on show
+assert.equal(heads.length, 0);
+window.__shiploopVersion({trace: 'k3'});                   // and a later key is fetched again
+assert.equal(loads('trace-content.js').length, 1);
+""")
+
+    def test_a_busy_page_keeps_the_new_content_pending_until_it_is_not_busy(self) -> None:
+        self.node(self.CONTROLLER + self.controller() + r"""
+bootTrace({version: 'k1', run: {}}); liveSchedule();
+const third = {version: 'k3', run: {}};
+window.__shiploopVersion({trace: 'k3'}); heads[0].onload();
+viewer.open = true;                                        // the packet viewer is open
+window.__shiploopTrace(third);
+assert.equal(booted.length, 1);                            // deferred
+assert.equal(LIVE.pending, third);
+fire();                                                    // the next tick: still busy, so only the check goes on
+assert.equal(booted.length, 1);
+assert.equal(loads('progress-version.js').length, 1);
+heads[0].onload();
+window.__shiploopVersion({trace: 'k3'});                   // the pending content is already in hand
+assert.equal(heads.length, 0);
+viewer.open = false;
+fire();                                                    // not busy: applied at this tick
+assert.equal(booted.length, 2);
+assert.equal(booted[1], third);
+assert.equal(LIVE.pending, null);
+assert.equal(live().length, 1);
+const wait = (value) => { window.__shiploopTrace({version: value, run: {}}); const n = booted.length; fire(); heads.splice(0); return n; };
+document.activeElement = {type: 'search', tagName: 'INPUT'};              // typing in the search box
+let n = wait('k4'); assert.equal(booted.length, n); assert.equal(LIVE.pending.version, 'k4');
+document.activeElement = {type: 'text', tagName: 'TEXTAREA'};             // or in the note box
+fire(); heads.splice(0); assert.equal(booted.length, n);
+document.activeElement = null; selection.isCollapsed = false; selection.toString = () => 'abc';   // or selecting text
+fire(); heads.splice(0); assert.equal(booted.length, n);
+selection.isCollapsed = true; selection.toString = () => '';
+fire(); assert.equal(booted.length, n + 1); assert.equal(booted[n].version, 'k4');
+""")
+
+    def test_a_page_whose_model_has_no_version_fetches_each_new_key_once(self) -> None:
+        self.node(self.CONTROLLER + self.controller() + r"""
+bootTrace({run: {}}); liveSchedule();                      // written by `shiploop trace --html`, outside the observer
+window.__shiploopVersion({trace: 'x1'});
+assert.equal(loads('trace-content.js').length, 1);        // the first key the page is told of is new
+heads[0].onload();
+window.__shiploopTrace({run: {}});                         // the content arrives without a version of its own
+assert.equal(booted.length, 2);
+window.__shiploopVersion({trace: 'x1'});                   // the same key again is not fetched again
+assert.equal(heads.length, 0);
+window.__shiploopVersion({trace: 'x2'});
+assert.equal(loads('trace-content.js').length, 1);
+""")
+
+    def test_a_page_that_is_not_watchable_never_schedules_a_check(self) -> None:
+        self.node(self.CONTROLLER + self.controller() + r"""
+bootTrace({version: 'final', run: {}, watch: false}); liveSchedule();   // done, halted, a snapshot, or checks switched off
+assert.equal(timers.length, 0);
+window.__shiploopVersion({trace: 'other', observed_at: 'T1'});
+assert.equal(heads.length, 0);                             // no request either
+assert.equal(timers.length, 0);
+// An update in flight when checks are switched off waits; it is not applied behind the reader's back.
+bootTrace({version: 'k1', run: {}}); liveSchedule(); assert.equal(live().length, 1);
+LIVE.on = false; liveSchedule(); assert.equal(live().length, 0);
+window.__shiploopTrace({version: 'k2', run: {}});
+assert.equal(booted.length, 2); assert.equal(LIVE.pending.version, 'k2');
+LIVE.on = true; liveSchedule(); fire();
+assert.equal(booted.length, 3); assert.equal(booted[2].version, 'k2');
+""")
+
+    FAKE_DOM = r"""
+const assert = require('assert');
+const registry = {};
+const timers = [];
+const setTimeout = (fn, ms) => { const t = {fn, ms, cancelled: false, fired: false}; timers.push(t); return t; };
+const clearTimeout = (t) => { if (t) t.cancelled = true; };
+class Node {}
+class Text extends Node {
+  constructor(data) { super(); this.data = String(data); }
+  get textContent() { return this.data; }
+}
+class Element extends Node {
+  constructor(tag) {
+    super(); this.tag = tag; this.children = []; this.attrs = {}; this.listeners = {}; this.className = ''; this._text = null;
+    const names = new Set();
+    this.classList = {add: (n) => names.add(n), remove: (n) => names.delete(n), contains: (n) => names.has(n),
+                      toggle: (n, on) => (on ? names.add(n) : names.delete(n))};
+  }
+  setAttribute(name, value) { this.attrs[name] = value; if (name === 'id') registry[value] = this; }
+  append(...kids) { this.children.push(...kids); }
+  appendChild(kid) { this.children.push(kid); }
+  replaceChildren(...kids) { this.children = kids; }
+  addEventListener(kind, fn) { (this.listeners[kind] = this.listeners[kind] || []).push(fn); }
+  remove() {}
+  querySelectorAll() { return []; }
+  querySelector() { return null; }
+  get textContent() { return this._text !== null ? this._text : this.children.map((c) => c.textContent).join(''); }
+  set textContent(value) { this._text = String(value); this.children = []; }
+}
+for (const id of ['app', 'viewer', 'viewer-title', 'viewer-meta', 'viewer-text', 'viewer-close', 'viewer-copy']) {
+  registry[id] = new Element(id); registry[id].setAttribute('id', id);
+}
+const document = {
+  activeElement: null, listeners: {}, head: new Element('head'),
+  addEventListener(kind, fn) { (this.listeners[kind] = this.listeners[kind] || []).push(fn); },
+  getElementById: (id) => registry[id] || null,
+  createElement: (tag) => new Element(tag),
+  createTextNode: (text) => new Text(text),
+};
+const window = {scrollY: 0, scrolled: [], scrollTo(x, y) { this.scrolled.push([x, y]); }, getSelection: () => ({isCollapsed: true})};
+// No `location`, `fetch` or `navigator` here: reaching for one fails the probe.
+const memory = new Map();
+const sessionStorage = {getItem: (key) => (memory.has(key) ? memory.get(key) : null), setItem: (key, value) => memory.set(key, String(value))};
+const walk = (node, found = []) => { found.push(node); for (const child of node.children || []) walk(child, found); return found; };
+const h1 = () => walk(registry.app).find((n) => n.tag === 'h1').textContent;
+const active = () => timers.filter((t) => !t.cancelled && !t.fired);
+"""
+
+    def test_only_a_watched_page_offers_the_switch_and_checks_for_content(self) -> None:
+        trace.write_live(self.root, model=self.watched(), texts={})
+        script = script_of((self.root / trace.PAGE).read_text(encoding="utf-8"))
+        self.node(self.FAKE_DOM + script + r"""
+const clone = (model, edits) => Object.assign(JSON.parse(JSON.stringify(model)), edits);
+// [status, observer.mode, observer.final, the reader's switch, a watched page]
+const cases = [
+  ['blocked', 'watch', false, true, true], ['active', 'watch', false, true, true], ['done', 'watch', false, true, true],
+  ['halted', 'watch', false, true, true], ['done', 'watch', true, true, false], ['halted', 'watch', true, true, false],
+  ['done', 'snapshot', false, true, false], ['halted', 'stopped', false, true, false], ['blocked', 'stopped', false, true, false],
+  ['active', undefined, undefined, true, true], ['done', undefined, undefined, true, false], ['halted', undefined, undefined, true, false],
+  ['paused', undefined, undefined, true, false], ['blocked', 'snapshot', false, true, false], ['blocked', 'watch', true, true, false],
+  ['blocked', 'watch', false, false, true]];
+for (const [status, mode, final, live, watched] of cases) {
+  memory.clear();
+  const model = clone(TRACE, {version: 'v-' + status});
+  model.run.status = status;
+  model.observer = {};
+  if (mode !== undefined) model.observer.mode = mode;
+  if (final !== undefined) model.observer.final = final;
+  if (!live) memory.set('trace:' + (model.run.id || '') + ':ui', JSON.stringify({live: false}));
+  liveApply(model);
+  const where = JSON.stringify({status, mode, final, live});
+  const label = walk(registry.app).find((n) => n.tag === 'label' && n.textContent.includes('live updates'));
+  assert.equal(!!label, watched, where);                                   // the switch is offered to a watched page only
+  if (label) assert.equal(label.children[0].attrs.checked !== undefined, live, where);
+  assert.equal(LIVE.on, watched && live, where);
+  assert.equal(active().length, watched && live ? 1 : 0, where);           // and only then is a check waiting
+}
+""")
+
+    def test_the_whole_page_renders_a_new_model_in_place_without_accumulating_anything(self) -> None:
+        trace.write_live(self.root, model=self.watched(), texts={})
+        script = script_of((self.root / trace.PAGE).read_text(encoding="utf-8"))
+        self.node(self.FAKE_DOM + script + r"""
+const clone = (model, edits) => Object.assign(JSON.parse(JSON.stringify(model)), edits);
+assert.equal(h1(), 'Live trace goal');
+assert.equal(active().length, 1); assert.equal(active()[0].ms, 5000);   // watched: one check is waiting
+assert.equal(document.listeners.keydown.length, 1);
+const box = walk(registry.app).find((n) => n.tag === 'label' && n.textContent.includes('live updates'));
+assert(box, 'the checkbox label'); assert(box.textContent.includes('no reload'));
+
+// The observer's clock moves without a re-render.
+const header = registry.app.children[0];
+window.__shiploopVersion({trace: 'key-one', observed_at: 'OBSERVED-A'});   // the key on show: nothing to fetch
+assert.equal(document.head.children.length, 0);
+assert.equal(registry['observer-read'].textContent, 'OBSERVED-A');
+assert.strictEqual(registry.app.children[0], header);
+
+// New content: asked for once, then rendered in place.
+window.__shiploopVersion({trace: 'key-two', observed_at: 'OBSERVED-B'});
+assert.equal(document.head.children.length, 1);
+assert(document.head.children[0].src.startsWith('trace-content.js?t='));
+window.scrollY = 321;
+let second = clone(TRACE, {version: 'key-two'}); second.run.goal = 'SECOND GOAL';
+window.__shiploopTrace(second);
+assert.equal(h1(), 'SECOND GOAL');
+assert.notStrictEqual(registry.app.children[0], header);
+assert.deepEqual(window.scrolled[window.scrolled.length - 1], [0, 321]);
+assert.equal(registry['observer-read'].textContent, 'OBSERVED-B');         // the newest read stays on show
+assert.equal(document.listeners.keydown.length, 1);                        // nothing accumulated
+assert.equal(active().length, 1);
+
+// The checkbox stops and resumes the checks.
+const toggle = walk(registry.app).find((n) => n.tag === 'label' && n.textContent.includes('live updates')).children[0];
+toggle.listeners.change[0]({target: {checked: false}});
+assert.equal(active().length, 0);
+toggle.listeners.change[0]({target: {checked: true}});
+assert.equal(active().length, 1);
+
+// A model that ends the run is shown and the checks stop.
+const weak = new WeakRef(second);
+second = null;
+let third = clone(TRACE, {version: 'key-three'}); third.run.goal = 'THIRD GOAL';
+window.__shiploopTrace(third);
+assert.equal(h1(), 'THIRD GOAL');
+let last = clone(TRACE, {version: 'key-four', observer: {mode: 'watch', final: true, error: ''}});
+last.run.goal = 'LAST GOAL'; last.run.status = 'done';
+window.__shiploopTrace(last);
+assert.equal(h1(), 'LAST GOAL');
+assert.equal(active().length, 0); assert.equal(LIVE.on, false);
+third = null; last = null;
+// The first model stays in the page's own constant; a model it replaced must not be held by a timer, a listener or a closure.
+setImmediate(() => { gc(); assert.equal(weak.deref(), undefined, 'the replaced model is still referenced'); });
+""", gc=True)
 
 
 if __name__ == "__main__":

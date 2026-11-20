@@ -220,10 +220,44 @@ class ProgressTests(RunCase):
 
     def test_failed_render_preserves_last_good_file(self):
         self.assertEqual(progress.observe(self.run, watch=False), 0)
-        before = (self.run / progress.PAGE).read_bytes()
-        with mock.patch("shiploop_progress_render.render", side_effect=ValueError("synthetic renderer failure")):
+        before = [(self.run / name).read_bytes() for name in (progress.PAGE, progress.CONTENT)]
+        with mock.patch("shiploop_progress_render.render_main", side_effect=ValueError("synthetic renderer failure")):
             self.assertEqual(progress.observe(self.run, watch=False), 2)
-        self.assertEqual(before, (self.run / progress.PAGE).read_bytes())
+        self.assertEqual(before, [(self.run / name).read_bytes() for name in (progress.PAGE, progress.CONTENT)])
+
+    def test_one_snapshot_writes_the_page_its_content_script_and_the_version_script(self):
+        self.assertEqual(progress.observe(self.run, watch=False), 0)
+        page = (self.run / progress.PAGE).read_text()
+        call = "window.__shiploopProgress&&window.__shiploopProgress("
+        content = (self.run / progress.CONTENT).read_text()
+        self.assertTrue(content.startswith(call) and content.endswith(");\n"))
+        content = json.loads(content[len(call):-3])
+        self.assertEqual(sorted(content), ["main", "title", "version"])
+        # The content script carries exactly the <main> the page holds, so an open page ends up where a fresh
+        # load would.
+        self.assertIn(content["main"], page)
+        self.assertIn('data-version="' + content["version"] + '"', content["main"])
+        call = "window.__shiploopVersion&&window.__shiploopVersion("
+        version = (self.run / progress.VERSION).read_text()
+        self.assertTrue(version.startswith(call) and version.endswith(");\n"))
+        version = json.loads(version[len(call):-3])
+        self.assertEqual(version["schema"], "shiploop-progress-version/v1")
+        self.assertEqual(version["progress"], content["version"])
+        self.assertEqual(version["status"], "snapshot")
+        self.assertEqual(version["observed_at"], json.loads((self.run / progress.STATUS).read_text())["observed_at"])
+        import shiploop_trace as trace
+        self.assertTrue(version["trace"])
+        self.assertIn('"version":"' + version["trace"] + '"', (self.run / trace.CONTENT).read_text())
+
+    def test_the_page_version_ignores_the_observer_clock_and_follows_what_the_page_shows(self):
+        key = progress.page_key("source", "watch", False, "", "ok")
+        self.assertEqual(key, progress.page_key("source", "watch", False, "", "ok"))
+        for other in (("other", "watch", False, "", "ok"), ("source", "snapshot", False, "", "ok"),
+                      ("source", "watch", True, "", "ok"), ("source", "watch", False, "failed", "ok"),
+                      ("source", "watch", False, "", "unavailable")):
+            self.assertNotEqual(key, progress.page_key(*other))
+        # A "<" cannot end the script element of a page that inlines the same payload.
+        self.assertNotIn("<", progress._call("__shiploopProgress", {"main": "<main></main>"}))
 
     def test_restarted_observer_replaces_stale_status_before_start_succeeds(self):
         self.assertEqual(progress.observe(self.run, watch=False), 0)
@@ -286,7 +320,7 @@ class ProgressTests(RunCase):
             calls += 1
             if calls > 1:
                 raise ValueError("cannot render stopped page")
-            real_publish(*args, **kwargs)
+            return real_publish(*args, **kwargs)
         with mock.patch("shiploop_progress.publish", side_effect=publish):
             progress.observe(self.run, watch=True, interval=.1, idle_timeout=.1)
         record = json.loads((self.run / progress.STATUS).read_text())
@@ -370,6 +404,16 @@ class ViewerTests(RunCase):
         self.assertEqual(int(headers["content-length"]), len(body))
         # The observer publishes the trace page; the report appears only when the run ends.
         self.assertEqual(self.get(port, "/trace.html")[0], 200)
+        # The scripts an open page loads to update in place: served as scripts, and admitted by the policy.
+        self.assertIn("script-src 'unsafe-inline' 'self'", headers["content-security-policy"])
+        for path, call in (("/progress-version.js", b"window.__shiploopVersion&&"),
+                           ("/progress-content.js", b"window.__shiploopProgress&&"),
+                           ("/trace-content.js", b"window.__shiploopTrace&&")):
+            status, headers, script = self.get(port, path)
+            self.assertEqual((status, headers["content-type"]), (200, "text/javascript; charset=utf-8"), path)
+            self.assertEqual(headers["x-content-type-options"], "nosniff")
+            self.assertTrue(script.startswith(call), path)
+        self.assertEqual(self.get(port, "/state.js")[0], 404)
         self.assertEqual(self.get(port, "/report.html")[0], 404)
         (self.run / "report.html").write_text("<p>report page</p>")
         self.assertEqual(self.get(port, "/report.html")[2], b"<p>report page</p>")
@@ -614,38 +658,46 @@ class ObservationGenerationTests(unittest.TestCase):
         model, inputs = self.published_models()
         self.assertEqual(model["observer"], {"mode": "snapshot", "final": False, "error": ""})
 
-    def test_watch_heartbeat_republishes_both_pages_without_resetting_idle(self):
+    def test_an_idle_watch_rewrites_no_page_and_the_version_script_carries_the_heartbeat(self):
         import shiploop_story as story
-        import shiploop_trace as trace
         clock = [100.0]
-        models, keys, activity = [], [], []
-        real_publish, real_sample = progress.publish, progress.sample
+        models, activity, beats, pages = [], [], [], []
+        real_publish, real_sample, real_announce = progress.publish, progress.sample, progress.announce
         def sample(*args, **kwargs):
             value = real_sample(*args, **kwargs)
             activity.append((value["source_fingerprint"], value["activity_fingerprint"]))
             return value
         def publish(*args, **kwargs):
-            real_publish(*args, **kwargs)
-            model, inputs = self.published_models()
-            models.append(model)
-            keys.append(trace.source_key(self.root, model=model))
+            key = real_publish(*args, **kwargs)
+            models.append(self.published_models()[0])
+            return key
+        def announce(*args, **kwargs):
+            real_announce(*args, **kwargs)
+            beats.append(kwargs)
+            pages.append(((self.root / progress.PAGE).read_bytes(), (self.root / "trace.html").read_bytes()))
         def sleep(interval):
             clock[0] += interval
         with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
                 mock.patch.object(progress.time, "sleep", side_effect=sleep), \
-                mock.patch.object(progress, "HEARTBEAT", 1), \
                 mock.patch.object(story, "utc", side_effect=lambda: f"2026-11-14T00:00:{int(clock[0] - 100):02d}Z"), \
                 mock.patch.object(progress, "sample", side_effect=sample), \
-                mock.patch.object(progress, "publish", side_effect=publish):
+                mock.patch.object(progress, "publish", side_effect=publish), \
+                mock.patch.object(progress, "announce", side_effect=announce):
             self.assertEqual(progress.observe(self.root, watch=True, interval=1, idle_timeout=2), 0)
         self.assertEqual(len(activity), 3)  # Heartbeats must not extend the idle deadline.
         self.assertEqual(len(set(activity)), 1)
-        self.assertEqual(len(models), 4)  # Three watch publications, then stopped.
-        self.assertEqual(len(set(keys[:3])), 1)
-        self.assertEqual(len({model["observed_at"] for model in models[:3]}), 3)
-        self.assertEqual([model["observer"]["mode"] for model in models],
-                         ["watch", "watch", "watch", "snapshot"])
+        # One publication while watching, then the stopped one: the two idle samples wrote no page.
+        self.assertEqual([model["observer"]["mode"] for model in models], ["watch", "snapshot"])
         self.assertIn("idle timeout", models[-1]["observer"]["error"])
+        watching = [beat for beat in beats if beat["status"] == "watching"]
+        self.assertEqual(len(watching), 3)
+        self.assertEqual(len({beat["progress"] for beat in watching}), 1)
+        self.assertEqual(len({beat["trace"] for beat in watching}), 1)
+        self.assertEqual(len({beat["observed_at"] for beat in watching}), 3)
+        self.assertEqual(len(set(pages[:3])), 1)
+        self.assertIn("idle timeout", beats[-1]["status"])
+        self.assertNotEqual(beats[-1]["progress"], watching[0]["progress"])
+        self.assertFalse(hasattr(progress, "HEARTBEAT"))
 
     def test_terminal_watch_publishes_nonfinal_then_reconciled_final(self):
         self.state.update(status="halted", status_reason="Fixture terminal reconciliation")
@@ -654,8 +706,9 @@ class ObservationGenerationTests(unittest.TestCase):
         models = []
         real_publish = progress.publish
         def publish(*args, **kwargs):
-            real_publish(*args, **kwargs)
+            key = real_publish(*args, **kwargs)
             models.append(self.published_models()[0])
+            return key
         def sleep(interval):
             clock[0] += interval
         with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
@@ -670,7 +723,7 @@ class ObservationGenerationTests(unittest.TestCase):
         import shiploop_trace as trace
         clock = [100.0]
         statuses = []
-        real_write, real_publish = trace.write_html, progress.publish
+        real_write, real_publish = trace.write_live, progress.publish
         attempts = [0]
         def write(*args, **kwargs):
             attempts[0] += 1
@@ -678,18 +731,19 @@ class ObservationGenerationTests(unittest.TestCase):
                 raise OSError("fixture transient trace publication error")
             return real_write(*args, **kwargs)
         def publish(*args, **kwargs):
-            real_publish(*args, **kwargs)
+            key = real_publish(*args, **kwargs)
             statuses.append(args[1]["trace_publication"]["status"])
             if statuses[-1] == "ok" and kwargs["mode"] == "watch":
                 model, inputs = self.published_models()
                 self.assertEqual(model["observer"]["error"], "")
                 # Stop cooperatively after the successful retry.
                 (self.root / progress.DISABLED).write_text("fixture request")
+            return key
         def sleep(interval):
             clock[0] += interval
         with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
                 mock.patch.object(progress.time, "sleep", side_effect=sleep), \
-                mock.patch.object(trace, "write_html", side_effect=write), \
+                mock.patch.object(trace, "write_live", side_effect=write), \
                 mock.patch.object(progress, "publish", side_effect=publish):
             self.assertEqual(progress.observe(self.root, watch=True, interval=1), 0)
         self.assertEqual(statuses, ["unavailable", "ok", "ok"])
@@ -732,7 +786,7 @@ class ObservationGenerationTests(unittest.TestCase):
 
     def test_trace_publication_failure_is_visible_in_page_and_status(self):
         import shiploop_trace as trace
-        with mock.patch.object(trace, "write_html", side_effect=OSError("fixture publication failure")):
+        with mock.patch.object(trace, "write_live", side_effect=OSError("fixture publication failure")):
             self.assertEqual(progress.observe(self.root, watch=False), 0)
         status = json.loads((self.root / progress.STATUS).read_text())
         self.assertEqual(status["trace_publication"]["status"], "unavailable")

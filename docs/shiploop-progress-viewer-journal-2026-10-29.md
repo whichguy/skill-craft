@@ -91,3 +91,52 @@ The start-of-run packet shared only the `progress.html` link, so there was nothi
 - One host, one case: the Claude and Grok hosts, a hooks-off row and a second case are not measured, so the rate at which a
   model runs the command instead of relaying it is unknown.
 - A run made by an older ShipLoop version was not served; only runs created by this branch were.
+
+## 2026-11-19: the pages stop reloading; statuses say what was recorded
+
+Owner request, 2026-11-19: the live view "does an incessant flickering refresh, like every second or so", and wants
+"more of a background check and maybe a single-page app that would actually update if need be"; also "some of the items
+that were done don't seem to have a status, and I don't know if that's an error or not". The owner then chose to build
+all three parts of the plan (stop the flicker, fix the statuses, fix the layout), which included three reversals of
+earlier choices, named below. Evidence: [measurements](experiments/progress-view-inplace-20261119/measurements.md).
+
+### Q2. Why does the page flicker?
+
+**Finding (firm).** The page called `location.reload()` every 5 seconds whether or not anything had changed (the trace
+page every 10), on a page of 2.96 MB and 24,841 elements, and put the scroll position back one frame after the first
+paint. The observer also rewrote both pages about every 13 seconds on an idle run (its heartbeat), so a check of the
+file's date would not have helped.
+
+### Q3. Are the missing statuses errors in the run?
+
+**Finding (firm): no, none of them.** All were the display's own: a packet's status read from a field only commands
+have; a raw exit code shown as a status; three files asked of every visit although most stages never write them (all 110
+"missing" rows were never due); records past the 160-file preview budget shown as "unavailable" instead of read; Improve
+passes shown outside every visit; and four lifecycle rows that only an optional producer file can fill. Two test records
+that really had failed were hidden behind "unavailable" until every record was read.
+
+### Decisions
+
+| # | Decision | Why |
+|---|---|---|
+| D8 | The open page checks a sibling script (`progress-version.js`) with a `<script>` tag and takes new content from another (`progress-content.js`, `trace-content.js`). No `fetch`. | A `file:` page cannot fetch, and the file is the default way to open the view. One mechanism serves the file and `view --serve`, so there is one behaviour to test. Measured: Chrome admits the sibling script under `script-src 'unsafe-inline' 'self'`. |
+| D9 | The page is built from keyed blocks with a digest each; an update replaces only blocks whose digest moved. | A whole-section swap would close what the reader opened and lose the selection. With blocks, one new trace line replaces 5 of 487. |
+| D10 | The observer rewrites a page only when its version moves; the version script is the heartbeat. **Reverses** the heartbeat republication of `2fdb95003103efb1b8e9653aabdee3cff4240087` (owner, 2026-11-19). | The heartbeat existed to move the page's embedded clock. The page now takes the clock from the version script, so an idle run writes 277 bytes per sample and not 10 MB per 13 seconds. The two pages can now carry different observation times, since each is rewritten on its own change. |
+| D11 | A visit lists an Until receipt, check, expectations or test record only when the file exists. **Reverses** the always-listed candidates of `2fdb95003103efb1b8e9653aabdee3cff4240087`, which counted "20 missing candidates" as coverage (owner, 2026-11-19). | The owner read "missing" on finished stages as possible errors, and every one was a file never due. A file that disappears between the listing and the read still shows "missing". |
+| D12 | With no producer reporting, the four external lifecycle rows become one "not reported" line. **Narrows** "unknown stays unknown" (owner, 2026-11-19): once any producer reports, every unreported row still shows `unknown`. | Four rows of "unknown" at the top of every ordinary run read as four failures. |
+| D13 | Every structured record is read; the 160-file budget bounds only embedded previews (`not embedded`), and an unread packet preview says `not loaded`. Unchanged files are reused after one `stat`. | A status must come from the record, not from whether its preview fitted. The reuse keeps the observer's cost flat (0.212 s against 0.225 s). |
+| D14 | An event no longer prints its journal's whole-file hash; the hash stays on the coverage row and the preview. | The hash moves at every appended line, which changed every visit's block: 78 blocks per line instead of 5. |
+| D15 | Where the run stands (phase strip, current focus) comes before the journal; evidence previews and source coverage are folded under a count line. | They sat 104,556 px down the page. The page is now 43,245 px tall with the strip at 597 px. |
+
+### Not done, and unknown
+
+- No release and no push in this change. A ShipLoop release needs an E2E round journaled after it, or a `No-E2E-Round`
+  trailer; the owner decides which.
+- Safari and Firefox were not measured. If one refuses a sibling script on a `file:` page, the page there stays as
+  opened and its "data age" line grows stale; `view --serve` is the way round it.
+- A page already open when a new ShipLoop version starts observing keeps its old script until the reader reloads it.
+- A snapshot page (an observer that stopped at its idle timeout) still does not come back to life when a later packet
+  restarts the observer; it did not before either. The version script makes that cheap to add.
+- The observer's own cost (about 43% of one core on the measured run, most of it rebuilding and screening both models
+  every 2 seconds) is unchanged and was out of scope.
+- The owner's live run keeps its 3.3.0 pages until that host's plugin is updated and its observer and viewer restart.

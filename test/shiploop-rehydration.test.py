@@ -105,7 +105,9 @@ class MasterIndexTests(unittest.TestCase):
     # "about 3 KB" of map (3,500 until U17 added the RUN/request.md row; 3,600 until decision 19 renamed HOME to KNOWLEDGE,
     # +20 over four uses; 3,650 until the step commits added the RUN/commits/ row, +26; 3,700 until the run trace added the
     # RUN/trace.jsonl row, packets/sent/ and trace.html, +96); paths take the rest
-    MAP_LIMIT = 4_100  # 3,850 + the RUN/checks/ row (phase B: the latest `shiploop check` answer per action)
+    # 4,100 (3,850 + the RUN/checks/ row, phase B: the latest `shiploop check` answer per action) until the progress
+    # view's three update scripts joined the display row, +59: the map must name every file a run directory gets.
+    MAP_LIMIT = 4_160
 
     @staticmethod
     def map_text(text: str) -> str:

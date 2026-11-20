@@ -5,8 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from html.parser import HTMLParser
 from pathlib import Path
+import re
 import sys
-import json
 import shutil
 import subprocess
 import unittest
@@ -238,10 +238,14 @@ class ProgressRenderTests(unittest.TestCase):
         self.assertIn('data-stale-after-seconds="19"', page)
         self.assertIn("Pause updates", page)
         self.assertIn("Resume updates", page)
-        self.assertIn("Refresh now", page)
-        self.assertIn("location.reload()", page)
+        self.assertIn("Check now", page)
+        # The page never reloads itself: it checks a sibling version script and swaps changed blocks in place.
+        self.assertNotIn("location.reload", page)
+        self.assertIn('load("progress-version.js")', page)
+        self.assertIn('load("progress-content.js"', page)
+        self.assertIn("script-src 'unsafe-inline' 'self'", page)
+        self.assertIn("connect-src 'none'", page)
         self.assertIn("sessionStorage.setItem", page)
-        self.assertIn("shiploop-view=", page)
         self.assertIn("paused: paused", page)
         self.assertIn("state.details[key]", page)
         self.assertIn("setInterval(updateFreshness, 1000)", page)
@@ -636,7 +640,7 @@ for (const status of ['done', 'halted']) assert.equal(runSpanLabel(status), 'Rec
         self.assertIn("Source-byte SHA-256", page)
         self.assertIn("source-hash", page)
         self.assertIn("Evidence unavailable: absent", page)
-        self.assertIn("Preview missing or withheld", page)
+        self.assertIn("No preview is embedded here", page)
 
     def test_missing_or_null_story_fields_do_not_invent_lifecycle_or_timing(self):
         data = snapshot()
@@ -646,7 +650,11 @@ for (const status of ['done', 'halted']) assert.equal(runSpanLabel(status), 'Rec
             page = progress_render.render(data)
             self.assertIn("No visit history recorded", page)
             self.assertIn("Per-source coverage unavailable", page)
-            self.assertIn("No bound producer observation recorded.", page)
+            # With no producer reporting, one line says so; four rows of "unknown" would read as four failures.
+            self.assertIn("<dt>Other lifecycle</dt><dd><strong>not reported</strong>", page)
+            self.assertIn("progress-observations.jsonl", page)
+            self.assertNotIn("Execution</dt>", page)
+            self.assertNotIn("Owner hold</dt>", page)
             self.assertIn("Not recorded.", page)
             self.assertIn("Content generated: ", page)
             self.assertNotIn("Execution</dt><dd><strong>active", page)
@@ -727,29 +735,240 @@ for (const status of ['done', 'halted']) assert.equal(runSpanLabel(status), 'Rec
             data["observer"] = {"mode": "watch"}
             self.assertIn('data-final="true"', progress_render.render(data))
 
-    @unittest.skipUnless(shutil.which("node"), "Node required for isolated progress scheduler fixture")
-    def test_progress_scheduler_reloads_pending_terminal_capture_then_stops_at_final(self):
+    @unittest.skipUnless(shutil.which("node"), "Node required for the isolated live-update fixture")
+    def test_progress_checks_in_the_background_and_takes_content_only_when_the_version_moved(self):
+        # The page's own check/apply logic, run with a fake clock and DOM: no browser, and no timer escapes.
         source = progress_render._SCRIPT
-        allowed = source[source.index('  const autoAllowed ='):]
-        allowed = allowed[:allowed.index(';') + 1]
-        schedule = source[source.index('  const schedule = () => {'):source.index('  if (toggle) {')]
-        script = "const assert = require('assert');\n"
-        for status in ("done", "halted"):
-            for mode, final, expected in (("watch", False, 1), ("watch", True, 0),
-                                          ("snapshot", False, 0), ("stopped", False, 0)):
-                data = story_snapshot()
-                data["run"]["status"] = status
-                data["observer"].update(mode=mode, final=final)
-                page = progress_render.render(data)
-                root = next(attrs for _, attrs in PageNodes(page).nodes if "data-progress-view" in attrs)
-                script += "{ const mode = " + json.dumps(root["data-mode"]) + "; const isFinal = " + root["data-final"] + ";\n"
-                script += """
-let timer = null, callback = null, reloads = 0, paused = false;
-const interval = 5, announce = null, setTimeout = (fn) => {callback = fn; return 1;}, clearTimeout = () => {};
-const hasSelection = () => false, focusedControl = () => false, reloadPage = () => reloads++;
-""" + allowed + schedule + "\nschedule(); if (callback) callback();\nassert.equal(reloads, " + str(expected) + "); }\n"
+        live = source[source.index("  let tick = 0, timer = null"):source.index("  // Fragments are stable evidence identities")]
+        script = """
+const assert = require('assert');
+function page(dataset, opts = {}) {
+  const loads = [], applied = [], said = [];
+  let callback = null, selection = !!opts.selection;
+  const root = {dataset};
+  const window = {};
+  const document = {head: {appendChild: (node) => { loads.push(node); }}, createElement: () => ({remove() {}})};
+  const setTimeout = (fn) => { callback = fn; return 1; }, clearTimeout = () => { callback = null; };
+  let paused = !!opts.paused, observedAt = dataset.observedAt;
+  const parseDate = (value) => value ? new Date(value) : null;
+  const setting = (name, fallback) => fallback;
+  const mode = () => root.dataset.mode, isFinal = () => root.dataset.final === 'true';
+  const autoAllowed = () => mode() === 'watch' && !isFinal();
+  const hasSelection = () => selection, announce = (text) => said.push(text), updateFreshness = () => {};
+  const apply = (content) => { applied.push(content); root.dataset.version = content.version; };
+""" + live + """
+  return {loads, applied, said, window, schedule, check,
+          tick: () => { const fn = callback; callback = null; if (fn) fn(); },
+          scheduled: () => callback !== null, observedAt: () => observedAt,
+          select: (value) => { selection = value; },
+          names: () => loads.map((node) => node.src.replace(/\\?t=\\d+$/, ''))};
+}
+const watching = () => ({mode: 'watch', final: 'false', version: 'v1', observedAt: '2026-11-19T00:00:00Z'});
+const content = {version: 'v2', main: '<main></main>'};
+
+// A watched page arms a check; the check loads the small version script and nothing else.
+let p = page(watching());
+p.schedule(); assert(p.scheduled()); p.tick();
+assert.deepEqual(p.names(), ['progress-version.js']); assert(p.scheduled());
+// The same version: only the observer's clock moves. No content is requested and nothing is applied.
+p.window.__shiploopVersion({progress: 'v1', observed_at: '2026-11-19T00:00:05Z'});
+assert.equal(p.observedAt(), '2026-11-19T00:00:05Z');
+assert.deepEqual(p.names(), ['progress-version.js']); assert.equal(p.applied.length, 0);
+// A new version: the content script is requested once, however often the answer repeats while it loads, and
+// the age line does not claim the newer clock for content the page does not show yet.
+p.window.__shiploopVersion({progress: 'v2', observed_at: '2026-11-19T00:00:07Z'});
+p.window.__shiploopVersion({progress: 'v2', observed_at: '2026-11-19T00:00:09Z'});
+assert.deepEqual(p.names(), ['progress-version.js', 'progress-content.js']);
+assert.equal(p.observedAt(), '2026-11-19T00:00:05Z');
+p.loads[1].onload();
+p.window.__shiploopProgress(content);
+assert.deepEqual(p.applied, [content]);
+p.window.__shiploopProgress({version: 'v3'}); p.window.__shiploopProgress(null);
+assert.equal(p.applied.length, 1);
+// A failed load (no observer yet, an older run) is quiet and leaves the next check armed.
+p.loads[0].onerror(); assert(p.scheduled());
+
+// Selected text holds an update back; the next check applies it once the selection is gone.
+p = page(watching(), {selection: true});
+p.window.__shiploopProgress(content);
+assert.equal(p.applied.length, 0); assert(p.said[0].includes('waiting'));
+p.check(false); assert.equal(p.applied.length, 0); assert.deepEqual(p.names(), []);
+p.select(false); p.check(false);
+assert.equal(p.applied.length, 1); assert.deepEqual(p.names(), ['progress-version.js']);
+
+// Paused: no check is armed and an answer is ignored. "Check now" takes exactly one update.
+p = page(watching(), {paused: true});
+p.schedule(); assert(!p.scheduled());
+p.window.__shiploopVersion({progress: 'v2', observed_at: '2026-11-19T00:00:07Z'});
+assert.deepEqual(p.names(), []); assert.equal(p.observedAt(), '2026-11-19T00:00:00Z');
+p.check(true); assert.deepEqual(p.names(), ['progress-version.js']);
+p.window.__shiploopVersion({progress: 'v2', observed_at: '2026-11-19T00:00:07Z'});
+assert.deepEqual(p.names(), ['progress-version.js', 'progress-content.js']);
+p.loads[1].onload();
+p.window.__shiploopProgress(content);
+assert.equal(p.applied.length, 1);
+p.window.__shiploopVersion({progress: 'v3', observed_at: '2026-11-19T00:00:11Z'});
+assert.equal(p.names().length, 2);
+
+// A snapshot, a stopped observer and a final page never arm a check.
+for (const [mode, final] of [['snapshot', 'false'], ['stopped', 'false'], ['watch', 'true']]) {
+  p = page({mode, final, version: 'v1', observedAt: '2026-11-19T00:00:00Z'});
+  p.schedule(); assert(!p.scheduled(), mode + ' ' + final);
+}
+"""
         result = subprocess.run([shutil.which("node"), "-e", script], capture_output=True, text=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(shutil.which("node"), "Node required for the isolated block reconcile fixture")
+    def test_reconcile_keeps_unchanged_blocks_and_swaps_only_what_moved(self):
+        source = progress_render._SCRIPT
+        reconcile = source[source.index("  const reconcile = (live, fresh, changed) => {"):source.index("  const apply = (content) => {")]
+        script = """
+const assert = require('assert');
+class El {
+  constructor(key, rev, list, kids) {
+    this.dataset = {}; this.list = !!list; this.children = []; this.parent = null;
+    if (key !== undefined) this.dataset.key = key;
+    if (rev !== undefined) this.dataset.rev = rev;
+    for (const kid of kids || []) { kid.parent = this; this.children.push(kid); }
+  }
+  hasAttribute(name) { return name === 'data-list' && this.list; }
+  get firstElementChild() { return this.children[0] || null; }
+  get nextElementSibling() { return this.parent.children[this.parent.children.indexOf(this) + 1] || null; }
+  remove() { if (this.parent) { this.parent.children.splice(this.parent.children.indexOf(this), 1); this.parent = null; } }
+  replaceWith(other) { other.remove(); other.parent = this.parent; this.parent.children[this.parent.children.indexOf(this)] = other; this.parent = null; }
+  insertBefore(node, before) { node.remove(); node.parent = this; this.children.splice(before ? this.children.indexOf(before) : this.children.length, 0, node); }
+}
+const document = {importNode: (node) => new El(node.dataset.key, node.dataset.rev, node.list, node.children.map((kid) => document.importNode(kid)))};
+const leaf = (key, rev) => new El(key, rev), list = (key, kids) => new El(key, undefined, true, kids);
+const keys = (node) => node.children.map((kid) => kid.dataset.key);
+""" + reconcile + """
+const live = list('main', [leaf('a', '1'), list('visits', [leaf('v1', '1'), leaf('v2', '1'), leaf('gone', '1')]), leaf('z', '1'), leaf('old', '1')]);
+const [a, visits, z] = live.children, [v1, v2] = visits.children;
+const fresh = list('main', [leaf('a', '1'), leaf('new', '1'), list('visits', [leaf('v1', '1'), leaf('v2', '2'), leaf('v3', '1')]), leaf('z', '1')]);
+let changed = [];
+reconcile(live, fresh, changed);
+// Order follows the fresh copy; a block the fresh copy dropped is gone.
+assert.deepEqual(keys(live), ['a', 'new', 'visits', 'z']);
+assert.deepEqual(keys(live.children[2]), ['v1', 'v2', 'v3']);
+// Same digest: the very same node stays, with whatever the reader opened or selected in it.
+assert.strictEqual(live.children[0], a); assert.strictEqual(live.children[3], z);
+assert.strictEqual(live.children[2], visits); assert.strictEqual(visits.children[0], v1);
+// A moved digest or a new key: a fresh node, and only those are reported for re-dressing.
+assert.notStrictEqual(visits.children[1], v2); assert.equal(visits.children[1].dataset.rev, '2');
+assert.deepEqual(changed.map((node) => node.dataset.key), ['new', 'v2', 'v3']);
+// Nothing changed: nothing is touched.
+const before = [...live.children, ...visits.children];
+changed = [];
+reconcile(live, list('main', [leaf('a', '1'), leaf('new', '1'), list('visits', [leaf('v1', '1'), leaf('v2', '2'), leaf('v3', '1')]), leaf('z', '1')]), changed);
+assert.deepEqual(changed, []);
+assert.deepEqual([...live.children, ...live.children[2].children], before);
+// A reorder moves the existing nodes; none is rebuilt.
+changed = [];
+reconcile(live, list('main', [leaf('z', '1'), leaf('a', '1'), list('visits', [leaf('v3', '1'), leaf('v1', '1'), leaf('v2', '2')]), leaf('new', '1')]), changed);
+assert.deepEqual(keys(live), ['z', 'a', 'visits', 'new']);
+assert.deepEqual(keys(visits), ['v3', 'v1', 'v2']);
+assert.deepEqual(changed, []); assert.strictEqual(live.children[1], a); assert.strictEqual(visits.children[1], v1);
+"""
+        result = subprocess.run([shutil.which("node"), "-e", script], capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_every_child_of_a_keyed_list_is_a_keyed_block_and_keys_are_unique(self):
+        class Blocks(HTMLParser):
+            void = frozenset(("meta", "input", "br", "hr", "img", "link"))
+
+            def __init__(self):
+                super().__init__(convert_charrefs=True)
+                self.stack, self.keys, self.unkeyed, self.lists = [], [], [], 0
+
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                if self.stack and "data-list" in self.stack[-1][1] and "data-key" not in attrs:
+                    self.unkeyed.append((self.stack[-1][0], tag))
+                if "data-key" in attrs:
+                    self.keys.append(attrs["data-key"])
+                    # A block carries a digest; a list is walked into, so it carries none.
+                    assert ("data-rev" in attrs) != ("data-list" in attrs) or tag == "main", (tag, attrs)
+                self.lists += "data-list" in attrs
+                if tag not in self.void:
+                    self.stack.append((tag, attrs))
+
+            def handle_endtag(self, tag):
+                while self.stack and self.stack.pop()[0] != tag:
+                    pass
+
+        for data in (story_snapshot(), snapshot(), {}):
+            parser = Blocks()
+            parser.feed(progress_render.render(data))
+            self.assertEqual(parser.unkeyed, [])
+            self.assertEqual(len(parser.keys), len(set(parser.keys)))
+            self.assertGreaterEqual(parser.lists, 6)  # main, story, visits, evidence, layout and its two columns
+        keys = Blocks()
+        keys.feed(progress_render.render(story_snapshot()))
+        for key in ("hero", "observer", "phases", "narrative", "story-head", "visits-head", "visit:a", "visit:b",
+                    "evidence-summary", "coverage", "story-tail", "graphs", "work-items", "documents", "activity",
+                    "footer"):
+            self.assertIn(key, keys.keys)
+
+    def test_a_block_digest_follows_its_html_and_nothing_else(self):
+        block = progress_render._keyed('<section class="panel">one</section>', 'a "quoted" key')
+        self.assertTrue(block.startswith('<section data-key="a &quot;quoted&quot; key" data-rev="'))
+        self.assertTrue(block.endswith(' class="panel">one</section>'))
+        rev = re.search(r'data-rev="([0-9a-f]{16})"', block).group(1)
+        self.assertIn(rev, progress_render._keyed('<section class="panel">one</section>', "other"))
+        self.assertNotIn(rev, progress_render._keyed('<section class="panel">two</section>', "other"))
+        self.assertEqual(progress_render._keyed("", "empty"), "")
+        self.assertEqual(progress_render._keyed_list('<ol class="visit-list">', "visits"),
+                         '<ol data-key="visits" data-list class="visit-list">')
+        # One changed visit moves one visit's digest; the other visit and the page's other blocks keep theirs.
+        revs = lambda page: dict(re.findall(r'data-key="([^"]*)" data-rev="([0-9a-f]{16})"', page))
+        before = story_snapshot()
+        after = story_snapshot()
+        after["story"]["visits"][1]["summary"] = "Verification reopened again."
+        moved = {key for key, value in revs(progress_render.render(after)).items()
+                 if revs(progress_render.render(before)).get(key) != value}
+        self.assertEqual(moved, {"visit:b"})
+        data = story_snapshot()
+        self.assertEqual(progress_render.render(data), progress_render.page(*progress_render.render_main(data)))
+
+    def test_where_the_run_stands_comes_before_the_journal_and_long_lists_are_folded(self):
+        page = progress_render.render(story_snapshot())
+        order = [page.index(text) for text in ('class="phase-strip"', 'class="panel narrative-panel"',
+                                               'class="panel story"', 'class="visit-list"',
+                                               'id="evidence-previews"', 'id="source-coverage"', 'class="layout"')]
+        self.assertEqual(order, sorted(order))
+        self.assertIn('<details data-key="evidence" data-list class="story-fold" id="evidence-previews" '
+                      'data-state-key="evidence-previews">', page)
+        self.assertIn(">Evidence previews · 3 files: 1 active, 1 failed, 1 withheld</summary>", page)
+        self.assertIn(">Source coverage and freshness · ", page)
+        self.assertNotIn("<h3>Evidence previews</h3>", page)
+        self.assertNotIn(' open', page.split('id="evidence-previews"', 1)[1].split(">", 1)[0])
+        # An evidence link opens its folded ancestors (revealAnchor walks every DETAILS above the target).
+        self.assertIn('node.tagName === "DETAILS"', page)
+
+    def test_statuses_say_what_was_recorded_and_nothing_reads_as_a_failure_by_default(self):
+        data = story_snapshot()
+        data["story"]["visits"][0].update(item=None, improve={"action": "i", "phase": "complete"})
+        data["story"]["events"][0].update(improve_of="a")
+        page = progress_render.render(data)
+        # A kind with no status of its own shows alone: the fixture's packet and hook rows record none.
+        self.assertIn("<strong>packet</strong>", page)
+        self.assertIn("<strong>hook</strong>", page)
+        self.assertNotIn("packet · unknown", page)
+        self.assertNotIn("hook · unknown", page)
+        self.assertIn("<strong>check · failed</strong>", page)
+        self.assertIn("<strong>Improve pass · accepted · accepted</strong>", page)
+        # Preparation and release stages belong to the run; an item-less visit says so.
+        self.assertIn("<span>verify · run-wide · Improve reviewed</span>", page)
+        self.assertIn("<span>verify · W1</span>", page)
+        self.assertNotIn("No item recorded", page)
+        # An event names its file and line; the file's moving byte hash stays with coverage and previews.
+        self.assertNotIn("<code>abc</code>", page)
+        self.assertNotIn("<code>def</code>", page)
+        self.assertIn("<code>source-hash</code>", page)
+        self.assertIn('class="pill pill-current">current</span>',
+                      progress_render.render({**snapshot(), "plan_accepted": True,
+                                              "work_items": [{"id": "W1", "title": "T", "status": "current"}]}))
 
     def test_lifecycle_acceptance_scope_is_visible_in_the_prominent_row_and_escaped(self):
         data = story_snapshot()
@@ -765,74 +984,22 @@ const hasSelection = () => false, focusedControl = () => false, reloadPage = () 
         row = page.split('Product acceptance</dt><dd>', 1)[1].split('</dd>', 1)[0]
         self.assertIn('Scope: unknown (not recorded)', row)
         engine = page.split('Engine</dt><dd>', 1)[1].split('</dd>', 1)[0]
-        self.assertIn('Scope: unknown (not recorded)', engine)
+        self.assertIn('Scope: this run', engine)
+        # One producer reporting brings back all five rows; the ones it did not report stay unknown.
+        self.assertIn('Product acceptance</dt><dd><strong>pass</strong>', page)
+        self.assertIn('Owner hold</dt>', page)
+        self.assertNotIn("Other lifecycle", page)
 
     def test_new_reading_controls_extend_existing_state_and_anchor_restoration(self):
         page = progress_render.render(story_snapshot())
         for text in ('query: search ? search.value : ""', 'search.value = state.query', 'filterStory();',
-                     'window.addEventListener("hashchange", revealAnchor)', 'node.tagName === "DETAILS"',
-                     'node = node.parentElement', 'node.hidden = false', 'hasSelection() || focusedControl()'):
+                     'window.addEventListener("hashchange", () => revealAnchor())', 'node.tagName === "DETAILS"',
+                     'node = node.parentElement', 'node.hidden = false', 'hasSelection() && !forced'):
             self.assertIn(text, page)
         self.assertLess(page.index('  restoreViewState();'), page.index('  revealAnchor(restoredAnchor !== location.hash);'))
         self.assertIn("@media(max-width:600px)", page)
         self.assertIn('aria-labelledby="story-heading"', page)
 
-    @unittest.skipUnless(shutil.which("node"), "Node required for isolated refresh logic probe")
-    def test_trace_scheduler_handles_blocked_pause_final_and_selection(self):
-        # Execute the actual schedule function with fake clocks/DOM; no browser or timers escape.
-        start = trace_page.PAGE.index("  function schedule() {")
-        end = trace_page.PAGE.index("\n  render();", start)
-        schedule = trace_page.PAGE[start:end]
-        predicate_start = trace_page.PAGE.index("  const observerFinal =")
-        predicate_end = trace_page.PAGE.index("\n\n", predicate_start)
-        predicate = trace_page.PAGE[predicate_start:predicate_end]
-        header_start = trace_page.PAGE.index("  function runSpanLabel(status) {")
-        header_end = trace_page.PAGE.index("  function nowCard() {", header_start)
-        header = trace_page.PAGE[header_start:header_end]
-        script = """
-const assert = require('assert');
-for (const [status, mode, final, live, selection, expected] of [
- ['blocked','watch',false,true,false,1], ['active','watch',false,true,false,1],
- ['done','watch',false,true,false,1], ['halted','watch',false,true,false,1],
- ['done','watch',true,true,false,0], ['halted','watch',true,true,false,0],
- ['done','snapshot',false,true,false,0], ['halted','stopped',false,true,false,0],
- ['blocked','stopped',false,true,false,0],
- ['active',undefined,undefined,true,false,1], ['done',undefined,undefined,true,false,0],
- ['halted',undefined,undefined,true,false,0],
- ['blocked','snapshot',false,true,false,0], ['blocked','watch',true,true,false,0],
- ['blocked','watch',false,false,false,0], ['blocked','watch',false,true,true,0]]) {
- const TRACE = {generated: '2026-11-14T12:00:00Z'};
- const run = {status, traced: true, id: 'fixture-run', revision: 1, elapsed: 0, goal: 'Fixture goal'}, observer = {}, ui = {live};
- const counts = {accepted: 0, packets: 0, reprints: 0, refusals: 0, continuations: 0, skills: 0, commands: 0};
- if (mode !== undefined) observer.mode = mode;
- if (final !== undefined) observer.final = final;
- let timer = null, callback = null, reloads = 0;
- const setTimeout = (fn) => { callback = fn; return 1; }, clearTimeout = () => {};
- const document = {activeElement: null}, viewer = {classList: {contains: () => false}};
- const window = {scrollY: 9, getSelection: () => ({isCollapsed: !selection, toString: () => selection ? 'chosen' : ''})};
- const store = {set: () => {}}, location = {reload: () => reloads++};
- const num = String, when = String, span = String, ZONE = 'UTC', save = () => {};
- const el = (tag, attrs, ...children) => ({tag, attrs: attrs || {}, children: children.flat(Infinity)});
- const flatten = node => !node || typeof node !== 'object' ? String(node ?? '') : node.children.map(flatten).join('');
- const find = (node, tag) => node && typeof node === 'object' && (node.tag === tag ? node : node.children.map(child => find(child, tag)).find(Boolean));
-""" + predicate + schedule + header + """
- schedule();
- if (callback) callback();
- assert.equal(reloads, expected, JSON.stringify({status, mode, final, live, selection}));
- const control = find(header(), 'label');
- assert.equal(!!control, watchable);
- if (control) {
-   assert.equal(flatten(control).trim(), 'watch display (reload every 10 s)');
-   const checkbox = find(control, 'input');
-   assert.equal(checkbox.attrs.checked, live);
-   checkbox.attrs.onchange({target: {checked: false}});
-   assert.equal(ui.live, false);
- }
-}
-"""
-        result = subprocess.run([shutil.which("node"), "-e", script], capture_output=True, text=True, timeout=5)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Watching this display does not establish execution", trace_page.PAGE)
 
 
 if __name__ == "__main__":

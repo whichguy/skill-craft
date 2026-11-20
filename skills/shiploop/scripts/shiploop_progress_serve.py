@@ -1,9 +1,9 @@
 """Opt-in read-only viewer: serve a run's published HTML pages on 127.0.0.1 for a browser.
 
 The user starts it in their own terminal with ``shiploop view --serve``; ShipLoop never starts it, so every command
-stays visible to the host's hooks. It answers GET and HEAD for three files of the run directory and nothing else. It
-reads those files and never writes, so it cannot change a run; the observer (``shiploop_progress``) still owns every
-page. While it runs, any process on this machine can read the pages.
+stays visible to the host's hooks. It answers GET and HEAD for the run's three pages and the three scripts an open
+page checks for live updates, and nothing else. It reads those files and never writes, so it cannot change a run; the
+observer (``shiploop_progress``) still owns every one. While it runs, any process on this machine can read them.
 """
 from __future__ import annotations
 
@@ -23,12 +23,17 @@ HOST = "127.0.0.1"
 PORT_BASE = 40000
 PORT_SPAN = 20000
 PORT_TRIES = 50
-# The pages a run publishes. Nothing else in the run directory is reachable.
-PAGES = {"/": "progress.html", "/progress.html": "progress.html", "/trace.html": "trace.html",
-         "/report.html": "report.html"}
-# The pages are self-contained: inline script and style, data: images and fonts, no network.
-POLICY = ("default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; "
-          "base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+# What a run publishes. Nothing else in the run directory is reachable. The scripts are the observer's version and
+# content files: an open page loads them with a <script> tag to update in place, as it does when opened as a file.
+HTML = "text/html; charset=utf-8"
+SCRIPT = "text/javascript; charset=utf-8"
+PAGES = {"/": ("progress.html", HTML), "/progress.html": ("progress.html", HTML), "/trace.html": ("trace.html", HTML),
+         "/report.html": ("report.html", HTML), "/progress-version.js": ("progress-version.js", SCRIPT),
+         "/progress-content.js": ("progress-content.js", SCRIPT), "/trace-content.js": ("trace-content.js", SCRIPT)}
+# The pages are self-contained: inline script and style, data: images and fonts. 'self' admits only the scripts
+# listed above, and there is no connection of any other kind.
+POLICY = ("default-src 'none'; script-src 'unsafe-inline' 'self'; style-src 'unsafe-inline'; img-src data:; "
+          "font-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 
 
 def default_port(root: Path) -> int:
@@ -70,11 +75,12 @@ class _Handler(BaseHTTPRequestHandler):
         return self.server_version
 
     def log_message(self, format: str, *args: object) -> None:  # noqa: A002 - the stdlib signature
-        pass  # the terminal shows the address, not a line per refresh
+        pass  # the terminal shows the address, not a line per check
 
-    def _send(self, status: int, body: bytes, *, head: bool, html: bool = False, allow: str = "") -> None:
+    def _send(self, status: int, body: bytes, *, head: bool, kind: str = "text/plain; charset=utf-8",
+              allow: str = "") -> None:
         self.send_response(status)
-        self.send_header("Content-Type", "text/html; charset=utf-8" if html else "text/plain; charset=utf-8")
+        self.send_header("Content-Type", kind)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -90,7 +96,7 @@ class _Handler(BaseHTTPRequestHandler):
         # A page on another site that resolves its own name to 127.0.0.1 would otherwise read these pages.
         if (self.headers.get("Host") or "").lower() not in self.server.allowed_hosts():
             return self._send(403, b"Unknown host\n", head=head)
-        name = PAGES.get(urlsplit(self.path).path)
+        name, kind = PAGES.get(urlsplit(self.path).path, (None, ""))
         if name is None:
             return self._send(404, b"Not found\n", head=head)
         try:
@@ -99,7 +105,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._send(404, f"{name} is not published yet\n".encode(), head=head)
         except (OSError, ValueError):
             return self._send(403, f"{name} is not a plain file\n".encode(), head=head)
-        self._send(200, body, head=head, html=True)
+        self._send(200, body, head=head, kind=kind)
 
     def do_GET(self) -> None:  # noqa: N802 - the stdlib's handler names
         self._serve(head=False)

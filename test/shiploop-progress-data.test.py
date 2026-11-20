@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -495,10 +496,17 @@ class StoryObservationTests(unittest.TestCase):
         by_path = {e["relative_path"]: e for e in story["evidence"]}
         self.assertIsNotNone(by_path["checks/" + current + ".md"]["sha256"])
         self.assertIsNotNone(by_path["loops/" + prior + "-terminal.json"]["sha256"])
-        self.assertEqual(by_path["loops/" + oldest + "-terminal.json"]["status"], "unavailable")
+        # A structured record past the embedding budget is still read; only its preview is left out.
+        left_out = by_path["loops/" + oldest + "-terminal.json"]
+        self.assertEqual((left_out["status"], left_out["content"]), ("not embedded", ""))
+        self.assertIsNotNone(left_out["sha256"])
+        self.assertEqual(next(e["status"] for e in story["events"] if e["kind"] == "until" and e["action"] == oldest), "stopped")
+        # Packet copies past the budget are not read at all.
+        self.assertEqual(by_path["packets/repeat.md"]["status"], "not loaded")
         self.assertEqual(len([e for e in story["evidence"] if e["relative_path"] == "packets/repeat.md"]), 1)
         self.assertEqual(story["coverage"]["previews_read"], 2)
         self.assertGreater(story["coverage"]["previews_not_read"], 0)
+        self.assertGreater(story["coverage"]["previews_not_embedded"], 0)
         self.assertTrue(any("File existence/content" in warning for warning in story["warnings"]))
         self.assertEqual([v["action"] for v in story["visits"]], [entry["action"] for entry in self.state["history"]] + [current])
 
@@ -679,6 +687,314 @@ class StoryObservationTests(unittest.TestCase):
         self.assertEqual(visit["parent_stage"], parent)
         self.assertEqual(visit["action"], state["active_improve"]["improve_action"])
         self.assertEqual(projected["summary"]["now"], "improve")
+        # The stage under review has no history row yet: its events show in the one current visit, beside the
+        # pass's own, and not outside every visit.
+        self.assertEqual(visit["reviewed_action"], action)
+        self.assertNotIn(action, {row["action"] for row in projected["visits"]})
+        self.append("trace.jsonl", {"kind": "command", "verb": "check", "action": action, "exit": 0})
+        projected, _ = self.story.build(self.root, state, self.timeline)
+        event = next(e for e in projected["events"] if e["source"]["path"] == "trace.jsonl")
+        self.assertIn(event["id"], projected["visits"][-1]["events"])
+        self.assertNotIn("improve_of", event)
+
+    def trace_events(self, story, path="trace.jsonl"):
+        return [e for e in story["events"] if e["source"]["path"] == path]
+
+    def test_trace_events_use_plain_status_words_and_keep_the_raw_exit(self):
+        rows = [
+            {"kind": "command", "verb": "complete", "exit": 0},
+            {"kind": "command", "verb": "complete", "exit": 2, "error": "stage refused"},
+            {"kind": "command", "verb": "check", "exit": 1},
+            {"kind": "command", "verb": "check", "exit": 3, "held": ["note-1"]},
+            {"kind": "command", "verb": "next", "exit": 130, "crashed": "KeyboardInterrupt"},
+            {"kind": "command", "verb": "next", "exit": 1, "crashed": "ValueError"},
+            {"kind": "command", "verb": "next"},
+            {"kind": "command", "verb": "next", "exit": True},
+            {"kind": "packet", "stage": "spec"},
+            {"kind": "packet", "stage": "spec", "repeat": True},
+            {"kind": "hook", "hook": "stop", "decision": "allow", "why": "run is idle"},
+            {"kind": "hook", "hook": "stop", "why": "no decision recorded"},
+            {"kind": "hook", "hook": "stop", "decision": ""},
+            {"kind": "mystery"},
+            {"why": "no kind at all"},
+        ]
+        for row in rows:
+            self.append("trace.jsonl", row)
+        self.append("skill-calls.jsonl", {"gate": "not enforced", "why": "not a Claude Code session"})
+        self.append("skill-calls.jsonl", {"skill": "fixture", "args": "x"})
+        self.append("skill-calls.jsonl", {"skill": "fixture", "gate": ""})
+        story, _ = self.build()
+        got = [(e["kind"], e["status"], e["exit"]) for e in self.trace_events(story)]
+        self.assertEqual(got, [
+            ("command", "ok", 0), ("command", "refused (exit 2)", 2), ("command", "not passed (exit 1)", 1),
+            ("command", "held (exit 3)", 3), ("command", "interrupted (exit 130)", 130),
+            ("command", "crashed (exit 1)", 1), ("command", None, None), ("command", None, None),
+            ("packet", "sent", None), ("packet", "sent again (same text)", None),
+            ("hook", "allow", None), ("hook", None, None), ("hook", None, None),
+            ("mystery", None, None), ("unknown", None, None)])
+        skills = self.trace_events(story, "skill-calls.jsonl")
+        self.assertEqual([e["status"] for e in skills], ["not enforced", "called", "called"])
+        self.assertTrue(all(e["exit"] is None for e in skills))
+        text = json.dumps(story)
+        self.assertNotIn("unknown", [e["status"] for e in story["events"]])
+        self.assertNotIn('"status": 0', text)
+
+    def test_packet_events_describe_the_packet_instead_of_falling_back_to_their_kind(self):
+        self.append("trace.jsonl", {"kind": "packet", "action": self.action, "item": "W2", "stage": "improve",
+                                    "reviewed": "document", "chars": 1504, "printed": 1531, "whole": True,
+                                    "at": "2026-01-01T00:00:01Z"})
+        self.append("trace.jsonl", {"kind": "packet", "stage": "spec", "chars": 20000, "printed": 1531, "whole": False})
+        self.append("trace.jsonl", {"kind": "packet", "stage": "plan", "whole": True})
+        self.append("trace.jsonl", {"kind": "packet"})
+        self.append("trace.jsonl", {"kind": "packet", "stage": "plan", "why": "an explicit reason wins"})
+        self.append("trace.jsonl", {"kind": "command", "verb": "next", "exit": 0})
+        self.append("trace.jsonl", {"kind": "hook", "text": "hook text"})
+        story, _ = self.build()
+        self.assertEqual([e["summary"] for e in self.trace_events(story)], [
+            "W2 improve packet (reviewing document), 1,504 chars, printed whole",
+            "spec packet, 20,000 chars, printed head 1,531 chars",
+            "plan packet, printed whole", "packet", "an explicit reason wins", "next", "hook text"])
+        self.assertEqual(story["summary"]["changed"], "W2 improve packet (reviewing document), 1,504 chars, printed whole")
+
+    def test_a_stage_that_wrote_no_structured_file_has_no_missing_candidates(self):
+        story, _ = self.build()
+        self.assertFalse([e for e in story["events"] if e["kind"] in ("until", "check", "expectation", "test")])
+        structured = ("loops/", "checks/", "expectations/", "tests/")
+        self.assertFalse([e for e in story["evidence"] if e["relative_path"].startswith(structured)])
+        # Other actions' files, and unrelated names, do not make this action's candidates exist.
+        for directory in ("loops", "checks", "expectations"):
+            (self.root / directory).mkdir()
+            (self.root / directory / "nav-other-terminal.json").write_text("{}")
+        (self.root / "checks" / (self.action + ".md.bak")).write_text("not a record")
+        story, _ = self.build()
+        self.assertFalse([e for e in story["events"] if e["kind"] in ("until", "check", "expectation", "test")])
+        self.assertFalse([e for e in story["evidence"] if e["relative_path"].startswith(("loops/", "checks/", "expectations/"))])
+        # Exactly the files this action wrote become candidates, each once.
+        (self.root / "checks" / (self.action + ".md")).write_text(store.dumps({"run_id": self.state["run_id"], "action": self.action, "answer": "yes"}))
+        story, _ = self.build()
+        self.assertEqual([(e["kind"], e["status"]) for e in story["events"] if e["kind"] in ("until", "check", "expectation", "test")],
+                         [("check", "yes")])
+
+    def test_a_listed_file_that_vanishes_before_the_read_still_shows_missing(self):
+        listing = lambda root, directory: [self.action + ".md"] if directory == "checks" else []
+        with mock.patch.object(self.story, "_listing", side_effect=listing):
+            story, _ = self.build()
+        checks = [e for e in story["events"] if e["kind"] == "check"]
+        self.assertEqual([e["status"] for e in checks], ["missing"])
+
+    def test_every_structured_record_is_read_and_only_the_previews_are_budgeted(self):
+        for _ in range(3):
+            action = navigator.current_action(self.state)["id"]
+            self.state = navigator.apply(self.state, action, {"outcome": "done", "summary": "Prior accepted visit"})
+        current = navigator.current_action(self.state)["id"]
+        history = [entry["action"] for entry in self.state["history"]]
+        for directory in ("loops", "checks", "expectations", "tests", "packets"):
+            (self.root / directory).mkdir()
+        run_id = self.state["run_id"]
+        for action in history:
+            (self.root / "loops" / (action + "-terminal.json")).write_text(json.dumps({"run_id": run_id, "action": action, "status": "stopped"}))
+            (self.root / "tests" / (action + "-verify1.md")).write_text(store.dumps({"status": "passed", "run_id": run_id, "action": action}))
+            (self.root / "tests" / (action + "-verify2.md")).write_text(store.dumps({"status": "skipped", "run_id": run_id, "action": action}))
+        (self.root / "expectations" / (history[0] + ".md")).write_text(store.dumps(
+            {"schema": "shiploop-expectations/v1", "action": history[0],
+             "results": [{"id": "E1", "matches": True}, {"id": "E2", "matches": False}, {"id": "E3", "matches": True}]}))
+        (self.root / "checks" / (current + ".md")).write_text(store.dumps({"run_id": run_id, "action": current, "answer": "yes"}))
+        (self.root / "checks" / (history[1] + ".md")).write_text(store.dumps({"run_id": run_id, "action": history[1]}))
+        (self.root / "packets" / "repeat.md").write_text("Repeated packet")
+        self.append("trace.jsonl", {"kind": "packet", "action": current, "file": "packets/repeat.md"})
+        with mock.patch.object(self.story, "EVIDENCE_FILES", 2):
+            story, _ = self.build()
+        records = [e for e in story["events"] if e["kind"] in ("until", "check", "expectation", "test")]
+        self.assertEqual(len(records), 3 + 6 + 1 + 2)
+        self.assertEqual(sorted(e["status"] for e in records if e["kind"] == "test"), ["passed"] * 3 + ["skipped"] * 3)
+        self.assertEqual([e["status"] for e in records if e["kind"] == "until"], ["stopped"] * 3)
+        self.assertEqual([e["status"] for e in records if e["kind"] == "expectation"], ["2 of 3 matched"])
+        self.assertEqual(sorted(e["status"] or "" for e in records if e["kind"] == "check"), ["", "yes"])
+        structured = [e for e in story["evidence"] if e["relative_path"].startswith(("loops/", "checks/", "expectations/", "tests/"))]
+        self.assertEqual(len(structured), len(records))
+        embedded = [e for e in structured if e["status"] != "not embedded"]
+        left_out = [e for e in structured if e["status"] == "not embedded"]
+        self.assertEqual(len(embedded), 2)
+        self.assertEqual(len(left_out), len(records) - 2)
+        for entry in left_out:
+            self.assertEqual(entry["content"], "")
+            self.assertIsNotNone(entry["sha256"])
+            self.assertIn("2-file display budget", entry["summary"])
+            self.assertIn("record itself was read", entry["summary"])
+        self.assertTrue(all(e["content"] for e in embedded))
+        # Packet copies past the budget are not read; the warning and counts cover only those.
+        not_loaded = [e for e in story["evidence"] if e["status"] == "not loaded"]
+        self.assertEqual({e["relative_path"] for e in not_loaded}, {"packets/repeat.md", "packets/" + current + ".md"})
+        self.assertEqual(story["coverage"], {"preview_candidates": len(structured) + 2, "previews_read": 2,
+                                              "previews_not_read": 2, "previews_not_embedded": len(left_out),
+                                              "scope": story["coverage"]["scope"]})
+        self.assertTrue(any(w.startswith("2 registered source previews were not read") for w in story["warnings"]))
+        partial = {row["path"] for row in story["sources"] if row["status"] == "partial" and row["path"].startswith("packets/")}
+        self.assertEqual(partial, {"packets/repeat.md", "packets/" + current + ".md"})
+        self.assertNotIn("unavailable", [e["status"] for e in records])
+        # A record status that changes after the budget still changes what the page shows.
+        before = story["content_fingerprint"]
+        (self.root / "loops" / (history[0] + "-terminal.json")).write_text(json.dumps({"run_id": run_id, "action": history[0], "status": "complete"}))
+        with mock.patch.object(self.story, "EVIDENCE_FILES", 2):
+            changed, _ = self.build()
+        self.assertNotEqual(before, changed["content_fingerprint"])
+        self.assertEqual(next(e["status"] for e in changed["events"] if e["kind"] == "until" and e["action"] == history[0]), "complete")
+
+    def test_a_record_with_no_status_says_so_instead_of_unknown(self):
+        (self.root / "checks").mkdir()
+        (self.root / "checks" / (self.action + ".md")).write_text(store.dumps({"run_id": self.state["run_id"], "action": self.action}))
+        (self.root / "expectations").mkdir()
+        (self.root / "expectations" / (self.action + ".md")).write_text(store.dumps({"schema": "shiploop-expectations/v1", "action": self.action, "results": []}))
+        story, _ = self.build()
+        records = [e for e in story["events"] if e["kind"] in ("check", "expectation")]
+        self.assertEqual([e["status"] for e in records], [None, None])
+        self.assertTrue(all("no status recorded" in e["summary"] and "unknown" not in e["summary"] for e in records))
+
+    def test_unchanged_files_are_reused_without_a_read_and_changed_ones_are_read_again(self):
+        (self.root / "loops").mkdir()
+        (self.root / "checks").mkdir()
+        receipt = self.root / "loops" / (self.action + "-terminal.json")
+        check = self.root / "checks" / (self.action + ".md")
+        receipt.write_text(json.dumps({"run_id": self.state["run_id"], "action": self.action, "status": "active"}))
+        check.write_text(store.dumps({"run_id": self.state["run_id"], "action": self.action, "answer": "yes"}))
+        self.append("trace.jsonl", {"kind": "hook", "text": "first"})
+        first, captures = self.build(observed_at="first read")
+        calls = []
+        real = self.io.capture
+        def counting(root, relative, *args, **kwargs):
+            calls.append(relative)
+            return real(root, relative, *args, **kwargs)
+        with mock.patch.object(self.io, "capture", side_effect=counting):
+            second, reused = self.build(previous=captures, observed_at="second read")
+        # Only the three JSONL streams are captured fresh; the unchanged evidence files are not read.
+        # (A missing current packet copy is never reused: there is nothing to reuse.)
+        self.assertEqual(sorted(c for c in calls if not c.startswith("packets/")),
+                         ["progress-observations.jsonl", "skill-calls.jsonl", "trace.jsonl"])
+        self.assertNotIn("loops/" + self.action + "-terminal.json", calls)
+        self.assertNotIn("checks/" + self.action + ".md", calls)
+        def shown(value):
+            if isinstance(value, dict):
+                return {k: shown(v) for k, v in value.items() if k != "observed_at"}
+            return [shown(v) for v in value] if isinstance(value, list) else value
+        self.assertEqual(shown(first), shown(second))
+        self.assertEqual(first["content_fingerprint"], second["content_fingerprint"])
+        self.assertEqual(first["activity_fingerprint"], second["activity_fingerprint"])
+        rel = "loops/" + self.action + "-terminal.json"
+        self.assertEqual(reused[rel]["raw"], captures[rel]["raw"])
+        self.assertEqual(reused[rel]["generation"], captures[rel]["generation"])
+        self.assertEqual(next(s for s in second["sources"] if s["path"] == rel)["observed_at"], "second read")
+        self.assertEqual(captures[rel]["source"]["observed_at"], "first read")  # the retained capture is not mutated
+        # A different size is read again and shows the new content.
+        receipt.write_text(json.dumps({"run_id": self.state["run_id"], "action": self.action, "status": "stopped", "pad": "x"}))
+        calls.clear()
+        with mock.patch.object(self.io, "capture", side_effect=counting):
+            third, _ = self.build(previous=reused, observed_at="third read")
+        self.assertIn(rel, calls)
+        self.assertNotIn("checks/" + self.action + ".md", calls)
+        self.assertEqual(next(e["status"] for e in third["events"] if e["kind"] == "until"), "stopped")
+        self.assertNotEqual(second["content_fingerprint"], third["content_fingerprint"])
+        self.assertNotEqual(second["activity_fingerprint"], third["activity_fingerprint"])
+        # Same size, different mtime is read again too.
+        raw = check.read_bytes()
+        check.write_bytes(raw.replace(b"yes", b"no_"))
+        os.utime(check, ns=(captures["checks/" + self.action + ".md"]["mtime_ns"] + 5_000_000_000,) * 2)
+        calls.clear()
+        with mock.patch.object(self.io, "capture", side_effect=counting):
+            fourth, _ = self.build(previous=reused, observed_at="fourth read")
+        self.assertIn("checks/" + self.action + ".md", calls)
+        self.assertEqual(next(e["status"] for e in fourth["events"] if e["kind"] == "check"), "no_")
+
+    def test_unchanged_trusts_only_a_matching_good_capture_of_a_regular_single_link_file(self):
+        target = self.root / "note.txt"
+        target.write_text("one")
+        good = self.io.capture(self.root, "note.txt", 1024, "t")
+        self.assertTrue(self.io.unchanged(self.root, "note.txt", good))
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", None))
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", {}))
+        self.assertFalse(self.io.unchanged(self.root, "missing.txt", good))
+        self.assertFalse(self.io.unchanged(self.root, "../outside.txt", good))
+        self.assertFalse(self.io.unchanged(self.root, "no-such-dir/note.txt", good))
+        stale = dict(good, source=dict(good["source"], status="stale"))
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", stale))
+        target.write_text("three")  # size differs
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", good))
+        target.write_text("one")
+        again = self.io.capture(self.root, "note.txt", 1024, "t")
+        os.utime(target, ns=(again["mtime_ns"] + 1_000_000_000,) * 2)  # same size, mtime differs
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", again))
+        fresh = self.io.capture(self.root, "note.txt", 1024, "t")
+        replacement = self.root / "replacement.txt"
+        replacement.write_text("one")
+        os.utime(replacement, ns=(fresh["mtime_ns"],) * 2)
+        os.replace(replacement, target)  # same size and mtime, new inode
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", fresh))
+        kept = self.io.capture(self.root, "note.txt", 1024, "t")
+        os.link(target, self.root / "second-link.txt")
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", kept))
+        os.unlink(self.root / "second-link.txt")
+        self.assertTrue(self.io.unchanged(self.root, "note.txt", kept))
+        target.unlink()
+        target.symlink_to(self.root / "state-never.txt")
+        self.assertFalse(self.io.unchanged(self.root, "note.txt", kept))
+
+    def reviewed_state(self):
+        """A state whose spec visit was reviewed by a finished Improve pass (its ids named as a real run records them)."""
+        state = navigator.new_state(str(self.repo), "Synthetic Improve visit")
+        while navigator.current_stage(state) != "spec":
+            state = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Accepted planning input"})
+        reviewed = navigator.current_action(state)["id"]
+        state = navigator.apply(state, reviewed, {"outcome": "done", "summary": "Review the accepted scope"})
+        child = state["active_improve"]["improve_action"]
+        state = navigator.finish_improve(state, reviewed, _improve_receipt("spec"))
+        state["improve_results"][reviewed].update(improve_action=child, runtime_phase="complete")
+        return state, reviewed, child
+
+    def test_improve_pass_events_belong_to_the_visit_it_reviewed(self):
+        state, reviewed, child = self.reviewed_state()
+        self.assertTrue(state["improve_results"][reviewed])
+        self.append("trace.jsonl", {"kind": "hook", "text": "names no action and follows no packet"})
+        self.append("trace.jsonl", {"kind": "packet", "action": child, "stage": "improve", "reviewed": "spec", "chars": 100, "whole": True})
+        self.append("trace.jsonl", {"kind": "command", "verb": "improve-pass", "action": child, "exit": 0})
+        self.append("trace.jsonl", {"kind": "command", "verb": "complete", "action": reviewed, "exit": 0})
+        story, _ = self.story.build(self.root, state, self.timeline)
+        visit = next(v for v in story["visits"] if v["action"] == reviewed)
+        owned = [e for e in story["events"] if e["id"] in visit["events"]]
+        self.assertEqual(visit["improve"], {"action": child, "phase": "complete"})
+        self.assertEqual([e["kind"] for e in owned if e["kind"] != "accepted"], ["packet", "command", "command"])
+        self.assertEqual({e["improve_of"] for e in owned if e["action"] == child}, {reviewed})
+        self.assertEqual(sum(1 for e in owned if e["action"] == child), 2)
+        self.assertTrue(all("improve_of" not in e for e in owned if e["action"] != child))
+        # Only the hook, which names no action and follows no packet, is left unowned; no Improve event is.
+        claimed = {eid for v in story["visits"] for eid in v["events"]}
+        self.assertEqual([e["kind"] for e in story["events"] if e["id"] not in claimed], ["hook"])
+        self.assertTrue(all("improve" not in v for v in story["visits"] if v["action"] != reviewed))
+
+    def test_improve_ownership_ignores_malformed_records_and_leaves_the_active_pass_alone(self):
+        state, reviewed, _child = self.reviewed_state()
+        results = state["improve_results"]
+        results["not-a-visit"] = {"improve_action": "nav-orphan"}
+        results["broken"] = "junk"
+        results[reviewed + "-x"] = {"improve_action": 7}
+        results[42] = {"improve_action": "nav-int-key"}
+        self.append("trace.jsonl", {"kind": "command", "verb": "improve-pass", "action": "nav-orphan", "exit": 0})
+        story, _ = self.story.build(self.root, state, self.timeline)
+        orphan = next(e for e in story["events"] if e["action"] == "nav-orphan")
+        self.assertNotIn("improve_of", orphan)
+        self.assertNotIn(orphan["id"], {eid for v in story["visits"] for eid in v["events"]})
+        # An active Improve pass keeps its own visit and its own events, as before.
+        active = navigator.new_state(str(self.repo), "Synthetic Improve visit")
+        while navigator.current_stage(active) != "spec":
+            active = navigator.apply(active, navigator.current_action(active)["id"], {"outcome": "done", "summary": "Accepted planning input"})
+        active = navigator.apply(active, navigator.current_action(active)["id"], {"outcome": "done", "summary": "Review the accepted scope"})
+        pass_action = active["active_improve"]["improve_action"]
+        self.append("trace.jsonl", {"kind": "command", "verb": "improve-pass", "action": pass_action, "exit": 0})
+        story, _ = self.story.build(self.root, active, self.timeline)
+        visit = story["visits"][-1]
+        self.assertEqual((visit["stage"], visit["action"]), ("improve", pass_action))
+        self.assertNotIn("improve", visit)
+        owned = [e for e in story["events"] if e["id"] in visit["events"]]
+        self.assertEqual([e["verb"] if "verb" in e else e["summary"] for e in owned], ["improve-pass"])
+        self.assertTrue(all("improve_of" not in e for e in story["events"]))
 
     def test_replacement_and_cap_have_explicit_coverage(self):
         self.append("trace.jsonl", {"kind": "hook"})
