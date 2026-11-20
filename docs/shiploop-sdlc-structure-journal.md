@@ -614,6 +614,128 @@ request and no planning stage ran), and slices that run at the same time may mee
 **Not in this registration.** A slice with the stage Until Loop switched off in a build copy (an overlay) was
 considered; it would be registered by itself after the records are read.
 
+### Registered addition: arm L0, the stage Until Loop switched off (written after its rehearsal, before any counted L0 slice)
+
+**Why.** The records say the stage loop never repeats (R24) and that its commands take a visible share of the
+model's time (R25). But the turn census cannot price it: a stage's first command is the loop's `start`, so the
+time the model spends reading the packet and deciding the stage's work is charged to it. On the first counted
+slice (Sol 6.2 medium, `tickets-assign`) `start` alone is 46% of the model's time and `done` 1.6%. Only a run
+without the loop says what it costs.
+
+**The arm** (`overlays/l0-no-stage-loop.json`: seven edits applied to a build copy by `slice.py --overlay`, never
+to the checkout). Every inner stage's packet still prints the stage's Work, Exit and Repeat conditions, the loop
+contract's own words. No loop command is started, no receipt is written, `complete` asks for none, and a
+result's `evidence_refs` lists none. ShipLoop's gates at `check` and `complete` are unchanged, and so is the
+Improve review's own loop.
+
+**Rehearsal** (one L0 slice, Sol 6.2 medium, `tickets-assign`, not counted). Every slice verdict passed, with
+no stage receipt, in 10.2 minutes beside 9.5 for the baseline slice. `check` was refused five times beside two;
+the three extra were record rules (a mock's fields, the `learned` list, a spec line), and both slices met the
+same first refusal (a Proof naming a test file not yet written) and the same two surviving seeded faults (the
+name limit 64 changed to 65, and 200 to 201).
+
+**Runs.** Codex `gpt-6.2-sol` at medium, both cases, two slices per arm and case: the registered baseline slice
+plus one more, and two L0 slices, with the arms alternating inside each lane. Claude Sonnet 5.5 at high: one L0
+slice per case beside its registered baseline slice. No Grok.
+
+**Readings.** Two slices a cell read only large effects.
+
+- *L0 completes* if every L0 slice has its `carry-forward` accepted.
+- *Time*: L0 saves time on a driver and case if its slices' mean minutes are at least 15% below the baseline's;
+  within 15% either way no difference is readable.
+- *Quality*: no loss is seen if every L0 slice passes at least as many hidden checks at its end as the baseline
+  slices of its case pass at the least. Refusals of `check` and `complete` are reported without a bar: with no
+  loop report, `check` is the model's only exit test, so more calls of it are expected.
+
+**Limits known before the run.** A slice is ten minutes to an hour of one item: it cannot show drift over long
+work or a cleared context, which is what the loop is for. The overlay's wording is one of several possible. Lanes
+that run at once share the provider's capacity, so minutes are compared only between arms that alternate in a
+lane.
+
+### Results from the records (273 finished runs; 96% Codex gpt-6.1-terra)
+
+**R22. The step's own tests rarely fail, and the test stage rarely changes the product**
+(`evidence/iteration-census.txt`; 460 build steps, 448 with a test stage, 451 with every snapshot).
+
+| Place the first implementation could be found wanting | How often |
+|---|---|
+| The model's own Proof or test run fails inside `implement` | under 1% of steps |
+| ShipLoop refuses the `implement` result | 1% of steps |
+| One of the model's own test runs fails inside `test` | 5% of steps (terra xhigh 5%, terra high 3%, Grok 4.6 4 of 29, Sol 6.1 medium 0 of 8) |
+| Product code changes during `test` | 6% of steps (a median 21 lines where it does) |
+| Product code changes during `document` | 5% of steps (a median 2 lines) |
+| The step review changes product code | 23% of steps (a median 5 lines; round 1 found 22%) |
+
+The model runs its tests a median twice in the `test` stage, the first time 16 seconds in. Per step the median
+times are `implement` 34 s, `test` 55 s, `document` 27 s and the step review 31 s.
+
+**R23. What the test stage does iterate on is the tests.** ShipLoop refused the `test` result in 43% of steps
+(0.52 refusals a step). By the refused command's own output: 203 refusals because a seeded fault survived the
+step's tests, 35 because a new test already passed on the old code, 11 because a recorded command failed, 11 for
+a record rule. From the first refusal to acceptance is 25% of all test-stage seconds (a median 36 s where
+refused), 9 to 14% of a step's build time on terra. At the 202 refusals that give a count, 447 of 1,453 sampled
+faults had survived (a median 2 of 8). In the accepted results 1,932 sampled faults are caught and 97 are left
+uncaught with a written reason, in 10% of steps; 72 of the 97 are a changed number constant.
+
+**R24. The stage Until Loop does not repeat.** Of 2,433 stage loops with a receipt (`implement` 507, `test` 460,
+`document` 428, `test-spec` 377, `step-plan` 377, `carry-forward` 282, `validate-existing` 2), 2,432 ended on
+their first iteration; one `step-plan` loop took two. The Improve review's own loop is a different loop and does
+repeat (its passes); it is not counted here.
+
+**R25. Where the model's time goes, by kind of command** (`evidence/turn-census.txt`). Only runs whose stream
+lists file edits are unbiased (41 terra runs, 3 Sol 6.1 medium, 4 Grok 4.6): in the others the time spent
+writing a file is charged to the next visible command.
+
+| Driver (runs) | Until Loop commands | ShipLoop callbacks | Packet fetches | Run records | Guides | Review notes | Knowledge home | Tests | Product |
+|---|---|---|---|---|---|---|---|---|---|
+| Codex terra xhigh (25) | 13% | 48% | 6% | 6% | 3% | 2% | 1% | 7% | 16% |
+| Codex terra high (16) | 16% | 49% | 6% | 4% | 2% | 1% | 0% | 6% | 14% |
+| Codex Sol 6.1 medium (3) | 20% | 6% | 4% | 26% | 4% | 13% | 4% | 11% | 11% |
+| Grok 4.6 xhigh (4) | 6% | 4% | 2% | 18% | 8% | 5% | 9% | 4% | 44% |
+
+On Codex terra a callback command usually also writes the result file it submits, so "callbacks" there holds
+the result writing that shows as "run records" on the other two. Reading and running the product and its tests
+is 20 to 23% of the model's time on Codex and 48% on Grok. Of the Until Loop commands, the `done` report is 7.4
+to 9.2% of the model's time on terra, 6.5 to 8.0% on Sol medium and 2.3% on Grok; `start` is 4.4 to 5.0% on
+terra, 11.6 to 18.5% on Sol medium and 1.6% on Grok, and includes reading the packet that says to start it.
+
+**R26. The first complete implementation already passes every hidden check** (`snapshot_acceptance.py`,
+`evidence/snapshot-acceptance.txt`, `.json`; exploratory). 84 of the 92 runs with held-out acceptance could be
+graded at every snapshot (the other 8 are two cases whose acceptance block is no longer in `cases.json`). All 84
+are terra (high 53, xhigh 31), on 12 cases with 6 to 23 checks each.
+
+| Snapshot | Runs passing every hidden check | Checks passed |
+|---|---|---|
+| The last step's base | 5 of 83 | 800 of 1,261 (63%) |
+| `implement` accepted | 83 of 84 | 1,266 of 1,267 |
+| `test` accepted | 83 of 84 | 1,266 of 1,267 |
+| Before the step review | 83 of 84 | 1,266 of 1,267 |
+| The step commit, after the review | 83 of 84 | 1,266 of 1,267 |
+| Before the end-of-work review | 84 of 84 | 1,267 of 1,267 |
+| Delivered | 84 of 84 | 1,267 of 1,267 |
+
+The one exception is a four-step run whose last step left no `implement` snapshot, so its third step was graded,
+before the command-line change the fourth step made. No hidden check that passed at `implement` failed at a
+later snapshot. So in these runs the `test` stage, the `document` stage, the step review, the end-of-work review,
+the system tests and product acceptance changed no hidden verdict.
+
+**R27. Outside evidence** (`research/`; the agents' readings, not checked again).
+
+- Executable tests that the coder can see before writing raise first-attempt correctness on single-function
+  benchmarks (9 to 13 points for GPT-4, 13 to 30 for a 70B model) and the ceiling is the tests' own quality; no
+  study measures prose test cases written first, which is what `test-spec` produces. Agent-run test-first on
+  real work measured no quality gain at 3 to 8.5 times the tokens in two practitioner studies, one of them on
+  GPT-5.6 Sol at medium and xhigh with hidden tests.
+- Repair is front-loaded: the first one or two rounds give 76 to 95% of the gain, logic failures repair at about
+  45%, and a fresh start after two failed rounds helped small models by 4 to 10 points and strong ones not at all.
+- Tests written in the same conversation as the code were far less accurate than tests written apart from it
+  (52 to 61% against 88 to 90% in one study), which matches R23.
+- Harnesses that publish their history removed per-task reviewers and plan-review loops for speed and kept one
+  final review; one vendor dropped per-sprint evaluation for a stronger model and kept the planner and one final
+  evaluator; several add a light path for small work.
+- Vendors agree on a script-checkable signal to end a loop, a separate fresh evaluator, context resets instead
+  of repeated correction, and removing scaffolding as models improve.
+
 ## Evidence (all rounds)
 
 | File | Holds |

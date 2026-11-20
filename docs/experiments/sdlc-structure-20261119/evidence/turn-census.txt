@@ -1,0 +1,24 @@
+The Until Loop's own commands, as a share of the model's time (start includes the time spent reading the packet that says to start it; done includes writing the loop's report):
+  codex gpt-6.1-terra high edits not listed   done 7.4% (13 a run), start 4.8% (8 a run), next 0.5% (1 a run), other 0.1% (0 a run)
+  codex gpt-6.1-terra xhigh edits not listed  done 8.0% (15 a run), start 5.0% (9 a run), next 0.8% (2 a run), other 0.2% (0 a run), record 0.0% (0 a run)
+  codex gpt-6.1-terra xhigh edits listed      done 7.5% (15 a run), start 4.4% (10 a run), next 0.8% (2 a run), other 0.1% (0 a run)
+  codex gpt-6.1-terra high edits listed       done 9.2% (18 a run), start 5.0% (10 a run), next 1.5% (3 a run), other 0.1% (0 a run)
+  grok grok-4.6 xhigh edits listed            done 2.3% (40 a run), start 1.6% (20 a run), other 1.1% (17 a run), next 0.9% (11 a run)
+  codex gpt-6.1-sol medium edits listed       start 11.6% (8 a run), done 6.5% (12 a run), other 1.7% (4 a run), next 0.0% (0 a run)
+  codex gpt-6.1-sol medium edits not listed   start 18.5% (16 a run), done 8.0% (12 a run), other 4.7% (16 a run)
+
+host model effort                            runs           loop     callback       packet      records       guides review notes    knowledge        tests      product   (share of the model's time; calls per run below)
+codex gpt-6.1-terra high edits not listed     135            13%          49%           6%           8%           2%           3%           0%           8%          10%
+                                                              22           55            9           14            7            8            0           12           25
+codex gpt-6.1-terra xhigh edits not listed     87            14%          46%           6%           8%           3%           2%           0%          10%          10%
+                                                              27           57           11           14           10            7            0           15           30
+codex gpt-6.1-terra xhigh edits listed         25            13%          48%           6%           6%           3%           2%           1%           7%          16%
+                                                              28           62           13           13           11            7            1           13           46
+codex gpt-6.1-terra high edits listed          16            16%          49%           6%           4%           2%           1%           0%           6%          16%
+                                                              31           60           11            8            8            4            0           12           43
+grok grok-4.6 xhigh edits listed                4             6%           4%           2%          18%           8%           5%           9%           4%          44%
+                                                              88           79           67          346          217           94          176           67          350
+codex gpt-6.1-sol medium edits listed           3            20%           6%           4%          26%           4%          13%           4%          11%          11%
+                                                              25           44            9           47            9           26            3           13           15
+codex gpt-6.1-sol medium edits not listed       1            31%           9%           4%          22%           3%           8%           0%          20%           2%
+                                                              44           66           12           27           11           12            0           23            9

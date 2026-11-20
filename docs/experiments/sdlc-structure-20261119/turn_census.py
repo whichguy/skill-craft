@@ -24,12 +24,14 @@ Usage: python3 -I turn_census.py CENSUS.json [--all]   (--all also reads runs th
 import collections
 import json
 import pathlib
+import re
 import sys
 
 import iteration_census as base
 
 SUBMIT = {"complete", "check", "red-check", "improve-pass", "improve-commit", "improve-start", "improve-bind",
           "improve-reconcile"}
+LOOP_VERB = re.compile(r"until_loop\w*\.py\s+(\w+)")
 KINDS = ("loop", "callback", "packet", "records", "guides", "review notes", "knowledge", "tests", "product")
 
 
@@ -55,7 +57,8 @@ def kind(call):
 
 def main(census, everything=False):
     runs = [r for r in json.loads(pathlib.Path(census).read_text()) if r["current_era"] and (r["done"] or everything)]
-    groups = collections.defaultdict(lambda: {"runs": 0, "seconds": collections.Counter(), "calls": collections.Counter()})
+    groups = collections.defaultdict(lambda: {"runs": 0, "seconds": collections.Counter(), "calls": collections.Counter(),
+                                              "loop": collections.Counter(), "loop_calls": collections.Counter()})
     for run in runs:
         calls = base.commands(pathlib.Path(run["folder"]))
         if not calls:
@@ -73,6 +76,18 @@ def main(census, everything=False):
             label = kind(call)
             group["seconds"][label] += spent
             group["calls"][label] += 1
+            if label == "loop":
+                verb = LOOP_VERB.search(call["command"])
+                group["loop"][verb.group(1) if verb else "other"] += spent
+                group["loop_calls"][verb.group(1) if verb else "other"] += 1
+    print("The Until Loop's own commands, as a share of the model's time (start includes the time spent reading the packet "
+          "that says to start it; done includes writing the loop's report):")
+    for key, group in sorted(groups.items(), key=lambda pair: -pair[1]["runs"]):
+        total = sum(group["seconds"].values()) or 1.0
+        parts = ", ".join(f"{name} {seconds / total:.1%} ({group['loop_calls'][name] / group['runs']:.0f} a run)"
+                          for name, seconds in group["loop"].most_common())
+        print(f"  {' '.join(key):<44}{parts}")
+    print()
     print(f"{'host model effort':<44}{'runs':>5}  " + "".join(f"{k:>13}" for k in KINDS) + "   (share of the model's time; calls per run below)")
     for key, group in sorted(groups.items(), key=lambda pair: -pair[1]["runs"]):
         total = sum(group["seconds"].values()) or 1.0

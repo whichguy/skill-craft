@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Grade every snapshot of an inner-loop slice with checks the model never saw (round 4's registered yardstick).
+
+For each slice in ITERATION.json (iteration_census.py --all over the slices' folder) this exports the Git tree
+ShipLoop snapshotted when each step's `implement` was accepted, when its `test` was accepted, before its step
+review and at its step commit, plus the slice's final working copy, and runs the hidden checks on each:
+
+  tickets-assign      the held-out module of the full ticket-assignment case (quality.acceptance); 14 of its 18
+                      checks are scored, the four on the listing filter and the command line are reported apart
+  shared-expenses-w1  the six checks of the full shared-expenses case (checks/expense_service.py)
+
+Usage: python3.13 slice_snapshots.py ITERATION.json OUT.json
+"""
+import collections
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+import tempfile
+
+import snapshot_acceptance as snap
+
+REPO = snap.REPO
+CHECKS = REPO / "test" / "shiploop_e2e" / "checks"
+OUTSIDE = ("assignee-filter", "filters-combine", "assignee-filter-pages", "cli-shows-assignee")
+EXPENSE = ("unit", "contract", "split", "settle", "restart", "concurrency")
+POINTS = ("implement", "test", "before_review", "commit")
+
+
+def expense(copy):
+    """The six shared-expenses checks, each in its own process, as {passed: [...], failed: {id: last line}}."""
+    passed, failed = [], {}
+    env = dict(os.environ, E2E_CHECKS=str(CHECKS))
+    for name in EXPENSE:
+        try:
+            done = subprocess.run([sys.executable, str(CHECKS / "expense_service.py"), name], cwd=copy, env=env,
+                                  capture_output=True, text=True, timeout=180, check=False)
+            ok, note = done.returncode == 0, (done.stdout.strip().splitlines() or done.stderr.strip().splitlines() or [""])[-1]
+        except subprocess.TimeoutExpired:
+            ok, note = False, "timed out after 180 s"
+        if ok:
+            passed.append(name)
+        else:
+            failed[name] = note[:240]
+    return {"observed": True, "passed": passed, "failed": failed}
+
+
+def grade(case, copy, folder, cases):
+    if case == "shared-expenses-w1":
+        return expense(copy)
+    spec = cases["ticket-assignment"]["quality"]
+    result = snap.quality.acceptance(copy, spec["acceptance"], groups=set(), stop=lambda: None, logs=folder / "logs",
+                                     ports=list(spec.get("refuse_ports") or []))
+    rows = result.get("checks") or []
+    return {"observed": bool(result.get("observed")), "reason": result.get("reason"),
+            "passed": [c["id"] for c in rows if c.get("pass") and c["id"] not in OUTSIDE],
+            "failed": {c["id"]: c.get("note") for c in rows if not c.get("pass") and c["id"] not in OUTSIDE},
+            "outside_passed": [c["id"] for c in rows if c.get("pass") and c["id"] in OUTSIDE]}
+
+
+def at(case, export, cases, scratch):
+    folder = pathlib.Path(tempfile.mkdtemp(prefix="slice-", dir=scratch))
+    copy = folder / "copy"
+    copy.mkdir()
+    try:
+        export(copy)
+        return grade(case, copy, folder, cases)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return {"observed": False, "reason": f"{type(error).__name__}: {error}"[:300]}
+    finally:
+        snap.listeners.reap(folder)
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+def main(iteration, out):
+    data = json.loads(pathlib.Path(iteration).read_text())
+    cases = json.loads((REPO / "test" / "shiploop_e2e" / "cases.json").read_text())
+    out = pathlib.Path(out)
+    scratch = out.parent / "slice-snap-work"
+    scratch.mkdir(parents=True, exist_ok=True)
+    steps_of = collections.defaultdict(list)
+    for step in data["steps"]:
+        steps_of[step["run"]].append(step)
+    report = {}
+    for run in sorted(data["runs"], key=lambda r: r["run"]):
+        if run.get("case") not in ("tickets-assign", "shared-expenses-w1"):
+            continue
+        worktree = pathlib.Path(run["worktree"])
+        name = pathlib.Path(run["run"]).parents[3].name
+        row = {"case": run["case"], "host": run["host"], "model": run["model"], "effort": run["effort"], "steps": []}
+        cache = {}
+        for number, step in enumerate(steps_of[run["run"]], 1):
+            marks = {}
+            for point in POINTS:
+                tree = (step.get("trees") or {}).get(point)
+                if not tree:
+                    marks[point] = None
+                    continue
+                if tree not in cache:
+                    def export(copy, tree=tree, worktree=worktree):
+                        archive = snap.git(worktree, "archive", tree, binary=True)
+                        if archive is None:
+                            raise ValueError("the tree is not in the slice's repository")
+                        subprocess.run(["tar", "-x", "-C", str(copy)], input=archive, check=True)
+                    cache[tree] = at(run["case"], export, cases, scratch)
+                marks[point] = cache[tree]
+            row["steps"].append(marks)
+        row["end"] = at(run["case"], lambda copy, worktree=worktree: snap.quality.export_delivery(worktree, copy), cases, scratch)
+        report[name] = row
+        total = len(EXPENSE) if run["case"] == "shared-expenses-w1" else 14
+        line = []
+        for number, marks in enumerate(row["steps"], 1):
+            line.append(f"S{number} " + " ".join(
+                f"{point}={len(m['passed']) if m and m.get('observed') else '?' if m else '-'}" for point, m in marks.items()))
+        end = row["end"]
+        print(f"{name:<28}{run['model']:<18}{run['effort'] or '-':<7}of {total}: {'; '.join(line)}; end="
+              f"{len(end['passed']) if end.get('observed') else '?'}", flush=True)
+        for point, m in [("end", end)] + [(f"S{n} {p}", mm) for n, marks in enumerate(row["steps"], 1) for p, mm in marks.items()]:
+            if m and m.get("failed"):
+                print(f"    {point}: failed " + "; ".join(f"{k} ({(v or '')[:110]})" for k, v in m["failed"].items()))
+    out.write_text(json.dumps(report, indent=1))
+    shutil.rmtree(scratch, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    main(*sys.argv[1:])

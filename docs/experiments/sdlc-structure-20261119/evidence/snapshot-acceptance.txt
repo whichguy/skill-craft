@@ -1,0 +1,22 @@
+graded runs: 84; left out: 0 with a snapshot that could not be graded, 0 whose delivered product does not pass every check when graded again; scored: 84
+
+snapshot              runs passing every check     checks passed
+base                           5 of 83      6%       800 of 1261  63.4%
+implement                     83 of 84     99%      1266 of 1267  99.9%
+test                          83 of 84     99%      1266 of 1267  99.9%
+before_review                 83 of 84     99%      1266 of 1267  99.9%
+commit                        83 of 84     99%      1266 of 1267  99.9%
+before_end_review             84 of 84    100%      1267 of 1267 100.0%
+delivered                     84 of 84    100%      1267 of 1267 100.0%
+
+by model and effort, runs whose `implement` snapshot passes every check:
+  gpt-6.1-terra high one step               36 of 36
+  gpt-6.1-terra xhigh several steps         27 of 27
+  gpt-6.1-terra high several steps          16 of 17
+  gpt-6.1-terra xhigh one step               4 of 4
+
+runs where a snapshot failed a check the delivered product passes:
+  ticket-assignment (gpt-6.1-terra high, 3 steps) A-ticket-assignment-s2
+    cli-shows-assignee: failed at implement, first passes after carry-forward | tickets list (rc 0, assigned with HTTP [200, 200]): ['T-0001  open    normal    li@example.com  2026-11-20 15:27  Command line 1', 'T-0002  open    no
+
+checks failing at `implement` and passing in the delivered product, by the stage after which they first pass: {'carry-forward': 1}

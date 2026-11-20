@@ -1,0 +1,48 @@
+{
+ "about": "Round 4 arm L0 (docs/shiploop-sdlc-structure-journal.md): the stage Until Loop switched off in a build copy. Every inner stage still prints its Work, Exit and Repeat conditions (the contract's own words), but no loop command is started, no receipt is written or checked, and a result's evidence_refs lists none. ShipLoop's own gates at check and complete are unchanged, and so is the Improve review's loop. Written against a71537ea.",
+ "edits": [
+  {
+   "module": "shiploop_loops.py",
+   "function": "check_terminal",
+   "old": "    check_outcome(stage, result)\n    outcome = result.get(\"outcome\") if isinstance(result, Mapping) else None",
+   "new": "    check_outcome(stage, result)\n    return None  # arm L0: no stage loop receipt is required\n    outcome = result.get(\"outcome\") if isinstance(result, Mapping) else None"
+  },
+  {
+   "module": "shiploop_loops.py",
+   "function": "invoke_lines",
+   "old": "    contract_file, receipt = root / contract_path(action_id), receipt_path(root, action_id)\n    started = os.path.lexists(receipt)",
+   "new": "    return [\"\", \"Exit conditions (this run starts no Until Loop command and keeps no loop receipt: do this stage's work to these conditions, repeating as they say, then write the result and run the callback):\",\n            *(\"Work: \" + value[\"work\"]).splitlines(), \"Exit when ALL of these hold:\", *value[\"exit_condition\"].splitlines(),\n            value[\"repeat_condition\"]]\n    contract_file, receipt = root / contract_path(action_id), receipt_path(root, action_id)\n    started = os.path.lexists(receipt)"
+  },
+  {
+   "module": "shiploop_navigator.py",
+   "function": "_loop_receipt",
+   "old": "    if stage in loops.STAGES:\n        return loops.receipt_path(root, action_id)\n    return None",
+   "new": "    return None  # arm L0: no receipt to cite"
+  },
+  {
+   "module": "shiploop_navigator.py",
+   "constant": "DONE_WHEN_LOOP",
+   "old": "every exit condition in the Until Loop argument below holds",
+   "new": "every exit condition listed under Exit conditions below holds"
+  },
+  {
+   "module": "shiploop_navigator.py",
+   "constant": "DONE_WHEN_LOOP_PACKETS",
+   "old": "every exit condition the Until Loop states in each instruction it prints holds; start ",
+   "new": "every exit condition listed under Exit conditions below holds; read "
+  },
+  {
+   "module": "shiploop_navigator.py",
+   "constant": "_CHECK_TEXT",
+   "key": "loop-terminal",
+   "old": "checks the Until Loop receipt (in evidence_refs) against the contract and refuses a loop still ",
+   "new": "does not use an Until Loop receipt in this run (none is kept), so it refuses nothing as still "
+  },
+  {
+   "module": "shiploop_navigator.py",
+   "function": "completion_instructions",
+   "old": "    if child is None and loops.cursor(state) is None:",
+   "new": "    if child is None:"
+  }
+ ]
+}

@@ -1,0 +1,114 @@
+finished runs read: 273 of 273; build steps: 460
+
+host model effort                  steps  runs
+
+== all: 460 steps in 273 runs; 448 with a test stage; 451 with every snapshot ==
+  median seconds per step: implement 34, test 55, document 27, step review 31
+  test stage, the model's own test runs (446 steps with a command stream): median 2 runs, mean 2.0; a failing run in 5% of steps; failing runs per step mean 0.06, of steps with any 1 median, max 2
+  test stage time: first own test run a median 16 s in; from first run to the first green after the last failure 27% of all test-stage seconds (median 37 s where there was a failure)
+  implement stage: own test or proof runs median 0; a failing one in 0% of steps
+  ShipLoop refused a callback: implement 1% of steps, test 43% (mean 0.52 a step)
+    why (from the refused command's own output): tests too weak (a seeded fault survived) 203; a new test already passes on the old code 35; a recorded command failed 11; result or record rule 10; result file shape 1
+    from the first refusal to acceptance: 25% of all test-stage seconds (median 36 s where refused)
+    seeded faults at the 202 refusals that give a count: 447 of 1453 sampled faults survived the step's tests (median 2 of 8)
+    in the accepted result of 448 steps: 1932 sampled faults caught, 97 left uncaught with a written reason, in 10% of steps (integer 72, boolean 15, comparison 10)
+  Until Loop took more than one iteration: implement 0% of 460, test 0% of 448
+  product code after implement was accepted (451 steps; implement wrote a median 22 lines):
+    during test          changed in   6% of 439 steps; where changed a median 21 lines, 0.45 of what implement wrote
+    during document      changed in   5% of 435 steps; where changed a median 2 lines, 0.10 of what implement wrote
+    by the step review   changed in  23% of 435 steps; where changed a median 5 lines, 0.12 of what implement wrote
+    any of the three     changed in  32% of 451 steps; where changed a median 5 lines, 0.15 of what implement wrote
+
+== codex gpt-6.1-terra xhigh: 213 steps in 112 runs; 205 with a test stage; 205 with every snapshot ==
+  median seconds per step: implement 35, test 56, document 26, step review 28
+  test stage, the model's own test runs (205 steps with a command stream): median 2 runs, mean 2.1; a failing run in 5% of steps; failing runs per step mean 0.06, of steps with any 1 median, max 2
+  test stage time: first own test run a median 16 s in; from first run to the first green after the last failure 35% of all test-stage seconds (median 37 s where there was a failure)
+  implement stage: own test or proof runs median 0; a failing one in 0% of steps
+  ShipLoop refused a callback: implement 1% of steps, test 49% (mean 0.61 a step)
+    why (from the refused command's own output): tests too weak (a seeded fault survived) 105; a new test already passes on the old code 17; a recorded command failed 7; result or record rule 6; result file shape 1
+    from the first refusal to acceptance: 34% of all test-stage seconds (median 38 s where refused)
+    seeded faults at the 104 refusals that give a count: 239 of 731 sampled faults survived the step's tests (median 2 of 8)
+    in the accepted result of 205 steps: 820 sampled faults caught, 52 left uncaught with a written reason, in 9% of steps (integer 35, boolean 11, comparison 6)
+  Until Loop took more than one iteration: implement 0% of 213, test 0% of 205
+  product code after implement was accepted (205 steps; implement wrote a median 25 lines):
+    during test          changed in   9% of 197 steps; where changed a median 28 lines, 0.53 of what implement wrote
+    during document      changed in   9% of 195 steps; where changed a median 2 lines, 0.11 of what implement wrote
+    by the step review   changed in  22% of 195 steps; where changed a median 5 lines, 0.08 of what implement wrote
+    any of the three     changed in  37% of 205 steps; where changed a median 5 lines, 0.24 of what implement wrote
+
+== codex gpt-6.1-terra high: 207 steps in 151 runs; 204 with a test stage; 206 with every snapshot ==
+  median seconds per step: implement 31, test 50, document 27, step review 31
+  test stage, the model's own test runs (204 steps with a command stream): median 2 runs, mean 1.9; a failing run in 3% of steps; failing runs per step mean 0.04, of steps with any 1 median, max 2
+  test stage time: first own test run a median 15 s in; from first run to the first green after the last failure 24% of all test-stage seconds (median 33 s where there was a failure)
+  implement stage: own test or proof runs median 0; a failing one in 0% of steps
+  ShipLoop refused a callback: implement 2% of steps, test 38% (mean 0.46 a step)
+    why (from the refused command's own output): tests too weak (a seeded fault survived) 85; a new test already passes on the old code 13; a recorded command failed 4; result or record rule 3
+    from the first refusal to acceptance: 26% of all test-stage seconds (median 29 s where refused)
+    seeded faults at the 85 refusals that give a count: 175 of 634 sampled faults survived the step's tests (median 2 of 8)
+    in the accepted result of 204 steps: 954 sampled faults caught, 25 left uncaught with a written reason, in 9% of steps (integer 24, boolean 1)
+  Until Loop took more than one iteration: implement 0% of 207, test 0% of 204
+  product code after implement was accepted (206 steps; implement wrote a median 20 lines):
+    during test          changed in   3% of 203 steps; where changed a median 8 lines, 0.20 of what implement wrote
+    during document      changed in   2% of 201 steps; where changed a median 2 lines, 0.05 of what implement wrote
+    by the step review   changed in  28% of 201 steps; where changed a median 6 lines, 0.13 of what implement wrote
+    any of the three     changed in  31% of 206 steps; where changed a median 5 lines, 0.12 of what implement wrote
+
+== grok grok-4.6 xhigh: 29 steps in 4 runs; 29 with a test stage; 29 with every snapshot ==
+  median seconds per step: implement 150, test 315, document 157, step review 277
+  test stage, the model's own test runs (29 steps with a command stream): median 2 runs, mean 2.4; a failing run in 14% of steps; failing runs per step mean 0.14, of steps with any 1 median, max 1
+  test stage time: first own test run a median 159 s in; from first run to the first green after the last failure 21% of all test-stage seconds (median 126 s where there was a failure)
+  implement stage: own test or proof runs median 1; a failing one in 3% of steps
+  ShipLoop refused a callback: implement 0% of steps, test 38% (mean 0.38 a step)
+    why (from the refused command's own output): tests too weak (a seeded fault survived) 10; a new test already passes on the old code 5; result or record rule 1
+    from the first refusal to acceptance: 12% of all test-stage seconds (median 86 s where refused)
+    seeded faults at the 10 refusals that give a count: 26 of 64 sampled faults survived the step's tests (median 2 of 7)
+    in the accepted result of 29 steps: 95 sampled faults caught, 19 left uncaught with a written reason, in 24% of steps (integer 12, comparison 4, boolean 3)
+  Until Loop took more than one iteration: implement 0% of 29, test 0% of 29
+  product code after implement was accepted (29 steps; implement wrote a median 13 lines):
+    during test          changed in   3% of  29 steps; where changed a median 206 lines, 103.00 of what implement wrote
+    during document      changed in   3% of  29 steps; where changed a median 2 lines, 0.10 of what implement wrote
+    by the step review   changed in   0% of  29 steps; where changed a median - lines, - of what implement wrote
+    any of the three     changed in   7% of  29 steps; where changed a median 104 lines, 51.55 of what implement wrote
+
+== codex gpt-6.1-sol medium: 9 steps in 4 runs; 8 with a test stage; 9 with every snapshot ==
+  median seconds per step: implement 56, test 111, document 26, step review 37
+  test stage, the model's own test runs (8 steps with a command stream): median 2 runs, mean 1.6; a failing run in 0% of steps; failing runs per step mean 0.00, of steps with any - median, max 0
+  test stage time: first own test run a median 45 s in; from first run to the first green after the last failure 17% of all test-stage seconds (median 48 s where there was a failure)
+  implement stage: own test or proof runs median 0; a failing one in 0% of steps
+  ShipLoop refused a callback: implement 0% of steps, test 38% (mean 0.38 a step)
+    why (from the refused command's own output): tests too weak (a seeded fault survived) 3
+    from the first refusal to acceptance: 18% of all test-stage seconds (median 53 s where refused)
+    seeded faults at the 3 refusals that give a count: 7 of 24 sampled faults survived the step's tests (median 3 of 8)
+    in the accepted result of 8 steps: 63 sampled faults caught, 1 left uncaught with a written reason, in 12% of steps (integer 1)
+  Until Loop took more than one iteration: implement 0% of 9, test 0% of 8
+  product code after implement was accepted (9 steps; implement wrote a median 103 lines):
+    during test          changed in   0% of   8 steps; where changed a median - lines, - of what implement wrote
+    during document      changed in   0% of   8 steps; where changed a median - lines, - of what implement wrote
+    by the step review   changed in  12% of   8 steps; where changed a median 11 lines, 0.09 of what implement wrote
+    any of the three     changed in  22% of   9 steps; where changed a median 10 lines, 0.07 of what implement wrote
+
+== claude claude-sonnet-5-5 -: 2 steps in 2 runs; 2 with a test stage; 2 with every snapshot ==
+  median seconds per step: implement 34, test 63, document 46, step review 107
+  ShipLoop refused a callback: implement 0% of steps, test 0% (mean 0.00 a step)
+    from the first refusal to acceptance: 0% of all test-stage seconds (median - s where refused)
+    in the accepted result of 2 steps: 0 sampled faults caught, 0 left uncaught with a written reason, in 0% of steps ()
+  Until Loop took more than one iteration: implement 0% of 2, test 0% of 2
+  product code after implement was accepted (2 steps; implement wrote a median 2 lines):
+    during test          changed in   0% of   2 steps; where changed a median - lines, - of what implement wrote
+    during document      changed in   0% of   2 steps; where changed a median - lines, - of what implement wrote
+    by the step review   changed in   0% of   2 steps; where changed a median - lines, - of what implement wrote
+    any of the three     changed in   0% of   2 steps; where changed a median - lines, - of what implement wrote
+
+== the Until Loop, every stage ==
+stage loops with a receipt: 2433; ended on their first iteration: 2432 (100.0%)
+  implement             507 loops; more than one iteration   0; most 1
+  test                  460 loops; more than one iteration   0; most 1
+  document              428 loops; more than one iteration   0; most 1
+  test-spec             377 loops; more than one iteration   0; most 1
+  step-plan             377 loops; more than one iteration   1; most 2
+  carry-forward         282 loops; more than one iteration   0; most 1
+  validate-existing       2 loops; more than one iteration   0; most 1
+  codex gpt-6.1-terra high: loop commands per run median 21, 15% of the run's commands; the commands themselves take 0.3% of run time (the model's reading of each printed instruction is not counted)
+  codex gpt-6.1-terra xhigh: loop commands per run median 24, 15% of the run's commands; the commands themselves take 0.4% of run time (the model's reading of each printed instruction is not counted)
+  grok grok-4.6 xhigh: loop commands per run median 114, 4% of the run's commands; the commands themselves take 2.5% of run time (the model's reading of each printed instruction is not counted)
+  codex gpt-6.1-sol medium: loop commands per run median 30, 15% of the run's commands; the commands themselves take 1.3% of run time (the model's reading of each printed instruction is not counted)

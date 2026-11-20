@@ -13,7 +13,8 @@ For every finished run in the census (stage_census.py's output) this pairs three
 
 Paths are classed with ShipLoop's own catalog (shiploop_item_scope.classify).
 
-Usage: python3 -I iteration_census.py CENSUS.json OUT.json
+Usage: python3 -I iteration_census.py CENSUS.json OUT.json [--all]   (--all also reads runs that did not finish,
+such as slices, which stop after carry-forward)
 """
 import bisect
 import collections
@@ -32,6 +33,7 @@ TEST_RUN = re.compile(
     r"\b(unittest|pytest|node --test|npm (?:run )?test|npx (?:jest|vitest|mocha)|go test|cargo test|jest\b|vitest|bats\b"
     r"|sf apex run test|mvn\b.*\btest|gradle\w*\b.*\btest)")
 SHIPLOOP = re.compile(r"skills/shiploop/scripts/shiploop\S*\s+(?:--\S+\s+)*([a-z-]+)")
+SURVIVED = re.compile(r"mutation check: \w+ is not done\. (\d+) of (\d+) mutants")
 EDIT_TOOLS = {"search_replace", "write", "apply_patch", "edit", "str_replace", "multi_edit"}
 SKIP_PREFIX = (".shiploop-improve/", ".until-loop", "docs/shiploop/")
 
@@ -193,8 +195,9 @@ def read_run(run):
     for path in (rundir / "tests").glob("nav-*-mutation*.md"):
         record = state(path)
         if record and record.get("sample_size"):
+            left = sorted(m.get("operator") or "?" for m in record.get("mutants") or [] if m.get("status") == "survived")
             mutation[record.get("action")].append((record.get("created_at") or "", record.get("killed") or 0,
-                                                   record.get("survived") or 0, len(record.get("undisposed") or [])))
+                                                   record.get("survived") or 0, len(record.get("undisposed") or []), left))
     loops = {}
     for path in (rundir / "loops").glob("*-terminal.json"):
         try:
@@ -207,7 +210,7 @@ def read_run(run):
         """What the model did inside one action, from its own command stream."""
         info = {"calls": 0, "test_runs": 0, "test_fails": 0, "checks": 0, "check_fails": 0, "edits": 0,
                 "loop_calls": 0, "loop_seconds": 0.0, "first_run": None, "last_fail": None, "green_after_fail": None,
-                "refusals": []}
+                "refusals": [], "survivors": []}
         start = issued.get(action)
         for call in by_action.get(action, ()):
             info["calls"] += 1
@@ -224,6 +227,9 @@ def read_run(run):
                     info["check_fails"] += 1
                     info["last_fail"] = call["end"] or call["t"]
                     info["refusals"].append(reason(call["output"]))
+                    counted = SURVIVED.search(call["output"])
+                    if counted:
+                        info["survivors"].append((int(counted.group(1)), int(counted.group(2))))
                 continue
             if TEST_RUN.search(text) and "--help" not in text:
                 info["test_runs"] += 1
@@ -265,7 +271,7 @@ def read_run(run):
             record["test"] = summary(test)
             record["test_refused"] = len(refused[test])
             record["refusal_tail_s"] = accepted[test]["ts"] - min(refused[test]) if refused[test] else 0.0
-            record["mutation"] = sorted(set(mutation[test]))
+            record["mutation"] = sorted(mutation[test])[-1:]
             record["loop_test"] = loops.get(test)
             gates = sorted(entry for entry in lint[test] if entry[1]) or sorted(lint[test])
             test_tree = gates[-1][2] if gates else None
@@ -352,11 +358,17 @@ def report(rows):
         tails = [r["refusal_tail_s"] for r in tested]
         print(f"    from the first refusal to acceptance: {sum(tails) / sum(r['test_s'] for r in tested):.0%} of all test-stage "
               f"seconds (median {median([t for t in tails if t])} s where refused)")
-        sampled = [r["mutation"][0] for r in tested if r.get("mutation")]
-        if sampled:
-            first_kill = sum(m[1] for m in sampled) / max(1, sum(m[1] + m[2] for m in sampled))
-            print(f"    seeded faults, first check of each of {len(sampled)} steps: {first_kill:.0%} caught by the step's own tests; "
-                  f"every sampled fault caught at the first check in {share(m[2] == 0 for m in sampled).strip()} of steps")
+        counted = [pair for r in tested for pair in r["test"]["survivors"]]
+        if counted:
+            print(f"    seeded faults at the {len(counted)} refusals that give a count: {sum(a for a, _ in counted)} of "
+                  f"{sum(b for _, b in counted)} sampled faults survived the step's tests (median "
+                  f"{median([a for a, _ in counted])} of {median([b for _, b in counted])})")
+        last = [r["mutation"][0] for r in tested if r.get("mutation")]
+        if last:
+            kept = collections.Counter(op for m in last for op in m[4])
+            print(f"    in the accepted result of {len(last)} steps: {sum(m[1] for m in last)} sampled faults caught, "
+                  f"{sum(m[2] for m in last)} left uncaught with a written reason, in {share(m[2] for m in last).strip()} of steps"
+                  f" ({', '.join(f'{op} {n}' for op, n in kept.most_common())})")
         looped = [r for r in group if r.get("loop_implement")]
         looped_test = [r for r in tested if r.get("loop_test")]
         print(f"  Until Loop took more than one iteration: implement {share(r['loop_implement'] > 1 for r in looped).strip()}"
@@ -396,8 +408,8 @@ def report_loops(whole):
               f"of run time (the model's reading of each printed instruction is not counted)")
 
 
-def main(census, out):
-    runs = [r for r in json.loads(pathlib.Path(census).read_text()) if r["current_era"] and r["done"]]
+def main(census, out, everything=False):
+    runs = [r for r in json.loads(pathlib.Path(census).read_text()) if r["current_era"] and (r["done"] or everything)]
     rows, failed, whole = [], 0, []
     for run in runs:
         try:
@@ -420,4 +432,4 @@ def main(census, out):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], "--all" in sys.argv)
