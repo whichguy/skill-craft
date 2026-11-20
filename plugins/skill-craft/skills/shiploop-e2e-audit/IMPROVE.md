@@ -1,86 +1,155 @@
-# Improve ShipLoop across software projects
+# Improve ShipLoop end to end
 
-Start from the authorized skill-craft source checkout. Resolve its Git root
-from the current directory or the supplied checkout path and use the existing
-`test/shiploop_e2e` source harness there.
-Installed audit packages contain the audit harness. Improvement uses the source
-checkout so the campaign can compare and deliver changes to ShipLoop.
+This procedure drives the single source harness under `$SOURCE/test/shiploop_e2e/`.
+It authorizes ordinary preflight and local campaign work within the stated scope.
 
-Use a clean checkout of current `origin/main` for the first published trial.
-If the working checkout has changes or comes from another revision, use a new
-campaign-owned checkout from current main. Record the source SHA and use a new
-output directory and external baseline ledger. The harness creates an empty
-product directory for a fresh create case. Reuse case predecessors only when
-that case explicitly measures an incremental change.
+## Prerequisites and checkout binding
 
-## Run and review
-
-1. Pick the requested local case. Start with `csv-report` for an unspecified
-   first pass. Use the catalog prompt and independent checks. Resolve the latest
-   available Sol and Astra families from the current official model list and
-   the Codex host. Use Sol medium for the subject and improver and separate
-   fresh Astra high reviewer and judge sessions. Record the selected IDs and
-   effective controls. Preserve a resumed trial's existing identity.
-2. Run the source harness on the published build. Fill the absolute paths and
-   resolved Sol ID once. Add an explicit run timeout when the owner sets one.
+1. Resolve `$SOURCE` to a clean `skill-craft` Git checkout at current `origin/main`
+   (from the current directory or supplied `checkout=PATH`). If the checkout is
+   dirty or off `main`, create a campaign-owned checkout from `origin/main`.
+2. Verify the local environment before spending model time:
 
    ```sh
-   python3.15 -B "$SOURCE/test/shiploop_e2e/run.py" \
-     --case "$CASE" --source marketplace --host codex --model "$SOL" --effort medium \
-     --codex-auto-review --output "$RUN" --baseline "$BASELINES"
+   python3 -c 'import os, sys; assert sys.platform != "darwin" or hasattr(os, "waitid"), "macOS needs Python 3.13+"'
+   git -C "$SOURCE" -c user.useConfigOnly=true var GIT_COMMITTER_IDENT
    ```
 
-   The runner automatically checks source freshness and the installed ShipLoop
-   and Improve packages before the first builder dispatch. The Codex route uses
-   the workspace sandbox and reviews individual commands outside it
-   automatically. Follow failures to their source and repair in-scope
-   prerequisites in the campaign checkout. Keep the failed attempt and use a
-   new run identity if the launch must be repeated.
-3. After the run, reuse its output for independent review and judgment. Set
-   the explicit role IDs on the actual invocation.
+3. Choose fresh external directories outside `$SOURCE` for `$RUN`, `$ASSESSMENT`,
+   and the persistent `$BASELINES` JSONL ledger. Never create `$RUN` or
+   `$ASSESSMENT` before invoking the script: `run.py` enforces that `$RUN` is
+   new and outside `$SOURCE`, creates a brand-new isolated product directory at
+   `$RUN/work`, and sets `GIT_CEILING_DIRECTORIES=$RUN` so Git never walks up
+   into an enclosing repository.
+   - **Every ShipLoop invocation is an isolated test-case run in a new Git repo
+     folder:** greenfield cases start in an empty `$RUN/work` where ShipLoop
+     initializes its own fresh Git repository; brownfield cases (`ticket-import`,
+     `ticket-assignment-tests`, `user-listing`) copy the pinned fixture into a
+     new `$RUN/work` and initialize a fresh, independent Git repository (`git
+     init` + base commit) there before ShipLoop starts. Never run ShipLoop inside
+     `$SOURCE` or reuse an earlier run's product repo folder.
+4. Read the full relevant Git commit messages and `test/shiploop_e2e/LEARNINGS.md`
+   for the affected area before planning any ShipLoop change, so prior
+   measurements, rejected approaches, and owner decisions carry forward.
 
-   ```sh
-   python3.15 -B "$SOURCE/test/shiploop_e2e/iterate.py" \
-     --case "$CASE" --review-run "$RUN" --output "$ASSESSMENT" \
-     --host codex --model "$SOL" --effort medium --codex-auto-review \
-     --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
-     --judge-host codex --judge-model "$ASTRA" --judge-effort high \
-     --improver-host codex --improver-model "$SOL" --improver-effort medium
-   ```
+### Standalone preflight
 
-   Record a findings-and-changes report in the campaign output for every
-   attempt, including a failed or blocked launch. Link the retained product,
-   verdict, actual test executions and assertions, review and stage evidence.
-   Describe coverage gaps, efficiency counters and their limitations. Give the
-   exact ShipLoop changes and their qualification and publication status, or
-   say that no ShipLoop change was made.
+Verify source freshness and installed marketplace packages without starting a model:
 
-## Improve and repeat
+```sh
+python3 -B "$SOURCE/test/shiploop_e2e/run.py" \
+  --preflight-only --case "$CASE" --source marketplace \
+  --host codex --codex-auto-review --output "$PREFLIGHT"
+```
 
-Group admitted findings into hypotheses about the SDLC workflow. Prefer the
-smallest experiment that can resolve each hypothesis. Start with a targeted
-regression when it can distinguish the faulty and corrected behavior. Use a
-second local case of a different style when a comparison needs evidence of
-generality. For example, a file CLI and a stateful service exercise different
-kinds of work. Report the scope actually measured.
+## 1–2. Iterate and evaluate
 
-Use `iterate.py --qualify --iterations 1` with the same role and permission
-settings for a registered comparison. Include `--review-run "$RUN"` at this
-step if the retained trial has yet to be assessed. If it has, start the cycle
-from the isolated branch containing the learning and pass `--record` with its admitted ID.
-For a separate generality case pass `--generality-case`. The existing calibration or recorded
-attempt and tolerance policy supplies the comparison parameters. When it is
-missing, retain the exploration and continue with calibration or a targeted
-investigation. Keep candidates isolated until qualification.
+Pick a local case whose oracle can fail meaningfully:
+- Default first case: `ticket-import` (brownfield delivery with pristine
+  regression tests and held-out acceptance) or `ticket-assignment-tests`
+  (calibrated test-adequacy case).
+- Cheap launch/delivery smoke only: `csv-report` (no held-out acceptance block;
+  do not treat a `csv-report` pass as proof that test authoring improved).
+- Incremental `follows` cases (such as `user-teams`): use explicit `epoch.py init`
+  with a reviewed predecessor registration; guided `--qualify` refuses them
+  early before invoking the improver.
 
-Read the recorded cycle decision and measured candidate. For a qualified
-production ShipLoop change, merge the tested change to main, run the repository
-release procedure, verify CI and the fresh marketplace install, then continue
-from that published revision. Repeat the affected case from equivalent inputs.
-Use a new trial directory and keep the generations and their evidence for
-review.
+For Codex campaigns, resolve the latest available Sol and Astra families from
+the current official model catalog (currently `gpt-6.2-sol` and `gpt-6.2-astra`),
+using Sol `xhigh` for the subject and fresh Astra `high` sessions for reviewer
+and judge. Leave the improver at the harness default (`max`: Codex Sol `max`, or
+Claude Sonnet `max` via `--improver-host claude`; do not pass `--improver-effort
+medium`).
 
-Continue while a material finding or coverage gap has an in-scope experiment
-and budget. If the result is unchanged or inconclusive, record why. A local
-case supports the SDLC behaviors it exercised. Add other case styles for
-broader claims about ShipLoop.
+Run the published build:
+
+```sh
+python3 -B "$SOURCE/test/shiploop_e2e/run.py" \
+  --case "$CASE" --source marketplace \
+  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
+  --output "$RUN" --baseline "$BASELINES"
+```
+
+The runner verifies clean source and installed package bytes before dispatch,
+checks launch evidence again after the session ends, runs product and held-out
+quality checks (requiring executed, non-skipped tests), and refreshes
+`$RUN/review-export/` after held-out quality finishes.
+
+## 3. Decide and record learnings
+
+Reuse the retained run for independent review and judgment (retryable with a
+new `--output`; each assessment uses its own `assessment_id` and writes
+`$ASSESSMENT/assessment.json`):
+
+```sh
+python3 -B "$SOURCE/test/shiploop_e2e/iterate.py" \
+  --case "$CASE" --review-run "$RUN" --output "$ASSESSMENT" \
+  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
+  --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
+  --judge-host codex --judge-model "$ASTRA" --judge-effort high \
+  --improver-host codex --improver-model "$SOL"
+```
+
+After every run (including failed, blocked, or no-change passes):
+- Check `nomenclature` in `$RUN/metrics.json` against
+  `skills/shiploop/references/glossary.md` (S-16) and cite any retired or
+  confused term beside the model action that followed.
+- Inspect `$RUN/review-export/` (compact `review-export.json` and static
+  `run-review.html`). Updating the shared Run Review page via
+  `/skill-craft:shiploop-run-review` is optional.
+- Retain a `test/shiploop_e2e/LEARNINGS.md` entry and compact
+  `test/shiploop_e2e/evidence/` summary in the repository with exact source SHA,
+  launch identity, commands, test counts (including skips), verdict, coverage
+  gaps, token/turn scope limits, and exact ShipLoop changes (or `none`).
+
+## 4–6. Plan, change ShipLoop, qualify, release, and repeat
+
+Group admitted findings into one generic SDLC hypothesis per cycle. Keep
+candidates isolated until qualified. If editing ShipLoop terminology, update
+`skills/shiploop/references/glossary.md` in the same commit and run
+`test/shiploop-retired-terms.test.py`.
+
+Run a registered `promotion/5` comparison with either a matched A/A calibration
+report (`--calibration FILE`, bound to driver, floors, and usable splits) or an
+explicitly stated, unmeasured pair (`--attempts N --tolerance T`):
+
+```sh
+# Continuing from Step 3: invoke iterate.py from the learning worktree printed in
+# $ASSESSMENT/assessment.json ("next_command"), because iterate.py resolves the repo
+# root from its own script path. Or pass --review-run "$RUN" directly without Step 3.
+python3 -B "$LEARNING_WORKTREE/test/shiploop_e2e/iterate.py" \
+  --qualify --iterations 1 --case "$CASE" --record "$RECORD_ID" \
+  --attempts 3 --tolerance 0.25 \
+  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
+  --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
+  --judge-host codex --judge-model "$ASTRA" --judge-effort high \
+  --improver-host codex --improver-model "$SOL" \
+  --output "$CYCLE"
+```
+
+Add `--generality-case "$SECOND_CASE"` (a case of a different style) when a
+claim needs cross-style evidence. The qualification harness runs `quick_suite`
+on the exact candidate diff before spending comparative runs, interleaves
+control and candidate attempts, pins observed host CLI builds across arms,
+marks Codex parent-thread-only token counts as lower bounds when subagents or
+auto-review ran, and preserves the numeric verdict alongside review completion.
+
+On `PROMOTE`:
+1. Review the loop branch and merge the verified ShipLoop change + learning
+   entry to `main` (ensuring `test/shiploop_e2e/LEARNINGS.md` sits at or after
+   the ShipLoop commit so `scripts/release.py`'s preflight passes).
+2. Run `scripts/release.py` and `scripts/release-push.py`, verify CI and a
+   fresh marketplace install, then rerun the affected test case in a brand-new
+   `$RUN` directory with a fresh, independent product Git repository folder.
+
+On `DROP`, `UNDECIDED`, or `NO_CANDIDATE`: keep the tip unchanged, retain the
+learning commit explaining why, and proceed to the next hypothesis.
+
+## Retention hygiene
+
+Keep raw run folders outside the checkout. Once a terminal attempt's compact
+evidence and `LEARNINGS.md` entry are committed, use
+`python3 -B "$SOURCE/test/shiploop_e2e/lifecycle.py" dispose "$RUN"` to remove
+heavy subdirectories (`work/`, `home/`, `build/`, `quality/`) while keeping logs
+and receipts. Never delete another session's runs, worktrees, or branches
+without explicit owner authorization.

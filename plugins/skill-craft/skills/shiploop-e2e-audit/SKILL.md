@@ -1,35 +1,49 @@
 ---
 name: shiploop-e2e-audit
-argument-hint: "[improve [CASE] | mock | check | CASE | SUITE | review PATH] [checkout=PATH] [output=PATH]"
+argument-hint: "[improve [CASE] | preflight | review RUN_DIR] [checkout=PATH] [output=PATH]"
 description: >-
-  Improve ShipLoop as a general SDLC skill through local end-to-end cases, independent
-  review, and qualified candidate comparisons. Use for self-improving ShipLoop,
-  ShipLoop E2E campaigns, mock or live audits, package checks, or retained-run review.
-  Hosted cases use their dedicated test environment and evidence requirements.
-version: 1.1.0
+  Run the continuous ShipLoop end-to-end improvement loop from a skill-craft
+  source checkout: iterate ShipLoop on a real local case, evaluate behavior and
+  workflow quality, decide whether ShipLoop needs to change, plan one bounded
+  hypothesis, apply and verify the change, and rerun a qualified comparison.
+version: 2.0.0
 license: MIT
 platforms:
   - linux
   - macos
 metadata:
   skill_craft:
-    kind: script-backed
+    kind: prompt-only
 ---
 
-# ShipLoop E2E audit
+# ShipLoop E2E improvement loop
 
-For **improve**, a request to iterate or self-improve ShipLoop, or an ongoing
-improvement campaign, use [the improvement procedure](IMPROVE.md). Start with a
-fresh local case and evaluate how ShipLoop plans, implements, tests, reviews,
-and delivers software. The request authorizes ordinary preflight and local
-campaign work within its stated scope. The harness checks the inputs
-automatically and retains the result.
+Use [the improvement procedure](IMPROVE.md) for every request to test, review,
+iterate on, or self-improve ShipLoop end to end. This skill requires a clean
+`skill-craft` source checkout (`test/shiploop_e2e/`); it ships no bundled
+second harness.
 
-For **mock**, **check**, a named smoke or full audit, or **review PATH**, use
-[the audit procedure](AUDIT.md) with this card's actual path as `SKILL_ROOT`.
-An audit request without a mode runs the mock audit. Hosted cases use their
-case-specific test environment, authority, and observation rules.
+The six-step loop is:
 
-ShipLoop's builder runs independently. Preserve each attempt and its delivered
-work. Keep the app's behavior, what its tests exercised, and the evidence for a
-change to ShipLoop visible in the findings report.
+1. **Iterate** ShipLoop headlessly on a test case in a brand-new, independent, isolated product Git repository folder (`$RUN/work`, created fresh per run outside `skill-craft`).
+2. **Evaluate** product checks, held-out quality, and an independent read-only review + judge.
+3. **Decide** whether ShipLoop itself needs to improve, and record learnings in the repo.
+4. **Plan** one bounded, generic hypothesis with a falsifiable prediction.
+5. **Change** `skills/shiploop/` at owner-selected `max` effort and verify with the `quick` test tier.
+6. **Rerun & promote** via a qualified `promotion/5` comparison (each attempt in its own fresh isolated product Git repo folder), release on `PROMOTE`, and repeat.
+
+## Host and runtime matrix
+
+| Surface | Requirement |
+| --- | --- |
+| Operator host | Any host with shell access to a clean `skill-craft` checkout (Codex, Claude Code, Grok, Cursor, OpenCode). |
+| Subject host | `--host codex` (`--codex-auto-review`), `--host claude` (`--backend anthropic` or `ollama`), or `--host grok`. Operator and subject may differ. |
+| Python | `python3` — 3.13+ on macOS (`os.waitid` in `listeners.py`), 3.9+ on Linux (ShipLoop itself requires 3.9+). |
+| Git | Configured committer identity (`git -c user.useConfigOnly=true var GIT_COMMITTER_IDENT`) before spending model runs. |
+
+ShipLoop's builder runs independently as a test-case run inside its own new,
+isolated Git repository folder — never inside `$SOURCE` (`skill-craft`) and
+never reusing a prior run's product directory. Never coach the builder, complete
+its callbacks, or modify its product or selected packages during a trial. Keep
+raw run outputs outside the source checkout and retain compact evidence in the
+repo for every terminal attempt.
