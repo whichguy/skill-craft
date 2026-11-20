@@ -1,0 +1,4669 @@
+{
+ "steps": [
+  {
+   "item": "W1",
+   "implement_s": 133.79100012779236,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 27,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 7,
+    "loop_calls": 2,
+    "loop_seconds": 11.186999797821045,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 323.25300002098083,
+   "test": {
+    "calls": 59,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 7,
+    "loop_calls": 2,
+    "loop_seconds": 13.812000036239624,
+    "first_run": 197.85700011253357,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:16:12Z",
+     0,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 189.9909999370575,
+   "review_s": 324.2660000324249,
+   "built": {
+    "code": 14
+   },
+   "in_test": {
+    "test": 43
+   },
+   "in_document": {
+    "docs": 7
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 7,
+    "test": 43
+   },
+   "trees": {
+    "base": "09fb57d2c5f6eb4f3350aee2165de30962a3f627",
+    "implement": "fbaf014fb65b127e15e482b95df3391b2a1ad259",
+    "test": "9726e3c0e857df4166d18995abe767b62d0a4bba",
+    "before_review": "d07c33fe806c19edd708d55c9811433d6f270ca7",
+    "commit": "d07c33fe806c19edd708d55c9811433d6f270ca7"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/grok-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "grok",
+   "model": "grok-4.6",
+   "effort": "xhigh",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 173.64999985694885,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 35,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 8,
+    "loop_calls": 2,
+    "loop_seconds": 15.401999950408936,
+    "first_run": 131.05400013923645,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 459.6170001029968,
+   "test": {
+    "calls": 63,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 5,
+    "check_fails": 1,
+    "edits": 11,
+    "loop_calls": 2,
+    "loop_seconds": 13.134000062942505,
+    "first_run": 80.4300000667572,
+    "last_fail": 1795192206.437,
+    "green_after_fail": 1795192424.92,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      6
+     ]
+    ],
+    "fix_span": 283.3110001087189
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 315.8250000476837,
+   "mutation": [
+    [
+     "2026-11-20T16:35:20Z",
+     4,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 180.69299983978271,
+   "review_s": 341.9020001888275,
+   "built": {
+    "code": 29
+   },
+   "in_test": {
+    "code": 7,
+    "test": 106
+   },
+   "in_document": {
+    "docs": 42
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 42,
+    "code": 7,
+    "test": 106
+   },
+   "trees": {
+    "base": "d07c33fe806c19edd708d55c9811433d6f270ca7",
+    "implement": "6db93967cc4247850ede0cf49323b666a51cc124",
+    "test": "dad8e9c8e20caa2f9751e2e90e70954b80f0a21b",
+    "before_review": "aa8a151c334d4aa130c8780799515e8342510e73",
+    "commit": "aa8a151c334d4aa130c8780799515e8342510e73"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/grok-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "grok",
+   "model": "grok-4.6",
+   "effort": "xhigh",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 166.3289999961853,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 38,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 6,
+    "loop_calls": 2,
+    "loop_seconds": 10.933000087738037,
+    "first_run": 97.34999990463257,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 353.5260000228882,
+   "test": {
+    "calls": 48,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 6,
+    "loop_calls": 2,
+    "loop_seconds": 7.434999942779541,
+    "first_run": 258.12999987602234,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:52:07Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 159.0659999847412,
+   "review_s": 107.4079999923706,
+   "built": {
+    "code": 12
+   },
+   "in_test": {
+    "test": 42
+   },
+   "in_document": {
+    "docs": 20,
+    "code": 2
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 20,
+    "code": 2,
+    "test": 42
+   },
+   "trees": {
+    "base": "aa8a151c334d4aa130c8780799515e8342510e73",
+    "implement": "e682b34545536ba875f2d71e24b9cfdee0ea4d8c",
+    "test": "255eefc4f397d6ccae948e0da104ef01b24fca9f",
+    "before_review": "41ba38e0deaa5201b3dce73a0788ecbe2155f82b",
+    "commit": "41ba38e0deaa5201b3dce73a0788ecbe2155f82b"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/grok-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "grok",
+   "model": "grok-4.6",
+   "effort": "xhigh",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 37.63599991798401,
+   "loop_implement": null,
+   "implement_refused": 1,
+   "implement": {
+    "calls": 10,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": 1795189097.372,
+    "green_after_fail": null,
+    "refusals": [
+     "result or record rule"
+    ],
+    "survivors": [],
+    "fix_span": 37.639999866485596
+   },
+   "test_s": 43.34600019454956,
+   "test": {
+    "calls": 11,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 35.59699988365173,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:39:05Z",
+     2,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 27.48199987411499,
+   "review_s": 14.815999984741211,
+   "built": {
+    "code": 23
+   },
+   "in_test": {
+    "test": 71
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 71
+   },
+   "trees": {
+    "base": "f878bf777b26e658c6c34b86f92259d69fe6979e",
+    "implement": "467ccea2a73266b473d941414b624a66a143a38d",
+    "test": "53ee4e816c0febc26ccaf2e48c79945111de70ff",
+    "before_review": "d2ad6540001d3d2f4b2b886cf32355dbd7b29166",
+    "commit": "d2ad6540001d3d2f4b2b886cf32355dbd7b29166"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/rehearsal-l0-sol-medium-tickets/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 30.77400016784668,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 28.110999822616577,
+   "test": {
+    "calls": 9,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 18.216000080108643,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:40:45Z",
+     5,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 6.4670000076293945,
+   "review_s": 8.944000005722046,
+   "built": {
+    "code": 35
+   },
+   "in_test": {
+    "test": 46
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 46
+   },
+   "trees": {
+    "base": "d2ad6540001d3d2f4b2b886cf32355dbd7b29166",
+    "implement": "21e7cbb0733a0ba32b4a0dcc6003d8f602d28905",
+    "test": "057a8cf2980c28f5723735998aaa4bec557f9334",
+    "before_review": "9332a36348f09b6b40702f97710967fa2d6c1fec",
+    "commit": "9332a36348f09b6b40702f97710967fa2d6c1fec"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/rehearsal-l0-sol-medium-tickets/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 14.555000066757202,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 65.6930000782013,
+   "test": {
+    "calls": 24,
+    "test_runs": 8,
+    "test_fails": 0,
+    "checks": 7,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 29.896999835968018,
+    "last_fail": 1795189322.291,
+    "green_after_fail": 1795189333.501,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      5
+     ]
+    ],
+    "fix_span": 23.766000032424927
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 23.255000114440918,
+   "mutation": [
+    [
+     "2026-11-20T15:42:21Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 23.125999927520752,
+   "review_s": 41.71199989318848,
+   "built": {
+    "code": 15
+   },
+   "in_test": {
+    "code": 5,
+    "test": 81
+   },
+   "in_document": {
+    "docs": 20
+   },
+   "in_review": {
+    "code": 21,
+    "test": 12
+   },
+   "after_implement": {
+    "docs": 20,
+    "code": 24,
+    "test": 93
+   },
+   "trees": {
+    "base": "9332a36348f09b6b40702f97710967fa2d6c1fec",
+    "implement": "b94f9aaeaf46350b0a479b2443e3b0846c9cf591",
+    "test": "52aa88d2bf5651314ae858c602e2ce67226dc8cb",
+    "before_review": "dece0731159026e6b3389fdd5cea78b52f5c6fda",
+    "commit": "3dbcb879b12199317806b389d98a4b93fc36c5b9"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/rehearsal-l0-sol-medium-tickets/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 72.90199995040894,
+   "loop_implement": 1,
+   "implement_refused": 2,
+   "implement": {
+    "calls": 16,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 2,
+    "edits": 0,
+    "loop_calls": 4,
+    "loop_seconds": 1.387000322341919,
+    "first_run": null,
+    "last_fail": 1795189306.042,
+    "green_after_fail": null,
+    "refusals": [
+     "result or record rule",
+     "result or record rule"
+    ],
+    "survivors": [],
+    "fix_span": 72.90599989891052
+   },
+   "test_s": 87.21900010108948,
+   "test": {
+    "calls": 23,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 8,
+    "check_fails": 2,
+    "edits": 0,
+    "loop_calls": 4,
+    "loop_seconds": 16.569999933242798,
+    "first_run": 42.58400011062622,
+    "last_fail": 1795189394.138,
+    "green_after_fail": 1795189384.243,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      3,
+      8
+     ],
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 23.789999961853027
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 34.34500002861023,
+   "mutation": [
+    [
+     "2026-11-20T15:43:24Z",
+     6,
+     2,
+     1,
+     [
+      "boolean",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 32.23199987411499,
+   "review_s": 20.282000064849854,
+   "built": {
+    "code": 134
+   },
+   "in_test": {
+    "test": 127
+   },
+   "in_document": {
+    "docs": 20
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 20,
+    "test": 127
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "bc0a9e292345083e3d30b55a1c73c655bef0b8fd",
+    "test": "f06b927b2e8344ecba732be73403acacb92a3031",
+    "before_review": "26590da3487ef74b68e2388747b83f0a92e145ce",
+    "commit": "26590da3487ef74b68e2388747b83f0a92e145ce"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 50.92400002479553,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 10,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.180999994277954,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 61.05800008773804,
+   "test": {
+    "calls": 12,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 15.752000093460083,
+    "first_run": 39.46199989318848,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:45:56Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 20.211999893188477,
+   "review_s": 29.444000005722046,
+   "built": {
+    "code": 70
+   },
+   "in_test": {
+    "test": 94
+   },
+   "in_document": {
+    "docs": 21
+   },
+   "in_review": {
+    "test": 4
+   },
+   "after_implement": {
+    "docs": 21,
+    "test": 94
+   },
+   "trees": {
+    "base": "26590da3487ef74b68e2388747b83f0a92e145ce",
+    "implement": "d9ad3bcd8e1d174a4b3283e6913607f854f4bf91",
+    "test": "ba76debf2f8d4d0e75c14badc9239437e6fda03e",
+    "before_review": "2354d88d7e43fb19e43c521b1e5f47396ff9dc8f",
+    "commit": "c9d5d51894a2fbdcf390a341c8a488f323d7bb3e"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 23.05299997329712,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 10,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.1459999084472656,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 56.9539999961853,
+   "test": {
+    "calls": 14,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 27.496000051498413,
+    "first_run": 19.98099994659424,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:47:58Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 27.042999982833862,
+   "review_s": 16.91600012779236,
+   "built": {
+    "code": 33
+   },
+   "in_test": {
+    "test": 39
+   },
+   "in_document": {
+    "docs": 10
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 10,
+    "test": 39
+   },
+   "trees": {
+    "base": "c9d5d51894a2fbdcf390a341c8a488f323d7bb3e",
+    "implement": "26bf07d4601d640987882e83bafa37637ce52f7b",
+    "test": "02984d43b5ed121e09416773b3995609f192f6f6",
+    "before_review": "fd027980d241cf9c161fbd73c2667a845a7ae1b8",
+    "commit": "fd027980d241cf9c161fbd73c2667a845a7ae1b8"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 76.02500009536743,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 4,
+    "loop_calls": 2,
+    "loop_seconds": 1.4409997463226318,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 51.79099988937378,
+   "test": {
+    "calls": 12,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 2,
+    "edits": 6,
+    "loop_calls": 4,
+    "loop_seconds": 15.037999868392944,
+    "first_run": 12.787000179290771,
+    "last_fail": 1795190020.274,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      4,
+      8
+     ],
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 39.007999897003174
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 31.984999895095825,
+   "mutation": [
+    [
+     "2026-11-20T15:53:47Z",
+     6,
+     2,
+     1,
+     [
+      "integer",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 21.72099995613098,
+   "review_s": 17.93400001525879,
+   "built": {
+    "code": 127
+   },
+   "in_test": {
+    "test": 130
+   },
+   "in_document": {
+    "docs": 21
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 21,
+    "test": 130
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "33d8d108bb1d22bbfe53cc0ff2d49b5c974c8998",
+    "test": "d275c6dc1443626c55c06e3f2c7e828069b3b459",
+    "before_review": "ee290f58f839c10501e36ccc059849d1e1efadda",
+    "commit": "ee290f58f839c10501e36ccc059849d1e1efadda"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 52.81400012969971,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 4,
+    "loop_calls": 2,
+    "loop_seconds": 1.692000150680542,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 18.133999824523926,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 12.67199993133545,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:55:29Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 17.6010000705719,
+   "review_s": 25.813999891281128,
+   "built": {
+    "code": 40
+   },
+   "in_test": {
+    "test": 61
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "test": 61
+   },
+   "trees": {
+    "base": "ee290f58f839c10501e36ccc059849d1e1efadda",
+    "implement": "c3fe047d5c9b116b847d6f21849d40b5bd97253d",
+    "test": "a927e76b6a20a0313bf0cf74e0f324a93409ac17",
+    "before_review": "453d6402dc06dde659456169c20a0ddd65aad143",
+    "commit": "453d6402dc06dde659456169c20a0ddd65aad143"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 52.4520001411438,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 4,
+    "loop_calls": 2,
+    "loop_seconds": 1.435999870300293,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 40.687000036239624,
+   "test": {
+    "calls": 6,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 3,
+    "loop_calls": 2,
+    "loop_seconds": 18.64800000190735,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:57:43Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 23.63599991798401,
+   "review_s": 18.250999927520752,
+   "built": {
+    "code": 51
+   },
+   "in_test": {
+    "test": 75
+   },
+   "in_document": {
+    "docs": 18
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 18,
+    "test": 75
+   },
+   "trees": {
+    "base": "453d6402dc06dde659456169c20a0ddd65aad143",
+    "implement": "95871e1ee6aef4c02cc0bcf6d7506cac5384fbcb",
+    "test": "d1961d4e2c7f65d126b1040223fad25886bcdf1b",
+    "before_review": "b7e377efd29b2cbef9eb6dba07ca244d852214cf",
+    "commit": "b7e377efd29b2cbef9eb6dba07ca244d852214cf"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 82.10300016403198,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 60.89199995994568,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 67.59099984169006,
+   "test": {
+    "calls": 18,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 5,
+    "check_fails": 1,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 15.295000076293945,
+    "last_fail": 1795191592.886,
+    "green_after_fail": 1795191614.867,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      4,
+      8
+     ]
+    ],
+    "fix_span": 38.40300011634827
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 35.894999980926514,
+   "mutation": [
+    [
+     "2026-11-20T16:20:20Z",
+     7,
+     1,
+     0,
+     [
+      "boolean"
+     ]
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 24.551000118255615,
+   "review_s": 22.037999868392944,
+   "built": {
+    "code": 127
+   },
+   "in_test": {
+    "test": 146
+   },
+   "in_document": {
+    "docs": 19
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 19,
+    "test": 146
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "86c289f057fb76ac4d9cf513b65b0ddcb2a2fa4c",
+    "test": "7042421947ea74b10646e128622ef07721ba3d8d",
+    "before_review": "d9308d16daedd8d08de6ceab655a813ff5140768",
+    "commit": "d9308d16daedd8d08de6ceab655a813ff5140768"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 59.79800009727478,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 53.22500014305115,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 54.10199999809265,
+   "test": {
+    "calls": 15,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 7.158999919891357,
+    "last_fail": 1795191764.256,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 46.94700002670288
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 25.01200008392334,
+   "mutation": [
+    [
+     "2026-11-20T16:22:56Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 79.5680000782013,
+   "review_s": 19.949999809265137,
+   "built": {
+    "code": 43
+   },
+   "in_test": {
+    "test": 86
+   },
+   "in_document": {
+    "docs": 16,
+    "test": 8
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 16,
+    "test": 94
+   },
+   "trees": {
+    "base": "d9308d16daedd8d08de6ceab655a813ff5140768",
+    "implement": "5e22775c2f4e70addbfe5c7f7bb696f5691cbe17",
+    "test": "6b443a14e11ff1d89bfb88997df95381e7e1cd70",
+    "before_review": "80bb83a918b44881893c96487d1cf181462f7e2e",
+    "commit": "80bb83a918b44881893c96487d1cf181462f7e2e"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 52.503000020980835,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 47.473999977111816,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 70.04999995231628,
+   "test": {
+    "calls": 17,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 26.342999935150146,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:26:22Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 36.65900015830994,
+   "review_s": 21.884000062942505,
+   "built": {
+    "code": 63
+   },
+   "in_test": {
+    "test": 86
+   },
+   "in_document": {
+    "docs": 16
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 16,
+    "test": 86
+   },
+   "trees": {
+    "base": "80bb83a918b44881893c96487d1cf181462f7e2e",
+    "implement": "1051ad06fee8fd412ba8203d753d0d20a34ef9f6",
+    "test": "11e1d8528a4a5b5ea77aa3fc1c5b2b8351cd91da",
+    "before_review": "4544af5115c219e3bd6b4f87ec0e263072c49f89",
+    "commit": "4544af5115c219e3bd6b4f87ec0e263072c49f89"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 60.42799997329712,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 10,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 72.6470000743866,
+   "test": {
+    "calls": 12,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 46.05200004577637,
+    "last_fail": 1795191665.424,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      8
+     ]
+    ],
+    "fix_span": 26.598999977111816
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 15.723000049591064,
+   "mutation": [
+    [
+     "2026-11-20T16:21:20Z",
+     6,
+     2,
+     2,
+     [
+      "boolean",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 31.181999921798706,
+   "review_s": 29.437999963760376,
+   "built": {
+    "code": 116
+   },
+   "in_test": {
+    "test": 134
+   },
+   "in_document": {
+    "docs": 27
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 27,
+    "test": 134
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "036591ede3a38b63aec8ba9e100d5e363ea15533",
+    "test": "48358458c4b1740755d5c278187c10ae1181fed4",
+    "before_review": "9da9ce083c0d7d2180ede8bf58f9863159ad06f3",
+    "commit": "9da9ce083c0d7d2180ede8bf58f9863159ad06f3"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 38.35599994659424,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 108.62900018692017,
+   "test": {
+    "calls": 25,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 7,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 45.38000011444092,
+    "last_fail": 1795191845.401,
+    "green_after_fail": 1795191866.657,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 41.180999994277954
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 43.343000173568726,
+   "mutation": [
+    [
+     "2026-11-20T16:24:35Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 31.912999868392944,
+   "review_s": 21.611999988555908,
+   "built": {
+    "code": 70
+   },
+   "in_test": {
+    "test": 92
+   },
+   "in_document": {
+    "docs": 15
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 15,
+    "test": 92
+   },
+   "trees": {
+    "base": "9da9ce083c0d7d2180ede8bf58f9863159ad06f3",
+    "implement": "bb06f9e833309c5bd1844893f761a0e2f25758d1",
+    "test": "7d95a67d3566bf678ba9a92ea0eddd7941df0e35",
+    "before_review": "39d8c89f7843e377c9e8ef3dda403080721ac50c",
+    "commit": "39d8c89f7843e377c9e8ef3dda403080721ac50c"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 20.763000011444092,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 57.79800009727478,
+   "test": {
+    "calls": 13,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 25.508999824523926,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:26:44Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 30.269999980926514,
+   "review_s": 15.51199984550476,
+   "built": {
+    "code": 32
+   },
+   "in_test": {
+    "test": 48
+   },
+   "in_document": {
+    "docs": 8
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 8,
+    "test": 48
+   },
+   "trees": {
+    "base": "39d8c89f7843e377c9e8ef3dda403080721ac50c",
+    "implement": "be189aa18a6bd092d601c8ea74b4c2a7a65418e6",
+    "test": "d56223f4b16fd1370d83e67243070236bd0ff5fc",
+    "before_review": "605224e12a81ad289117ad6f2ae5126a39933206",
+    "commit": "605224e12a81ad289117ad6f2ae5126a39933206"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 51.75,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 0.9819998741149902,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 50.15500020980835,
+   "test": {
+    "calls": 9,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 3.552000045776367,
+    "first_run": 44.36099982261658,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:32:52Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 14.369999885559082,
+   "review_s": 14.55299997329712,
+   "built": {
+    "code": 27
+   },
+   "in_test": {
+    "test": 111
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 111
+   },
+   "trees": {
+    "base": "c39707f4a880e854fb7c7150dc7706cfa24fea5e",
+    "implement": "aca10b97d8a5905f22a29b66620498829b9b3534",
+    "test": "6f1a7296bc93be05164de5e8a2e1389837593fb3",
+    "before_review": "6f1a7296bc93be05164de5e8a2e1389837593fb3",
+    "commit": "6f1a7296bc93be05164de5e8a2e1389837593fb3"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 12.430999994277954,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 0.9089999198913574,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 55.08500003814697,
+   "test": {
+    "calls": 22,
+    "test_runs": 8,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 3,
+    "loop_seconds": 8.960999965667725,
+    "first_run": 32.57200002670288,
+    "last_fail": 1795188855.086,
+    "green_after_fail": 1795188864.321,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      5
+     ]
+    ],
+    "fix_span": 16.146000146865845
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 15.61299991607666,
+   "mutation": [
+    [
+     "2026-11-20T15:34:28Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 15.950999975204468,
+   "review_s": 12.970999956130981,
+   "built": {
+    "code": 15
+   },
+   "in_test": {
+    "code": 5,
+    "test": 89
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "code": 5,
+    "test": 89
+   },
+   "trees": {
+    "base": "6f1a7296bc93be05164de5e8a2e1389837593fb3",
+    "implement": "04a4418f975f04adf85b1f26de3411b194c2d54d",
+    "test": "c798a5f3c7618e4ff73162ec7cecbf3915a42b01",
+    "before_review": "d5d64278625c98ca7c5fc2b3bc24f3bafa8870ca",
+    "commit": "d5d64278625c98ca7c5fc2b3bc24f3bafa8870ca"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 35.67799997329712,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.2620000839233398,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 39.64800000190735,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 4.202000141143799,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:06:41Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 33.003000020980835,
+   "review_s": 20.836999893188477,
+   "built": {
+    "code": 11
+   },
+   "in_test": {
+    "test": 57
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 2,
+    "test": 57
+   },
+   "trees": {
+    "base": "3869ce2f37afeb48877d132d169b78b91d4e7690",
+    "implement": "8931e7313d23b61a5956323987cb696b6e9d0ba5",
+    "test": "12cc22029e9924df3b30fde751dd909725fccf73",
+    "before_review": "a624bdee57ffbd5362dedd9a7f30f1ff84cadfc9",
+    "commit": "a624bdee57ffbd5362dedd9a7f30f1ff84cadfc9"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 26.259999990463257,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.4640002250671387,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 80.62100005149841,
+   "test": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 3,
+    "loop_seconds": 15.490000009536743,
+    "first_run": null,
+    "last_fail": 1795190938.496,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      6
+     ]
+    ],
+    "fix_span": 80.62599992752075
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 25.585000038146973,
+   "mutation": [
+    [
+     "2026-11-20T16:09:20Z",
+     4,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 19.908999919891357,
+   "review_s": 16.052000045776367,
+   "built": {
+    "code": 26
+   },
+   "in_test": {
+    "code": 5,
+    "test": 102
+   },
+   "in_document": {
+    "docs": 16
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 16,
+    "code": 5,
+    "test": 102
+   },
+   "trees": {
+    "base": "a624bdee57ffbd5362dedd9a7f30f1ff84cadfc9",
+    "implement": "ca4313a68e3fa34c9b6ded7a2911a5b6bffb9271",
+    "test": "609ce547e468e1054a06b096b64db100e7b06b21",
+    "before_review": "678170343578153cd7aa9d5e97f7940725781c8f",
+    "commit": "678170343578153cd7aa9d5e97f7940725781c8f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 21.147000074386597,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.684999942779541,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 30.967000007629395,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 7.29800009727478,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:10:49Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 16.572999954223633,
+   "review_s": 16.22000002861023,
+   "built": {
+    "code": 15
+   },
+   "in_test": {
+    "test": 39
+   },
+   "in_document": {
+    "docs": 3
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 3,
+    "test": 39
+   },
+   "trees": {
+    "base": "678170343578153cd7aa9d5e97f7940725781c8f",
+    "implement": "e0dfdbc09f00f1467bc59e6e5664cf71a3a1a6a9",
+    "test": "310a0b53b91db90441b00d34a4a7f07dd0b4d5ba",
+    "before_review": "73b7a72f368877f63e8764ce16894454fb5795c9",
+    "commit": "73b7a72f368877f63e8764ce16894454fb5795c9"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 15.40499997138977,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 3,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 24.427000045776367,
+   "test": {
+    "calls": 8,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 3,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 17.858999967575073,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:53:52Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 19.447999954223633,
+   "review_s": 20.490000009536743,
+   "built": {
+    "code": 6
+   },
+   "in_test": {
+    "test": 37
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 2,
+    "test": 37
+   },
+   "trees": {
+    "base": "18a61804e2c2bed53bf7d945984642376dd0ac18",
+    "implement": "4b5572f17a56366b8766d55e15bdf8d780ab25e7",
+    "test": "66ad0dedc26d41c9c85c58cf0979ffd45a09b378",
+    "before_review": "8a7ddb38548790358dc6b2390f4f64f6a493fc06",
+    "commit": "8a7ddb38548790358dc6b2390f4f64f6a493fc06"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 16.316999912261963,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 4,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 31.153000116348267,
+   "test": {
+    "calls": 9,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 3,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 22.769999980926514,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:55:18Z",
+     2,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 10.799999952316284,
+   "review_s": 12.52999997138977,
+   "built": {
+    "code": 21
+   },
+   "in_test": {
+    "test": 67
+   },
+   "in_document": {
+    "docs": 3
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 3,
+    "test": 67
+   },
+   "trees": {
+    "base": "8a7ddb38548790358dc6b2390f4f64f6a493fc06",
+    "implement": "cfbead83a924850da5177486250d8210629012a7",
+    "test": "c2cea4b4b36341dab04584c3461c7c48b065984d",
+    "before_review": "5f3c62fb4c5fa76e4d0b67b2f28d8b026a3865f6",
+    "commit": "5f3c62fb4c5fa76e4d0b67b2f28d8b026a3865f6"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 14.091000080108643,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 3,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 63.12399983406067,
+   "test": {
+    "calls": 13,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 4,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 22.841000080108643,
+    "last_fail": 1795190202.641,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      5
+     ]
+    ],
+    "fix_span": 40.287999868392944
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 19.30399990081787,
+   "mutation": [
+    [
+     "2026-11-20T15:57:00Z",
+     3,
+     2,
+     2,
+     [
+      "integer",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 14.264000177383423,
+   "review_s": 12.832000017166138,
+   "built": {
+    "code": 15
+   },
+   "in_test": {
+    "test": 80
+   },
+   "in_document": {
+    "docs": 14
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 14,
+    "test": 80
+   },
+   "trees": {
+    "base": "5f3c62fb4c5fa76e4d0b67b2f28d8b026a3865f6",
+    "implement": "40d0f26cee0539717d93cf980cba47a1b23acc5d",
+    "test": "6d3c798d8495c9cc520741f0c42ede79273d6f41",
+    "before_review": "35afe424a5402e11098eb5501eb710ef6d41f179",
+    "commit": "35afe424a5402e11098eb5501eb710ef6d41f179"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 40.85199999809265,
+   "loop_implement": null,
+   "implement_refused": 1,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 1,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": 1795190784.489,
+    "green_after_fail": null,
+    "refusals": [
+     "result or record rule"
+    ],
+    "survivors": [],
+    "fix_span": 40.85699987411499
+   },
+   "test_s": 77.14900016784668,
+   "test": {
+    "calls": 21,
+    "test_runs": 6,
+    "test_fails": 0,
+    "checks": 5,
+    "check_fails": 1,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 46.96799993515015,
+    "last_fail": 1795190848.325,
+    "green_after_fail": 1795190859.471,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      6
+     ]
+    ],
+    "fix_span": 17.907999992370605
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 23.437999963760376,
+   "mutation": [
+    [
+     "2026-11-20T16:07:43Z",
+     6,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 22.080999851226807,
+   "review_s": 19.544000148773193,
+   "built": {
+    "code": 34
+   },
+   "in_test": {
+    "test": 139
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "test": 139
+   },
+   "trees": {
+    "base": "521d8f1fc6f3f02ca6f2bc81c229b52775161327",
+    "implement": "c6ec7c4e54dc7ce3829de298d6d30f9a5c6ea24a",
+    "test": "32aad0b8fe3208d3722a44752288611d279fb8b5",
+    "before_review": "3e868997663b83ce9f3fdcd2ced494018b101595",
+    "commit": "3e868997663b83ce9f3fdcd2ced494018b101595"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 18.37399983406067,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 26.77900004386902,
+   "test": {
+    "calls": 11,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 17.63599991798401,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:09:14Z",
+     0,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 10.568000078201294,
+   "review_s": 11.016000032424927,
+   "built": {
+    "code": 9
+   },
+   "in_test": {
+    "test": 42
+   },
+   "in_document": {
+    "docs": 3
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 3,
+    "test": 42
+   },
+   "trees": {
+    "base": "3e868997663b83ce9f3fdcd2ced494018b101595",
+    "implement": "668ce8b610f501b4ab70ff518b653c470bc172e8",
+    "test": "88bea98f3c4d4244fc1ea6d23b0ccd9bf2009cb8",
+    "before_review": "00407e7cd35e4df484d2c21cbd6e61a156916f4f",
+    "commit": "00407e7cd35e4df484d2c21cbd6e61a156916f4f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 18.18499994277954,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 28.194999933242798,
+   "test": {
+    "calls": 14,
+    "test_runs": 6,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 14.16700005531311,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:10:21Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 11.654000043869019,
+   "review_s": 10.485000133514404,
+   "built": {
+    "code": 12
+   },
+   "in_test": {
+    "test": 37
+   },
+   "in_document": {
+    "docs": 3
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 3,
+    "test": 37
+   },
+   "trees": {
+    "base": "00407e7cd35e4df484d2c21cbd6e61a156916f4f",
+    "implement": "0f4eab77e3242c8d630a5d31903eb1016f5e107b",
+    "test": "2a35dd51e74e60f03727063fecc4d860ab92225a",
+    "before_review": "1419ef2f41774b0186339bd36c11bff76adeec9c",
+    "commit": "1419ef2f41774b0186339bd36c11bff76adeec9c"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 82.79200005531311,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.7369999885559082,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 111.54999995231628,
+   "test": {
+    "calls": 21,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 19.953999757766724,
+    "first_run": 67.87000012397766,
+    "last_fail": 1795191458.6,
+    "green_after_fail": 1795191471.593,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      8
+     ]
+    ],
+    "fix_span": 29.741999864578247
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 26.95300006866455,
+   "mutation": [
+    [
+     "2026-11-20T16:17:57Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 37.46399998664856,
+   "review_s": 25.569000005722046,
+   "built": {
+    "code": 145
+   },
+   "in_test": {
+    "test": 147
+   },
+   "in_document": {
+    "docs": 21
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 21,
+    "test": 147
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "8a09075c9a11a0e50364f8cc3c9dd89a07c9f94e",
+    "test": "751b98a7e44eca1d9716d8558d98c3cd89cd33be",
+    "before_review": "7ac4fd5aa7be74ddd2bfb403df3d0d46e618a402",
+    "commit": "7ac4fd5aa7be74ddd2bfb403df3d0d46e618a402"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 53.13100004196167,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.6420001983642578,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 76.3289999961853,
+   "test": {
+    "calls": 12,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 19.14900016784668,
+    "first_run": 51.294999837875366,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:21:03Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 33.168999910354614,
+   "review_s": 28.710000038146973,
+   "built": {
+    "code": 66
+   },
+   "in_test": {
+    "test": 121
+   },
+   "in_document": {
+    "docs": 9
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 9,
+    "test": 121
+   },
+   "trees": {
+    "base": "7ac4fd5aa7be74ddd2bfb403df3d0d46e618a402",
+    "implement": "b978142276416fb209256ebfdb350e7f7f8e2a63",
+    "test": "052882b4b7a0f1343be36b208c28cb7954f91044",
+    "before_review": "1d1e5ff031dc56f73bb8537304622b65fb44c11e",
+    "commit": "1d1e5ff031dc56f73bb8537304622b65fb44c11e"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 49.574000120162964,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.5969998836517334,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 108.39999985694885,
+   "test": {
+    "calls": 16,
+    "test_runs": 5,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 51.4779999256134,
+    "first_run": 44.700000047683716,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:24:15Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 60.34599995613098,
+   "review_s": 19.749000072479248,
+   "built": {
+    "code": 66
+   },
+   "in_test": {
+    "test": 93
+   },
+   "in_document": {
+    "docs": 8
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 8,
+    "test": 93
+   },
+   "trees": {
+    "base": "1d1e5ff031dc56f73bb8537304622b65fb44c11e",
+    "implement": "3db45c725ea59d66d378da1ee506f75a48102cbb",
+    "test": "30ee758951cff75a276acb1c95144d47ade2a73c",
+    "before_review": "53f0d9444d5a2b26f97399bc181a9e7ab1277edd",
+    "commit": "53f0d9444d5a2b26f97399bc181a9e7ab1277edd"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 43.65499997138977,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.6450002193450928,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 73.96399998664856,
+   "test": {
+    "calls": 21,
+    "test_runs": 7,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 3,
+    "loop_seconds": 7.811000108718872,
+    "first_run": 42.05299997329712,
+    "last_fail": 1795190468.221,
+    "green_after_fail": 1795190486.485,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      3,
+      4
+     ]
+    ],
+    "fix_span": 25.078999996185303
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 25.118000030517578,
+   "mutation": [
+    [
+     "2026-11-20T16:01:31Z",
+     2,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 45.426000118255615,
+   "review_s": 32.723999977111816,
+   "built": {
+    "code": 28
+   },
+   "in_test": {
+    "code": 5,
+    "test": 51
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 2,
+    "code": 5,
+    "test": 51
+   },
+   "trees": {
+    "base": "22c3a1aac00c81cddd10a673977964e6324c0741",
+    "implement": "a24736536c98a7bc460d0bd78471f4867588c331",
+    "test": "ee35f36435313f95fa50149d5a2fb088765fdc59",
+    "before_review": "095b0f577a7909d45e723edfb84286b48dee18cb",
+    "commit": "095b0f577a7909d45e723edfb84286b48dee18cb"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 19.983999967575073,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.2789998054504395,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 59.15599989891052,
+   "test": {
+    "calls": 12,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 4.5370001792907715,
+    "first_run": 51.574000120162964,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:04:08Z",
+     2,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 19.526000022888184,
+   "review_s": 27.8510000705719,
+   "built": {
+    "code": 20
+   },
+   "in_test": {
+    "test": 130
+   },
+   "in_document": {
+    "docs": 14
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 14,
+    "test": 130
+   },
+   "trees": {
+    "base": "095b0f577a7909d45e723edfb84286b48dee18cb",
+    "implement": "5308eb8dd884889238289db2eb9f78fe257be047",
+    "test": "1cba4ec994c70e0cd710f50a7bc01ed65478e680",
+    "before_review": "dfbf753e5343d13ed1689211c0db719bc22bbbdd",
+    "commit": "dfbf753e5343d13ed1689211c0db719bc22bbbdd"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 25.378000020980835,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.2880001068115234,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 40.63199996948242,
+   "test": {
+    "calls": 15,
+    "test_runs": 6,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 6.306999921798706,
+    "first_run": 21.67300009727478,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:06:01Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 29.835000038146973,
+   "review_s": 20.812999963760376,
+   "built": {
+    "code": 20
+   },
+   "in_test": {
+    "test": 35
+   },
+   "in_document": {
+    "docs": 8
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 8,
+    "test": 35
+   },
+   "trees": {
+    "base": "dfbf753e5343d13ed1689211c0db719bc22bbbdd",
+    "implement": "117edbf10d21cdbd4136641c4b823a10f8c6d4e7",
+    "test": "e0e9977c6a62ea0d8d73e359dd36d8c47771f6c6",
+    "before_review": "182736ddcfd722fdedb8988d895e5ae166512115",
+    "commit": "182736ddcfd722fdedb8988d895e5ae166512115"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 80.49100017547607,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 0.624000072479248,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 168.86999988555908,
+   "test": {
+    "calls": 14,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 5,
+    "check_fails": 2,
+    "edits": 3,
+    "loop_calls": 2,
+    "loop_seconds": 0.8350000381469727,
+    "first_run": 64.40000009536743,
+    "last_fail": 1795190335.798,
+    "green_after_fail": 1795190309.638,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      1,
+      8
+     ],
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 36.04699993133545
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 85.48000001907349,
+   "mutation": [
+    [
+     "2026-11-20T15:59:15Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 35.9539999961853,
+   "review_s": 94.63800001144409,
+   "built": {
+    "code": 265
+   },
+   "in_test": {
+    "test": 220
+   },
+   "in_document": {},
+   "in_review": {
+    "code": 10,
+    "test": 14
+   },
+   "after_implement": {
+    "code": 10,
+    "test": 234
+   },
+   "trees": {
+    "base": "7a8de3e9018a4374d50dd4d1ecb80bef201e6fe8",
+    "implement": "ac9858c031209b6d0ec91649582082cbeac1c123",
+    "test": "0997f7ccf445f21e9e502f7496237147b0d24e44",
+    "before_review": "dc3e4dfe603acb10e4502257f3ac710bb4d60ddb",
+    "commit": "5a3cad1ca631221d54e757e713df596084d3440b"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 49.21199989318848,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.7299997806549072,
+    "first_run": 25.90000009536743,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 60.76700019836426,
+   "test": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.94100022315979,
+    "first_run": 21.982999801635742,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:03:16Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 23.710999965667725,
+   "review_s": 38.50999999046326,
+   "built": {
+    "code": 78
+   },
+   "in_test": {
+    "test": 119
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 119
+   },
+   "trees": {
+    "base": "5a3cad1ca631221d54e757e713df596084d3440b",
+    "implement": "c528803ec687622aaa914cc5f81df67e8272fe8e",
+    "test": "58a6b0c4a71225cc39a2a1f1daa1c2e1f0f8c40f",
+    "before_review": "1d29223799d55e961b3182cdf59555cd33e81187",
+    "commit": "1d29223799d55e961b3182cdf59555cd33e81187"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 71.18499994277954,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 1.6059999465942383,
+    "first_run": 22.51900005340576,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "built": {
+    "docs": 61,
+    "code": 47
+   },
+   "in_test": null,
+   "in_document": null,
+   "in_review": null,
+   "after_implement": {
+    "docs": 4,
+    "code": 7,
+    "test": 156
+   },
+   "trees": {
+    "base": "1d29223799d55e961b3182cdf59555cd33e81187",
+    "implement": "13dc70ef0e64c558eb40b887687878b04f97ed74",
+    "test": null,
+    "before_review": null,
+    "commit": "b32f2fb3c249d25a4adfd206281befe05ffc146f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 31.77999997138977,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 3,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 7.319999933242798,
+    "first_run": 4.796999931335449,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 62.49300003051758,
+   "test": {
+    "calls": 2,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 1,
+    "loop_seconds": 1.5120000839233398,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:09:50Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 27.169000148773193,
+   "review_s": 71.83699989318848,
+   "built": {
+    "docs": 61,
+    "code": 47,
+    "test": 145
+   },
+   "in_test": {},
+   "in_document": {},
+   "in_review": {
+    "docs": 4,
+    "code": 7,
+    "test": 11
+   },
+   "after_implement": {
+    "docs": 4,
+    "code": 7,
+    "test": 11
+   },
+   "trees": {
+    "base": "1d29223799d55e961b3182cdf59555cd33e81187",
+    "implement": "c4eec31e1351cc307afe74c62391e383294423b7",
+    "test": "c4eec31e1351cc307afe74c62391e383294423b7",
+    "before_review": "fc8b65373365c1814c37e7ad9b6208f05c32d4c6",
+    "commit": "b32f2fb3c249d25a4adfd206281befe05ffc146f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 73.95299983024597,
+   "loop_implement": null,
+   "implement_refused": 1,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 1,
+    "edits": 1,
+    "loop_calls": 1,
+    "loop_seconds": 0.29200005531311035,
+    "first_run": null,
+    "last_fail": 1795191830.535,
+    "green_after_fail": null,
+    "refusals": [
+     "result file shape"
+    ],
+    "survivors": [],
+    "fix_span": 73.95799994468689
+   },
+   "test_s": 847.0400002002716,
+   "test": {
+    "calls": 28,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 1,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 28.039999961853027,
+    "last_fail": 1795192637.34,
+    "green_after_fail": 1795192653.671,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 786.8110001087189
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 48.54300022125244,
+   "mutation": [
+    [
+     "2026-11-20T16:37:45Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 24.604999780654907,
+   "review_s": 104.56600022315979,
+   "built": {
+    "code": 227
+   },
+   "in_test": {
+    "test": 206
+   },
+   "in_document": {},
+   "in_review": {
+    "code": 15,
+    "test": 30
+   },
+   "after_implement": {
+    "code": 15,
+    "test": 236
+   },
+   "trees": {
+    "base": "d31a603926471a10d342bb2f3ea22af35117350f",
+    "implement": "674eb42830179666fb9112e9df89acac77461d8a",
+    "test": "445f1e492bea80ad9fc2df4e4100b35fb948d96b",
+    "before_review": "08aba971c16f8d49b3d5ad76267aa954acc3cced",
+    "commit": "ff4e0e24ec41b8b2def09af029d90ecfe2db4b96"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 51.055999994277954,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 5,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 104.54699993133545,
+   "test": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 26.631999969482422,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:42:12Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 15.353999853134155,
+   "review_s": 76.62000012397766,
+   "built": {
+    "code": 117
+   },
+   "in_test": {
+    "test": 139
+   },
+   "in_document": {},
+   "in_review": {
+    "code": 28,
+    "test": 13
+   },
+   "after_implement": {
+    "code": 28,
+    "test": 152
+   },
+   "trees": {
+    "base": "ff4e0e24ec41b8b2def09af029d90ecfe2db4b96",
+    "implement": "bb2ee04a8473dda286b477b151f40c398460a88a",
+    "test": "67f8821dce2bb4b986691a737b89457c71ee8f32",
+    "before_review": "55c89f98daaaa7c965d8d0f94ba5c3f3809ec373",
+    "commit": "1a076c73bfb3347b0427cd54bc54e7de220457c9"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 39.354000091552734,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 27.371999979019165,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 31.377999782562256,
+   "test": {
+    "calls": 3,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:45:28Z",
+     0,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 0,
+   "review_s": 0,
+   "built": {
+    "docs": 75
+   },
+   "in_test": {},
+   "in_document": {},
+   "in_review": {
+    "test": 20
+   },
+   "after_implement": {
+    "test": 20
+   },
+   "trees": {
+    "base": "1a076c73bfb3347b0427cd54bc54e7de220457c9",
+    "implement": "3dcfa1f09cc408838fdb022bbfe3e2247b0a41d5",
+    "test": "3dcfa1f09cc408838fdb022bbfe3e2247b0a41d5",
+    "before_review": "3dcfa1f09cc408838fdb022bbfe3e2247b0a41d5",
+    "commit": "c9b89431304998bc04cc4de985b965fcd7fcbc64"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "implement_s": 38.88000011444092,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 5,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.8949999809265137,
+    "first_run": 11.843999862670898,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 50.634000062942505,
+   "test": {
+    "calls": 6,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.9399998188018799,
+    "first_run": 21.396000146865845,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:36:34Z",
+     6,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 59.60599994659424,
+   "review_s": 41.59599995613098,
+   "built": {
+    "code": 14
+   },
+   "in_test": {
+    "test": 97
+   },
+   "in_document": {
+    "docs": 5
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 5,
+    "test": 97
+   },
+   "trees": {
+    "base": "d40e4ada98fd7d92839c6a2cd72a16bb71da446c",
+    "implement": "2cc0e6ea70354a4fc6b728cefd2189ee52a782c3",
+    "test": "1ddfdbcbe26f28d4c7321915f8b94afad186ec86",
+    "before_review": "6ce14dbd557d29baae89379c8bcfedd054a3b908",
+    "commit": "6ce14dbd557d29baae89379c8bcfedd054a3b908"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 32.21900010108948,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 2.001999855041504,
+    "first_run": 12.452000141143799,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 48.842000007629395,
+   "test": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.9519999027252197,
+    "first_run": 23.889999866485596,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:39:38Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 22.24899983406067,
+   "review_s": 30.53600001335144,
+   "built": {
+    "code": 26
+   },
+   "in_test": {
+    "test": 139
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 139
+   },
+   "trees": {
+    "base": "6ce14dbd557d29baae89379c8bcfedd054a3b908",
+    "implement": "0c10d450f35d349c0f3792bdcf8610b65ad973cd",
+    "test": "e441ae90cd1ea7d44f788f39aa56fd37b0103102",
+    "before_review": "031c6af6c82f91c02c32c8c5d4c797f09179067f",
+    "commit": "031c6af6c82f91c02c32c8c5d4c797f09179067f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 29.30400013923645,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 2.6780002117156982,
+    "first_run": 8.150000095367432,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 78.60199999809265,
+   "test": {
+    "calls": 8,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 1.3940000534057617,
+    "first_run": 24.146999835968018,
+    "last_fail": 1795189315.371,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      6
+     ]
+    ],
+    "fix_span": 54.461000204086304
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 30.978000164031982,
+   "mutation": [
+    [
+     "2026-11-20T15:42:12Z",
+     6,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 60.544999837875366,
+   "review_s": 69.61300015449524,
+   "built": {
+    "code": 22
+   },
+   "in_test": {
+    "test": 163
+   },
+   "in_document": {
+    "docs": 68,
+    "code": 2
+   },
+   "in_review": {
+    "code": 6
+   },
+   "after_implement": {
+    "docs": 68,
+    "code": 8,
+    "test": 163
+   },
+   "trees": {
+    "base": "031c6af6c82f91c02c32c8c5d4c797f09179067f",
+    "implement": "c22a56d4dfecec32279dfe1fafe264a9234d4cad",
+    "test": "4ecd7ca9079dd81fe44e34b92edadab7da487d3b",
+    "before_review": "c5a99915b0e0f9e847abd55c5307d850639911a4",
+    "commit": "9aa791f113a78aefd8f8eed1ecd102cf3f3923a5"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 39.087000131607056,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 15.625999927520752,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 56.36299991607666,
+   "test": {
+    "calls": 6,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 22.23099994659424,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:59:40Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 35.855000019073486,
+   "review_s": 53.276000022888184,
+   "built": {
+    "code": 23
+   },
+   "in_test": {
+    "test": 119
+   },
+   "in_document": {
+    "docs": 7
+   },
+   "in_review": {
+    "docs": 5,
+    "code": 2
+   },
+   "after_implement": {
+    "docs": 10,
+    "code": 2,
+    "test": 119
+   },
+   "trees": {
+    "base": "f984da43448bed47eab83202cb2a53c70bed9b0b",
+    "implement": "8297d27f990c2a2a06202f01dd44a778c33096b6",
+    "test": "e356c588eb49ab7bb8a0e4e814d5ebf00e6a0f41",
+    "before_review": "26d979205256896981fd4893d9a94fb83e7a0ac8",
+    "commit": "0e840fbb1b14cad6c066a2d4b58ed3e9bd770e11"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 32.23200011253357,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 13.565999984741211,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 42.89699983596802,
+   "test": {
+    "calls": 3,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 19.0,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:02:25Z",
+     2,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 32.980000019073486,
+   "review_s": 36.09500002861023,
+   "built": {
+    "code": 29
+   },
+   "in_test": {
+    "test": 117
+   },
+   "in_document": {
+    "docs": 13
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 13,
+    "test": 117
+   },
+   "trees": {
+    "base": "0e840fbb1b14cad6c066a2d4b58ed3e9bd770e11",
+    "implement": "c13b820077a888e1eb9f026628c3e8a878936dfd",
+    "test": "05ba176d764d753c6996afa3aa989e43560e6ef9",
+    "before_review": "3b9eaaf3587e1f881bde6e7f45f69170342a1464",
+    "commit": "3b9eaaf3587e1f881bde6e7f45f69170342a1464"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 43.69799995422363,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 9.831000089645386,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "built": {
+    "code": 20
+   },
+   "in_test": null,
+   "in_document": null,
+   "in_review": null,
+   "after_implement": {
+    "docs": 33,
+    "code": 4,
+    "test": 132
+   },
+   "trees": {
+    "base": "3b9eaaf3587e1f881bde6e7f45f69170342a1464",
+    "implement": "c11b07ba46672df38b4b148baa6d29636f7637c3",
+    "test": null,
+    "before_review": null,
+    "commit": "5a65e33dcafee6a4176e39f15ced0a70864c8f52"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "implement_s": 15.818000078201294,
+   "loop_implement": null,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 2,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 8.157000064849854,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 42.734999895095825,
+   "test": {
+    "calls": 3,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 0,
+    "loop_seconds": 0.0,
+    "first_run": 9.259999990463257,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 22.8989999294281,
+   "mutation": [
+    [
+     "2026-11-20T16:09:04Z",
+     3,
+     2,
+     2,
+     [
+      "integer",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": null,
+   "document_s": 74.20300006866455,
+   "review_s": 46.33399987220764,
+   "built": {
+    "code": 20,
+    "test": 132
+   },
+   "in_test": {},
+   "in_document": {
+    "docs": 33,
+    "code": 4
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 33,
+    "code": 4
+   },
+   "trees": {
+    "base": "3b9eaaf3587e1f881bde6e7f45f69170342a1464",
+    "implement": "5bbee52db14c0aabd8f46257407591e3fb1f13d0",
+    "test": "5bbee52db14c0aabd8f46257407591e3fb1f13d0",
+    "before_review": "5a65e33dcafee6a4176e39f15ced0a70864c8f52",
+    "commit": "5a65e33dcafee6a4176e39f15ced0a70864c8f52"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  }
+ ],
+ "runs": [
+  {
+   "loops": [
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ]
+   ],
+   "end_review_tree": "54262ff37c06993c139c2313a3ccc8df2259402b",
+   "end_review_at": 1795194237.450064,
+   "loop_calls": 43,
+   "loop_seconds": 191.47800087928772,
+   "calls": 1073,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/grok-xhigh-tickets-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/grok-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "grok",
+   "model": "grok-4.6",
+   "effort": "xhigh",
+   "case": "tickets-assign",
+   "seconds": 5951.46599984169
+  },
+  {
+   "loops": [],
+   "end_review_tree": "f24dec9dc41faf504ea4a52c1481838f99c7ec76",
+   "end_review_at": 1795189427.3081114,
+   "loop_calls": 7,
+   "loop_seconds": 0.0070002079010009766,
+   "calls": 171,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/rehearsal-l0-sol-medium-tickets/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/rehearsal-l0-sol-medium-tickets/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 611.6640000343323
+  },
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ]
+   ],
+   "end_review_tree": "2ec89809d572f3534e69f0a739fa288729728e18",
+   "end_review_at": 1795189764.2537808,
+   "loop_calls": 40,
+   "loop_seconds": 67.40500044822693,
+   "calls": 224,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 679.2479999065399
+  },
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ]
+   ],
+   "end_review_tree": "20234111f4461254f152fce1f1ce03b3d16e5ffd",
+   "end_review_at": 1795190332.143577,
+   "loop_calls": 37,
+   "loop_seconds": 57.578999280929565,
+   "calls": 148,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 593.4559998512268
+  },
+  {
+   "loops": [],
+   "end_review_tree": "3aa42d2739280e4f22f60508b933b25939b5694c",
+   "end_review_at": 1795192094.2194371,
+   "loop_calls": 10,
+   "loop_seconds": 0.01399993896484375,
+   "calls": 157,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 801.518000125885
+  },
+  {
+   "loops": [],
+   "end_review_tree": "8d0a82d08a4583e0fd52cdb87db21b9d2b6052e8",
+   "end_review_at": 1795192083.2788513,
+   "loop_calls": 11,
+   "loop_seconds": 0.014000415802001953,
+   "calls": 151,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 783.6840000152588
+  },
+  {
+   "loops": [
+    [
+     "document",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ]
+   ],
+   "end_review_tree": "07589708ba6e50fedeecdef989315ff7a04b5744",
+   "end_review_at": 1795188914.3290033,
+   "loop_calls": 28,
+   "loop_seconds": 18.645999908447266,
+   "calls": 122,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 398.5349998474121
+  },
+  {
+   "loops": [
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "end_review_tree": "91757970f956cc33dc0504b58aa2af617facaab8",
+   "end_review_at": 1795191101.247671,
+   "loop_calls": 32,
+   "loop_seconds": 39.19900035858154,
+   "calls": 101,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 644.4409999847412
+  },
+  {
+   "loops": [],
+   "end_review_tree": "705657dc4c4c218855cabf13bcdc5cb50a19b5d5",
+   "end_review_at": 1795190265.1938968,
+   "loop_calls": 0,
+   "loop_seconds": 0,
+   "calls": 138,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 519.1510000228882
+  },
+  {
+   "loops": [],
+   "end_review_tree": "152e72ddbf3d7b6dec062adb390d0ff66e990ff7",
+   "end_review_at": 1795191076.1660955,
+   "loop_calls": 11,
+   "loop_seconds": 0.014999866485595703,
+   "calls": 164,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-L0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 523.8550000190735
+  },
+  {
+   "loops": [
+    [
+     "document",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "end_review_tree": "9355381c4eaae95b30290d2d1cfe58a7ca981ae5",
+   "end_review_at": 1795192002.9568477,
+   "loop_calls": 35,
+   "loop_seconds": 102.68700003623962,
+   "calls": 158,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-expenses-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "shared-expenses-w1",
+   "seconds": 950.2199997901917
+  },
+  {
+   "loops": [
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "end_review_tree": "39de8e0ed42f1a19cafa446364d81281fa9f944f",
+   "end_review_at": 1795190847.3684473,
+   "loop_calls": 37,
+   "loop_seconds": 32.473000288009644,
+   "calls": 233,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-tickets-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-xhigh-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "xhigh",
+   "case": "tickets-assign",
+   "seconds": 905.5759999752045
+  },
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "end_review_tree": "507ba8e256bdd8c52dbb1227b47bf9dcc1b92f40",
+   "end_review_at": 1795191169.4936678,
+   "loop_calls": 46,
+   "loop_seconds": 44.619001150131226,
+   "calls": 153,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1",
+   "seconds": 1426.4639999866486
+  },
+  {
+   "loops": [],
+   "end_review_tree": "e28f688b7e17c40b0d390ff35cbd4490f5afb770",
+   "end_review_at": 1795193257.9849865,
+   "loop_calls": 18,
+   "loop_seconds": 87.96199989318848,
+   "calls": 149,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-L0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1",
+   "seconds": 2038.0650000572205
+  },
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "end_review_tree": "b009d41245827236d0f8c109387a12c3a52e11e5",
+   "end_review_at": 1795189511.8093333,
+   "loop_calls": 40,
+   "loop_seconds": 28.849000215530396,
+   "calls": 138,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign",
+   "seconds": 1038.3020000457764
+  },
+  {
+   "loops": [],
+   "end_review_tree": "478217bdcc789b312777c5ad91100bd5c369a4cb",
+   "end_review_at": 1795191107.948226,
+   "loop_calls": 10,
+   "loop_seconds": 7.454999923706055,
+   "calls": 155,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-L0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-L0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign",
+   "seconds": 1412.3740000724792
+  }
+ ]
+}

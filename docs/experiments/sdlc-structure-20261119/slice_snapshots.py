@@ -9,6 +9,8 @@ review and at its step commit, plus the slice's final working copy, and runs the
                       checks are scored, the four on the listing filter and the command line are reported apart
   shared-expenses-w1  the six checks of the full shared-expenses case (checks/expense_service.py)
 
+A slice already in OUT.json is not graded again, and a slice with no slice-result.json yet (still running) is skipped.
+
 Usage: python3.13 slice_snapshots.py ITERATION.json OUT.json
 """
 import collections
@@ -83,12 +85,15 @@ def main(iteration, out):
     steps_of = collections.defaultdict(list)
     for step in data["steps"]:
         steps_of[step["run"]].append(step)
-    report = {}
+    report = json.loads(out.read_text()) if out.exists() else {}
     for run in sorted(data["runs"], key=lambda r: r["run"]):
         if run.get("case") not in ("tickets-assign", "shared-expenses-w1"):
             continue
         worktree = pathlib.Path(run["worktree"])
-        name = pathlib.Path(run["run"]).parents[3].name
+        folder = pathlib.Path(run["run"]).parents[3]
+        name = folder.name
+        if name in report or not (folder / "slice-result.json").exists():
+            continue  # graded already, or the slice is still running
         row = {"case": run["case"], "host": run["host"], "model": run["model"], "effort": run["effort"], "steps": []}
         cache = {}
         for number, step in enumerate(steps_of[run["run"]], 1):
@@ -115,6 +120,7 @@ def main(iteration, out):
             line.append(f"S{number} " + " ".join(
                 f"{point}={len(m['passed']) if m and m.get('observed') else '?' if m else '-'}" for point, m in marks.items()))
         end = row["end"]
+        out.write_text(json.dumps(report, indent=1))
         print(f"{name:<28}{run['model']:<18}{run['effort'] or '-':<7}of {total}: {'; '.join(line)}; end="
               f"{len(end['passed']) if end.get('observed') else '?'}", flush=True)
         for point, m in [("end", end)] + [(f"S{n} {p}", mm) for n, marks in enumerate(row["steps"], 1) for p, mm in marks.items()]:

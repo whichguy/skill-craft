@@ -4,7 +4,7 @@ host model effort                  steps  runs
 
 == all: 460 steps in 273 runs; 448 with a test stage; 451 with every snapshot ==
   median seconds per step: implement 34, test 55, document 27, step review 31
-  test stage, the model's own test runs (446 steps with a command stream): median 2 runs, mean 2.0; a failing run in 5% of steps; failing runs per step mean 0.06, of steps with any 1 median, max 2
+  test stage, the model's own test runs (448 steps with a command stream): median 2 runs, mean 2.0; a failing run in 5% of steps; failing runs per step mean 0.06, of steps with any 1 median, max 2
   test stage time: first own test run a median 16 s in; from first run to the first green after the last failure 27% of all test-stage seconds (median 37 s where there was a failure)
   implement stage: own test or proof runs median 0; a failing one in 0% of steps
   ShipLoop refused a callback: implement 1% of steps, test 43% (mean 0.52 a step)
@@ -89,6 +89,9 @@ host model effort                  steps  runs
 
 == claude claude-sonnet-5-5 -: 2 steps in 2 runs; 2 with a test stage; 2 with every snapshot ==
   median seconds per step: implement 34, test 63, document 46, step review 107
+  test stage, the model's own test runs (2 steps with a command stream): median 1 runs, mean 1.0; a failing run in 0% of steps; failing runs per step mean 0.00, of steps with any - median, max 0
+  test stage time: first own test run a median 25 s in; from first run to the first green after the last failure 0% of all test-stage seconds (median - s where there was a failure)
+  implement stage: own test or proof runs median 1; a failing one in 0% of steps
   ShipLoop refused a callback: implement 0% of steps, test 0% (mean 0.00 a step)
     from the first refusal to acceptance: 0% of all test-stage seconds (median - s where refused)
     in the accepted result of 2 steps: 0 sampled faults caught, 0 left uncaught with a written reason, in 0% of steps ()
@@ -112,3 +115,4 @@ stage loops with a receipt: 2433; ended on their first iteration: 2432 (100.0%)
   codex gpt-6.1-terra xhigh: loop commands per run median 24, 15% of the run's commands; the commands themselves take 0.4% of run time (the model's reading of each printed instruction is not counted)
   grok grok-4.6 xhigh: loop commands per run median 114, 4% of the run's commands; the commands themselves take 2.5% of run time (the model's reading of each printed instruction is not counted)
   codex gpt-6.1-sol medium: loop commands per run median 30, 15% of the run's commands; the commands themselves take 1.3% of run time (the model's reading of each printed instruction is not counted)
+  claude claude-sonnet-5-5 -: loop commands per run median 26, 19% of the run's commands; the commands themselves take 10.6% of run time (the model's reading of each printed instruction is not counted)

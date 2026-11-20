@@ -736,6 +736,157 @@ the system tests and product acceptance changed no hidden verdict.
 - Vendors agree on a script-checkable signal to end a loop, a separate fresh evaluator, context resets instead
   of repeated correction, and removing scaffolding as models improve.
 
+### Results from the live slices (run 2026-11-20 after d2a1466783f069ff4455ee0c2c2abe5cd10a36e5; arm L0 after c8f638b66c7209369c22b3520949135f416fbab8)
+
+**R28. The runs** (`evidence/slices.txt`). 16 slices: 9 baseline, 6 of arm L0 and the L0 rehearsal. Every one
+completed its inner loop by the harness's own verdict. Codex and Claude ran on subscriptions and report no dollar
+figure; the Grok slice reports $10.57. No slice was rerun.
+
+| Driver | Case | Minutes | Steps |
+|---|---|---|---|
+| Sol 6.2 medium | `tickets-assign` | 6.6, 10.7 | 2, 3 |
+| Sol 6.2 medium | `shared-expenses-w1` | 11.3, 9.9 | 3, 3 |
+| Sonnet 5.5 high | `tickets-assign` | 17.3 | 3 |
+| Sonnet 5.5 high | `shared-expenses-w1` | 23.8 | 4 |
+| Sol 6.2 xhigh (reference) | `tickets-assign` | 15.1 | 3 |
+| Sol 6.2 xhigh (reference) | `shared-expenses-w1` | 15.8 | 3 |
+| Grok 4.6 xhigh | `tickets-assign` | 99.2 | 3 |
+
+**R29. Hidden checks (M6).** Two of the 14 registered `tickets-assign` checks (`assignee-persists`,
+`old-tickets-unassigned`) fail at the end of every slice through the listing filter the one-step request leaves
+out; by the registered rule they are reported apart and 12 are scored. In all 9 baseline slices and all 6 L0
+slices the last step's `implement` snapshot passes every scored check (12 of 12 or 6 of 6), and so does the end
+of the slice (`evidence/slices-snapshots.txt`). Earlier steps pass fewer because the feature is not built yet,
+not because a built part is wrong. One snapshot dips: a Sonnet step commit in arm L0 failed the `unit` check,
+which reruns the product's own tests, and passed again at the next step; it was not investigated.
+
+**R30. Inside the stages (M3, M4, M5)** (`evidence/slices-iteration.txt`; 49 steps, both arms). The model's own
+test runs never failed inside `test`: 0 of 47 steps. Product code changed during `test` in 11% of steps (a median
+5 lines). The step review changed product code in 3 of 6 Sonnet steps and in none of 20 on Sol 6.2 or Grok
+(baseline slices). ShipLoop refused the `test` result in 38% of steps; all 20 refusals that state a reason are
+seeded faults that survived (39 of 139 sampled, a median 2 of 8), 8 of the 11 left uncaught at acceptance being
+number constants. All 109 stage Until Loops with a receipt ended on their first iteration.
+
+**R31. Where the inner loop's time goes (M1), baseline slices.**
+
+| Driver | step-plan | its review | test-spec | implement | test | document | step review | carry-forward and its review | Before the first product edit |
+|---|---|---|---|---|---|---|---|---|---|
+| Sol 6.2 medium (4) | 17% | 8% | 4% | 21% | 25% | 10% | 9% | 6% | 30% |
+| Sonnet 5.5 high (2) | 16% | 13% | 5% | 14% | 22% | 9% | 14% | 7% | 34% |
+| Sol 6.2 xhigh (2) | 16% | 14% | 3% | 15% | 25% | 12% | 8% | 6% | 34% |
+| Grok 4.6 xhigh (1) | 20% | 12% | 8% | 8% | 19% | 9% | 13% | 11% | 40% |
+
+A build step costs a median 131 seconds on Sol 6.2 medium, 191 on Sonnet, 194 on Sol 6.2 xhigh and 971 on Grok,
+of which 91, 152, 145 and 838 come after `implement` is accepted (`test`, `document`, the step review). Every
+driver planned the one-endpoint case as 2 or 3 steps.
+
+**R32. The model's time by kind of command (M2)** (`evidence/slices-turns.txt`). Baseline slices whose stream
+lists edits: Sol 6.2 medium (3) loop 37%, callbacks 10%, packets 2%, records 12%, guides 6%, review notes 8%,
+tests 6%, product 17%; Sonnet (2) loop 24%, callbacks 35%, packets 7%, records 4%, tests 15%, product 13%; Grok
+(1) loop 10%, callbacks 4%, packets 2%, records 15%, guides 16%, review notes 4%, tests 6%, product 40%. In arm
+L0 the loop column falls to 1% on Sol 6.2 medium and product and tests rise from 23% to 55%, while the slices
+take as long or longer (R33): the time charged to the loop's `start` is the model's thinking about the stage,
+which it does either way.
+
+**R33. Arm L0, the stage Until Loop switched off.**
+
+| Driver and case | Baseline minutes | L0 minutes | Change | Hidden checks at the end | Refusals, baseline / L0 |
+|---|---|---|---|---|---|
+| Sol 6.2 medium, `tickets-assign` | 6.6, 10.7 | 8.7, 8.7 | 0% | 12, 12 / 12, 12 | 2, 4 / 2, 7 |
+| Sol 6.2 medium, `shared-expenses-w1` | 11.3, 9.9 | 13.4, 13.1 | +25% | 6, 6 / 6, 6 | 6, 3 / 4, 2 |
+| Sonnet 5.5 high, `tickets-assign` | 17.3 | 23.5 | +36% | 12 / 12 | 5 / 8 |
+| Sonnet 5.5 high, `shared-expenses-w1` | 23.8 | 34.0 | +43% | 6 / 6 | 5 / 6 |
+
+### Registered readings
+
+- **The first implementation is not what iterates.** On every driver the last step's `implement` snapshot passes
+  every scored hidden check, so no later stage had a hidden failure to fix. The registered consequence: the
+  first implementation is not where these runs lose time, and a tests-first comparison is not called for by this
+  data.
+- **Ceremony is the cost, by the registered sum, but the sum overstates it.** Loop, callbacks, packet fetches,
+  records, guides and review notes are 75% of the model's time on Sol 6.2 medium, 72% on Sonnet and 51% on Grok.
+  R32 shows the loop column is mostly thinking charged to the stage's first command. Without it the sum is 38%,
+  48% and 41%.
+- **The stage Until Loop does not iterate** on these drivers: 109 of 109 loops ended on their first iteration.
+- **L0 completes** (6 of 6). **No time saving is seen**: no cell is 15% faster, one is level and three are 25 to
+  43% slower (the two Sonnet cells are one slice each). **No quality loss is seen** in hidden checks.
+
+### Findings
+
+- **F18 (firm on Codex terra, consistent on four drivers in 15 slices).** The first complete implementation is
+  already right by checks the model never saw (R26, R29). The loop the owner describes, moderately correct code
+  that real tests then correct, is not what a ShipLoop step does: the step's own tests fail in 5% of recorded
+  steps and in none of 47 slice steps, and product code changes during `test` in 6 to 11% of steps.
+- **F19 (firm).** What the `test` stage repeats is the strength of its tests. About four steps in ten are
+  refused once because a seeded fault survives, usually two of eight, mostly a number in the code that no test
+  pins (R23, R30). The step criteria state the limit; the test cases written from them do not test both sides
+  of it. This is the test-side face of F14.
+- **F20 (firm that it does not repeat; interim, small sample, that removing it saves nothing).** The stage
+  Until Loop took a second iteration once in 2,542 loops, and switching it off made no slice faster (R33). It
+  is neither where the time goes nor a loop that loops: what a stage gets from it is its list of exit
+  conditions, and the enforced exit is ShipLoop's own `check`.
+- **F21 (firm for these slices).** `implement` is 8 to 21% of the inner loop on the owner's drivers. 30 to 40%
+  passes before the first product edit (the step plan, its review, the test spec), 19 to 25% in `test`, 9 to 12%
+  in `document`, and 20 to 31% in the three reviews.
+- **F22 (interim).** Step count multiplies the fixed cost. Each step pays `test`, `document`, a review and a
+  commit: 1.5 minutes on Sol 6.2 medium, 2.5 on Sonnet, 14 on Grok, before any of it depends on the step's size.
+  Every driver cut a one-endpoint change into 2 or 3 steps, and the hidden checks show nothing the cut bought:
+  the intermediate steps are unfinished, not wrong, and the last step's first implementation passes everything.
+- **F23 (firm for 84 recorded runs and 15 slices).** No stage after `implement` changed a hidden verdict. What
+  those stages add is tests that guard later changes, documents, and hardening beyond the request (F14); they do
+  not make this request's behaviour right, because it already is.
+- **F24 (firm).** The driver matters more than any stage: the same slice took 7 to 11 minutes on Sol 6.2 medium,
+  17 on Sonnet 5.5 high, 15 on Sol 6.2 xhigh and 99 on Grok 4.6 xhigh, with the same hidden result.
+- **F25 (outside evidence, R27).** It agrees where it can be compared: repair returns are front-loaded, tests
+  written beside the code are weak, per-step reviews are what other harnesses cut first, and agent-run
+  tests-first measured no gain in the two studies on real work.
+
+### Recommendation (owner's decisions; nothing built)
+
+What to leave alone:
+
+1. **Do not move test writing before the code.** The first implementation already passes (F18), an executable
+   target already exists before the code (the step's Proof), and the outside measurements on real work found no
+   gain (R27).
+2. **Do not spend effort on the stage Until Loop.** It does not repeat, and removing it saved nothing (F20). By
+   the owner's rule of changing only for a material difference it stays as it is.
+
+What to optimize, largest measured share first, each needing its own registered comparison before any default:
+
+3. **The number of steps per item (F22).** A step plan that keeps a small item to one step unless a criterion
+   cannot be proved without an earlier one would remove one or two rounds of `test`, `document`, review and
+   commit from slices like these: about a quarter to a third of their build time. Risk to measure: a larger step
+   whose first implementation is no longer right.
+4. **Review placement on these drivers (F21, F23).** The three reviews are 20 to 31% of the inner loop and
+   changed no hidden verdict. Round 1 found the step-plan review the one whose edits are substantive; the step
+   review's product edits are hardening beyond the request. Reviewing the build once, at the end of the item,
+   instead of at every step is the trade-off to price: it is a product decision, and rounds 1 and 3 left the
+   owner's answer on review defaults open.
+5. **Boundary cases in the test spec (F19).** For every number a criterion states, a case on each side of it,
+   checked by a script at `test-spec`. That is aimed at the commonest refusal in the loop (seeded faults on
+   number constants) and at the limits that later reviews argue about (F14). It moves a refusal after the fact
+   to a requirement before it.
+6. **The driver (F24).** For speed, Sol 6.2 medium and Sonnet 5.5 high are the drivers these slices support.
+   Grok 4.6 at xhigh took ten times as long for the same result, 40 minutes of it before any product edit.
+
+Not shown to be reducible, so not recommended: the packets' and records' weight. It is a large share of the
+model's time (R25, R32), but nothing here separates the part that carries the run across a cleared context from
+the part that does not.
+
+### Limits
+
+- The hidden checks are at their ceiling on these cases for every driver. They show that the first
+  implementation is right here; they cannot show what happens on a request hard enough for a first
+  implementation to be wrong. `node-chess-engine` is the step case to try for that.
+- One or two slices a cell, two small cases, a seeded start with no planning stages, and up to six slices at
+  once on one machine and shared provider capacity. Minutes differ by 60% between two baseline slices of one
+  cell (6.6 and 10.7), mostly through the number of steps.
+- Arm L0 is short work in one context. It says the loop is not a time cost; it cannot say what the loop does
+  for long work or after a cleared context.
+- The turn census charges thinking to the next command, so its loop and callback columns are upper bounds.
+- The `tickets-assign` yardstick is 12 of the full case's 18 checks.
+- Three recommendations (3, 4, 5) are designs read off measurements, not tested arms.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -760,6 +911,12 @@ the system tests and product acceptance changed no hidden verdict.
 | `judge-replay/reviewers.json` | round 3: seconds, turns, dollars, tokens, findings and the path audit per reader |
 | `evidence/replay-results.txt` | round 3: the registered measures, the per-case table, the exploratory cuts, cost (R16 to R20) |
 | `evidence/replay-conduct.txt` | round 3: kills by name, shared ports and other conduct outside the shared folder (R21) |
+| `evidence/iteration-census.txt` | round 4: per build step, own test runs, refusals and reasons, loop iterations, product lines changed after implement (R22 to R24) |
+| `evidence/turn-census.txt` | round 4: the model's time by kind of command, and the Until Loop's start and done shares (R25) |
+| `evidence/snapshot-acceptance.txt`, `.json` | round 4: held-out checks passed at each snapshot of 84 recorded runs (R26) |
+| `research/*.md` | round 4: the three research agents' reports and the briefs they were given (R27) |
+| `overlays/l0-no-stage-loop.json` | round 4: the seven edits of arm L0, applied to a build copy only |
+| `evidence/slices.txt`, `evidence/slices-iteration.txt`, `evidence/slices-turns.txt`, `evidence/slices-snapshots.txt`, `slices/*.json` | round 4: the live slices' registered measures, per-step detail, time by kind of command, hidden checks at each snapshot, and the three files they are computed from |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
@@ -767,6 +924,15 @@ To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list th
 `score_judges.py judge`; round 2: `overlap_ceiling.py`, `write_set_fidelity.py`, `shared_files.py`,
 `task_sizes.py`, each `<work>/census.json`). The run folders are outside the repository and may be pruned; the outputs above are the
 record.
+
+Round 4, from the recorded runs: `iteration_census.py <work>/census.json <work>/iteration.json`,
+`turn_census.py <work>/census.json`, `python3.13 snapshot_acceptance.py <work>/iteration.json <work>/snap.json`
+(about 25 minutes, no model), `snapshot_score.py evidence/snapshot-acceptance.json` (from the repository alone).
+The slices: `test/shiploop_e2e/slice.py --case <case> --host <host> --model <model> --effort <effort> --output
+<root>/<name>` (add `--overlay overlays/l0-no-stage-loop.json` for arm L0), then `stage_census.py slices/census.json
+<root>`, `iteration_census.py slices/census.json slices/iteration.json --all`, `turn_census.py slices/census.json
+--all`, `python3.13 slice_snapshots.py slices/iteration.json slices/snapshots.json` and `slice_report.py
+slices/census.json slices/iteration.json slices/snapshots.json`.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),

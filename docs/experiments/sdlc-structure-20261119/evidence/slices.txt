@@ -1,0 +1,37 @@
+hidden tickets-assign checks failing at the end of every slice, left out of the score: ['assignee-persists', 'old-tickets-unassigned']
+
+slice                         driver                 done   min steps   step-plan  its review   test-spec   implement        test    document step review   carry-fwd  refused loops>1 red runs code after hidden: first    end
+grok-xhigh-tickets-1          grok-4.6 xhigh          yes  99.2     3        1202         735         466         474        1136         530         774         635        2       0        0          9         12/12  12/12
+sol-medium-expenses-1         gpt-6.2-sol medium      yes  11.3     3          83          31          35         147         205          79          67          32        6       0        0          0           6/6    6/6
+sol-medium-expenses-2         gpt-6.2-sol medium      yes   9.9     3          82          34          24         181         111          63          62          36        3       0        0          0           6/6    6/6
+sol-medium-expenses-L0-1      gpt-6.2-sol medium      yes  13.4     3          88          35          38         194         192         141          64          49        4       0        0          0           6/6    6/6
+sol-medium-expenses-L0-2      gpt-6.2-sol medium      yes  13.1     3         124          68          39         120         239          93          67          34        2       0        0          0           6/6    6/6
+sol-medium-tickets-1          gpt-6.2-sol medium      yes   6.6     2          96          29          19          64         105          30          28          28        2       0        0          5         12/12  12/12
+sol-medium-tickets-2          gpt-6.2-sol medium      yes  10.7     3         135          96          24          83         151          69          53          33        4       0        0          5         12/12  12/12
+sol-medium-tickets-L0-1       gpt-6.2-sol medium      yes   8.7     3         123          78          33          46         119          45          46          31        2       0        0          0         12/12  12/12
+sol-medium-tickets-L0-2       gpt-6.2-sol medium      yes   8.7     3         112          55          22          77         132          44          41          41        7       0        0          0         12/12  12/12
+sol-xhigh-expenses-1          gpt-6.2-sol xhigh       yes  15.8     3         125          61          27         185         296         131          74          50        1       0        0          0           6/6    6/6
+sol-xhigh-tickets-1           gpt-6.2-sol xhigh       yes  15.1     3         173         206          33          89         174          95          81          55        2       0        0          5         12/12  12/12
+sonnet-high-expenses-1        claude-sonnet-5-5 high  yes  23.8     4         212         181          67         233         371          87         205          71        5       0        0         24           6/6    6/6
+sonnet-high-expenses-L0-1     claude-sonnet-5-5 high  yes  34.0     3         141         154          62         164         983          40         181         214        6       0        0         43           6/6    6/6
+sonnet-high-tickets-1         claude-sonnet-5-5 high  yes  17.3     3         191         138          56         100         178         142         142          90        5       0        0          8         12/12  12/12
+sonnet-high-tickets-L0-1      claude-sonnet-5-5 high  yes  23.5     4         269         289         115         131         227         143         136         103        8       0        0         10         12/12  12/12
+(seconds per part; refused: check, complete and review-pass commands ShipLoop refused; loops>1: stage Until Loops that took a second iteration; red runs: the model's own failing test runs inside test; code after: product-code lines changed after implement was accepted; hidden first: the last step's implement snapshot)
+
+== by driver, baseline slices ==
+  claude-sonnet-5-5 high2 slices; minutes 23.8, 17.3; reviews 31% of slice time; first implementation passes every hidden check in 2 of 2; end of slice in 2 of 2
+  gpt-6.2-sol medium    4 slices; minutes 11.3, 9.9, 6.6, 10.7; reviews 20% of slice time; first implementation passes every hidden check in 4 of 4; end of slice in 4 of 4
+  gpt-6.2-sol xhigh     2 slices; minutes 15.8, 15.1; reviews 25% of slice time; first implementation passes every hidden check in 2 of 2; end of slice in 2 of 2
+  grok-4.6 xhigh        1 slices; minutes 99.2; reviews 29% of slice time; first implementation passes every hidden check in 1 of 1; end of slice in 1 of 1
+
+== share of slice time by part, baseline slices ==
+  claude-sonnet-5-5 highstep-plan 16%; its review 13%; test-spec 5%; implement 14%; test 22%; document 9%; step review 14%; carry-fwd 7% | before the first product edit 34%
+  gpt-6.2-sol medium    step-plan 17%; its review 8%; test-spec 4%; implement 21%; test 25%; document 10%; step review 9%; carry-fwd 6% | before the first product edit 30%
+  gpt-6.2-sol xhigh     step-plan 16%; its review 14%; test-spec 3%; implement 15%; test 25%; document 12%; step review 8%; carry-fwd 6% | before the first product edit 34%
+  grok-4.6 xhigh        step-plan 20%; its review 12%; test-spec 8%; implement 8%; test 19%; document 9%; step review 13%; carry-fwd 11% | before the first product edit 40%
+
+== arm L0 (stage Until Loop off) against the baseline, same driver and case ==
+  claude-sonnet-5-5 highshared-expenses-w1   baseline 23.8 min (mean 23.8); L0 34.0 min (mean 34.0); change +43%; L0 completes 1 of 1; hidden checks at the end: baseline 6, L0 6 (no loss seen); refused: baseline 5, L0 6
+  claude-sonnet-5-5 hightickets-assign       baseline 17.3 min (mean 17.3); L0 23.5 min (mean 23.5); change +36%; L0 completes 1 of 1; hidden checks at the end: baseline 12, L0 12 (no loss seen); refused: baseline 5, L0 8
+  gpt-6.2-sol medium    shared-expenses-w1   baseline 11.3, 9.9 min (mean 10.6); L0 13.4, 13.1 min (mean 13.2); change +25%; L0 completes 2 of 2; hidden checks at the end: baseline 6, 6, L0 6, 6 (no loss seen); refused: baseline 6, 3, L0 4, 2
+  gpt-6.2-sol medium    tickets-assign       baseline 6.6, 10.7 min (mean 8.7); L0 8.7, 8.7 min (mean 8.7); change +0%; L0 completes 2 of 2; hidden checks at the end: baseline 12, 12, L0 12, 12 (no loss seen); refused: baseline 2, 4, L0 2, 7

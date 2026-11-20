@@ -1,0 +1,36 @@
+== baseline slices ==
+The Until Loop's own commands, as a share of the model's time (start includes the time spent reading the packet that says to start it; done includes writing the loop's report):
+  codex gpt-6.2-sol medium edits listed       start 23.2% (11 a run), done 7.6% (10 a run), other 5.2% (11 a run), next 0.8% (0 a run)
+  claude claude-sonnet-5-5 high edits listed  start 11.3% (14 a run), done 10.5% (22 a run), other 1.4% (3 a run), next 1.2% (3 a run)
+  grok grok-4.6 xhigh edits listed            done 3.5% (18 a run), start 2.9% (12 a run), other 2.5% (8 a run), next 1.3% (4 a run)
+  codex gpt-6.2-sol medium edits not listed   start 19.3% (12 a run), done 11.0% (23 a run), next 0.2% (5 a run)
+  codex gpt-6.2-sol xhigh edits not listed    other 14.0% (18 a run), start 6.6% (12 a run), done 1.1% (5 a run)
+  codex gpt-6.2-sol xhigh edits listed        start 8.6% (12 a run), other 4.1% (17 a run), done 3.3% (7 a run), next 0.7% (1 a run)
+
+host model effort                            runs           loop     callback       packet      records       guides review notes    knowledge        tests      product   (share of the model's time; calls per run below)
+codex gpt-6.2-sol medium edits listed           3            37%          10%           2%          12%           6%           8%           3%           6%          17%
+                                                              32           15            6           14            7           11            6           12           18
+claude claude-sonnet-5-5 high edits listed      2            24%          35%           7%           4%           1%           1%           1%          15%          13%
+                                                              43           38            8            7            4            4            1           13           28
+grok grok-4.6 xhigh edits listed                1            10%           4%           2%          15%          16%           4%           3%           6%          40%
+                                                              42           29           28           93          151           30           12           24          191
+codex gpt-6.2-sol medium edits not listed       1            30%           4%           1%           4%           3%           7%           0%          19%          31%
+                                                              40           33           13           23            5           11            5           47           46
+codex gpt-6.2-sol xhigh edits not listed        1            22%          12%           1%          22%           1%           4%           0%          16%          23%
+                                                              35           15           15           17            8            5            1           23           39
+codex gpt-6.2-sol xhigh edits listed            1            17%           2%           3%           2%           9%          13%           2%          18%          35%
+                                                              37           17           12            6           20           17            8           31           59
+
+== arm L0 slices (stage Until Loop off; the loop commands left are the Improve review's own) ==
+The Until Loop's own commands, as a share of the model's time (start includes the time spent reading the packet that says to start it; done includes writing the loop's report):
+  codex gpt-6.2-sol medium edits listed       done 0.7% (4 a run), next 0.1% (3 a run)
+  claude claude-sonnet-5-5 high edits listed  next 4.0% (2 a run), done 2.5% (8 a run), other 1.8% (4 a run)
+  codex gpt-6.2-sol medium edits not listed   done 0.6% (6 a run), other 0.1% (5 a run)
+
+host model effort                            runs           loop     callback       packet      records       guides review notes    knowledge        tests      product   (share of the model's time; calls per run below)
+codex gpt-6.2-sol medium edits listed           3             1%          16%           3%          10%           3%           7%           4%          22%          33%
+                                                               7           40           10           16            3           17            3           18           32
+claude claude-sonnet-5-5 high edits listed      2             8%          29%           9%           4%           6%           1%           1%          12%          31%
+                                                              14           43           15           15            8            6            2           14           34
+codex gpt-6.2-sol medium edits not listed       1             1%          13%           6%           9%           4%           8%           2%          28%          29%
+                                                              11           36           17           13            5           15            5           18           30

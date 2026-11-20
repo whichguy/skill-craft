@@ -34,7 +34,7 @@ TEST_RUN = re.compile(
     r"|sf apex run test|mvn\b.*\btest|gradle\w*\b.*\btest)")
 SHIPLOOP = re.compile(r"skills/shiploop/scripts/shiploop\S*\s+(?:--\S+\s+)*([a-z-]+)")
 SURVIVED = re.compile(r"mutation check: \w+ is not done\. (\d+) of (\d+) mutants")
-EDIT_TOOLS = {"search_replace", "write", "apply_patch", "edit", "str_replace", "multi_edit"}
+EDIT_TOOLS = {"search_replace", "write", "apply_patch", "edit", "str_replace", "multi_edit", "Edit", "Write", "MultiEdit"}
 SKIP_PREFIX = (".shiploop-improve/", ".until-loop", "docs/shiploop/")
 
 
@@ -90,6 +90,25 @@ def commands(folder):
             except ValueError:
                 continue
             kind = event.get("type")
+            if kind in ("assistant", "user"):  # Claude Code's stream: tool_use and tool_result blocks
+                for block in (event.get("message") or {}).get("content") or []:
+                    if not isinstance(block, dict):
+                        continue
+                    if block.get("type") == "tool_use":
+                        raw = block.get("input") or {}
+                        text = raw.get("command") or " ".join(
+                            str(raw[key]) for key in ("file_path", "path", "pattern", "skill") if raw.get(key))
+                        call = {"t": when.get(number), "end": None, "exit": None, "tool": block.get("name") or "",
+                                "command": text, "output": ""}
+                        calls[block.get("id")] = call
+                        order.append(call)
+                    elif block.get("type") == "tool_result" and block.get("tool_use_id") in calls:
+                        call = calls[block["tool_use_id"]]
+                        call["end"] = when.get(number)
+                        call["exit"] = 1 if block.get("is_error") else 0
+                        content = block.get("content")
+                        call["output"] = (content if isinstance(content, str) else json.dumps(content))[:400]
+                continue
             if kind == "tool_call":
                 raw = event.get("rawInput") or {}
                 text = raw.get("command") or " ".join(
