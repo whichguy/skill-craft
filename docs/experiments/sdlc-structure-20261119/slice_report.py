@@ -6,7 +6,8 @@ Reads three files made from the slices' folder:
   ITERATION.json  iteration_census.py ... --all     (per step: own test runs, loop iterations, product lines changed)
   SNAPSHOTS.json  slice_snapshots.py                (hidden checks passed at each snapshot)
 
-A slice whose folder name holds "-L0-" is the arm with the stage Until Loop switched off. A hidden check that fails
+A slice whose folder name holds "-L0-" is the arm with the stage Until Loop switched off, and "-K0-" the arm with
+the implement look-back switched off. A hidden check that fails
 at the end of every tickets-assign slice is listed and left out of the score (the registered rule for a check tied
 to the part of the larger request the one-step case leaves out).
 
@@ -25,6 +26,11 @@ PARTS = (("step-plan", ("step-plan",)), ("its review", ("improve:step-plan",)), 
 
 def name_of(run):
     return pathlib.Path(run["folder"]).name
+
+
+def arm_of(name):
+    """L0: the stage Until Loop off; K0: the implement look-back off; base otherwise."""
+    return next((arm for arm in ("L0", "K0") if f"-{arm}-" in name), "base")
 
 
 def inner_loop_done(run):
@@ -77,7 +83,7 @@ def main(census, iteration, snapshots):
         repeated = sum(1 for _, number in loops.get(name, []) if number and number > 1)
         red = sum((s.get("test") or {}).get("test_fails", 0) for s in mine)
         after = sum((s.get("after_implement") or {}).get("code", 0) for s in mine)
-        row = {"name": name, "case": run["case"], "driver": f"{run['model']} {run['effort']}", "arm": "L0" if "-L0-" in name else "base",
+        row = {"name": name, "case": run["case"], "driver": f"{run['model']} {run['effort']}", "arm": arm_of(name),
                "seconds": seconds,
                "done": done, "minutes": sum(seconds.values()) / 60, "first": first, "end": end, "refused": refused,
                "review": sum(v for k, v in seconds.items() if k.startswith("improve:")), "total": sum(seconds.values())}
@@ -109,24 +115,27 @@ def main(census, iteration, snapshots):
         print(f"  {driver:<22}" + "; ".join(f"{label} {sum(r['seconds'].get(k, 0) for r in group for k in keys) / total:.0%}"
                                            for label, keys in PARTS) + f" | before the first product edit {early / total:.0%}")
 
-    print("\n== arm L0 (stage Until Loop off) against the baseline, same driver and case ==")
-    cells = collections.defaultdict(lambda: collections.defaultdict(list))
-    for row in rows:
-        cells[(row["driver"], row["case"])][row["arm"]].append(row)
-    for (driver, case), arms in sorted(cells.items()):
-        if not arms["L0"] or not arms["base"]:
+    for arm, title in (("L0", "the stage Until Loop off"), ("K0", "the implement look-back off")):
+        cells = collections.defaultdict(lambda: collections.defaultdict(list))
+        for row in rows:
+            cells[(row["driver"], row["case"])][row["arm"]].append(row)
+        if not any(arms[arm] for arms in cells.values()):
             continue
-        base, off = arms["base"], arms["L0"]
-        mean_base = statistics.mean(r["minutes"] for r in base)
-        mean_off = statistics.mean(r["minutes"] for r in off)
-        least = min((r["end"][0] for r in base if r["end"]), default=None)
-        kept = all(r["end"] and least is not None and r["end"][0] >= least for r in off)
-        print(f"  {driver:<22}{case:<20} baseline {', '.join(f'{r["minutes"]:.1f}' for r in base)} min (mean {mean_base:.1f}); "
-              f"L0 {', '.join(f'{r["minutes"]:.1f}' for r in off)} min (mean {mean_off:.1f}); change {mean_off / mean_base - 1:+.0%}; "
-              f"L0 completes {sum(r['done'] for r in off)} of {len(off)}; hidden checks at the end: baseline "
-              f"{', '.join(str(r['end'][0]) if r['end'] else '?' for r in base)}, L0 "
-              f"{', '.join(str(r['end'][0]) if r['end'] else '?' for r in off)} ({'no loss seen' if kept else 'LOSS'}); refused: "
-              f"baseline {', '.join(str(r['refused']) for r in base)}, L0 {', '.join(str(r['refused']) for r in off)}")
+        print(f"\n== arm {arm} ({title}) against the baseline, same driver and case ==")
+        for (driver, case), arms in sorted(cells.items()):
+            if not arms[arm] or not arms["base"]:
+                continue
+            base, off = arms["base"], arms[arm]
+            mean_base = statistics.mean(r["minutes"] for r in base)
+            mean_off = statistics.mean(r["minutes"] for r in off)
+            least = min((r["end"][0] for r in base if r["end"]), default=None)
+            kept = all(r["end"] and least is not None and r["end"][0] >= least for r in off)
+            print(f"  {driver:<22}{case:<20} baseline {', '.join(f'{r["minutes"]:.1f}' for r in base)} min (mean {mean_base:.1f}); "
+                  f"{arm} {', '.join(f'{r["minutes"]:.1f}' for r in off)} min (mean {mean_off:.1f}); change {mean_off / mean_base - 1:+.0%}; "
+                  f"{arm} completes {sum(r['done'] for r in off)} of {len(off)}; hidden checks at the end: baseline "
+                  f"{', '.join(str(r['end'][0]) if r['end'] else '?' for r in base)}, {arm} "
+                  f"{', '.join(str(r['end'][0]) if r['end'] else '?' for r in off)} ({'no loss seen' if kept else 'LOSS'}); refused: "
+                  f"baseline {', '.join(str(r['refused']) for r in base)}, {arm} {', '.join(str(r['refused']) for r in off)}")
 
 
 if __name__ == "__main__":

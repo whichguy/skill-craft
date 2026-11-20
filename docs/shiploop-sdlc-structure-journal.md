@@ -1005,6 +1005,78 @@ slice. Yardstick and measures as in round 4.
 It cannot show what a learning is worth across many steps, a cleared context, or a later run. The knowledge home
 stays, so this prices the look-back alone.
 
+### Results from the judges and the live arm (run 2026-11-20 after 1e86444f573427c3400986690a0d3082c19e4f34)
+
+**R39. What the recorded learnings say** (`evidence/learned-judged.txt`, `judge-learned/`). The two judges gave
+the same label to 97% of the 160 sampled lines (kappa 0.94). By both judges: 86 lines (54%) state a fact a later
+step or change could act on, 54 (34%) restate what the step did, 14 (9%) are about the harness, 1 is unclear. A
+forward fact is commoner after the first step (41 of 59 lines) than at it (45 of 101). Examples of forward
+lines: "Weekly report depends on raw column positions"; "The outbox retains sent and dead events, not just
+pending ones."
+
+**R40. Arm K0, the look-back switched off** (`evidence/slices-k0.txt`, `slices-k0/`). Eight new slices, all
+completed; no look-back was printed in any of K0's 16 build steps and it was printed in all 23 baseline steps.
+
+| Driver and case | Baseline minutes | K0 minutes | Change | Hidden checks at the end | Refusals, baseline / K0 |
+|---|---|---|---|---|---|
+| Sol 6.2 medium, `tickets-assign` | 8.9 (round 4: 6.6, 10.7) | 8.3, 8.9 | -3% (-2% with round 4's) | 12 / 12, 12 | 5 (2, 4) / 5, 3 |
+| Sol 6.2 medium, `shared-expenses-w1` | 10.6 (round 4: 11.3, 9.9) | 11.8, 11.3 | +9% (+9%) | 6 / 6, 6 | 3 (6, 3) / 3, 4 |
+| Sonnet 5.5 high, `tickets-assign` | round 4: 17.3 | 22.2 | +28% | 12 / 12 | 5 / 2 |
+| Sonnet 5.5 high, `shared-expenses-w1` | round 4: 23.8 | 20.4 | -14% | 6 / 6 | 5 / 3 |
+
+In every slice of both arms the last step's `implement` snapshot passes every scored hidden check where the
+snapshot exists (one K0 slice lacks it and passes at its end).
+
+### Registered reading
+
+**The look-back is not what these slices run on.** Every K0 slice completes and passes as many hidden checks as
+its baseline, and K0's minutes are within 15% of the baseline's, or below, in three of the four cells. The
+fourth, one Sonnet slice against one, is 28% slower with fewer refusals. The condition for "the look-back pays"
+(hidden checks lost, or 15% slower in both cases of a driver) is not met on either driver.
+
+### Findings
+
+- **F26 (firm for these records and slices).** ShipLoop already records a learning at every build step and
+  shows it to the next two, and nothing measurable comes of it: the field is filled because it is required
+  (R34), a step that cites an earlier learning is refused no less and is no faster (R35), and removing the
+  look-back changed no hidden check and no time beyond run-to-run noise (R40).
+- **F27 (firm for the sample).** The notes are not empty. About half hold a real fact about the code base
+  (R39). In an item of two or three steps done in one conversation the next step already has that fact in its
+  context, so the look-back repeats it. Where such a fact could matter, after a cleared context or in a later
+  run, the look-back does not reach: a later run sees the knowledge home and the last three commit messages.
+- **F28 (firm).** A memory of refusals has almost nothing to save. Refusals that repeat an earlier one cost
+  0.8% of recorded run time and 0.3% of slice time, and nearly all are the seeded-fault refusal, which round 4's
+  boundary cases address at the source instead (F19).
+- **F29 (firm).** The carry-forward skill decision has been `none` in every one of 306 results (282 recorded
+  runs, 24 slices): a required
+  answer that has never been anything else.
+- **F30 (not measured).** What the knowledge home is worth to a later run. Follow-on runs are not quicker to
+  start (R38), but no run withholds the home, so its worth for keeping earlier decisions is unpriced.
+
+### Recommendation (owner's decisions; nothing built)
+
+1. **Track nothing more as a run iterates.** No refusal memory, no lessons store, no new field for the model to
+   fill. The measured ceiling is under 1% of run time (F28), the channel that already exists shows no effect
+   (F26), and each new required field adds a refusal class of its own (R23 counts 11 record-rule refusals at
+   `test` alone).
+2. **Leave `learned` and the look-back as they are.** They cost a line of about 70 characters a step and feed
+   the step commits' messages; taking the look-back out saved nothing either (R40), so by the owner's rule of
+   changing only for a material difference there is no case to change it in either direction.
+3. **One candidate to drop, small and the owner's call:** the carry-forward skill decision (F29).
+4. **If any learning is to be priced further, price the cross-run one (F30)**, since it is the only channel
+   whose worth is unknown: one follow-on case run with the earlier run's knowledge home present and with it
+   withheld, graded by the follow-on's held-out checks, which include the ones that test whether earlier
+   decisions were kept. That is a full-run comparison, registered first.
+
+### Limits
+
+- Items of two or three steps in one conversation: nothing here tests a learning across many steps, across a
+  cleared context or across runs, which is where a recorded fact has the best chance to matter.
+- The hidden checks are at their ceiling in both arms, so K0 could only have shown a loss or a time change.
+- One to three slices a cell; the two Sonnet cells are one slice against one and point in opposite directions.
+- R35 and R36 are correlations over recorded runs, 96% of them one model. R38 compares different features.
+- The judges label what a line says, not whether anyone used it.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -1037,6 +1109,8 @@ stays, so this prices the look-back alone.
 | `evidence/learning-census.txt`, `evidence/learning-census-slices.txt` | round 5: learning fields filled and cited, the effect of citing, refusals by step, repeated refusals (R34 to R37) |
 | `judge-learned/lines.jsonl`, `out-A.jsonl`, `out-B.jsonl`, `evidence/learned-judge-brief.txt` | round 5: the 160 sampled `learned` lines, each judge's label, and the brief |
 | `overlays/k0-no-look-back.json` | round 5: the one edit of arm K0, applied to a build copy only |
+| `evidence/learned-judged.txt` | round 5: the judges' agreement and label shares (R39) |
+| `evidence/slices-k0.txt`, `evidence/learning-census-slices-k0.txt`, `slices-k0/*.json` | round 5: arm K0 beside the baseline slices, and the files it is computed from (R40) |
 | `evidence/slices.txt`, `evidence/slices-iteration.txt`, `evidence/slices-turns.txt`, `evidence/slices-snapshots.txt`, `slices/*.json` | round 4: the live slices' registered measures, per-step detail, time by kind of command, hidden checks at each snapshot, and the three files they are computed from |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
@@ -1054,6 +1128,11 @@ The slices: `test/shiploop_e2e/slice.py --case <case> --host <host> --model <mod
 <root>`, `iteration_census.py slices/census.json slices/iteration.json --all`, `turn_census.py slices/census.json
 --all`, `python3.13 slice_snapshots.py slices/iteration.json slices/snapshots.json` and `slice_report.py
 slices/census.json slices/iteration.json slices/snapshots.json`.
+
+Round 5: `learning_census.py <work>/iteration.json [--sample 160 judge-learned/lines.jsonl]` (after
+`iteration_census.py`), `learned_score.py judge-learned`, and for the arm `slice.py ... --overlay
+overlays/k0-no-look-back.json` followed by round 4's slice scripts; `slice_report.py slices-k0/census.json
+slices-k0/iteration.json slices-k0/snapshots.json` reproduces `evidence/slices-k0.txt`.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),

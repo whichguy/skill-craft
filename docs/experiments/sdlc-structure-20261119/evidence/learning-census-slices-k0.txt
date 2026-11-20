@@ -1,0 +1,22 @@
+build steps read: 39 in 14 runs
+
+== 1. are the fields filled, and is an earlier learning cited? ==
+implement results that hold a `learned` list: 39 of 39 (100%); with at least one line that is not "none": 39 of 39 (100%); lines per step median 1, characters median 94
+implement packets with a look-back block: 23 of 39 (59%); it showed an earlier step's learning in 16 of 23 (70%)
+`learned_from` names a commit: when a learning was shown 3 of 16 (19%); when none was shown 0 of 7 (0%)
+
+== 2. do steps that cite an earlier learning do better? (steps whose look-back showed one, with a test stage) ==
+  `test` refused at least once: cited 0 of 2 (0%); not cited 5 of 13 (38%); within case and model -100% points over 1 strata
+  refused for a seeded fault: cited 0 of 2 (0%); not cited 5 of 13 (38%); within case and model -100% points over 1 strata
+  seconds: too few to compare
+
+== 3. does the seeded-fault refusal fade as an item's steps go on? (items of two or more steps) ==
+  items: 14; refused for a seeded fault at step 1 6 of 14 (43%), step 2 5 of 14 (36%), step 3 1 of 10 (10%), step 4 or later 0 of 0
+  the next step is refused: after a refused step 0 of 8 (0%); after a step that was not 6 of 16 (38%); within case and model -31% points over 3 strata
+
+== 4. refusals that repeat one already met earlier in the same run, at another action ==
+  refused check or complete commands with a text: 42; repeats of a class met earlier in the run at another action: 0 of 42 (0%)
+  seconds from a refusal to the next accepted check of its action: all refusals 8.0% of run time; the repeats 0.0%
+  repeats by stage: 
+
+== carry-forward skill decisions: {'none': 14} ==

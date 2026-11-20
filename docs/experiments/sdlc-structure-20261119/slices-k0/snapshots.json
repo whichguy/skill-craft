@@ -1,0 +1,3080 @@
+{
+ "sol-medium-expenses-1": {
+  "case": "shared-expenses-w1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [],
+     "failed": {
+      "unit": "\u2139 duration_ms 6.585875",
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found'}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found'}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found'}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found'}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "unit",
+    "contract",
+    "split",
+    "settle",
+    "restart",
+    "concurrency"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-expenses-2": {
+  "case": "shared-expenses-w1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [],
+     "failed": {
+      "unit": "\u2139 duration_ms 5.953",
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: balances after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: balances after an equal split of 1: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: before the restart: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: after the rush: want HTTP 200, got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: balances after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: balances after an equal split of 1: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: before the restart: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: after the rush: want HTTP 200, got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: balances after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: balances after an equal split of 1: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: before the restart: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: after the rush: want HTTP 200, got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: balances after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: balances after an equal split of 1: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: before the restart: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: after the rush: want HTTP 200, got 404 {'error': 'Route not found.'}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "unit",
+    "contract",
+    "split",
+    "settle",
+    "restart",
+    "concurrency"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-tickets-1": {
+  "case": "tickets-assign",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "reason": null,
+   "passed": [
+    "ticket-lifecycle-unchanged",
+    "listing-unchanged",
+    "notifications-unchanged",
+    "restart-keeps-state",
+    "cli-raw-columns",
+    "old-data-loads",
+    "assign-and-unassign",
+    "assignee-validation",
+    "assign-state-and-missing",
+    "assign-same-agent-noop",
+    "assign-audited",
+    "assignee-notified"
+   ],
+   "failed": {
+    "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+    "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+   },
+   "outside_passed": []
+  }
+ },
+ "sol-medium-tickets-2": {
+  "case": "tickets-assign",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "reason": null,
+   "passed": [
+    "ticket-lifecycle-unchanged",
+    "listing-unchanged",
+    "notifications-unchanged",
+    "restart-keeps-state",
+    "cli-raw-columns",
+    "old-data-loads",
+    "assign-and-unassign",
+    "assignee-validation",
+    "assign-state-and-missing",
+    "assign-same-agent-noop",
+    "assign-audited",
+    "assignee-notified"
+   ],
+   "failed": {
+    "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+    "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+   },
+   "outside_passed": []
+  }
+ },
+ "sonnet-high-expenses-1": {
+  "case": "shared-expenses-w1",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [],
+     "failed": {
+      "unit": "\u2139 duration_ms 9.7995",
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'No such route.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'No such route.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'No such route.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'No such route.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'No such route.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'No such route.'}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'No such route.'}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'No such route.'}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'No such route.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'No such route.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'No such route.'}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "test": null,
+    "before_review": null,
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "unit",
+    "contract",
+    "split",
+    "settle",
+    "restart",
+    "concurrency"
+   ],
+   "failed": {}
+  }
+ },
+ "sonnet-high-tickets-1": {
+  "case": "tickets-assign",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "reason": null,
+   "passed": [
+    "ticket-lifecycle-unchanged",
+    "listing-unchanged",
+    "notifications-unchanged",
+    "restart-keeps-state",
+    "cli-raw-columns",
+    "old-data-loads",
+    "assign-and-unassign",
+    "assignee-validation",
+    "assign-state-and-missing",
+    "assign-same-agent-noop",
+    "assign-audited",
+    "assignee-notified"
+   ],
+   "failed": {
+    "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+    "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+   },
+   "outside_passed": []
+  }
+ },
+ "sol-medium-expenses-3": {
+  "case": "shared-expenses-w1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [],
+     "failed": {
+      "unit": "\u2139 duration_ms 6.225584",
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "unit",
+    "contract",
+    "split",
+    "settle",
+    "restart",
+    "concurrency"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-expenses-K0-1": {
+  "case": "shared-expenses-w1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [],
+     "failed": {
+      "unit": "\u2139 duration_ms 6.156",
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'Route not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'Route not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "unit": "  }",
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'Route not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'Route not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'Route not found.'}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "unit",
+    "contract",
+    "split",
+    "settle",
+    "restart",
+    "concurrency"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-expenses-K0-2": {
+  "case": "shared-expenses-w1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [],
+     "failed": {
+      "unit": "\u2139 duration_ms 5.846167",
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'The route was not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'The route was not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'The route was not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 404 {'error': 'The route was not found.'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: first: want HTTP 201, got 404 {'error': 'The route was not found.'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {404: 60}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'The route was not found.'}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'The route was not found.'}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'The route was not found.'}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "split",
+      "concurrency"
+     ],
+     "failed": {
+      "contract": "FAIL: no settlements after rejections: want HTTP 200, got 404 {'error': 'The route was not found.'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 404 {'error': 'The route was not found.'}",
+      "restart": "FAIL: settlements after the restart: got 404 {'error': 'The route was not found.'}"
+     }
+    }
+   },
+   {
+    "implement": null,
+    "test": null,
+    "before_review": null,
+    "commit": null
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "unit",
+    "contract",
+    "split",
+    "settle",
+    "restart",
+    "concurrency"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-tickets-3": {
+  "case": "tickets-assign",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "reason": null,
+   "passed": [
+    "ticket-lifecycle-unchanged",
+    "listing-unchanged",
+    "notifications-unchanged",
+    "restart-keeps-state",
+    "cli-raw-columns",
+    "old-data-loads",
+    "assign-and-unassign",
+    "assignee-validation",
+    "assign-state-and-missing",
+    "assign-same-agent-noop",
+    "assign-audited",
+    "assignee-notified"
+   ],
+   "failed": {
+    "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+    "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+   },
+   "outside_passed": []
+  }
+ },
+ "sol-medium-tickets-K0-1": {
+  "case": "tickets-assign",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited"
+     ],
+     "failed": {
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 200); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 200); assign priya.n (HTTP 200): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "reason": null,
+   "passed": [
+    "ticket-lifecycle-unchanged",
+    "listing-unchanged",
+    "notifications-unchanged",
+    "restart-keeps-state",
+    "cli-raw-columns",
+    "old-data-loads",
+    "assign-and-unassign",
+    "assignee-validation",
+    "assign-state-and-missing",
+    "assign-same-agent-noop",
+    "assign-audited",
+    "assignee-notified"
+   ],
+   "failed": {
+    "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+    "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+   },
+   "outside_passed": []
+  }
+ },
+ "sol-medium-tickets-K0-2": {
+  "case": "tickets-assign",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "reason": null,
+   "passed": [
+    "ticket-lifecycle-unchanged",
+    "listing-unchanged",
+    "notifications-unchanged",
+    "restart-keeps-state",
+    "cli-raw-columns",
+    "old-data-loads",
+    "assign-and-unassign",
+    "assignee-validation",
+    "assign-state-and-missing",
+    "assign-same-agent-noop",
+    "assign-audited",
+    "assignee-notified"
+   ],
+   "failed": {
+    "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+    "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+   },
+   "outside_passed": []
+  }
+ },
+ "sonnet-high-tickets-K0-1": {
+  "case": "tickets-assign",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads"
+     ],
+     "failed": {
+      "assign-and-unassign": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; then {\"id\": \"T-0002\", \"title\": \"Shared drive is full\", \"priority\": \"normal\", \"requester\": \"li@example.com\", \"status\": \"open\",; the listing shows T-0002 as {\"id\": \"T-0002\", \"title\": \"Shar",
+      "assignee-validation": "an empty name: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; 65 characters: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0004/assignee\"}}; a number: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route ",
+      "assign-state-and-missing": "assign a resolved ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0005/assignee\"}}; unassign a closed ticket: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0006/assignee\"}}; reassign a closed ticket: HTTP 404 {\"error\": {\"cod",
+      "assign-same-agent-noop": "assign dana.k: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0001/assignee\"}}",
+      "assign-audited": "None -> dana.k by lead.ana: HTTP 404, new entries []; dana.k -> sam.r by no X-Actor: HTTP 404, new entries []; sam.r -> None by lead.ana: HTTP 404, new entries []",
+      "assignee-notified": "with the worker off, assigning dana.k left 0 pending notifications for them (HTTP 404); with the worker off, assigning sam.r left 0 pending notifications for them (HTTP 404); assign priya.n (HTTP 404): no notification delivered to them within 3 s; priya.n was delivered 0 notifications; the outbox sh",
+      "assignee-persists": "after the restart the assignees are [None, None, None] (assigned with HTTP [404, 404]); assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assigning a ticket saved before the change: HTTP 404 {\"error\": {\"code\": \"not_found\", \"message\": \"no route for PUT /tickets/T-0002/assignee\"}}; assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned; after a restart: [None, None, None]"
+     },
+     "outside_passed": []
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "test": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "before_review": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    },
+    "commit": {
+     "observed": true,
+     "reason": null,
+     "passed": [
+      "ticket-lifecycle-unchanged",
+      "listing-unchanged",
+      "notifications-unchanged",
+      "restart-keeps-state",
+      "cli-raw-columns",
+      "old-data-loads",
+      "assign-and-unassign",
+      "assignee-validation",
+      "assign-state-and-missing",
+      "assign-same-agent-noop",
+      "assign-audited",
+      "assignee-notified"
+     ],
+     "failed": {
+      "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+      "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+     },
+     "outside_passed": []
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "reason": null,
+   "passed": [
+    "ticket-lifecycle-unchanged",
+    "listing-unchanged",
+    "notifications-unchanged",
+    "restart-keeps-state",
+    "cli-raw-columns",
+    "old-data-loads",
+    "assign-and-unassign",
+    "assignee-validation",
+    "assign-state-and-missing",
+    "assign-same-agent-noop",
+    "assign-audited",
+    "assignee-notified"
+   ],
+   "failed": {
+    "assignee-persists": "assignee=dana.k after the restart: ['T-0001', 'T-0002', 'T-0003']; assignee=sam.r after the restart: ['T-0001', 'T-0002', 'T-0003']",
+    "old-tickets-unassigned": "assignee= lists ['T-0001', 'T-0002', 'T-0003'], not the tickets saved before the change and left unassigned"
+   },
+   "outside_passed": []
+  }
+ },
+ "sonnet-high-expenses-K0-1": {
+  "case": "shared-expenses-w1",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [],
+     "failed": {
+      "unit": "\u2139 duration_ms 5.254334",
+      "contract": "FAIL: unknown payer: want HTTP 400, got 501 {'error': 'expenses is not implemented'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 501 {'error': 'settlements is not implemented'}",
+      "restart": "FAIL: first: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {501: 60}"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 501 {'error': 'expenses is not implemented'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 501 {'error': 'settlements is not implemented'}",
+      "restart": "FAIL: first: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {501: 60}"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 501 {'error': 'expenses is not implemented'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 501 {'error': 'settlements is not implemented'}",
+      "restart": "FAIL: first: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {501: 60}"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit"
+     ],
+     "failed": {
+      "contract": "FAIL: unknown payer: want HTTP 400, got 501 {'error': 'expenses is not implemented'}",
+      "split": "FAIL: equal split of 1: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "settle": "FAIL: idle: settlements: want HTTP 200 and a JSON array, got 501 {'error': 'settlements is not implemented'}",
+      "restart": "FAIL: first: want HTTP 201, got 501 {'error': 'expenses is not implemented'}",
+      "concurrency": "FAIL: 60 concurrent expenses: want 60 x 201, got {501: 60}"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "unit",
+      "contract",
+      "split",
+      "settle",
+      "restart",
+      "concurrency"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "unit",
+    "contract",
+    "split",
+    "settle",
+    "restart",
+    "concurrency"
+   ],
+   "failed": {}
+  }
+ }
+}

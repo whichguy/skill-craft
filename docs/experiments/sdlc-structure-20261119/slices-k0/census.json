@@ -1,0 +1,1330 @@
+[
+ {
+  "seconds": {
+   "step-plan": 82.8109998703003,
+   "improve:step-plan": 30.8270001411438,
+   "test-spec": 35.43599987030029,
+   "implement": 146.8789999485016,
+   "test": 205.23100018501282,
+   "document": 79.48699975013733,
+   "improve:document": 66.64200019836426,
+   "carry-forward": 21.069000005722046,
+   "improve:carry-forward": 10.865999937057495
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "implement|check": 2,
+   "test|check": 2,
+   "document|check": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    17049
+   ],
+   "step-plan": [
+    26186
+   ],
+   "improve": [
+    1580,
+    1577,
+    1577,
+    1577,
+    1592
+   ],
+   "test-spec": [
+    26451
+   ],
+   "implement": [
+    28446,
+    30740,
+    27274
+   ],
+   "test": [
+    28666,
+    33097,
+    34303
+   ],
+   "document": [
+    26209,
+    29769,
+    31053
+   ],
+   "carry-forward": [
+    27277
+   ],
+   "system-test-author": [
+    23228
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 1,
+   "document": 4,
+   "carry-forward": 1
+  },
+  "span": 679.2479999065399,
+  "first": "2026-11-20T15:38:15Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "shared-expenses-w1",
+  "folder": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 82.04900002479553,
+   "improve:step-plan": 34.073999881744385,
+   "test-spec": 24.463000059127808,
+   "implement": 181.29100036621094,
+   "test": 110.61199975013733,
+   "document": 62.95799994468689,
+   "improve:document": 61.99899983406067,
+   "carry-forward": 14.666000127792358,
+   "improve:carry-forward": 21.3439998626709
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "test|check": 2
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    17049
+   ],
+   "step-plan": [
+    26186
+   ],
+   "improve": [
+    1580,
+    1577,
+    1577,
+    1577,
+    1592
+   ],
+   "test-spec": [
+    24992
+   ],
+   "implement": [
+    26939,
+    28065,
+    27279
+   ],
+   "test": [
+    27308,
+    29661,
+    31123
+   ],
+   "document": [
+    24971,
+    28504,
+    30376
+   ],
+   "carry-forward": [
+    29087
+   ],
+   "system-test-author": [
+    19961
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 2,
+   "document": 6,
+   "carry-forward": 1
+  },
+  "span": 593.4559998512268,
+  "first": "2026-11-20T15:49:19Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "shared-expenses-w1",
+  "folder": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2",
+  "trace": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 95.74699997901917,
+   "improve:step-plan": 28.682999849319458,
+   "test-spec": 19.098999977111816,
+   "implement": 64.18099999427795,
+   "test": 105.24000024795532,
+   "document": 30.32099986076355,
+   "improve:document": 27.5239999294281,
+   "carry-forward": 14.730000019073486,
+   "improve:carry-forward": 13.009999990463257
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "test|check": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 2,
+   "test|done": 2,
+   "document|done": 2,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 2
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    15772
+   ],
+   "step-plan": [
+    25318
+   ],
+   "improve": [
+    1573,
+    1570,
+    1570,
+    1585
+   ],
+   "test-spec": [
+    22948
+   ],
+   "implement": [
+    27117,
+    28207
+   ],
+   "test": [
+    25653,
+    27964
+   ],
+   "document": [
+    23502,
+    25222
+   ],
+   "carry-forward": [
+    24530
+   ],
+   "system-test-author": [
+    18960
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 1,
+   "document": 2,
+   "carry-forward": 1
+  },
+  "span": 398.5349998474121,
+  "first": "2026-11-20T15:28:48Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "tickets-assign",
+  "folder": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 134.67799997329712,
+   "improve:step-plan": 95.76399993896484,
+   "test-spec": 23.89300012588501,
+   "implement": 83.08500003814697,
+   "test": 151.23600006103516,
+   "document": 69.48499989509583,
+   "improve:document": 53.10899996757507,
+   "carry-forward": 16.335000038146973,
+   "improve:carry-forward": 16.85599994659424
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "improve:step-plan|improve-pass": 1,
+   "document|check": 1,
+   "test|check": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    15772
+   ],
+   "step-plan": [
+    25318
+   ],
+   "improve": [
+    1573,
+    1570,
+    1570,
+    1570,
+    1585
+   ],
+   "test-spec": [
+    22948
+   ],
+   "implement": [
+    26156,
+    28523,
+    27771
+   ],
+   "test": [
+    25175,
+    27953,
+    29070
+   ],
+   "document": [
+    22990,
+    26089,
+    27390
+   ],
+   "carry-forward": [
+    27349
+   ],
+   "system-test-author": [
+    18848
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 2,
+   "document": 3,
+   "carry-forward": 1
+  },
+  "span": 644.4409999847412,
+  "first": "2026-11-20T16:01:13Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "tickets-assign",
+  "folder": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2",
+  "trace": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 212.143000125885,
+   "improve:step-plan": 180.95199990272522,
+   "test-spec": 66.80099987983704,
+   "implement": 232.66799998283386,
+   "test": 371.37800002098083,
+   "document": 86.83400011062622,
+   "improve:document": 204.98499989509583,
+   "carry-forward": 35.03399991989136,
+   "improve:carry-forward": 35.66900014877319
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "test|check": 4
+  },
+  "outcomes": {
+   "step-plan|done": 2,
+   "test-spec|done": 2,
+   "validate-existing|done": 2,
+   "implement|done": 4,
+   "test|done": 3,
+   "document|done": 3,
+   "test|send-back": 1,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 4
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    16880
+   ],
+   "step-plan": [
+    25996,
+    29892
+   ],
+   "improve": [
+    1506,
+    1503,
+    1503,
+    1506,
+    1503,
+    1518
+   ],
+   "test-spec": [
+    29842,
+    32681
+   ],
+   "implement": [
+    28722,
+    32525,
+    33182,
+    33182,
+    34264
+   ],
+   "test": [
+    29127,
+    33192,
+    36551,
+    36555
+   ],
+   "document": [
+    28673,
+    34372,
+    38686
+   ],
+   "carry-forward": [
+    33023
+   ],
+   "system-test-author": [
+    23614
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 5,
+   "document": 5,
+   "carry-forward": 1
+  },
+  "span": 1426.4639999866486,
+  "first": "2026-11-20T15:49:38Z",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "case": "shared-expenses-w1",
+  "folder": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 190.75300002098083,
+   "improve:step-plan": 138.43899989128113,
+   "test-spec": 56.08299994468689,
+   "implement": 100.40300035476685,
+   "test": 178.07800006866455,
+   "document": 142.39999961853027,
+   "improve:document": 141.74500012397766,
+   "carry-forward": 35.33899998664856,
+   "improve:carry-forward": 55.062000036239624
+  },
+  "idle": 0.0,
+  "refusals": {
+   "improve:step-plan|improve-pass": 1,
+   "document|check": 1,
+   "test|check": 1,
+   "improve:document|improve-pass": 1,
+   "improve:carry-forward|improve-pass": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    15603
+   ],
+   "step-plan": [
+    25128
+   ],
+   "improve": [
+    1499,
+    1496,
+    1496,
+    1496,
+    1511
+   ],
+   "test-spec": [
+    28659
+   ],
+   "implement": [
+    29178,
+    34499,
+    33518
+   ],
+   "test": [
+    28629,
+    34857,
+    39959
+   ],
+   "document": [
+    26367,
+    33444,
+    38460
+   ],
+   "carry-forward": [
+    28248
+   ],
+   "system-test-author": [
+    27619
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 2,
+   "document": 4,
+   "carry-forward": 2
+  },
+  "span": 1038.3020000457764,
+  "first": "2026-11-20T15:28:48Z",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "case": "tickets-assign",
+  "folder": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 78.2170000076294,
+   "improve:step-plan": 35.12299990653992,
+   "test-spec": 35.86800003051758,
+   "implement": 176.62299990653992,
+   "test": 159.69400000572205,
+   "document": 66.4359998703003,
+   "improve:document": 52.623000144958496,
+   "carry-forward": 18.645000219345093,
+   "improve:carry-forward": 12.98199987411499
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "implement|check": 1,
+   "test|check": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    17049
+   ],
+   "step-plan": [
+    26186
+   ],
+   "improve": [
+    1580,
+    1577,
+    1577,
+    1577,
+    1592
+   ],
+   "test-spec": [
+    25165
+   ],
+   "implement": [
+    26731,
+    29126,
+    27297
+   ],
+   "test": [
+    27754,
+    30440,
+    31785
+   ],
+   "document": [
+    25242,
+    29039,
+    29039,
+    29039,
+    31600
+   ],
+   "carry-forward": [
+    29544
+   ],
+   "system-test-author": [
+    19877
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 1,
+   "document": 3,
+   "carry-forward": 1
+  },
+  "span": 636.2109999656677,
+  "first": "2026-11-20T17:31:05Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "shared-expenses-w1",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-3",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-3/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 83.26899981498718,
+   "improve:step-plan": 39.66000008583069,
+   "test-spec": 29.456000089645386,
+   "implement": 135.62700009346008,
+   "test": 197.44600009918213,
+   "document": 91.49399971961975,
+   "improve:document": 74.28399991989136,
+   "carry-forward": 31.747000217437744,
+   "improve:carry-forward": 27.34599995613098
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 2,
+   "test|check": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    17109
+   ],
+   "step-plan": [
+    26264
+   ],
+   "improve": [
+    1601,
+    1598,
+    1598,
+    1598,
+    1613
+   ],
+   "test-spec": [
+    25929
+   ],
+   "implement": [
+    27776,
+    29443,
+    27036
+   ],
+   "test": [
+    28423,
+    31652,
+    33108
+   ],
+   "document": [
+    26034,
+    31012,
+    34793
+   ],
+   "carry-forward": [
+    31610
+   ],
+   "system-test-author": [
+    21655
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 1,
+   "document": 3,
+   "carry-forward": 1
+  },
+  "span": 710.3289999961853,
+  "first": "2026-11-20T17:54:57Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "shared-expenses-w1",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 117.73599982261658,
+   "improve:step-plan": 45.194000005722046,
+   "test-spec": 19.039999961853027,
+   "implement": 109.27900004386902,
+   "test": 240.42600011825562,
+   "document": 51.98699975013733,
+   "improve:document": 54.85000014305115,
+   "carry-forward": 23.036999940872192,
+   "improve:carry-forward": 17.927000045776367
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 2,
+   "test|check": 2
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    17109
+   ],
+   "step-plan": [
+    26264
+   ],
+   "improve": [
+    1601,
+    1598,
+    1598,
+    1598,
+    1613
+   ],
+   "test-spec": [
+    25211
+   ],
+   "implement": [
+    27471,
+    29231,
+    27310
+   ],
+   "test": [
+    27615,
+    30248,
+    31639
+   ],
+   "document": [
+    25042,
+    28116,
+    29706
+   ],
+   "carry-forward": [
+    28000
+   ],
+   "system-test-author": [
+    19775
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 1,
+   "document": 3,
+   "carry-forward": 1
+  },
+  "span": 679.4759998321533,
+  "first": "2026-11-20T17:56:47Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "shared-expenses-w1",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-2",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-2/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 113.95299983024597,
+   "improve:step-plan": 31.04200005531311,
+   "test-spec": 20.110000133514404,
+   "implement": 65.8439998626709,
+   "test": 126.57100009918213,
+   "document": 64.26400017738342,
+   "improve:document": 84.0149998664856,
+   "carry-forward": 15.986999988555908,
+   "improve:carry-forward": 15.056999921798706
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "implement|check": 1,
+   "document|check": 1,
+   "test|check": 2
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 2,
+   "test|done": 2,
+   "document|done": 2,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 2
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    15772
+   ],
+   "step-plan": [
+    25318
+   ],
+   "improve": [
+    1573,
+    1570,
+    1570,
+    1585
+   ],
+   "test-spec": [
+    23136
+   ],
+   "implement": [
+    27646,
+    28481
+   ],
+   "test": [
+    26305,
+    29219
+   ],
+   "document": [
+    24118,
+    27435
+   ],
+   "carry-forward": [
+    26542
+   ],
+   "system-test-author": [
+    19268
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 1,
+   "document": 3,
+   "carry-forward": 1
+  },
+  "span": 536.8429999351501,
+  "first": "2026-11-20T17:42:33Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "tickets-assign",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-3",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-3/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 109.61400008201599,
+   "improve:step-plan": 64.61999988555908,
+   "test-spec": 28.66600012779236,
+   "implement": 65.71900010108948,
+   "test": 113.58999991416931,
+   "document": 53.04299998283386,
+   "improve:document": 39.30200004577637,
+   "carry-forward": 14.997999906539917,
+   "improve:carry-forward": 8.311000108718872
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 2,
+   "improve:step-plan|improve-pass": 1,
+   "document|check": 1,
+   "test|check": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    15832
+   ],
+   "step-plan": [
+    25396
+   ],
+   "improve": [
+    1594,
+    1591,
+    1591,
+    1591,
+    1606
+   ],
+   "test-spec": [
+    22555
+   ],
+   "implement": [
+    26058,
+    29159,
+    27308
+   ],
+   "test": [
+    25118,
+    28214,
+    29486
+   ],
+   "document": [
+    23155,
+    27050,
+    28380
+   ],
+   "carry-forward": [
+    27219
+   ],
+   "system-test-author": [
+    20203
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 2,
+   "document": 3,
+   "carry-forward": 1
+  },
+  "span": 497.86300015449524,
+  "first": "2026-11-20T17:31:06Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "tickets-assign",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 105.68799996376038,
+   "improve:step-plan": 96.96300005912781,
+   "test-spec": 30.75499987602234,
+   "implement": 56.38100004196167,
+   "test": 119.04200005531311,
+   "document": 57.76799988746643,
+   "improve:document": 32.736000061035156,
+   "carry-forward": 20.115000009536743,
+   "improve:carry-forward": 16.03500008583069
+  },
+  "idle": 0.0,
+  "refusals": {
+   "improve:step-plan|improve-pass": 1,
+   "document|check": 1,
+   "test|check": 1
+  },
+  "outcomes": {
+   "step-plan|done": 2,
+   "test-spec|send-back": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 2,
+   "test|done": 2,
+   "document|done": 2,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 2
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    15832
+   ],
+   "step-plan": [
+    25396,
+    26408
+   ],
+   "improve": [
+    1594,
+    1594,
+    1591,
+    1591,
+    1606
+   ],
+   "test-spec": [
+    22771,
+    23754
+   ],
+   "implement": [
+    28065,
+    27853
+   ],
+   "test": [
+    25924,
+    28369
+   ],
+   "document": [
+    23983,
+    25700
+   ],
+   "carry-forward": [
+    24665
+   ],
+   "system-test-author": [
+    19346
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 3,
+   "document": 2,
+   "carry-forward": 1
+  },
+  "span": 535.4830000400543,
+  "first": "2026-11-20T17:44:47Z",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "case": "tickets-assign",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-2",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-2/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 92.01099991798401,
+   "improve:step-plan": 115.43200016021729,
+   "test-spec": 57.58099985122681,
+   "implement": 140.24900007247925,
+   "test": 214.6930000782013,
+   "document": 203.51399993896484,
+   "improve:document": 69.99300003051758,
+   "carry-forward": 27.40999984741211,
+   "improve:carry-forward": 300.84500002861023
+  },
+  "idle": 0.0,
+  "refusals": {
+   "step-plan|check": 1,
+   "test|check": 1,
+   "improve:carry-forward|improve-pass": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 2,
+   "test|done": 2,
+   "document|done": 2,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 2
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    16940
+   ],
+   "step-plan": [
+    26074
+   ],
+   "improve": [
+    1527,
+    1524,
+    1524,
+    1539
+   ],
+   "test-spec": [
+    26917
+   ],
+   "implement": [
+    30996,
+    33971
+   ],
+   "test": [
+    31100,
+    38117
+   ],
+   "document": [
+    29163,
+    38132,
+    38132
+   ],
+   "carry-forward": [
+    29592
+   ],
+   "system-test-author": [
+    25812
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 2,
+   "document": 2,
+   "carry-forward": 3
+  },
+  "span": 1221.7279999256134,
+  "first": "2026-11-20T17:56:29Z",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "case": "shared-expenses-w1",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-expenses-K0-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl"
+ },
+ {
+  "seconds": {
+   "step-plan": 218.92899990081787,
+   "improve:step-plan": 94.77700018882751,
+   "test-spec": 56.80499982833862,
+   "implement": 157.28800010681152,
+   "test": 364.02500009536743,
+   "document": 112.58399987220764,
+   "improve:document": 211.8050000667572,
+   "carry-forward": 41.50099992752075,
+   "improve:carry-forward": 71.83299994468689
+  },
+  "idle": 0.0,
+  "refusals": {
+   "test|check": 1,
+   "improve:carry-forward|improve-pass": 1
+  },
+  "outcomes": {
+   "step-plan|done": 1,
+   "test-spec|done": 1,
+   "validate-existing|done": 1,
+   "implement|done": 3,
+   "test|done": 3,
+   "document|done": 3,
+   "carry-forward|done": 1
+  },
+  "items": 1,
+  "steps": {
+   "W1": 3
+  },
+  "done": false,
+  "stages": [
+   "carry-forward",
+   "document",
+   "implement",
+   "improve",
+   "step-plan",
+   "test",
+   "test-spec"
+  ],
+  "current_era": true,
+  "packets": {
+   "intake": [
+    15663
+   ],
+   "step-plan": [
+    25206
+   ],
+   "improve": [
+    1520,
+    1517,
+    1517,
+    1517,
+    1532
+   ],
+   "test-spec": [
+    29667
+   ],
+   "implement": [
+    31066,
+    30741,
+    33785
+   ],
+   "test": [
+    30223,
+    33404,
+    37847
+   ],
+   "document": [
+    28561,
+    32415,
+    37352
+   ],
+   "carry-forward": [
+    29307
+   ],
+   "system-test-author": [
+    26601
+   ]
+  },
+  "improve_passes": {
+   "step-plan": 2,
+   "document": 6,
+   "carry-forward": 2
+  },
+  "span": 1329.5469999313354,
+  "first": "2026-11-20T17:31:05Z",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "case": "tickets-assign",
+  "folder": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-tickets-K0-1",
+  "trace": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl"
+ }
+]

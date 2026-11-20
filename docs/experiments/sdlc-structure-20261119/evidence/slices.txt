@@ -30,7 +30,7 @@ sonnet-high-tickets-L0-1      claude-sonnet-5-5 high  yes  23.5     4         26
   gpt-6.2-sol xhigh     step-plan 16%; its review 14%; test-spec 3%; implement 15%; test 25%; document 12%; step review 8%; carry-fwd 6% | before the first product edit 34%
   grok-4.6 xhigh        step-plan 20%; its review 12%; test-spec 8%; implement 8%; test 19%; document 9%; step review 13%; carry-fwd 11% | before the first product edit 40%
 
-== arm L0 (stage Until Loop off) against the baseline, same driver and case ==
+== arm L0 (the stage Until Loop off) against the baseline, same driver and case ==
   claude-sonnet-5-5 highshared-expenses-w1   baseline 23.8 min (mean 23.8); L0 34.0 min (mean 34.0); change +43%; L0 completes 1 of 1; hidden checks at the end: baseline 6, L0 6 (no loss seen); refused: baseline 5, L0 6
   claude-sonnet-5-5 hightickets-assign       baseline 17.3 min (mean 17.3); L0 23.5 min (mean 23.5); change +36%; L0 completes 1 of 1; hidden checks at the end: baseline 12, L0 12 (no loss seen); refused: baseline 5, L0 8
   gpt-6.2-sol medium    shared-expenses-w1   baseline 11.3, 9.9 min (mean 10.6); L0 13.4, 13.1 min (mean 13.2); change +25%; L0 completes 2 of 2; hidden checks at the end: baseline 6, 6, L0 6, 6 (no loss seen); refused: baseline 6, 3, L0 4, 2

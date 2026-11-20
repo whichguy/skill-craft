@@ -1,0 +1,4585 @@
+{
+ "steps": [
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-a9b638e7569345a8b5043c905e6126ee",
+    "test": "nav-8bc23e0e4fe74b7dad46d96dd947ec2a",
+    "document": "nav-9eb4fe764c1b4059be4dde558793ff4f"
+   },
+   "implement_s": 72.90199995040894,
+   "loop_implement": 1,
+   "implement_refused": 2,
+   "implement": {
+    "calls": 16,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 2,
+    "edits": 0,
+    "loop_calls": 4,
+    "loop_seconds": 1.387000322341919,
+    "first_run": null,
+    "last_fail": 1795189306.042,
+    "green_after_fail": null,
+    "refusals": [
+     "result or record rule",
+     "result or record rule"
+    ],
+    "survivors": [],
+    "fix_span": 72.90599989891052
+   },
+   "test_s": 87.21900010108948,
+   "test": {
+    "calls": 23,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 8,
+    "check_fails": 2,
+    "edits": 0,
+    "loop_calls": 4,
+    "loop_seconds": 16.569999933242798,
+    "first_run": 42.58400011062622,
+    "last_fail": 1795189394.138,
+    "green_after_fail": 1795189384.243,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      3,
+      8
+     ],
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 23.789999961853027
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 34.34500002861023,
+   "mutation": [
+    [
+     "2026-11-20T15:43:24Z",
+     6,
+     2,
+     1,
+     [
+      "boolean",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 32.23199987411499,
+   "review_s": 20.282000064849854,
+   "built": {
+    "code": 134
+   },
+   "in_test": {
+    "test": 127
+   },
+   "in_document": {
+    "docs": 20
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 20,
+    "test": 127
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "bc0a9e292345083e3d30b55a1c73c655bef0b8fd",
+    "test": "f06b927b2e8344ecba732be73403acacb92a3031",
+    "before_review": "26590da3487ef74b68e2388747b83f0a92e145ce",
+    "commit": "26590da3487ef74b68e2388747b83f0a92e145ce"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-6dbb09b375c64916a15931852aa4b099",
+    "test": "nav-bd42f29b485d44b69a8f81f28680469e",
+    "document": "nav-1b553100e19e4029a2720a15de0ccf21"
+   },
+   "implement_s": 50.92400002479553,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 10,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.180999994277954,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 61.05800008773804,
+   "test": {
+    "calls": 12,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 15.752000093460083,
+    "first_run": 39.46199989318848,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:45:56Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 20.211999893188477,
+   "review_s": 29.444000005722046,
+   "built": {
+    "code": 70
+   },
+   "in_test": {
+    "test": 94
+   },
+   "in_document": {
+    "docs": 21
+   },
+   "in_review": {
+    "test": 4
+   },
+   "after_implement": {
+    "docs": 21,
+    "test": 94
+   },
+   "trees": {
+    "base": "26590da3487ef74b68e2388747b83f0a92e145ce",
+    "implement": "d9ad3bcd8e1d174a4b3283e6913607f854f4bf91",
+    "test": "ba76debf2f8d4d0e75c14badc9239437e6fda03e",
+    "before_review": "2354d88d7e43fb19e43c521b1e5f47396ff9dc8f",
+    "commit": "c9d5d51894a2fbdcf390a341c8a488f323d7bb3e"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-1d49a82315da40ddac242b3adbe1b666",
+    "test": "nav-2d7034eead9241c5a58ce7ec1d9e81ca",
+    "document": "nav-78d73ee9a63b43b2b83a22f4e39bc135"
+   },
+   "implement_s": 23.05299997329712,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 10,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.1459999084472656,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 56.9539999961853,
+   "test": {
+    "calls": 14,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 27.496000051498413,
+    "first_run": 19.98099994659424,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:47:58Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 27.042999982833862,
+   "review_s": 16.91600012779236,
+   "built": {
+    "code": 33
+   },
+   "in_test": {
+    "test": 39
+   },
+   "in_document": {
+    "docs": 10
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 10,
+    "test": 39
+   },
+   "trees": {
+    "base": "c9d5d51894a2fbdcf390a341c8a488f323d7bb3e",
+    "implement": "26bf07d4601d640987882e83bafa37637ce52f7b",
+    "test": "02984d43b5ed121e09416773b3995609f192f6f6",
+    "before_review": "fd027980d241cf9c161fbd73c2667a845a7ae1b8",
+    "commit": "fd027980d241cf9c161fbd73c2667a845a7ae1b8"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-57dd471e6fab4deb964ea70149ed9a8d",
+    "test": "nav-2ad097813a1e466fa22271dd3514ea47",
+    "document": "nav-5bf2e7655134442b811a4387145e1c04"
+   },
+   "implement_s": 76.02500009536743,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 4,
+    "loop_calls": 2,
+    "loop_seconds": 1.4409997463226318,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 51.79099988937378,
+   "test": {
+    "calls": 12,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 2,
+    "edits": 6,
+    "loop_calls": 4,
+    "loop_seconds": 15.037999868392944,
+    "first_run": 12.787000179290771,
+    "last_fail": 1795190020.274,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      4,
+      8
+     ],
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 39.007999897003174
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 31.984999895095825,
+   "mutation": [
+    [
+     "2026-11-20T15:53:47Z",
+     6,
+     2,
+     1,
+     [
+      "integer",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 21.72099995613098,
+   "review_s": 17.93400001525879,
+   "built": {
+    "code": 127
+   },
+   "in_test": {
+    "test": 130
+   },
+   "in_document": {
+    "docs": 21
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 21,
+    "test": 130
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "33d8d108bb1d22bbfe53cc0ff2d49b5c974c8998",
+    "test": "d275c6dc1443626c55c06e3f2c7e828069b3b459",
+    "before_review": "ee290f58f839c10501e36ccc059849d1e1efadda",
+    "commit": "ee290f58f839c10501e36ccc059849d1e1efadda"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-142ec315850448b2bf24442403669e5a",
+    "test": "nav-bd6c1bf9e4af40a696d5c4260e10189a",
+    "document": "nav-5af95c99c4ba40e3b407f5793bf6bb75"
+   },
+   "implement_s": 52.81400012969971,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 4,
+    "loop_calls": 2,
+    "loop_seconds": 1.692000150680542,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 18.133999824523926,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 12.67199993133545,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:55:29Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 17.6010000705719,
+   "review_s": 25.813999891281128,
+   "built": {
+    "code": 40
+   },
+   "in_test": {
+    "test": 61
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "test": 61
+   },
+   "trees": {
+    "base": "ee290f58f839c10501e36ccc059849d1e1efadda",
+    "implement": "c3fe047d5c9b116b847d6f21849d40b5bd97253d",
+    "test": "a927e76b6a20a0313bf0cf74e0f324a93409ac17",
+    "before_review": "453d6402dc06dde659456169c20a0ddd65aad143",
+    "commit": "453d6402dc06dde659456169c20a0ddd65aad143"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-242f1a31e5fa418e9d909c3f5b95240b",
+    "test": "nav-86bf1a1d2ee442958d33fba20857276d",
+    "document": "nav-54f94430aa0d494c98e75cadf2cbfa48"
+   },
+   "implement_s": 52.4520001411438,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 4,
+    "loop_calls": 2,
+    "loop_seconds": 1.435999870300293,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 40.687000036239624,
+   "test": {
+    "calls": 6,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 3,
+    "loop_calls": 2,
+    "loop_seconds": 18.64800000190735,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:57:43Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 23.63599991798401,
+   "review_s": 18.250999927520752,
+   "built": {
+    "code": 51
+   },
+   "in_test": {
+    "test": 75
+   },
+   "in_document": {
+    "docs": 18
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 18,
+    "test": 75
+   },
+   "trees": {
+    "base": "453d6402dc06dde659456169c20a0ddd65aad143",
+    "implement": "95871e1ee6aef4c02cc0bcf6d7506cac5384fbcb",
+    "test": "d1961d4e2c7f65d126b1040223fad25886bcdf1b",
+    "before_review": "b7e377efd29b2cbef9eb6dba07ca244d852214cf",
+    "commit": "b7e377efd29b2cbef9eb6dba07ca244d852214cf"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-e70a70dc220e4023bd78d3a889a697c4",
+    "test": "nav-9fb65dc558b7464b97e7e92d918557bc",
+    "document": "nav-10d92199503646be81c37aa9389f0e09"
+   },
+   "implement_s": 51.75,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 0.9819998741149902,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 50.15500020980835,
+   "test": {
+    "calls": 9,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 3.552000045776367,
+    "first_run": 44.36099982261658,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:32:52Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 14.369999885559082,
+   "review_s": 14.55299997329712,
+   "built": {
+    "code": 27
+   },
+   "in_test": {
+    "test": 111
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 111
+   },
+   "trees": {
+    "base": "c39707f4a880e854fb7c7150dc7706cfa24fea5e",
+    "implement": "aca10b97d8a5905f22a29b66620498829b9b3534",
+    "test": "6f1a7296bc93be05164de5e8a2e1389837593fb3",
+    "before_review": "6f1a7296bc93be05164de5e8a2e1389837593fb3",
+    "commit": "6f1a7296bc93be05164de5e8a2e1389837593fb3"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-2bfe4bb71a37445e93365db2b1a405f0",
+    "test": "nav-cdfabd3679514831aff7c04e794bfa21",
+    "document": "nav-ff25f9ffdb9d4a3f9aba8c5962c862ba"
+   },
+   "implement_s": 12.430999994277954,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 0.9089999198913574,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 55.08500003814697,
+   "test": {
+    "calls": 22,
+    "test_runs": 8,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 3,
+    "loop_seconds": 8.960999965667725,
+    "first_run": 32.57200002670288,
+    "last_fail": 1795188855.086,
+    "green_after_fail": 1795188864.321,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      5
+     ]
+    ],
+    "fix_span": 16.146000146865845
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 15.61299991607666,
+   "mutation": [
+    [
+     "2026-11-20T15:34:28Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 15.950999975204468,
+   "review_s": 12.970999956130981,
+   "built": {
+    "code": 15
+   },
+   "in_test": {
+    "code": 5,
+    "test": 89
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "code": 5,
+    "test": 89
+   },
+   "trees": {
+    "base": "6f1a7296bc93be05164de5e8a2e1389837593fb3",
+    "implement": "04a4418f975f04adf85b1f26de3411b194c2d54d",
+    "test": "c798a5f3c7618e4ff73162ec7cecbf3915a42b01",
+    "before_review": "d5d64278625c98ca7c5fc2b3bc24f3bafa8870ca",
+    "commit": "d5d64278625c98ca7c5fc2b3bc24f3bafa8870ca"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-0c785181f67443d0831062869aa8a42a",
+    "test": "nav-016e0fd272074c40aa8b4e690e0d355b",
+    "document": "nav-8f75562ce23640dfbd2d71df77003f6f"
+   },
+   "implement_s": 35.67799997329712,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.2620000839233398,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 39.64800000190735,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 4.202000141143799,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:06:41Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 33.003000020980835,
+   "review_s": 20.836999893188477,
+   "built": {
+    "code": 11
+   },
+   "in_test": {
+    "test": 57
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 2,
+    "test": 57
+   },
+   "trees": {
+    "base": "3869ce2f37afeb48877d132d169b78b91d4e7690",
+    "implement": "8931e7313d23b61a5956323987cb696b6e9d0ba5",
+    "test": "12cc22029e9924df3b30fde751dd909725fccf73",
+    "before_review": "a624bdee57ffbd5362dedd9a7f30f1ff84cadfc9",
+    "commit": "a624bdee57ffbd5362dedd9a7f30f1ff84cadfc9"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-12ec4cfd47c245d18bfe82f3f7925b09",
+    "test": "nav-96bb62e306804619be69b456d78100ff",
+    "document": "nav-a3ed68cf4a1b4c3dac7a83f4d4910b58"
+   },
+   "implement_s": 26.259999990463257,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.4640002250671387,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 80.62100005149841,
+   "test": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 2,
+    "loop_calls": 3,
+    "loop_seconds": 15.490000009536743,
+    "first_run": null,
+    "last_fail": 1795190938.496,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      6
+     ]
+    ],
+    "fix_span": 80.62599992752075
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 25.585000038146973,
+   "mutation": [
+    [
+     "2026-11-20T16:09:20Z",
+     4,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 19.908999919891357,
+   "review_s": 16.052000045776367,
+   "built": {
+    "code": 26
+   },
+   "in_test": {
+    "code": 5,
+    "test": 102
+   },
+   "in_document": {
+    "docs": 16
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 16,
+    "code": 5,
+    "test": 102
+   },
+   "trees": {
+    "base": "a624bdee57ffbd5362dedd9a7f30f1ff84cadfc9",
+    "implement": "ca4313a68e3fa34c9b6ded7a2911a5b6bffb9271",
+    "test": "609ce547e468e1054a06b096b64db100e7b06b21",
+    "before_review": "678170343578153cd7aa9d5e97f7940725781c8f",
+    "commit": "678170343578153cd7aa9d5e97f7940725781c8f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-0c3d3c78eaac45259e60c25a1db925c6",
+    "test": "nav-27456a28c1b246e3a68034322edca8e3",
+    "document": "nav-e191557b9fbc4898983ff63554cee9e4"
+   },
+   "implement_s": 21.147000074386597,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.684999942779541,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 30.967000007629395,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 7.29800009727478,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:10:49Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 16.572999954223633,
+   "review_s": 16.22000002861023,
+   "built": {
+    "code": 15
+   },
+   "in_test": {
+    "test": 39
+   },
+   "in_document": {
+    "docs": 3
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 3,
+    "test": 39
+   },
+   "trees": {
+    "base": "678170343578153cd7aa9d5e97f7940725781c8f",
+    "implement": "e0dfdbc09f00f1467bc59e6e5664cf71a3a1a6a9",
+    "test": "310a0b53b91db90441b00d34a4a7f07dd0b4d5ba",
+    "before_review": "73b7a72f368877f63e8764ce16894454fb5795c9",
+    "commit": "73b7a72f368877f63e8764ce16894454fb5795c9"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-0d653d8a84934c648fadf9a8939849d0",
+    "test": "nav-df7c3ab4c09344e08fcf4594839efb47",
+    "document": "nav-a8d8c6eb82664412a1c3562858948886"
+   },
+   "implement_s": 80.49100017547607,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 0.624000072479248,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 168.86999988555908,
+   "test": {
+    "calls": 14,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 5,
+    "check_fails": 2,
+    "edits": 3,
+    "loop_calls": 2,
+    "loop_seconds": 0.8350000381469727,
+    "first_run": 64.40000009536743,
+    "last_fail": 1795190335.798,
+    "green_after_fail": 1795190309.638,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      1,
+      8
+     ],
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 36.04699993133545
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 85.48000001907349,
+   "mutation": [
+    [
+     "2026-11-20T15:59:15Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 35.9539999961853,
+   "review_s": 94.63800001144409,
+   "built": {
+    "code": 265
+   },
+   "in_test": {
+    "test": 220
+   },
+   "in_document": {},
+   "in_review": {
+    "code": 10,
+    "test": 14
+   },
+   "after_implement": {
+    "code": 10,
+    "test": 234
+   },
+   "trees": {
+    "base": "7a8de3e9018a4374d50dd4d1ecb80bef201e6fe8",
+    "implement": "ac9858c031209b6d0ec91649582082cbeac1c123",
+    "test": "0997f7ccf445f21e9e502f7496237147b0d24e44",
+    "before_review": "dc3e4dfe603acb10e4502257f3ac710bb4d60ddb",
+    "commit": "5a3cad1ca631221d54e757e713df596084d3440b"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-eb71e62343b84c8997e200bd9c8f7290",
+    "test": "nav-5a312e9f36c247e4a29186ac30ec138a",
+    "document": "nav-0690cc96600f4470b79ed0397ccc0aed"
+   },
+   "implement_s": 49.21199989318848,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.7299997806549072,
+    "first_run": 25.90000009536743,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 60.76700019836426,
+   "test": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.94100022315979,
+    "first_run": 21.982999801635742,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:03:16Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 23.710999965667725,
+   "review_s": 38.50999999046326,
+   "built": {
+    "code": 78
+   },
+   "in_test": {
+    "test": 119
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 119
+   },
+   "trees": {
+    "base": "5a3cad1ca631221d54e757e713df596084d3440b",
+    "implement": "c528803ec687622aaa914cc5f81df67e8272fe8e",
+    "test": "58a6b0c4a71225cc39a2a1f1daa1c2e1f0f8c40f",
+    "before_review": "1d29223799d55e961b3182cdf59555cd33e81187",
+    "commit": "1d29223799d55e961b3182cdf59555cd33e81187"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-e6a12ff3fde942f7b9e6524072468f8a",
+    "test": null,
+    "document": null
+   },
+   "implement_s": 71.18499994277954,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 1.6059999465942383,
+    "first_run": 22.51900005340576,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "built": {
+    "docs": 61,
+    "code": 47
+   },
+   "in_test": null,
+   "in_document": null,
+   "in_review": null,
+   "after_implement": {
+    "docs": 4,
+    "code": 7,
+    "test": 156
+   },
+   "trees": {
+    "base": "1d29223799d55e961b3182cdf59555cd33e81187",
+    "implement": "13dc70ef0e64c558eb40b887687878b04f97ed74",
+    "test": null,
+    "before_review": null,
+    "commit": "b32f2fb3c249d25a4adfd206281befe05ffc146f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-e8980843c6e74749b20fc76b3e6214bc",
+    "test": "nav-29faa19505a54a0aad778f3382c2567c",
+    "document": "nav-a600a95a845b4f81820b7a3b07a98577"
+   },
+   "implement_s": 31.77999997138977,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 3,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 7.319999933242798,
+    "first_run": 4.796999931335449,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 62.49300003051758,
+   "test": {
+    "calls": 2,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 1,
+    "loop_seconds": 1.5120000839233398,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T16:09:50Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 27.169000148773193,
+   "review_s": 71.83699989318848,
+   "built": {
+    "docs": 61,
+    "code": 47,
+    "test": 145
+   },
+   "in_test": {},
+   "in_document": {},
+   "in_review": {
+    "docs": 4,
+    "code": 7,
+    "test": 11
+   },
+   "after_implement": {
+    "docs": 4,
+    "code": 7,
+    "test": 11
+   },
+   "trees": {
+    "base": "1d29223799d55e961b3182cdf59555cd33e81187",
+    "implement": "c4eec31e1351cc307afe74c62391e383294423b7",
+    "test": "c4eec31e1351cc307afe74c62391e383294423b7",
+    "before_review": "fc8b65373365c1814c37e7ad9b6208f05c32d4c6",
+    "commit": "b32f2fb3c249d25a4adfd206281befe05ffc146f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-2cf4897f8d284aa3a9c5d1129287c024",
+    "test": "nav-043b9ebe657e4870bcfe6e536b5c6f38",
+    "document": "nav-b3dbec3d7b46477fa213b5ab51374394"
+   },
+   "implement_s": 38.88000011444092,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 5,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.8949999809265137,
+    "first_run": 11.843999862670898,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 50.634000062942505,
+   "test": {
+    "calls": 6,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.9399998188018799,
+    "first_run": 21.396000146865845,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:36:34Z",
+     6,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 59.60599994659424,
+   "review_s": 41.59599995613098,
+   "built": {
+    "code": 14
+   },
+   "in_test": {
+    "test": 97
+   },
+   "in_document": {
+    "docs": 5
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 5,
+    "test": 97
+   },
+   "trees": {
+    "base": "d40e4ada98fd7d92839c6a2cd72a16bb71da446c",
+    "implement": "2cc0e6ea70354a4fc6b728cefd2189ee52a782c3",
+    "test": "1ddfdbcbe26f28d4c7321915f8b94afad186ec86",
+    "before_review": "6ce14dbd557d29baae89379c8bcfedd054a3b908",
+    "commit": "6ce14dbd557d29baae89379c8bcfedd054a3b908"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-4cd8a2fa1fae47c8be829fe2e8e7aa33",
+    "test": "nav-7c550d33d3df42408ee45058eed440af",
+    "document": "nav-738862fc1a8746c99a5451ef492840bd"
+   },
+   "implement_s": 32.21900010108948,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 2.001999855041504,
+    "first_run": 12.452000141143799,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 48.842000007629395,
+   "test": {
+    "calls": 5,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 0.9519999027252197,
+    "first_run": 23.889999866485596,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T15:39:38Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 22.24899983406067,
+   "review_s": 30.53600001335144,
+   "built": {
+    "code": 26
+   },
+   "in_test": {
+    "test": 139
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 139
+   },
+   "trees": {
+    "base": "6ce14dbd557d29baae89379c8bcfedd054a3b908",
+    "implement": "0c10d450f35d349c0f3792bdcf8610b65ad973cd",
+    "test": "e441ae90cd1ea7d44f788f39aa56fd37b0103102",
+    "before_review": "031c6af6c82f91c02c32c8c5d4c797f09179067f",
+    "commit": "031c6af6c82f91c02c32c8c5d4c797f09179067f"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-a9234ca8172d4b48b73e4e1bf7065884",
+    "test": "nav-a1bf9ce0ea0d4cd29fac8c78861c3b89",
+    "document": "nav-228c32383e8c4737b0e01e72b10597dc"
+   },
+   "implement_s": 29.30400013923645,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 4,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 2.6780002117156982,
+    "first_run": 8.150000095367432,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 78.60199999809265,
+   "test": {
+    "calls": 8,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 1.3940000534057617,
+    "first_run": 24.146999835968018,
+    "last_fail": 1795189315.371,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      6
+     ]
+    ],
+    "fix_span": 54.461000204086304
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 30.978000164031982,
+   "mutation": [
+    [
+     "2026-11-20T15:42:12Z",
+     6,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 60.544999837875366,
+   "review_s": 69.61300015449524,
+   "built": {
+    "code": 22
+   },
+   "in_test": {
+    "test": 163
+   },
+   "in_document": {
+    "docs": 68,
+    "code": 2
+   },
+   "in_review": {
+    "code": 6
+   },
+   "after_implement": {
+    "docs": 68,
+    "code": 8,
+    "test": 163
+   },
+   "trees": {
+    "base": "031c6af6c82f91c02c32c8c5d4c797f09179067f",
+    "implement": "c22a56d4dfecec32279dfe1fafe264a9234d4cad",
+    "test": "4ecd7ca9079dd81fe44e34b92edadab7da487d3b",
+    "before_review": "c5a99915b0e0f9e847abd55c5307d850639911a4",
+    "commit": "9aa791f113a78aefd8f8eed1ecd102cf3f3923a5"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-85a33e5416cf4e40b31d0b94fd22c123",
+    "test": "nav-b4851965db254e8aaf1811ef8d33c0ff",
+    "document": "nav-b94c80a19dbe4d288ec60df6a088ae22"
+   },
+   "implement_s": 117.08700013160706,
+   "loop_implement": 1,
+   "implement_refused": 1,
+   "implement": {
+    "calls": 16,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 1.5689997673034668,
+    "first_run": null,
+    "last_fail": 1795196125.816,
+    "green_after_fail": null,
+    "refusals": [
+     "result or record rule"
+    ],
+    "survivors": [],
+    "fix_span": 117.09100008010864
+   },
+   "test_s": 74.55799984931946,
+   "test": {
+    "calls": 20,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 6,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 18.384999990463257,
+    "first_run": 29.780999898910522,
+    "last_fail": 1795196179.786,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      3,
+      8
+     ]
+    ],
+    "fix_span": 44.78200006484985
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 27.35599994659424,
+   "mutation": [
+    [
+     "2026-11-20T17:36:39Z",
+     6,
+     2,
+     0,
+     [
+      "boolean",
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 23.48099994659424,
+   "review_s": 13.116000175476074,
+   "built": {
+    "code": 150
+   },
+   "in_test": {
+    "test": 138
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "test": 138
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "7201e1380a87fdd4600f486e0edf4b2017dda460",
+    "test": "2eb203557a03ec055e5065424c998c9ce5bb932f",
+    "before_review": "cd39c79c07ad5889f58cfb27f72ce00b1ac77a1e",
+    "commit": "cd39c79c07ad5889f58cfb27f72ce00b1ac77a1e"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-3/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-7da26fd258b046f99d38ab152ccc4e7a",
+    "test": "nav-2ed0145d1c8f436da2fac8b70928ee48",
+    "document": "nav-73a0356cd0b946fa8c1387cd2b01abb9"
+   },
+   "implement_s": 44.54199981689453,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.3670003414154053,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 39.7020001411438,
+   "test": {
+    "calls": 11,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 15.610000133514404,
+    "first_run": 19.32200002670288,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:38:35Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 25.542999982833862,
+   "review_s": 24.085000038146973,
+   "built": {
+    "code": 80
+   },
+   "in_test": {
+    "test": 67
+   },
+   "in_document": {
+    "docs": 13
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 13,
+    "test": 67
+   },
+   "trees": {
+    "base": "cd39c79c07ad5889f58cfb27f72ce00b1ac77a1e",
+    "implement": "15234ae13ae95b9be1f694959a6603cfaca76965",
+    "test": "63aabb89c2f3361fbbf86d396b84c29223b81a6c",
+    "before_review": "792a4c7f88085ca443bb5f276192ce634c9ff5cc",
+    "commit": "792a4c7f88085ca443bb5f276192ce634c9ff5cc"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-3/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-bbff3d43642e4b4990d2892568115dce",
+    "test": "nav-946a1e03f0fd43b2a64c3f3e0d4b25b8",
+    "document": "nav-c7001ca5757848118af8a9d18f4d2043"
+   },
+   "implement_s": 14.99399995803833,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.25,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 45.43400001525879,
+   "test": {
+    "calls": 14,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 28.372999668121338,
+    "first_run": 8.6489999294281,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:40:16Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 17.411999940872192,
+   "review_s": 15.42199993133545,
+   "built": {
+    "code": 32
+   },
+   "in_test": {
+    "test": 35
+   },
+   "in_document": {
+    "docs": 6
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 6,
+    "test": 35
+   },
+   "trees": {
+    "base": "792a4c7f88085ca443bb5f276192ce634c9ff5cc",
+    "implement": "af63abb730b7a367337692913fd7e71d986320a9",
+    "test": "2a6668912bf5e0c702d8cf4a3e3a9efda5c7f7fc",
+    "before_review": "4d4fcc38c491156cfcc90955aab6f0249dc414b5",
+    "commit": "4d4fcc38c491156cfcc90955aab6f0249dc414b5"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-3/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-a5b0052c8e5340a78788c056f61e0556",
+    "test": "nav-e9dcbd1dddd14cc4aa7d8988cbba069a",
+    "document": "nav-d86203aa7e474c89bf35efed96a30eda"
+   },
+   "implement_s": 53.371999979019165,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.3720002174377441,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 82.5,
+   "test": {
+    "calls": 24,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 6,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 15.731000423431396,
+    "first_run": 50.062999963760376,
+    "last_fail": 1795197563.786,
+    "green_after_fail": 1795197576.491,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      3,
+      8
+     ]
+    ],
+    "fix_span": 22.448999881744385
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 22.71399998664856,
+   "mutation": [
+    [
+     "2026-11-20T17:59:41Z",
+     7,
+     1,
+     0,
+     [
+      "integer"
+     ]
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 40.710999965667725,
+   "review_s": 29.503000020980835,
+   "built": {
+    "code": 125
+   },
+   "in_test": {
+    "test": 117
+   },
+   "in_document": {
+    "docs": 27
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 27,
+    "test": 117
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "b19c3e6521109f8d328c0d1ab24fc9c541ead08e",
+    "test": "146c292b33fa1802362966c25f3d1bbdb07720b2",
+    "before_review": "1960976f9d147c037a517dace3367645143cac1c",
+    "commit": "1960976f9d147c037a517dace3367645143cac1c"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-5a459f28c35d4c0bbefdf09961b389cf",
+    "test": "nav-dff48b2fa1c54785b344318c32d0e8f3",
+    "document": "nav-2e26f5e533ca43d88b093f744cc6e9f1"
+   },
+   "implement_s": 56.35599994659424,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.4129998683929443,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 54.60700011253357,
+   "test": {
+    "calls": 12,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 15.497999906539917,
+    "first_run": 35.94099998474121,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T18:02:36Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 28.658999919891357,
+   "review_s": 24.58999991416931,
+   "built": {
+    "code": 63
+   },
+   "in_test": {
+    "test": 70
+   },
+   "in_document": {
+    "docs": 26
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 26,
+    "test": 70
+   },
+   "trees": {
+    "base": "1960976f9d147c037a517dace3367645143cac1c",
+    "implement": "a0c58dbb44c8d319d8574a22ef76dad4f3ffb55f",
+    "test": "562a2e7c2f7392df883be251db37f289cb877c67",
+    "before_review": "8365af177f30323d15c211bf0a381c0099916e4e",
+    "commit": "8365af177f30323d15c211bf0a381c0099916e4e"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-b83eaeec8a5340d298ca162b816adc9d",
+    "test": "nav-b4427ed046534269b2e385124b585221",
+    "document": "nav-c046bc64c07347df89d771e57abaebd3"
+   },
+   "implement_s": 25.89900016784668,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.2899999618530273,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 60.33899998664856,
+   "test": {
+    "calls": 15,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 30.600000143051147,
+    "first_run": 25.676000118255615,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T18:04:42Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 22.12399983406067,
+   "review_s": 20.19099998474121,
+   "built": {
+    "code": 32
+   },
+   "in_test": {
+    "test": 50
+   },
+   "in_document": {
+    "docs": 13
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 13,
+    "test": 50
+   },
+   "trees": {
+    "base": "8365af177f30323d15c211bf0a381c0099916e4e",
+    "implement": "2da5febb9e99a7694e10a013dac4aaf08103e539",
+    "test": "c9f1f7de77b12cdb1e8dbb06c34997d1f4ee0d5f",
+    "before_review": "a5819e91fc1cb5c7fcf690ca5a05597269995f3e",
+    "commit": "a5819e91fc1cb5c7fcf690ca5a05597269995f3e"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-c03d66618c6849fb82488a1cde5cdeec",
+    "test": "nav-159a3d2578044f5f957e9ee77cb72719",
+    "document": "nav-4710f4938f2247f799f1a33eb55bd8fd"
+   },
+   "implement_s": 45.782999992370605,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.31600022315979,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 86.94800019264221,
+   "test": {
+    "calls": 10,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 6,
+    "check_fails": 2,
+    "edits": 0,
+    "loop_calls": 4,
+    "loop_seconds": 17.741999864578247,
+    "first_run": null,
+    "last_fail": 1795197702.981,
+    "green_after_fail": null,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      1,
+      8
+     ],
+     [
+      1,
+      8
+     ]
+    ],
+    "fix_span": 86.9520001411438
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 37.03200006484985,
+   "mutation": [
+    [
+     "2026-11-20T18:01:58Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 19.13699984550476,
+   "review_s": 24.074000120162964,
+   "built": {
+    "code": 110
+   },
+   "in_test": {
+    "test": 131
+   },
+   "in_document": {
+    "docs": 15
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 15,
+    "test": 131
+   },
+   "trees": {
+    "base": "3f86155f981661bcb1979581e070b37d4eee05d6",
+    "implement": "94705be1800052903b16156602f386551394741f",
+    "test": "565f3e395057baa5466533ef35e4fd70dae6e818",
+    "before_review": "85613cc63c5a1012cb6c9001868241f3d93162f2",
+    "commit": "85613cc63c5a1012cb6c9001868241f3d93162f2"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-7fd1a37099814a70801c0d2201df6eef",
+    "test": "nav-ae773f7f561f4c20acdeea477ab735fc",
+    "document": "nav-00c1fc636aeb401a97e67406e67b4612"
+   },
+   "implement_s": 40.76600003242493,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.4149999618530273,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 65.40899991989136,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 14.497999906539917,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T18:04:21Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 17.858999967575073,
+   "review_s": 15.174000024795532,
+   "built": {
+    "code": 74
+   },
+   "in_test": {
+    "test": 111
+   },
+   "in_document": {
+    "docs": 9
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 9,
+    "test": 111
+   },
+   "trees": {
+    "base": "85613cc63c5a1012cb6c9001868241f3d93162f2",
+    "implement": "de2d28a666a0dd4136c38ef049d6ced536dc63ef",
+    "test": "ef4801d2f771583ec66311748892cfc912f94fde",
+    "before_review": "30368b8fcdf0dd1e2e276920615136c68afed93a",
+    "commit": "30368b8fcdf0dd1e2e276920615136c68afed93a"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-bd98742c2782447db685f604be1716c8",
+    "test": "nav-25c025243f8e43ac9886b4a67dbb3c26",
+    "document": "nav-ac6948810e1b47b0803f8528d0309bc7"
+   },
+   "implement_s": 22.730000019073486,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.2809998989105225,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 88.06900000572205,
+   "test": {
+    "calls": 4,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 56.853999853134155,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T18:06:06Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 14.990999937057495,
+   "review_s": 15.601999998092651,
+   "built": {
+    "code": 37
+   },
+   "in_test": {
+    "test": 56
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 2,
+    "test": 56
+   },
+   "trees": {
+    "base": "30368b8fcdf0dd1e2e276920615136c68afed93a",
+    "implement": "9be7912e0f1e601bd3a688cb99916f4156ff0876",
+    "test": "ff57d654f3f6e423bfad35c1fda3297255440b52",
+    "before_review": "5b469e8c3d90dd362ec14e582f7fabf89e9eeb5c",
+    "commit": "5b469e8c3d90dd362ec14e582f7fabf89e9eeb5c"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-75d084dddd474c67baa1e38f06fe9ccd",
+    "test": "nav-114750841b174851b0cca78863b7508e",
+    "document": "nav-6b65dddf83d54730aba3531cbcaf0b0c"
+   },
+   "implement_s": 48.12999987602234,
+   "loop_implement": 1,
+   "implement_refused": 1,
+   "implement": {
+    "calls": 13,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 1.5319998264312744,
+    "first_run": null,
+    "last_fail": 1795196760.248,
+    "green_after_fail": null,
+    "refusals": [
+     "result or record rule"
+    ],
+    "survivors": [],
+    "fix_span": 48.132999897003174
+   },
+   "test_s": 46.78999996185303,
+   "test": {
+    "calls": 9,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 4.6020002365112305,
+    "first_run": 39.562000036239624,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:46:51Z",
+     6,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 42.39900016784668,
+   "review_s": 70.0259997844696,
+   "built": {
+    "code": 31
+   },
+   "in_test": {
+    "test": 104
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {
+    "code": 25,
+    "test": 27
+   },
+   "after_implement": {
+    "docs": 2,
+    "code": 25,
+    "test": 131
+   },
+   "trees": {
+    "base": "8e95fa188fb1f17c5b60c924e4d2a8f68a678f59",
+    "implement": "a8ff79aa93e8d6a1f2a3a223d8ecbb85589bd3d3",
+    "test": "6ce38d2f2d31d7bbbde5c824ab75512a35a17ef5",
+    "before_review": "c1b0ed8f729dfd22fa86cf4aa81522f7c95e3ccd",
+    "commit": "0eb294e333f45a73fd90b34914ffe007c5066e3a"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-3/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-01cbee9518a04110ba472239b003b5b7",
+    "test": "nav-22ce12ebf7bd4db39c976d31011eb126",
+    "document": "nav-1b9e79eb21c3428e8e66fd340b694eed"
+   },
+   "implement_s": 17.71399998664856,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.1989998817443848,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 79.7810001373291,
+   "test": {
+    "calls": 31,
+    "test_runs": 10,
+    "test_fails": 0,
+    "checks": 6,
+    "check_fails": 2,
+    "edits": 0,
+    "loop_calls": 4,
+    "loop_seconds": 18.608999967575073,
+    "first_run": 38.54299998283386,
+    "last_fail": 1795197007.715,
+    "green_after_fail": 1795196998.559,
+    "refusals": [
+     "tests too weak (a seeded fault survived)",
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      5
+     ],
+     [
+      2,
+      5
+     ]
+    ],
+    "fix_span": 16.52500009536743
+   },
+   "test_refused": 2,
+   "refusal_tail_s": 32.223000049591064,
+   "mutation": [
+    [
+     "2026-11-20T17:50:20Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 21.865000009536743,
+   "review_s": 13.989000082015991,
+   "built": {
+    "code": 17
+   },
+   "in_test": {
+    "code": 5,
+    "test": 119
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "code": 5,
+    "test": 119
+   },
+   "trees": {
+    "base": "0eb294e333f45a73fd90b34914ffe007c5066e3a",
+    "implement": "62050e860f835b8f387b2dc25611e1d3ce9f2b2f",
+    "test": "85b9c9370cfabca867a3a573196362c18b95e8a3",
+    "before_review": "37777c7f1b48ca44f6bac7ce8463db68184b73ed",
+    "commit": "37777c7f1b48ca44f6bac7ce8463db68184b73ed"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-3/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-1899499333194a2d8abece03a018c8c7",
+    "test": "nav-529ef2e70fe44c69b74e753cc77aa842",
+    "document": "nav-489e6e11b45e483096c522a72dba1906"
+   },
+   "implement_s": 21.164000034332275,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.1390001773834229,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 32.281999826431274,
+   "test": {
+    "calls": 8,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 3.2129998207092285,
+    "first_run": 26.64400005340576,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:35:21Z",
+     2,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 24.89800000190735,
+   "review_s": 17.144999980926514,
+   "built": {
+    "code": 8
+   },
+   "in_test": {
+    "test": 39
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 2,
+    "test": 39
+   },
+   "trees": {
+    "base": "70f6ce3b208d995bc7e4f7239f542ea221e7dd68",
+    "implement": "c4d0086ec12df4d0b2595818e3d5fe4a1aa5ef6c",
+    "test": "3a8e5ecdb5cc8eb1991a9ba484116c541ebb359d",
+    "before_review": "390f171d6b91160d35a55bdc483a72c779d37f5a",
+    "commit": "390f171d6b91160d35a55bdc483a72c779d37f5a"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-72e5ae14f5204650b0da9fde9aaad88b",
+    "test": "nav-0e6349020c5240cb92c91abd8739c25f",
+    "document": "nav-2e23a52e05384d28aedd4cce2674a1ec"
+   },
+   "implement_s": 28.694000005722046,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.2860000133514404,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 56.88600015640259,
+   "test": {
+    "calls": 17,
+    "test_runs": 6,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 1,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 7.787999868392944,
+    "first_run": 34.61199998855591,
+    "last_fail": 1795196234.384,
+    "green_after_fail": 1795196243.837,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      6
+     ]
+    ],
+    "fix_span": 15.836999893188477
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 15.907999992370605,
+   "mutation": [
+    [
+     "2026-11-20T17:37:28Z",
+     4,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 15.705999851226807,
+   "review_s": 12.342000007629395,
+   "built": {
+    "code": 33
+   },
+   "in_test": {
+    "code": 5,
+    "test": 118
+   },
+   "in_document": {
+    "docs": 16
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 16,
+    "code": 5,
+    "test": 118
+   },
+   "trees": {
+    "base": "390f171d6b91160d35a55bdc483a72c779d37f5a",
+    "implement": "73b59013ecda678544f81d78c898cc3e7ff64e48",
+    "test": "086a0e7a2b5f2102471c67bc5f1bff5f04308447",
+    "before_review": "2229ff098b432a361b357327e5f226a688195027",
+    "commit": "2229ff098b432a361b357327e5f226a688195027"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-b6aaa25609b34328ae6f5b41ad871520",
+    "test": "nav-43d5f3b0796a42dfb6d1e79a04f9d079",
+    "document": "nav-1c0fae7e9cfb452f9d2cf3cafd25eea8"
+   },
+   "implement_s": 15.861000061035156,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 6,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 1.2120001316070557,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 24.42199993133545,
+   "test": {
+    "calls": 11,
+    "test_runs": 4,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 4.897000074386597,
+    "first_run": 16.17300009727478,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:38:37Z",
+     1,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 12.439000129699707,
+   "review_s": 9.815000057220459,
+   "built": {
+    "code": 20
+   },
+   "in_test": {
+    "test": 36
+   },
+   "in_document": {
+    "docs": 6
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 6,
+    "test": 36
+   },
+   "trees": {
+    "base": "2229ff098b432a361b357327e5f226a688195027",
+    "implement": "ce88bd370ae185af1a78cdd05a39223e99bc2787",
+    "test": "7be2519a442d44008f1f592ec98487dee35d8a19",
+    "before_review": "00cc897c696a021cdf1c5a3199d4c9d4755e7f39",
+    "commit": "00cc897c696a021cdf1c5a3199d4c9d4755e7f39"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-bc6e7dd643894aeebf978bec037a195c",
+    "test": "nav-626f5ad6bdf247899524f1d5aa3a7ee2",
+    "document": "nav-b6a800f7c71d4ea1b2720fa1dd3e7f8f"
+   },
+   "implement_s": 34.712000131607056,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 0.9519999027252197,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 54.17700004577637,
+   "test": {
+    "calls": 17,
+    "test_runs": 5,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 3.930000066757202,
+    "first_run": 36.09500002861023,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:50:07Z",
+     4,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 36.19199991226196,
+   "review_s": 16.60800004005432,
+   "built": {
+    "code": 35
+   },
+   "in_test": {
+    "test": 104
+   },
+   "in_document": {
+    "docs": 17
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 17,
+    "test": 104
+   },
+   "trees": {
+    "base": "1e4bda761fb3315fd83696518f6be02ad051eaaf",
+    "implement": "b215a48b2896320115dfade21fa24aa74b570cc1",
+    "test": "2b42d0048776332de7e9ffe76e070b23d202a063",
+    "before_review": "a7703d60bff3f1228064d0097c842d86cdc3d701",
+    "commit": "a7703d60bff3f1228064d0097c842d86cdc3d701"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-d9bdb32f36cf4c7fb2bea58aba3675b8",
+    "test": "nav-6f866e104a424cb5be7dde8481994e07",
+    "document": "nav-53848b0fbe094ceab0da5dd1cc7476a0"
+   },
+   "implement_s": 21.668999910354614,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 1.0269999504089355,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 64.86500000953674,
+   "test": {
+    "calls": 24,
+    "test_runs": 6,
+    "test_fails": 0,
+    "checks": 5,
+    "check_fails": 1,
+    "edits": 1,
+    "loop_calls": 3,
+    "loop_seconds": 11.741000175476074,
+    "first_run": 33.519999980926514,
+    "last_fail": 1795197127.055,
+    "green_after_fail": 1795197140.889,
+    "refusals": [
+     "tests too weak (a seeded fault survived)"
+    ],
+    "survivors": [
+     [
+      2,
+      5
+     ]
+    ],
+    "fix_span": 22.55399990081787
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 22.64400005340576,
+   "mutation": [
+    [
+     "2026-11-20T17:52:26Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 21.575999975204468,
+   "review_s": 16.128000020980835,
+   "built": {
+    "code": 15
+   },
+   "in_test": {
+    "code": 5,
+    "test": 102
+   },
+   "in_document": {
+    "docs": 16
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 16,
+    "code": 5,
+    "test": 102
+   },
+   "trees": {
+    "base": "a7703d60bff3f1228064d0097c842d86cdc3d701",
+    "implement": "3ac62d5b46ff1fa23939e2931f5c239a93cf667a",
+    "test": "309671e832ef82064a4587ad65cfa7ad262fcad7",
+    "before_review": "b5153a247e3effa00f04db90bc489898ae8d5de2",
+    "commit": "b5153a247e3effa00f04db90bc489898ae8d5de2"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-994c2f35120741afa6e231b3b6396b49",
+    "test": "nav-bc3bbe99443146caaf95433d09c23bf0",
+    "document": "nav-58f447342a3144b99be747522ae8f106"
+   },
+   "implement_s": 77.23300004005432,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 9,
+    "test_runs": 0,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 0.682999849319458,
+    "first_run": null,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 109.66199994087219,
+   "test": {
+    "calls": 11,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 4,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 5.411999940872192,
+    "first_run": 36.620999813079834,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 47.43999981880188,
+   "mutation": [
+    [
+     "2026-11-20T18:03:57Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 37.84500002861023,
+   "review_s": 32.91499996185303,
+   "built": {
+    "code": 195
+   },
+   "in_test": {
+    "test": 202
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 202
+   },
+   "trees": {
+    "base": "859ee271520f4b26119a0cec0acf2a8b6044d0fc",
+    "implement": "e2a648385e13198607d47ae22322c53c11e4422c",
+    "test": "df2fe12d89b2b7eb20cd0afac301e2ead87b1338",
+    "before_review": "6ddfdd38089d401726f86a65f11ce369fad215e1",
+    "commit": "6ddfdd38089d401726f86a65f11ce369fad215e1"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-2dc1a7c9f26244e5aa7c8889045a5a4c",
+    "test": "nav-aedf286052c94cc9b72816222b8d39f1",
+    "document": "nav-3e5aea0705fb48fa9ef948a4c1fcba15"
+   },
+   "implement_s": 63.01600003242493,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 7,
+    "test_runs": 1,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 3,
+    "loop_seconds": 2.9570000171661377,
+    "first_run": 43.84599995613098,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 105.0310001373291,
+   "test": {
+    "calls": 7,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 1.7150001525878906,
+    "first_run": 39.15300011634827,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T18:07:25Z",
+     8,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 165.66899991035461,
+   "review_s": 37.07800006866455,
+   "built": {
+    "docs": 53,
+    "code": 95
+   },
+   "in_test": {
+    "test": 205
+   },
+   "in_document": {},
+   "in_review": {},
+   "after_implement": {
+    "test": 205
+   },
+   "trees": {
+    "base": "6ddfdd38089d401726f86a65f11ce369fad215e1",
+    "implement": "bf7bdf177b5a7b0ab729986b83763d00a0de4948",
+    "test": "da48cbb3453149458f840ba9dabcd5f3345636cf",
+    "before_review": "2d0e09bcc0caaaa481f8d8b885980ebe0a80770d",
+    "commit": "2d0e09bcc0caaaa481f8d8b885980ebe0a80770d"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-2603685eee5647e9bb9a2b7040432a6f",
+    "test": "nav-ed7c9a781d6d4d6a83bdae096c53f116",
+    "document": "nav-53013d39816a4037b25642a362824a89"
+   },
+   "implement_s": 54.3289999961853,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 21,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 10,
+    "loop_calls": 3,
+    "loop_seconds": 2.7749998569488525,
+    "first_run": 33.931999921798706,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 61.77800011634827,
+   "test": {
+    "calls": 9,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 1,
+    "loop_calls": 2,
+    "loop_seconds": 2.067999839782715,
+    "first_run": 28.853999853134155,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:39:04Z",
+     3,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 38.36999988555908,
+   "review_s": 107.53800010681152,
+   "built": {
+    "code": 36
+   },
+   "in_test": {
+    "test": 179
+   },
+   "in_document": {
+    "docs": 2
+   },
+   "in_review": {
+    "code": 13,
+    "test": 17
+   },
+   "after_implement": {
+    "docs": 2,
+    "code": 13,
+    "test": 194
+   },
+   "trees": {
+    "base": "989eafcd7c5b547d5dc1028cb5eb6f8d624c3599",
+    "implement": "03f94a59883dae6bc15f432ad67cc8ced59c41c4",
+    "test": "9d817fa8182824613401bf63d408950d4d2a6a45",
+    "before_review": "8527bd1bfa633c05b2129d622067e19768bca52e",
+    "commit": "d1e62eea9a7be9f8fc6f7b42e47125f11290cc69"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-ded4c70dd69f472ea5f907bce5e5ed96",
+    "test": "nav-44ca1595006243398573e0b52dceac91",
+    "document": "nav-a928245a17514bfaac4e43fccd13233f"
+   },
+   "implement_s": 46.19700002670288,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 8,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 1,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 3,
+    "loop_seconds": 2.947999954223633,
+    "first_run": 25.57699990272522,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 49.062000036239624,
+   "test": {
+    "calls": 8,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 3,
+    "check_fails": 0,
+    "edits": 0,
+    "loop_calls": 2,
+    "loop_seconds": 3.065999984741211,
+    "first_run": 18.038000106811523,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 0,
+   "refusal_tail_s": 0.0,
+   "mutation": [
+    [
+     "2026-11-20T17:43:04Z",
+     7,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 30.872999906539917,
+   "review_s": 35.76699995994568,
+   "built": {
+    "code": 20
+   },
+   "in_test": {
+    "test": 76
+   },
+   "in_document": {
+    "docs": 6
+   },
+   "in_review": {},
+   "after_implement": {
+    "docs": 6,
+    "test": 76
+   },
+   "trees": {
+    "base": "d1e62eea9a7be9f8fc6f7b42e47125f11290cc69",
+    "implement": "2c149ac90652f8dd0c3d6e105dbc196eac96a937",
+    "test": "fc7765f96a99de67f60c3bb4da731451e2faa7e2",
+    "before_review": "ebfd190a1915209ef9d2f91b6ca640e9f5111950",
+    "commit": "ebfd190a1915209ef9d2f91b6ca640e9f5111950"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  },
+  {
+   "item": "W1",
+   "actions": {
+    "implement": "nav-0813bfb1829e480996680bb5df13fd71",
+    "test": "nav-7791bbb8eb2c45698928206d867ebd88",
+    "document": "nav-848cbcdc655449b2880cb6cf9964f2f9"
+   },
+   "implement_s": 56.76200008392334,
+   "loop_implement": 1,
+   "implement_refused": 0,
+   "implement": {
+    "calls": 17,
+    "test_runs": 2,
+    "test_fails": 0,
+    "checks": 2,
+    "check_fails": 0,
+    "edits": 5,
+    "loop_calls": 2,
+    "loop_seconds": 3.0920000076293945,
+    "first_run": 35.69500017166138,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_s": 253.18499994277954,
+   "test": {
+    "calls": 22,
+    "test_runs": 3,
+    "test_fails": 0,
+    "checks": 6,
+    "check_fails": 0,
+    "edits": 2,
+    "loop_calls": 2,
+    "loop_seconds": 15.630000114440918,
+    "first_run": 36.24500012397766,
+    "last_fail": null,
+    "green_after_fail": null,
+    "refusals": [],
+    "survivors": [],
+    "fix_span": 0.0
+   },
+   "test_refused": 1,
+   "refusal_tail_s": 31.905999898910522,
+   "mutation": [
+    [
+     "2026-11-20T17:49:23Z",
+     5,
+     0,
+     0,
+     []
+    ]
+   ],
+   "loop_test": 1,
+   "document_s": 43.34100008010864,
+   "review_s": 68.5,
+   "built": {
+    "docs": 27,
+    "code": 23
+   },
+   "in_test": {
+    "test": 140
+   },
+   "in_document": {
+    "docs": 44
+   },
+   "in_review": {
+    "test": 19
+   },
+   "after_implement": {
+    "docs": 44,
+    "test": 159
+   },
+   "trees": {
+    "base": "ebfd190a1915209ef9d2f91b6ca640e9f5111950",
+    "implement": "a46f12a54789e46c789f4672f1237ad9988a6134",
+    "test": "fc217a54bf564c7bb37d246ba4f05bd8cbe2be0c",
+    "before_review": "d042110d959eee48294e73bc2f9a7f553d656eec",
+    "commit": "00c552cfb98963f23177c31e10f9b4d15ecc5649"
+   },
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign"
+  }
+ ],
+ "runs": [
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-ef636ab60e6d4664b8b88e725f81aa3c",
+     "stage": "step-plan",
+     "t": 1795189163.941,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/expenses.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test ",
+     "tail": 6.561000108718872
+    },
+    {
+     "action": "nav-a9b638e7569345a8b5043c905e6126ee",
+     "stage": "implement",
+     "t": 1795189300.556,
+     "text": "ShipLoop check: the check says no. Add decisions to /Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/inbox/nav-a9b638e7569345a8b5043c905e6126ee.md, then run the same callback again.\nShape: \"learned\": [\"<what this step taught, for the steps after it>\"], \"decisions\": [\"<a choice this step made and why>\"], each a list of lines, [\"none\"] when there is nothing to rec",
+     "tail": 16.82200002670288
+    },
+    {
+     "action": "nav-a9b638e7569345a8b5043c905e6126ee",
+     "stage": "implement",
+     "t": 1795189306.042,
+     "text": "ShipLoop check: the check says no. result has unsupported fields: skills_used. Delete them and run the same callback again; a result carries only: added_tests, assumptions, awaiting, check_na, choices, concerns, consumer_checks, consumer_checks_na, consumer_entry, criteria, decisions, delivery_assessment, evidence_refs, expectations, failed_expectations, follow_on, follows, harness_runs, headline,",
+     "tail": 11.335999965667725
+    },
+    {
+     "action": "nav-8bc23e0e4fe74b7dad46d96dd947ec2a",
+     "stage": "test",
+     "t": 1795189370.761,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 3 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:25:24: server.js:25: '1024' -> '1025'\n- server.js:62:54: server.js:62: 'true' -> 'false'\n- server.js:110:27: server.js:110: '404' -> '405'\nFor each, add or strengthen a test so it fails on that mutant (a kille",
+     "tail": 33.59700012207031
+    },
+    {
+     "action": "nav-8bc23e0e4fe74b7dad46d96dd947ec2a",
+     "stage": "test",
+     "t": 1795189394.138,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:25:24: server.js:25: '1024' -> '1025'\nFor each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or record why it cannot be killed in mutant_dispositions, one entry per mut",
+     "tail": 10.22000002861023
+    },
+    {
+     "action": "nav-9eb4fe764c1b4059be4dde558793ff4f",
+     "stage": "document",
+     "t": 1795189428.257,
+     "text": "ShipLoop check: the check says no. ShipLoop lint gate: document is not done while 1 new lint finding on lines the document stage changed remain:\n- L4d4ba50014 README.md:21: new blank line at EOF.\nLint coverage: not linted: README.md (not in scope: no catalogued linter for this file type; git diff --check only).\nFix each one, rerun this step's checks, and submit done again. A finding that must stay",
+     "tail": 8.437000036239624
+    }
+   ],
+   "end_review_tree": "2ec89809d572f3534e69f0a739fa288729728e18",
+   "end_review_at": 1795189764.2537808,
+   "loop_calls": 40,
+   "loop_seconds": 67.40500044822693,
+   "calls": 224,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 679.2479999065399
+  },
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-f002c44552054aa7b72ba163502af755",
+     "stage": "step-plan",
+     "t": 1795189816.842,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/service.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test o",
+     "tail": 10.901000022888184
+    },
+    {
+     "action": "nav-2ad097813a1e466fa22271dd3514ea47",
+     "stage": "test",
+     "t": 1795189996.481,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 4 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:79:45: server.js:79: '1' -> '2'\n- server.js:96:44: server.js:96: '1' -> '2'\n- server.js:113:27: server.js:113: '500' -> '501'\n- server.js:122:72: server.js:122: '65535' -> '65536'\nFor each, add or strengthen a",
+     "tail": 31.986999988555908
+    },
+    {
+     "action": "nav-2ad097813a1e466fa22271dd3514ea47",
+     "stage": "test",
+     "t": 1795190020.274,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:79:45: server.js:79: '1' -> '2'\nFor each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or record why it cannot be killed in mutant_dispositions, one entry per mutant: {",
+     "tail": 8.194000005722046
+    }
+   ],
+   "end_review_tree": "20234111f4461254f152fce1f1ce03b3d16e5ffd",
+   "end_review_at": 1795190332.143577,
+   "loop_calls": 37,
+   "loop_seconds": 57.578999280929565,
+   "calls": 148,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-expenses-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 593.4559998512268
+  },
+  {
+   "loops": [
+    [
+     "document",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-0aa91cbb42564542877f13509e5cfb01",
+     "stage": "step-plan",
+     "t": 1795188608.886,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/assignment-store.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existi",
+     "tail": 15.690000057220459
+    },
+    {
+     "action": "nav-cdfabd3679514831aff7c04e794bfa21",
+     "stage": "test",
+     "t": 1795188855.086,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 2 of 5 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- src/tickets/validate.js:12:39: src/tickets/validate.js:12: '200' -> '201'\n- src/tickets/validate.js:12:55: src/tickets/validate.js:12: '64' -> '65'\nFor each, add or strengthen a test so it fails on that mutant (a killed",
+     "tail": 15.614000082015991
+    }
+   ],
+   "end_review_tree": "07589708ba6e50fedeecdef989315ff7a04b5744",
+   "end_review_at": 1795188914.3290033,
+   "loop_calls": 28,
+   "loop_seconds": 18.645999908447266,
+   "calls": 122,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 398.5349998474121
+  },
+  {
+   "loops": [
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-e58cd3b77aa6438882fd66484b406b25",
+     "stage": "step-plan",
+     "t": 1795190562.065,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing tes",
+     "tail": 40.6949999332428
+    },
+    {
+     "action": "nav-8f75562ce23640dfbd2d71df77003f6f",
+     "stage": "document",
+     "t": 1795190820.347,
+     "text": "ShipLoop check: the check says no. Restore /Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/worktree/docs/shiploop/spec.md to what HEAD holds plus this step's requirement lines, then run the same callback again; to change a requirement, report send-back naming it.\nIn a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending (W1/",
+     "tail": 16.013000011444092
+    },
+    {
+     "action": "nav-96bb62e306804619be69b456d78100ff",
+     "stage": "test",
+     "t": 1795190938.496,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 2 of 6 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- src/tickets/validate.js:12:39: src/tickets/validate.js:12: '200' -> '201'\n- src/tickets/validate.js:12:55: src/tickets/validate.js:12: '64' -> '65'\nFor each, add or strengthen a test so it fails on that mutant (a killed",
+     "tail": 25.582000017166138
+    }
+   ],
+   "end_review_tree": "91757970f956cc33dc0504b58aa2af617facaab8",
+   "end_review_at": 1795191101.247671,
+   "loop_calls": 32,
+   "loop_seconds": 39.19900035858154,
+   "calls": 101,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sol-medium-tickets-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 644.4409999847412
+  },
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-1512ca21199b49e1b7237de25406441b",
+     "stage": "step-plan",
+     "t": 1795189929.505,
+     "text": "Exit code 2\nShipLoop check: the check says no. these step paths have no expectation listing them in paths: docs/shiploop/architecture.md (item paths, needs works or broken); docs/shiploop/environment.md (item paths, needs works or broken). Every path a step changes that exists on the item's lint base needs a works or broken expectation, and every new path an absent one.\nNothing was accepted or cou",
+     "tail": 5.381999969482422
+    },
+    {
+     "action": "nav-df7c3ab4c09344e08fcf4594839efb47",
+     "stage": "test",
+     "t": 1795190292.606,
+     "text": "Exit code 2\nShipLoop check: the check says no. ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:252:64: server.js:252: '0' -> '1'\nFor each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or record why it cannot be killed in mutant_dispositions, one entry",
+     "tail": 77.68099999427795
+    },
+    {
+     "action": "nav-df7c3ab4c09344e08fcf4594839efb47",
+     "stage": "test",
+     "t": 1795190335.798,
+     "text": "Exit code 2\nShipLoop check: the check says no. ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:252:64: server.js:252: '0' -> '1'\nFor each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or record why it cannot be killed in mutant_dispositions, one entry",
+     "tail": 34.48899984359741
+    },
+    {
+     "action": "nav-ce9b4c5a57394ad196bc5387811db980",
+     "stage": "test",
+     "t": 1795190792.841,
+     "text": "Exit code 2\nShipLoop check: the check says no. ShipLoop base run: test is not done. ShipLoop ran 3 focused and regression commands on the item's base (lint base 1d29223799d5, with this item's 5 test files copied in):\n- [focused] node --test --test-reporter=spec \"test/*.test.js\" -> passed TC-1, TC-9 on the item's base, without this item's change: such a test does not detect the change. Make it asse",
+     "tail": 39.14399981498718
+    },
+    {
+     "action": "nav-ce9b4c5a57394ad196bc5387811db980",
+     "stage": "test",
+     "t": 1795190814.271,
+     "text": "Exit code 2\nShipLoop check: the check says no. ShipLoop test run: test is not done. ShipLoop ran the 4 listed commands from /Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/worktree and 1 did not pass:\n- [focused] grep -q PORT README.md && grep -q DATA_FILE README.md && grep -q 'node --test' README.md && grep -q Limits README.md && head -40 server.js | grep -q DATA",
+     "tail": 17.71399998664856
+    }
+   ],
+   "end_review_tree": "507ba8e256bdd8c52dbb1227b47bf9dcc1b92f40",
+   "end_review_at": 1795191169.4936678,
+   "loop_calls": 46,
+   "loop_seconds": 44.619001150131226,
+   "calls": 153,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-expenses-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1",
+   "seconds": 1426.4639999866486
+  },
+  {
+   "loops": [
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-b3dbec3d7b46477fa213b5ab51374394",
+     "stage": "document",
+     "t": 1795189043.179,
+     "text": "Exit code 2\n+  \"assignee\": null,\n+| `assignee` | the agent the ticket is assigned to, or `null` when it is unassigned (every new ticket is) |\n+- A ticket record with no `assignee`, as in a file saved before tickets could be assigned, loads as unassigned (`null`). An\n+  `assignee` that is neither `null` nor a name of 1 to 64 characters stops the start, for example\n+  `data/tickets.json: tickets[0].",
+     "tail": 14.162000179290771
+    },
+    {
+     "action": "nav-a1bf9ce0ea0d4cd29fac8c78861c3b89",
+     "stage": "test",
+     "t": 1795189315.371,
+     "text": "Exit code 2\nShipLoop check: the check says no. ShipLoop mutation check: test is not done. 2 of 6 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- src/tickets/validate.js:12:39: src/tickets/validate.js:12: '200' -> '201'\n- src/tickets/validate.js:12:55: src/tickets/validate.js:12: '64' -> '65'\nFor each, add or strengthen a test so it fails on that muta",
+     "tail": 19.73199987411499
+    }
+   ],
+   "end_review_tree": "b009d41245827236d0f8c109387a12c3a52e11e5",
+   "end_review_at": 1795189511.8093333,
+   "loop_calls": 40,
+   "loop_seconds": 28.849000215530396,
+   "calls": 138,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc4/20261120/sonnet-high-tickets-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign",
+   "seconds": 1038.3020000457764
+  },
+  {
+   "loops": [
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-e7fb200d4a8b47c2aa9fa4c8a8f3324f",
+     "stage": "step-plan",
+     "t": 1795195931.388,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/expenses.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test ",
+     "tail": 13.115999937057495
+    },
+    {
+     "action": "nav-85a33e5416cf4e40b31d0b94fd22c123",
+     "stage": "implement",
+     "t": 1795196125.816,
+     "text": "ShipLoop check: the check says no. not_covered is [{\"behaviour\": \"<what this step added that no test case covers>\", \"reason\": \"<why>\"}], each nonblank, or []; then run the same command again.\nNothing was accepted or counted. Fix the cause and run the check again in this turn.\n",
+     "tail": 6.766999959945679
+    },
+    {
+     "action": "nav-b4851965db254e8aaf1811ef8d33c0ff",
+     "stage": "test",
+     "t": 1795196179.786,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 3 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:61:63: server.js:61: 'true' -> 'false'\n- server.js:118:30: server.js:118: '404' -> '405'\n- server.js:142:24: server.js:142: '1' -> '2'\nFor each, add or strengthen a test so it fails on that mutant (a killed mu",
+     "tail": 27.355000019073486
+    }
+   ],
+   "end_review_tree": "21ae110981ef8c10ee08561c1322946286724259",
+   "end_review_at": 1795196489.4883528,
+   "loop_calls": 37,
+   "loop_seconds": 72.64599967002869,
+   "calls": 184,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-3/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-3/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 636.2109999656677
+  },
+  {
+   "loops": [
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-3b3928b0b2714565bfc598ad3c2bc70b",
+     "stage": "step-plan",
+     "t": 1795197367.562,
+     "text": "ShipLoop check: the check says no. test command `rg -q 'HTTP contract:' server.js` is recorded suite focused but only searches text: a focused command runs tests and prints their IDs and counts, which the test stage reads, and a search prints neither. Record it with suite check and no ids or min_tests (a check is judged by its exit code); a criterion it confirms is confirm searched and has no test",
+     "tail": 13.947999954223633
+    },
+    {
+     "action": "nav-3b3928b0b2714565bfc598ad3c2bc70b",
+     "stage": "step-plan",
+     "t": 1795197372.329,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/expenses.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test ",
+     "tail": 9.180999994277954
+    },
+    {
+     "action": "nav-e9dcbd1dddd14cc4aa7d8988cbba069a",
+     "stage": "test",
+     "t": 1795197563.786,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 3 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:11:52: server.js:11: '65535' -> '65536'\n- server.js:93:25: server.js:93: '404' -> '405'\n- server.js:112:23: server.js:112: '404' -> '405'\nFor each, add or strengthen a test so it fails on that mutant (a killed",
+     "tail": 22.710000038146973
+    }
+   ],
+   "end_review_tree": "eb04a6e63e931a680cb364ead83842514a214a64",
+   "end_review_at": 1795197981.1936295,
+   "loop_calls": 38,
+   "loop_seconds": 72.7090003490448,
+   "calls": 202,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 710.3289999961853
+  },
+  {
+   "loops": [
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-bd8229dbbb4a4d2fb2ca8df1c7956beb",
+     "stage": "step-plan",
+     "t": 1795197485.738,
+     "text": "ShipLoop check: the check says no. test command `rg -F 'Serve group, expense, balance, and settlement routes.' server.js` is recorded suite focused but only searches text: a focused command runs tests and prints their IDs and counts, which the test stage reads, and a search prints neither. Record it with suite check and no ids or min_tests (a check is judged by its exit code); a criterion it confi",
+     "tail": 39.97800016403198
+    },
+    {
+     "action": "nav-bd8229dbbb4a4d2fb2ca8df1c7956beb",
+     "stage": "step-plan",
+     "t": 1795197493.072,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/server.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing test or",
+     "tail": 32.64400005340576
+    },
+    {
+     "action": "nav-159a3d2578044f5f957e9ee77cb72719",
+     "stage": "test",
+     "t": 1795197685.657,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:93:29: server.js:93: '404' -> '405'\nFor each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or record why it cannot be killed in mutant_dispositions, one entry per mutan",
+     "tail": 37.026999950408936
+    },
+    {
+     "action": "nav-159a3d2578044f5f957e9ee77cb72719",
+     "stage": "test",
+     "t": 1795197702.981,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- server.js:93:29: server.js:93: '404' -> '405'\nFor each, add or strengthen a test so it fails on that mutant (a killed mutant needs no entry), or record why it cannot be killed in mutant_dispositions, one entry per mutan",
+     "tail": 19.70300006866455
+    }
+   ],
+   "end_review_tree": "383aefa6fe4398fef78e1ba59fef044d44755cf4",
+   "end_review_at": 1795198069.4895866,
+   "loop_calls": 38,
+   "loop_seconds": 100.27100014686584,
+   "calls": 111,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-expenses-K0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "shared-expenses-w1",
+   "seconds": 679.4759998321533
+  },
+  {
+   "loops": [
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-da769e924fc4419b8fec55164a0132cb",
+     "stage": "step-plan",
+     "t": 1795196642.514,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing tes",
+     "tail": 23.37600016593933
+    },
+    {
+     "action": "nav-75d084dddd474c67baa1e38f06fe9ccd",
+     "stage": "implement",
+     "t": 1795196760.248,
+     "text": "ShipLoop check: the check says no. not_covered is [{\"behaviour\": \"<what this step added that no test case covers>\", \"reason\": \"<why>\"}], each nonblank, or []; then run the same command again.\nNothing was accepted or counted. Fix the cause and run the check again in this turn.\n",
+     "tail": 6.328999996185303
+    },
+    {
+     "action": "nav-6b65dddf83d54730aba3531cbcaf0b0c",
+     "stage": "document",
+     "t": 1795196841.907,
+     "text": "ShipLoop check: the check says no. Restore /Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-3/.shiploop-runs/seed/worktree/docs/shiploop/spec.md to what HEAD holds plus this step's requirement lines, then run the same callback again; to change a requirement, report send-back naming it.\nIn a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending (W1/",
+     "tail": 13.859999895095825
+    },
+    {
+     "action": "nav-22ce12ebf7bd4db39c976d31011eb126",
+     "stage": "test",
+     "t": 1795196991.066,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 2 of 5 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- src/tickets/validate.js:12:39: src/tickets/validate.js:12: '200' -> '201'\n- src/tickets/validate.js:12:55: src/tickets/validate.js:12: '64' -> '65'\nFor each, add or strengthen a test so it fails on that mutant (a killed",
+     "tail": 32.223999977111816
+    },
+    {
+     "action": "nav-22ce12ebf7bd4db39c976d31011eb126",
+     "stage": "test",
+     "t": 1795197007.715,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 2 of 5 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- src/tickets/validate.js:13:10: src/tickets/validate.js:13: '200' -> '201'\n- src/tickets/validate.js:14:14: src/tickets/validate.js:14: '64' -> '65'\nFor each, add or strengthen a test so it fails on that mutant (a killed",
+     "tail": 15.575000047683716
+    }
+   ],
+   "end_review_tree": "2dad16abf84205d1cb4edcfd0af74c5b4beef5a5",
+   "end_review_at": 1795197075.0999994,
+   "loop_calls": 31,
+   "loop_seconds": 32.10700011253357,
+   "calls": 174,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-3/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-3/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 536.8429999351501
+  },
+  {
+   "loops": [
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-882de8c4c2f045ec8c532f4ce98de64c",
+     "stage": "step-plan",
+     "t": 1795195951.062,
+     "text": "ShipLoop check: the check says no. /Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/run/inbox/nav-882de8c4c2f045ec8c532f4ce98de64c.md: record must contain exactly one shiploop-state fence (found 0): write Markdown whose JSON sits between a line ```shiploop-state and a line ```; raw JSON is not accepted; fix the result file and run the same command again\nNothing wa",
+     "tail": 24.874000072479248
+    },
+    {
+     "action": "nav-882de8c4c2f045ec8c532f4ce98de64c",
+     "stage": "step-plan",
+     "t": 1795195956.075,
+     "text": "ShipLoop check: the check says no. step S1's Proof runs test/assignment.test.js, which the item base does not have and no earlier step declares: implement writes no tests, and S1's test stage writes its tests only after its implement, so this Proof cannot pass when S1's implement reports done. Prove S1 with a command that runs its behaviour directly (a short script with assertions, an existing tes",
+     "tail": 19.861000061035156
+    },
+    {
+     "action": "nav-489e6e11b45e483096c522a72dba1906",
+     "stage": "document",
+     "t": 1795196138.829,
+     "text": "ShipLoop check: the check says no. Restore /Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/worktree/docs/shiploop/spec.md to what HEAD holds plus this step's requirement lines, then run the same callback again; to change a requirement, report send-back naming it.\nIn a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending (",
+     "tail": 8.736000061035156
+    },
+    {
+     "action": "nav-0e6349020c5240cb92c91abd8739c25f",
+     "stage": "test",
+     "t": 1795196234.384,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 2 of 6 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- src/tickets/validate.js:12:39: src/tickets/validate.js:12: '200' -> '201'\n- src/tickets/validate.js:12:55: src/tickets/validate.js:12: '64' -> '65'\nFor each, add or strengthen a test so it fails on that mutant (a killed",
+     "tail": 15.905999898910522
+    }
+   ],
+   "end_review_tree": "99085e44cf90b03fb03389aef4ba97cbc384d38d",
+   "end_review_at": 1795196355.8472989,
+   "loop_calls": 35,
+   "loop_seconds": 27.469000339508057,
+   "calls": 134,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 497.86300015449524
+  },
+  {
+   "loops": [
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ]
+   ],
+   "refusals": [
+    {
+     "action": "nav-b6a800f7c71d4ea1b2720fa1dd3e7f8f",
+     "stage": "document",
+     "t": 1795197035.876,
+     "text": "ShipLoop check: the check says no. Restore /Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-2/.shiploop-runs/seed/worktree/docs/shiploop/spec.md to what HEAD holds plus this step's requirement lines, then run the same callback again; to change a requirement, report send-back naming it.\nIn a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending (",
+     "tail": 9.45900011062622
+    },
+    {
+     "action": "nav-6f866e104a424cb5be7dde8481994e07",
+     "stage": "test",
+     "t": 1795197127.055,
+     "text": "ShipLoop check: the check says no. ShipLoop mutation check: test is not done. 2 of 5 mutants of this item's changed product lines survived the focused tests, with no disposition:\n- src/tickets/validate.js:12:39: src/tickets/validate.js:12: '200' -> '201'\n- src/tickets/validate.js:12:55: src/tickets/validate.js:12: '64' -> '65'\nFor each, add or strengthen a test so it fails on that mutant (a killed",
+     "tail": 21.39800000190735
+    }
+   ],
+   "end_review_tree": "fb36e548637682153e6622139174df375ef309f9",
+   "end_review_at": 1795197207.482527,
+   "loop_calls": 35,
+   "loop_seconds": 21.18000078201294,
+   "calls": 186,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-2/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sol-medium-tickets-K0-2/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "codex",
+   "model": "gpt-6.2-sol",
+   "effort": "medium",
+   "case": "tickets-assign",
+   "seconds": 535.4830000400543
+  },
+  {
+   "loops": [
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "document",
+     1
+    ]
+   ],
+   "refusals": [],
+   "end_review_tree": "ee2aff93ad4f874d2dc4e7421935ce257d366205",
+   "end_review_at": 1795198310.9687786,
+   "loop_calls": 32,
+   "loop_seconds": 37.668999910354614,
+   "calls": 137,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-expenses-K0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-expenses-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "shared-expenses-w1",
+   "seconds": 1221.7279999256134
+  },
+  {
+   "loops": [
+    [
+     "test-spec",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "test",
+     1
+    ],
+    [
+     "document",
+     1
+    ],
+    [
+     "step-plan",
+     1
+    ],
+    [
+     "implement",
+     1
+    ],
+    [
+     "carry-forward",
+     1
+    ],
+    [
+     "document",
+     1
+    ]
+   ],
+   "refusals": [],
+   "end_review_tree": "d83b49c6321333f51f7dc3b7aeeb2489feae8182",
+   "end_review_at": 1795197123.843527,
+   "loop_calls": 40,
+   "loop_seconds": 61.96899914741516,
+   "calls": 208,
+   "worktree": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-tickets-K0-1/.shiploop-runs/seed/worktree",
+   "run": "/Users/dadleet/e2e-runs-sdlc5/20261120/sonnet-high-tickets-K0-1/.shiploop-runs/seed/run/trace.jsonl",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "case": "tickets-assign",
+   "seconds": 1329.5469999313354
+  }
+ ]
+}

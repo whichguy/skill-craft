@@ -1,0 +1,21 @@
+lines labelled by both judges: 160 of 160; same label 97%; kappa 0.94
+  forward   both judges  86 (54%); either  91 (57%); judge A 91, judge B 86
+  restates  both judges  54 (34%); either  59 (37%); judge A 54, judge B 59
+  process   both judges  14 (9%); either  14 (9%); judge A 14, judge B 14
+  unclear   both judges   1 (1%); either   1 (1%); judge A 1, judge B 1
+forward by both judges: first step 45 of 101 (45%); later step 41 of 59 (69%)
+
+examples both judges call forward:
+  [ticket-assignment] Weekly report depends on raw column positions.
+  [ticket-due-times] createService already passed dueTimes into createApp (S3); only the GET /tickets handler needed the second parseListQuery argument. Flag-off still ignores overdue (TC-10). InvalidError from parseListQuery is already HTTP 400.
+  [ticket-escalation] The outbox retains sent and dead events, not just pending ones.
+
+examples both judges call restates:
+  [csv-report] Round totals only after accumulating exact values; later read errors suppress stdout.
+  [seat-reservations] Storage proof confirms one reservation and rejection but does not prove HTTP or concurrency.
+  [csv-report] A file error must suppress output even after valid rows.
+
+examples both judges call process:
+  [hello] A draft replay before implementation (run/scratch/replay.txt) matched the final output, so the step-plan proof needed no change.
+  [ticket-comments] Preserve completed work during plan correction.
+  [hello] Direct subprocess proof works before tests are authored.
