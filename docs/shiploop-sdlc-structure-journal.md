@@ -1241,6 +1241,157 @@ step does to a review's findings beyond the product lines it changes.
 **Budget and failures.** At most $20 for a Claude slice; the Grok slice about $10. A slice that ends without its
 `carry-forward` accepted is reported as it ended and run once more if time allows.
 
+### Results from the live slices (run 2026-11-20 after f9b110856b43ecd4d8587fcae979a473e9ed485f)
+
+**R45. The runs** (`evidence/slices-f1.txt`). 21 counted slices, 10 baseline and 11 F1. Every one completed its
+inner loop by the harness's own verdict and none was rerun. Codex and Claude ran on subscriptions and report no
+dollar figure; the Grok slice reports $6.78 (round 4's baseline slice, $10.57).
+
+**R46. The arm takes, and the baseline's own step count is not stable.**
+
+| Driver | Case | Baseline: steps planned | F1: steps planned |
+|---|---|---|---|
+| Sol 6.2 medium | `tickets-assign` | 3, 3 | 1, 1 |
+| Sol 6.2 medium | `shared-expenses-w1` | 1, 3 | 1, 1 |
+| Sol 6.2 medium | `node-chess-engine` | 1, 1 | 1, 1 |
+| Sonnet 5.5 high | `tickets-assign` | 4 | 1, 1 |
+| Sonnet 5.5 high | `shared-expenses-w1` | 3 | 1, 1 |
+| Sonnet 5.5 high | `node-chess-engine` | 2 | 1 |
+| Grok 4.6 xhigh | `tickets-assign` | 3 (round 4) | 1 |
+
+All 11 F1 slices planned one step (16 of 16 with the rehearsal). Three of the six Sol 6.2 baseline slices also
+planned one step, each by writing exactly 4 criteria, the shipped bound's number; rounds 4 and 5 never saw that
+in 6 Sol 6.2 medium baseline slices, which wrote 4 to 7 criteria in two or three steps. Under the shipped text
+the same driver cuts the same item into one step or three from run to run.
+
+**R47. Time.**
+
+| Driver | Case | Baseline minutes | F1 minutes | Change |
+|---|---|---|---|---|
+| Sol 6.2 medium | `tickets-assign` | 8.4, 9.4 | 10.1, 8.4 | +4% |
+| Sol 6.2 medium | `shared-expenses-w1` | 6.7 (one step), 13.0 (three) | 8.2, 8.6 | −15% |
+| Sol 6.2 medium | `node-chess-engine` | 10.4, 7.7 | 10.6, 7.4 | 0% |
+| Sonnet 5.5 high | `tickets-assign` | 19.6 | 14.7, 17.0 | −19% |
+| Sonnet 5.5 high | `shared-expenses-w1` | 29.7 | 19.3, 14.0 | −44% |
+| Sonnet 5.5 high | `node-chess-engine` | 16.4 | 10.8 | −34% |
+| Grok 4.6 xhigh | `tickets-assign` | 99.2 (round 4) | 69.8 | −30% |
+
+The Sol 6.2 expenses cell is −15.2% unrounded, and its baseline is one slice of each shape.
+
+**R48. Hidden checks (`evidence/slices-f1-snapshots.txt`).** At the end of the slice every F1 slice passes what
+its baseline passes: 12 of 12 scored ticket checks, 6 of 6 expense checks, 10 of 10 chess checks. At the last
+step's `implement` snapshot:
+
+- `tickets-assign`: 12 of 12 in all 9 slices.
+- `node-chess-engine`: 10 of 10 in all 6, five of them a whole engine of 318 to 404 lines written as one step.
+- `shared-expenses-w1`: 6 of 6 in the two baseline slices of three steps, and 5 of 6 in all five one-step
+  slices (one baseline, four F1). The sixth is `unit`, which reruns the product's own tests and requires at
+  least one; a one-step item has none until its `test` stage writes them, and `unit` passes from the `test`
+  snapshot on. The five checks of behaviour pass at `implement` in every slice.
+
+**R49. Refusals, send-backs and what the reviews changed.**
+
+- `test` refused, per slice: Sonnet baseline 3, 3, 1 against F1 1, 0, 0, 0, 0; Sol 6.2 baseline 2, 1, 0, 2, 1,
+  0 against F1 1, 1, 1, 0, 1, 0; Grok 1 against 1.
+- Seconds after `implement` per step rise in the larger step, as R42 expects (Sonnet: 128 to 198 on the engine,
+  273 to 383 and 305 on expenses; Grok 813 to 1,406), and there is one such step instead of three or four.
+- Product-code lines changed after `implement`, baseline against F1: Sonnet 12 against 6 and 2 (tickets), 30
+  against 2 and 27 (expenses), 5 against 0 (engine); Sol 6.2 5 and 5 against 23 and 0 (tickets), none on the
+  other two cases but 4 in one F1 engine; Grok 9 against 2.
+- Send-backs: 2 of 11 F1 slices and 3 of 10 baseline slices. All five are a command in the step plan that
+  ShipLoop could not run or read (a proof ordered before its tests, a search recorded as a test suite, a command
+  that prints nothing when it fails). None is a wrong product.
+
+**R50. Pooled by the steps planned (exploratory, `evidence/steps-pooled.txt`).** Because the baseline chose one
+step by itself in three slices, the arm comparison has cells with little or no contrast. Pooling the 32 baseline
+and F1 slices of rounds 4 to 6 by the steps their plan held, whichever arm planned it:
+
+| Driver | Case | One step: minutes (slices) | Two or more: minutes (slices) | Change |
+|---|---|---|---|---|
+| Sol 6.2 medium | `tickets-assign` | 9.2 (2) | 8.8 (5) | +5% |
+| Sol 6.2 medium | `shared-expenses-w1` | 7.8 (3) | 11.2 (4) | −30% |
+| Sonnet 5.5 high | `tickets-assign` | 15.8 (2) | 18.5 (2) | −14% |
+| Sonnet 5.5 high | `shared-expenses-w1` | 16.7 (2) | 26.8 (2) | −38% |
+| Sonnet 5.5 high | `node-chess-engine` | 10.8 (1) | 16.4 (1) | −34% |
+| Grok 4.6 xhigh | `tickets-assign` | 69.8 (1) | 99.2 (1) | −30% |
+
+One step is faster in 5 of 6 cells, by 15% or more in 4, a median 30%. The seconds come out of `test`,
+`document`, the step review and, on Sonnet and Grok, `implement`; the step plan, its review and the test spec do
+not shrink. In the one cell that does not gain, the single step's documents and review took longer than the
+three steps' together (90 against 59 seconds, 71 against 51) and its plan longer (155 against 117). This cut is
+not a registered reading: in a baseline slice the planner chose the count, and the rounds ran hours apart.
+
+**The prediction.** A quarter to a third was predicted. Sonnet: 19%, 44% and 34%. Grok: 30%. Sol 6.2 medium:
+15% on expenses (30% by step count) and nothing on the ticket change, where the prediction missed: on that
+driver a step's `test`, `document` and review time followed its content, not the number of steps.
+
+### Registered readings
+
+- **The arm takes** in five of the six cells. In the sixth, Sol 6.2 medium on the engine, the baseline already
+  plans one step.
+- **Time.** F1 saves time in four cells: Sonnet on all three cases, and Sol 6.2 medium on expenses at the
+  threshold (15.2%). No difference is readable on Sol 6.2 medium's ticket change (+4%) or its engine (0%, no
+  contrast).
+- **Quality.** No loss is seen in any cell.
+- **The named risk**, by the letter of the rule, shows in one cell: Sonnet on expenses, where both F1 `implement`
+  snapshots pass 5 of 6 and the baseline's passes 6. The check is `unit` (R48), which a one-step item cannot
+  pass before its `test` stage. The rule did not foresee that; it is reported as it fell and not rescored. On
+  the checks of behaviour no one-step implementation failed anything.
+- **Fewer steps pays on these drivers**, by the registered rule: the arm takes and saves time in four of six
+  cells and no cell shows a quality loss. The fourth cell is at the threshold, so the firm part is narrower
+  than the rule's words: it pays on Sonnet in every case, and on Sol 6.2 medium it depends on the case.
+
+### Findings
+
+- **F31 (firm on Sonnet 5.5 high in three cases; one slice on Grok; consistent with 135 recorded terra runs,
+  R43).** The same item planned as one step instead of two to four finishes sooner and passes the same hidden
+  checks: 19 to 44% sooner on Sonnet (4 to 13 minutes a slice), 30% on Grok (29 minutes), with fewer `test`
+  refusals in total.
+- **F32 (firm for these items).** The larger step's first implementation is right. In 14 one-step slices,
+  five of them a whole chess engine, every check of behaviour passes at the `implement` snapshot. The risk
+  round 4 named did not appear, on any driver, on items up to about 400 product lines in one file or 60 lines
+  across six.
+- **F33 (interim, two cases).** On Sol 6.2 medium the gain depends on the case: 15% by arm and 30% by step
+  count on the service built from nothing, none on the one-endpoint change. That driver's per-step overhead is small (round 4: 91 seconds), so
+  when a merged step's documents and review grow with its content there is little left to save.
+- **F34 (firm, new).** The shipped bound does not fix the step count. It caps criteria per step, so a planner
+  that writes 4 criteria gets one step and one that writes 6 gets three, for the same item on the same driver
+  (R46). E-SIZE1's F29 saw the same from the other side: the bound caps the count of criteria, not their text.
+  The F1 wording gave one step in 16 of 16 plans.
+- **F35 (firm).** Every send-back in these 21 slices, in either arm, was a faulty command in the step plan,
+  never a wrong product (R49). One step does not remove them, and they cost a one-step item one redo.
+- **F36 (not measured).** An item that needs cutting (more than 12 criteria, several layers), what per-step
+  reviews and step commits are worth on harder or longer work, and a run with a cleared context. The engine
+  was meant as the hard case and was not hard for these drivers.
+
+### Recommendation (owner's decisions; nothing built)
+
+1. **A candidate change, the owner's call: the F1 wording for the step-plan duty's sizing bullet** (one step
+   the default, at most 12 criteria and 6 product files a step, a larger item cut at a module or layer
+   boundary). It is a product-behaviour change and it turns the direction of the bound the owner kept on
+   2026-10-28, so it is not made here. For it: F31, F32 and F34. Against it: the gain is not shown on Sol 6.2
+   medium's small change (F33), and nothing here tests an item that should still be cut (F36).
+2. **If the owner wants it firmer before deciding, one guard round, registered first:** an item past the new
+   numbers or across two layers (E-SIZE1's battleship server, case K4, is the ready one), F1 against the shipped
+   text on Sonnet, to see that F1 still cuts where it should and what its larger steps cost there.
+3. **Leave the rest as round 4 left it.** One step also removes all but one step review, which is most of what
+   round 4's "one build review per item" would have saved; that candidate needs no separate test if this one
+   is adopted.
+
+### Limits
+
+- One or two slices a cell. The overall registered reading turns on a cell at 15.2% whose baseline mixes one
+  slice of each shape; the pooled cut that makes the picture clearer is exploratory.
+- The hidden checks are at their ceiling in every cell, the engine included, so F1 could show a loss or a time
+  change, not a gain in quality, and "the first implementation is right" is shown only for items these drivers
+  find easy.
+- Nothing larger than one file of about 400 lines or six files of about 60. Sonnet's ticket plans list 7
+  product files, one over the arm's number, with no visible effect.
+- The registered risk rule counted a check (`unit`) that a one-step item cannot pass at `implement`.
+- A slice ends at `carry-forward`: the end-of-work review, the system tests and the release stages are not in
+  it. One step also means one step commit, so the history is coarser; nothing here prices that.
+- Up to seven slices ran at once. The Grok comparison is one slice against one from round 4, hours apart.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -1277,6 +1428,8 @@ step does to a review's findings beyond the product lines it changes.
 | `evidence/slices-k0.txt`, `evidence/learning-census-slices-k0.txt`, `slices-k0/*.json` | round 5: arm K0 beside the baseline slices, and the files it is computed from (R40) |
 | `evidence/step-size-census.txt`, `evidence/step-size-census-slices.txt` | round 6: step plans' shape, a step's seconds by its size, the same request in more or fewer steps, hidden checks by step count, over the recorded runs and over round 4's slices (R41 to R44) |
 | `overlays/f1-fewest-steps.json` | round 6: the one edit of arm F1, applied to a build copy only |
+| `evidence/slices-f1.txt`, `evidence/slices-f1-iteration.txt`, `evidence/slices-f1-snapshots.txt`, `evidence/step-size-census-slices-f1.txt`, `slices-f1/*.json` | round 6: arm F1 beside its baseline slices, per-step detail, hidden checks at each snapshot, the step plans' shape, and the three files they are computed from (R45 to R49) |
+| `evidence/steps-pooled.txt`, `slice-plans.json` | round 6: slice minutes and seconds by part against the steps planned, baseline and F1 slices of rounds 4 to 6 pooled (R50, exploratory), and each slice's planned steps and criteria as read from its run folder |
 | `chess_hidden.js` | round 6: the ten hidden checks of the chess engine case |
 | `evidence/slices.txt`, `evidence/slices-iteration.txt`, `evidence/slices-turns.txt`, `evidence/slices-snapshots.txt`, `slices/*.json` | round 4: the live slices' registered measures, per-step detail, time by kind of command, hidden checks at each snapshot, and the three files they are computed from |
 
@@ -1305,7 +1458,9 @@ Round 6: `python3 -I step_size_census.py <work>/iteration.json <work>/census.jso
 `iteration_census.py`; with `slices/iteration.json slices/census.json` it reproduces
 `evidence/step-size-census-slices.txt` from the repository alone), `node chess_hidden.js <product root> <check>`
 (`--list` names the checks), and for the arm `slice.py ... --overlay overlays/f1-fewest-steps.json` followed by
-round 4's slice scripts.
+round 4's slice scripts into `slices-f1/`; `slice_report.py slices-f1/census.json slices-f1/iteration.json
+slices-f1/snapshots.json` reproduces `evidence/slices-f1.txt`, and `steps_pooled.py slices slices-k0 slices-f1`
+reproduces `evidence/steps-pooled.txt`, both from the repository alone.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),

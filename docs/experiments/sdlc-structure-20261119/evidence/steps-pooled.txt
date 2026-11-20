@@ -1,0 +1,38 @@
+slices: 32 (baseline 20, F1 12), every one with its inner loop complete
+
+driver                  case                 steps planned slices of them F1  criteria                minutes (each)   mean product lines test refusals send-backs  hidden at end
+claude-sonnet-5-5 high  node-chess-engine                1      1          1        10                          10.8   10.8           393           0.0          0             10
+claude-sonnet-5-5 high  node-chess-engine                2      1          0         7                          16.4   16.4           421           1.0          1             10
+claude-sonnet-5-5 high  shared-expenses-w1               1      2          2        10                    19.3, 14.0   16.7           298           0.0          0              6
+claude-sonnet-5-5 high  shared-expenses-w1               3      2          0         8                    23.8, 29.7   26.8           496           2.5          2              6
+claude-sonnet-5-5 high  tickets-assign                   1      2          2        11                    14.7, 17.0   15.8            99           0.5          1             12
+claude-sonnet-5-5 high  tickets-assign                   3      1          0        10                          17.3   17.3            62           1.0          0             12
+claude-sonnet-5-5 high  tickets-assign                   4      1          0         9                          19.6   19.6            91           3.0          0             12
+gpt-6.2-sol medium      node-chess-engine                1      4          2         5          10.4, 7.7, 10.6, 7.4    9.0           324           0.5          0             10
+gpt-6.2-sol medium      shared-expenses-w1               1      3          2         6                 6.7, 8.2, 8.6    7.8           248           0.3          1              6
+gpt-6.2-sol medium      shared-expenses-w1               3      4          0         6         11.3, 9.9, 10.6, 13.0   11.2           250           1.8          1              6
+gpt-6.2-sol medium      tickets-assign                   1      2          2         6                     10.1, 8.4    9.2            56           1.0          0             12
+gpt-6.2-sol medium      tickets-assign                   2      2          0         6                      6.6, 8.9    7.8            45           1.5          0             12
+gpt-6.2-sol medium      tickets-assign                   3      3          0         5                10.7, 8.4, 9.4    9.5            52           1.3          0             12
+gpt-6.2-sol xhigh       shared-expenses-w1               3      1          0        10                          15.8   15.8           277           1.0          0              6
+gpt-6.2-sol xhigh       tickets-assign                   3      1          0         6                          15.1   15.1            68           1.0          0             12
+grok-4.6 xhigh          tickets-assign                   1      1          1        10                          69.8   69.8            64           1.0          0             12
+grok-4.6 xhigh          tickets-assign                   3      1          0         7                          99.2   99.2            55           1.0          0             12
+
+== one step against two or more, same driver and case ==
+  claude-sonnet-5-5 high  node-chess-engine    one step 10.8 min (1); more 16.4 min (1); -34%; minutes saved per step removed 5.5
+  claude-sonnet-5-5 high  shared-expenses-w1   one step 16.7 min (2); more 26.8 min (2); -38%; minutes saved per step removed 5.0
+  claude-sonnet-5-5 high  tickets-assign       one step 15.8 min (2); more 18.5 min (2); -14%; minutes saved per step removed 1.1
+  gpt-6.2-sol medium      shared-expenses-w1   one step 7.8 min (3); more 11.2 min (4); -30%; minutes saved per step removed 1.7
+  gpt-6.2-sol medium      tickets-assign       one step 9.2 min (2); more 8.8 min (5); +5%; minutes saved per step removed -0.3
+  grok-4.6 xhigh          tickets-assign       one step 69.8 min (1); more 99.2 min (1); -30%; minutes saved per step removed 14.7
+  cells with both shapes: 6; one step is faster in 5, by 15% or more in 4; median change -30%
+
+== where the difference is: mean seconds by part, one step and (two or more), same driver and case ==
+driver                  case                       step-plan      its review       test-spec       implement            test        document     step review       carry-fwd
+claude-sonnet-5-5 high  node-chess-engine           95 (141)        73 (160)         44 (73)       151 (150)        86 (209)         41 (76)         71 (98)         88 (74)
+claude-sonnet-5-5 high  shared-expenses-w1         125 (187)       165 (140)         62 (66)       109 (220)       183 (553)         43 (85)       117 (241)       196 (114)
+claude-sonnet-5-5 high  tickets-assign             231 (204)       130 (120)         83 (61)        83 (105)       166 (210)        76 (142)        54 (158)       127 (109)
+gpt-6.2-sol medium      shared-expenses-w1           85 (90)         39 (47)         23 (33)       111 (159)       125 (181)         33 (68)         26 (59)         28 (35)
+gpt-6.2-sol medium      tickets-assign             155 (117)         44 (49)         20 (23)         50 (69)        88 (131)         90 (59)         71 (51)         35 (29)
+grok-4.6 xhigh          tickets-assign            941 (1202)       741 (735)       362 (466)       246 (474)      495 (1136)       462 (530)       448 (774)       490 (635)

@@ -1,0 +1,39 @@
+build steps read: 39 in 22 items of 22 runs
+
+== 1. the step plans ==
+items with an accepted step plan: 22; steps planned per item: 1: 15, 2: 1, 3: 5, 4: 1
+criteria per item: median 7, by count: 4: 3, 5: 2, 6: 4, 7: 5, 8: 1, 9: 1, 10: 3, 11: 3
+criteria per planned step: 1: 8, 2: 4, 3: 6, 4: 6, 6: 3, 7: 2, 8: 1, 10: 3, 11: 3; steps over the bound of 4: 12 of 36 (33%)
+product files per planned step (steps that list paths): 1: 12, 2: 6, 3: 2, 5: 3, 7: 1; over 3: 4 of 24 (17%)
+items of two or more steps: 7 of 22 (32%); of them the bound alone requires two or more (over 4 criteria) in 7 of 7 (100%)
+items planned at the fewest steps the bound allows: 4 of 22 (18%); above it: 6 of 22 (27%); below it (a step over the bound): 12 of 22 (55%)
+items of at most 12 criteria and 6 product files: 19 of 22 (86%); their steps: 1: 13, 2: 1, 3: 5
+items whose plan and recorded steps agree in number (used for criteria per step below): 19 of 22 (86%)
+
+== 2. what a step costs, by the product-code lines its implement built ==
+steps with a test stage and a measured implement diff: 36
+code lines   steps criteria implement   test document  review after impl  test refused  review changed code
+1-25            10        1        24     52       22      24         98 3 of 10 (30%)         0 of 10 (0%)
+26-75           13        4        48     92       51      43        243 8 of 13 (62%)        2 of 13 (15%)
+76-200           1        3        46     79       28      16        124 1 of 1 (100%)          0 of 1 (0%)
+201+            12        6       100    131       34      50        204 5 of 12 (42%)        5 of 12 (42%)
+(seconds are medians; 0 steps built no product-code line and are left out)
+  implement: +31 seconds per 100 product-code lines within case and model (36 steps in 7 cells); at the mean step (129 lines, 69 s) that leaves 29 seconds that do not depend on its size
+  test, document and the step review: +55 seconds per 100 product-code lines within case and model (36 steps in 7 cells); at the mean step (129 lines, 268 s) that leaves 198 seconds that do not depend on its size
+
+== 3. the same request in more or fewer steps (runs of one case, model and effort) ==
+cells: 7; with runs that differ in step count: 4 (12 runs)
+  one more step goes with +148.4 seconds of build seconds (implement, test, document, step review) (12 runs in 4 cells)
+  one more step goes with +4.1 lines of product-code lines built (12 runs in 4 cells)
+  one more step goes with +0.6 refusals of `test` refusals (12 runs in 4 cells)
+  one more step goes with +23.4 seconds of plan-stage seconds (step-plan, its review, test-spec, validate-existing) (12 runs in 4 cells)
+  one more step goes with +180.2 seconds of inner-loop seconds, plan stages to carry-forward (12 runs in 4 cells)
+  the cells with the most runs:
+    shared-expenses-w1 | gpt-6.2-sol medium: 1 steps: 3 runs, build 245 s, 248 lines; 3 steps: 1 runs, build 465 s, 277 lines
+    tickets-assign | gpt-6.2-sol medium: 1 steps: 2 runs, build 299 s, 56 lines; 3 steps: 2 runs, build 315 s, 50 lines
+    tickets-assign | grok-4.6 xhigh: 1 steps: 1 runs, build 1651 s, 64 lines; 3 steps: 1 runs, build 2913 s, 55 lines
+    tickets-assign | claude-sonnet-5-5 high: 1 steps: 1 runs, build 401 s, 62 lines; 4 steps: 1 runs, build 667 s, 91 lines
+
+== 4. hidden checks of the delivered product, by the run's step count ==
+  one step: runs passing every hidden check 0 of 0; checks passed 0 of 0
+  two or more steps: runs passing every hidden check 0 of 0; checks passed 0 of 0
