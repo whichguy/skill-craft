@@ -1,0 +1,27 @@
+end-of-work reviews that changed code or tests (pass log and diff agree): 37
+dropped before pairing: {}
+paired with the step review before them: 37
+  the fix applies cleanly to the tree the step review was bound on: 22
+  of those, with the step review's own hand-off still on disk: 22
+  of those, every fixed file inside that step's own change: 18
+  items of one step: 11; longer items (their last step): 7
+
+id   case                model           steps fix lines  step review edited  fix
+c01  csv-report          gpt-6.1-terra       1        14  no                  fix: accept large integer quantities on newer Python
+c02  csv-report          gpt-6.1-terra       1        15  no                  Handle long CSV fields
+c03  csv-report          gpt-6.1-terra       1        11  yes                 Handle unrestricted unit counts on modern Python
+c04  csv-report          gpt-6.1-terra       1        16  no                  Handle long CSV fields
+c05  csv-report          gpt-6.1-terra       1         7  no                  Test half-even revenue ties
+c06  csv-report          gpt-6.1-terra       1         6  no                  Accept signed zero units
+c07  custom              gpt-6.1-terra       1         7  yes                 Support valid large integer fields across Python versions
+c08  seat-reservations   gpt-6.1-terra       1         9  yes                 Reject invalid Unicode event IDs
+c09  shared-expenses     gpt-6.1-terra       1        26  yes                 Preserve encoded group IDs in request paths
+c10  shared-expenses     gpt-6.1-terra       1        27  yes                 fix: preserve encoded group IDs in request routing
+c11  user-listing        gpt-6.1-terra       1        24  no                  Preserve large page numbers in listing responses
+m01  shared-expenses     gpt-6.1-terra       3        12  no                  Test special member names and group isolation
+m02  ticket-assignment   gpt-6.1-terra       4        31  no                  Fix repeated ticket filters
+m03  ticket-assignment   gpt-6.1-terra       4        12  no                  Show assignee in ticket details
+m04  ticket-assignment   gpt-6.1-terra       3        36  no                  Honor every repeated ticket filter
+m05  ticket-import       gpt-6.1-terra       2        19  yes                 test: verify imported ticket notifications are delivered
+m06  ticket-sla          gpt-6.1-terra       3        29  no                  test: verify escalation across service restarts
+m07  user-listing        gpt-6.1-terra       2        24  no                  Preserve large page numbers in listing responses

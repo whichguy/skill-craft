@@ -307,6 +307,92 @@ case measured (LEARNINGS, the per-step ask-agent route).
 - No worker was launched: the costs quoted are the earlier study's, on Claude Code 2.1.325, Codex 0.169.0 and Grok
   Build 1.0.77.
 
+## Round 3 (2026-11-20): do several read-only reviewers catch what one step reviewer missed?
+
+### Question
+
+F11 left one thing unmeasured: whether several lens readers find more than one reviewer. The owner said "Yes" on
+2026-11-20 to testing it on the recorded cases where a step review passed and the end-of-work review then fixed
+code or tests. Consumer: the owner's decision whether to discuss read-only reviewers inside the step review.
+Improve already has the switch: its review policy runs "a fresh, read-only independent reviewer" only when the
+owner binding selects one (`skills/improve/references/review-policy.md`, "Independent review"); ShipLoop's
+binding does not, and every recorded review is `self-review (inline default)`.
+
+### Registered design (written and committed before any counted reviewer ran)
+
+**Cases** (`replay_cases.py`, `evidence/replay-cases.txt`, `judge-replay/cases.json`). Of 37 end-of-work reviews
+that changed code or tests, 18 pass both rules: the fix's code and test patch applies cleanly to the tree the step
+review was bound on (the fixed lines were in front of the step reviewer, unchanged), and every fixed file is part
+of that step's own change. 11 are items of one step (c01 to c11) and 7 are the last step of a longer item (m01 to
+m07). All 18 were written and reviewed by Codex gpt-6.1-terra, on 8 example applications; by fix subject they are
+12 distinct defects (large integers on newer Python 3 cases, long CSV fields 2, encoded group IDs 2, large page
+numbers 2, repeated ticket filters 2, seven others once each). The 19 others are left out because the step review
+or the carry-forward stage had since edited the same lines (15) or the fix lay in an earlier step's files (4).
+
+**What a reviewer is handed** (`replay_build.py`): the bound tree as a read-only folder, the step's diff, the
+recorded review's own hand-off (what the review looks for, the code craft rules, the step with its criteria, test
+cases and proof, the stage's result) and the run records that hand-off names. Paths of the original run are
+replaced by symbols. The reviewer reports and changes nothing; it may copy the tree to its own folder and run it.
+
+**Arms** (`replay_run.py`, `evidence/replay-briefs.txt`): six reviewers per case, all reading the one case folder
+at the same time.
+
+- p1, p2, p3: the plain brief, the whole review against the hand-off's full list. Three independent draws.
+- lb, lt, ld: one lens each. Behaviour (does the code do what the spec and criteria say for every input), tests
+  (would a test fail if the behaviour broke), documents and craft. The three lenses together cover the hand-off's
+  list; the wording was fixed before any fix was read.
+
+**Models.** Reviewers: `claude-sonnet-5-5`, effort high, headless Claude Code 2.1.328 in safe mode with Read, Grep,
+Glob and Bash only. Judges: two independent Claude Opus 5.5 agents per packet, blind to which report came from
+which arm (`replay_judge_packets.py` shuffles the six reports under letters with a fixed seed).
+
+**Scoring.** For each report a judge answers against the end-of-work fix: `caught` (a finding names the same
+defect, the same wrong behaviour or the same missing test, closely enough that acting on it would produce the fix
+in substance), `near` (the same function or symptom without the defect itself) or `missed`. A report counts as
+caught only when both judges say caught; the either-judge count is reported beside it.
+
+- M1, one plain reader: the share of plain reports that caught, over 54.
+- M2, three plain readers: cases where any of p1 to p3 caught, of 18.
+- M3, three lens readers: cases where any of lb, lt, ld caught, of 18.
+- Also: caught by lens; findings per report; seconds, tokens and dollars per reader and per arm; whether the
+  shared folder changed; paths a reader used outside its two folders.
+
+**Readings.**
+
+- Lenses add over extra readers if M3 is at least 3 cases above M2 (about 15 points, the bar this project uses);
+  no lens effect is seen if they differ by 2 or fewer; lenses lose if M2 is at least 3 above M3.
+- More readers add over one if M2 is at least 15 points above M1.
+- M1 is reported with its interval and has no bar: it says how often one fresh reader finds these at all.
+
+**What each outcome would lead me to recommend** (the owner decides; a live check would come before any default).
+
+- Lenses add: discuss lens readers in the step review through Improve's existing independent-review selection.
+- No lens effect, but three readers add over one: the gain is in more reads, not in lenses; the simplest form is
+  the one fresh independent reviewer Improve already describes.
+- Three readers catch few (under a quarter of cases): fresh readers do not find these defects; leave the step
+  review as it is and let the end-of-work review keep catching them.
+
+**Limits known before the run.**
+
+- Every case was chosen because one reviewer (terra) missed the defect, so a fresh reader will catch some by
+  chance alone; that is why three plain draws are the control for three lenses.
+- The readers are Sonnet 5.5 and the code and the recorded review are terra's: a different model reading is part
+  of any effect on M1 and M2. The lens comparison (M3 against M2) is within one model.
+- One defect per case is the yardstick. A reader's other findings are counted, not verified.
+- The end-of-work review already catches these defects one stage later; the replay measures whether more readers
+  at the step would catch them, not what escapes the whole run.
+- 18 cases, 12 distinct defects, 8 small example applications.
+
+**Rules for a failed reviewer.** One that times out, returns no report, or reads the judges' key, another report,
+another case, the original runs or this repository is rerun once in a fresh folder; a second failure counts as
+missed and is reported. Budget: at most $2 a reviewer and $60 in all.
+
+**Rehearsal** (one excluded case, x01, not counted): six reviewers took 50 to 91 seconds and $0.14 to $0.22 each
+($1.07 together), and the shared folder's manifest was identical afterwards. Three of the six wrote a probe file
+with the same name in `/tmp` (`/tmp/x.csv`) at the same time, so readers that run code can step on each other
+outside the directory they share. Apparatus fix before the counted run: each reviewer gets its own `TMPDIR` and a
+rule to create temporary files only in its own folder. The lens wording was not changed.
+
 ## Evidence (both rounds)
 
 | File | Holds |

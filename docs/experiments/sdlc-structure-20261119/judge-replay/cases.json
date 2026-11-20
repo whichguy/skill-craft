@@ -1,0 +1,268 @@
+[
+ {
+  "id": "c01",
+  "case": "csv-report",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "fix: accept large integer quantities on newer Python",
+  "fix_lines": 14,
+  "fix_paths": [
+   "report.py",
+   "test_report.py"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.32.1",
+  "run": "/Users/dadleet/e2e-runs-f31/20261101/A-csv-report-s1/.shiploop-runs/work-20261101-221239-6adb55/run"
+ },
+ {
+  "id": "c02",
+  "case": "csv-report",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Handle long CSV fields",
+  "fix_lines": 15,
+  "fix_paths": [
+   "report.py",
+   "test_report.py"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.32.1",
+  "run": "/Users/dadleet/e2e-runs-f31/20261101/B-csv-report-s2/.shiploop-runs/work-20261101-221243-95f0a7/run"
+ },
+ {
+  "id": "c03",
+  "case": "csv-report",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Handle unrestricted unit counts on modern Python",
+  "fix_lines": 11,
+  "fix_paths": [
+   "report.py",
+   "test_report.py"
+  ],
+  "step_review_edited": true,
+  "skill_craft": "2.27.2",
+  "run": "/Users/dadleet/e2e-runs-sp/20261101/csv-report-s2/.shiploop-runs/work-20261101-150740-e90b5a/run"
+ },
+ {
+  "id": "c04",
+  "case": "csv-report",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Handle long CSV fields",
+  "fix_lines": 16,
+  "fix_paths": [
+   "report.py",
+   "test_report.py"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.27.2",
+  "run": "/Users/dadleet/e2e-runs-sp/20261101/sp1-xhigh/csv-report-s1/.shiploop-runs/work-20261101-154826-5d586c/run"
+ },
+ {
+  "id": "c05",
+  "case": "csv-report",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Test half-even revenue ties",
+  "fix_lines": 7,
+  "fix_paths": [
+   "test_report.py"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.26.2",
+  "run": "/Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/csv-published-discovery-01/.shiploop-runs/work-20261031-212708-c946ec/run"
+ },
+ {
+  "id": "c06",
+  "case": "csv-report",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Accept signed zero units",
+  "fix_lines": 6,
+  "fix_paths": [
+   "report.py",
+   "test_report.py"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.28.1",
+  "run": "/Users/dadleet/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-csv-report-1/.shiploop-runs/work-20261101-162943-715819/run"
+ },
+ {
+  "id": "c07",
+  "case": "custom",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Support valid large integer fields across Python versions",
+  "fix_lines": 7,
+  "fix_paths": [
+   "report.py",
+   "test_report.py"
+  ],
+  "step_review_edited": true,
+  "skill_craft": "2.32.1",
+  "run": "/Users/dadleet/e2e-runs/2026-11-01/incremental-implementation-6vr1vrbo/csv-live/pilot-a/base/.shiploop-runs/work-20261101-222505-aa15ac/run"
+ },
+ {
+  "id": "c08",
+  "case": "seat-reservations",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Reject invalid Unicode event IDs",
+  "fix_lines": 9,
+  "fix_paths": [
+   "server.py",
+   "test_server.py"
+  ],
+  "step_review_edited": true,
+  "skill_craft": "2.28.1",
+  "run": "/Users/dadleet/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-seat-reservations-1/.shiploop-runs/work-20261101-174725-ef8deb/run"
+ },
+ {
+  "id": "c09",
+  "case": "shared-expenses",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Preserve encoded group IDs in request paths",
+  "fix_lines": 26,
+  "fix_paths": [
+   "server.js",
+   "test/service.test.js"
+  ],
+  "step_review_edited": true,
+  "skill_craft": "2.32.1",
+  "run": "/Users/dadleet/e2e-runs-sp/20261101/round2-release/shared-expenses-s1/.shiploop-runs/work-20261101-224848-56064b/run"
+ },
+ {
+  "id": "c10",
+  "case": "shared-expenses",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "fix: preserve encoded group IDs in request routing",
+  "fix_lines": 27,
+  "fix_paths": [
+   "server.js",
+   "test/service.test.js"
+  ],
+  "step_review_edited": true,
+  "skill_craft": "2.32.1",
+  "run": "/Users/dadleet/e2e-runs-sp/20261101/round2-verify/shared-expenses-s2/.shiploop-runs/work-20261101-235958-4d1a4c/run"
+ },
+ {
+  "id": "c11",
+  "case": "user-listing",
+  "model": "gpt-6.1-terra",
+  "item_steps": 1,
+  "fix_subject": "Preserve large page numbers in listing responses",
+  "fix_lines": 24,
+  "fix_paths": [
+   "src/server.js",
+   "test/user-listing.test.js"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.27.4",
+  "run": "/Users/dadleet/e2e-runs-tl/20261101/M-user-listing-s1/.shiploop-runs/work-20261101-154019-db1580/run"
+ },
+ {
+  "id": "m01",
+  "case": "shared-expenses",
+  "model": "gpt-6.1-terra",
+  "item_steps": 3,
+  "fix_subject": "Test special member names and group isolation",
+  "fix_lines": 12,
+  "fix_paths": [
+   "test/service.test.js"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.30.0",
+  "run": "/Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s1/.shiploop-runs/work-20261101-180847-e3ab32/run"
+ },
+ {
+  "id": "m02",
+  "case": "ticket-assignment",
+  "model": "gpt-6.1-terra",
+  "item_steps": 4,
+  "fix_subject": "Fix repeated ticket filters",
+  "fix_lines": 31,
+  "fix_paths": [
+   "src/tickets/query.js",
+   "test/assignment.test.js"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.26.1",
+  "run": "/Users/dadleet/e2e-runs-pf/20261031/ticket-assignment-r1/.shiploop-runs/work-20261031-200002-f5ed2d/run"
+ },
+ {
+  "id": "m03",
+  "case": "ticket-assignment",
+  "model": "gpt-6.1-terra",
+  "item_steps": 4,
+  "fix_subject": "Show assignee in ticket details",
+  "fix_lines": 12,
+  "fix_paths": [
+   "src/format.js",
+   "test/assignment.test.js"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.27.2",
+  "run": "/Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2/.shiploop-runs/work-20261101-142232-2681a5/run"
+ },
+ {
+  "id": "m04",
+  "case": "ticket-assignment",
+  "model": "gpt-6.1-terra",
+  "item_steps": 3,
+  "fix_subject": "Honor every repeated ticket filter",
+  "fix_lines": 36,
+  "fix_paths": [
+   "src/tickets/query.js",
+   "test/assignment.test.js"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.23.0",
+  "run": "/Users/dadleet/e2e-runs/2026-10-30/shiploop-ticket-recursive-0vy09rcr/candidate-run/run/.shiploop-runs/work-20261030-121931-8ee836/run"
+ },
+ {
+  "id": "m05",
+  "case": "ticket-import",
+  "model": "gpt-6.1-terra",
+  "item_steps": 2,
+  "fix_subject": "test: verify imported ticket notifications are delivered",
+  "fix_lines": 19,
+  "fix_paths": [
+   "test/import.test.js"
+  ],
+  "step_review_edited": true,
+  "skill_craft": "2.26.2",
+  "run": "/Users/dadleet/e2e-runs-xr/20261031/F-ticket-import-s4/.shiploop-runs/work-20261031-234330-42eef7/run"
+ },
+ {
+  "id": "m06",
+  "case": "ticket-sla",
+  "model": "gpt-6.1-terra",
+  "item_steps": 3,
+  "fix_subject": "test: verify escalation across service restarts",
+  "fix_lines": 29,
+  "fix_paths": [
+   "test/escalation.test.js"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.27.2",
+  "run": "/Users/dadleet/e2e-runs-multipass/20261101/r4/R4c-sla-tidy-fix/.shiploop-runs/work-20261101-160731-f06e3e/run"
+ },
+ {
+  "id": "m07",
+  "case": "user-listing",
+  "model": "gpt-6.1-terra",
+  "item_steps": 2,
+  "fix_subject": "Preserve large page numbers in listing responses",
+  "fix_lines": 24,
+  "fix_paths": [
+   "src/server.js",
+   "test/list-users.test.js"
+  ],
+  "step_review_edited": false,
+  "skill_craft": "2.24.3",
+  "run": "/Users/dadleet/e2e-runs/terra-high-user-listing/.shiploop-runs/work-20261031-015157-80cf2a/run"
+ }
+]
