@@ -887,6 +887,26 @@ the part that does not.
 - The `tickets-assign` yardstick is 12 of the full case's 18 checks.
 - Three recommendations (3, 4, 5) are designs read off measurements, not tested arms.
 
+### Queued by the owner (2026-11-20, after the results): do progressive learnings pay?
+
+The owner's words: "Also identify if there are progressive learnings shiploop should track in any way to benefit
+implementations as it iterates that could be included to aide the overall runs, or if that is a waste with no
+materially added value." Status: queued, not started; no result yet. Consumer: the owner's decision whether
+ShipLoop should track more, less or the same.
+
+What frames it. Round 4 found the first implementation already right by hidden checks, so on requests like
+these a tracked learning can pay only through speed (a refusal not met twice, a fact not rediscovered) or
+through hardening, not by making the behaviour right. ShipLoop already writes learnings in at least four
+places: a `learned` list in stage results, `learned_from` with the packet's look-back at earlier commits, the
+knowledge home `docs/shiploop/`, and the carry-forward skill decision. So the first question is whether those
+are read back and change anything, before any new one is proposed.
+
+How it would be answered, cheapest first: from the recorded runs, how often `learned` holds more than "none",
+how often `learned_from` names a commit, and whether a refusal reason met at one step is met again at a later
+step of the same run; then the follow-on cases (a second feature in an earlier run's checkout), which are where a
+first run's record can help a second. A live comparison would be registered only if those leave it open. A
+research plan is being prepared outside the repository (the owner's todo queue, task `1795195223742-52ff23db`).
+
 ## Evidence (all rounds)
 
 | File | Holds |
