@@ -1,0 +1,11 @@
+{
+ "about": "Round 5 arm K0 (docs/shiploop-sdlc-structure-journal.md): the implement packet's look-back switched off in a build copy. An implement packet no longer shows the last two step commits with their Key learnings. The `learned`, `decisions` and optional `learned_from` fields, the step commits that carry them, the knowledge home and every gate are unchanged. Written against 88a5d3f3.",
+ "edits": [
+  {
+   "module": "shiploop_navigator.py",
+   "function": "look_back_lines",
+   "old": "    if stage != \"implement\" or not (repo / \".git\").exists():\n        return []",
+   "new": "    return []  # arm K0: no look-back is printed\n    if stage != \"implement\" or not (repo / \".git\").exists():\n        return []"
+  }
+ ]
+}

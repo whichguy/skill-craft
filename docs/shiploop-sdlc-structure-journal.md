@@ -891,8 +891,8 @@ the part that does not.
 
 The owner's words: "Also identify if there are progressive learnings shiploop should track in any way to benefit
 implementations as it iterates that could be included to aide the overall runs, or if that is a waste with no
-materially added value." Status: queued, not started; no result yet. Consumer: the owner's decision whether
-ShipLoop should track more, less or the same.
+materially added value." Status: taken up the same day at the owner's word; see round 5. Consumer: the owner's
+decision whether ShipLoop should track more, less or the same.
 
 What frames it. Round 4 found the first implementation already right by hidden checks, so on requests like
 these a tracked learning can pay only through speed (a refusal not met twice, a fact not rediscovered) or
@@ -906,6 +906,104 @@ how often `learned_from` names a commit, and whether a refusal reason met at one
 step of the same run; then the follow-on cases (a second feature in an earlier run's checkout), which are where a
 first run's record can help a second. A live comparison would be registered only if those leave it open. A
 research plan is being prepared outside the repository (the owner's todo queue, task `1795195223742-52ff23db`).
+
+## Round 5 (2026-11-20): do progressive learnings pay, or are they paperwork?
+
+### Question
+
+The owner's words are in round 4's last block. Consumer: the owner's decision whether ShipLoop should track more,
+less or the same as it iterates. Round 4 frames it: the first implementation is already right by hidden checks,
+so on requests like these a tracked learning can pay only through speed (a refusal not met twice, a fact not
+found twice) or through hardening.
+
+### What ShipLoop already records (read in `skills/shiploop/scripts/`)
+
+| Channel | Written | Read back | Reach |
+|---|---|---|---|
+| `learned` and `decisions` lines (`STEP_NOTES`), required of every `implement` result | into the step commit as its key learnings and decisions | by `look_back_lines`: the `implement` packet quotes the last `LOOK_BACK_COMMITS` (2) step commits, one line each; no other stage's packet does | later steps of the run |
+| `learned_from`, optional | the commits a step says it used | the step commit's related commits | a citation |
+| the knowledge home `docs/shiploop/` (`KNOWLEDGE_RECORD`: spec, architecture, environment) | at the planning stages, `document` and `carry-forward` | by every later stage, and by the next run in that repository | steps, items and runs |
+| release-verify lessons (`LESSON_FIELDS`) | the body of the run's knowledge commit | quoted as "Inherited learnings" at the next run's `intake` and `discovery` (`lessons_lines`) | the next run |
+| the carry-forward skill decision (`_SKILL_DECISIONS`: none, reuse, update, create) | a skill file in the repository | whoever loads that skill | later items and runs |
+| an Improve review's key learnings (`shiploop_lessons.LESSON_LABELS`) | the review's commit | the next review packet | later review passes |
+
+Refusal reasons are carried into no later packet. `test/shiploop_e2e/LEARNINGS.md` and `learning-records.jsonl`
+are for the people developing ShipLoop, not for a product run.
+
+### Method
+
+Offline first (`learning_census.py`, no model): on round 1's 273 finished runs (460 build steps) and round 4's 16
+slices, how often each field is filled and cited; whether steps that cite an earlier learning are refused less or
+are faster than steps that were shown one and did not cite it, pooled and within the same case and model (a
+Mantel-Haenszel difference); whether the seeded-fault refusal fades as an item's steps go on; and how many
+refusals repeat a refusal of the same class met earlier in the run at another action, classed by ShipLoop's own
+refusal text, with the seconds they cost. A background agent's research plan (the owner's todo queue, task
+`1795195223742-52ff23db`) proposed these measures; its own counts are not used here. Then two independent Claude
+Opus 5.5 judges label a fixed-seed sample of 160 recorded `learned` lines (`judge-learned/`, brief in
+`evidence/learned-judge-brief.txt`): forward (a fact a later step or change could act on that the request does
+not already say), restates (what this step did), process (about the harness), unclear. Then one live arm,
+registered below.
+
+### Results from the records
+
+**R34. The fields are filled because they are required, and cited about a quarter of the time**
+(`evidence/learning-census.txt`). All 460 `implement` results hold a `learned` list and 458 hold a real line: a
+median of one line, 69 characters. Every `implement` packet has the look-back; it showed an earlier step's
+learning in 305 (66%). `learned_from` names a commit in 84 of those 305 (28%) and in 1 of the other 155. The
+carry-forward skill decision is `none` in 282 of 282 results and in all 16 slices.
+
+**R35. Citing an earlier learning shows no benefit.** Among the 297 steps that were shown one and have a `test`
+stage, `test` was refused at least once in 44% of the 80 that cited it and 45% of the 217 that did not; for the
+seeded-fault refusal 42% and 41%. Within the same case and model the citing steps are refused more, by 15 and 16
+points over 16 strata. Their `implement` plus `test` time is a median 121 seconds against 84, and 1.05 times the
+other within case and model. On the slices (33 such steps) the differences have the other sign and two strata.
+
+**R36. The one refusal that repeats does not fade from the first step to the second.** In the 71 recorded items
+of two or more steps, `test` was refused for a seeded fault at step 1 in 56%, at step 2 in 56%, at step 3 in 44%
+and at step 4 or later in 15%. After a refused step the next is refused in 56%, after a step that was not in 26%;
+within case and model the gap is 16 points over 10 strata. On the slices' 16 items it is 56%, 31% and 20% by
+step, and a refused step is followed by fewer refusals, not more (15% against 33%, 31 pairs).
+
+**R37. Repeated refusals are a small cost.** Of 591 refused `check` or `complete` commands with a text, 63 (11%)
+repeat a class met earlier in the same run at another action, and 60 of the 63 are the seeded-fault refusal.
+From a refusal to the next accepted check of its action is 4.1% of run time for all refusals and 0.8% for the
+repeats. On the slices: 2 of 49, 6.6% and 0.3%.
+
+**R38. Runs that inherit a knowledge home are not quicker to start** (Codex terra, from round 1's census; one to
+21 runs a case, different features, so only a direction). Seconds before `step-plan`, medians: `ticket-assignment`
+162, then its follow-ons `ticket-escalation` 171, `ticket-comments` 196, `ticket-sla` 260; `user-listing` 153,
+then `user-roles` 224, `user-team-listing` 204, `user-page-size` 325. Discovery and research alone are 27 to 31
+seconds in the first runs and 26 to 45 in the follow-ons. No recorded run withholds the home, so what the home is
+worth to a follow-on's correctness is not measured by any record.
+
+### Registered design: arm K0, the look-back switched off (written and committed before any counted K0 slice ran)
+
+**Why.** R35 is a correlation: a model chooses when to cite. An arm that removes the look-back prices it, as arm
+L0 priced the Until Loop.
+
+**The arm** (`overlays/k0-no-look-back.json`, one edit applied to a build copy by `slice.py --overlay`): the
+`implement` packet no longer shows the last two step commits with their key learnings. The `learned`, `decisions`
+and optional `learned_from` fields, the step commits that carry them, the knowledge home and every gate are
+unchanged.
+
+**Runs.** Round 4's two cases. Codex `gpt-6.2-sol` at medium: two K0 slices and one new baseline slice per case,
+the arms alternating inside each lane; round 4's two baseline slices per case are reported beside them, not
+pooled into the time comparison. Claude Sonnet 5.5 at high: one K0 slice per case beside round 4's baseline
+slice. Yardstick and measures as in round 4.
+
+**Readings.** One to three slices a cell read only large effects.
+
+- *The look-back pays* on a driver and case if every K0 slice passes fewer hidden checks at its end than the
+  least of its baseline slices, or K0's mean minutes are at least 15% above the baseline's in both cases of a
+  driver with refusals at least as many.
+- *The look-back is not what these slices run on* if every K0 slice completes, passes as many hidden checks at
+  its end as the least baseline slice of its case, and K0's mean minutes are within 15% of, or below, the
+  baseline's in at least three of the four cells.
+- Otherwise no reading.
+
+**Limits known before the run.** Two or three steps an item: the look-back has one or two earlier steps to show.
+It cannot show what a learning is worth across many steps, a cleared context, or a later run. The knowledge home
+stays, so this prices the look-back alone.
 
 ## Evidence (all rounds)
 
@@ -936,6 +1034,9 @@ research plan is being prepared outside the repository (the owner's todo queue, 
 | `evidence/snapshot-acceptance.txt`, `.json` | round 4: held-out checks passed at each snapshot of 84 recorded runs (R26) |
 | `research/*.md` | round 4: the three research agents' reports and the briefs they were given (R27) |
 | `overlays/l0-no-stage-loop.json` | round 4: the seven edits of arm L0, applied to a build copy only |
+| `evidence/learning-census.txt`, `evidence/learning-census-slices.txt` | round 5: learning fields filled and cited, the effect of citing, refusals by step, repeated refusals (R34 to R37) |
+| `judge-learned/lines.jsonl`, `out-A.jsonl`, `out-B.jsonl`, `evidence/learned-judge-brief.txt` | round 5: the 160 sampled `learned` lines, each judge's label, and the brief |
+| `overlays/k0-no-look-back.json` | round 5: the one edit of arm K0, applied to a build copy only |
 | `evidence/slices.txt`, `evidence/slices-iteration.txt`, `evidence/slices-turns.txt`, `evidence/slices-snapshots.txt`, `slices/*.json` | round 4: the live slices' registered measures, per-step detail, time by kind of command, hidden checks at each snapshot, and the three files they are computed from |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read

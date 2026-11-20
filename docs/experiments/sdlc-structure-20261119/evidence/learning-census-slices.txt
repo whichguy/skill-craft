@@ -1,0 +1,24 @@
+build steps read: 49 in 16 runs
+
+== 1. are the fields filled, and is an earlier learning cited? ==
+implement results that hold a `learned` list: 49 of 49 (100%); with at least one line that is not "none": 46 of 49 (94%); lines per step median 1, characters median 100
+implement packets with a look-back block: 49 of 49 (100%); it showed an earlier step's learning in 35 of 49 (71%)
+`learned_from` names a commit: when a learning was shown 10 of 35 (29%); when none was shown 1 of 14 (7%)
+
+== 2. do steps that cite an earlier learning do better? (steps whose look-back showed one, with a test stage) ==
+  `test` refused at least once: cited 3 of 8 (38%); not cited 8 of 25 (32%); within case and model -7% points over 2 strata
+  refused for a seeded fault: cited 2 of 8 (25%); not cited 8 of 25 (32%); within case and model -22% points over 2 strata
+  implement plus test seconds: cited median 103, not cited 80; within case and model the cited median is 0.75 times the other (median over 2 strata with two or more of each)
+
+== 3. does the seeded-fault refusal fade as an item's steps go on? (items of two or more steps) ==
+  items: 16; refused for a seeded fault at step 1 9 of 16 (56%), step 2 5 of 16 (31%), step 3 3 of 15 (20%), step 4 or later 0 of 0
+  the next step is refused: after a refused step 2 of 13 (15%); after a step that was not 6 of 18 (33%); within case and model -17% points over 4 strata
+
+== 4. refusals that repeat one already met earlier in the same run, at another action ==
+  refused check or complete commands with a text: 49; repeats of a class met earlier in the run at another action: 2 of 49 (4%)
+  seconds from a refusal to the next accepted check of its action: all refusals 6.6% of run time; the repeats 0.3%
+  repeats by stage: test 2
+       1  test: ShipLoop mutation check: test is not done. N of N mutants of thi
+       1  test: ShipLoop navigator: ShipLoop mutation check: test is not done. N
+
+== carry-forward skill decisions: {'none': 16} ==

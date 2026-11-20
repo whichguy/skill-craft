@@ -281,7 +281,8 @@ def read_run(run):
     out = []
     for step in steps:
         implement, test, document = step["implement"], step.get("test"), step.get("document")
-        record = {"item": step["item"], "implement_s": own[(implement, "own")], "loop_implement": loops.get(implement),
+        record = {"item": step["item"], "actions": {"implement": implement, "test": test, "document": document},
+                  "implement_s": own[(implement, "own")], "loop_implement": loops.get(implement),
                   "implement_refused": len(refused[implement]), "implement": summary(implement)}
         impl_tree = max(lint[implement])[2] if lint[implement] else None
         test_tree = None
@@ -311,9 +312,22 @@ def read_run(run):
             record["trees"] = {"base": base_tree, "implement": impl_tree, "test": test_tree,
                                "before_review": review[2] if review else None, "commit": commit[1]}
         out.append(record)
+    refusals = []
+    for action, listed in by_action.items():
+        for index, call in enumerate(listed):
+            verb = SHIPLOOP.search(call["command"])
+            if not verb or verb.group(1) not in ("check", "complete") or call["exit"] in (0, None):
+                continue
+            ended = call["end"] or call["t"]
+            passed = next((later["end"] or later["t"] for later in listed[index + 1:]
+                           if (SHIPLOOP.search(later["command"]) or [None, ""])[1] in ("check", "complete")
+                           and later["exit"] == 0), None)
+            refusals.append({"action": action, "stage": stage_of.get(action), "t": ended, "text": call["output"],
+                             "tail": max(0.0, passed - ended) if passed else None})
     stage_loops = [(stage_of.get(action), number) for action, number in loops.items() if number]
     closing = [b for b in binds if b[1] == "carry-forward"]
-    return out, {"loops": stage_loops, "end_review_tree": closing[-1][2] if closing else None,
+    return out, {"loops": stage_loops, "refusals": sorted(refusals, key=lambda r: r["t"]),
+                 "end_review_tree": closing[-1][2] if closing else None,
                  "end_review_at": closing[-1][0] if closing else None,
                  "loop_calls": sum("until_loop" in c["command"] for c in calls),
                  "loop_seconds": sum(max(0.0, (c["end"] or c["t"]) - c["t"]) for c in calls if "until_loop" in c["command"]),

@@ -1,0 +1,160 @@
+{"id": 1, "label": "restates", "why": "Repeats the request's exact-total and suppress-on-error rules."}
+{"id": 2, "label": "forward", "why": "Absent versus empty team is a non-obvious distinction later code must keep."}
+{"id": 3, "label": "forward", "why": "Multiline quoted records need the starting physical line, a CSV pitfall."}
+{"id": 4, "label": "forward", "why": "Names another consumer that depends on raw column positions."}
+{"id": 5, "label": "forward", "why": "Says the wiring already exists and the error already maps to 400."}
+{"id": 6, "label": "forward", "why": "Outbox keeps sent and dead events, a code-base fact."}
+{"id": 7, "label": "forward", "why": "Existing outbox key lookup is quadratic."}
+{"id": 8, "label": "forward", "why": "States what listUsers returns, reusable by later steps."}
+{"id": 9, "label": "forward", "why": "Dedup pitfall: a pending notification blocks a second unless keys differ."}
+{"id": 10, "label": "process", "why": "About the harness's replay and step-plan proof."}
+{"id": 11, "label": "restates", "why": "Reports what the proof did and did not cover."}
+{"id": 12, "label": "forward", "why": "Ordering constraint between escalation and delivery in the worker tick."}
+{"id": 13, "label": "forward", "why": "csv line_num behaviour is a library pitfall."}
+{"id": 14, "label": "forward", "why": "Contract that the HTTP layer must validate before the batch call."}
+{"id": 15, "label": "restates", "why": "Repeats the request's suppress-output rule."}
+{"id": 16, "label": "restates", "why": "Restates the requested output."}
+{"id": 17, "label": "restates", "why": "Reports proof status."}
+{"id": 18, "label": "forward", "why": "Existing matcher used OR, a code-base fact."}
+{"id": 19, "label": "forward", "why": "Legacy records lack assignee and per-ticket keys would suppress repeats."}
+{"id": 20, "label": "forward", "why": "Existing query contradicted the documented intersection."}
+{"id": 21, "label": "forward", "why": "Tells a later step it can call without editing and how absent keys behave."}
+{"id": 22, "label": "forward", "why": "Concurrency pitfall: re-resolve state after awaiting the body."}
+{"id": 23, "label": "restates", "why": "Says there was nothing to preserve."}
+{"id": 24, "label": "restates", "why": "Describes how this step tracks lines."}
+{"id": 25, "label": "restates", "why": "Describes the arithmetic choice this step made."}
+{"id": 26, "label": "restates", "why": "About how the output was verified."}
+{"id": 27, "label": "forward", "why": "Missing key defaults false and isActive helper exists to reuse."}
+{"id": 28, "label": "forward", "why": "Events without a template retry and die, a code-base pitfall."}
+{"id": 29, "label": "restates", "why": "Reports a successful compile and check."}
+{"id": 30, "label": "forward", "why": "Outbox dedup means assignment events need unique keys."}
+{"id": 31, "label": "forward", "why": "createService omits dueTimes until a later step; tests must pass it directly."}
+{"id": 32, "label": "process", "why": "About the harness's plan-correction handling."}
+{"id": 33, "label": "process", "why": "About proof versus test-stage ordering."}
+{"id": 34, "label": "forward", "why": "Store must return deep copies to protect state."}
+{"id": 35, "label": "restates", "why": "Repeats the request's output rule."}
+{"id": 36, "label": "forward", "why": "Outbox enqueue scans existing events, a scaling fact."}
+{"id": 37, "label": "restates", "why": "Restates the output."}
+{"id": 38, "label": "restates", "why": "Reports a passing check."}
+{"id": 39, "label": "restates", "why": "Repeats the request's ordering rule."}
+{"id": 40, "label": "process", "why": "About the harness checkpoint."}
+{"id": 41, "label": "unclear", "why": "Unclear what LA refers to or how it helps."}
+{"id": 42, "label": "forward", "why": "Duplicate permission set assignment fails in this environment."}
+{"id": 43, "label": "restates", "why": "Restates the output."}
+{"id": 44, "label": "forward", "why": "Store apply already preserves no-op timestamps and audit."}
+{"id": 45, "label": "forward", "why": "This org requires form factors in Lightning app metadata."}
+{"id": 46, "label": "forward", "why": "Environment fact: local Chrome works with an isolated profile."}
+{"id": 47, "label": "forward", "why": "Apex reserved word and explicit comparison pitfall."}
+{"id": 48, "label": "restates", "why": "Restates the durability requirement."}
+{"id": 49, "label": "forward", "why": "Concurrency pitfall: re-read group after awaiting body."}
+{"id": 50, "label": "forward", "why": "Later expense code must re-read the group after await."}
+{"id": 51, "label": "forward", "why": "Measured outbox scan cost and advice to keep a timing regression."}
+{"id": 52, "label": "restates", "why": "Repeats the request's validation rule."}
+{"id": 53, "label": "forward", "why": "Apex Long.valueOf needs a String, a platform pitfall."}
+{"id": 54, "label": "restates", "why": "States the pagination behaviour built."}
+{"id": 55, "label": "forward", "why": "Caller contract for createMany and empty-batch behaviour."}
+{"id": 56, "label": "process", "why": "About what the test stage must do."}
+{"id": 57, "label": "forward", "why": "Outbox keys must distinguish comments to avoid dedup."}
+{"id": 58, "label": "forward", "why": "Legacy records lack assignee and need a null default."}
+{"id": 59, "label": "forward", "why": "Existing code used OR against documented AND."}
+{"id": 60, "label": "forward", "why": "Check and update must stay in one SQLite write transaction."}
+{"id": 61, "label": "restates", "why": "Restates the output."}
+{"id": 62, "label": "restates", "why": "Reports proof result."}
+{"id": 63, "label": "forward", "why": "Apex Long.valueOf and reserved word group are platform pitfalls."}
+{"id": 64, "label": "forward", "why": "Default body limit is too small for imports."}
+{"id": 65, "label": "restates", "why": "Restates the output."}
+{"id": 66, "label": "restates", "why": "Describes the route built."}
+{"id": 67, "label": "process", "why": "About the harness checkpoint and verification."}
+{"id": 68, "label": "forward", "why": "IDs must be sorted numerically, a pitfall."}
+{"id": 69, "label": "forward", "why": "Default body allowance is too small for imports."}
+{"id": 70, "label": "forward", "why": "Apex reserved word and explicit comparison pitfall."}
+{"id": 71, "label": "forward", "why": "Decimal default precision and float serialization are pitfalls."}
+{"id": 72, "label": "forward", "why": "Store already includes comments in responses."}
+{"id": 73, "label": "forward", "why": "Salesforce metadata needs Large form factor and valid motif."}
+{"id": 74, "label": "forward", "why": "Priority is captured at enqueue time."}
+{"id": 75, "label": "forward", "why": "Assignment persists per ticket, not atomically."}
+{"id": 76, "label": "restates", "why": "Repeats the request's filter mapping."}
+{"id": 77, "label": "forward", "why": "Component labels must be rebuilt after each game."}
+{"id": 78, "label": "forward", "why": "Order pitfall: check non-ASCII before normalising."}
+{"id": 79, "label": "process", "why": "About what counts as evidence in the harness."}
+{"id": 80, "label": "restates", "why": "Restates the output."}
+{"id": 81, "label": "forward", "why": "Existing test deepEquals the exact parsed shape."}
+{"id": 82, "label": "forward", "why": "Absent versus empty team and spelling for group keys."}
+{"id": 83, "label": "restates", "why": "About how output was verified."}
+{"id": 84, "label": "process", "why": "About the harness checkpoint."}
+{"id": 85, "label": "process", "why": "About the test gate's needs."}
+{"id": 86, "label": "process", "why": "About what counts as evidence in the harness."}
+{"id": 87, "label": "forward", "why": "Interval zero disables ticks including escalation."}
+{"id": 88, "label": "restates", "why": "About how output was verified."}
+{"id": 89, "label": "restates", "why": "Says nothing changed."}
+{"id": 90, "label": "forward", "why": "Test module needs a Python version with union annotations."}
+{"id": 91, "label": "forward", "why": "Prototype-named groups are a pitfall."}
+{"id": 92, "label": "forward", "why": "Whole-file saves multiply backlog cost."}
+{"id": 93, "label": "forward", "why": "Weekly report reads the first four fields."}
+{"id": 94, "label": "forward", "why": "Doctests need raw docstrings for escaped newlines."}
+{"id": 95, "label": "restates", "why": "Repeats the bound rule and testing advice."}
+{"id": 96, "label": "forward", "why": "Store now forwards hours so a later step need not edit store.js."}
+{"id": 97, "label": "forward", "why": "Strict comparison is what preserves tie order."}
+{"id": 98, "label": "restates", "why": "Restates the settlement algorithm."}
+{"id": 99, "label": "restates", "why": "Reports the proof passed."}
+{"id": 100, "label": "forward", "why": "Summary must bypass pagination validation."}
+{"id": 101, "label": "restates", "why": "Repeats the request's suppress-output rule."}
+{"id": 102, "label": "forward", "why": "Outbox key must include comment ID."}
+{"id": 103, "label": "restates", "why": "Repeats the request's suppress-output rule."}
+{"id": 104, "label": "restates", "why": "Generic durability rule from the request."}
+{"id": 105, "label": "restates", "why": "About how output was verified."}
+{"id": 106, "label": "process", "why": "About harness test evidence."}
+{"id": 107, "label": "forward", "why": "Legacy null default is needed at file and store boundaries."}
+{"id": 108, "label": "restates", "why": "Describes filter ordering built."}
+{"id": 109, "label": "restates", "why": "Repeats the request's suppress-output rule."}
+{"id": 110, "label": "forward", "why": "Notifier field is delivered, not deliveries."}
+{"id": 111, "label": "forward", "why": "Legacy records need a null default."}
+{"id": 112, "label": "restates", "why": "Says no prior code existed."}
+{"id": 113, "label": "forward", "why": "Existing OR predicate conflicted with documented AND."}
+{"id": 114, "label": "forward", "why": "JSON number representation fact beyond JS Number."}
+{"id": 115, "label": "forward", "why": "Decimal context rounding is a pitfall."}
+{"id": 116, "label": "forward", "why": "Weekly report consumes raw output by position."}
+{"id": 117, "label": "forward", "why": "Persisted membership order supplies tie-breaking after restart."}
+{"id": 118, "label": "process", "why": "About the harness's test plan correction."}
+{"id": 119, "label": "forward", "why": "Docs promised intersection while code used any."}
+{"id": 120, "label": "forward", "why": "Safe-integer pitfall in accumulation order."}
+{"id": 121, "label": "restates", "why": "Describes validation built."}
+{"id": 122, "label": "forward", "why": "Older outbox records lack priority."}
+{"id": 123, "label": "forward", "why": "Raw output is consumed positionally."}
+{"id": 124, "label": "restates", "why": "Repeats the request's ordering rule."}
+{"id": 125, "label": "restates", "why": "About how output was verified."}
+{"id": 126, "label": "forward", "why": "Notification keys derive from audit sequence."}
+{"id": 127, "label": "forward", "why": "Threshold must fit in milliseconds."}
+{"id": 128, "label": "restates", "why": "Testing advice from the request's outputs."}
+{"id": 129, "label": "process", "why": "About harness continuation."}
+{"id": 130, "label": "forward", "why": "Existing matcher used OR against docs."}
+{"id": 131, "label": "forward", "why": "Full snapshot persistence makes batch saving matter."}
+{"id": 132, "label": "forward", "why": "csv line_num pitfall: capture start before reading."}
+{"id": 133, "label": "restates", "why": "About how output was verified."}
+{"id": 134, "label": "restates", "why": "Repeats the request's output rule."}
+{"id": 135, "label": "restates", "why": "Restates the output."}
+{"id": 136, "label": "forward", "why": "Legacy records lack the marker and need a default."}
+{"id": 137, "label": "forward", "why": "Transaction must span the update and commit before reply."}
+{"id": 138, "label": "forward", "why": "Service tests build settings without new fields."}
+{"id": 139, "label": "restates", "why": "Repeats the request's diagnostic rule."}
+{"id": 140, "label": "restates", "why": "Repeats the ordering rule."}
+{"id": 141, "label": "process", "why": "About harness test evidence."}
+{"id": 142, "label": "forward", "why": "Version 1 files can omit assignee."}
+{"id": 143, "label": "restates", "why": "Repeats the request's suppress-output rule."}
+{"id": 144, "label": "restates", "why": "Restates the output."}
+{"id": 145, "label": "restates", "why": "About how output was verified."}
+{"id": 146, "label": "forward", "why": "Names the config key for the next step."}
+{"id": 147, "label": "forward", "why": "Record start line differs from reader end line."}
+{"id": 148, "label": "restates", "why": "Generic testing advice."}
+{"id": 149, "label": "forward", "why": "Null joins as empty, a language behaviour."}
+{"id": 150, "label": "forward", "why": "Pending events would suppress later assignments without distinct keys."}
+{"id": 151, "label": "forward", "why": "Storage shape avoids prototype collisions."}
+{"id": 152, "label": "forward", "why": "Measured outbox scan cost for the import size."}
+{"id": 153, "label": "forward", "why": "Numbering and persistence must share one serialized transaction."}
+{"id": 154, "label": "restates", "why": "About how output was verified."}
+{"id": 155, "label": "forward", "why": "Concurrency pitfall: re-read the group after the body."}
+{"id": 156, "label": "forward", "why": "unittest exits successfully with zero tests, a tool surprise."}
+{"id": 157, "label": "restates", "why": "Describes behaviour built."}
+{"id": 158, "label": "restates", "why": "Repeats the request's error rule."}
+{"id": 159, "label": "restates", "why": "Repeats the request's suppress-output rule."}
+{"id": 160, "label": "forward", "why": "Legacy settings need a fallback default."}

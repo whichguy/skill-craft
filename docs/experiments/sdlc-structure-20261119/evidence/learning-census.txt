@@ -1,0 +1,28 @@
+build steps read: 460 in 273 runs
+
+== 1. are the fields filled, and is an earlier learning cited? ==
+implement results that hold a `learned` list: 460 of 460 (100%); with at least one line that is not "none": 458 of 460 (100%); lines per step median 1, characters median 69
+implement packets with a look-back block: 460 of 460 (100%); it showed an earlier step's learning in 305 of 460 (66%)
+`learned_from` names a commit: when a learning was shown 84 of 305 (28%); when none was shown 1 of 155 (1%)
+
+== 2. do steps that cite an earlier learning do better? (steps whose look-back showed one, with a test stage) ==
+  `test` refused at least once: cited 35 of 80 (44%); not cited 97 of 217 (45%); within case and model +15% points over 16 strata
+  refused for a seeded fault: cited 34 of 80 (42%); not cited 90 of 217 (41%); within case and model +16% points over 16 strata
+  implement plus test seconds: cited median 121, not cited 84; within case and model the cited median is 1.05 times the other (median over 11 strata with two or more of each)
+
+== 3. does the seeded-fault refusal fade as an item's steps go on? (items of two or more steps) ==
+  items: 71; refused for a seeded fault at step 1 40 of 71 (56%), step 2 40 of 71 (56%), step 3 21 of 48 (44%), step 4 or later 7 of 47 (15%)
+  the next step is refused: after a refused step 47 of 84 (56%); after a step that was not 21 of 82 (26%); within case and model +16% points over 10 strata
+
+== 4. refusals that repeat one already met earlier in the same run, at another action ==
+  refused check or complete commands with a text: 591; repeats of a class met earlier in the run at another action: 63 of 591 (11%)
+  seconds from a refusal to the next accepted check of its action: all refusals 4.1% of run time; the repeats 0.8%
+  repeats by stage: test 61, system-test 1, step-plan 1
+      60  test: ShipLoop mutation check: test is not done. N of N mutants of thi
+       1  system-test: ShipLoop navigator: ShipLoop test run: system-test is not done. 
+       1  test: ['/Applications/Xcode.app/Contents/Developer/usr/bin/pythonN', '
+       1  step-plan: open plan assumptions N name N as due_item; settle each here: an
+
+== carry-forward skill decisions: {'none': 282} ==
+
+wrote 160 of 461 learned lines to judge-learned/lines.jsonl

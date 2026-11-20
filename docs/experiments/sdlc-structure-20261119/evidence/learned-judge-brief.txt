@@ -1,0 +1,23 @@
+The brief each judge received (two independent Claude Opus 5.5 agents; OUT differs per agent).
+
+You are labelling lines that a coding model wrote in a field called `learned` after finishing one build step of a
+software change. Read the file LINES (one JSON object per line: id, case, model, step, summary, learned). `learned`
+is the line to label; `summary` is what that step reported it did, for context. Use no other file.
+
+Give each line exactly one label:
+- forward: it states a fact, constraint or pitfall about the product, its code base or its environment that someone
+  doing a LATER step or a later change could act on, and that is not obvious from the request itself (for example:
+  two places must change together, a helper already normalises a value, a limit is duplicated in two files, a tool
+  behaves unexpectedly here).
+- restates: it says what this step built, changed, covered or verified, or repeats the request's own rule; a later
+  step learns nothing from it that the diff and the request do not already say.
+- process: it is about the delivery harness's own rules, records, commands or stages, not about the product.
+- unclear: you cannot tell.
+
+Judge the line on its own words. Length earns nothing. A line that both restates and adds one forward fact is
+forward.
+
+Write one JSON object per line to the file OUT, in the order of LINES, and nothing else in that file:
+{"id": 12, "label": "forward", "why": "one short sentence"}
+
+Reply with only the count of each label.
