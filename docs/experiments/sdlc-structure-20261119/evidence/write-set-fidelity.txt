@@ -1,0 +1,14 @@
+step plans read 377; step commits matched to a planned step 586
+step commits that changed only paths the step declared: 10 (2%)
+step commits with an undeclared path, by kind of that path (a commit can count in several):
+  knowledge home    506 (86%)
+  test              494 (84%)
+  docs              357 (61%)
+  code               71 (12%)
+  metadata-nav       13 (2%)
+step commits with an undeclared CODE or TEST path: 519 (89%)
+
+pairs of steps the plan makes independent and file-disjoint, both committed: 114
+  whose commits nevertheless share a file: 114 (100%)
+  ... sharing something other than documents and the knowledge home: 77 (68%)
+  kinds of shared file: knowledge home 105, test 77, docs 18

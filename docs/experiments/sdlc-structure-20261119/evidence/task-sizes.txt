@@ -1,0 +1,11 @@
+median seconds per run (step review: per step)     gpt-6.1-terra  claude-sonnet-        grok-4.6     gpt-6.1-sol
+discovery                                                     18              25             236              26
+research                                                       9              19              97              19
+review of spec                                                32              68             647              48
+review of test-strategy                                       24              70             753              30
+review of plan                                                22              32             824              34
+review of step-plan                                           43              34             947              54
+review of document                                            32             107             337              40
+review of carry-forward                                       26              27             382              33
+product-acceptance                                            11              15              67              13
+runs: codex/gpt-6.1-terra 263, claude/claude-sonnet-5-5 2, grok/grok-4.6 4, codex/gpt-6.1-sol 4

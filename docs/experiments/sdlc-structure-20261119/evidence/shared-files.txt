@@ -1,0 +1,8 @@
+items with two or more committed steps: 78
+items in which EVERY step's commit writes the same file, by kind of that file:
+  knowledge home    57 (73%)
+  test              49 (63%)
+  docs              28 (36%)
+  code              28 (36%)
+test files written across an item's steps: median 1.0, distribution {0: 7, 1: 49, 2: 12, 3: 7, 4: 1, 5: 1, 6: 1}
+items where every step writes one and the same test file: 49 (63%)

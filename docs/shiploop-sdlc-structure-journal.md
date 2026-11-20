@@ -194,7 +194,120 @@ edited. Two Claude runs are too few to read.
 - The judges saw diffs cut at 5,000 characters, and both are the same model. `plan` has 16 diffs.
 - `release-plan` review edits were not judged (the snapshot pairing is unreliable there).
 
-### Evidence
+## Round 2 (2026-11-19): where Ask Agent could run workers at once in one directory, and whether planning can mark it
+
+### Question
+
+Owner, the same day: is there anywhere in the phases where using Ask Agent should be discussed, meaning work that
+several agents could do at once in the same directory without stepping on each other, and can the planning phase
+identify it?
+
+### Method
+
+Offline again; no run and no worker was launched.
+
+- **What already exists** (read): Ask Agent's current-workspace route (`skills/ask-agent/references/current-workspace.md`),
+  In Parallel's card, ShipLoop's `delegation: ask-agent` route (`references/run-options.md`, `references/navigator.md`),
+  and the parallel-execution study's contract (`docs/experiments/parallel-plan-execution-20261114/skill-layer-contract.md`
+  sections 6 and 7).
+- **Which gates assume one writer** (an Opus 5.5 agent read the scripts; I checked `write_problem`, `commit_scope`,
+  the mutation docstring and the navigator's delegated-work row myself).
+- **What could overlap** (`overlap_ceiling.py`): at the stage level from `Stage.reads` in the stage table; at the step
+  level from each recorded plan's `deps` against the trace's per-step time (every ready step at once, no overhead).
+- **Whether a plan's file declarations hold** (`write_set_fidelity.py`, `shared_files.py`): each step's declared
+  `paths` against the files its commit changed, 586 step commits of 377 step plans.
+- **How long one read-mostly piece is, by host** (`task_sizes.py`), beside the study's break-even.
+
+### Results
+
+**R10. The rule already written.** Ask Agent in the current directory allows any number of `report-only` workers
+(nothing tracked or untracked is written) and at most one `in-place` writer, limited to a declared write set, while
+the parent keeps its own writes off the checkout; `verify-return` reports any other change as `drift`. In Parallel
+repeats it: "report-only readers may run in parallel, but edits require one exclusive writer and capacity one."
+ShipLoop's `delegation: ask-agent` starts one fresh worker at a time, never two.
+
+**R11. Every ShipLoop gate reads the whole directory** (the audit; symbols in `skills/shiploop/scripts/`).
+
+| Gate or record | Reads or writes | With a second writer on other files |
+|---|---|---|
+| Step commit (`_commit_stage`, `item_scope.commit_scope`, `git.commit_paths`) | the whole diff, filtered to the item's declared paths, `docs/shiploop/` and any documentation file; the shared Git index | sweeps the other agent's files in; index collisions |
+| Lint gate (`lint.lint_pass`) | the whole tree against the item base; rewrites lines in fix mode | flags and rewrites the other agent's lines |
+| Step proof, candidate test run (`test_loop.step_proof`, `verify`) | run in place | include unfinished edits |
+| Base test run (`test_loop._BaseTree`) | a temporary worktree, with every changed test file copied in | copies the other agent's tests |
+| Mutation check (`shiploop_mutation._check`) | a temporary copy, never the checkout | mutates the other agent's code too |
+| Document applicability and rerun (`item_scope.no_document_item`, `_document_rerun`) | the whole tree | wrong applicability, forced reruns |
+| Review snapshot and review commit (`improve_changes.review_changes`, `_improve_commit`) | whole trees | false refusal; commits the other agent's files |
+| Expectation checks (`expectations.run`) | `git status` before and after | a false "the check wrote" |
+| `state.md` | one lock, one cursor (`_active_cursor`, "stale navigator action ID") | one action at a time by design |
+| `loops/`, review scratch folders, the Until Loop stack | per action or per session | safe |
+
+A reusable piece exists: `expectations.write_problem(command)` decides from a command's shape whether it writes.
+And the navigator guide already lets the owner of `step-plan`, `implement` or a step's review split its own work
+by "bounded task/file ownership" and check the combined result "before its one completion" (navigator.md,
+responsibility table, "Own delegated work").
+
+**R12. Stages form a near-strict chain** (`evidence/overlap-ceiling.txt`). Only three neighbouring pairs exist where
+the later stage is not given the earlier one's result: `test-spec` then `validate-existing` (script-run, 0.0%),
+`carry-forward` then `system-test-author`, and `product-acceptance` then `release-plan`. Overlapping them could save
+at most 6.2% of run time, and each pair is two writers or one outcome that can cancel the other.
+
+**R13. Step overlap would pay only on a slow host** (`evidence/overlap-ceiling.txt`). Ideal overlap of ready steps
+saves 9.7% of build-step time in the 36 eligible Codex terra runs (10 have any width), which is 0.6% of all run time
+on that host. On the two eligible Grok 4.6 runs it saves 43.9% of build-step time, 34.7% counting only steps with no
+declared file in common: 62 and 48 minutes of runs of 364 and 348 minutes, with a median step of 17 minutes.
+
+**R14. A plan's file declarations do not predict what a step writes** (`evidence/write-set-fidelity.txt`,
+`evidence/shared-files.txt`). Of 586 step commits, 10 changed only the paths the step declared (2%). Undeclared:
+the knowledge home in 86%, a test file in 84%, a document in 61%, product code in 12%. Of the 114 step pairs that
+the plan makes independent and file-disjoint, all 114 wrote a file in common: the knowledge home in 105, a test file
+in 77, a document in 18, product code in none. In 49 of 78 multi-step items (63%) every step writes one and the same
+test file; the median item has one test file.
+
+**R15. One read-mostly piece is short on the fast hosts and long on the slow one** (`evidence/task-sizes.txt`).
+Median seconds per run, Codex terra / Claude Sonnet 5.5 / Grok 4.6: `discovery` 18 / 25 / 236; `research` 9 / 19 /
+97; review of `spec` 32 / 68 / 647; review of `step-plan` 43 / 34 / 947; the step review, per step, 32 / 107 / 337.
+The study's break-even, in seconds of the model's own time per task below which fresh workers lose to one context:
+Claude 10 to 14, Grok 3 to 21, Codex 43 to 60. A fresh Claude worker costs about 86,000 tokens of fixed startup
+(current-workspace.md), and one fresh worker per stage, one at a time, took 4.1 times the inline time on the one
+case measured (LEARNINGS, the per-step ask-agent route).
+
+### Findings
+
+- **F8 (firm).** In one directory the safe shape is many readers beside one writer. Two writers are not safe under
+  ShipLoop even on different files: its gates read the whole tree (R11) and the steps share files in practice (R14).
+- **F9 (firm).** Plans cannot mark safe write-pairs today. The declaration covers product code, where it holds (no
+  independent pair shared a code file), and leaves out the test file, the documents and the knowledge home that
+  every step writes.
+- **F10 (firm).** Nothing at the stage level is worth overlapping (R12).
+- **F11 (interim).** The read-only work large enough to share is the finding half of the reviews, which are a third
+  of a run. It fits inside one stage, under one owner and one completion, so it needs no change to the cursor, the
+  gates or the directory rule. Whether several lens readers find more than one reviewer is not measured.
+- **F12 (interim, two runs).** Step overlap is the only large time prize (R13) and it is a two-writer shape. The
+  earlier study priced a worktree per attempt at 0 to 11 seconds over a shared checkout (contract section 7, E13),
+  so the same directory buys nothing for writers; it would also need a test file per step and one serial point for
+  documents and the knowledge home.
+
+### Recommendation (owner's decisions; nothing built)
+
+1. Discuss Ask Agent in one place first: read-only lens workers inside the `step-plan` review and the step review,
+   the two reviews that change something about one time in three (R6 to R8). The owner of the review applies the
+   edits and completes once. The plan already names the units: each step's criteria and paths.
+2. Do not pursue two writers in one directory. If step overlap is wanted for slow hosts, it is the worktree route
+   already studied, and its first requirement is that each step declares its own test file.
+3. Add no planning-time "may overlap" marker now: computed from today's plans it would be wrong for every pair (R14).
+4. Readers need no marker from the plan. What makes a worker a reader is that it writes nothing, which Ask Agent's
+   `report-only` mode and its drift check enforce, and `write_problem` can screen its commands.
+
+### Limits
+
+- The step-overlap figures for the slow host are two runs of one case; they assume no overhead and unlimited
+  workers.
+- R14 compares against each step's own `paths`; the item's `paths` (which the step commit uses) do list the test
+  file and the documents.
+- No worker was launched: the costs quoted are the earlier study's, on Claude Code 2.1.325, Codex 0.169.0 and Grok
+  Build 1.0.77.
+
+## Evidence (both rounds)
 
 | File | Holds |
 |---|---|
@@ -206,11 +319,15 @@ edited. Two Claude runs are too few to read.
 | `evidence/more-cuts.txt` | assumptions by disposition, end-of-work yield by step count, refused step-plan commands |
 | `evidence/by-host-and-graph-check.txt` | yield by host, runs that used the plan-graph check, cost per useful edit (R4, R8, R9) |
 | `evidence/judged-review-edits.txt` | the judges' agreement and verdict shares (R8) |
+| `evidence/overlap-ceiling.txt` | stage reads and edit classes, neighbouring stages that could overlap, step-overlap ceiling by host (R12, R13) |
+| `evidence/write-set-fidelity.txt`, `evidence/shared-files.txt` | declared against committed files per step; files every step of an item writes (R14) |
+| `evidence/task-sizes.txt` | seconds per read-mostly piece by host (R15) |
 | `judge/diffs-1.txt`, `judge/diffs-2.txt`, `judge/diff-key.json` | the 136 diffs as the judges saw them, and which run each came from |
 | `judge/out-A-*.jsonl`, `judge/out-B-*.jsonl` | each judge's verdict and reason per diff |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
 <work>/review_edits.json`, `deps_census.py`, `extras_census.py`, `more_cuts.py <work>`, `build_diffs.py <work>`,
-`score_judges.py judge`). The run folders are outside the repository and may be pruned; the outputs above are the
+`score_judges.py judge`; round 2: `overlap_ceiling.py`, `write_set_fidelity.py`, `shared_files.py`,
+`task_sizes.py`, each `<work>/census.json`). The run folders are outside the repository and may be pruned; the outputs above are the
 record.
