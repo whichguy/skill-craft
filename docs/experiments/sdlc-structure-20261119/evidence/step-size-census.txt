@@ -1,0 +1,50 @@
+build steps read: 460 in 282 items of 273 runs
+
+== 1. the step plans ==
+items with an accepted step plan: 282; steps planned per item: 1: 213, 2: 21, 3: 29, 4: 15, 5: 1, 8: 1, 9: 1, 11: 1
+criteria per item: median 2, by count: 1: 100, 2: 53, 3: 49, 4: 66, 5: 9, 7: 2, 15: 1, 20: 1, 27: 1
+criteria per planned step: 1: 258, 2: 94, 3: 40, 4: 43; steps over the bound of 4: 0 of 435 (0%)
+product files per planned step (steps that list paths): 0: 15, 1: 265, 2: 75, 3: 64, 4: 4, 5: 2, 7: 3; over 3: 9 of 428 (2%)
+items of two or more steps: 69 of 282 (24%); of them the bound alone requires two or more (over 4 criteria) in 14 of 69 (20%)
+items planned at the fewest steps the bound allows: 213 of 282 (76%); above it: 69 of 282 (24%); below it (a step over the bound): 0 of 282 (0%)
+items of at most 12 criteria and 6 product files: 242 of 282 (86%); their steps: 1: 210, 2: 20, 3: 12
+items whose plan and recorded steps agree in number (used for criteria per step below): 264 of 282 (94%)
+
+== 2. what a step costs, by the product-code lines its implement built ==
+steps with a test stage and a measured implement diff: 439
+code lines   steps criteria implement   test document  review after impl  test refused  review changed code
+1-25           240        1        30     44       26      26         9965 of 240 (27%)      28 of 236 (12%)
+26-75           88        2        35     63       27      42        13667 of 88 (76%)       29 of 88 (33%)
+76-200          93        3        48     94       35      51        18553 of 93 (57%)       40 of 93 (43%)
+201+             3        -        57    135       60      67        285  2 of 3 (67%)         1 of 3 (33%)
+(seconds are medians; 15 steps built no product-code line and are left out)
+  implement: +16 seconds per 100 product-code lines within case and model (416 steps in 33 cells); at the mean step (40 lines, 48 s) that leaves 42 seconds that do not depend on its size
+  test, document and the step review: +60 seconds per 100 product-code lines within case and model (416 steps in 33 cells); at the mean step (40 lines, 183 s) that leaves 159 seconds that do not depend on its size
+
+== 3. the same request in more or fewer steps (runs of one case, model and effort) ==
+cells: 41; with runs that differ in step count: 16 (135 runs)
+  one more step goes with +104.8 seconds of build seconds (implement, test, document, step review) (135 runs in 16 cells)
+  one more step goes with +5.0 lines of product-code lines built (135 runs in 16 cells)
+  one more step goes with +0.4 refusals of `test` refusals (135 runs in 16 cells)
+  one more step goes with +25.1 seconds of plan-stage seconds (step-plan, its review, test-spec, validate-existing) (135 runs in 16 cells)
+  one more step goes with +130.6 seconds of inner-loop seconds, plan stages to carry-forward (135 runs in 16 cells)
+  the cells with the most runs:
+    hello-hook-continuation | gpt-6.1-terra high: 1 steps: 18 runs, build 124 s, 4 lines; 2 steps: 2 runs, build 207 s, 3 lines
+    shared-expenses | gpt-6.1-terra high: 1 steps: 16 runs, build 218 s, 124 lines; 2 steps: 2 runs, build 355 s, 126 lines; 3 steps: 2 runs, build 548 s, 134 lines
+    ticket-import | gpt-6.1-terra high: 1 steps: 14 runs, build 149 s, 42 lines; 2 steps: 2 runs, build 329 s, 49 lines
+    user-listing | gpt-6.1-terra high: 1 steps: 10 runs, build 150 s, 23 lines; 2 steps: 3 runs, build 196 s, 24 lines; 3 steps: 2 runs, build 276 s, 32 lines
+    ticket-assignment | gpt-6.1-terra high: 1 steps: 3 runs, build 197 s, 47 lines; 3 steps: 1 runs, build 341 s, 50 lines; 4 steps: 6 runs, build 507 s, 44 lines; 5 steps: 1 runs, build 453 s, 52 lines
+    ticket-assignment | gpt-6.1-terra xhigh: 3 steps: 6 runs, build 359 s, 50 lines; 4 steps: 4 runs, build 412 s, 48 lines
+    seat-reservations | gpt-6.1-terra high: 1 steps: 7 runs, build 205 s, 107 lines; 2 steps: 1 runs, build 476 s, 120 lines
+    user-intent-continuity | gpt-6.1-terra high: 1 steps: 5 runs, build 148 s, 20 lines; 2 steps: 1 runs, build 297 s, 21 lines
+
+== 4. hidden checks of the delivered product, by the run's step count ==
+  one step: runs passing every hidden check 41 of 41 (100%); checks passed 603 of 603 (100%)
+  two or more steps: runs passing every hidden check 50 of 50 (100%); checks passed 793 of 793 (100%)
+    ticket-assignment | gpt-6.1-terra high: one step: 3 of 3 runs pass every check, build 197 s; more: 8 of 8 runs pass every check, build 458 s
+    ticket-import | gpt-6.1-terra high: one step: 14 of 14 runs pass every check, build 149 s; more: 2 of 2 runs pass every check, build 329 s
+    ticket-import | gpt-6.1-terra xhigh: one step: 1 of 1 runs pass every check, build 176 s; more: 2 of 2 runs pass every check, build 538 s
+    user-intent-continuity | gpt-6.1-terra high: one step: 5 of 5 runs pass every check, build 148 s; more: 1 of 1 runs pass every check, build 297 s
+    user-listing | gpt-6.1-terra high: one step: 10 of 10 runs pass every check, build 150 s; more: 5 of 5 runs pass every check, build 208 s
+    user-listing | gpt-6.1-terra xhigh: one step: 2 of 2 runs pass every check, build 118 s; more: 2 of 2 runs pass every check, build 243 s
+    user-summary-status | gpt-6.1-terra high: one step: 1 of 1 runs pass every check, build 142 s; more: 2 of 2 runs pass every check, build 208 s

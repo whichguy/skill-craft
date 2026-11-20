@@ -8,6 +8,8 @@ review and at its step commit, plus the slice's final working copy, and runs the
   tickets-assign      the held-out module of the full ticket-assignment case (quality.acceptance); 14 of its 18
                       checks are scored, the four on the listing filter and the command line are reported apart
   shared-expenses-w1  the six checks of the full shared-expenses case (checks/expense_service.py)
+  node-chess-engine   ten checks through the engine's public interface (chess_hidden.js): six published move-sequence
+                      counts two to four moves deep, two replayed games, four statuses, four illegal moves, sorting
 
 A slice already in OUT.json is not graded again, and a slice with no slice-result.json yet (still running) is skipped.
 
@@ -28,6 +30,9 @@ REPO = snap.REPO
 CHECKS = REPO / "test" / "shiploop_e2e" / "checks"
 OUTSIDE = ("assignee-filter", "filters-combine", "assignee-filter-pages", "cli-shows-assignee")
 EXPENSE = ("unit", "contract", "split", "settle", "restart", "concurrency")
+CHESS = ("count-start-3", "count-kiwipete-3", "count-position3-4", "count-position4-3", "count-position5-3",
+         "count-position6-3", "game-fens", "status-positions", "illegal-moves-throw", "moves-sorted")
+TOTALS = {"shared-expenses-w1": len(EXPENSE), "node-chess-engine": len(CHESS), "tickets-assign": 14}
 POINTS = ("implement", "test", "before_review", "commit")
 
 
@@ -49,9 +54,28 @@ def expense(copy):
     return {"observed": True, "passed": passed, "failed": failed}
 
 
+def chess(copy):
+    """The ten chess checks, each in its own process, as {passed: [...], failed: {id: what it saw}}."""
+    passed, failed = [], {}
+    for name in CHESS:
+        try:
+            done = subprocess.run(["node", str(pathlib.Path(__file__).resolve().parent / "chess_hidden.js"), str(copy), name],
+                                  capture_output=True, text=True, timeout=240, check=False)
+            ok, note = done.returncode == 0, (done.stdout.strip().splitlines() or done.stderr.strip().splitlines() or [""])[-1]
+        except subprocess.TimeoutExpired:
+            ok, note = False, "timed out after 240 s"
+        if ok:
+            passed.append(name)
+        else:
+            failed[name] = note[:240]
+    return {"observed": True, "passed": passed, "failed": failed}
+
+
 def grade(case, copy, folder, cases):
     if case == "shared-expenses-w1":
         return expense(copy)
+    if case == "node-chess-engine":
+        return chess(copy)
     spec = cases["ticket-assignment"]["quality"]
     result = snap.quality.acceptance(copy, spec["acceptance"], groups=set(), stop=lambda: None, logs=folder / "logs",
                                      ports=list(spec.get("refuse_ports") or []))
@@ -87,7 +111,7 @@ def main(iteration, out):
         steps_of[step["run"]].append(step)
     report = json.loads(out.read_text()) if out.exists() else {}
     for run in sorted(data["runs"], key=lambda r: r["run"]):
-        if run.get("case") not in ("tickets-assign", "shared-expenses-w1"):
+        if run.get("case") not in TOTALS:
             continue
         worktree = pathlib.Path(run["worktree"])
         folder = pathlib.Path(run["run"]).parents[3]
@@ -114,7 +138,7 @@ def main(iteration, out):
             row["steps"].append(marks)
         row["end"] = at(run["case"], lambda copy, worktree=worktree: snap.quality.export_delivery(worktree, copy), cases, scratch)
         report[name] = row
-        total = len(EXPENSE) if run["case"] == "shared-expenses-w1" else 14
+        total = TOTALS[run["case"]]
         line = []
         for number, marks in enumerate(row["steps"], 1):
             line.append(f"S{number} " + " ".join(

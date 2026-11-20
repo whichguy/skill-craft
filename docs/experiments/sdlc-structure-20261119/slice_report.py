@@ -6,8 +6,8 @@ Reads three files made from the slices' folder:
   ITERATION.json  iteration_census.py ... --all     (per step: own test runs, loop iterations, product lines changed)
   SNAPSHOTS.json  slice_snapshots.py                (hidden checks passed at each snapshot)
 
-A slice whose folder name holds "-L0-" is the arm with the stage Until Loop switched off, and "-K0-" the arm with
-the implement look-back switched off. A hidden check that fails
+A slice whose folder name holds "-L0-" is the arm with the stage Until Loop switched off, "-K0-" the arm with
+the implement look-back switched off, and "-F1-" the arm whose step plan is asked for the fewest steps. A hidden check that fails
 at the end of every tickets-assign slice is listed and left out of the score (the registered rule for a check tied
 to the part of the larger request the one-step case leaves out).
 
@@ -29,8 +29,8 @@ def name_of(run):
 
 
 def arm_of(name):
-    """L0: the stage Until Loop off; K0: the implement look-back off; base otherwise."""
-    return next((arm for arm in ("L0", "K0") if f"-{arm}-" in name), "base")
+    """L0: the stage Until Loop off; K0: the implement look-back off; F1: the fewest steps; base otherwise."""
+    return next((arm for arm in ("L0", "K0", "F1") if f"-{arm}-" in name), "base")
 
 
 def inner_loop_done(run):
@@ -62,7 +62,7 @@ def main(census, iteration, snapshots):
     def score(name, mark):
         if not mark or not mark.get("observed"):
             return None
-        total = 6 if runs[name]["case"] == "shared-expenses-w1" else 14 - len(everywhere)
+        total = {"shared-expenses-w1": 6, "node-chess-engine": 10}.get(runs[name]["case"], 14 - len(everywhere))
         return len([c for c in mark["passed"] if c not in everywhere]), total
 
     def show(pair):
@@ -84,7 +84,8 @@ def main(census, iteration, snapshots):
         red = sum((s.get("test") or {}).get("test_fails", 0) for s in mine)
         after = sum((s.get("after_implement") or {}).get("code", 0) for s in mine)
         row = {"name": name, "case": run["case"], "driver": f"{run['model']} {run['effort']}", "arm": arm_of(name),
-               "seconds": seconds,
+               "seconds": seconds, "steps": len(mine), "survived": sum(len((s.get("test") or {}).get("survivors") or ()) for s in mine),
+               "test_refused": sum(s.get("test_refused") or 0 for s in mine), "after": after,
                "done": done, "minutes": sum(seconds.values()) / 60, "first": first, "end": end, "refused": refused,
                "review": sum(v for k, v in seconds.items() if k.startswith("improve:")), "total": sum(seconds.values())}
         rows.append(row)
@@ -115,7 +116,8 @@ def main(census, iteration, snapshots):
         print(f"  {driver:<22}" + "; ".join(f"{label} {sum(r['seconds'].get(k, 0) for r in group for k in keys) / total:.0%}"
                                            for label, keys in PARTS) + f" | before the first product edit {early / total:.0%}")
 
-    for arm, title in (("L0", "the stage Until Loop off"), ("K0", "the implement look-back off")):
+    for arm, title in (("L0", "the stage Until Loop off"), ("K0", "the implement look-back off"),
+                       ("F1", "the step plan asked for the fewest steps")):
         cells = collections.defaultdict(lambda: collections.defaultdict(list))
         for row in rows:
             cells[(row["driver"], row["case"])][row["arm"]].append(row)
@@ -136,6 +138,16 @@ def main(census, iteration, snapshots):
                   f"{', '.join(str(r['end'][0]) if r['end'] else '?' for r in base)}, {arm} "
                   f"{', '.join(str(r['end'][0]) if r['end'] else '?' for r in off)} ({'no loss seen' if kept else 'LOSS'}); refused: "
                   f"baseline {', '.join(str(r['refused']) for r in base)}, {arm} {', '.join(str(r['refused']) for r in off)}")
+            if arm == "F1":
+                def cell(group, key):
+                    return ", ".join("?" if r[key] is None else f"{r[key][0]}/{r[key][1]}" if isinstance(r[key], tuple) else str(r[key])
+                                     for r in group)
+                print(f"  {'':<42} steps: baseline {cell(base, 'steps')}, F1 {cell(off, 'steps')}; the last step's first implementation "
+                      f"(hidden checks): baseline {cell(base, 'first')}, F1 {cell(off, 'first')}; `test` refused: baseline "
+                      f"{cell(base, 'test_refused')}, F1 {cell(off, 'test_refused')}; product-code lines changed after implement: "
+                      f"baseline {cell(base, 'after')}, F1 {cell(off, 'after')}; seconds per step after implement: baseline "
+                      + ", ".join(f"{sum(r['seconds'].get(k, 0) for k in ('test', 'document', 'improve:document')) / max(r['steps'], 1):.0f}" for r in base)
+                      + ", F1 " + ", ".join(f"{sum(r['seconds'].get(k, 0) for k in ('test', 'document', 'improve:document')) / max(r['steps'], 1):.0f}" for r in off))
 
 
 if __name__ == "__main__":

@@ -1077,6 +1077,170 @@ fourth, one Sonnet slice against one, is 28% slower with fewer refusals. The con
 - R35 and R36 are correlations over recorded runs, 96% of them one model. R38 compares different features.
 - The judges label what a line says, not whether anyone used it.
 
+## Round 6 (2026-11-20): does an item cut into fewer steps finish sooner, and what does a larger step risk?
+
+### Question
+
+Owner, 2026-11-20, choosing among round 5's next steps: "Fewer-steps test". Round 4 found that each build step
+pays its own `test`, `document`, review and commit round whatever its size, that every driver cut a one-endpoint
+change into two or three steps, and that the hidden checks showed nothing the cut bought (F22). Its third
+recommendation was to compare a step plan of fewer steps, with the risk named: a larger step whose first
+implementation is no longer right. This round runs that comparison.
+
+### What sets the step count today (read in `skills/shiploop/scripts/` and in the history)
+
+- **The text.** The step-plan duty's sizing bullet (`DUTIES["step-plan"]`, item 4, in `shiploop_prompts.py`):
+  one behaviour-level change a step, "at most 4 criteria and 3 product files", and "two separately confirmable
+  behaviours or two outcomes joined with 'and' make another step". No gate counts either number:
+  `_check_step_sizing` in `shiploop_navigator.py` refuses a step with no criteria or no proof, a criterion no
+  step serves, and a step that only changes tests.
+- **Why the bound is there** (`docs/shiploop-plan-sizing-journal.md`, experiment E-SIZE1). It was added on
+  2026-10-25 (f23cdb20e977a56e0a2025d6003fd80b06c3ad39) because Grok 4.7 at medium put a whole chess engine in
+  one or two steps under the earlier words "too large for one review"; a countable bound moved it to three or
+  more in 6 of 8 plans against 3 of 8 (a57a93248382b48deb3e2222365679faa2b51414). The commit carried an open
+  item: "the downstream cost of extra steps is unmeasured".
+- **What was measured downstream** (that journal's entry 12, F43 to F46, DeepSeek flash, 3 items an arm). With
+  the bound against the same ShipLoop without it, delivery tied at 12 of 12 and the median item finished sooner
+  (63 against 124 minutes on the chess engine, 96 against 124 on a battleship server). The reason was not more
+  steps: without the bound the plans ranged from 4 to 10 steps, with it from 5 to 6. Owner, 2026-10-28: "No,
+  keep as is."
+- **What was never measured.** Whether an item in three or more steps is built better than the same item in
+  one. E-SIZE1's own F8: "No evidence yet that big steps produce worse results". The "three or more steps" it
+  scored the engine against was a planned shape, not a measured benefit.
+
+So this round does not reopen "bound or no bound": taking the bound out widened the plans. It asks the direction
+E-SIZE1 left open: a larger countable bound with one step as the default.
+
+### Method
+
+1. **The records, free.** `step_size_census.py` over round 4's iteration census (273 finished runs, 460 build
+   steps, 96% Codex gpt-6.1-terra) and over round 4's 16 slices: the shape of every accepted step plan, a step's
+   seconds against the product-code lines it built, and runs of one case, model and effort that happen to
+   differ in step count, with the hidden checks of what each delivered.
+2. **A live arm** on the owner's drivers, registered below before any counted slice.
+
+### Results from the records
+
+**R41. What sets the step count** (`evidence/step-size-census.txt`, `evidence/step-size-census-slices.txt`).
+
+- In the recorded runs 213 of 282 items (76%) are one step, 21 two, 29 three, 15 four and 4 more. An item has a
+  median 2 criteria. No planned step holds more than 4 (0 of 435), so the bound is obeyed to the letter, and 9
+  of 428 steps that list their files name more than 3 product files.
+- Of the 69 items of two or more steps, the bound alone forces the cut (more than 4 criteria) in 14. The other
+  55 are cut by the planner's reading of "separately confirmable behaviours".
+- In round 4's slices on the owner's drivers an item has 4 to 11 criteria (a median 6: Sol 6.2 at medium writes 4 to 7,
+  Sonnet 10 or 11) and 15 of 16 are three steps; there the bound alone forces two or more in 15 of 16. The
+  planners that write more criteria for the same request get more steps.
+
+**R42. A step's cost is mostly the same whatever its size.**
+
+| Product-code lines built at `implement` | Steps | implement s | test s | document s | step review s | `test` refused | Review changed product code |
+|---|---|---|---|---|---|---|---|
+| 1 to 25 | 240 | 30 | 44 | 26 | 26 | 27% | 12% |
+| 26 to 75 | 88 | 35 | 63 | 27 | 42 | 76% | 33% |
+| 76 to 200 | 93 | 48 | 94 | 35 | 51 | 57% | 43% |
+| 201 and more | 3 | 57 | 135 | 60 | 67 | 2 of 3 | 1 of 3 |
+
+Recorded runs, medians. Within one case and model, 100 more product lines go with 16 more seconds of
+`implement` and 60 more of `test`, `document` and the step review; of the mean step's 183 seconds after
+`implement`, 159 do not depend on its size. In the slices the same line gives 102 of 183 seconds. A larger step
+is refused at `test` more often and its review changes product code more often, so a merged step carries both
+of those with it.
+
+**R43. The same request in more or fewer steps.** 16 cells of one case, model and effort (135 runs) hold runs
+that differ in step count. One more step goes with 105 more seconds of build (implement, test, document, step
+review), 25 more in the plan stages, 131 more over the whole inner loop, 0.4 more `test` refusals, and 5 more
+product lines: the same product, built in more rounds. Two cells:
+
+| Case (gpt-6.1-terra high) | Steps | Runs | Build seconds (median) | Product lines (median) |
+|---|---|---|---|---|
+| `shared-expenses` | 1 | 16 | 218 | 124 |
+| | 2 | 2 | 355 | 126 |
+| | 3 | 2 | 548 | 134 |
+| `ticket-assignment` | 1 | 3 | 197 | 47 |
+| | 4 | 6 | 507 | 44 |
+
+**R44. Hidden checks do not move with the step count.** The delivered product passes every held-out check in
+41 of 41 graded one-step runs (603 of 603 checks) and in 50 of 50 runs of two or more steps (793 of 793). Seven
+cells hold both shapes; every run in them passes. Round 4's R26 already had the first implementation passing
+every check in 40 of 40 one-step runs and 43 of 44 others.
+
+R42 to R44 are correlations: the planner chose each step count, and the model is terra, not one of the owner's
+drivers. They predict what an arm should show; they do not show it.
+
+### Registered design: arm F1, the fewest steps (written and committed before any counted F1 slice ran)
+
+**Why.** R43 says the same request costs about two minutes more for each extra step with nothing to show for it
+in the hidden checks, but on another model and by the planner's own choice. An arm that asks the planner for
+the fewest steps prices it on the owner's drivers, and a larger item tests the named risk.
+
+**The arm** (`overlays/f1-fewest-steps.json`, one edit applied to a build copy by `slice.py --overlay`, never to
+the checkout). The sizing bullet of the step-plan duty becomes: "Use the fewest steps the item allows; one step
+is the default. Every step pays its own test, document, review and commit round, so separately confirmable
+behaviours share a step and its proof shows each of them. Size: at most 12 criteria and 6 product files a step
+[...] Cut a larger item at a module or layer boundary (interface first, then each side) into the fewest steps
+of that size." The fold rule and the one-step rule for a bug fix or rename are kept. The criteria, each step's
+proof, every gate, the `test` stage with its seeded-fault check, and the reviews are the shipped ones. 12 and 6
+are three times and twice the shipped numbers; 242 of the 282 recorded items fit inside them.
+
+**Rehearsal** (five F1 runs stopped after `step-plan`, not counted). All five planned one step, and the step-plan
+review left each at one. Sol 6.2 medium: `tickets-assign` 6 criteria and 5 product files, `shared-expenses-w1` 7
+criteria, `node-chess-engine` 6 criteria. Sonnet: `tickets-assign` 10 criteria and 7 product files (one file over
+the arm's number, which nothing enforces), `node-chess-engine` 11 criteria. Each plan took one refused command,
+as baseline plans do. Rounds 4 and 5 planned the two small cases as two or three steps in 24 of 24 slices.
+
+**Cases.** Round 4's two (`tickets-assign`, about 50 product lines in an existing service; `shared-expenses-w1`,
+a small service from an empty repository) and one larger item for the risk: `node-chess-engine`, a chess rules
+engine in one file built from an empty repository (E-SIZE1's case K2, the item the bound was written to split).
+
+**Yardstick the model never sees.** As round 4 for the two small cases (12 scored checks; 6). For the chess
+engine, ten checks through the module's public interface (`chess_hidden.js`): six published counts of move
+sequences two to four moves deep from six standard positions (the item's own spec asks for the one-move counts
+only), two replayed games compared as whole positions, four statuses, four illegal moves, and sorting.
+Calibration: the six engines delivered in E-SIZE1's downstream round pass all ten; a wrapper that drops two
+castling moves and reports stalemate as ongoing fails four.
+
+**Runs.** The arms alternate inside each lane; up to seven slices run at once.
+
+- Codex `gpt-6.2-sol` at medium: all three cases, two baseline and two F1 slices each.
+- Claude Sonnet 5.5 at high: the two small cases, two F1 slices and one baseline slice each (F1, baseline, F1);
+  the chess engine once per arm, both at the same time.
+- Grok 4.6 at xhigh: one F1 slice of `tickets-assign`, read beside round 4's one baseline slice (99.2 minutes,
+  three steps). Descriptive only: one against one, hours apart.
+
+**Measures**, each per slice: steps planned; minutes, and seconds by part; hidden checks at the last step's
+`implement` snapshot and at the end; `test` refusals and the seeded faults that survived; product-code lines
+changed after `implement`; seconds after `implement` per step.
+
+**Prediction from the records** (stated so the result can miss it). The saving is the steps removed times the
+part of a step that does not depend on its size: about 100 seconds a step on Sol 6.2 medium and 150 on Sonnet
+(round 4's slices). Three steps to one is then about 3 of 10 minutes on Sol 6.2 medium and 5 of 20 on Sonnet, a
+quarter to a third.
+
+**Readings.** A cell is one driver and case; the six Sol 6.2 and Sonnet cells are read, Grok is reported.
+
+- *The arm takes* in a cell if its F1 slices plan at least one step fewer on average than its baseline slices.
+- *Time*, as for arms L0 and K0: F1 saves time in a cell if its mean minutes are at least 15% below the
+  baseline's; within 15% either way no difference is readable.
+- *Quality*: no loss is seen in a cell if every F1 slice passes at least as many hidden checks at its end as the
+  least of that cell's baseline slices. *The named risk shows* in a cell if an F1 slice's last `implement`
+  snapshot fails a hidden check that every baseline slice's last `implement` snapshot passes.
+- *Fewer steps pays on these drivers* if the arm takes and saves time in at least four of the six cells and no
+  cell shows a quality loss. *It does not pay* if it saves time in at most one cell, or two or more cells show
+  a quality loss. Anything else is reported cell by cell with no overall reading.
+- Refusals, surviving seeded faults and the reviews' product edits are reported without a bar. R42 expects more
+  of each per step in F1 and fewer steps to meet them.
+
+**Limits known before the run.** One or two slices a cell read only large effects. A slice is one item in one
+conversation with a seeded start. The wording is one of several possible, and its two numbers are not tuned.
+The small cases' hidden checks are at their ceiling, so on them F1 can show a time change or a loss, not a gain;
+the chess engine may be at its ceiling too, as the six calibration engines suggest. The engine's own tests
+include time budgets, which seven slices at once on one machine can disturb. Nothing here says what a larger
+step does to a review's findings beyond the product lines it changes.
+
+**Budget and failures.** At most $20 for a Claude slice; the Grok slice about $10. A slice that ends without its
+`carry-forward` accepted is reported as it ended and run once more if time allows.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -1111,6 +1275,9 @@ fourth, one Sonnet slice against one, is 28% slower with fewer refusals. The con
 | `overlays/k0-no-look-back.json` | round 5: the one edit of arm K0, applied to a build copy only |
 | `evidence/learned-judged.txt` | round 5: the judges' agreement and label shares (R39) |
 | `evidence/slices-k0.txt`, `evidence/learning-census-slices-k0.txt`, `slices-k0/*.json` | round 5: arm K0 beside the baseline slices, and the files it is computed from (R40) |
+| `evidence/step-size-census.txt`, `evidence/step-size-census-slices.txt` | round 6: step plans' shape, a step's seconds by its size, the same request in more or fewer steps, hidden checks by step count, over the recorded runs and over round 4's slices (R41 to R44) |
+| `overlays/f1-fewest-steps.json` | round 6: the one edit of arm F1, applied to a build copy only |
+| `chess_hidden.js` | round 6: the ten hidden checks of the chess engine case |
 | `evidence/slices.txt`, `evidence/slices-iteration.txt`, `evidence/slices-turns.txt`, `evidence/slices-snapshots.txt`, `slices/*.json` | round 4: the live slices' registered measures, per-step detail, time by kind of command, hidden checks at each snapshot, and the three files they are computed from |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
@@ -1133,6 +1300,12 @@ Round 5: `learning_census.py <work>/iteration.json [--sample 160 judge-learned/l
 `iteration_census.py`), `learned_score.py judge-learned`, and for the arm `slice.py ... --overlay
 overlays/k0-no-look-back.json` followed by round 4's slice scripts; `slice_report.py slices-k0/census.json
 slices-k0/iteration.json slices-k0/snapshots.json` reproduces `evidence/slices-k0.txt`.
+
+Round 6: `python3 -I step_size_census.py <work>/iteration.json <work>/census.json` (after round 4's
+`iteration_census.py`; with `slices/iteration.json slices/census.json` it reproduces
+`evidence/step-size-census-slices.txt` from the repository alone), `node chess_hidden.js <product root> <check>`
+(`--list` names the checks), and for the arm `slice.py ... --overlay overlays/f1-fewest-steps.json` followed by
+round 4's slice scripts.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),

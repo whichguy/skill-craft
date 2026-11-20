@@ -1,0 +1,12 @@
+{
+ "about": "Round 6 arm F1 (docs/shiploop-sdlc-structure-journal.md): the step-plan duty's sizing bullet asks for the fewest steps and triples the bound, in a build copy. Shipped: one behaviour-level change a step, at most 4 criteria and 3 product files, and two separately confirmable behaviours make another step. F1: one step is the default, a step holds at most 12 criteria and 6 product files, and a larger item is cut at a module or layer boundary into the fewest steps of that size. Nothing else changes: the criteria, each step's proof, every gate, the test stage and the reviews are the shipped ones. Written against 2d31558b.",
+ "edits": [
+  {
+   "module": "shiploop_prompts.py",
+   "constant": "DUTIES",
+   "key": "step-plan",
+   "old": "   - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that\n     only describes another changed file counts with it; tests, docs and its proof script do not). A second module\n     or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with\n     \"and\" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the\n     first step that uses it. A single bug fix or mechanical rename is one step.\n",
+   "new": "   - Use the fewest steps the item allows; one step is the default. Every step pays its own test, document, review\n     and commit round, so separately confirmable behaviours share a step and its proof shows each of them. Size: at\n     most 12 criteria and 6 product files a step (a file that only describes another changed file counts with it;\n     tests, docs and its proof script do not). Cut a larger item at a module or layer boundary (interface first,\n     then each side) into the fewest steps of that size. Fold a step no proof confirms alone (half a rename,\n     scaffolding) into the first step that uses it. A single bug fix or mechanical rename is one step.\n"
+  }
+ ]
+}
