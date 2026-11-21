@@ -3739,3 +3739,61 @@ partly are a judge's reading of a sentence. The rule was fixed before each case'
 case's was amended once.
 
 **Where it stops.** The registered step is done.
+
+## 50. A third experiment registered before any run: a section to fill that answers ShipLoop's own key questions (15:30, 2026-11-21)
+
+Run on the owner's word of section 44.
+
+**Why.** Sections 47 and 49 say the reference material does not make a specification fuller, and that what the
+released stage leaves thin is particular questions nobody asks. ShipLoop has its own list of questions: intake's
+twelve key questions, K1 to K12, asked once at intake and routed. The Ratchet session found in its own harness, on
+Sonnet, that a question added as one more instruction leaves no trace, and that the same question is answered when
+the stage has a section to fill whose entries name the clause that states them (eight times of eight; its
+amendments 12 and 13, recorded in section 42 and in its message of 15:10 today). It suggested that form as an arm
+here. This tests the form with ShipLoop's own list, in real runs on Sol.
+
+**The arm, S.** The released stage with one more duty at the end of the spec stage
+(`overlays/guides-section.json`; 323 words, of which the twelve lines are intake's own, unchanged):
+
+> 13. End KNOWLEDGE/spec.md with a section `## Key questions`: one entry for each of intake's twelve key questions
+> below, K1 to K12, giving this change's answer in one line and the R-<n> or the section of this specification
+> that states it, or `does not apply: <reason>`. The section adds no requirement and replaces none.
+
+followed by the K1 to K12 lines. It adds no question to ShipLoop. The questions are the ones intake already asks;
+only the form is new.
+
+**What is run.** Two arms, A and S, on both cases: the user service with its nine items and the ticket service
+with its fifteen. Three sets a case (u1 to u3 and v1 to v3), each case from its own run folder prepared with
+`--arms A,S`. Judging and the blind reader as before.
+
+**How it is read, fixed now.** For each case, S over A by section 46's rule: shown when the net is at least 2 in
+every one of the three sets, the opposite when two or more sets are at minus 1 or lower, not shown otherwise. S is
+delivered when its duty's lines were given to its author and at least half of its instructions were; A as before.
+Described beside the rule: whether each S specification holds the section and for how many of the twelve questions;
+the item readings covered by both judges; the words and requirement ids; and, on the ticket case, how many of the
+18 item readings of the six items no arm covered in section 49 (N-2, N-4, N-13, N-16, N-17, N-21) S covers.
+
+One caution is recorded before the runs, from the Ratchet session: a section is somewhere else to put a
+requirement, and only a requirement gets tests. The judges here count a sentence wherever it stands. A gain made of
+section entries alone would be a fuller document and not fuller requirements, so the requirement ids are reported
+beside it.
+
+**Predictions, before any run.**
+
+22. Every S specification holds a "Key questions" section with entries for at least ten of the twelve questions.
+23. On the ticket case S over A reaches a net of 2 in at least two of the three sets.
+24. On the user service S over A reaches a net of 1 in at least two of the three.
+25. On the ticket case S covers, under both judges, at least two of the 18 item readings of the six items no arm
+    covered.
+26. The reader verifies no capability in S alone in any set.
+27. S's specification is longer than A's in every set.
+
+**What it costs.** Twelve Sol runs; 24 judge readings, about four dollars for the registered judge's twelve; six
+readers. About 35 minutes.
+
+**Where it stops.** After the six sets the result is reported as it is.
+
+**Checked, no model called.** The overlay applies; a dry `prepare --arms A,S` on each case found no problem (the
+rendered spec stage is 8,786 characters in A and 10,780 in S); the rehearsal now also runs a two-arm folder and
+holds at 90 checks, none failed (`evidence/guides-test/rehearsal.txt`). Not reviewed at maximum effort: one overlay,
+one delivery check, the same rule.

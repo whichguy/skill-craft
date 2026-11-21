@@ -1,5 +1,5 @@
 {
- "about": "Spec-elaboration journal sections 40 to 44, arm C of the guides test: one cue sentence at the end of the spec stage's first duty; it delivers no guide text. For an experiment only; not a proposed change to ShipLoop.",
+ "about": "Spec-elaboration journal sections 40 to 50, arm C of the guides test: one cue sentence at the end of the spec stage's first duty; it delivers no guide text. For an experiment only; not a proposed change to ShipLoop.",
  "edits": [
   {
    "module": "shiploop_prompts.py",

@@ -614,6 +614,7 @@ def main() -> int:
             "X over C": "shown",
             "R over A": "not shown",
             "C over A": "the opposite",
+            "S over A": "no sets",
         },
     )
     expect(
@@ -631,12 +632,38 @@ def main() -> int:
             "X over C": "not shown",
             "R over A": "shown",
             "C over A": "the opposite",
+            "S over A": "no sets",
         },
     )
     expect(
         "sets side by side are printed, with the rule over the ones named",
         g.cmd_sets(["r1-sol"], [str(root), "r1-sol", str(root), "r3-sol"]) == 0,
     )
+
+    print("== a run folder with two arms: the released stage and the section to fill")
+    two = scratch / "root-two"
+    g.ARMS = ("A", "S")
+    expect("prepare with arms A and S finds no problem", g.cmd_prepare(two, True) == 0)
+    ready_two = json.loads((two / "prepare.json").read_text())
+    ready_two["checkout_status_lines"] = 0
+    (two / "prepare.json").write_text(json.dumps(ready_two))
+    os.environ["GUIDES_STUB"] = json.dumps(
+        {"template": str(template), "modes": {"A": "accept", "S": "accept"}}
+    )
+    expect(
+        "a two-arm set runs and is collected complete",
+        g.cmd_run(two, "r5", "sol", 1.0) == 0 and g.cmd_collect(two, "r5-sol") == 0,
+    )
+    pair = {
+        row["arm"]: row for row in json.loads((two / "collect-r5-sol.json").read_text())
+    }
+    expect(
+        "the section duty reaches S's author alone, and both are delivered",
+        [pair[a]["exposure"]["section_shown"] for a in ("A", "S")] == [False, True]
+        and all(pair[a]["delivered"] is True for a in ("A", "S")),
+        {a: pair[a]["delivery_checks"] for a in pair},
+    )
+    g.ARMS = ("A", "R", "C", "X")
 
     print("== tampering is caught")
     kept = g.grades_file(manifest, None, arm_code["A"])

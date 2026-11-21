@@ -1098,11 +1098,15 @@ def page():
   <ul class="open-list">
     <li><div><b>Do the reference guides make real specifications fuller?</b> On the bench, where sessions read them,
     the released stage was broad. In real runs they are not opened, and on Sol the reason is plain: the model prints to
-    itself only part of each packet, and the lines that say where the spec guides are reached it in 9 of 50 runs. A
-    small real test is designed, reviewed twice and
-    rehearsed offline, and waits for your word: three real runs from one sentence (the stage as released, with one cue
-    sentence, and with two guide sections put into its packet), each ended when its specification is accepted. About a
-    quarter of an hour and about a dollar. One set can say "worth repeating" or "no sign of it", not more.</div></li>
+    itself only part of each packet, and the lines that say where the spec guides are reached it in 9 of 50 runs.
+    <b>Now tested in real runs</b> (32 runs from two one-sentence requests, each stopped when its specification was
+    accepted and judged blind): putting two guide sections into the spec packet did not make the specification fuller.
+    On a small user service it covered 38 of 45 item readings against 29 for the released stage, inside that stage's own
+    run-to-run swing; on the richer ticket service it covered 18 against 20. One sentence telling the model to read its
+    whole packet made it read the reference list and open the requirements guide, and the specification was no fuller.
+    What the released stage leaves thin is specific and the same in every arm: on the ticket service, the per-row
+    result, what the file may set, the flood of notifications, an audit of the import, hostile content, and dates.
+    The gap is particular questions nobody asks, not guidance on how to write requirements.</div></li>
     <li><div><b>Try "open in the spec, answered in the plan" in ShipLoop?</b> Nothing is proposed yet. It would need your
     word, a candidate build and real end-to-end deliveries, and it is untested where one session writes the plan, the
     tests and the product in turn.</div></li>

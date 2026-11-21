@@ -1,5 +1,5 @@
 {
- "about": "Spec-elaboration journal sections 40 to 44, arm R of the guides test: one sentence added to the spec stage's goal, telling the author to print and read the whole packet. For an experiment only; not a proposed change to ShipLoop.",
+ "about": "Spec-elaboration journal sections 40 to 50, arm R of the guides test: one sentence added to the spec stage's goal, telling the author to print and read the whole packet. For an experiment only; not a proposed change to ShipLoop.",
  "edits": [
   {
    "module": "shiploop_stage_spec.py",

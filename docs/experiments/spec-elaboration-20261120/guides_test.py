@@ -8,8 +8,8 @@ test/shiploop_e2e/run.py on a small existing user service, started from the sent
 harness's own stop file once ShipLoop's trace shows the specification accepted. The specification is read from the
 commit that held it at acceptance, with a witness that the commit's text is the accepted text.
 
-  overlays                          no model: write the three overlays from the guide text in this checkout
-  prepare ROOT [--allow-dirty]      no model: lay the base down, build the four arms, enforce how they differ
+  overlays                          no model: write the four overlays from the guide text and the catalog in this checkout
+  prepare ROOT [--allow-dirty]      no model: lay the base down, build the arms (--case, --arms), enforce how they differ
   sort JUDGE                        one sorter session (opus | astra): which checklist items apply to this base
   run ROOT SET DRIVER               launch one set (A, R, C, X together); refuses without a committed item list of 8 or more
   collect ROOT SETID                no model: endings, launch facts, what each author was shown; blind copies; a manifest
@@ -78,13 +78,29 @@ STUDIES = {
 STUDY, LABEL_NAME = "users", "here-{}.json"
 RESULTS = HERE / "results"
 SPEC = "docs/shiploop/spec.md"
-ARMS = ("A", "R", "C", "X")
+ALL_ARMS = ("A", "R", "C", "X", "S")
+ARMS = (
+    "A",
+    "R",
+    "C",
+    "X",
+)  # the arms of a run folder; `prepare --arms` chooses others, and prepare.json keeps them
 ARM_OVERLAY = {
     "A": None,
     "R": "guides-read-all.json",
     "C": "guides-cue.json",
     "X": "guides-excerpt.json",
+    "S": "guides-section.json",
 }
+# Arm S: the spec stage gains one duty, a section to fill that answers ShipLoop's own twelve key questions (section 50).
+SECTION_MARK = "End KNOWLEDGE/spec.md with a section `## Key questions`"
+SECTION_DUTY = (
+    "\n13. "
+    + SECTION_MARK
+    + ": one entry for each of intake's twelve key questions below, K1 to\n"
+    "    K12, giving this change's answer in one line and the R-<n> or the section of this specification that states it, or\n"
+    "    `does not apply: <reason>`. The section adds no requirement and replaces none.\n"
+)
 BUILD_FILES = (
     "shiploop_prompts.py",
     "shiploop_stage_spec.py",
@@ -283,6 +299,27 @@ def excerpt() -> str:
 
 
 @functools.lru_cache(maxsize=1)
+def catalog() -> str:
+    """ShipLoop's own twelve key questions as its intake stage prints them: the K1 to K12 lines, unchanged."""
+    source = (
+        REPO / "skills" / "shiploop" / "scripts" / "shiploop_prompts.py"
+    ).read_text()
+    found = re.search(
+        r"^   - K1 Outcome and consumer.*?^     was settled.*?how sure it is\.$",
+        source,
+        re.DOTALL | re.MULTILINE,
+    )
+    if not found or found.group(0).count("\n   - K") != 11:
+        raise SystemExit(
+            "the intake stage's K1 to K12 lines were not found as twelve entries"
+        )
+    return found.group(0)
+
+
+def section_duty() -> str:
+    return SECTION_DUTY + catalog()
+
+
 def passages() -> dict[str, list[str]]:
     """For each of the two guide sections, its lines of 60 characters or more that no other file of the skill holds."""
     package, kinds, found = (
@@ -322,8 +359,16 @@ def overlay_docs() -> dict[str, dict]:
         "old": SPEC_GOAL,
         "new": SPEC_GOAL + " " + READ_ALL,
     }
-    about = "Spec-elaboration journal sections 40 to 44, arm {} of the guides test: {} For an experiment only; not a proposed change to ShipLoop."
+    section = {**edit, "old": DUTY_LAST, "new": DUTY_LAST + section_duty()}
+    about = "Spec-elaboration journal sections 40 to 50, arm {} of the guides test: {} For an experiment only; not a proposed change to ShipLoop."
     return {
+        "guides-section.json": {
+            "about": about.format(
+                "S",
+                "one more duty at the end of the spec stage: a section to fill that answers intake's twelve key questions, whose lines are given unchanged.",
+            ),
+            "edits": [section],
+        },
         "guides-read-all.json": {
             "about": about.format(
                 "R",
@@ -429,20 +474,23 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
                 f"arm {arm}'s stage goals are not A's with the overlay's edits and nothing else"
             )
     # A guide line in what a model was given is read as guide text only because the arms without the block print none.
-    for arm in ARMS[:-1]:
+    for arm in (arm for arm in ARMS if arm != "X"):
         printed = squeeze(prompts[arm])
         if any(line in printed for lines in passages().values() for line in lines):
             problems.append(
                 f"arm {arm}'s spec stage already prints a line of a guide file"
             )
-    if squeeze(excerpt()) not in squeeze(prompts["X"]):
+    if "X" in ARMS and squeeze(excerpt()) not in squeeze(prompts["X"]):
         problems.append(
             "arm X's spec stage does not print the whole of the two guide sections"
         )
-    if goals["R"]["spec"] != SPEC_GOAL + " " + READ_ALL or any(
-        READ_ALL in goals[arm]["spec"] for arm in ("A", "C", "X")
-    ):
+    if any((READ_ALL in goals[arm]["spec"]) != (arm == "R") for arm in ARMS):
         problems.append("the read-all sentence is not in arm R's spec goal alone")
+    if any(
+        (squeeze(section_duty()) in squeeze(prompts[arm])) != (arm == "S")
+        for arm in ARMS
+    ):
+        problems.append("the key-questions duty is not in arm S's spec stage alone")
     deltas = {}
     for arm in ARMS[1:]:
         diff = difflib.unified_diff(
@@ -453,6 +501,7 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
         )
     record = {
         "study": STUDY,
+        "arms": list(ARMS),
         "checkout": str(REPO),
         "head": sh(["git", "rev-parse", "HEAD"], REPO).strip(),
         "checkout_status_lines": len(dirty),
@@ -929,6 +978,7 @@ def exposure(out: Path, dest: Path, snap: dict) -> dict | None:
         "instructions_shown_whole": all(held for _, held in parts["instructions"]),
         "cue_shown": all(line in writing for line in lines_of(CUE)),
         "read_all_shown": squeeze(READ_ALL) in writing,
+        "section_shown": all(line in writing for line in lines_of(section_duty())),
         "guide_block_lines_shown": [sum(block), len(block)],
         "guide_block_shown_whole": all(block) and EXCERPT_MARK in writing,
         "guide_lines_returned": returned,
@@ -939,9 +989,12 @@ def exposure(out: Path, dest: Path, snap: dict) -> dict | None:
 
 
 def measures(text: str) -> dict:
+    section = text.partition("## Key questions")[2]
     return {
         "words": len(text.split()),
         "requirement_ids": len(set(re.findall(r"\bR-[0-9]+\b", text))),
+        "key_question_entries": len(set(re.findall(r"\bK(?:1[0-2]|[1-9])\b", section))),
+        "key_questions_words": len(section.split()),
     }
 
 
@@ -1255,8 +1308,9 @@ def checks(sample: dict, read: dict, ready: dict) -> dict:
             "the arm's own sentence given, and no other arm's": (
                 shown["cue_shown"],
                 shown["read_all_shown"],
+                shown.get("section_shown", False),
             )
-            == (arm in ("C", "X"), arm == "R"),
+            == (arm in ("C", "X"), arm == "R", arm == "S"),
             # Section 46: four fifths of the block's lines, since the model slices its packet; and a guide passage an
             # author opened by itself is recorded in `guide_lines_returned`, no longer a condition.
             "four fifths or more of the guide block given": arm != "X"
@@ -1593,7 +1647,8 @@ def cmd_score(root: Path, set_id: str) -> int:
             )
     pairs = {
         f"{high} over {low}": compare(states, applies, high, low)
-        for high, low in (("X", "C"), ("C", "A"), ("X", "A"), ("R", "A"))
+        for high, low in (("X", "C"), ("C", "A"), ("X", "A"), ("R", "A"), ("S", "A"))
+        if high in ARMS and low in ARMS
     }
     for name, pair in pairs.items():
         print(
@@ -1625,15 +1680,17 @@ def cmd_score(root: Path, set_id: str) -> int:
         arm: [name for name, arms in added.items() if arms == [arm]] for arm in ARMS
     }
     # The two registered contrasts: the guide block given the cue, and the read-all sentence against the stage as released.
+    rests_on = {
+        "X over C": ("A", "C", "X"),
+        "R over A": ("A", "R"),
+        "S over A": ("A", "S"),
+    }
     results = {
-        "X over C": outcome(
-            {arm: delivered[arm] for arm in ("A", "C", "X")},
-            pairs["X over C"],
-            alone["X"],
-        ),
-        "R over A": outcome(
-            {arm: delivered[arm] for arm in ("A", "R")}, pairs["R over A"], alone["R"]
-        ),
+        name: outcome(
+            {arm: delivered[arm] for arm in needed}, pairs[name], alone[name[0]]
+        )
+        for name, needed in rests_on.items()
+        if name in pairs
     }
     print(f"  delivered as each arm intends: {delivered}")
     for name, result in results.items():
@@ -1662,7 +1719,8 @@ SEVERAL = {
     "X over C": 1,
     "R over A": 1,
     "C over A": 1,
-}  # the net each new set must reach (section 46)
+    "S over A": 2,
+}  # the net each new set must reach (sections 46 and 50)
 
 
 def several(nets: dict[str, list[int | None]]) -> dict[str, str]:
@@ -1703,8 +1761,9 @@ def cmd_sets(rule: list[str], pairs: list[str]) -> int:
             json.loads((root / f"collect-{set_id}.json").read_text()),
         )
         by_arm = {row["arm"]: row for row in collected}
+        here = [arm for arm in ALL_ARMS if arm in by_arm]
         print(f"set {set_id}{'  (counted in the rule)' if set_id in rule else ''}")
-        for arm in ARMS:
+        for arm in here:
             row, shown = by_arm[arm], by_arm[arm].get("exposure") or {}
             covered = (
                 "/".join(
@@ -1746,13 +1805,14 @@ def cmd_sets(rule: list[str], pairs: list[str]) -> int:
             wider = score["items"]["applies"] + both_mixed()
             lists = {
                 arm: [score["states"][arm][name] for name, _ in JUDGE_TAGS]
-                for arm in ARMS
+                for arm in here
             }
             print(
                 f"  on {len(wider)} items (the {len(score['items']['applies'])} and {both_mixed()}): "
                 + "; ".join(
                     f"{pair} net {compare(lists, wider, *pair.split(' over '))['net']}"
                     for pair in SEVERAL
+                    if all(arm in here for arm in pair.split(" over "))
                 )
             )
         alone = {
@@ -1823,12 +1883,30 @@ def main() -> int:
         choices=sorted(STUDIES),
         help="for `prepare` and `sort`: the study; other commands read it from ROOT",
     )
+    parser.add_argument(
+        "--arms",
+        default="A,R,C,X",
+        help="for `prepare`: the arms of this run folder, A first; the folder keeps them",
+    )
     args = parser.parse_args()
     rest, command = args.rest, args.command
+    global ARMS
     if command in ("prepare", "sort"):
         use(args.case)
+        chosen = tuple(arm for arm in args.arms.split(",") if arm)
+        if (
+            chosen[:1] != ("A",)
+            or any(arm not in ALL_ARMS for arm in chosen)
+            or len(set(chosen)) != len(chosen)
+        ):
+            raise SystemExit(
+                f"--arms takes arms of {ALL_ARMS}, the released arm A first"
+            )
+        ARMS = chosen
     elif rest and (Path(rest[0]) / "prepare.json").is_file():
-        use(load(Path(rest[0]) / "prepare.json").get("study") or "users")
+        kept = load(Path(rest[0]) / "prepare.json")
+        use(kept.get("study") or "users")
+        ARMS = tuple(kept.get("arms") or ARMS)
     if command == "overlays":
         return cmd_overlays()
     if command == "sets":
