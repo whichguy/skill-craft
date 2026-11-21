@@ -1,0 +1,41 @@
+
+ALL ARMS, ROUNDS 1-3, one call a cell (89 held-out nuances)
+
+arm                  driver        covered  partial  absent  clauses  min/case   per case (csv, grok, gym, inv)
+A-single             sonnet-high     46/89       33      10      184       2.0   [11, 16, 8, 11]
+B-recursive          sonnet-high     72/89       16       1      412       8.0   [18, 22, 18, 14]
+C-enumerated         sonnet-high     74/89       15       0      535      10.4   [18, 23, 17, 16]
+D-enumerated-only    sonnet-high     73/89       16       0      413       7.0   [13, 22, 20, 18]
+
+A-single             sol-medium      38/89       38      13      246       3.3   [9, 14, 8, 7]
+B-recursive          sol-medium      50/89       33       6      609       8.4   [14, 17, 11, 8]
+C-enumerated         sol-medium      60/89       28       1      488       7.6   [17, 19, 13, 11]
+D-enumerated-only    sol-medium      62/89       25       2      499       7.2   [16, 19, 13, 14]
+
+ISOLATING THE TWO ROUND-2 DELTAS
+  sonnet-high  enumeration rule alone (D-B): +1    operator pass alone (C-D): +1    both (C-B): +2
+  sol-medium   enumeration rule alone (D-B): +12    operator pass alone (C-D): -2    both (C-B): +10
+
+BY CATEGORY (covered), B / C / D
+  sonnet-high
+    async          9/11   11/11   9/11
+    data           6/10   8/10   6/10
+    edge           10/12   10/12   12/12
+    interaction    9/12   9/12   10/12
+    nonfunctional  5/5   5/5   5/5
+    operator       5/9   6/9   7/9
+    permission     8/8   7/8   6/8
+    platform       3/5   2/5   3/5
+    preserve       5/5   5/5   4/5
+    unhappy        12/12   11/12   11/12
+  sol-medium
+    async          5/11   6/11   7/11
+    data           4/10   7/10   6/10
+    edge           9/12   9/12   10/12
+    interaction    6/12   7/12   7/12
+    nonfunctional  1/5   3/5   2/5
+    operator       4/9   6/9   5/9
+    permission     5/8   5/8   8/8
+    platform       1/5   1/5   1/5
+    preserve       5/5   5/5   5/5
+    unhappy        10/12   11/12   11/12

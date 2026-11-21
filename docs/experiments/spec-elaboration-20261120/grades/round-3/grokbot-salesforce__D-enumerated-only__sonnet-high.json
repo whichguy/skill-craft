@@ -1,0 +1,176 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1",
+   "quote": "Users who hold the bot's use permission find an app named \"Grok Bot\" in the Lightning Experience App Launcher"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-90",
+   "quote": "Nothing from Salesforce records is sent to xAI except what the user typed in the conversation ... no field values from the Account or any other record."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-90",
+   "quote": "Nothing from Salesforce records is sent to xAI except what the user typed in the conversation"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "Two assignable permission sets exist, one granting use of the chat and one granting administration, and the administration set alone does not allow chatting"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "User A's conversations and messages never appear in user B's history list or transcript, including when B ... has the admin permission set of the bot."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-63",
+   "quote": "the platform forbids making an HTTP callout after saving records in the same transaction (\"uncommitted work pending\"), so saving and calling are separate steps in a fixed order."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-82",
+   "quote": "The key never appears in any page, ... any usage-log entry, any error message, any Salesforce debug log of the bot's own code, any notification, or the bot's deployable source",
+   "missing": "Where the key is actually stored (Named/External Credential or protected custom setting) is not decided."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-68",
+   "quote": "the platform's maximum for one callout or continuation is 120 seconds",
+   "missing": "Callouts per transaction, heap and CPU time limits are not named or numbered (only callout timeout, 10,000 DML rows and concurrent requests are)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-111",
+   "quote": "makes no real call to xAI (the platform does not allow real callouts in tests, so tests use stand-ins)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-110",
+   "quote": "nothing else (outbound-call registration, tabs, app, settings defaults) needs to be configured by hand."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-67",
+   "quote": "if the bot held a Salesforce request open for each waiting call, Salesforce's cap on concurrent long-running requests per org ... would refuse more than that many.",
+   "missing": "The mechanism by which the page learns the reply arrived (platform event, polling, Continuation, LMS) is not chosen."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-59",
+   "quote": "results in exactly one message and at most one reply"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-56",
+   "quote": "When Salesforce rejects the work because too many long-running requests are running in the org at once, the message is marked failed with a notice that the system is busy."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-49, C-51, C-53, C-54",
+   "quote": "any HTTP status 500 to 599 ... Grok is temporarily unavailable; Any xAI HTTP 4xx ... change or shorten the message; Grok did not answer in time"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-50, C-61",
+   "quote": "With xAI answering HTTP 429, the message is marked failed with a notice ... retrying in a little while is appropriate. / The bot never retries a failed call to xAI by itself"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-24, C-62",
+   "quote": "the stored and displayed reply is followed by a notice that it was cut off at the length limit. / any message waiting longer than (response timeout + 30 seconds) is shown as failed with Retry"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-119, C-95",
+   "quote": "Each message in a transcript displays its sender (the user or Grok), its text, its time and ... whether it is waiting or failed / model, outcome, ... prompt tokens and completion tokens"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-100",
+   "quote": "Conversations whose last activity is older than the retention period are removed automatically, together with all their messages",
+   "missing": "What happens to a user's conversations when that Salesforce user is deactivated or removed."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-89, C-90",
+   "quote": "A request to xAI never carries the user's name, username, email, Salesforce ID, or the org's ID / Nothing from Salesforce records is sent to xAI except what the user typed"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "With the history window at its default of 20 messages, in a conversation of 30 earlier messages the request carries the 20 most recent earlier messages plus the new one"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-7, C-16, C-17",
+   "quote": "a 4,001-character message is not sent; the user sees that the limit is 4,000 characters ... a 4,000-character message is accepted."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-74, C-98",
+   "quote": "bot enabled = on; model = \"grok-4\" ... / A holder of the admin permission can open a list view of usage entries and build a report grouping by user, outcome and day"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-97",
+   "quote": "No field of any usage-log entry contains the text of a user's message or of a reply",
+   "missing": "The log records who and when with retention, but no durable audit of what was asked and answered exists (conversations are user-deletable)."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-110, C-112",
+   "quote": "Deploying the bot's source to a new Developer Edition, scratch or sandbox org needs only three manual steps ... Salesforce requires at least 75% overall coverage ... to deploy to a production org"
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-68, C-8",
+   "quote": "the user sees the failure of C-51 at the configured timeout and not later than the timeout plus 10 seconds. / a waiting indicator is visible until the reply or a failure arrives."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-7, C-8, C-58, C-60",
+   "quote": "an empty history list with a notice that no conversations exist yet / a waiting indicator / a visible \"failed\" marking and a Retry action / a notice specific to that condition"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-115",
+   "quote": "After a deploy, no standard object, page layout, profile or existing permission set differs from before, and a user without the bot's permissions sees no difference in their org."
+  }
+ ]
+}

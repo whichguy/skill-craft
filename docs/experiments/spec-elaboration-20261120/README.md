@@ -23,13 +23,26 @@ One prompt, two forms, on the same frozen requests:
 The two arms share their output form, their clause rules and their ban on code and tests. Only the procedure
 differs, so a difference in result is a difference in procedure.
 
+> **Superseded 2026-11-20, after round 3.** Not exactly true. `B-recursive` (and `C`, `D` after it) paraphrased the
+> control's rules and dropped two of its sentences: "Add no feature the request's intent does not cover", and "The
+> clauses cover every sentence of the request; every implied requirement; every limit, boundary and error case, with
+> its exact number; ...". So the recursive arms ran without the control's scope guard, and part of what the
+> enumeration rule gained on Sol restores a rule the control always had. See "Corrections" below; `F-guarded` puts
+> both sentences back, word for word.
+
 ## Drivers
 
 The owner named both: **the latest Sonnet at effort high** and **GPT-6.2 Sol at reasoning effort medium**. Every
 subject call runs headless in its own empty directory outside any repository, with the host's own customizations
 off — `claude -p --safe-mode` (no CLAUDE.md, skills, plugins, hooks, MCP, commands or agents; verified on the
 smoke call: no plugin command reached the session and no hook fired) and `codex exec --ignore-user-config` in a
-throwaway `CODEX_HOME` that links only `auth.json`. Each call writes `spec.md` (and `passes.md` for B) and nothing
+throwaway `CODEX_HOME` that links only `auth.json`.
+
+> **Superseded 2026-11-20, after round 3.** The Claude half held in all 16 Sonnet sessions. The Codex half did not:
+> redirecting `CODEX_HOME` alone left the real HOME visible, and every one of the 16 Sol sessions of rounds 1 to 3
+> read a user-level skill from it. From round 4 on a Sol call runs in the E2E harness's own throwaway profile
+> (`hosts.CodexHost.env`), and `grade.py leaks` checks every stream. See "Corrections" below.
+ Each call writes `spec.md` (and `passes.md` for B) and nothing
 else. Subjects keep their full built-in tool set, as the real stage has one; `counts.json` records the tools each
 call used, so a coverage difference that came from a web lookup rather than from the prompt is visible.
 
@@ -94,3 +107,70 @@ A round is a directory: `results/<round>/` holds every call's `spec.md`, `passes
 scoreboard, which are committed. To iterate, change an arm (or add one), run the next round name, and the earlier
 round's results and verdicts stay exactly as they were — that is how the same cases are re-run after each change
 and the results of each iteration are retained.
+
+## Corrections (2026-11-20, after round 3)
+
+Found while evaluating rounds 1 to 3 from the sessions' own recorded streams; each changes how an earlier number is
+read. Detail and evidence in `docs/spec-elaboration-journal.md` section 5.
+
+1. **Every Sol session of rounds 1 to 3 read a user-level skill.** `illustrated-authoring`
+   (`~/.agents/skills/`, a document-authoring guide that asks for economical prose) was read by 15 of the 16, across
+   all four arms; `agentic-execution` (`~/.codex/skills/`) by 4, all of them recursive-form sessions and none of the
+   single-pass ones. The first is the same in every arm, so comparisons between arms on Sol still compare like with
+   like; the second is not, and the comparison between drivers was never like with like. `evidence/round-{1,2,3}/leaks.txt`.
+2. **The recursive arms never carried the control's scope guard** or its "with its exact number" sentence (above).
+   Nothing in rounds 1 to 3 measures how much a recursive specification asks for beyond the request.
+3. **`passes.md` is the model's account, not a record.** Sol appends each pass's section as it finishes that pass.
+   Sonnet writes pass 1's section, works on as one stream of edits, and writes most of the log afterwards. R5 counted
+   sections; the work behind them is real (whole-file re-reads, 20 to 44 edits a session) but the numbered passes are
+   partly a retelling on Sonnet.
+4. "Sonnet used none [no web search] in any of its 8 calls" is true of round 1 only: one of its four round-3
+   sessions searched twice.
+
+## Registered follow-ups (2026-11-20, before any of them ran)
+
+**Arms added.** Each is derived by script from the one before it, so the difference is exactly what is named:
+
+- `F-guarded` = `D-enumerated-only` plus the control's two dropped sentences, word for word. The fold-back candidate.
+- `L-lenses-once` = `F-guarded`'s five lenses and its builder's checklist as things to think through, then the whole
+  specification written once: no passes, no `passes.md`, no stop rule. It prices iteration itself.
+- `S-sectioned` = `F-guarded` with the deliverable laid out by dimension (what it is; use cases; behaviour;
+  interface; data; background work; operation; runtime rules; must not change, must never happen), clauses numbered
+  straight through. It follows the dimensions the owner listed for the sample request and aims at the three
+  categories every arm is weakest in.
+
+**Round 4: a second draw, on clean isolation.** `A-single` and `D-enumerated-only`, both drivers, all four cases.
+- **R6, the noise floor.** How far a second draw of the same arm on Sonnet lands from the first (A 46, D 73 of 89).
+  Every difference in rounds 1 to 3 was read against a guessed band of 4. If either Sonnet replicate moves by more
+  than 4, the band was too narrow, and any difference smaller than twice the larger move is re-read as not shown.
+- **R7, what the leak did.** Sol on clean isolation against Sol with the leaked skills, same arm. A move larger than
+  the Sonnet move of R6 (or 4, whichever is larger) marks the rounds 1 to 3 Sol numbers superseded; a smaller one
+  lets them stand with the leak noted.
+- **R1 again.** D minus A within round 4 alone is 8 or more on each driver.
+
+**Round 5: the three new arms**, both drivers, all four cases, compared with round 4's A and D.
+- **R8, the guard costs no coverage.** F minus D is inside the no-difference band.
+- **R9, iteration against lens content.** L minus A is what the lenses buy in one pass; F minus L is what iterating
+  buys on top. If F minus L is under 8 on both drivers while L takes at most 60% of F's minutes, the one-pass form
+  is the candidate; if it is 8 or more on a driver, iteration earns its place on that driver.
+- **R11, sections.** S helps if S minus F is 8 or more pooled, or if operator, data and platform together (24
+  nuances) rise by 4 or more with no other category falling by more than 2.
+
+**The clause audit** (`grade.py audit`): one Opus session a specification puts every clause in one class
+(request, needed, decision, extra, empty, wrong), on rounds 4 and 5 and on round 1.
+- **R10, scope.** The recursive form adds scope if D's share of `extra` clauses exceeds A's by 5 points or more;
+  the guard works if F's share is 5 or more points below D's. The `empty` share is the direct measure of the
+  value-free clauses reported for Sol in round 1; the `wrong` share is reported as measured.
+- Calibrated before use, on a specification with 8 planted clauses and labels written first: 8 of 8 in their
+  planted class, 0 of 10 legitimate clauses flagged (`evidence/cal-audit-result.txt`).
+
+**The judge, checked twice** on round 4's 16 specifications, beside the registered verdicts and never replacing them:
+- **R12, a second draw** by the same judge (`--tag=r2`): the mean move per specification and the nuance-by-nuance
+  agreement. This is the part of R6's noise that is the judge's.
+- **R13, another family** (`--tag=gpt --judge=astra`, Codex gpt-6.2-astra at high, the E2E harness's own judge
+  role): whether D over A, and Sonnet over Sol, hold under a judge that shares no family with the better-scoring
+  driver. The finding depends on the judge's family if the Sonnet-over-Sol gap shrinks by more than half.
+
+```sh
+sh queue-2.sh          # everything above, in order, resumable; stops at once if a session leaks
+```

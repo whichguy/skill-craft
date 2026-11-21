@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "A file in which at least one row is an error, or which is rejected as a whole, leaves the user list exactly as it was before the submission."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "Each row error shows the row number, the column, and a reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-15, C-16",
+   "quote": "A data row whose email equals, ignoring case, the email of any existing account ... is an error naming column `email`. ... every later occurrence is an error naming column `email` and the row number of the first occurrence."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-12",
+   "quote": "A `role` of `member`, `admin`, or either in any capitalisation (for example `Admin`) is accepted. Any other non-empty value (for example `owner`) makes the row an error naming column `role`.",
+   "missing": "No rule checks a file's roles against the importer's own authority; escalation is prevented only incidentally by the closed member/admin set, with no stated principle if roles grow or differ in privilege."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-59",
+   "quote": "An account that is deactivated, or whose role is `member`, or that has not yet accepted its invitation, cannot use any import page or action; an active account with role `admin` can.",
+   "missing": "Whether the import permission is distinct from, or merely implied by, the ability to create a single user is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-6, C-7, C-8",
+   "quote": "`email` must be present. `name` and `role` may be absent. ... A file whose header contains a name other than `email`, `name`, `role` is rejected ... A file whose header lacks `email` is rejected"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-23, C-27",
+   "quote": "A field wrapped in double quotes may contain commas and line breaks ... Records end with LF or CRLF ... A file that is valid UTF-8, with or without a leading byte-order mark, is read"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-18, C-35",
+   "quote": "If any row is an error, no users are created ... For each user created by an import, an email arrives at that user's address"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-28, C-29",
+   "quote": "A file with 1,001 is rejected, no users are created, and the message states the limit of 1,000. ... A file of 2,097,153 bytes is rejected ... the message states the limit of 2 MiB."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-21, C-22, C-4",
+   "quote": "A zero-byte file is rejected ... A file containing only the header record ... is rejected ... After a file with N valid data rows (1 \u2264 N \u2264 1,000) is submitted"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "U-5, C-63",
+   "quote": "submits the file again after it already succeeded. The page lists the clashing rows. No users are created and no existing user changes."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-75, C-28",
+   "quote": "the import is answered in the same request, so it must finish within what a web request is allowed ... 1,000 fits a synchronous request"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-54",
+   "quote": "When the mail service is accepting messages, an invitation is `sent` within 15 minutes of the import completing ... 1,000 messages may be rate-limited by the mail service, so delivery cannot be tied to the upload request",
+   "missing": "The sending rate or pacing of the queued invitations (whether they all go at once or are throttled) is not decided; only completion bounds are given."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-48, C-37, C-38",
+   "quote": "an account state meaning \"invited, not yet active\" ... A created user who has not set a password cannot sign in ... A person who sets a password through a valid link is signed in"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-80",
+   "quote": "After processing, no page or action of the product returns the uploaded file or any value from it other than those C-47 lists",
+   "missing": "Whether and where the raw file is stored during and after processing, and when it is deleted, is not stated; only that it cannot be downloaded."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "Fields are separated by commas.",
+   "missing": "Locale handling is never addressed explicitly (e.g. semicolon-delimited files from other locales, number/date formats); the spec has no date or number columns and says nothing on locale."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-44, C-45",
+   "quote": "Each history entry shows the uploading admin, the submission time, the file name as sent, an outcome of `completed` or `rejected`, and the number of users created"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-18",
+   "quote": "all-or-nothing lets them fix the file and upload it again whole",
+   "missing": "Cancelling a running import is not addressed; retrying only failed rows is implicitly replaced by whole-file re-upload but cancellation behaviour is undecided."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-75, C-61",
+   "quote": "a valid file of 1,000 rows ... shows its completed result within 30 seconds of submission ... From submission until the response arrives, the page shows an indication that the file is being processed."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-84",
+   "quote": "For every account that existed before the submission, including the uploading admin's own, the email, name, role, state, password, and signed-in sessions are the same afterwards",
+   "missing": "That creating a single user by hand continues to work unchanged is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-11, C-86",
+   "quote": "A `name` of 101 characters makes the row an error naming column `name`. ... A `name` of `<script>alert(1)</script>` is stored as written and appears literally",
+   "missing": "Spreadsheet formula injection (values starting with =, +, -, @) is not addressed."
+  }
+ ]
+}

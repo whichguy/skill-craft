@@ -1,0 +1,6 @@
+{
+ "_doc": "Written before the audit judge ran. C-1..C-10 are legitimate (request, needed or decision: any of the three counts as agreement). C-11..C-14 are planted extras, C-15 and C-16 planted empties, C-17 contradicts C-9 and C-18 contradicts C-7.",
+ "legitimate": ["C-1", "C-2", "C-3", "C-4", "C-5", "C-6", "C-7", "C-8", "C-9", "C-10"],
+ "planted": {"C-11": "extra", "C-12": "extra", "C-13": "extra", "C-14": "extra", "C-15": "empty", "C-16": "empty", "C-17": "wrong", "C-18": "wrong"},
+ "passes_if": "at least 7 of the 8 planted clauses land in their planted class, and at most 1 of the 10 legitimate clauses is called extra, empty or wrong"
+}

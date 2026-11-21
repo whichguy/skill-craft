@@ -173,3 +173,132 @@ ShipLoop's own spec stage already carries the stricter rule, in the duty-10 revi
 what the runtime, platform or a library can do that a decision depends on, with no primary-documentation source or
 probe result: check it". So the platform gap measured here is a gap in these arms, not in ShipLoop, and the
 fold-back must keep ShipLoop's existing condition rather than replace it with the weaker wording.
+
+## 5. Round 3, an evaluation of rounds 1 to 3, four corrections, and the queue (2026-11-20)
+
+### Round 3: the enumeration rule carries the gain; the operator pass carries none
+
+8 calls of `D-enumerated-only` (arm B plus the enumeration rule, no operator pass), all exit 0. All arms, one call a
+cell (`evidence/round-3/all-arms.txt`):
+
+| arm | Sonnet high: covered of 89 | clauses | min a case | Sol medium: covered of 89 | clauses | min a case |
+| --- | --- | --- | --- | --- | --- | --- |
+| A-single | 46 | 184 | 2.0 | 38 | 246 | 3.3 |
+| B-recursive | 72 | 412 | 8.0 | 50 | 609 | 8.4 |
+| C-enumerated (rule + operator pass) | 74 | 535 | 10.4 | 60 | 488 | 7.6 |
+| D-enumerated-only (rule alone) | 73 | 413 | 7.0 | 62 | 499 | 7.2 |
+
+- **The enumeration rule alone (D minus B): +12 on Sol, +1 on Sonnet.** It is the delta that carried Sol's round-2
+  gain.
+- **The operator pass alone (C minus D): -2 on Sol, +1 on Sonnet.** Not shown on either driver, and it is what made
+  Sonnet's arm C the longest and slowest (535 clauses, 10.4 minutes against 413 and 7.0 without it). It is dropped.
+- **D is the arm carried forward**: highest or equal coverage on both drivers and the cheapest of the recursive arms
+  on both.
+
+Status: the ordering D >= C >= B >> A on Sol and (B, C, D) >> A on Sonnet is interim until replicated; see the
+noise note next.
+
+### What three rounds show together
+
+- **Sonnet has reached a plateau: 72, 74, 73.** Three different recursive arms, the same pooled number. But case by
+  case the same three arms scored 18/18/13 on the CSV case and 14/16/18 on the invoice case. A swing of 5 on one
+  case between arms that pool to the same total says a single call is noisy at about the size of every difference
+  under 10 in this journal. **No noise floor has been measured**: the band of 4 in R1 was a guess.
+- **27 of the 89 nuances are covered by every cell**, single-pass ones included, so they tell arms apart not at
+  all; **3 are covered by no recursive cell** and are `partial` everywhere (the waitlist entry "stored or
+  derived", "every condition that stops the sequence" with its six states, do-not-contact with the billing
+  exemption). Those three are compound or are facts about how it is built, which the arms' own rules keep out of a
+  specification. The instrument's working range is about 59 nuances and its ceiling about 86
+  (`evidence/round-3/per-nuance.txt`).
+- **Where the covering words first existed** (`evidence/round-3/first-draft.txt`, `timeline.py`, 22 of 24
+  recursive sessions parsed). Each session's first write of `spec.md` against its kept file:
+
+  | arm, driver | clauses, first draft to kept | covered nuances already worded in the first draft |
+  | --- | --- | --- |
+  | B, Sol | 90 to 609 | 24% |
+  | B, Sonnet | 111 to 412 | 25% |
+  | C, Sonnet | 158 to 535 | 39% |
+  | D, Sonnet | 287 to 413 | **71%** |
+  | C, Sol (3 sessions) | 42 to 376 | 7% |
+  | D, Sol (3 sessions) | 47 to 349 | 19% |
+
+  Under arm B about three quarters of what was finally covered arrived after the first draft, so the later work is
+  not decoration. But under arm D Sonnet wrote most of the specification in its first write (113 of 120 clauses on
+  the Grokbot case, 87 of 95 on the invoice case) and ended at the same coverage. That is one driver, four sessions
+  and a lower bound (a clause reworded later counts as added later), and it does not say what a single pass told to
+  use every lens would reach. It does say the question is open: **the gain may come from what the instruction makes
+  the model consider, not from going round again**, and only an arm that removes the going-round can tell.
+- **Minutes follow the length of the specification more than the number of passes**: Sonnet's front-loaded Grokbot
+  session still took 7.5 minutes to write 9,657 words; arm A takes 2.0 for about 3,700.
+- **Platform facts stated from memory look right where spot-read.** Sonnet's Grokbot specification under arm D
+  gives a 120-second ceiling for a callout or continuation, no callout after uncommitted work, a cap on concurrent
+  long-running requests ("10 requests running 5 seconds or longer", marked unconfirmed), 5 MB of Developer Edition
+  data storage (marked unconfirmed) and a 131,072-character long text field. Read against this session's own
+  knowledge only, not against the documentation; exploratory.
+- **Spend through round 3**: $15.01 for 16 Sonnet subject calls ($0.25 a single-pass call, about $1.00 a recursive
+  one) and $12.15 for 34 Opus judge calls ($0.36 each); the 16 Sol calls are not costed by their CLI.
+
+### Four corrections to what this journal said earlier
+
+1. **The Codex isolation leaked, in every Sol session.** Section 1 and the registration commit said the Codex host
+   ran "in a throwaway CODEX_HOME that links only auth.json" and that isolation was verified. It was verified for
+   Claude, by reading the smoke session's stream; for Codex only the exit code and the written file were checked.
+   The streams show that all 16 Sol sessions of rounds 1 to 3 read a user-level skill from the real HOME:
+   `~/.agents/skills/illustrated-authoring/SKILL.md` in 15 of them, across all four arms, and
+   `~/.codex/skills/agentic-execution/SKILL.md` in 4, all recursive-form (B twice, C once, D once) and no
+   single-pass one. The first is a document-authoring guide ("economical prose"; it also says to "preserve exact
+   identifiers, values, units, operational limits", so it does not explain Sol's value-free bounds). The second
+   describes orchestrating subagents; no session spawned one.
+   - What stands: comparisons between arms on Sol, read as "with that authoring skill loaded in every arm".
+   - What does not: any comparison between the drivers. "Sonnet high beats Sol medium on both arms" (section 3)
+     compared a clean driver with a contaminated one. **Superseded 2026-11-20** until Sol is re-run clean.
+   - The 16 Sonnet sessions are clean: none read outside its own directory, and the one that tried to write
+     outside it was refused by the host.
+   - Fixed: a Sol call now runs in the E2E harness's own profile (`hosts.CodexHost.env`: a throwaway HOME with its
+     own keychain and git identity, kept beside the working directory rather than inside it), which is what the
+     harness has always done and what `use-the-codex-harness` already says. A smoke call on the fixed runner read
+     nothing outside (`evidence/smoke-iso/leaks.txt`). `grade.py leaks` now checks every stream of every round and
+     the queue stops if one leaks.
+2. **The arms did not differ only in procedure.** Section 1 and the README said they share their clause rules. Arm
+   B paraphrased the control's rules and lost two sentences: "Add no feature the request's intent does not cover",
+   and the coverage sentence that ends "every limit, boundary and error case, with its exact number". So (a) the
+   recursive arms had no scope guard and nothing here measures how much they ask for beyond the request, and (b)
+   round 2's reading that the enumeration rule "fixes a driver that under-commits" is partly the restoring of a
+   rule the control always had. The decision to carry the rule forward stands; the credit for it changes.
+3. **R5 was read off the model's own account.** "Passes recorded per case: Sonnet 8, 9, 7, 9" counted sections of
+   `passes.md`. Sol does write each section as it finishes that pass. Sonnet writes the first, works on as one
+   stream of edits and appends, and writes most of the log afterwards (the Grokbot session: one 732-character
+   write at the start, a 5,859-character write of the whole log near the end, then one edit adding the stopping
+   pass). The work is real: 44 edits and four whole-file re-reads in that session. The count of passes is a
+   retelling, so "the stop rule ran rather than being announced" is shown for the last read-throughs, not for the
+   numbering.
+4. **"Sonnet used none [no web search] in any of its 8 calls"** holds for round 1 (0 of 8) and round 2 (0 of 4);
+   one of four round-3 Sonnet sessions searched twice. Sol searched in 9 of its 16 sessions.
+
+### The queue, registered before any of it runs
+
+The README's "Registered follow-ups" holds the readings R6 to R13 and their thresholds; `queue-2.sh` runs them in
+order. What each is for:
+
+| step | what runs | the question |
+| --- | --- | --- |
+| round 4 | A and D again, both drivers, clean Codex isolation: 16 calls | How big is the noise (R6)? Did the leak move Sol (R7)? Does D over A repeat (R1)? |
+| round 5 | F-guarded, L-lenses-once, S-sectioned, both drivers: 24 calls | Does the restored scope guard cost coverage (R8)? Is it the iterating or the lenses (R9)? Do sections by dimension lift the weak categories (R11)? |
+| judge checks | round 4 judged again by Opus, and by gpt-6.2-astra: 34 calls | How much of the noise is the judge's (R12)? Do the findings hold under a judge of another family (R13)? |
+| clause audit | every clause of rounds 4, 5 and 1 classed: 56 calls | How much of a recursive specification is beyond the request, empty or wrong (R10)? |
+
+Two instruments were calibrated before being queued: the fixed isolation (above) and the audit judge, which put 8
+of 8 planted clauses in their planted class and flagged 0 of 10 legitimate ones, on labels written before it ran
+(`evidence/cal-audit-result.txt`). Its planted extras are blatant (a Slack message, a dashboard); how it draws the
+line between a decision a builder had to make and a feature nobody asked for will show in its `why` lines.
+
+Considered and not queued, with the reason:
+- **Sol at high effort.** Would say whether Sol's gap is effort or model. The owner named Sol medium; one cell to
+  add later if the clean Sol numbers still trail.
+- **A case with a real repository.** The four cases have no code, and ShipLoop's spec stage usually has some. The
+  ratchet pilot's cases cover that side through the built product; here it belongs to the fold-back check on the
+  real stage.
+- **Checking platform figures against the documentation.** ShipLoop's duty-10 condition already requires it of the
+  real stage; the audit's `wrong` class is a first, undocumented reading.
+- **Ablating single passes.** R9 answers the larger question first; if iterating does not earn its place, which
+  pass earns it is moot.

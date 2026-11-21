@@ -1,0 +1,90 @@
+{
+ "slot": "csv-user-import__CAL-planted__hand",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.1398634,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "extra",
+   "why": "Scheduling imports for a later time is a new capability; immediate bulk creation fully satisfies the request."
+  },
+  {
+   "id": "C-12",
+   "class": "extra",
+   "why": "Slack notifications are an integration the request never calls for; the upload works without them."
+  },
+  {
+   "id": "C-13",
+   "class": "extra",
+   "why": "A usage dashboard charting weekly imports is unrelated to creating users from a CSV."
+  },
+  {
+   "id": "C-14",
+   "class": "extra",
+   "why": "A five-week welcome email course is an onboarding feature beyond bulk user creation."
+  },
+  {
+   "id": "C-15",
+   "class": "empty",
+   "why": "Names 'appropriate limits' without stating any limit or what happens when one is exceeded."
+  },
+  {
+   "id": "C-16",
+   "class": "empty",
+   "why": "'User-friendly' error handling gives no specific behaviour a builder could act on or test."
+  },
+  {
+   "id": "C-17",
+   "class": "wrong",
+   "why": "Accepting a 6,000-row file contradicts C-9, which refuses any file over 5,000 rows."
+  },
+  {
+   "id": "C-18",
+   "class": "wrong",
+   "why": "Aborting the whole import on one invalid row contradicts C-7, which processes rows independently."
+  }
+ ]
+}

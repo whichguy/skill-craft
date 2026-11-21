@@ -1,0 +1,3 @@
+clean csv-user-import__A-single__sol-medium   (system paths referenced: 0)
+
+0 of 1 sessions referenced a path under the real HOME outside their own working directory and throwaway profile

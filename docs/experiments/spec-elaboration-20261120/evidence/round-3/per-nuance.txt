@@ -1,0 +1,20 @@
+89 held-out nuances x 8 cells (2 single-pass, 6 recursive)
+
+COVERED BY NO RECURSIVE CELL (0 of 6): 3
+  gym-waitlist         N-14  [data         ] par par par par par par | A: par/par
+      The waitlist entry as a record with its join time and state, and whether a position is stored or derived.
+  invoice-reminders    N-2   [interaction  ] par par par par par par | A: par/par
+      Every condition that stops the sequence: paid, part-paid, voided, credited, disputed, or on a payment plan.
+  invoice-reminders    N-4   [interaction  ] par abs par par par par | A: abs/par
+      An existing do-not-contact, paused or unsubscribed state on the customer, and whether a billing notice is exempt from a marketing opt-out.
+
+COVERED BY NO SONNET RECURSIVE CELL (0 of 3) though by some Sol cell: 4
+  csv-user-import      N-16  [data         ] Date, number and locale handling of the file's values.
+  csv-user-import      N-18  [operator     ] Cancelling an import that is running, and retrying only the rows that failed.
+  grokbot-salesforce   N-23  [operator     ] An audit record of who asked what and what was answered, with its retention.
+  grokbot-salesforce   N-8   [platform     ] Governor limits that bind this design are named with their numbers: callout timeout ceiling, callouts per transaction, h
+
+COVERED BY EVERY CELL (8 of 8) - these do not discriminate between arms: 27
+  by category: {'edge': 6, 'unhappy': 6, 'interaction': 5, 'preserve': 4, 'permission': 3, 'async': 2, 'data': 1}
+
+HOW MANY OF THE 6 RECURSIVE CELLS COVER EACH NUANCE: {0: 3, 1: 9, 2: 4, 3: 10, 4: 11, 5: 12, 6: 40}

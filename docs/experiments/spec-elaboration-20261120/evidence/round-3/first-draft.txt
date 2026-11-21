@@ -1,0 +1,33 @@
+session                                                         clauses: first draft -> kept  covered  in first draft  only later  unplaced
+round-1/csv-user-import__B-recursive__sol-medium                          17 -> 161                 14               2          12         0
+round-1/csv-user-import__B-recursive__sonnet-high                         18 -> 85                  18               5          13         0
+round-1/grokbot-salesforce__B-recursive__sol-medium                       32 -> 151                 17               2          15         0
+round-1/grokbot-salesforce__B-recursive__sonnet-high                      42 -> 132                 22               6          16         0
+round-1/gym-waitlist__B-recursive__sol-medium                             15 -> 159                 11               4           7         0
+round-1/gym-waitlist__B-recursive__sonnet-high                             8 -> 85                  18               0          18         0
+round-1/invoice-reminders__B-recursive__sol-medium                        26 -> 138                  8               4           4         0
+round-1/invoice-reminders__B-recursive__sonnet-high                       43 -> 110                 14               7           7         0
+round-2/csv-user-import__C-enumerated__sol-medium                         21 -> 136                 17               1          16         0
+round-2/csv-user-import__C-enumerated__sonnet-high                        31 -> 143                 18               5          13         0
+round-2/grokbot-salesforce__C-enumerated__sol-medium           first write of spec.md not found in the stream; left out
+round-2/grokbot-salesforce__C-enumerated__sonnet-high                     41 -> 155                 23               8          15         0
+round-2/gym-waitlist__C-enumerated__sol-medium                            10 -> 138                 13               1          12         0
+round-2/gym-waitlist__C-enumerated__sonnet-high                           35 -> 120                 17               8           9         0
+round-2/invoice-reminders__C-enumerated__sol-medium                       11 -> 102                 11               1          10         0
+round-2/invoice-reminders__C-enumerated__sonnet-high                      51 -> 117                 16               8           8         0
+round-3/csv-user-import__D-enumerated-only__sol-medium                    18 -> 105                 16               5          11         0
+round-3/csv-user-import__D-enumerated-only__sonnet-high                   47 -> 94                  13              10           3         0
+round-3/grokbot-salesforce__D-enumerated-only__sol-medium      first write of spec.md not found in the stream; left out
+round-3/grokbot-salesforce__D-enumerated-only__sonnet-high               113 -> 120                 22              20           2         0
+round-3/gym-waitlist__D-enumerated-only__sol-medium                       15 -> 121                 13               3          10         0
+round-3/gym-waitlist__D-enumerated-only__sonnet-high                      40 -> 104                 20               8          12         0
+round-3/invoice-reminders__D-enumerated-only__sol-medium                  14 -> 123                 14               0          14         0
+round-3/invoice-reminders__D-enumerated-only__sonnet-high                 87 -> 95                  18              14           4         0
+
+POOLED, of the nuances finally covered whose covering words could be located in the kept file
+  B-recursive          sol-medium   sessions 4: clauses 90 -> 609; covered 50, worded in the first draft 12 (24%), only later 38 (76%), unplaced 0
+  B-recursive          sonnet-high  sessions 4: clauses 111 -> 412; covered 72, worded in the first draft 18 (25%), only later 54 (75%), unplaced 0
+  C-enumerated         sol-medium   sessions 3: clauses 42 -> 376; covered 41, worded in the first draft 3 (7%), only later 38 (93%), unplaced 0
+  C-enumerated         sonnet-high  sessions 4: clauses 158 -> 535; covered 74, worded in the first draft 29 (39%), only later 45 (61%), unplaced 0
+  D-enumerated-only    sol-medium   sessions 3: clauses 47 -> 349; covered 43, worded in the first draft 8 (19%), only later 35 (81%), unplaced 0
+  D-enumerated-only    sonnet-high  sessions 4: clauses 287 -> 413; covered 73, worded in the first draft 52 (71%), only later 21 (29%), unplaced 0

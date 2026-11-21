@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "The standard claim window is 15 elapsed minutes when the closing time permits ... Its deadline is 15 elapsed minutes after it becomes available to view and claim."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "A waitlist opening is offered in order of successful join ... A receives the first offer.",
+   "missing": "Whether any membership tier or staff override can jump the queue; exact ties are explicitly left open (C-41)."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-106",
+   "quote": "The first waitlist entry alone does not prevent the second join. Existing rules for eligibility across multiple classes still apply",
+   "missing": "What happens to a waitlist entry or offer for a time-overlapping class when the member gets a seat in the other."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-85",
+   "quote": "Join, wait, receive an offer, leave, decline, or let an offer expire. None of those actions adds a charge, fee, or payment hold.",
+   "missing": "Whether a declined or expired offer counts against the existing no-show or late-cancellation policy (non-financial strikes/penalties)."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-107",
+   "quote": "Release a seat for an eligible waiting member while nobody has the class open. On the next successful status read, the member sees the offer ... The allocation interval imposed by a deployment runtime is unconfirmed.",
+   "missing": "The timeliness of the background allocation after a cancellation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "find the occurrence's offer, its deadline, and the available actions to claim or decline. External delivery through email, SMS, or push is outside the required notification surface"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-80",
+   "quote": "Race multiple confirmations for the last seat, whether through simultaneous direct bookings, simultaneous claims, or one of each. At most one additional booking confirms."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-109",
+   "quote": "As the offer owner, start booking from the occurrence's ordinary class details. The app recognizes the current offer and gives the member a route to claim it before its deadline."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-103",
+   "quote": "force a claim to fail after a provisional payment step. Once the app reports the outcome as settled, any provisional charge or hold has been cleared under the ordinary failed-booking terms."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "An otherwise valid join has no additional product-imposed queue-size cap ... the number of existing waiting members alone never causes refusal."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-21",
+   "quote": "Waitlist activity closes when the occurrence stops accepting bookings or reaches its scheduled start, whichever comes first"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "lower effective capacity to 2 ... The higher-priority offer remains active for its original deadline, and the other ceases to hold a seat."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-13",
+   "quote": "Cancel a full class with a waiting member. The member can see that the class was cancelled and that their request will no longer be considered."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-24",
+   "quote": "distinguish these outcomes: confirmed booking, active offer with a seat held, waiting without an offer, or none of those three.",
+   "missing": "The entry as a stored record with its join time and state, and whether queue position is stored or derived."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-59",
+   "quote": "Reach the closing time with one member waiting and another holding an offer. Neither has an active waitlist entry at the boundary.",
+   "missing": "What becomes of ended entries after the class runs and how long they are retained."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "the member's exact position in the queue are outside this required display"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-12",
+   "quote": "As an authorized operator, inspect a class with 0 waiting members. One member joining changes the count to 1.",
+   "missing": "Whether staff can see who is waiting, manually promote or remove someone, and see who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "The admission setting is deployment-wide. Pause admissions and attempt fresh joins for two different otherwise joinable occurrences. Both are paused."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-107",
+   "quote": "The allocation interval imposed by a deployment runtime is unconfirmed.",
+   "missing": "A stated bound on how soon an offer follows a cancellation."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-14",
+   "quote": "Check a previously booked class before and after the feature is released. The booking has the same status after release unless an ordinary booking change took effect."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-78",
+   "quote": "Release the feature with future full classes, existing confirmed bookings, and past cancelled bookings. Every occurrence begins with 0 active waiting entries and 0 active offers."
+  }
+ ]
+}

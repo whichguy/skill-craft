@@ -1,0 +1,260 @@
+{
+ "csv-user-import__D-enumerated-only__sol-medium": {
+  "use_cases": 16,
+  "clauses": 105,
+  "source_mix": {
+   "choice": 99,
+   "implied": 20,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6972,
+  "bundled_and": 4,
+  "bundled_examples": [
+   "A data field's surrounding ASCII spaces and tabs are ignored.",
+   "A submission reference is valid only for its issuing admin and destina",
+   "Replaying an accepted submission with the same reference and file retu"
+  ],
+  "seconds": 442.1,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 5,
+   "command_execution": 18,
+   "web_search": 1
+  },
+  "passes_recorded": 11,
+  "passes_words": 644
+ },
+ "csv-user-import__D-enumerated-only__sonnet-high": {
+  "use_cases": 11,
+  "clauses": 94,
+  "source_mix": {
+   "choice": 32,
+   "implied": 69,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6310,
+  "bundled_and": 19,
+  "bundled_examples": [
+   "The import-users page states the file format and what happens to each ",
+   "Columns accepted, and which are required",
+   "Emails are compared and stored in lower case"
+  ],
+  "seconds": 359.3,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.7628173,
+  "turns": 28,
+  "tools": {
+   "Bash": 5,
+   "Edit": 20,
+   "Write": 2
+  },
+  "passes_recorded": 8,
+  "passes_words": 842
+ },
+ "grokbot-salesforce__D-enumerated-only__sol-medium": {
+  "use_cases": 10,
+  "clauses": 150,
+  "source_mix": {
+   "choice": 124,
+   "implied": 33,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7416,
+  "bundled_and": 5,
+  "bundled_examples": [
+   "Scope a send identity to its authorized user and bot view",
+   "Keep prompt and answer content out of product diagnostics",
+   "Tell the user when waiting and trying again can resolve a failure"
+  ],
+  "seconds": 351.4,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 26,
+   "web_search": 3
+  },
+  "passes_recorded": 10,
+  "passes_words": 536
+ },
+ "grokbot-salesforce__D-enumerated-only__sonnet-high": {
+  "use_cases": 14,
+  "clauses": 120,
+  "source_mix": {
+   "choice": 19,
+   "implied": 111,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 9657,
+  "bundled_and": 50,
+  "bundled_examples": [
+   "Two assignable permission sets exist, one granting use of the chat and",
+   "Only internal Lightning Experience users are supported; Experience Clo",
+   "Sending a message puts it in the transcript immediately and shows that"
+  ],
+  "seconds": 451.5,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 0.9926402000000002,
+  "turns": 31,
+  "tools": {
+   "Bash": 6,
+   "Edit": 19,
+   "ToolSearch": 1,
+   "WebSearch": 2,
+   "Write": 2
+  },
+  "passes_recorded": 7,
+  "passes_words": 1023
+ },
+ "gym-waitlist__D-enumerated-only__sol-medium": {
+  "use_cases": 12,
+  "clauses": 121,
+  "source_mix": {
+   "choice": 85,
+   "implied": 46,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8061,
+  "bundled_and": 3,
+  "bundled_examples": [
+   "A concurrent claim and decline resolve to a single outcome",
+   "An offer window starts only when its owner can view the issued offer a",
+   "Direct booking and offer claims cannot increase confirmed bookings abo"
+  ],
+  "seconds": 434.8,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 17
+  },
+  "passes_recorded": 10,
+  "passes_words": 648
+ },
+ "gym-waitlist__D-enumerated-only__sonnet-high": {
+  "use_cases": 15,
+  "clauses": 104,
+  "source_mix": {
+   "choice": 31,
+   "implied": 83,
+   "request": 5
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6665,
+  "bundled_and": 41,
+  "bundled_examples": [
+   "Where a class is full and its waitlist is open to the member, the memb",
+   "Joining the waitlist adds the member at the end of the waitlist and sh",
+   "A member sees their own position on the class and in their list of wai"
+  ],
+  "seconds": 397.4,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.924907,
+  "turns": 36,
+  "tools": {
+   "Bash": 8,
+   "Edit": 22,
+   "Read": 2,
+   "Write": 3
+  },
+  "passes_recorded": 8,
+  "passes_words": 826
+ },
+ "invoice-reminders__D-enumerated-only__sol-medium": {
+  "use_cases": 13,
+  "clauses": 123,
+  "source_mix": {
+   "choice": 53,
+   "implied": 80,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8228,
+  "bundled_and": 12,
+  "bundled_examples": [
+   "An issued unpaid invoice is followed up automatically when reminders a",
+   "An invoice\u2019s account and stable invoice identity determine which invoi",
+   "Only invoices whose canonical lifecycle state is issued and open can q"
+  ],
+  "seconds": 496.5,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 20,
+   "web_search": 3
+  },
+  "passes_recorded": 11,
+  "passes_words": 659
+ },
+ "invoice-reminders__D-enumerated-only__sonnet-high": {
+  "use_cases": 16,
+  "clauses": 95,
+  "source_mix": {
+   "choice": 30,
+   "implied": 76,
+   "request": 5
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7960,
+  "bundled_and": 52,
+  "bundled_examples": [
+   "An invoice is a candidate for reminders only while its status is Open ",
+   "Apart from invoice status, reminders for an invoice are held back by e",
+   "The default schedule has exactly five steps at offsets -3, 0, +3, +7 a"
+  ],
+  "seconds": 480.4,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 1.1157667,
+  "turns": 15,
+  "tools": {
+   "Bash": 6,
+   "Edit": 4,
+   "Write": 4
+  },
+  "passes_recorded": 7,
+  "passes_words": 1038
+ }
+}

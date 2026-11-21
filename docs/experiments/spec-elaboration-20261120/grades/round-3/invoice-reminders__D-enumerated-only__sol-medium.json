@@ -1,0 +1,135 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "the scheduled opportunities are June 2, June 8 and June 15, corresponding to offsets of 1, 7 and 14 calendar days after the due date. No opportunity starts on the due date or at another offset."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-18",
+   "quote": "An issued open invoice can qualify whether unpaid in full or partially paid. Draft, scheduled for issuance, paid, voided, canceled, written off, deleted and unknown lifecycle states produce zero handoffs.",
+   "missing": "Paid, part-paid, voided, credited (C-19, C-41) and disputed (C-20) are decided, but nothing says whether an invoice on a payment plan stops the sequence."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "For a USD 100 invoice with USD 40 recorded as paid, the email identifies USD 60 as outstanding."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-121",
+   "quote": "Where the existing billing system blocks outbound billing email for the account, invoice or designated address, a reminder is skipped under the same block.",
+   "missing": "Whether a customer-level do-not-contact or marketing unsubscribe stops reminders, or whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "After acceptance, restarts, duplicate evaluations, repeated enablement, changes to recipient or due date, payment reversals and rollback followed by re-upgrade yield no further attempt of that same opportunity."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "If payment in full, a credit to zero, a state change out of issued and open ... commits first, a previously selected invoice produces no handoff. Selection alone gives no authority to send."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-50",
+   "quote": "Following a definite temporary first rejection, at most two more attempts can begin for that identity. With three temporary rejections the opportunity is exhausted.",
+   "missing": "Retry policy and provider outage (C-51, C-58) are stated, but nothing escalates repeated failure to a person; exhaustion is only visible in history."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-70",
+   "quote": "If the service enforces a per-time-period send quota, send rate or simultaneous-submission limit, eligible work can wait for available capacity until its window closes."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "Enabling an account on June 9 at 09:00 UTC for an invoice due June 1 does not release the closed June 2 or June 8 opportunities."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "The June 2 opportunity opens at 09:00 UTC on June 2 for recipients in any time zone, including across daylight-saving changes.",
+   "missing": "Time zone is decided (UTC, not customer local time), but whether reminders are sent on weekends or holidays, or limited to business hours, is not stated."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "The reminder states the invoice\u2019s current outstanding amount inclusive of its currency.",
+   "missing": "How the amount and currency are formatted for the recipient (symbol or code, decimal and grouping conventions, locale)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "Multiple competing designations, a missing address or an invalid address cause zero handoffs."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "With one designated address, the reminder goes only to that mailbox. Multiple competing designations ... cause zero handoffs. Account owners, alternative contacts, CC and BCC receive no copies through this feature."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-60",
+   "quote": "For an invoice the administrator can look up, each attempt shows the 1-, 7- or 14-day opportunity identity, window opening time applicable when the attempt began, attempt number 1 through 3, handoff start time, current handoff outcome"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "A reminder containing those five elements is complete without an attachment, a line-item list, payment instructions or a payment link."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-16",
+   "quote": "The account settings offer enable and disable. Manual send and resend controls are outside this feature ... Cadence, send time, time zone, channel, recipient selection and retry policy follow the feature\u2019s stated rules."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-37",
+   "quote": "An authorized deployment operator can set the global state to paused or running and can read back that state.",
+   "missing": "Global and per-account off (C-2) and no manual resend (C-16) are stated, but there is no preview or dry-run and no per-recipient opt-out beyond existing blocks."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "the administrator can distinguish scheduled, open, waiting to retry, handoff in progress, closed by acceptance, closed by permanent rejection, closed by exhausted retries, closed by uncertainty, superseded by a later handoff and window expired without acceptance."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "A June 2 opportunity can authorize a handoff from June 2 at 09:00 UTC through any instant before June 3 at 09:00 UTC. It cannot authorize one at June 3 at 09:00 UTC or later."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-83",
+   "quote": "the invoice shows the same lifecycle, original amount, outstanding balance, currency, due date, payment records, credit records, invoice reference and designated billing address unless changed by the existing billing system."
+  }
+ ]
+}

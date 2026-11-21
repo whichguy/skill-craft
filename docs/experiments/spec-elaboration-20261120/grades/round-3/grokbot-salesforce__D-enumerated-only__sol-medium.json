@@ -1,0 +1,177 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "An authorized desktop user can find a dedicated Grok entry point through Salesforce app navigation ... without assuming a record page, mobile app, public site, or messaging channel"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-78",
+   "quote": "Prompting the bot for a record by name or ID does not cause the bot to read that record from Salesforce"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "Prior prompts, prior replies, record context, attachments, images, audio, and tool actions are outside this first text-only scope"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "A designated regular Salesforce user can ask Grok after a bot-use grant"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-86",
+   "quote": "A user cannot fetch another user's result even with the other user's send identity"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-61",
+   "quote": "On an Apex-backed path, a send whose callout Salesforce refuses due to pending writes, async work, scheduling, or email in the same transaction produces a failure outcome",
+   "missing": "Whether the callout runs synchronously or asynchronously (Queueable/future/batch); the design only reports failure rather than structuring around the restriction"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-83",
+   "quote": "Bot logs, error feedback, and operator diagnostics contain no full or partial provider secrets",
+   "missing": "Where the credential is stored (Named/External Credential or protected setting) and that it is never in code or metadata; C-59/C-60 only conditionally mention external credentials"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-62, C-63, C-66",
+   "quote": "exhaustion of the 100-callout allowance per transaction ... 120-second combined callout allowance ... Apex CPU limits are 10,000 ms synchronous ... Heap limits are 6 MB synchronous"
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "While an accepted send is awaiting its result, the user can distinguish pending from a terminal outcome",
+   "missing": "The mechanism by which the view learns the result arrived (platform event, polling, LMS, or inline return)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "If a result for a terminal send arrives late or arrives twice, it does not replace an existing outcome or create another visible reply"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-103",
+   "quote": "If the bot cannot admit a question to immediate processing, the user receives a refusal or failure"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-104, C-105, C-137",
+   "quote": "temporary provider error, connection loss, provider timeout ... shows that a new attempt may be made later ... credential or model rejection ... provide operator-directed feedback"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-70, C-44",
+   "quote": "If xAI returns HTTP 429 ... the user sees temporary capacity feedback ... A provider error, lost response, timeout, or reconnect produces no automatic second inference"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-100, C-47",
+   "quote": "the UI shows that text labeled incomplete as the terminal outcome ... If no terminal outcome has reached an active view within 60 seconds ... the view shows a timeout outcome"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-33, C-107",
+   "quote": "Closing or reloading the bot ... shows no retrievable drafts, questions, or replies ... The fields exclude user identifiers, cost, token usage",
+   "missing": "No conversation/turn record shape is defined; only a diagnostic entry without role, text or usage counts"
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "Keep zero durable bot transcripts in Salesforce"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-145",
+   "quote": "The bot adds no Salesforce user ID, org ID, session token, record data, or diagnostic reference. Values the user types into the question remain part of the submitted text"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-28, C-69",
+   "quote": "For a follow-up, the provider receives only the current question as conversational content"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-110, C-5, C-6, C-99",
+   "quote": "A fresh view has no turn ... nonblank draft from 1 through 4,000 Unicode code points inclusive passes ... visible answer budget of at most 1,024 tokens"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-119",
+   "quote": "inspect service state and current model, check credential presence, replace the credential, select the model, enable or pause service ... look up recent request diagnostics"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-72, C-107",
+   "quote": "xAI's documented default audit retention is 30 days for API requests and responses ... The fields exclude user identifiers",
+   "missing": "No in-org audit of who asked what and what was answered; only provider-side retention is described"
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-57, C-73, C-87, C-92",
+   "quote": "Developer Edition org, scratch org, or development sandbox ... standard gate is 75% overall Apex coverage ... A cloned or refreshed org cannot use the source org's bot connection until independently provisioned"
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-47, C-8",
+   "quote": "If no terminal outcome has reached an active view within 60 seconds of entering pending, the view shows a timeout outcome"
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-110, C-8, C-9",
+   "quote": "A fresh view has no turn ... the user can distinguish pending from a terminal outcome ... the user sees an unsuccessful outcome",
+   "missing": "Nothing on deliberate visual design beyond listing states"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-15, C-76, C-77",
+   "quote": "Existing flows, triggers, and scheduled jobs continue under the same conditions with the bot enabled or disabled"
+  }
+ ]
+}

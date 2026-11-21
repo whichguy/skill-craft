@@ -1,0 +1,140 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-12",
+   "quote": "Each attempt creates its entire roster or creates zero users. ... If the attempt ends in rejection or failure, it creates 0 users."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "each rejected row has its starting line and each applicable reason. Reasons are wrong field count, missing email, invalid email, duplicate within file, existing identity subject to C-100, or refusal under the ordinary account creation policy."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-10, C-11, C-96, C-73",
+   "quote": "Submitting an address already reserved by a viewable account in the target directory produces an existing-user conflict for that row. / If two valid email rows resolve to the same identity, the result identifies the duplicate rows."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-75",
+   "quote": "An added role column is refused as an invalid header. The import provides no CSV field whose value specifies a role, permission, or activation state."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-3, C-20",
+   "quote": "A signed-out caller or a signed-in caller without admin authority cannot submit an import, including by calling the submission entry point directly. / The caller must administer the destination directory to submit an import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-29, C-30",
+   "quote": "The first nonblank record must consist of the single decoded field `email`. ... `Email`, ` email`, `address`, `email,email`, and `email,role` cause a header diagnostic."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-25, C-26, C-27",
+   "quote": "UTF-8 with or without one leading byte-order mark is accepted ... Inside it, commas and line breaks are literal ... LF and CRLF can delimit records in the same file."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-64",
+   "quote": "When the ordinary path sends invitations or starts activation, a rejected or failed attempt never initiates either for its rows."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-8, C-9",
+   "quote": "A file of 5,242,881 bytes is refused with a file-size reason. ... 10,001 countable records exceed the limit. 10,000 pass the count check."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-6, C-105",
+   "quote": "A zero-byte file ... receives a missing-header diagnostic. A valid header followed by no data records receives a no-data diagnostic. / exactly 1 valid new address creates 1 user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-48, C-51",
+   "quote": "Sending the same file bytes with the same reference again ... leads to one accepted attempt ... A fresh reference carrying an already successfully imported roster is checked against current account state."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-44, C-16",
+   "quote": "Navigating away or losing the upload response after acceptance does not itself cancel the attempt. / the submitting admin can return to their recent attempts to see the current or final outcome."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "Where ordinary creation sends an invitation, requires activation, or has neither behavior, the imported account follows the same onboarding policy.",
+   "missing": "Whether invitations for up to 10,000 users go out at once or are paced/throttled, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-37, C-104",
+   "quote": "an imported user has the ordinary creation path's default profile values, access level, and initial account state. ... Profile fields, passwords, and an onboarding status are deliberately unspecified",
+   "missing": "In the fallback case, whether the user is active or pending and how they first sign in without a password."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-80, C-54",
+   "quote": "Raw contents required by a processing attempt are inaccessible to users and operators outside the upload itself and are discarded at finalization. / The original file is not available for download."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "A single documented header identifies the input and excludes fields with no established contract."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-78, C-91",
+   "quote": "an operator ... can see its reference, destination, submitting admin's account identifier, acceptance time, final time when available, status, created count when final / ceases to be available to operators 30 days after the final outcome.",
+   "missing": "A durable audit record of which accounts were created by which import, beyond the 30-day window."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-63, C-12, C-51",
+   "quote": "An admin checking a processing attempt is offered no action to cancel that attempt. / The admin can submit a corrected or replacement file with a fresh reference."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-62",
+   "quote": "At the 15-minute boundary, an attempt still processing reaches a failed outcome with a timeout reason and 0 created.",
+   "missing": "Whether and how progress is shown while an attempt is processing (only a 'processing' status is defined)."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-71, C-73",
+   "quote": "An authorized caller can still create an eligible user through the established single-user workflow ... An existing user's account values, access level, activation state, and credentials are unchanged by an import"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-77, C-34, C-90",
+   "quote": "If a selected filename or a malformed field contains markup or script syntax, it cannot execute in an import screen / at most 254 ASCII characters / omit email values copied from the input",
+   "missing": "Treatment of values beginning with spreadsheet formula characters (e.g. '=' is allowed in the local part) when they later surface in exports."
+  }
+ ]
+}

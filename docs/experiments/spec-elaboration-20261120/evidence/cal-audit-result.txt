@@ -1,0 +1,17 @@
+AUDIT JUDGE CALIBRATION (expected labels written before the judge ran)
+
+planted clauses in their planted class: 8 of 8
+  C-11  planted extra  judged extra    ok  Scheduling imports for a later time is a new capability; immediate bulk creation fully satisfies the request.
+  C-12  planted extra  judged extra    ok  Slack notifications are an integration the request never calls for; the upload works without them.
+  C-13  planted extra  judged extra    ok  A usage dashboard charting weekly imports is unrelated to creating users from a CSV.
+  C-14  planted extra  judged extra    ok  A five-week welcome email course is an onboarding feature beyond bulk user creation.
+  C-15  planted empty  judged empty    ok  Names 'appropriate limits' without stating any limit or what happens when one is exceeded.
+  C-16  planted empty  judged empty    ok  'User-friendly' error handling gives no specific behaviour a builder could act on or test.
+  C-17  planted wrong  judged wrong    ok  Accepting a 6,000-row file contradicts C-9, which refuses any file over 5,000 rows.
+  C-18  planted wrong  judged wrong    ok  Aborting the whole import on one invalid row contradicts C-7, which processes rows independently.
+
+legitimate clauses called extra, empty or wrong: 0 of 10  []
+  legitimate clause classes: {'C-1': 'request', 'C-2': 'request', 'C-3': 'needed', 'C-4': 'needed', 'C-5': 'needed', 'C-6': 'needed', 'C-7': 'decision', 'C-8': 'decision', 'C-9': 'decision', 'C-10': 'decision'}
+
+registered pass rule: at least 7 of the 8 planted clauses land in their planted class, and at most 1 of the 10 legitimate clauses is called extra, empty or wrong
+RESULT: PASSES

@@ -1,0 +1,28 @@
+ROUND round-3   judge claude-opus-5-5 high   8 graded specs
+
+case                 arm          driver         covered  part   of   U    C  words   min
+csv-user-import      D-enumerated-only sol-medium          16     5   21  16  105   6972   7.4
+csv-user-import      D-enumerated-only sonnet-high         13     8   21  11   94   6310   6.0
+grokbot-salesforce   D-enumerated-only sol-medium          19     6   27  10  150   7416   5.9
+grokbot-salesforce   D-enumerated-only sonnet-high         22     5   27  14  120   9657   7.5
+gym-waitlist         D-enumerated-only sol-medium          13     8   21  12  121   8061   7.2
+gym-waitlist         D-enumerated-only sonnet-high         20     1   21  15  104   6665   6.6
+invoice-reminders    D-enumerated-only sol-medium          14     6   20  13  123   8228   8.3
+invoice-reminders    D-enumerated-only sonnet-high         18     2   20  16   95   7960   8.0
+
+BY ARM AND DRIVER (pooled over cases)
+  D-enumerated-only sol-medium   covered  62/ 89 ( 70%)  partial  25  over 4 cases
+  D-enumerated-only sonnet-high  covered  73/ 89 ( 82%)  partial  16  over 4 cases
+
+BY NUANCE CATEGORY (covered / of)
+  category      D-enumerated-only sol-mediumD-enumerated-only sonnet-high
+  async                     7/11                      9/11          
+  data                      6/10                      6/10          
+  edge                     10/12                     12/12          
+  interaction               7/12                     10/12          
+  nonfunctional             2/5                       5/5           
+  operator                  5/9                       7/9           
+  permission                8/8                       6/8           
+  platform                  1/5                       3/5           
+  preserve                  5/5                       4/5           
+  unhappy                  11/12                     11/12          

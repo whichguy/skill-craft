@@ -8,8 +8,12 @@ started with its own customizations off:
 
   sonnet-high  claude -p --safe-mode (no CLAUDE.md, skills, plugins, hooks, MCP, commands or agents), the latest
                Sonnet at effort high.
-  sol-medium   codex exec --ignore-user-config in a throwaway CODEX_HOME that links only auth.json, gpt-6.2-sol at
-               reasoning effort medium.
+  sol-medium   codex exec --ignore-user-config in the E2E harness's own throwaway profile (hosts.CodexHost.env: a
+               throwaway HOME with its own keychain, git identity and XDG folders, whose .codex links only
+               auth.json), gpt-6.2-sol at reasoning effort medium. Rounds 1 to 3 redirected CODEX_HOME alone, and
+               every one of their 16 Sol sessions read a user-level skill from the real HOME
+               (~/.agents/skills, ~/.codex/skills); from round 4 on the HOME itself is a throwaway, kept outside
+               the session's working directory. `grade.py leaks ROUND` checks every stream for it.
 
 Both write under a workspace-write sandbox limited to that directory. Nothing in cases.json reaches a subject: the
 held-out nuance checklist is read only by grade.py.
@@ -35,6 +39,9 @@ import uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[2] / "test" / "shiploop_e2e"))
+import hosts  # the E2E harness host interface: its Codex profile isolation is used as it stands
+
 CLAUDE = shutil.which("claude") or "/Users/dadleet/.local/bin/claude"
 WORK = Path(os.environ.get("SPEC_ELAB_WORK") or Path.home() / "e2e-runs" / "spec-elaboration-20261120")
 PRINT = threading.Lock()
@@ -81,20 +88,17 @@ def call_claude(prompt, cwd, model, effort, timeout):
 
 
 def call_codex(prompt, cwd, model, effort, timeout):
-    """One codex exec in a throwaway CODEX_HOME that links only the user's auth.json."""
-    home = cwd / ".codex-home" / ".codex"
+    """One codex exec in the E2E harness's throwaway profile: a HOME of its own, beside the working directory."""
+    home = cwd.parent / ".homes" / cwd.name
     home.mkdir(parents=True, exist_ok=True)
-    link = home / "auth.json"
-    if not link.is_symlink():
-        link.symlink_to(Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "auth.json")
+    profile = hosts.CodexHost().env(home)
     stream = cwd / ".stream.jsonl"
     argv = ["codex", "exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
             "-s", "workspace-write", "-c", 'approval_policy="never"', "-c", f"model_reasoning_effort={effort}",
             "-m", model, "-C", str(cwd), "-o", str(cwd / ".last-message.txt"), prompt]
-    env = {**os.environ, "CODEX_HOME": str(home), "NO_COLOR": "1", "GIT_TERMINAL_PROMPT": "0"}
     with open(stream, "w") as out, open(cwd / ".stderr.txt", "w") as err:
         try:
-            rc = subprocess.run(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env,
+            rc = subprocess.run(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=profile,
                                 timeout=timeout, check=False).returncode
         except subprocess.TimeoutExpired:
             rc = 124

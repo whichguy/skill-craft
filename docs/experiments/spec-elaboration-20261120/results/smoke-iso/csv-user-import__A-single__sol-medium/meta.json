@@ -1,0 +1,25 @@
+{
+ "round": "smoke-iso",
+ "case": "csv-user-import",
+ "arm": "A-single",
+ "arm_sha256_12": "1287f76eef13",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 177.3,
+ "ok": true,
+ "wrote": [
+  "spec.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/smoke-iso/csv-user-import__A-single__sol-medium-0a04d2",
+ "usage": {
+  "input_tokens": 145209,
+  "cached_input_tokens": 122624,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 8261,
+  "reasoning_output_tokens": 1931
+ }
+}

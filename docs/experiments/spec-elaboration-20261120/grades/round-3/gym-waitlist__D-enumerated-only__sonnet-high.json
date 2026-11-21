@@ -1,0 +1,136 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "U-4",
+   "quote": "The first member in line is booked into the class without doing anything, is told by email, and sees the class in their bookings."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "The waitlist is first come, first served by time of joining ... C is never booked ahead of A or B. (C-95: no way to add a member to a waitlist, reorder a waitlist)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-71",
+   "quote": "A is booked into spin unless the existing booking flow refuses overlapping bookings, in which case A is passed over under C-23. A is not removed from the spin waitlist because of the yoga booking."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-57",
+   "quote": "A member booked from the waitlist 30 minutes before a class whose cutoff is 120 minutes is treated, if they cancel, as any member who cancelled 30 minutes before."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "60 seconds after a booked member cancels a full class with a waitlist, the first waiting member's bookings list shows the class, whether or not anyone has opened the app in the meantime."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "An email to the member's account address contains: the class name; its start date and time ... (C-67: A delivery failure for A's \"you are booked\" email is retried)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "two booked members cancel at the same moment; A and B are each booked once, C is in position 1, and the class has 12 bookings out of 12."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-98",
+   "quote": "A member in position 2 who requests to book that class is not booked and is told they are on the waitlist at position 2."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "Where the existing app takes credit or payment for a booking, it is taken when the member is booked from the waitlist (C-23: they lack the credit or payment ... passed over)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "a full class with 10 of 10 waitlist places used shows that the waitlist is full; neither shows a join action."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-64",
+   "quote": "At and after the class's start instant, no one is booked from the waitlist and no one joins it"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-50",
+   "quote": "Lowering a class's capacity below its active bookings cancels no booking and no one is booked from the waitlist until active bookings are below the new capacity (C-19: Capacity raised from 12 to 14)"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "When staff cancel a class, everyone on its waitlist is removed and told"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-87",
+   "quote": "Waitlist positions are always the whole numbers from 1 to the number waiting, without gaps or repeats",
+   "missing": "Whether position is stored or derived from join time, and the entry's record fields/states, are not stated as a data decision."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-82",
+   "quote": "Waitlist history is kept for 90 days after the class's start time and then deleted (C-30: entries still on it end and no longer appear in members' waitlists list)"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-46",
+   "quote": "a member sees no name, email address or other identifying detail of any other member on the waitlist. (C-6: A member sees their own position)"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-95",
+   "quote": "Staff's controls over a waitlist are these four and no others: view it; remove a member from it; turn it on or off; set its capacity"
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "Staff can turn the waitlist of a class on or off (C-95: no way to ... turn the feature off for every class at once)"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "A booking from the waitlist is visible to the member within 60 seconds of the place opening"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-89",
+   "quote": "A class with a free place shows no waitlist wording and no join action; booking it is unchanged. (C-90: The waitlist never cancels or moves an existing booking)"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-101",
+   "quote": "A waitlist is on for every class by default, including classes that exist when the feature is deployed"
+  }
+ ]
+}
