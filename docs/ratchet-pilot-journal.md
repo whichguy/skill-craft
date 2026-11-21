@@ -2099,6 +2099,23 @@ name that starts or configures the product from the plan, the specification or t
 > So besides the plan's answers and the names it fixes, a test writer facing a rich page needs something to try
 > its page-reading code on. Its check of how much that one correction unlocks was still running when this was
 > received.
+>
+> **Sharpened 2026-11-21 13:54, on the fork's catch-up result** (received 13:52, not re-run here; its journal
+> section 16, its commit 50d7f3ced02a5192311a77332dc1fed190bcb5d5 on its own branch). The build-less Grokbot suite
+> passes 4 of 115 as written, 87 with the function that reads an element's name corrected, 111 once an action
+> waits for the page to answer it, and 112 once the driver's window counts as focused. So of the 111 items failing
+> at first meeting 108 were execution, mended by three corrections in the suite's two execution files (23, 97 and
+> 37 lines of diff), and 3 are the tests' own expectations (a bot name written into a test, a list order assumed,
+> a two-window case the specification does not ask for). None is the product. The last two corrections and the
+> three readings are a Sonnet subagent's, under a rule that only the execution files may change, checked by the
+> fork.
+>
+> What it adds. The design was not what was missing: both suites use the same 46 labels and all 46 are in the
+> specification, and the build-less writer's own list of assumptions names none of the three faults. What the
+> tests assert held at this size too (112 of 115 expectations as written before any code). What did not hold is
+> the code that drives a rich page, which the writer had nothing to try on. On time: the build took 15.0 minutes,
+> the most that writing the tests beside it could save, and the catch-up took about half an hour of work after a
+> 30-minute failing pass.
 
 ### Amendment 11, 2026-11-21 10:52: Sonnet at medium against Sonnet at high, the small step first, then one test-strength cell at each (registered before any run)
 
@@ -2280,6 +2297,12 @@ it".
   shortens (F36; 0, 1, 3, 5). Clauses that restate existing behaviour almost never reject a correct product (F25),
   while the writer's own decisions do (F26, F28). The owner told that session he wants fuller specifications. So
   fuller should mean more existing behaviour pinned and more points raised, with nothing decided by the writer.
+
+> *Added 2026-11-21 13:54, after the runs; the registration above and below is left as it was registered.* The
+> series 0, 1, 3 and 5, cited in the bullet above and in R13.1, did not hold up as a trend: three runs of the
+> shortest of those four cells give 5, 3 and 0 on the same count (this amendment's result: F38 and "The first
+> reading's instrument"). The script does reproduce the four numbers; what is qualified is the reading that they
+> follow the specification's length. Pointed out by the session "Spec elaboration" when it checked the result.
 
 **The ladder.** Three rungs; only the first is registered here.
 
@@ -2563,3 +2586,24 @@ request here is precise.
 Evidence: `evidence/preserve-question/` (a folder for each of the six cells with the run record, the grading, the
 specification as the spec stage left it and as it ended, the plan and the grading log; `by-source-log.txt` and
 `.json`, `specs-log.txt` and `.json`, `recount.txt`, `nested-test-run-check.txt`).
+
+### Received after the result: on Sol, what a command printed is not always what the model was given (2026-11-21 13:54)
+
+Status: received from the session "Spec elaboration" at about 13:45, its work and not re-run here (its journal
+section 43, its commit a3392874fb01b14c4c1c62443a80a9dce1660f6c); the check of this pilot's apparatus is mine.
+
+**What it found.** On the Codex host GPT 6.2 Sol runs its commands from a script of its own, keeps a command's
+output in a variable and prints to itself the part it asks for. What the model was given is in Codex's own session
+record, not in the harness's events. Over 50 existing ShipLoop runs on Sol, the spec stage's instructions were
+given at four fifths of their lines or more in 41 and at under a third in 8, and the line that says where the
+requirement guides are was given in 9.
+
+**What it touches here, and what it does not** (checked in `ratchet.py`, `Ratchet.session` and the packets). Every
+stage's text and the request itself are formatted into the session's prompt, so "the stage was told" holds for
+this pilot's Sol cells, and no registered reading rests on text handed over by a command. What a Sol session gave
+itself afterwards through commands (the specification and plan files, the product's own files, the gate's output,
+the Until Loop runtime's messages) has not been read: this pilot's readings used the harness's events. Codex's
+own session files are kept in each Sol run's home folder (two for `p1R-ticket-assignment`, three for
+`p3R-ticket-due-times-a`), so it can be read from records on file, with no run. The cells of amendments 10 to 12
+on Sonnet are not touched: there a tool's result is what the model is given. For F39 it adds a second way, on
+Sol, for text to leave no trace: it is not printed.
