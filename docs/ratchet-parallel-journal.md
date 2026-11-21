@@ -448,3 +448,48 @@ catch-up-to-accuracy time for the tests in our evaluation?" Partly:
 So the third row is the parallel schedule's best case on catch-up, and what is unmeasured can only lower the
 saving. It does not change the recommendation. It would matter to a decision to go on, and rung 2 would then come
 first: it measures a catch-up session's length when 10 to 12 items need the adapter changed.
+
+## 8. The owner's design-phase idea, and what the runs say about it (2026-11-21 10:56; a reading, no run)
+
+Status: exploratory. It reads sections 2 and 6 against the idea; nothing new was measured.
+
+The owner, just after stopping the line: "Maybe one idea is also: do we need to make sure that we have a phase
+where we do a design, such that the design is designed up to the point where we know what the plan is to implement
+and we know how to ensure that the test can actually be implemented based on the design principles? But some of
+the things, specifically how to execute tests, might come out of spec to be more specific after the code has
+actually been written."
+
+My reading: a design phase whose exit is "the plan to implement is known, and every test can be written from the
+design", with one part allowed to stay loose until the code exists: how a test is executed.
+
+**The runs drew that same line, and say what sits on each side of it.**
+
+| Part | When it can be final | What the runs showed |
+|---|---|---|
+| What the design must fix: one answer at each point the request leaves open, and the names of everything a test touches (settings, commands, files) | before any code | With these shared, tests written with no code present passed 42 of 42 and 41 of 41 on the code when it came (section 6). The plan held them: every name an adapter sets is in the plan, the specification or the starting documents |
+| What each test asserts | before any code | About 70% of the test code (1,138 of 1,584 lines and 998 of 1,463 sit outside the adapter). None of it changed after the build |
+| How a test is executed: starting the product, configuring it, calling it | drafted from the design, confirmed once the code exists | One adapter file, about 30% of the test code (446 and 465 lines). Unchanged in two runs of two. Against a product that took other answers, the 10 to 12 failing items of about 41 all fail here, none on what is asserted (sections 2 and 6) |
+
+- So the owner's exception is the right one and it can be fenced: how tests execute is the only part that had to
+  wait for a product, and it fits in one file.
+- A check for "is the design far enough along" came out of rung 1 unasked: the test writer's list of what it had
+  to assume (`## Assumed` in each `tests-1.md`). It was three and four items, and all seven are about execution:
+  which base commit is at hand, ports, clock and fault controls, file permissions, how `npm test` is observed.
+  None is a name or an answer the design left out. An assumption the design should have settled would be a gap in
+  the design; an assumption about execution belongs in the adapter.
+- A second check needs no build either: run the tests on the starting product. A test of existing behaviour must
+  pass there and a test of new behaviour must fail (section 6, P1.2).
+
+**ShipLoop already has the phase; Ratchet's loop had only part of it.** ShipLoop's stages before any code are
+`intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`, `prepare` (`PRELUDE` in
+`skills/shiploop/scripts/shiploop_stage_spec.py`); each step then runs `step-plan`, `test-spec`,
+`validate-existing`, `implement`, `test` (`INNER`); and `system-test-author` comes after the code (`OUTER`).
+`test-strategy` "records, before any code, which harness tests each part of the code at each layer and where the
+tests run" (`references/testing-and-documentation.md`). The pilot's loop had a plan before the build and wrote all
+its tests after it.
+
+**Not known.** Whether ShipLoop's `test-strategy` and `plan` texts ask for the two things in the first row (they
+ask for harnesses and layers; I have not read whether they ask for the names and the open answers). And how often,
+in finished ShipLoop deliveries, a test is changed after the code it tests was written, and whether such changes
+are execution or assertion. The second can be counted from archived deliveries with no model: each delivery's
+repository has the commits. Offered to the owner, not run.
