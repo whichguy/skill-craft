@@ -1,0 +1,38 @@
+{
+ "build-1": {
+  "observed": true,
+  "passed": [
+   "pristine",
+   "off"
+  ],
+  "failed": {
+   "suite": "FAIL: the delivery's own node --test: 129 pass, 1 fail (rc 1); failing: unmodified 1.4.0 reads and writes the new file, and recovery restores issued due values (9.977792ms)",
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=63107: 2026-11-21T12:43:19.359Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-u_0yynvq/tickets.json: tickets[0].due for T-0001 is missing",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=63108: 2026-11-21T12:43:19.591Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-59unk9_l/tickets.json: tickets[0].due for T-0001 is missing",
+   "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=63111: 2026-11-21T12:43:20.088Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-eeh0_rox/tickets.json: tickets[0].due for T-0001 is missing",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=63128: 2026-11-21T12:43:20.847Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-bk33ky0a/on/tickets.json: tickets[0].due for T-0001 is missing",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=63202: 2026-11-21T12:43:22.184Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-qtu764g5/tickets.json: tickets[0].due for T-0001 is missing"
+  },
+  "tree": "fcdd3807590226d242dfb6865d5dfc968906ee67",
+  "label": "build-1",
+  "at": 1916.1
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "pristine",
+   "off"
+  ],
+  "failed": {
+   "suite": "FAIL: the delivery's own node --test: 129 pass, 1 fail (rc 1); failing: unmodified 1.4.0 reads and writes the new file, and recovery restores issued due values (9.99025ms)",
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=63402: 2026-11-21T12:43:27.822Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-hga73rtu/tickets.json: tickets[0].due for T-0001 is missing",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=63403: 2026-11-21T12:43:28.051Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-19axe3xt/tickets.json: tickets[0].due for T-0001 is missing",
+   "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=63406: 2026-11-21T12:43:28.537Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-qnddeyp_/tickets.json: tickets[0].due for T-0001 is missing",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=63420: 2026-11-21T12:43:29.282Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-4msjslum/on/tickets.json: tickets[0].due for T-0001 is missing",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=63493: 2026-11-21T12:43:30.602Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-6ng79pj7/tickets.json: tickets[0].due for T-0001 is missing"
+  },
+  "tree": "0f53895da726d367b9afb68c451a2e7c9c986fdb",
+  "label": "final",
+  "at": 3715.6
+ }
+}

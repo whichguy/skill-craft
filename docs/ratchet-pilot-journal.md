@@ -1241,3 +1241,66 @@ run-to-run spread, so the thresholds are set wide on purpose; the comparison cel
 and 20:33, before the stray processes of section 18, and these run on a quieter machine, so minutes are compared
 loosely; Codex still shows the account's skills to every session (section 19), the same on both sides; the gradings
 are run after all five runs have ended, not beside them.
+
+### Result (2026-11-21 04:45; five runs, graded one after another once all had ended)
+
+Status: firm for what was run (one run a cell; two for R8.1), read against bars registered before the runs.
+
+**Test strength, lens text against the pilot's own (`p1L-*` against `p1e2-*`).**
+
+| Case, text | Clauses / use cases written | Clauses failing on the correct reference | Use cases failing on it | Second correct delivery, beyond the reference | Defects caught | Minutes (of which enrich) | Output tokens |
+|---|---|---|---|---|---|---|---|
+| orders, lens | 82 / 8 | 9 (11.0%) | 1 | none exists | 4 of 4 | 23.7 (5.0) | 61,805 |
+| orders, pilot's | 69 / 12 | 9 (13.0%) | 3 | none exists | 4 of 4 | 18.8 (6.1) | 49,042 |
+| ticket assignment, lens | 153 / 11 | 13 (8.5%) | 3 | 15 (11 clauses, 4 use cases) | 26 of 27 | 38.0 (7.0) | 96,512 |
+| ticket assignment, pilot's | 192 / 17 | 15 (7.8%) | 5 | 17 (14 clauses, 3 use cases) | 27 of 27 | 46.7 (13.5) | 94,976 |
+| ticket due times, lens | 191 / 12 | 25 (13.1%) | 7 | none exists | 6 of 6 | 44.2 (8.0) | 112,503 |
+| ticket due times, pilot's | 238 / 15 | 35 (14.7%) | 8 | none exists | 6 of 6 | 46.7 (10.1) | 112,205 |
+| **pooled, lens** | **426 / 31** | **47 (11.0%)** | 11 of 31 | | **36 of 37** | 105.9 | 270,820 |
+| **pooled, pilot's** | **499 / 44** | **59 (11.8%)** | 16 of 44 | | **37 of 37** | 112.2 | 256,223 |
+
+- **R8.2, clauses that reject a correct product: no difference shown.** 11.0% against 11.8%; the bars were 7.9% and
+  15.7%. The second correct ticket-assignment delivery fails 15 further items where it failed 17.
+- **R8.3, strength: kept.** 36 of 37 (the bar was 35). The one missed is `cli-no-assignee` on ticket assignment.
+- **R8.4, size and cost.** 15% fewer clauses and 30% fewer use cases than the pilot's text, written in 5 to 8 minutes
+  where the pilot's text took 6 to 14. Whole cells: 6% less time, 6% more output tokens. The size runs the other way
+  from that experiment's own count (372 clauses against 225 on Sol), whose cases had no repository: on the two
+  ticket cases 77 of the pilot text's 86 extra clauses were `existing` ones (134 and 158 against 104 and 111).
+
+**The due-times loop, twice, with the lens text (`p3L-ticket-due-times-a`, `-b`).**
+
+| Run | Specification | Its own gate after the test pass | Held-out checks at the first build | Minutes to that gate |
+|---|---|---|---|---|
+| a | 173 clauses, 11 use cases | 184 of 184 | 3 of 8: `cli`, `migrate`, `restart`, `rollback`, `switch` fail | 57.8 |
+| b | 199 clauses, 16 use cases | 215 of 215 | 2 of 8: the same five, and `suite` | 61.9 |
+| the pilot's text (section 10) | 301 items at its first gate | 301 of 301 | 3 of 8: the same five | 57.2 |
+
+- **R8.1, the reading of the due-times request: the lens form does not avoid it.** Both first builds fail the five
+  checks, each with "cannot start: ... tickets[0]" on a file without due times, and both gates are fully green.
+- **It is a choice the specification makes, and says so.** Both specifications wrote the refusal as a clause of its
+  own with `Source: choice`: "Enabled startup refuses a persisted ticket collection with an unassigned deadline ...
+  fail before serving when an operator enables the feature before completing preparation" (a, C-58), and "Enabled
+  persistent startup refuses an existing file with missing due ... make the production readiness order enforceable
+  and avoid automatic startup backfill" (b, C-67). The third lens specification of the same request, in the
+  test-strength cell, chose the other way: "Startup prepares unassigned file-backed tickets before serving"
+  (C-48, also a choice). Over both texts, four of five specifications of this request chose the refusal
+  (`evidence/lens-enrichment/due-times-reading.txt`).
+- Loop b's `suite` failure is the grader's, not the build's: its own tests pass in its repository (130 of 130) and
+  one fails in the graded copy, which has no Git history, because it fetches release 1.4.0 with `git archive`.
+
+**F23 (firm at this size).** On this pilot's instruments the lens form changes how much a specification says and
+not how sound it is. It is shorter on the cases with a repository, costs about the same, loses nothing in test
+strength that these cases can show, and the same one clause in nine rejects a correct product. Its large gain on
+the other experiment's checklist does not appear as a gain in anything a built product shows here.
+
+**F24 (firm; five specifications of one request).** The due-times failure is not a gap in elaboration that a better
+elaboration closes. The specification sees the question, decides it, and labels the decision a choice; four times
+in five it decides against what the customer meant, and the tests then hold the product to it. A text that tells
+the writer to decide where the request is silent will keep producing this. What has not been tried is a text that
+tells the writer to leave such a point undecided and mark it: that is the reworded lens text the other session has
+drafted (`docs/experiments/spec-elaboration-20261120/arms/R-lenses-reworded.md`, an `Open:` line under a clause).
+It is prepared here as a third enrichment text and has not been registered or run; whether it runs is the owner's
+decision.
+
+Evidence: `evidence/lens-enrichment/` (each run's record; the three graded suites; the two loops' held-out results;
+`summary.json`; `grading-log.txt`; the reading clauses; the port diff).
