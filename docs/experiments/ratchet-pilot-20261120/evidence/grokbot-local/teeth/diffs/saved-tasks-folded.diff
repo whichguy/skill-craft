@@ -1,0 +1,24 @@
+diff -ru <runs>/teeth/saved-tasks-folded/.untouched/product/public/app.js <runs>/teeth/saved-tasks-folded/product/public/app.js
+--- <runs>/teeth/saved-tasks-folded/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/saved-tasks-folded/product/public/app.js	2026-11-20 23:14:52
+@@ -569,6 +569,8 @@
+   }
+ });
+ 
++$('tools').addEventListener('click', () => { $('saved-tasks-section').hidden = false; });
++
+ $('new-bot').addEventListener('click', () => {
+   botMode = 'new-bot';
+   $('bot-form').reset();
+diff -ru <runs>/teeth/saved-tasks-folded/.untouched/product/public/index.html <runs>/teeth/saved-tasks-folded/product/public/index.html
+--- <runs>/teeth/saved-tasks-folded/.untouched/product/public/index.html	2026-11-20 22:30:53
++++ <runs>/teeth/saved-tasks-folded/product/public/index.html	2026-11-20 23:14:52
+@@ -126,7 +126,7 @@
+           <div class="saved-list" id="instruction-list"></div>
+         </section>
+ 
+-        <section class="tool-section" aria-label="Saved tasks">
++        <section class="tool-section" aria-label="Saved tasks" id="saved-tasks-section" hidden>
+           <div class="tool-heading"><span class="tool-icon" aria-hidden="true">↻</span><h3>Saved tasks</h3></div>
+           <form class="tool-form" id="saved-task-form">
+             <label class="sr-only" for="task-name">Task name</label>

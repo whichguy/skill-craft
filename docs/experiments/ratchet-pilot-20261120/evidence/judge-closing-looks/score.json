@@ -1,0 +1,1387 @@
+{
+ "items": 59,
+ "judges": {
+  "opus": {
+   "labels": {
+    "R": 4,
+    "E": 7,
+    "C": 15,
+    "X": 33
+   },
+   "belongs": 11,
+   "not_labelled": [],
+   "by_product_kept_to_it": {
+    "no": {
+     "C": 5,
+     "E": 2,
+     "X": 16
+    },
+    "yes": {
+     "R": 4,
+     "C": 10,
+     "X": 17,
+     "E": 5
+    }
+   },
+   "by_case": {
+    "node-chess-engine": {
+     "C": 6,
+     "R": 2,
+     "X": 2
+    },
+    "shared-expenses": {
+     "E": 4,
+     "X": 13,
+     "C": 1,
+     "R": 1
+    },
+    "ticket-assignment": {
+     "R": 1,
+     "E": 3,
+     "X": 18,
+     "C": 8
+    }
+   }
+  },
+  "grok": {
+   "labels": {
+    "R": 11,
+    "E": 13,
+    "C": 11,
+    "X": 24
+   },
+   "belongs": 24,
+   "not_labelled": [],
+   "by_product_kept_to_it": {
+    "no": {
+     "C": 4,
+     "R": 3,
+     "X": 12,
+     "E": 4
+    },
+    "yes": {
+     "R": 8,
+     "E": 9,
+     "X": 12,
+     "C": 7
+    }
+   },
+   "by_case": {
+    "node-chess-engine": {
+     "R": 5,
+     "C": 4,
+     "X": 1
+    },
+    "shared-expenses": {
+     "E": 4,
+     "X": 12,
+     "C": 2,
+     "R": 1
+    },
+    "ticket-assignment": {
+     "R": 5,
+     "X": 11,
+     "E": 9,
+     "C": 5
+    }
+   }
+  },
+  "sol": {
+   "labels": {
+    "R": 6,
+    "E": 26,
+    "C": 25,
+    "X": 2
+   },
+   "belongs": 32,
+   "not_labelled": [],
+   "by_product_kept_to_it": {
+    "no": {
+     "C": 7,
+     "R": 2,
+     "E": 13,
+     "X": 1
+    },
+    "yes": {
+     "C": 18,
+     "E": 13,
+     "R": 4,
+     "X": 1
+    }
+   },
+   "by_case": {
+    "node-chess-engine": {
+     "C": 9,
+     "R": 1
+    },
+    "shared-expenses": {
+     "E": 10,
+     "C": 6,
+     "X": 1,
+     "R": 2
+    },
+    "ticket-assignment": {
+     "C": 10,
+     "R": 3,
+     "E": 16,
+     "X": 1
+    }
+   }
+  }
+ },
+ "pairs": {
+  "opus+grok": {
+   "same_label": 34,
+   "same_side": 44,
+   "kappa_on_side": 0.42,
+   "all": {
+    "items": 59,
+    "both_belongs": 10,
+    "both_not": 34,
+    "split": 15
+   },
+   "product_did_not_keep_to_it": {
+    "items": 23,
+    "both_belongs": 2,
+    "both_not": 16,
+    "split": 5
+   },
+   "product_kept_to_it": {
+    "items": 36,
+    "both_belongs": 8,
+    "both_not": 18,
+    "split": 10
+   },
+   "by_case": {
+    "node-chess-engine": {
+     "items": 10,
+     "both_belongs": 2,
+     "both_not": 5,
+     "split": 3
+    },
+    "shared-expenses": {
+     "items": 19,
+     "both_belongs": 4,
+     "both_not": 13,
+     "split": 2
+    },
+    "ticket-assignment": {
+     "items": 30,
+     "both_belongs": 4,
+     "both_not": 16,
+     "split": 10
+    }
+   },
+   "by_cycle": {
+    "1": {
+     "items": 29,
+     "both_belongs": 5,
+     "both_not": 14,
+     "split": 10
+    },
+    "2": {
+     "items": 17,
+     "both_belongs": 1,
+     "both_not": 12,
+     "split": 4
+    },
+    "3": {
+     "items": 13,
+     "both_belongs": 4,
+     "both_not": 8,
+     "split": 1
+    }
+   }
+  },
+  "opus+sol": {
+   "same_label": 18,
+   "same_side": 34,
+   "kappa_on_side": 0.2,
+   "all": {
+    "items": 59,
+    "both_belongs": 9,
+    "both_not": 25,
+    "split": 25
+   },
+   "product_did_not_keep_to_it": {
+    "items": 23,
+    "both_belongs": 2,
+    "both_not": 8,
+    "split": 13
+   },
+   "product_kept_to_it": {
+    "items": 36,
+    "both_belongs": 7,
+    "both_not": 17,
+    "split": 12
+   },
+   "by_case": {
+    "node-chess-engine": {
+     "items": 10,
+     "both_belongs": 1,
+     "both_not": 8,
+     "split": 1
+    },
+    "shared-expenses": {
+     "items": 19,
+     "both_belongs": 5,
+     "both_not": 7,
+     "split": 7
+    },
+    "ticket-assignment": {
+     "items": 30,
+     "both_belongs": 3,
+     "both_not": 10,
+     "split": 17
+    }
+   },
+   "by_cycle": {
+    "1": {
+     "items": 29,
+     "both_belongs": 3,
+     "both_not": 14,
+     "split": 12
+    },
+    "2": {
+     "items": 17,
+     "both_belongs": 2,
+     "both_not": 6,
+     "split": 9
+    },
+    "3": {
+     "items": 13,
+     "both_belongs": 4,
+     "both_not": 5,
+     "split": 4
+    }
+   }
+  },
+  "grok+sol": {
+   "same_label": 23,
+   "same_side": 35,
+   "kappa_on_side": 0.2,
+   "all": {
+    "items": 59,
+    "both_belongs": 16,
+    "both_not": 19,
+    "split": 24
+   },
+   "product_did_not_keep_to_it": {
+    "items": 23,
+    "both_belongs": 7,
+    "both_not": 8,
+    "split": 8
+   },
+   "product_kept_to_it": {
+    "items": 36,
+    "both_belongs": 9,
+    "both_not": 11,
+    "split": 16
+   },
+   "by_case": {
+    "node-chess-engine": {
+     "items": 10,
+     "both_belongs": 1,
+     "both_not": 5,
+     "split": 4
+    },
+    "shared-expenses": {
+     "items": 19,
+     "both_belongs": 5,
+     "both_not": 7,
+     "split": 7
+    },
+    "ticket-assignment": {
+     "items": 30,
+     "both_belongs": 10,
+     "both_not": 7,
+     "split": 13
+    }
+   },
+   "by_cycle": {
+    "1": {
+     "items": 29,
+     "both_belongs": 8,
+     "both_not": 9,
+     "split": 12
+    },
+    "2": {
+     "items": 17,
+     "both_belongs": 3,
+     "both_not": 5,
+     "split": 9
+    },
+    "3": {
+     "items": 13,
+     "both_belongs": 5,
+     "both_not": 5,
+     "split": 3
+    }
+   }
+  }
+ },
+ "by_item": [
+  {
+   "id": "D01",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 1,
+   "clause": "C-168",
+   "kept": "yes",
+   "statement": "A listing continuation uses current ownership for tickets beyond its cursor",
+   "labels": {
+    "opus": "R",
+    "grok": "R",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "The assignee filter keeps that agent's tickets as they are now, consistent with the documented filters and the id-after cursor.",
+    "grok": "The documented cursor is an after-id marker reapplied with the same filters, so the next page uses current assignees.",
+    "sol": "The documented pagination contract does not choose live filtering over a consistent listing snapshot."
+   }
+  },
+  {
+   "id": "D02",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 1,
+   "clause": "C-99",
+   "kept": "yes",
+   "statement": "An occupied en-passant target can still be used for an ordinary pawn capture.",
+   "labels": {
+    "opus": "C",
+    "grok": "R",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "The FEN is invalid because a piece stands on the en-passant target; rejecting it or treating the move as an ordinary capture are both defensible.",
+    "grok": "A pawn's ordinary diagonal capture is a required piece move, and an occupied landing square is a capture of that piece rather than en passant.",
+    "sol": "The request does not specify handling of an inconsistent, occupied en-passant target."
+   }
+  },
+  {
+   "id": "D03",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 1,
+   "clause": "C-98",
+   "kept": "no",
+   "statement": "A castling flag with a missing home king or rook stays unusable in a played continuation.",
+   "labels": {
+    "opus": "C",
+    "grok": "C",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "A castling flag with no home rook makes the input inconsistent; the engine could reject the FEN or quietly ignore the flag.",
+    "grok": "The request does not decide whether a castling right whose rook starts off its home square becomes usable once that rook later reaches the corner.",
+    "sol": "Acceptance and repair of castling rights inconsistent with the starting board are unspecified."
+   }
+  },
+  {
+   "id": "D04",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 1,
+   "clause": "C-101",
+   "kept": "yes",
+   "statement": "Analysis positions remain usable when the inactive king is already attacked.",
+   "labels": {
+    "opus": "C",
+    "grok": "R",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "A position where the side not to move is in check is illegal; analysing it or rejecting it are both valid choices.",
+    "grok": "Status and legality are defined for the side to move, and White is not in check and has a normal rook move here.",
+    "sol": "Supporting unreachable analysis positions is an input-domain choice."
+   }
+  },
+  {
+   "id": "D05",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 3,
+   "clause": "C-216",
+   "kept": "no",
+   "statement": "Assignment eligibility uses the committed status after a failed lifecycle save",
+   "labels": {
+    "opus": "E",
+    "grok": "R",
+    "sol": "R"
+   },
+   "why": {
+    "opus": "If a failed save left the in-memory status changed, assignment would be refused on false grounds; keeping committed state is careful engineering.",
+    "grok": "The store commits the ticket, audit, notice, and file together, so a failed save leaves the ticket in progress and assignable.",
+    "sol": "The documented atomic store operation requires failed saves to leave ticket, audit and outbox unchanged."
+   }
+  },
+  {
+   "id": "D06",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 3,
+   "clause": "C-174",
+   "kept": "no",
+   "statement": "A saved owner or pending assignment recipient must be unambiguous",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Detecting duplicate keys in a snapshot the service writes itself needs a custom parser nobody asked for.",
+    "grok": "Rejecting duplicate JSON object keys, including escaped duplicates, goes beyond the documented record checks and the assignment request.",
+    "sol": "Duplicate-member rejection is an additional JSON interpretation policy absent from the documented snapshot contract."
+   }
+  },
+  {
+   "id": "D07",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 3,
+   "clause": "C-176",
+   "kept": "yes",
+   "statement": "The service and operator commands refuse snapshots with malformed UTF-8 outside ownership records",
+   "labels": {
+    "opus": "X",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Changing how the service, CLI and weekly report treat malformed UTF-8 in titles is outside the assignment change.",
+    "grok": "Loading a title that contains an invalid UTF-8 byte would present a corrupted ticket, so readers should refuse the file and leave its bytes unchanged.",
+    "sol": "Silently decoding corrupt bytes would make readers report altered ticket data."
+   }
+  },
+  {
+   "id": "D08",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 3,
+   "clause": "C-106",
+   "kept": "yes",
+   "statement": "A legal double push that blocks check can be captured en passant, even if the capture reopens the check.",
+   "labels": {
+    "opus": "R",
+    "grok": "R",
+    "sol": "R"
+   },
+   "why": {
+    "opus": "An en-passant capture that gives a discovered check follows directly from the en-passant and check rules the request requires.",
+    "grok": "A double push may block check, and the opponent's en-passant capture is legal even when removing that blocker checks the mover.",
+    "sol": "En passant may legally give the opposing king check, including by removing its previous blocker."
+   }
+  },
+  {
+   "id": "D09",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 2,
+   "clause": "C-173",
+   "kept": "yes",
+   "statement": "An upgrade can deliver an earlier assignment notice after its owner was cleared",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "It depends on a hypothetical earlier release and an upgrade path that are not part of this request.",
+    "grok": "The request adds assignment once; compatibility with an earlier release that stored a U+2028 assignee is not part of it.",
+    "sol": "Changed admission rules should not discard an already queued historical assignment notice."
+   }
+  },
+  {
+   "id": "D10",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 2,
+   "clause": "C-210",
+   "kept": "yes",
+   "statement": "A notification path that aliases the state file after startup is a retryable delivery failure",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Detecting a notification path that becomes a symlink to the state file during a run is beyond scope.",
+    "grok": "Replacing the notification path with a symlink to the state file after startup is not a requested failure mode.",
+    "sol": "Writing notifications into the state file would corrupt persisted data and should instead fail safely."
+   }
+  },
+  {
+   "id": "D11",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-93",
+   "kept": "yes",
+   "statement": "An incomplete HTTP upload has no effect on the store.",
+   "labels": {
+    "opus": "E",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Committing a request whose body never fully arrived would record data the client did not send.",
+    "grok": "Committing a group or expense from a body whose connection closed early would record a change the client never finished sending.",
+    "sol": "Committing an incomplete HTTP message could create unintended records and consume expense numbers."
+   }
+  },
+  {
+   "id": "D12",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-95",
+   "kept": "no",
+   "statement": "Overlapping server processes cannot silently discard acknowledged writes to the same data file.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Coordinating several server processes on one file goes beyond the single service's concurrency rule.",
+    "grok": "The concurrency requirement is about overlapping requests in this service, not about two server processes sharing one data file.",
+    "sol": "Silently losing acknowledged expenses is a data-integrity defect, and refusing overlapping access avoids it."
+   }
+  },
+  {
+   "id": "D13",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 2,
+   "clause": "C-98",
+   "kept": "yes",
+   "statement": "Tighter admission limits preserve previously recorded data.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "It assumes future tightened limits and snapshot migration that the request never mentions.",
+    "grok": "The request defines no group-id or amount limits and no later tighter version whose old snapshots must still load.",
+    "sol": "New admission limits should not invalidate supported persisted data or alter previously recorded amounts."
+   }
+  },
+  {
+   "id": "D14",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-94",
+   "kept": "yes",
+   "statement": "An expense beyond the service's exact representation capacity leaves the committed state intact.",
+   "labels": {
+    "opus": "E",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Accepting integers beyond exact representation would make balances wrong; rejecting them cleanly without using up a number is careful engineering.",
+    "grok": "Accepting a cent amount that cannot be represented exactly would corrupt balances, so it should be rejected without consuming an expense number.",
+    "sol": "Representation overflow must not corrupt committed amounts or consume an unsuccessful expense's number."
+   }
+  },
+  {
+   "id": "D15",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 1,
+   "clause": "C-165",
+   "kept": "no",
+   "statement": "An assignment body must give one unambiguous ownership instruction",
+   "labels": {
+    "opus": "X",
+    "grok": "C",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Rejecting duplicate JSON keys needs a custom parser beyond the request; taking the last value is standard JSON.parse behaviour.",
+    "grok": "The API forbids unknown fields but is silent on duplicate keys, so last-key-wins and a 400 are both compatible.",
+    "sol": "Rejecting duplicate JSON members rather than applying a consistent parser policy is unspecified."
+   }
+  },
+  {
+   "id": "D16",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 1,
+   "clause": "C-206",
+   "kept": "no",
+   "statement": "A data file with malformed UTF-8 in a saved assignee is refused at startup",
+   "labels": {
+    "opus": "X",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Byte-level UTF-8 validation of an externally corrupted data file is hardening beyond the request.",
+    "grok": "An assignee containing invalid UTF-8 would load as the wrong owner, so startup should refuse that file.",
+    "sol": "Silently replacing invalid bytes could load a different assignee from the one stored."
+   }
+  },
+  {
+   "id": "D17",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 2,
+   "clause": "C-212",
+   "kept": "no",
+   "statement": "An assignee cannot introduce a line break into a raw CLI record",
+   "labels": {
+    "opus": "X",
+    "grok": "C",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Escaping Unicode line separators for readers that treat them as line breaks goes beyond the LF-delimited raw format.",
+    "grok": "The documented raw listing is LF-delimited, so also forcing Unicode line-break readers to see one record is an extra output encoding.",
+    "sol": "Accepted assignee names should not corrupt the existing raw listing's record boundaries."
+   }
+  },
+  {
+   "id": "D18",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 1,
+   "clause": "C-204",
+   "kept": "no",
+   "statement": "An assignment body with malformed UTF-8 is rejected",
+   "labels": {
+    "opus": "C",
+    "grok": "R",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Rejecting malformed UTF-8 or decoding it with replacement characters are both defensible when the request is silent.",
+    "grok": "A body that is not JSON is a documented 400 invalid, and a rejected request does not change the ticket, audit, or outbox.",
+    "sol": "Malformed encoding must not silently turn the requested assignee into a different name."
+   }
+  },
+  {
+   "id": "D19",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 1,
+   "clause": "C-202",
+   "kept": "yes",
+   "statement": "An operator can trace a notice to the exact assignment that queued it",
+   "labels": {
+    "opus": "X",
+    "grok": "C",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Tracing each notice to its exact audit entry through the notice key is added scope.",
+    "grok": "The agent must be notified, but the notice key is not required to join each delivery to a distinct audit actor.",
+    "sol": "Exact notice-to-audit correlation is an optional key design beyond the documented notification guarantees."
+   }
+  },
+  {
+   "id": "D20",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-96",
+   "kept": "no",
+   "statement": "Using a symbolic link as DATA_FILE cannot silently split an existing store into two copies.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Handling a symlinked DATA_FILE is deployment hardening beyond the request.",
+    "grok": "Keeping a symlink and its target as one store is filesystem-edge scope the requested JSON file does not mention.",
+    "sol": "Accepting a linked store and silently separating it from its backing file risks apparent data loss."
+   }
+  },
+  {
+   "id": "D21",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 1,
+   "clause": "C-97",
+   "kept": "yes",
+   "statement": "A stale special-move field leaves the rest of the position usable.",
+   "labels": {
+    "opus": "C",
+    "grok": "R",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Stale castling or en-passant fields make the FEN inconsistent; accepting it while ignoring them, or rejecting it, are both correct.",
+    "grok": "Castling still needs a rook on the home square and en passant still needs a capturable pawn, while ordinary king and pawn moves remain legal.",
+    "sol": "The request does not require tolerating stale special-move metadata instead of rejecting the position."
+   }
+  },
+  {
+   "id": "D22",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 3,
+   "clause": "C-214",
+   "kept": "yes",
+   "statement": "Retargeting a state link during service leaves both snapshots intact",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Retargeting a state symlink while the service runs is hardening beyond the request.",
+    "grok": "Retargeting the state symlink mid-request and keeping both snapshots byte-identical is not part of the documented save.",
+    "sol": "Refusing retargeting with HTTP 500 is one of several possible safe path-handling policies."
+   }
+  },
+  {
+   "id": "D23",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 1,
+   "clause": "C-166",
+   "kept": "no",
+   "statement": "Agent names cannot contain Unicode line breaks",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Rejecting these characters narrows the agent name the request defines: any non-empty name of at most 64 characters.",
+    "grok": "The request allows any non-empty agent name of at most 64 characters, and these separators do not break the documented LF record format.",
+    "sol": "Rejecting line separators is one policy; accepting them with safe output encoding is another."
+   }
+  },
+  {
+   "id": "D24",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 1,
+   "clause": "C-203",
+   "kept": "yes",
+   "statement": "CLI assignment history distinguishes a cleared assignee from any agent name",
+   "labels": {
+    "opus": "C",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "How the CLI shows unassigned next to names like '\u2014' or 'null' is a display choice.",
+    "grok": "The request asks the listing to show the assignee, not for show to render history that distinguishes an em dash, the name null, and a clear.",
+    "sol": "Displaying an unassigned value indistinguishably from a valid agent name makes history misleading."
+   }
+  },
+  {
+   "id": "D25",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 1,
+   "clause": "C-164",
+   "kept": "no",
+   "statement": "Malformed UTF-8 cannot stand for an agent name",
+   "labels": {
+    "opus": "C",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Rejecting or replacing malformed UTF-8 in bodies and queries are both defensible when the request is silent.",
+    "grok": "A raw 0xFF is not an agent name or a valid filter, while a real U+FFFD character is a legal name and must still round-trip.",
+    "sol": "Malformed encoding must not alias a different, correctly encoded agent name."
+   }
+  },
+  {
+   "id": "D26",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 2,
+   "clause": "C-211",
+   "kept": "no",
+   "statement": "Assignment saves through a state-file symlink keep the linked snapshot current",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Supporting a symlinked DATA_FILE through the existing temp-file-and-rename save is outside the assignment change.",
+    "grok": "The documented save is a temp file and rename; special symlink preservation or startup refusal is not part of adding assignment.",
+    "sol": "An accepted state-file symlink should not silently separate persisted assignments from its backing snapshot."
+   }
+  },
+  {
+   "id": "D27",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-90",
+   "kept": "no",
+   "statement": "The API documents how to address accepted IDs that a URL client would normalize.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Documenting how to address the IDs '.' and '..' is extra documentation scope.",
+    "grok": "The request neither asks for API documentation nor requires . or .. to be accepted as group ids.",
+    "sol": "The request does not prescribe documentation for client-specific handling of unusual accepted IDs."
+   }
+  },
+  {
+   "id": "D28",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-91",
+   "kept": "yes",
+   "statement": "A query string does not change the operation or the addressed group.",
+   "labels": {
+    "opus": "C",
+    "grok": "C",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "The request is silent on query strings; ignoring them or rejecting the URL are both acceptable.",
+    "grok": "The routes are specified without query strings, so ignoring a query and rejecting it are both compatible with the API.",
+    "sol": "Ignoring unspecified query parameters is a policy choice; rejecting them could also be correct."
+   }
+  },
+  {
+   "id": "D29",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 2,
+   "clause": "U-21",
+   "kept": "yes",
+   "statement": "An operator hands over a store created after an earlier process started",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "X"
+   },
+   "why": {
+    "opus": "Handing store ownership between processes goes well beyond the request.",
+    "grok": "Starting before the data directory exists and later adopting another process's store is not part of the requested persistence.",
+    "sol": "Delayed store acquisition and live ownership handover add an operational lifecycle absent from the request."
+   }
+  },
+  {
+   "id": "D30",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 3,
+   "clause": "C-215",
+   "kept": "no",
+   "statement": "A failed title save leaves the committed title available for assignment notices",
+   "labels": {
+    "opus": "E",
+    "grok": "R",
+    "sol": "R"
+   },
+   "why": {
+    "opus": "A failed save must not leave an uncommitted title that a later assignment notice or save would use.",
+    "grok": "A failed title save leaves the committed ticket, so a later assignment and its notice can only use that committed title.",
+    "sol": "The documented atomic change requires a failed title save to preserve the committed ticket and audit."
+   }
+  },
+  {
+   "id": "D31",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 2,
+   "clause": "C-172",
+   "kept": "yes",
+   "statement": "A malformed percent escape cannot select an agent with a literal percent sign",
+   "labels": {
+    "opus": "C",
+    "grok": "E",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Rejecting a bare '%' or decoding it leniently are both acceptable.",
+    "grok": "The assignee filter has to percent-decode Dana%25 to find Dana%, and a dangling % must not select that agent.",
+    "sol": "Strict rejection of malformed percent escapes is an unspecified query-decoding policy."
+   }
+  },
+  {
+   "id": "D32",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 2,
+   "clause": "C-100",
+   "kept": "yes",
+   "statement": "The API documents the HTTP size budget separately from the group ID limit.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Documenting an HTTP size budget is not asked for.",
+    "grok": "The request does not define an HTTP header or request-target budget, or require that budget to be documented.",
+    "sol": "A documented combined HTTP size budget is an optional admission-policy detail."
+   }
+  },
+  {
+   "id": "D33",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 2,
+   "clause": "C-104",
+   "kept": "yes",
+   "statement": "The first successful move clears unsupported castling flags for either color in the returned FEN.",
+   "labels": {
+    "opus": "C",
+    "grok": "C",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Clearing unsupported flags in the output is one way to handle bad input; keeping them or rejecting the FEN is also defensible.",
+    "grok": "On an inconsistent position, an unrelated pawn move may keep stale castling flags or clear flags whose king or rook is already off home.",
+    "sol": "Immediately normalizing unsupported castling flags is one possible policy for inconsistent input."
+   }
+  },
+  {
+   "id": "D34",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 1,
+   "clause": "C-100",
+   "kept": "yes",
+   "statement": "En-passant eligibility is independent of the move counters.",
+   "labels": {
+    "opus": "R",
+    "grok": "R",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "En-passant legality does not depend on the counters, and the request requires a pawn capture to reset the halfmove clock.",
+    "grok": "The request makes the en-passant square authoritative and the halfmove clock a separate field that a capture resets to zero.",
+    "sol": "The request does not specify accepting an en-passant field inconsistent with the halfmove clock."
+   }
+  },
+  {
+   "id": "D35",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 2,
+   "clause": "C-208",
+   "kept": "yes",
+   "statement": "Splitting a UTF-8 character across upload chunks preserves the assignee",
+   "labels": {
+    "opus": "E",
+    "grok": "E",
+    "sol": "R"
+   },
+   "why": {
+    "opus": "Decoding each body chunk separately would corrupt a multibyte character in the name.",
+    "grok": "The stored assignee is the JSON string, so splitting a UTF-8 character across body chunks must not change the name, filter, or recipient.",
+    "sol": "Transport chunk boundaries cannot change a valid assignment name or its notification recipient."
+   }
+  },
+  {
+   "id": "D36",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 1,
+   "clause": "C-102",
+   "kept": "yes",
+   "statement": "The position APIs accept equivalent FEN field formatting.",
+   "labels": {
+    "opus": "X",
+    "grok": "C",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Accepting tabs, leading zeros and reordered castling letters goes beyond the standard FEN the request names.",
+    "grok": "The request asks for FEN positions, not for tabs, extra spaces, reordered castling letters, or leading zeroes to be accepted.",
+    "sol": "Tolerance for noncanonical whitespace, castling order and numeric formatting is unspecified."
+   }
+  },
+  {
+   "id": "D37",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 3,
+   "clause": "C-217",
+   "kept": "yes",
+   "statement": "A resolvable state symlink can select a new snapshot",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Creating a new snapshot through a symlink to a missing file is beyond scope.",
+    "grok": "Creating a missing snapshot through a dangling symlink and keeping that symlink is not the documented file behavior.",
+    "sol": "Supporting a dangling state symlink is optional; a correct implementation could refuse that configuration."
+   }
+  },
+  {
+   "id": "D38",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 1,
+   "clause": "C-207",
+   "kept": "no",
+   "statement": "The service reports a path conflict between the state file and notification sink",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Detecting that DATA_FILE and NOTIFY_FILE are the same path is configuration hardening the request does not ask for.",
+    "grok": "Diagnosing DATA_FILE and NOTIFY_FILE when they are the same path is pre-existing configuration hardening, not part of assignment.",
+    "sol": "Conflicting state and notification destinations must not silently corrupt the store."
+   }
+  },
+  {
+   "id": "D39",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 3,
+   "clause": "C-175",
+   "kept": "no",
+   "statement": "The human-readable CLI distinguishes names containing text direction overrides",
+   "labels": {
+    "opus": "X",
+    "grok": "C",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Neutralising bidirectional-override characters in CLI output is beyond scope.",
+    "grok": "The listing must show the assignee, but isolating bidirectional overrides so a name cannot visually reorder fields is a display choice.",
+    "sol": "Direction controls can otherwise misrepresent an owner and reorder surrounding displayed ticket information."
+   }
+  },
+  {
+   "id": "D40",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-89",
+   "kept": "yes",
+   "statement": "The service documents and enforces its group ID size limit in percent-encoded bytes.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "A documented 48 KiB limit on group IDs in percent-encoded bytes is invented scope.",
+    "grok": "The request does not impose a group-id length limit or define it in percent-encoded bytes.",
+    "sol": "Neither an ID size limit nor measuring it in percent-encoded bytes is specified."
+   }
+  },
+  {
+   "id": "D41",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 2,
+   "clause": "C-99",
+   "kept": "yes",
+   "statement": "The service documents any fixed per-expense amount limit and applies it to new inputs.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Documenting a fixed limit on expense length is not asked for.",
+    "grok": "The request does not impose a fixed decimal length for new amounts or require that limit to be documented.",
+    "sol": "A fixed decimal-length admission limit and its documentation are implementation choices."
+   }
+  },
+  {
+   "id": "D42",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 2,
+   "clause": "C-101",
+   "kept": "yes",
+   "statement": "A hard-linked DATA_FILE cannot silently split an existing store into separate snapshots.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Handling a hard-linked data file is hardening beyond the request.",
+    "grok": "Preserving hard-link identity of the data file is outside the requested single-file store.",
+    "sol": "Silently splitting an accepted store's aliases can make acknowledged expenses disappear through another existing path."
+   }
+  },
+  {
+   "id": "D43",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 1,
+   "clause": "C-201",
+   "kept": "yes",
+   "statement": "An assignment notice retains the ticket title from the time of assignment",
+   "labels": {
+    "opus": "C",
+    "grok": "E",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "A notice could use the title at assignment time or at delivery; both are defensible.",
+    "grok": "The outbox stores a notification's payload when it is queued, so a later rename must not change that assignment's title.",
+    "sol": "The request neither requires titles in assignment notices nor selects assignment-time versus delivery-time titles."
+   }
+  },
+  {
+   "id": "D44",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 1,
+   "clause": "C-169",
+   "kept": "yes",
+   "statement": "Opening a legacy data file for service reads leaves it untouched",
+   "labels": {
+    "opus": "C",
+    "grok": "R",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Rewriting a legacy file on load or leaving it untouched until the first change are both acceptable.",
+    "grok": "The data file is loaded at start and rewritten only after a change, so reading a pre-assignment file must leave its bytes untouched.",
+    "sol": "A safe eager migration could rewrite a legacy snapshot while preserving all required behavior."
+   }
+  },
+  {
+   "id": "D45",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 2,
+   "clause": "C-97",
+   "kept": "no",
+   "statement": "A running service cannot silently overwrite a changed store with stale data.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Detecting an outside replacement of the data file while the service runs goes beyond the request.",
+    "grok": "The service owns in-memory state and rewrites its file; detecting an outside replacement, even one that forges file identity, is extra.",
+    "sol": "Detecting conflicting store changes prevents a stale process from silently destroying replacement data."
+   }
+  },
+  {
+   "id": "D46",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 2,
+   "clause": "C-171",
+   "kept": "no",
+   "statement": "Corrupt saved assignment names are refused before serving or delivery",
+   "labels": {
+    "opus": "X",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Byte-level UTF-8 checks on corrupted saved names are hardening beyond the request.",
+    "grok": "An invalid UTF-8 byte in a saved assignee or pending recipient would corrupt that name, while a real U+FFFD must still load.",
+    "sol": "Malformed encoding must not silently change saved ownership or notification recipients."
+   }
+  },
+  {
+   "id": "D47",
+   "run": "p3-ticket-assignment-sol-medium",
+   "cycle": 1,
+   "clause": "C-167",
+   "kept": "no",
+   "statement": "CLI history distinguishes an unassignment from assignment to a literal name",
+   "labels": {
+    "opus": "C",
+    "grok": "X",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "How CLI history shows unassignment against a literal 'null' name is a display choice.",
+    "grok": "Distinguishing a clear from an agent whose name is null in show's history is not requested; the listing only has to show the assignee.",
+    "sol": "An unassignment and assignment to the literal name null must not produce misleadingly identical history."
+   }
+  },
+  {
+   "id": "D48",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 3,
+   "clause": "U-22",
+   "kept": "yes",
+   "statement": "An operator restarts after an interrupted snapshot save",
+   "labels": {
+    "opus": "E",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "A crash during a save must not corrupt or lose the persisted data that the request says survives a restart.",
+    "grok": "A crash during a save must leave the last committed groups and the next expense number intact, or a restart loses data.",
+    "sol": "An interrupted save must not destroy previously committed data or make abandoned candidates authoritative."
+   }
+  },
+  {
+   "id": "D49",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 1,
+   "clause": "C-103",
+   "kept": "yes",
+   "statement": "Each contiguous run of empty squares in a FEN rank uses a single digit.",
+   "labels": {
+    "opus": "C",
+    "grok": "C",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Rejecting non-canonical digit runs such as '44' and accepting them are both reasonable parser behaviours.",
+    "grok": "The request never says how syntactically invalid FEN is handled, so throwing on a rank written as 44 is optional.",
+    "sol": "The request defines FEN inputs but does not prescribe rejection behavior for malformed FEN."
+   }
+  },
+  {
+   "id": "D50",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 3,
+   "clause": "C-104",
+   "kept": "no",
+   "statement": "The documented HTTP size budget tells clients how to stay within its usable boundary.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Documenting how clients size requests near the limit is not asked for.",
+    "grok": "The request does not ask for documentation of how clients should size requests against an HTTP byte limit.",
+    "sol": "The request does not require a documented transport-budget calculation or select its boundary convention."
+   }
+  },
+  {
+   "id": "D51",
+   "run": "p3-node-chess-engine-sol-high",
+   "cycle": 2,
+   "clause": "C-105",
+   "kept": "no",
+   "statement": "An en-passant target is unusable if the double push would have left the pushing side's king in check.",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "C"
+   },
+   "why": {
+    "opus": "Checking whether the earlier double push was legal is retrograde analysis the request does not ask for.",
+    "grok": "The request treats the FEN en-passant square as the eligibility signal and does not add a retrograde test that the implied double push was legal.",
+    "sol": "Historical validation of en-passant metadata in an already inconsistent position is unspecified."
+   }
+  },
+  {
+   "id": "D52",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 3,
+   "clause": "C-218",
+   "kept": "no",
+   "statement": "Raw CLI consumers can identify record boundaries when titles contain Unicode line separators",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "X"
+   },
+   "why": {
+    "opus": "It concerns existing titles and CLI documentation, not the assignment change.",
+    "grok": "Documenting LF versus Unicode line separators inside existing titles is outside the assignment request.",
+    "sol": "This adds Unicode-separator title support and a raw-format documentation contract outside the assignment request."
+   }
+  },
+  {
+   "id": "D53",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "C-92",
+   "kept": "yes",
+   "statement": "Malformed UTF-8 is rejected before it can change stored identifiers.",
+   "labels": {
+    "opus": "X",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Strictly validating UTF-8 in bodies and in snapshots is hardening the request does not ask for.",
+    "grok": "Malformed UTF-8 is not valid JSON and must not be allowed to change stored ids or be rewritten into the snapshot.",
+    "sol": "Replacing malformed UTF-8 silently can change identifiers and corrupt persisted meaning."
+   }
+  },
+  {
+   "id": "D54",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 3,
+   "clause": "C-219",
+   "kept": "yes",
+   "statement": "The raw CLI documents how consumers recover the exact assignee",
+   "labels": {
+    "opus": "X",
+    "grok": "C",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "A documented escaping and decoding rule for the raw fifth field is added scope.",
+    "grok": "The raw listing must show the assignee without moving the old columns, but a documented reversible escape encoding is only one way to do that.",
+    "sol": "Ambiguous escaping would make raw consumers recover the wrong assignee."
+   }
+  },
+  {
+   "id": "D55",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 1,
+   "clause": "U-20",
+   "kept": "yes",
+   "statement": "A client reconnects after losing an expense response",
+   "labels": {
+    "opus": "R",
+    "grok": "R",
+    "sol": "R"
+   },
+   "why": {
+    "opus": "Committed expenses must persist, and every POST records a new expense with the next number.",
+    "grok": "A committed expense must survive restart, and another POST is a new expense because the request defines no idempotency key.",
+    "sol": "Committed expenses must survive restart, and another valid POST records another expense without an idempotency contract."
+   }
+  },
+  {
+   "id": "D56",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 2,
+   "clause": "C-102",
+   "kept": "yes",
+   "statement": "Successful JSON results identify their HTTP media type.",
+   "labels": {
+    "opus": "E",
+    "grok": "C",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "A JSON API without an application/json Content-Type can be misread by clients.",
+    "grok": "The request specifies the status codes and JSON bodies, not a Content-Type header.",
+    "sol": "JSON responses should identify their representation so HTTP clients can interpret them correctly."
+   }
+  },
+  {
+   "id": "D57",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 1,
+   "clause": "C-205",
+   "kept": "no",
+   "statement": "An assignee filter with malformed UTF-8 is rejected",
+   "labels": {
+    "opus": "C",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Rejecting a malformed UTF-8 query value or decoding it leniently are both defensible.",
+    "grok": "A filter must select the real U+FFFD name when it is percent-encoded, and %FF is malformed UTF-8 so it is a 400.",
+    "sol": "Malformed UTF-8 must not select an agent whose actual name contains a replacement character."
+   }
+  },
+  {
+   "id": "D58",
+   "run": "p3-ticket-assignment-sol-high",
+   "cycle": 2,
+   "clause": "C-209",
+   "kept": "yes",
+   "statement": "Every reader diagnoses malformed UTF-8 anywhere in a saved snapshot",
+   "labels": {
+    "opus": "X",
+    "grok": "E",
+    "sol": "E"
+   },
+   "why": {
+    "opus": "Requiring every reader to diagnose malformed UTF-8 anywhere in the file goes beyond the assignment change.",
+    "grok": "Invalid UTF-8 anywhere in the snapshot would make every reader show bad data, so startup, the CLI, and the weekly report should refuse it and keep the bytes.",
+    "sol": "All readers should reject corrupt encoding rather than silently report altered snapshot data."
+   }
+  },
+  {
+   "id": "D59",
+   "run": "p3-shared-expenses-sol-high",
+   "cycle": 3,
+   "clause": "U-23",
+   "kept": "yes",
+   "statement": "An operator adopts a replacement snapshot after a stale-write refusal",
+   "labels": {
+    "opus": "X",
+    "grok": "X",
+    "sol": "R"
+   },
+   "why": {
+    "opus": "It builds on stale-write detection, which is already excess.",
+    "grok": "Adopting an externally swapped snapshot after a stale-write refusal is an operator procedure the request never describes.",
+    "sol": "Startup must load the configured valid snapshot and continue its saved expenses and numbering."
+   }
+  }
+ ]
+}

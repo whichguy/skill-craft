@@ -1,0 +1,225 @@
+{
+ "case": "ticket-assignment",
+ "reference_passes": [
+  "assign-and-unassign",
+  "assign-audited",
+  "assign-same-agent-noop",
+  "assign-state-and-missing",
+  "assignee-filter",
+  "assignee-filter-pages",
+  "assignee-notified",
+  "assignee-persists",
+  "assignee-validation",
+  "cli-raw-columns",
+  "cli-shows-assignee",
+  "filters-combine",
+  "listing-unchanged",
+  "notifications-unchanged",
+  "old-data-loads",
+  "old-tickets-unassigned",
+  "restart-keeps-state",
+  "ticket-lifecycle-unchanged"
+ ],
+ "reference_fails": [],
+ "reference_observed": true,
+ "defects": {
+  "filter-or": {
+   "observed": true,
+   "fails": [
+    "filters-combine"
+   ]
+  },
+  "filter-after-page": {
+   "observed": true,
+   "fails": [
+    "assignee-filter-pages"
+   ]
+  },
+  "no-envelope": {
+   "observed": true,
+   "fails": [
+    "assign-state-and-missing",
+    "assignee-validation"
+   ]
+  },
+  "conflict-as-invalid": {
+   "observed": true,
+   "fails": [
+    "assign-state-and-missing"
+   ]
+  },
+  "closed-assignable": {
+   "observed": true,
+   "fails": [
+    "assign-state-and-missing"
+   ]
+  },
+  "notify-inline": {
+   "observed": true,
+   "fails": [
+    "assignee-notified"
+   ]
+  },
+  "notify-no-template": {
+   "observed": true,
+   "fails": [
+    "assignee-notified"
+   ]
+  },
+  "notify-key-per-ticket": {
+   "observed": true,
+   "fails": [
+    "assignee-notified"
+   ]
+  },
+  "notify-requester": {
+   "observed": true,
+   "fails": [
+    "assignee-notified"
+   ]
+  },
+  "audit-bypassed": {
+   "observed": true,
+   "fails": [
+    "assign-audited"
+   ]
+  },
+  "actor-ignored": {
+   "observed": true,
+   "fails": [
+    "assign-audited"
+   ]
+  },
+  "same-agent-not-noop": {
+   "observed": true,
+   "fails": [
+    "assign-same-agent-noop"
+   ]
+  },
+  "memory-only-assignee": {
+   "observed": true,
+   "fails": [
+    "assignee-persists",
+    "cli-shows-assignee",
+    "old-tickets-unassigned"
+   ]
+  },
+  "old-data-refused": {
+   "observed": true,
+   "fails": [
+    "old-data-loads",
+    "old-tickets-unassigned"
+   ]
+  },
+  "old-assignee-undefined": {
+   "observed": true,
+   "fails": [
+    "old-tickets-unassigned"
+   ]
+  },
+  "raw-column-inserted": {
+   "observed": true,
+   "fails": [
+    "cli-raw-columns"
+   ]
+  },
+  "cli-no-assignee": {
+   "observed": true,
+   "fails": [
+    "cli-shows-assignee"
+   ]
+  },
+  "no-unassign": {
+   "observed": true,
+   "fails": [
+    "assign-and-unassign",
+    "assign-audited",
+    "assign-state-and-missing"
+   ]
+  },
+  "empty-filter-ignored": {
+   "observed": true,
+   "fails": [
+    "assignee-filter",
+    "old-tickets-unassigned"
+   ]
+  },
+  "name-limit-off-by-one": {
+   "observed": true,
+   "fails": [
+    "assignee-validation"
+   ]
+  },
+  "listing-hides-assignee": {
+   "observed": true,
+   "fails": [
+    "assign-and-unassign",
+    "cli-shows-assignee"
+   ]
+  },
+  "update-rejects-resolved": {
+   "observed": true,
+   "fails": [
+    "ticket-lifecycle-unchanged"
+   ]
+  },
+  "default-limit-changed": {
+   "observed": true,
+   "fails": [
+    "listing-unchanged"
+   ]
+  },
+  "resolved-template-replaced": {
+   "observed": true,
+   "fails": [
+    "notifications-unchanged"
+   ]
+  },
+  "audit-not-saved": {
+   "observed": true,
+   "fails": [
+    "restart-keeps-state"
+   ]
+  },
+  "backoff-linear": {
+   "observed": true,
+   "fails": []
+  },
+  "validate-renamed": {
+   "observed": true,
+   "fails": []
+  }
+ },
+ "visible": [
+  "actor-ignored",
+  "audit-bypassed",
+  "audit-not-saved",
+  "cli-no-assignee",
+  "closed-assignable",
+  "conflict-as-invalid",
+  "default-limit-changed",
+  "empty-filter-ignored",
+  "filter-after-page",
+  "filter-or",
+  "listing-hides-assignee",
+  "memory-only-assignee",
+  "name-limit-off-by-one",
+  "no-envelope",
+  "no-unassign",
+  "notify-inline",
+  "notify-key-per-ticket",
+  "notify-no-template",
+  "notify-requester",
+  "old-assignee-undefined",
+  "old-data-refused",
+  "raw-column-inserted",
+  "resolved-template-replaced",
+  "same-agent-not-noop",
+  "update-rejects-resolved"
+ ],
+ "invisible": [
+  "backoff-linear",
+  "validate-renamed"
+ ],
+ "not_observed": []
+}

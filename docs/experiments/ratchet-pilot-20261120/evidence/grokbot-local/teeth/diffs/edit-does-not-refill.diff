@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/edit-does-not-refill/.untouched/product/public/app.js <runs>/teeth/edit-does-not-refill/product/public/app.js
+--- <runs>/teeth/edit-does-not-refill/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/edit-does-not-refill/product/public/app.js	2026-11-20 22:57:07
+@@ -502,7 +502,7 @@
+   const fields = forms[type];
+   $(fields.form).dataset.itemId = item?.id || '';
+   $(fields.name).value = item?.name || '';
+-  $(fields.text).value = item?.text || '';
++  if (!(item && type === 'instruction')) $(fields.text).value = item?.text || '';
+   $(fields.cancel).hidden = !item;
+   if (item) $(fields.name).focus();
+ }

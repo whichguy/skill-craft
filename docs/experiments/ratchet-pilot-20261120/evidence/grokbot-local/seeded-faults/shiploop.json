@@ -1,0 +1,506 @@
+{
+ "label": "ShipLoop, Sol 6.2 high",
+ "tree": "<runs>/g-shiploop-sol-high/work",
+ "sites_on_changed_lines": 359,
+ "files": {
+  "lib/chat.js": 80,
+  "lib/records.js": 27,
+  "lib/store.js": 15,
+  "lib/tasks.js": 18,
+  "public/app.js": 177,
+  "server.js": 42
+ },
+ "sampled": 60,
+ "invalid": 0,
+ "commands_failing_on_the_untouched_copy": [],
+ "untouched_failures": {},
+ "faults": [
+  {
+   "file": "lib/chat.js",
+   "line": 23,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 21,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 16,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 15,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 11,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 36,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 24,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 30,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 16,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 16,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 19,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 36,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 28,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 31,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 16,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 17,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 29,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 36,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 32,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 16,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 21,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 45,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 36,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 32,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 17,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 34,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 45,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 39,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 48,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 17,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 44,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 51,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 46,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 49,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 17,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 45,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 51,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 46,
+   "op": "bound-literal",
+   "old": "64",
+   "new": "65",
+   "own": false
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 50,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 24,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 50,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 51,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 52,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 51,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 29,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 53,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 53,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 52,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/chat.js",
+   "line": 52,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 31,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 63,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 56,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 52,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  }
+ ],
+ "own": {
+  "caught": 37,
+  "survived": 23,
+  "did_not_end": 0,
+  "not_measured": 0,
+  "share": 0.617
+ }
+}

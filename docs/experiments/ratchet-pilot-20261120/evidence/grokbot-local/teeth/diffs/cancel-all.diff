@@ -1,0 +1,20 @@
+diff -ru <runs>/teeth/cancel-all/.untouched/product/lib/workspace.js <runs>/teeth/cancel-all/product/lib/workspace.js
+--- <runs>/teeth/cancel-all/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/cancel-all/product/lib/workspace.js	2026-11-20 22:57:07
+@@ -370,10 +370,12 @@
+           return;
+         }
+         case 'cancel-task': {
+-          const task = find(conversation.tasks, input.id, 'Task');
+-          if (task.status === 'Running') {
+-            const count = task.completed.length;
+-            updateTask(state, task, 'Cancelled', `${count} completed step${count === 1 ? ' was' : 's were'} kept. Any in-progress result is discarded and the remaining steps are stopped.`);
++          find(conversation.tasks, input.id, 'Task');
++          for (const other of workspace.bots) for (const chat of other.conversations) for (const task of chat.tasks) {
++            if (task.status === 'Running') {
++              const count = task.completed.length;
++              updateTask(state, task, 'Cancelled', `${count} completed step${count === 1 ? ' was' : 's were'} kept. Any in-progress result is discarded and the remaining steps are stopped.`);
++            }
+           }
+           return;
+         }

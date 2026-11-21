@@ -1,0 +1,77 @@
+[
+  {
+    "id": "ORD-1001",
+    "type": "order",
+    "customer": "Acme Tools",
+    "status": "open",
+    "total": 125,
+    "readers": [
+      "maya",
+      "theo"
+    ]
+  },
+  {
+    "id": "ORD-1002",
+    "type": "order",
+    "customer": "Birch & Co",
+    "status": "shipped",
+    "total": 80,
+    "readers": [
+      "maya"
+    ]
+  },
+  {
+    "id": "ORD-1003",
+    "type": "order",
+    "customer": "Cobalt Labs",
+    "status": "open",
+    "total": 310,
+    "readers": [
+      "theo"
+    ]
+  },
+  {
+    "id": "ORD-1004",
+    "type": "order",
+    "customer": "Dune Supply",
+    "status": "open",
+    "total": 45,
+    "readers": [
+      "maya",
+      "ana"
+    ]
+  },
+  {
+    "id": "ACC-2001",
+    "type": "account",
+    "name": "Acme Tools",
+    "tier": "gold",
+    "owner": "maya",
+    "readers": [
+      "maya",
+      "theo",
+      "ana"
+    ]
+  },
+  {
+    "id": "ACC-2002",
+    "type": "account",
+    "name": "Cobalt Labs",
+    "tier": "silver",
+    "owner": "theo",
+    "readers": [
+      "theo"
+    ]
+  },
+  {
+    "id": "ACC-2003",
+    "type": "account",
+    "name": "Dune Supply",
+    "tier": "bronze",
+    "owner": "ana",
+    "readers": [
+      "maya",
+      "ana"
+    ]
+  }
+]

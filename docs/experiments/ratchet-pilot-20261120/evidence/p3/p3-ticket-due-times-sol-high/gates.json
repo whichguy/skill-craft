@@ -1,0 +1,61 @@
+[
+ {
+  "gate": "01-after-build-1.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "02-cycle-1-first.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "03-after-build-2.json",
+  "pass": false,
+  "failing": [
+   "C-144"
+  ]
+ },
+ {
+  "gate": "04-cycle-2-first.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "05-after-build-3.json",
+  "pass": false,
+  "failing": [
+   "U-5",
+   "U-6",
+   "U-7",
+   "U-9",
+   "U-12",
+   "U-16",
+   "C-34",
+   "C-37",
+   "C-39",
+   "C-42",
+   "C-43",
+   "C-45",
+   "C-46",
+   "C-47",
+   "C-48",
+   "C-50",
+   "C-51",
+   "C-52",
+   "C-53",
+   "C-64",
+   "C-66"
+  ]
+ },
+ {
+  "gate": "06-cycle-3-first.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "07-final.json",
+  "pass": true,
+  "failing": []
+ }
+]

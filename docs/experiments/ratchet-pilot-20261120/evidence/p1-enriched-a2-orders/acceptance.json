@@ -1,0 +1,245 @@
+{
+  "C-1": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-1 ' acceptance/parser.cjs"
+  },
+  "C-2": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-2 ' acceptance/totals.cjs"
+  },
+  "C-3": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-3 ' acceptance/parser.cjs"
+  },
+  "C-4": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-4 ' acceptance/parser.cjs"
+  },
+  "C-5": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-5 ' acceptance/parser.cjs"
+  },
+  "C-6": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-6 ' acceptance/parser.cjs"
+  },
+  "C-7": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-7 ' acceptance/parser.cjs"
+  },
+  "C-8": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-8 ' acceptance/parser.cjs"
+  },
+  "C-9": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-9 ' acceptance/parser.cjs"
+  },
+  "C-10": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-10 ' acceptance/parser.cjs"
+  },
+  "C-11": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-11 ' acceptance/parser.cjs"
+  },
+  "C-12": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-12 ' acceptance/parser.cjs"
+  },
+  "C-13": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-13 ' acceptance/parser.cjs"
+  },
+  "C-14": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-14 ' acceptance/parser.cjs"
+  },
+  "C-15": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-15 ' acceptance/parser.cjs"
+  },
+  "C-16": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-16 ' acceptance/parser.cjs"
+  },
+  "C-17": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-17 ' acceptance/parser.cjs"
+  },
+  "C-18": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-18 ' acceptance/parser.cjs"
+  },
+  "C-19": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-19 ' acceptance/parser.cjs"
+  },
+  "C-20": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-20 ' acceptance/parser.cjs"
+  },
+  "C-21": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-21 ' acceptance/parser.cjs"
+  },
+  "C-22": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-22 ' acceptance/parser.cjs"
+  },
+  "C-23": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-23 ' acceptance/parser.cjs"
+  },
+  "C-24": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-24 ' acceptance/parser.cjs"
+  },
+  "C-25": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-25 ' acceptance/parser.cjs"
+  },
+  "C-26": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-26 ' acceptance/parser.cjs"
+  },
+  "C-27": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-27 ' acceptance/parser.cjs"
+  },
+  "C-28": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-28 ' acceptance/parser.cjs"
+  },
+  "C-29": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-29 ' acceptance/parser.cjs"
+  },
+  "C-30": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-30 ' acceptance/parser.cjs"
+  },
+  "C-31": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-31 ' acceptance/parser.cjs"
+  },
+  "C-32": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-32 ' acceptance/parser.cjs"
+  },
+  "C-33": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-33 ' acceptance/parser.cjs"
+  },
+  "C-34": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-34 ' acceptance/parser.cjs"
+  },
+  "C-35": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-35 ' acceptance/parser.cjs"
+  },
+  "C-36": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-36 ' acceptance/parser.cjs"
+  },
+  "C-37": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-37 ' acceptance/parser.cjs"
+  },
+  "C-38": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-38 ' acceptance/parser.cjs"
+  },
+  "C-39": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-39 ' acceptance/parser.cjs"
+  },
+  "C-40": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-40 ' acceptance/parser.cjs"
+  },
+  "C-41": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-41 ' acceptance/parser.cjs"
+  },
+  "C-42": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-42 ' acceptance/parser.cjs"
+  },
+  "C-43": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-43 ' acceptance/totals.cjs"
+  },
+  "C-44": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-44 ' acceptance/totals.cjs"
+  },
+  "C-45": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-45 ' acceptance/totals.cjs"
+  },
+  "C-46": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-46 ' acceptance/totals.cjs"
+  },
+  "C-47": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-47 ' acceptance/totals.cjs"
+  },
+  "C-48": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-48 ' acceptance/totals.cjs"
+  },
+  "C-49": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-49 ' acceptance/totals.cjs"
+  },
+  "C-50": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-50 ' acceptance/totals.cjs"
+  },
+  "C-51": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-51 ' acceptance/totals.cjs"
+  },
+  "C-52": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-52 ' acceptance/totals.cjs"
+  },
+  "C-53": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-53 ' acceptance/totals.cjs"
+  },
+  "C-54": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-54 ' acceptance/workflow.cjs"
+  },
+  "C-55": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-55 ' acceptance/workflow.cjs"
+  },
+  "C-56": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-56 ' acceptance/meter.cjs"
+  },
+  "C-57": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-57 ' acceptance/meter.cjs"
+  },
+  "C-58": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-58 ' acceptance/meter.cjs"
+  },
+  "C-59": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-59 ' acceptance/meter.cjs"
+  },
+  "C-60": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-60 ' acceptance/meter.cjs"
+  },
+  "C-61": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-61 ' acceptance/meter.cjs"
+  },
+  "C-62": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-62 ' acceptance/meter.cjs"
+  },
+  "C-63": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-63 ' acceptance/meter.cjs"
+  },
+  "C-64": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-64 ' acceptance/meter.cjs"
+  },
+  "C-65": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-65 ' acceptance/meter.cjs"
+  },
+  "C-66": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-66 ' acceptance/workflow.cjs"
+  },
+  "C-67": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-67 ' acceptance/workflow.cjs"
+  },
+  "C-68": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-68 ' acceptance/workflow.cjs"
+  },
+  "C-69": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^C-69 ' acceptance/meter.cjs"
+  },
+  "U-1": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-1 ' acceptance/scenarios.cjs"
+  },
+  "U-2": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-2 ' acceptance/scenarios.cjs"
+  },
+  "U-3": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-3 ' acceptance/scenarios.cjs"
+  },
+  "U-4": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-4 ' acceptance/scenarios.cjs"
+  },
+  "U-5": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-5 ' acceptance/scenarios.cjs"
+  },
+  "U-6": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-6 ' acceptance/scenarios.cjs"
+  },
+  "U-7": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-7 ' acceptance/scenarios.cjs"
+  },
+  "U-8": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-8 ' acceptance/scenarios.cjs"
+  },
+  "U-9": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-9 ' acceptance/scenarios.cjs"
+  },
+  "U-10": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-10 ' acceptance/scenarios.cjs"
+  },
+  "U-11": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-11 ' acceptance/scenarios.cjs"
+  },
+  "U-12": {
+    "command": "node --test --test-timeout=30000 --test-name-pattern='^U-12 ' acceptance/workflow.cjs"
+  }
+}

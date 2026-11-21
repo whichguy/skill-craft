@@ -1,0 +1,42 @@
+Max-effort design review (run at effort max, read-only consult, cwd /Users/dadleet/src/skill-craft; do not edit, commit, or launch any model run or E2E slice). Take as long as the question needs; no length limit on the answer.
+
+THE IDEA UNDER REVIEW (the repository owner's, stated as an open question, working title "ShipLoop 2"):
+ShipLoop today elaborates a request, writes a spec, a test strategy and a plan, cuts the work item into steps, and builds step by step. The owner suspects the step breakdown is not what makes a delivery correct. Alternative: elaborate the request into a well-understood spec; derive test cases from the spec; then take ONE shot at the whole request, with the duties of today's fixed stages (lint, documentation, tests and so on) folded into that one prompt; run the tests; the failed tests and unmet criteria become the next task; repeat as a full iteration cycle until nothing fails. Possibly no planning stage at all. Every shot still passes through the inner-loop gates (lint and the rest). The owner says it depends on the spec being very well understood and the tests enforcing the spec or its implied intent, and asks: is this a good idea, and what test scenarios would show whether it works, perhaps as a small separate skill used as a simulation environment.
+
+WHAT TO READ (verify against these, do not take my summary on trust):
+- docs/shiploop-sdlc-structure-journal.md: rounds 4, 5, 6 and the guard round, the Limits sections, findings F6 and F7, R27 (outside evidence), and the recommendation that says which stage changes were rejected on 2026-10-06 and deferred on 2026-11-13.
+- docs/planning-time-analysis-2026-10-06.md, section 5 "One-shot then fix later" (six options, most rejected) and its bottom line.
+- docs/shiploop-lifecycle-assessment-2026-11-13.md and docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md (a three-arm planning comparison approved and never run).
+- docs/shiploop-plan-sizing-journal.md (E-SIZE1 and entry 13) and `git log -1 67ac34ae2` (the fewest-steps rule adopted today).
+- skills/shiploop/scripts/shiploop_stage_spec.py (`_ROWS`: the stage list), shiploop_prompts.py (`DUTIES`), shiploop_mutation.py (the seeded-fault test-strength gate), shiploop_test_loop.py, skills/shiploop/references/inner-loop.md and test-loop.md.
+- test/shiploop_e2e/slice.py (its docstring: a slice records every stage before step-plan without doing it), step_cases.json, cases.json, and docs/experiments/sdlc-structure-20261119/ (overlays, evidence, scripts).
+- Anything else in git history you find that bears on test-first, one-shot, repair-versus-redo, or test strength (for example commits or docs mentioning "S7", "stacked test", "unpinned conditions", "repair in place").
+
+FACTS I BELIEVE THE RECORDS SHOW (check each; say which you confirmed, which you could not, and which are wrong):
+1. In 83 of 84 graded recorded runs and every counted slice, the first complete implementation already passes every held-out check; no later stage changed a hidden verdict.
+2. Slices start from a seeded spec with no planning stage done, and under the fewest-steps wording every plan was one step, so those slices are already close to "one shot after a spec".
+3. The step's own tests (written after the code, same session) fail in about 5% of recorded steps; what repeats is the seeded-fault test-strength gate.
+4. Time: 30 to 40% of the inner loop is before the first product edit; reviews are 20 to 33%; an earlier cut from 17 to 8 inner stages did not make slices faster; switching off the stage Until Loop saved nothing.
+5. Nothing larger than one work item of 11 steps has been run.
+
+MY DRAFT SHAPE (attack it; it is a draft, not a decision):
+spec (kept, with its review) -> acceptance tests written from the spec by a session that never sees the product code, then a second look that is handed every spec condition; the tests are frozen (the builder cannot edit them) -> one build packet with all duties folded in -> script-run gate: lint, frozen acceptance tests, the existing suite, the seeded-fault check -> the script writes the list of failing checks, each with the spec clause it pins, and that list is the next packet -> repeat until the list is empty -> one end-of-work review -> release stages unchanged. No plan, step-plan or test-spec stage; no per-step review. A shot that turns a passing frozen test red is refused.
+
+MY DRAFT TEST SCENARIOS (attack these too):
+A. Easy controls (tickets-assign, shared-expenses-w1): same held-out checks, minutes against the shipped inner loop.
+B. Larger greenfield (node-chess-engine) and the largest recorded brownfield item (ticket due times: migration, switch-on flag, way back to 1.4.0).
+C. Repair starts: begin from a reference product with planted defects, to test whether the frozen suite flags them and a repair shot fixes them without breaking others or touching tests, since strong drivers rarely fail a first shot on these cases.
+D. Test strength: does a suite written apart from the code, with the second look, pin the spec conditions that shipped suites leave unpinned.
+E. Silent-spec defects (the end-of-work review's recorded finds on unstated limits): expected to pass the loop unseen; shows what the end review must still carry.
+F. A whole multi-requirement request in one shot, larger than anything measured.
+
+QUESTIONS, in order of importance:
+1. Is the idea sound? State the strongest case for it and the strongest case against it, each tied to evidence in this repository, and say which claims are settled by existing measurements and which are untested.
+2. Where exactly does it fail, and how would we see the failure? Name concrete failure modes (for example: tests written from the same misunderstanding as the code; the builder bending the product to a test; failures with one architectural cause showing up as many red tests; a loop that does not converge; defects no test can fail on; large requests; brownfield regressions; context loss in one long packet).
+3. What is the smallest form that keeps the benefit, and what from today's ShipLoop must stay (name stages, gates, records)? Does it need a new skill at all, or is it ShipLoop's inner loop with a different source for the work list?
+4. What is the cheapest experiment that could show the idea does NOT work? Which existing cases, models or instruments can make a first shot fall short so the repair loop has something to do? What should be registered as the pass and fail readings before any run?
+5. What in my draft shape and scenarios is wrong, overbuilt, missing, or already answered by the records?
+
+Standing rules of this project that a recommendation must respect: scripts own navigation and write the prompts, the model does one step; a test that a script ran and saw pass is the only evidence of progress; no iteration cap on a loop without the owner's decision; only generic ShipLoop behaviour (no stack-specific rules); ceremony scaled to measured gain; no change unless outcomes differ.
+
+Return: findings ranked by how much they should change the design or the experiment, each with the file, symbol or commit you verified it against, marked "verified" or "inferred". Plain words; define any borrowed term on first use.

@@ -1,0 +1,11 @@
+diff -ru <runs>/teeth/writes-beside-code/.untouched/product/server.js <runs>/teeth/writes-beside-code/product/server.js
+--- <runs>/teeth/writes-beside-code/.untouched/product/server.js	2026-11-20 22:30:53
++++ <runs>/teeth/writes-beside-code/product/server.js	2026-11-20 22:57:05
+@@ -118,6 +118,7 @@
+ 
+ if (require.main === module) {
+   const app = createApp();
++  fs.writeFileSync(path.join(__dirname, 'started.txt'), 'started\n');
+   app.server.listen(Number(process.env.PORT || 3000), '127.0.0.1', () => {
+     console.log('Commonroom is ready at http://127.0.0.1:' + app.server.address().port);
+   });

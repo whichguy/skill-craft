@@ -1,0 +1,671 @@
+{
+  "C-1": {
+    "command": "node acceptance/run.cjs C-1"
+  },
+  "C-2": {
+    "command": "node acceptance/run.cjs C-2"
+  },
+  "C-3": {
+    "command": "node acceptance/run.cjs C-3"
+  },
+  "C-4": {
+    "command": "node acceptance/run.cjs C-4"
+  },
+  "C-5": {
+    "command": "node acceptance/run.cjs C-5"
+  },
+  "C-6": {
+    "command": "node acceptance/run.cjs C-6"
+  },
+  "C-7": {
+    "command": "node acceptance/run.cjs C-7"
+  },
+  "C-8": {
+    "command": "node acceptance/run.cjs C-8"
+  },
+  "C-9": {
+    "command": "node acceptance/run.cjs C-9"
+  },
+  "C-10": {
+    "command": "node acceptance/run.cjs C-10"
+  },
+  "C-11": {
+    "command": "node acceptance/run.cjs C-11"
+  },
+  "C-12": {
+    "command": "node acceptance/run.cjs C-12"
+  },
+  "C-13": {
+    "command": "node acceptance/run.cjs C-13"
+  },
+  "C-14": {
+    "command": "node acceptance/run.cjs C-14"
+  },
+  "C-15": {
+    "command": "node acceptance/run.cjs C-15"
+  },
+  "C-16": {
+    "command": "node acceptance/run.cjs C-16"
+  },
+  "C-17": {
+    "command": "node acceptance/run.cjs C-17"
+  },
+  "C-18": {
+    "command": "node acceptance/run.cjs C-18"
+  },
+  "C-19": {
+    "command": "node acceptance/run.cjs C-19"
+  },
+  "C-20": {
+    "command": "node acceptance/run.cjs C-20"
+  },
+  "C-21": {
+    "command": "node acceptance/run.cjs C-21"
+  },
+  "C-22": {
+    "command": "node acceptance/run.cjs C-22"
+  },
+  "C-23": {
+    "command": "node acceptance/run.cjs C-23"
+  },
+  "C-24": {
+    "command": "node acceptance/run.cjs C-24"
+  },
+  "C-25": {
+    "command": "node acceptance/run.cjs C-25"
+  },
+  "C-26": {
+    "command": "node acceptance/run.cjs C-26"
+  },
+  "C-27": {
+    "command": "node acceptance/run.cjs C-27"
+  },
+  "C-28": {
+    "command": "node acceptance/run.cjs C-28"
+  },
+  "C-29": {
+    "command": "node acceptance/run.cjs C-29"
+  },
+  "C-30": {
+    "command": "node acceptance/run.cjs C-30"
+  },
+  "C-31": {
+    "command": "node acceptance/run.cjs C-31"
+  },
+  "C-32": {
+    "command": "node acceptance/run.cjs C-32"
+  },
+  "C-33": {
+    "command": "node acceptance/run.cjs C-33"
+  },
+  "C-34": {
+    "command": "node acceptance/run.cjs C-34"
+  },
+  "C-35": {
+    "command": "node acceptance/run.cjs C-35"
+  },
+  "C-36": {
+    "command": "node acceptance/run.cjs C-36"
+  },
+  "C-37": {
+    "command": "node acceptance/run.cjs C-37"
+  },
+  "C-38": {
+    "command": "node acceptance/run.cjs C-38"
+  },
+  "C-39": {
+    "command": "node acceptance/run.cjs C-39"
+  },
+  "C-40": {
+    "command": "node acceptance/run.cjs C-40"
+  },
+  "C-41": {
+    "command": "node acceptance/run.cjs C-41"
+  },
+  "C-42": {
+    "command": "node acceptance/run.cjs C-42"
+  },
+  "C-43": {
+    "command": "node acceptance/run.cjs C-43"
+  },
+  "C-44": {
+    "command": "node acceptance/run.cjs C-44"
+  },
+  "C-45": {
+    "command": "node acceptance/run.cjs C-45"
+  },
+  "C-46": {
+    "command": "node acceptance/run.cjs C-46"
+  },
+  "C-47": {
+    "command": "node acceptance/run.cjs C-47"
+  },
+  "C-48": {
+    "command": "node acceptance/run.cjs C-48"
+  },
+  "C-49": {
+    "command": "node acceptance/run.cjs C-49"
+  },
+  "C-50": {
+    "command": "node acceptance/run.cjs C-50"
+  },
+  "C-51": {
+    "command": "node acceptance/run.cjs C-51"
+  },
+  "C-52": {
+    "command": "node acceptance/run.cjs C-52"
+  },
+  "C-53": {
+    "command": "node acceptance/run.cjs C-53"
+  },
+  "C-54": {
+    "command": "node acceptance/run.cjs C-54"
+  },
+  "C-55": {
+    "command": "node acceptance/run.cjs C-55"
+  },
+  "C-56": {
+    "command": "node acceptance/run.cjs C-56"
+  },
+  "C-57": {
+    "command": "node acceptance/run.cjs C-57"
+  },
+  "C-58": {
+    "command": "node acceptance/run.cjs C-58"
+  },
+  "C-59": {
+    "command": "node acceptance/run.cjs C-59"
+  },
+  "C-60": {
+    "command": "node acceptance/run.cjs C-60"
+  },
+  "C-61": {
+    "command": "node acceptance/run.cjs C-61"
+  },
+  "C-62": {
+    "command": "node acceptance/run.cjs C-62"
+  },
+  "C-63": {
+    "command": "node acceptance/run.cjs C-63"
+  },
+  "C-64": {
+    "command": "node acceptance/run.cjs C-64"
+  },
+  "C-65": {
+    "command": "node acceptance/run.cjs C-65"
+  },
+  "C-66": {
+    "command": "node acceptance/run.cjs C-66"
+  },
+  "C-67": {
+    "command": "node acceptance/run.cjs C-67"
+  },
+  "C-68": {
+    "command": "node acceptance/run.cjs C-68"
+  },
+  "C-69": {
+    "command": "node acceptance/run.cjs C-69"
+  },
+  "C-70": {
+    "command": "node acceptance/run.cjs C-70"
+  },
+  "C-71": {
+    "command": "node acceptance/run.cjs C-71"
+  },
+  "C-72": {
+    "command": "node acceptance/run.cjs C-72"
+  },
+  "C-73": {
+    "command": "node acceptance/run.cjs C-73"
+  },
+  "C-74": {
+    "command": "node acceptance/run.cjs C-74"
+  },
+  "C-75": {
+    "command": "node acceptance/run.cjs C-75"
+  },
+  "C-76": {
+    "command": "node acceptance/run.cjs C-76"
+  },
+  "C-77": {
+    "command": "node acceptance/run.cjs C-77"
+  },
+  "C-78": {
+    "command": "node acceptance/run.cjs C-78"
+  },
+  "C-79": {
+    "command": "node acceptance/run.cjs C-79"
+  },
+  "C-80": {
+    "command": "node acceptance/run.cjs C-80"
+  },
+  "C-81": {
+    "command": "node acceptance/run.cjs C-81"
+  },
+  "C-82": {
+    "command": "node acceptance/run.cjs C-82"
+  },
+  "C-83": {
+    "command": "node acceptance/run.cjs C-83"
+  },
+  "C-84": {
+    "command": "node acceptance/run.cjs C-84"
+  },
+  "C-85": {
+    "command": "node acceptance/run.cjs C-85"
+  },
+  "C-86": {
+    "command": "node acceptance/run.cjs C-86"
+  },
+  "C-87": {
+    "command": "node acceptance/run.cjs C-87"
+  },
+  "C-88": {
+    "command": "node acceptance/run.cjs C-88"
+  },
+  "C-89": {
+    "command": "node acceptance/run.cjs C-89"
+  },
+  "C-90": {
+    "command": "node acceptance/run.cjs C-90"
+  },
+  "C-91": {
+    "command": "node acceptance/run.cjs C-91"
+  },
+  "C-92": {
+    "command": "node acceptance/run.cjs C-92"
+  },
+  "C-93": {
+    "command": "node acceptance/run.cjs C-93"
+  },
+  "C-94": {
+    "command": "node acceptance/run.cjs C-94"
+  },
+  "C-95": {
+    "command": "node acceptance/run.cjs C-95"
+  },
+  "C-96": {
+    "command": "node acceptance/run.cjs C-96"
+  },
+  "C-97": {
+    "command": "node acceptance/run.cjs C-97"
+  },
+  "C-98": {
+    "command": "node acceptance/run.cjs C-98"
+  },
+  "C-99": {
+    "command": "node acceptance/run.cjs C-99"
+  },
+  "C-100": {
+    "command": "node acceptance/run.cjs C-100"
+  },
+  "C-101": {
+    "command": "node acceptance/run.cjs C-101"
+  },
+  "C-102": {
+    "command": "node acceptance/run.cjs C-102"
+  },
+  "C-103": {
+    "command": "node acceptance/run.cjs C-103"
+  },
+  "C-104": {
+    "command": "node acceptance/run.cjs C-104"
+  },
+  "C-105": {
+    "command": "node acceptance/run.cjs C-105"
+  },
+  "C-106": {
+    "command": "node acceptance/run.cjs C-106"
+  },
+  "C-107": {
+    "command": "node acceptance/run.cjs C-107"
+  },
+  "C-108": {
+    "command": "node acceptance/run.cjs C-108"
+  },
+  "C-109": {
+    "command": "node acceptance/run.cjs C-109"
+  },
+  "C-110": {
+    "command": "node acceptance/run.cjs C-110"
+  },
+  "C-111": {
+    "command": "node acceptance/run.cjs C-111"
+  },
+  "C-112": {
+    "command": "node acceptance/run.cjs C-112"
+  },
+  "C-113": {
+    "command": "node acceptance/run.cjs C-113"
+  },
+  "C-114": {
+    "command": "node acceptance/run.cjs C-114"
+  },
+  "C-115": {
+    "command": "node acceptance/run.cjs C-115"
+  },
+  "C-116": {
+    "command": "node acceptance/run.cjs C-116"
+  },
+  "C-117": {
+    "command": "node acceptance/run.cjs C-117"
+  },
+  "C-118": {
+    "command": "node acceptance/run.cjs C-118"
+  },
+  "C-119": {
+    "command": "node acceptance/run.cjs C-119"
+  },
+  "C-120": {
+    "command": "node acceptance/run.cjs C-120"
+  },
+  "C-121": {
+    "command": "node acceptance/run.cjs C-121"
+  },
+  "C-122": {
+    "command": "node acceptance/run.cjs C-122"
+  },
+  "C-123": {
+    "command": "node acceptance/run.cjs C-123"
+  },
+  "C-124": {
+    "command": "node acceptance/run.cjs C-124"
+  },
+  "C-125": {
+    "command": "node acceptance/run.cjs C-125"
+  },
+  "C-126": {
+    "command": "node acceptance/run.cjs C-126"
+  },
+  "C-127": {
+    "command": "node acceptance/run.cjs C-127"
+  },
+  "C-128": {
+    "command": "node acceptance/run.cjs C-128"
+  },
+  "C-129": {
+    "command": "node acceptance/run.cjs C-129"
+  },
+  "C-130": {
+    "command": "node acceptance/run.cjs C-130"
+  },
+  "C-131": {
+    "command": "node acceptance/run.cjs C-131"
+  },
+  "C-132": {
+    "command": "node acceptance/run.cjs C-132"
+  },
+  "C-133": {
+    "command": "node acceptance/run.cjs C-133"
+  },
+  "C-134": {
+    "command": "node acceptance/run.cjs C-134"
+  },
+  "C-135": {
+    "command": "node acceptance/run.cjs C-135"
+  },
+  "C-136": {
+    "command": "node acceptance/run.cjs C-136"
+  },
+  "C-137": {
+    "command": "node acceptance/run.cjs C-137"
+  },
+  "C-138": {
+    "command": "node acceptance/run.cjs C-138"
+  },
+  "C-139": {
+    "command": "node acceptance/run.cjs C-139"
+  },
+  "C-140": {
+    "command": "node acceptance/run.cjs C-140"
+  },
+  "C-141": {
+    "command": "node acceptance/run.cjs C-141"
+  },
+  "C-142": {
+    "command": "node acceptance/run.cjs C-142"
+  },
+  "C-143": {
+    "command": "node acceptance/run.cjs C-143"
+  },
+  "C-144": {
+    "command": "node acceptance/run.cjs C-144"
+  },
+  "C-145": {
+    "command": "node acceptance/run.cjs C-145"
+  },
+  "C-146": {
+    "command": "node acceptance/run.cjs C-146"
+  },
+  "C-147": {
+    "command": "node acceptance/run.cjs C-147"
+  },
+  "C-148": {
+    "command": "node acceptance/run.cjs C-148"
+  },
+  "C-149": {
+    "command": "node acceptance/run.cjs C-149"
+  },
+  "C-150": {
+    "command": "node acceptance/run.cjs C-150"
+  },
+  "C-151": {
+    "command": "node acceptance/run.cjs C-151"
+  },
+  "C-152": {
+    "command": "node acceptance/run.cjs C-152"
+  },
+  "C-153": {
+    "command": "node acceptance/run.cjs C-153"
+  },
+  "C-154": {
+    "command": "node acceptance/run.cjs C-154"
+  },
+  "C-155": {
+    "command": "node acceptance/run.cjs C-155"
+  },
+  "C-156": {
+    "command": "node acceptance/run.cjs C-156"
+  },
+  "C-157": {
+    "command": "node acceptance/run.cjs C-157"
+  },
+  "C-158": {
+    "command": "node acceptance/run.cjs C-158"
+  },
+  "C-159": {
+    "command": "node acceptance/run.cjs C-159"
+  },
+  "C-160": {
+    "command": "node acceptance/run.cjs C-160"
+  },
+  "C-161": {
+    "command": "node acceptance/run.cjs C-161"
+  },
+  "C-162": {
+    "command": "node acceptance/run.cjs C-162"
+  },
+  "C-163": {
+    "command": "node acceptance/run.cjs C-163"
+  },
+  "C-164": {
+    "command": "node acceptance/run.cjs C-164"
+  },
+  "C-165": {
+    "command": "node acceptance/run.cjs C-165"
+  },
+  "C-166": {
+    "command": "node acceptance/run.cjs C-166"
+  },
+  "C-167": {
+    "command": "node acceptance/run.cjs C-167"
+  },
+  "C-168": {
+    "command": "node acceptance/run.cjs C-168"
+  },
+  "C-169": {
+    "command": "node acceptance/run.cjs C-169"
+  },
+  "C-170": {
+    "command": "node acceptance/run.cjs C-170"
+  },
+  "C-171": {
+    "command": "node acceptance/run.cjs C-171"
+  },
+  "C-172": {
+    "command": "node acceptance/run.cjs C-172"
+  },
+  "C-173": {
+    "command": "node acceptance/run.cjs C-173"
+  },
+  "C-174": {
+    "command": "node acceptance/run.cjs C-174"
+  },
+  "C-175": {
+    "command": "node acceptance/run.cjs C-175"
+  },
+  "C-176": {
+    "command": "node acceptance/run.cjs C-176"
+  },
+  "C-177": {
+    "command": "node acceptance/run.cjs C-177"
+  },
+  "C-178": {
+    "command": "node acceptance/run.cjs C-178"
+  },
+  "C-179": {
+    "command": "node acceptance/run.cjs C-179"
+  },
+  "C-180": {
+    "command": "node acceptance/run.cjs C-180"
+  },
+  "C-181": {
+    "command": "node acceptance/run.cjs C-181"
+  },
+  "C-182": {
+    "command": "node acceptance/run.cjs C-182"
+  },
+  "C-183": {
+    "command": "node acceptance/run.cjs C-183"
+  },
+  "C-184": {
+    "command": "node acceptance/run.cjs C-184"
+  },
+  "C-185": {
+    "command": "node acceptance/run.cjs C-185"
+  },
+  "C-186": {
+    "command": "node acceptance/run.cjs C-186"
+  },
+  "C-187": {
+    "command": "node acceptance/run.cjs C-187"
+  },
+  "C-188": {
+    "command": "node acceptance/run.cjs C-188"
+  },
+  "C-189": {
+    "command": "node acceptance/run.cjs C-189"
+  },
+  "C-190": {
+    "command": "node acceptance/run.cjs C-190"
+  },
+  "C-191": {
+    "command": "node acceptance/run.cjs C-191"
+  },
+  "C-192": {
+    "command": "node acceptance/run.cjs C-192"
+  },
+  "C-193": {
+    "command": "node acceptance/run.cjs C-193"
+  },
+  "C-194": {
+    "command": "node acceptance/run.cjs C-194"
+  },
+  "C-195": {
+    "command": "node acceptance/run.cjs C-195"
+  },
+  "C-196": {
+    "command": "node acceptance/run.cjs C-196"
+  },
+  "C-197": {
+    "command": "node acceptance/run.cjs C-197"
+  },
+  "C-198": {
+    "command": "node acceptance/run.cjs C-198"
+  },
+  "C-199": {
+    "command": "node acceptance/run.cjs C-199"
+  },
+  "C-200": {
+    "command": "node acceptance/run.cjs C-200"
+  },
+  "C-201": {
+    "command": "node acceptance/run.cjs C-201"
+  },
+  "C-202": {
+    "command": "node acceptance/run.cjs C-202"
+  },
+  "C-203": {
+    "command": "node acceptance/run.cjs C-203"
+  },
+  "C-204": {
+    "command": "node acceptance/run.cjs C-204"
+  },
+  "C-205": {
+    "command": "node acceptance/run.cjs C-205"
+  },
+  "C-206": {
+    "command": "node acceptance/run.cjs C-206"
+  },
+  "C-207": {
+    "command": "node acceptance/run.cjs C-207"
+  },
+  "C-208": {
+    "command": "node acceptance/run.cjs C-208"
+  },
+  "C-209": {
+    "command": "node acceptance/run.cjs C-209"
+  },
+  "C-210": {
+    "command": "node acceptance/run.cjs C-210"
+  },
+  "C-211": {
+    "command": "node acceptance/run.cjs C-211"
+  },
+  "C-212": {
+    "command": "node acceptance/run.cjs C-212"
+  },
+  "C-213": {
+    "command": "node acceptance/run.cjs C-213"
+  },
+  "C-214": {
+    "command": "node acceptance/run.cjs C-214"
+  },
+  "C-215": {
+    "command": "node acceptance/run.cjs C-215"
+  },
+  "C-216": {
+    "command": "node acceptance/run.cjs C-216"
+  },
+  "C-217": {
+    "command": "node acceptance/run.cjs C-217"
+  },
+  "C-218": {
+    "command": "node acceptance/run.cjs C-218"
+  },
+  "C-219": {
+    "command": "node acceptance/run.cjs C-219"
+  },
+  "C-220": {
+    "command": "node acceptance/run.cjs C-220"
+  },
+  "C-221": {
+    "command": "node acceptance/run.cjs C-221"
+  },
+  "C-222": {
+    "command": "node acceptance/run.cjs C-222"
+  },
+  "C-223": {
+    "command": "node acceptance/run.cjs C-223"
+  }
+}

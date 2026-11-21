@@ -1,0 +1,104 @@
+[
+ {
+  "gate": "01-cycle-1-first.json",
+  "pass": false,
+  "failing": [
+   "C-64",
+   "C-87",
+   "C-91",
+   "C-99",
+   "C-101",
+   "C-103",
+   "C-113",
+   "C-114",
+   "C-123",
+   "C-133",
+   "C-135",
+   "C-136",
+   "C-137",
+   "C-184",
+   "C-185",
+   "C-186",
+   "C-187",
+   "C-189",
+   "C-190",
+   "C-191",
+   "C-192",
+   "U-5",
+   "U-8",
+   "U-9",
+   "U-10",
+   "U-12",
+   "U-15",
+   "U-16",
+   "U-17",
+   "check: npm test"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "02-after-fix-1.json",
+  "pass": false,
+  "failing": [
+   "C-135",
+   "C-184",
+   "C-185",
+   "C-186",
+   "U-15",
+   "U-16"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "03-after-referee-1.json",
+  "pass": false,
+  "failing": [
+   "C-135",
+   "U-15"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "04-after-fix-2.json",
+  "pass": false,
+  "failing": [
+   "C-135",
+   "U-15"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "05-after-referee-2.json",
+  "pass": false,
+  "failing": [
+   "C-135",
+   "U-15"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "06-after-fix-3.json",
+  "pass": false,
+  "failing": [
+   "C-135",
+   "U-15"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "07-final.json",
+  "pass": false,
+  "failing": [
+   "C-135",
+   "U-15"
+  ],
+  "restored": [],
+  "restored_during": []
+ }
+]

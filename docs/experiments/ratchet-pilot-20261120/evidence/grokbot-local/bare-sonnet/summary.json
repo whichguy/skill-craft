@@ -1,0 +1,82 @@
+[
+ {
+  "run": "g-bare-sonnet-high",
+  "case": "grokbot-local",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "finished": true,
+  "stop": "bare",
+  "final_pass": null,
+  "minutes": 24.1,
+  "sessions": 1,
+  "clauses": 0,
+  "use_cases": 0,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "build": 24.1,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 110,
+   "cached": 9086924,
+   "output": 179893,
+   "reasoning": 0
+  },
+  "minutes_to_first_build": 24.1,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": null,
+    "first_gate_failing": null,
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 47,
+    "failed": [
+     "a-running-task-can-be-cancelled",
+     "no-sideways-scrolling-at-320"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 47,
+    "failed": [
+     "a-running-task-can-be-cancelled",
+     "no-sideways-scrolling-at-320"
+    ],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 47,
+   "failed": [
+    "a-running-task-can-be-cancelled",
+    "no-sideways-scrolling-at-320"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 47,
+   "failed": [
+    "a-running-task-can-be-cancelled",
+    "no-sideways-scrolling-at-320"
+   ],
+   "observed": true,
+   "rerun": false
+  }
+ }
+]

@@ -1,0 +1,42 @@
+A asked [
+  `Message from Assistant: Assistant I'll work on "audit" in the background and tell you when it is done.`
+] [
+  'Task: audit => audit Running 1 of 8 steps finished Done: Collect what is known about audit Cancel task'
+]
+A +0ms away: Since you were away Still running audit · Running · Assistant / long task: audit [long] | tasks: [
+  'Task: audit => audit Running 5 of 8 steps finished Done: Collect what is known about audit Done: Compare '
+]
+A +600ms away: Since you were away Still running audit · Running · Assistant / long task: audit [long] | tasks: [
+  'Task: audit => audit Running 6 of 8 steps finished Done: Collect what is known about audit Done: Compare '
+]
+A +1500ms away: Since you were away You’re caught up on background work. | tasks: [
+  'Task: audit => audit Completed 8 of 8 steps finished Done: Collect what is known about audit Done: Compar'
+]
+A +3000ms away: Since you were away You’re caught up on background work. | tasks: [
+  'Task: audit => audit Completed 8 of 8 steps finished Done: Collect what is known about audit Done: Compar'
+]
+A +6000ms away: Since you were away You’re caught up on background work. | tasks: [
+  'Task: audit => audit Completed 8 of 8 steps finished Done: Collect what is known about audit Done: Compar'
+]
+B1 [
+  `Message from Assistant: Assistant I'll work on "big survey" in the background and tell you when it is done.`
+]
+B2 [
+  `Message from Assistant: Assistant I'll work on "export" in the background and tell you when it is done.`
+]
+B3 [
+  `Message from Assistant: Assistant I'll work on "quick note" in the background and tell you when it is done.`
+]
+B before closing [
+  'Task: audit => audit Completed 8 of 8 steps finished Done: Collect what is known about audit Done: Compar',
+  'Task: big survey => big survey Running 4 of 8 steps finished Done: Collect what is known about big survey Done',
+  'Task: export => export Failed 1 of 3 steps finished Done: Collect what is known about export Step 2 needs ',
+  'Task: quick note => quick note Running 1 of 3 steps finished Done: Collect what is known about quick note Canc'
+]
+B on return away: Since you were away Needs attention export · Failed · Assistant / long task: audit [long]
+B tasks on return [
+  'Task: audit => audit Completed 8 of 8 steps finished Done: Collect what is known about audit Done: Compar',
+  'Task: big survey => big survey Completed 8 of 8 steps finished Done: Collect what is known about big survey Do',
+  'Task: export => export Failed 1 of 3 steps finished Done: Collect what is known about export Step 2 needs ',
+  'Task: quick note => quick note Completed 3 of 3 steps finished Done: Collect what is known about quick note Do'
+]

@@ -1,0 +1,339 @@
+{
+ "bare, Sol 6.2 low": {
+  "build-1": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "final": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  }
+ },
+ "bare, Sol 6.2 high": {
+  "build-1": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "final": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  }
+ },
+ "bare, Sonnet 5.5 high": {
+  "build-1": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 48,
+    "failed": {
+     "no-sideways-scrolling-at-320": "the page is 332 pixels wide in a 320-pixel window"
+    }
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 27,
+    "failed": {
+     "a-long-unbroken-message-does-not-widen-the-page-at-320": "the page is 332 pixels wide in a 320-pixel window"
+    },
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 4,
+     "of": 5
+    },
+    "failed_tiers": {
+     "a-long-unbroken-message-does-not-widen-the-page-at-320": "implied"
+    }
+   }
+  },
+  "final": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 48,
+    "failed": {
+     "no-sideways-scrolling-at-320": "the page is 332 pixels wide in a 320-pixel window"
+    }
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 27,
+    "failed": {
+     "a-long-unbroken-message-does-not-widen-the-page-at-320": "the page is 332 pixels wide in a 320-pixel window"
+    },
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 4,
+     "of": 5
+    },
+    "failed_tiers": {
+     "a-long-unbroken-message-does-not-widen-the-page-at-320": "implied"
+    }
+   }
+  }
+ },
+ "ShipLoop, Sol 6.2 high": {
+  "delivered": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  }
+ },
+ "Ratchet, Sol 6.2 high": {
+  "build-1": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "green-1": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "build-2": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "fix-1": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "green-2": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "build-3": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "green-3": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "final": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  }
+ }
+}

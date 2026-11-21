@@ -1,0 +1,31 @@
+/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/stand-in-rules/session-one-rule-missing
+[19:49:18] gate 1 (cycle-1-first): FAIL; 62 of 81 clauses pass; failing C-16, C-20, C-22, C-30, C-31, C-32, C-36, C-37
+[19:49:18] session 1: fix-1
+[19:51:39]   ended exited after 140.8 s
+[19:52:00] gate 2 (after-fix-1): PASS; 81 of 81 clauses pass
+[19:52:00] session 2: delta-1
+[19:53:51]   ended exited after 110.9 s
+[19:53:51]   delta 1: 1 new item(s): C-70
+[19:54:13] gate 3 (final): PASS; 81 of 81 clauses pass
+[19:54:13] run ended: max-cycles; final gate PASS; 70 clauses, 12 use cases; 2 sessions; 334.0 s
+run-exit=0 one-rule-missing
+p2-orders-one-rule-missing        frozen suite of an earlier runpassed  1  failed ['strong-tests']
+p2-orders-one-rule-missing        fix-1       passed  2  failed []
+p2-orders-one-rule-missing        green-1     passed  2  failed []
+p2-orders-one-rule-missing        final       passed  2  failed []
+/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/stand-in-rules/session-tested-only
+[19:54:42] gate 1 (cycle-1-first): FAIL; 67 of 81 clauses pass; failing C-19, C-20, C-22, C-30, C-31, C-32, C-34, C-36
+[19:54:42] session 1: fix-1
+[19:57:10]   ended exited after 147.3 s
+[19:57:29] gate 2 (after-fix-1): PASS; 81 of 81 clauses pass
+[19:57:29] session 2: delta-1
+[19:59:20]   ended exited after 110.5 s
+[19:59:20]   delta 1: 1 new item(s): C-70
+[19:59:40] gate 3 (final): PASS; 81 of 81 clauses pass
+[19:59:40] run ended: max-cycles; final gate PASS; 70 clauses, 12 use cases; 2 sessions; 325.5 s
+run-exit=0 tested-only
+p2-orders-tested-only             frozen suite of an earlier runpassed  0  failed ['boundary-tests', 'strong-tests']
+p2-orders-tested-only             fix-1       passed  2  failed []
+p2-orders-tested-only             green-1     passed  2  failed []
+p2-orders-tested-only             final       passed  2  failed []
+chain-exit=0

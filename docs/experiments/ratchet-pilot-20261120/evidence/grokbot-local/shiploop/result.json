@@ -1,0 +1,711 @@
+{
+  "case": "grokbot-local",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "timeout_seconds": 28800,
+  "pass": true,
+  "invoked": {
+    "pass": true,
+    "skill": "skill-craft:shiploop",
+    "evidence": "ShipLoop CLI ran"
+  },
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 4.1.0"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/build/plugins/skill-craft",
+    "path": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/home/.codex/plugins/cache/whichguy/skill-craft/4.1.0",
+    "output": " from /Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/build.\nInstalled marketplace root: /Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/home/.codex/plugins/cache/whichguy/skill-craft/4.1.0"
+  },
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "4.1.0",
+    "shiploop_version": "2.3.0",
+    "plugin_sha256": "e392ed7be4c8",
+    "local_head": "bb0d4f758a14e2d1e9230c18dbc2ba222f156ddf"
+  },
+  "prompt_sha256": "366e95dbf639",
+  "start_route": "workspace",
+  "boundary": {
+    "evaluator": "cc221376b337",
+    "oracle": "fb7b6486655f",
+    "case": "0ed22cfd68af"
+  },
+  "host_build": "codex-cli 0.171.0",
+  "span": {
+    "started": 1795241911.592,
+    "ended": 1795244282.496
+  },
+  "identity_unmeasured": {},
+  "process": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 2372.3,
+    "stop": "end_turn",
+    "sessions": [
+      {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 2372.3,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+      }
+    ],
+    "resumes": 0,
+    "pass": true
+  },
+  "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 1,
+    "resumes": 0,
+    "session_stops": [
+      "end_turn"
+    ],
+    "resume_stop": "ShipLoop run is done",
+    "engine_status": "done",
+    "engine_stage": "done",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+  },
+  "outcome_class": "PASS",
+  "outcome_basis": "every verdict passed",
+  "environment": {
+    "start": {
+      "observed": true,
+      "at": "2026-11-21T06:18:17Z",
+      "tools": {
+        "node": "v26.12.1",
+        "python3": "Python 3.15.1",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      },
+      "cpus": 18,
+      "loadavg": [
+        26.52,
+        23.11,
+        22.74
+      ],
+      "display_hold": true,
+      "unread": {},
+      "browser": {
+        "declared": false,
+        "probed": false,
+        "reason": "no case or --need declares a browser"
+      }
+    },
+    "end": {
+      "observed": true,
+      "at": "2026-11-21T06:58:16Z",
+      "cpus": 18,
+      "loadavg": [
+        29.15,
+        26.4,
+        29.95
+      ],
+      "unread": {}
+    },
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "launches_unreadable": [],
+    "environments": [
+      {
+        "launch": "invocation.json",
+        "host": "codex",
+        "model": "gpt-6.2-sol",
+        "effort": "high",
+        "host_build": "codex-cli 0.171.0",
+        "identity_unmeasured": {},
+        "environment": {
+          "observed": true,
+          "at": "2026-11-21T06:18:17Z",
+          "tools": {
+            "node": "v26.12.1",
+            "python3": "Python 3.15.1",
+            "git": "git version 2.54.0 (Apple Git-157)"
+          },
+          "cpus": 18,
+          "loadavg": [
+            26.52,
+            23.11,
+            22.74
+          ],
+          "display_hold": true,
+          "unread": {},
+          "browser": {
+            "declared": false,
+            "probed": false,
+            "reason": "no case or --need declares a browser"
+          }
+        },
+        "environment_reason": null
+      }
+    ],
+    "overlap": {
+      "observed": true,
+      "basis": "the first and last host event of this run and of each run folder under the runs root (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound; a run outside the root is not seen",
+      "root": "~/e2e-runs",
+      "span": {
+        "first": 1795241911.592,
+        "last": 1795244282.496
+      },
+      "siblings_read": 0,
+      "siblings_unreadable": [],
+      "ended_before": 6336,
+      "runs": []
+    }
+  },
+  "left_behind": {
+    "observed": true,
+    "reaped": [
+      {
+        "pid": 25511,
+        "command": "node",
+        "ports": [
+          3000
+        ],
+        "cwd": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/work",
+        "argv": "/opt/homebrew/Cellar/node/26.12.1_1/bin/node server.js",
+        "ended_by": "SIGTERM"
+      }
+    ],
+    "survived": []
+  },
+  "resources": {
+    "ledger": "resources.jsonl",
+    "leases": [],
+    "contention": {
+      "observed": true,
+      "root": "~/e2e-runs",
+      "live_runs": [],
+      "same_host": [],
+      "same_model": []
+    },
+    "disk": {
+      "path": "~/e2e-runs/ratchet-pilot-20261120-b6eab2",
+      "free_bytes": 2459204673536,
+      "need_bytes": 2147483648,
+      "ok": true
+    },
+    "cleanup": {
+      "end": {
+        "observed": true,
+        "stopped": [],
+        "survived": [],
+        "gone": [],
+        "reused": [],
+        "unverified": [],
+        "protected": []
+      }
+    }
+  },
+  "keepalive": {
+    "installed": true,
+    "output": "the plugin's hooks/codex.json, run with the trust bypass",
+    "decisions": {
+      "allow": 1
+    }
+  },
+  "preempt": null,
+  "shiploop": {
+    "pass": true,
+    "run_dir": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/.shiploop-runs/work-20261121-061918-5a0199/run",
+    "status": "done",
+    "stage": "done",
+    "revision": 34,
+    "report_html": true,
+    "runs": 1,
+    "identity": "recorded",
+    "worktree": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high/.shiploop-runs/work-20261121-061918-5a0199/worktree",
+    "knowledge": {
+      "spec": true,
+      "head": "3e931c73b793788b7556542fdce6aa0e2730c64c",
+      "uncommitted": [],
+      "spec_tracked": true,
+      "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4",
+        "R-5",
+        "R-6",
+        "R-7",
+        "R-8"
+      ],
+      "head_commits": 13,
+      "head_files": 21,
+      "untracked_files": 0,
+      "branches": [
+        "master",
+        "shiploop/run-6f9b07f7ec8ce29b"
+      ]
+    }
+  },
+  "committed": {
+    "pass": true,
+    "start_head": "25fdda3abd36045b9aa00cb810969d89f91826c3",
+    "head": "3e931c73b793788b7556542fdce6aa0e2730c64c",
+    "head_files": 21,
+    "uncommitted": []
+  },
+  "checks": [
+    {
+      "command": "log=$(mktemp); npm test > \"$log\" 2>&1; rc=$?; grep -Eq '^(\u2139|#) pass [1-9]' \"$log\" && [ $rc -eq 0 ]; r=$?; rm -f \"$log\"; exit $r",
+      "pass": true,
+      "returncode": 0,
+      "output": ""
+    }
+  ],
+  "cli": {
+    "sessions": [
+      {
+        "num_turns": 230,
+        "cost_usd": null,
+        "stop": "end_turn"
+      }
+    ],
+    "stop": "end_turn",
+    "num_turns": 230,
+    "cost_usd": null,
+    "truncated_outputs": null
+  },
+  "follow_on": null,
+  "base": {
+    "fixture": "grokbot-local",
+    "digest": "7f398d742dbf",
+    "start_head": "25fdda3abd36045b9aa00cb810969d89f91826c3",
+    "files": 8
+  },
+  "delivery": {
+    "before": {
+      "observed": true,
+      "head": "3e931c73b793788b7556542fdce6aa0e2730c64c",
+      "tree": "dbd8804cabf134e2ef50acc7352468d6ca708b22",
+      "status": [],
+      "bundle": "delivery/work.bundle",
+      "bundle_bytes": 53721
+    },
+    "after": {
+      "observed": true,
+      "head": "3e931c73b793788b7556542fdce6aa0e2730c64c",
+      "tree": "dbd8804cabf134e2ef50acc7352468d6ca708b22",
+      "status": []
+    }
+  },
+  "resumed_run": null,
+  "seeded": null,
+  "budget": null,
+  "expectations": {
+    "checks": "the request: node:test tests under test/ that npm test runs; the held-out browser yardstick is run apart, by the pilot's grade.py"
+  },
+  "metrics": {
+    "claude_code_version": null,
+    "turns": 230,
+    "model_calls": 155,
+    "window_tokens": 475000,
+    "cost_usd": null,
+    "unreported_sessions": 0,
+    "compactions": 0,
+    "truncated_outputs": null,
+    "improve_children": 9,
+    "stages": [
+      {
+        "stage": "intake",
+        "outcome": "done",
+        "seconds": 80.4,
+        "turns": null,
+        "tool_calls": 7,
+        "context": {
+          "calls": 5,
+          "peak": 52268,
+          "peakPct": 11.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "discovery",
+        "outcome": "done",
+        "seconds": 30.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 1,
+          "peak": 54889,
+          "peakPct": 11.6,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "research",
+        "outcome": "done",
+        "seconds": 18.0,
+        "turns": null,
+        "tool_calls": 3,
+        "context": {
+          "calls": 2,
+          "peak": 63044,
+          "peakPct": 13.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "seconds": 60.0,
+        "turns": null,
+        "tool_calls": 13,
+        "context": {
+          "calls": 5,
+          "peak": 82470,
+          "peakPct": 17.4,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-strategy",
+        "outcome": "done",
+        "seconds": 46.0,
+        "turns": null,
+        "tool_calls": 11,
+        "context": {
+          "calls": 3,
+          "peak": 91879,
+          "peakPct": 19.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "plan",
+        "outcome": "done",
+        "seconds": 36.0,
+        "turns": null,
+        "tool_calls": 9,
+        "context": {
+          "calls": 2,
+          "peak": 99138,
+          "peakPct": 20.9,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "prepare",
+        "outcome": "done",
+        "seconds": 9.0,
+        "turns": null,
+        "tool_calls": 1,
+        "context": {
+          "calls": 1,
+          "peak": 102502,
+          "peakPct": 21.6,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "step-plan",
+        "outcome": "done",
+        "seconds": 62.0,
+        "turns": null,
+        "tool_calls": 13,
+        "context": {
+          "calls": 5,
+          "peak": 116047,
+          "peakPct": 24.4,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "seconds": 15.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 1,
+          "peak": 121545,
+          "peakPct": 25.6,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "validate-existing",
+        "outcome": "done",
+        "seconds": 0.0,
+        "turns": null,
+        "tool_calls": 0,
+        "context": {
+          "calls": 0,
+          "peak": null,
+          "peakPct": null,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "implement",
+        "outcome": "done",
+        "seconds": 213.0,
+        "turns": null,
+        "tool_calls": 8,
+        "context": {
+          "calls": 7,
+          "peak": 136575,
+          "peakPct": 28.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test",
+        "outcome": "done",
+        "seconds": 219.0,
+        "turns": null,
+        "tool_calls": 16,
+        "context": {
+          "calls": 18,
+          "peak": 157791,
+          "peakPct": 33.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "document",
+        "outcome": "done",
+        "seconds": 55.0,
+        "turns": null,
+        "tool_calls": 11,
+        "context": {
+          "calls": 6,
+          "peak": 164271,
+          "peakPct": 34.6,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "implement",
+        "outcome": "done",
+        "seconds": 442.0,
+        "turns": null,
+        "tool_calls": 13,
+        "context": {
+          "calls": 13,
+          "peak": 195312,
+          "peakPct": 41.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test",
+        "outcome": "done",
+        "seconds": 593.0,
+        "turns": null,
+        "tool_calls": 23,
+        "context": {
+          "calls": 34,
+          "peak": 228097,
+          "peakPct": 48.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "document",
+        "outcome": "done",
+        "seconds": 52.0,
+        "turns": null,
+        "tool_calls": 11,
+        "context": {
+          "calls": 5,
+          "peak": 231944,
+          "peakPct": 48.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "carry-forward",
+        "outcome": "done",
+        "seconds": 48.0,
+        "turns": null,
+        "tool_calls": 12,
+        "context": {
+          "calls": 7,
+          "peak": 239661,
+          "peakPct": 50.5,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "system-test-author",
+        "outcome": "done",
+        "seconds": 82.0,
+        "turns": null,
+        "tool_calls": 9,
+        "context": {
+          "calls": 7,
+          "peak": 247673,
+          "peakPct": 52.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "system-test",
+        "outcome": "done",
+        "seconds": 33.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 5,
+          "peak": 250621,
+          "peakPct": 52.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "product-acceptance",
+        "outcome": "done",
+        "seconds": 35.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 5,
+          "peak": 253178,
+          "peakPct": 53.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-plan",
+        "outcome": "done",
+        "seconds": 38.0,
+        "turns": null,
+        "tool_calls": 12,
+        "context": {
+          "calls": 3,
+          "peak": 257353,
+          "peakPct": 54.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-check",
+        "outcome": "done",
+        "seconds": 36.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 261877,
+          "peakPct": 55.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release",
+        "outcome": "done",
+        "seconds": 33.0,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 3,
+          "peak": 266591,
+          "peakPct": 56.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-verify",
+        "outcome": "done",
+        "seconds": 61.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 6,
+          "peak": 271522,
+          "peakPct": 57.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "operations",
+        "outcome": "done",
+        "seconds": 29.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 3,
+          "peak": 273704,
+          "peakPct": 57.6,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "handoff",
+        "outcome": "done",
+        "seconds": 26.0,
+        "turns": null,
+        "tool_calls": 3,
+        "context": {
+          "calls": 2,
+          "peak": 277729,
+          "peakPct": 58.5,
+          "compactions": 0
+        }
+      }
+    ],
+    "unmeasured": {
+      "stage_turns": "the host reports no per-call usage events (one total per session), so turns cannot be attributed to a stage",
+      "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement"
+    },
+    "script_verifications": {
+      "records": 6,
+      "passed": 6,
+      "could_not_run": 0,
+      "commands": 15,
+      "red": 0
+    },
+    "planning_seconds": 309.0,
+    "model_glue": 2,
+    "tmp_writes": 0,
+    "asked_user": 0,
+    "narrative": {
+      "emitted": 6,
+      "shown": 4,
+      "verbatim": 4,
+      "raw_emissions": 7,
+      "repeated": 1,
+      "composed": 11,
+      "results": 26,
+      "with_headline": 25,
+      "run_level": {
+        "achieved": 2,
+        "phase": 0,
+        "pace": 0
+      }
+    },
+    "shiploop_failures": 5,
+    "cancelled_tool_calls": null
+  },
+  "output": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high",
+  "quality": {
+    "observed": false,
+    "declared": [],
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "reason": "the case declares no quality measures (no mutation command, no held-out acceptance)",
+    "memory_writes": null,
+    "held_out_seen": null,
+    "unmeasured": {
+      "memory_writes": "the detector reads Claude's file-write calls and this run's launch records show codex",
+      "held_out_seen": "the case declares no held-out acceptance, so nothing is held out"
+    },
+    "seconds": 0.0
+  }
+}

@@ -1,0 +1,13 @@
+{
+ "style": "web-service",
+ "base": {
+  "fixture": "grokbot-local",
+  "digest": "7f398d742dbf",
+  "source": "docs/experiments/ratchet-pilot-20261120/scenarios/grokbot-local/fixture (Ratchet pilot, amendment 4): a model stand-in and synthetic records; the app is to be built"
+ },
+ "prompt": "(verbatim scenarios/grokbot-local/REQUEST.md)",
+ "checks": [
+  "log=$(mktemp); npm test > \"$log\" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' \"$log\" && [ $rc -eq 0 ]; r=$?; rm -f \"$log\"; exit $r"
+ ],
+ "checks_source": "the request: node:test tests under test/ that npm test runs; the held-out browser yardstick is run apart, by the pilot's grade.py"
+}

@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/records-unfiltered/.untouched/product/lib/workspace.js <runs>/teeth/records-unfiltered/product/lib/workspace.js
+--- <runs>/teeth/records-unfiltered/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/records-unfiltered/product/lib/workspace.js	2026-11-20 22:57:06
+@@ -153,7 +153,7 @@
+         memory: bot.memory.map(({ text }) => text),
+         messages: conversation.messages.slice(0, conversation.messages.indexOf(message) + 1)
+           .map(({ from, text }) => ({ from, text })),
+-        records: readableRecords(state.records, context.personId),
++        records: state.records,
+         attempt,
+       });
+     } catch {

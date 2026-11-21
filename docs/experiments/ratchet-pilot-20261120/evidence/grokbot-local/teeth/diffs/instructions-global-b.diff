@@ -1,0 +1,20 @@
+diff -ru <runs>/teeth/instructions-global-b/.untouched/product/lib/workspace.js <runs>/teeth/instructions-global-b/product/lib/workspace.js
+--- <runs>/teeth/instructions-global-b/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/instructions-global-b/product/lib/workspace.js	2026-11-20 23:14:52
+@@ -143,7 +143,7 @@
+     const state = store.read();
+     const { bot, conversation, workspace } = scope(state, context);
+     const message = find(conversation.messages, messageId, 'Message');
+-    const instruction = workspace.instructions.find(({ id }) => id === bot.instructionId);
++    const instruction = workspace.instructions.find(({ id }) => id === (workspace.instructionId || bot.instructionId));
+     let output;
+     try {
+       output = await provider.respond({
+@@ -303,6 +303,7 @@
+           return;
+         case 'use-instruction':
+           bot.instructionId = find(workspace.instructions, input.id, 'Instruction').id;
++          workspace.instructionId = bot.instructionId;
+           return;
+         case 'delete-instruction':
+           deleteItem(workspace.instructions, input.id);

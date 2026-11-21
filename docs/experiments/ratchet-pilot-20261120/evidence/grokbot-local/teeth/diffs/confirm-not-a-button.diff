@@ -1,0 +1,19 @@
+diff -ru <runs>/teeth/confirm-not-a-button/.untouched/product/public/app.js <runs>/teeth/confirm-not-a-button/product/public/app.js
+--- <runs>/teeth/confirm-not-a-button/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/confirm-not-a-button/product/public/app.js	2026-11-20 22:57:09
+@@ -257,7 +257,14 @@
+     };
+     const actions = node('div', 'form-row');
+     actions.append(
+-      button('Confirm changes', (event) => decide('confirm', event), 'action', 'confirm-' + proposal.id),
++      (() => {
++        const fake = node('div', 'action', 'Confirm changes');
++        fake.setAttribute('role', 'button');
++        fake.tabIndex = 0;
++        fake.dataset.focusKey = 'confirm-' + proposal.id;
++        fake.addEventListener('click', (event) => decide('confirm', event));
++        return fake;
++      })(),
+       button('Reject changes', (event) => decide('reject', event), 'secondary', 'reject-' + proposal.id),
+     );
+     section.append(actions);

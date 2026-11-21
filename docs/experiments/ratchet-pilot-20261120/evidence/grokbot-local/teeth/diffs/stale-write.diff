@@ -1,0 +1,13 @@
+diff -ru <runs>/teeth/stale-write/.untouched/product/lib/records.js <runs>/teeth/stale-write/product/lib/records.js
+--- <runs>/teeth/stale-write/.untouched/product/lib/records.js	2026-11-20 22:30:53
++++ <runs>/teeth/stale-write/product/lib/records.js	2026-11-20 22:57:06
+@@ -68,9 +68,6 @@
+     if (reservedFields.has(change.field)) {
+       return { status: 'conflict', text: 'Record identity, type and access fields are protected. No records were written.' };
+     }
+-    if (!isDeepStrictEqual(ownValue(record, change.field), change.from)) {
+-      return { status: 'conflict', text: 'The record changed after this proposal. Ask for a fresh proposal to review.' };
+-    }
+     record[change.field] = change.to;
+   }
+ 
