@@ -1,0 +1,178 @@
+{
+ "slot": "grokbot-salesforce__CAL-rich__hand",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "U-1",
+   "quote": "They open the record, type a question, and the answer appears beside the record.",
+   "missing": "Which Salesforce surface hosts the bot (record page component, utility bar, Flow, etc.) and what context (record id, object) it receives."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-1",
+   "quote": "The bot answers only from records the asking user can already see. A user who cannot open an account in the user interface gets no content from that account in an answer"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-2",
+   "quote": "Apex forbids a callout after DML in one transaction and caps a callout at 120 seconds, so the call is enqueued rather than made in line."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-3",
+   "quote": "The API credential is held in a Named Credential and never appears in code, metadata or a log"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "caps a callout at 120 seconds",
+   "missing": "Callouts per transaction, heap and CPU time limits that bind the design, with their numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "The test suite passes with no network access, because the HTTP callout is supplied by a mock implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "Submitting a question returns at once with the question in a pending state; the answer arrives afterwards.",
+   "missing": "The mechanism by which the interface learns the answer arrived (platform event, polling, CDC, LMS)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "Forcing the job to run twice for one question leaves exactly one answer record on the conversation."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "A 4xx refusal shows that the question could not be accepted; a 5xx failure shows that the service is unavailable and the question will be retried; a timeout shows that the answer did not arrive in time"
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "a timeout shows that the answer did not arrive in time and offers to ask again.",
+   "missing": "How a partial or truncated answer is detected and shown to the user."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "each turn carrying its role, its text, its status, its timestamp and the model identifier that produced it.",
+   "missing": "Token or usage counts on each turn."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-1",
+   "quote": "The bot answers only from records the asking user can already see",
+   "missing": "Which org data is assembled into the prompt and how personal data in prompts is handled."
+  },
+  {
+   "id": "N-20",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-22",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-8",
+   "quote": "The development org, the sandbox and production each resolve their own endpoint and credential without a code change, and the deployment to production meets the platform's code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "Submitting a question returns at once with the question in a pending state; the answer arrives afterwards.",
+   "missing": "A latency target or bound for an answer and what in-progress feedback the interface shows."
+  },
+  {
+   "id": "N-26",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-27",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,173 @@
+{
+ "slot": "grokbot-salesforce__CAL-thin__hand",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "The bot is available in the Salesforce org. Observable: A user can find and open the bot.",
+   "missing": "Which Salesforce surface hosts the bot (record page, utility bar, Experience Cloud, Flow) and what context that surface passes to it."
+  },
+  {
+   "id": "N-2",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-22",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "The bot performs well. Observable: The bot responds quickly.",
+   "missing": "A numeric latency target or bound, and what truthful in-progress feedback the interface shows while the answer is pending."
+  },
+  {
+   "id": "N-26",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-27",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

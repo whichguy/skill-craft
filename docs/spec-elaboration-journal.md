@@ -41,3 +41,24 @@ this one.
 - Both arms were written by this session, so the control is as strong as this session could make it (the state of
   the art in the repository), not as weak as it could make it. That is the honest form of the comparison, but it is
   not a blind one.
+
+## 2. The judge is calibrated before its verdicts are used (2026-11-20, round `cal-1`)
+
+The coverage number is only worth what the judge is worth, so the judge was checked against two hand-written
+specifications for `grokbot-salesforce` before any round-1 verdict was read. Both are in
+`docs/experiments/spec-elaboration-20261120/results/cal-1/`, their verdicts in `grades/cal-1/`.
+
+- `CAL-thin`, four deliberately vacuous clauses ("Errors are handled gracefully", "The bot performs well"):
+  **0 of 27 covered**, 2 partial. Neither vacuous clause earned credit for any unhappy-path nuance; the
+  performance clause drew a `partial` on N-25 whose `missing` note asked for the numeric bound it lacked.
+- `CAL-rich`, eight clauses written to aim at eight named nuances: **7 of those 8 covered**, each verdict naming
+  the exact clause written for it. The eighth, N-17, came back `partial` because the clause listed role, text,
+  status, timestamp and model but not the token or usage counts the nuance asks for — an omission this session had
+  made without noticing, which the judge found. Its six other `partial` verdicts all point at real partial touches
+  in the text (a callout cap mentioned in passing, a pending state that half-answers the async-completion nuance),
+  not invented credit.
+
+**Reading.** The instrument discriminates: it does not reward length or generality, it finds what is stated in the
+specification's own words, and it is strict enough to catch a one-item omission inside a clause that otherwise
+matches. `covered` is therefore used as round 1's primary number, with `partial` reported beside it rather than
+folded in. Firm for this judge, model and prompt; a change to any of the three needs the calibration re-run.

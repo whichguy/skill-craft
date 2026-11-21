@@ -1,0 +1,49 @@
+{
+ "grokbot-salesforce__CAL-rich__hand": {
+  "use_cases": 2,
+  "clauses": 8,
+  "source_mix": {
+   "implied": 9,
+   "request": 1
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 448,
+  "bundled_and": 3,
+  "bundled_examples": [
+   "The API credential is held in a Named Credential and never appears in ",
+   "A refusal, a failure and a timeout each give a different visible outco",
+   "A conversation and its turns are stored as records"
+  ],
+  "seconds": 0,
+  "rc": 0,
+  "arm": "CAL-rich",
+  "driver": "hand",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {}
+ },
+ "grokbot-salesforce__CAL-thin__hand": {
+  "use_cases": 1,
+  "clauses": 4,
+  "source_mix": {
+   "choice": 1,
+   "implied": 1,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 113,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "seconds": 0,
+  "rc": 0,
+  "arm": "CAL-thin",
+  "driver": "hand",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {}
+ }
+}
