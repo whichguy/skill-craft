@@ -1,0 +1,403 @@
+{
+ "label": "Ratchet whole loop, final product (Sol 6.2 medium), builder's own tests",
+ "tree": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/p3-ticket-assignment-sol-medium/work",
+ "sites_on_changed_lines": 47,
+ "files": {
+  "src/app.js": 1,
+  "src/format.js": 3,
+  "src/http.js": 27,
+  "src/persistence.js": 2,
+  "src/store.js": 3,
+  "src/tickets/query.js": 10,
+  "src/tickets/validate.js": 1
+ },
+ "sampled": 47,
+ "invalid": 0,
+ "commands_failing_on_the_untouched_copy": [],
+ "untouched_failures": {},
+ "faults": [
+  {
+   "file": "src/app.js",
+   "line": 37,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "src/format.js",
+   "line": 51,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 32,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 149,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "src/store.js",
+   "line": 104,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 32,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 70,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/format.js",
+   "line": 52,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "src/http.js",
+   "line": 41,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": true
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 156,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "src/store.js",
+   "line": 109,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": null
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 33,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/format.js",
+   "line": 63,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 53,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "src/store.js",
+   "line": 114,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 42,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 60,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 43,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 61,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 44,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 62,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "own": false
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 44,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 64,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": null
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 45,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 66,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": null
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 68,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 67,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": null
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 68,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 69,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 68,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 69,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "src/http.js",
+   "line": 70,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "src/http.js",
+   "line": 71,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": null
+  },
+  {
+   "file": "src/http.js",
+   "line": 71,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 73,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 76,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 76,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": null
+  },
+  {
+   "file": "src/http.js",
+   "line": 76,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 78,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 78,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 79,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 79,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 79,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 81,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 81,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "src/http.js",
+   "line": 81,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/http.js",
+   "line": 82,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  }
+ ],
+ "own": {
+  "caught": 35,
+  "survived": 6,
+  "did_not_end": 6,
+  "not_measured": 0,
+  "share": 0.854
+ }
+}

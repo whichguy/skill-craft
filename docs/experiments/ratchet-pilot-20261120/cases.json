@@ -1,0 +1,85 @@
+{
+ "_about": "Ratchet pilot cases (docs/ratchet-pilot-journal.md). Each request is copied verbatim from the E2E harness's own case, named in `source`; `fixture` is a folder of test/shiploop_e2e/fixtures (its docs/shiploop knowledge home, if it has one, is removed before the run: Ratchet writes its own specification); `checks` are the project's own commands the gate runs beside the acceptance tests; `hidden` names the held-out grader in grade.py, which no session is shown. Written by a one-off script from those sources on 2026-11-20.",
+ "shared-expenses": {
+  "fixture": "shared-expenses-at-step-plan",
+  "request": "Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {\"id\": \"<group id>\", \"members\": [\"<name>\", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"equal\"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"exact\", \"shares\": {\"<name>\": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {\"expense\": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {\"from\", \"to\", \"cents\"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.",
+  "checks": [
+   "node --test"
+  ],
+  "hidden": "expenses",
+  "source": "test/shiploop_e2e/cases.json shared-expenses"
+ },
+ "ticket-assignment": {
+  "fixture": "node-tickets",
+  "request": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. Add ticket assignment. `PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}` assigns the ticket to that agent, and `{\"assignee\": null}` unassigns it; an agent is a non-empty name of at most 64 characters. Only open and in-progress tickets can be assigned or unassigned. Assigning a ticket to the agent it already has changes nothing. Every ticket shows its `assignee` (null when unassigned). The agent a ticket is assigned to is notified that it was assigned to them. `GET /tickets` gains an `assignee` filter: `assignee=<agent>` keeps that agent's tickets and an empty `assignee=` keeps the unassigned ones; a ticket must match every filter given. The command-line listing shows each ticket's assignee. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "ticket-assignment",
+  "source": "test/shiploop_e2e/cases.json ticket-assignment",
+  "variants": {
+   "kind": "module",
+   "path": "test/fixtures/quality/reference_ticket_assignment.py"
+  }
+ },
+ "node-chess-engine": {
+  "fixture": "chess-node-w1",
+  "request": "Build a chess rules engine as a Node.js module src/chess.js (CommonJS, no dependencies; npm test runs node --test). A position is a FEN string. startFen() returns the standard start position. legalMoves(fen) returns an array of every legal move for the side to move in UCI form (for example e2e4, and e7e8q for a promotion), sorted alphabetically. applyMove(fen, move) returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws IllegalMoveError (a class the module also exports) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). status(fen) returns ongoing, check, checkmate or stalemate for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: e1g1, e1c1, e8g8, e8c8), en passant, promotion to q, r, b or n, check, checkmate and stalemate. Cover the rules with node --test tests in test/: known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Keep legalMoves on a middlegame position under 50 ms and a depth-2 legal-move count of the start position under 2 seconds. npm test must pass.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "chess",
+  "source": "test/shiploop_e2e/step_cases.json node-chess-engine"
+ },
+ "ticket-due-times": {
+  "fixture": "node-tickets",
+  "request": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "due-times",
+  "source": "test/shiploop_e2e/cases.json ticket-due-times",
+  "variants": {
+   "kind": "module",
+   "path": "test/fixtures/quality/reference_due_times.py"
+  }
+ },
+ "selftest": {
+  "fixture": null,
+  "request": "Write calc.js (CommonJS): add(a, b) returns the sum of two numbers and double(a) returns twice a number.",
+  "checks": [
+   "node -e \"require('./calc.js')\""
+  ],
+  "hidden": null,
+  "source": "the apparatus's own check (selftest_fake.py); no model"
+ },
+ "stand-in-rules": {
+  "fixture": "node-orders",
+  "request": "In this Node.js project, add a new module src/orders.js exporting parseOrders(text) and total(orders). parseOrders reads one order per non-blank line; a line holds fields `key=value` joined by `;` with keys id, qty, price, status and shipped_at, and values are trimmed. It returns objects {id, qty, price, status, shippedAt}: id, qty and price are numbers, status is lower-cased, shippedAt is the shipped_at text ('' when empty). parseOrders('id=1;qty=2;price=150;status=Open;shipped_at=\\n\\nid=2;qty=1;price=99;status=shipped;shipped_at=2026-10-01') returns [{id:1,qty:2,price:150,status:'open',shippedAt:''},{id:2,qty:1,price:99,status:'shipped',shippedAt:'2026-10-01'}]. Rules, each naming the 1-based line in its message: qty must be a whole number of at least 1 and price whole cents of at least 0, else RangeError; a field with no `=`, a status other than open or shipped, or a shipped_at that is not YYYY-MM-DD throws SyntaxError; and the fields must agree: a shipped order needs a shipped_at date and an open order must not have one, else SyntaxError. A non-string argument throws TypeError. total(orders) returns the sum of qty * price in cents (399 for the example) and must call meter.tick() from src/meter.js exactly once per order: its budget is one tick per order, far below the meter's hard limit of 10,000 ticks, past which the meter throws. Cover it with node:test tests; npm test must pass.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "stand-in",
+  "variants": {
+   "kind": "overlay",
+   "root": "test/shiploop_e2e/fixtures/stand-ins/stand-in-rules",
+   "defects": [
+    "one-rule-missing",
+    "tested-only",
+    "limit-never-trips",
+    "cross-field"
+   ]
+  },
+  "source": "test/shiploop_e2e/step_cases.json stand-in-rules; its four stand-ins are calibrated wrong implementations (test/shiploop_e2e/evaluators/e1b_subtle_stand_ins.py)"
+ },
+ "grokbot-local": {
+  "fixture_path": "scenarios/grokbot-local/fixture",
+  "request": "Build and deliver a finished, working chat application that feels like seamless, elegant Grok-style chat, running on this computer. I want to open it, ask for help in ordinary language, and get useful answers that make my work easier.\n\nIt is a Node.js app with no npm dependencies. `node server.js` serves it on the port in the PORT environment variable (default 3000), GET / is the app, and everything it keeps lives under the folder named by the DATA_DIR environment variable (default `./data`), so it survives a restart. The assistant's replies come from the stand-in in `provider/` (read `provider/README.md`): use it as it is for every reply and do not change it. The records the assistant may work with are the synthetic ones in `records/` (read `records/README.md`), which also says which person may read which.\n\nI want the conversation to be the center of the experience: polished typography, comfortable reading, clear composition, and replies that explain what matters without overwhelming me. When I ask a follow-up, the bot should understand the conversation, ask a useful clarifying question when needed, and help me reach an answer or finish a task.\n\nI want to name my bots and keep multiple saved conversations, returning to the right bot and discussion without losing my place. I should be able to save reusable instructions and tasks, use them again, and change them when my needs change. I want to inspect what a bot remembers about me, correct mistakes, and ask it to forget something. My information should stay separate from another user's, and each bot's memory should stay separate from my other bots.\n\nWithin the synthetic records, I want to ask real questions, receive accurate answers grounded in records I am allowed to read, and follow up naturally. When I ask to create or update something, I want to see the exact proposed changes before deciding. Nothing should be written until I explicitly confirm that proposal. Rejecting or cancelling it should leave the records alone. Repeating an action or reloading at an awkward moment should not accidentally apply it twice, and I should understand what actually happened.\n\nFor longer tasks, I want useful work to continue while the app is closed. When I return, I want an honest account of what finished, what is still happening, and anything that needs my attention. I want to steer ongoing work with a follow-up or cancel it, with a clear explanation of what can still be stopped and what has already happened. If something fails or is interrupted, help me recover without guessing or losing the conversation.\n\nHelp me get started through guided, recoverable setup that explains what I need without exposing secrets. Make everyday use comfortable on a desktop, in a narrow window, and with the keyboard. Deliver the complete working experience so I can use it confidently.\n\nHow people get in. There are no passwords. The first screen offers a button named Continue as <name> for each person in `records/people.json`; after that a button named Switch person brings that screen back. What I see, and what my bots remember, belongs to the person I continued as, and reloading the page keeps me as that person.\n\nHow it looks is yours to design. So that a screen reader, and anyone checking the app, can find things, use the accessible names below. At a desktop width (1440 pixels) everything named here is on the main screen without my having to open a menu; in a narrow window you may fold parts away, as long as reading the conversation and writing a message stay in view.\n\n- Setup. When no provider token has been saved, a region named Setup explains what is needed, with a textbox named Provider token and a button named Save token. A token the provider refuses shows an alert and lets me try again. A token in the PROVIDER_TOKEN environment variable counts as saved. Once saved, the token is never shown again, in any page or any response.\n- Bots. A navigation named Bots lists my bots as buttons named with each bot's name, with the open one marked as current. A button named New bot, a textbox named Bot name and a button named Save bot name create a bot and open it; a button named Rename bot uses the same textbox and button for the open bot. A person who has never used the app starts with one bot named Assistant.\n- Conversations. A navigation named Conversations lists the open bot's conversations as buttons, with the open one marked as current. A button named New conversation starts one.\n- The conversation. A region named Conversation holds the messages as articles named Message from <name>, with my name or the bot's name. A textbox named Message and a button named Send write to it; Enter sends and Shift+Enter makes a new line. While a reply is on its way, a status says so. If a reply fails, an alert says so and a button named Retry tries again without sending my message a second time.\n- Saved instructions. A region named Saved instructions has textboxes named Instruction name and Instruction text and a button named Save instruction. Each saved one has buttons named Use <name>, Edit <name> and Delete <name>. Using one makes it the open bot's instructions from the next reply on. Edit <name> puts it back into those two textboxes, to change and save again under the same name.\n- Saved tasks. A region named Saved tasks has textboxes named Task name and Task request and a button named Save task. Each saved one has buttons named Run <name>, Edit <name> and Delete <name>. Running one sends its request in the open conversation. Edit <name> puts it back into those two textboxes, to change and save again under the same name.\n- Memory. A region named Memory lists what the open bot remembers about me as list items, each with buttons named Edit memory and Forget. Editing uses a textbox named Memory text and a button named Save memory.\n- Changes. A proposal appears in a region named Proposed changes that states each change exactly (for example `ORD-1001 status: open \u2192 closed`), with buttons named Confirm changes and Reject changes. Afterwards a region named Change result says what happened.\n- Long tasks. A region named Tasks shows each long task as an article named Task: <title>. It holds a status named Task status that reads Running, Completed, Failed, Cancelled or Interrupted, the steps that have finished, a button named Cancel task while it runs, and a button named Retry task after a failure or an interruption. When I come back after being away, a region named Since you were away tells me what finished, what is still running and what needs my attention.\n\nCover the rules the app follows in modules it uses, with node:test tests under test/ that `npm test` runs.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "grokbot",
+  "source": "scenarios/grokbot-local/REQUEST.md: the owner's Grok chat request (commit 71fa298e44db73f6afa46217377ba0ea850de916) moved to a local Node app, with a checkable section; fixture and yardstick in scenarios/grokbot-local/",
+  "hidden2": "grokbot2"
+ }
+}

@@ -1,0 +1,44 @@
+[
+ {
+  "gate": "01-after-build-1.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "02-cycle-1-first.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "03-after-build-2.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "04-cycle-2-first.json",
+  "pass": false,
+  "failing": [
+   "C-265"
+  ]
+ },
+ {
+  "gate": "05-after-fix-1.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "06-after-build-3.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "07-cycle-3-first.json",
+  "pass": true,
+  "failing": []
+ },
+ {
+  "gate": "08-final.json",
+  "pass": true,
+  "failing": []
+ }
+]

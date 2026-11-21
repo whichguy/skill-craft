@@ -1,0 +1,48 @@
+{
+ "frozen suite of an earlier run": {
+  "observed": true,
+  "passed": [
+   "boundary-tests"
+  ],
+  "failed": {
+   "strong-tests": "  }"
+  },
+  "tree": "2d1eaff7c752e9e3b80e3e1f6e47a286b00c3027",
+  "label": "frozen suite of an earlier run",
+  "at": 0.3
+ },
+ "fix-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "235af06fe3c50bef6ce3255aa9a9cda5b90acc06",
+  "label": "fix-1",
+  "at": 187.2
+ },
+ "green-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "235af06fe3c50bef6ce3255aa9a9cda5b90acc06",
+  "label": "green-1",
+  "at": 187.2,
+  "same_tree_as": "fix-1"
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "5066062b7d89bb9bb56d8a54fdf996247e7c0f3b",
+  "label": "final",
+  "at": 386.7
+ }
+}

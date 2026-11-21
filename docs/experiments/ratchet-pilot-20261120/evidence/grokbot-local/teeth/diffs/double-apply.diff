@@ -1,0 +1,35 @@
+diff -ru <runs>/teeth/double-apply/.untouched/product/lib/records.js <runs>/teeth/double-apply/product/lib/records.js
+--- <runs>/teeth/double-apply/.untouched/product/lib/records.js	2026-11-20 22:30:53
++++ <runs>/teeth/double-apply/product/lib/records.js	2026-11-20 22:57:06
+@@ -77,4 +77,4 @@
+   return { status: 'applied', text: 'Changes applied to the records.', records: working };
+ }
+ 
+-module.exports = { readableRecords, previewChanges, applyChanges };
++module.exports = { readableRecords, previewChanges, applyChanges, nextOrderId };
+diff -ru <runs>/teeth/double-apply/.untouched/product/lib/workspace.js <runs>/teeth/double-apply/product/lib/workspace.js
+--- <runs>/teeth/double-apply/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/double-apply/product/lib/workspace.js	2026-11-20 22:57:06
+@@ -1,7 +1,7 @@
+ 'use strict';
+ 
+ const { randomUUID } = require('node:crypto');
+-const { readableRecords, previewChanges, applyChanges } = require('./records');
++const { readableRecords, previewChanges, applyChanges, nextOrderId } = require('./records');
+ 
+ class RequestError extends Error {
+   constructor(status, message) {
+@@ -359,11 +359,12 @@
+         case 'confirm':
+         case 'reject': {
+           const proposal = find(conversation.proposals, input.id, 'Proposal');
+-          if (proposal.status !== 'pending') return;
++          if (proposal.status !== 'pending' && !(input.action === 'confirm' && proposal.status === 'applied')) return;
+           if (input.action === 'reject') {
+             Object.assign(proposal, { status: 'rejected', result: 'Changes rejected. No records were written.' });
+             return;
+           }
++          for (const each of proposal.changes) if (each.create && input.action === 'confirm') each.create.id = nextOrderId(state.records);
+           const result = applyChanges(state.records, personId, proposal.changes);
+           if (result.records) state.records = result.records;
+           Object.assign(proposal, { status: result.status, result: result.text });

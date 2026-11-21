@@ -1,0 +1,62 @@
+{
+ "case": "grokbot-local",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "high",
+ "started": "2026-11-20T22:59:07-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": true,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "build",
+   "label": "bare-build",
+   "seconds": 1445.1,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 1445.1,
+   "held_out_marks": [],
+   "cost_usd": 3.6197384
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "79a69528f0d940e623de44fd172a0d8bea1539b7",
+   "tree": "0a8d3db05115ff6ebd5b2a18deb45fefd6a148b6",
+   "at": 0.2
+  },
+  {
+   "label": "build-1",
+   "commit": "799d5e8b33c308b3ed4f61df356de7a2c21af90d",
+   "tree": "45a0bddb926fb9936aeeab50ee999519b95f37ca",
+   "at": 1445.6
+  },
+  {
+   "label": "final",
+   "commit": "8567a579c94ddb91f20fb2b0776e1f9b392ce7ea",
+   "tree": "45a0bddb926fb9936aeeab50ee999519b95f37ca",
+   "at": 1445.8
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "bare": true
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "d2918f4fc8f4a73abc2220ce1c565cbde97c13d6",
+ "named_checks": true,
+ "stop": "bare",
+ "final_pass": null,
+ "seconds": 1445.8,
+ "clauses": 0,
+ "use_cases": 0,
+ "tamper": [],
+ "finished": "2026-11-20T23:23:13-0800"
+}

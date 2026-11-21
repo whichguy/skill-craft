@@ -1,0 +1,7 @@
+== seeded faults on each Grokbot build, its own npm test, 60 sites, 2 workers 00:13:21
+bare, Sol 6.2 low: 114 fault sites on changed lines in 5 files; 60 sampled, 0 invalid; own 31 caught, 29 survived (52%)
+bare, Sol 6.2 high: 324 fault sites on changed lines in 5 files; 60 sampled, 0 invalid; own 24 caught, 36 survived (40%)
+bare, Sonnet 5.5 high: 462 fault sites on changed lines in 13 files; 60 sampled, 0 invalid; own 31 caught, 23 survived (57%)
+ShipLoop, Sol 6.2 high: 359 fault sites on changed lines in 6 files; 60 sampled, 0 invalid; own 37 caught, 23 survived (62%)
+Ratchet, Sol 6.2 high, first build: 595 fault sites on changed lines in 7 files; 60 sampled, 0 invalid; own 23 caught, 35 survived (40%)
+mutate-grokbot-done 01:12:32

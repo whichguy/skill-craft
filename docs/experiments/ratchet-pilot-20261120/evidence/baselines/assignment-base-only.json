@@ -1,0 +1,188 @@
+{
+ "case": "ticket-assignment",
+ "label": "the base's 117 tests alone",
+ "tree": null,
+ "test_files": [],
+ "reference": {
+  "ended": true,
+  "failing": [],
+  "counts": {
+   "tests": 117,
+   "pass": 117,
+   "fail": 0
+  }
+ },
+ "controls": {
+  "alternative": {
+   "ended": true,
+   "failing": [],
+   "counts": {
+    "tests": 117,
+    "pass": 117,
+    "fail": 0
+   }
+  }
+ },
+ "defects": {
+  "filter-or": {
+   "caught": false,
+   "by": []
+  },
+  "filter-after-page": {
+   "caught": false,
+   "by": []
+  },
+  "no-envelope": {
+   "caught": false,
+   "by": []
+  },
+  "conflict-as-invalid": {
+   "caught": false,
+   "by": []
+  },
+  "closed-assignable": {
+   "caught": false,
+   "by": []
+  },
+  "notify-inline": {
+   "caught": false,
+   "by": []
+  },
+  "notify-no-template": {
+   "caught": false,
+   "by": []
+  },
+  "notify-key-per-ticket": {
+   "caught": false,
+   "by": []
+  },
+  "notify-requester": {
+   "caught": false,
+   "by": []
+  },
+  "audit-bypassed": {
+   "caught": false,
+   "by": []
+  },
+  "actor-ignored": {
+   "caught": false,
+   "by": []
+  },
+  "same-agent-not-noop": {
+   "caught": false,
+   "by": []
+  },
+  "memory-only-assignee": {
+   "caught": false,
+   "by": []
+  },
+  "old-data-refused": {
+   "caught": false,
+   "by": []
+  },
+  "old-assignee-undefined": {
+   "caught": false,
+   "by": []
+  },
+  "raw-column-inserted": {
+   "caught": false,
+   "by": []
+  },
+  "cli-no-assignee": {
+   "caught": false,
+   "by": []
+  },
+  "no-unassign": {
+   "caught": false,
+   "by": []
+  },
+  "empty-filter-ignored": {
+   "caught": false,
+   "by": []
+  },
+  "name-limit-off-by-one": {
+   "caught": false,
+   "by": []
+  },
+  "listing-hides-assignee": {
+   "caught": false,
+   "by": []
+  },
+  "update-rejects-resolved": {
+   "caught": false,
+   "by": []
+  },
+  "default-limit-changed": {
+   "caught": true,
+   "by": [
+    "GET /tickets",
+    "defaults to no filter, 20 a page, from the start",
+    "ignores parameters it does not know, offset included",
+    "lists every ticket in id order, 20 to a page",
+    "parseListQuery"
+   ]
+  },
+  "resolved-template-replaced": {
+   "caught": true,
+   "by": [
+    "a notification is worded by the template of its type",
+    "with a file, each delivery appends one JSON line"
+   ]
+  },
+  "audit-not-saved": {
+   "caught": true,
+   "by": [
+    "a file the service cannot use is refused",
+    "a restarted store keeps its tickets, history and outbox, and never reuses a number",
+    "an audit log with a gap",
+    "every change is saved, and loading gives the same state back",
+    "the data file",
+    "with a data file, a restarted service has the same tickets, history and outbox"
+   ]
+  },
+  "backoff-linear": {
+   "caught": false,
+   "by": []
+  },
+  "validate-renamed": {
+   "caught": false,
+   "by": []
+  }
+ },
+ "caught": 3,
+ "pool": 27,
+ "tests_on_reference": {
+  "tests": 117,
+  "pass": 117,
+  "fail": 0
+ },
+ "failing_on_reference": [],
+ "missed": [
+  "actor-ignored",
+  "audit-bypassed",
+  "backoff-linear",
+  "cli-no-assignee",
+  "closed-assignable",
+  "conflict-as-invalid",
+  "empty-filter-ignored",
+  "filter-after-page",
+  "filter-or",
+  "listing-hides-assignee",
+  "memory-only-assignee",
+  "name-limit-off-by-one",
+  "no-envelope",
+  "no-unassign",
+  "notify-inline",
+  "notify-key-per-ticket",
+  "notify-no-template",
+  "notify-requester",
+  "old-assignee-undefined",
+  "old-data-refused",
+  "raw-column-inserted",
+  "same-agent-not-noop",
+  "update-rejects-resolved",
+  "validate-renamed"
+ ],
+ "not_judged": [],
+ "control_alternative_fails_beyond_reference": []
+}

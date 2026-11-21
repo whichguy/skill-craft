@@ -1023,3 +1023,76 @@ throughout and agrees with Opus on covered-or-not for 84 to 87% of nuance verdic
   45. Section 15's "the lenses lose their standalone lead inside the stage" used the 62 (note there).
 
 Status of the experiment: concluded, with what is the owner's listed at the end of section 15.
+
+## 17. Sent, published, and two things learned on the way out (2026-11-21)
+
+**The owner's words:** "Yes, send it and publish", in answer to "should I send the lens result to the ratchet
+pilot's session, where it does apply?".
+
+### Sent
+
+The result that holds (the lens arms over the ratchet pilot's single-pass enrich text, under two judges, with its
+cautions) went to the session that owns the pilot as a cross-session message. Nothing was asked of it and nothing of
+its was touched. Its reply, received and not verified here:
+- It recorded the result in `docs/ratchet-pilot-journal.md` section 19 with the cautions.
+- Its own reading, which bears on section 14 from the other side: this experiment's measure rewards deciding more,
+  and the pilot's built products show that decided clauses are where correct products were rejected and where one
+  product was made to fail held-out checks. That is the review's finding 6 seen through a built product: what this
+  instrument scored as coverage is, in part, what the pilot's instrument scored as harm. Neither measurement was
+  designed to test the other; they point the same way.
+- It agrees from its side that iterating gained nothing over one pass.
+- On the Codex skills fact of section 7: across its 769 session event files the only mention of a user-level skill
+  path is one process listing it had already audited.
+
+### A known load on the minutes
+
+The same reply reports that ten stray test processes from an interrupted script of that session ran at full CPU
+from about 22:00 to 02:02 on 2026-11-20 and 21. Rounds 4c, 5 and 6, the judge checks and the audits of this
+experiment all ran inside that window; rounds 1 to 3 and round 4's subject calls ran before it.
+
+> **Superseded 2026-11-21:** every statement in sections 10, 11 and 15 that compares *minutes* between a round
+> before the window and one inside it. On Sonnet, A and D were timed in round 4 (before) and L, F, P and Q in rounds
+> 5 and 6 (inside), so "the released stage run alone costs about what the recursive arms cost" and the Sonnet minutes
+> column of section 11 are not comparisons of like with like. What is unaffected: output tokens (Sonnet, a case:
+> A 15,317; L 21,484; P 43,342; F 43,379; D 57,787), and comparisons inside one round, which is what the registered
+> cost readings used (R9, L against F in round 5: 52% and 54% of the minutes, 50% and 56% of the tokens; R15, Q
+> against P in round 6). On tokens the released stage costs what the iterating guarded arm costs and twice what
+> the one-pass arm costs.
+
+### Published
+
+- **Scope, the owner's choice.** Thirteen commits of this experiment were unpushed, and three docs-only commits of
+  the session running the SDLC-structure study sat between them on the shared local `main`. Asked, the owner chose
+  to publish through this experiment's last commit: the thirteen and those three, leaving that session's two newest
+  commits for it to push.
+- **The remote moved three times while the range was being checked**, each time by the Ratchet session publishing
+  its pilot at the owner's word in that session: its merge, then journal and evidence commits. The first guarded
+  attempt stopped on its own pre-check and the second was refused by the guard; nothing was pushed either time.
+- **A merge, not a rebase**, because this range's commits cite one another by full hash. The merges were made in a
+  temporary detached worktree at this experiment's last commit, so the shared checkout was never touched.
+- **Checks.** The quick tier, pinned to the base, passed twice: 13 suites on the range alone and 13 on the range
+  merged with the remote. The candidate finally pushed differed from that tested tree only in files of the Ratchet
+  pilot that the remote had added since, so the tier was not run a third time. The guard then ran its three checks
+  (marketplace packages, the release boundary against the base, the test catalogue) and pushed the frozen commit
+  without force.
+- **No release and no host refresh**: no file under `skills/` or `agents/` changed, and no change note is pending.
+- **Left as it is, and said so:** the shared checkout's local `main` is two commits ahead of origin (the other
+  session's) and behind it by the merge. It cannot be fast-forwarded and is that session's to reconcile; it was
+  told how.
+
+> **Superseded 2026-11-21, minutes later:** "it was told how" was written, and pushed, before the message was sent.
+> When it was sent, that session held it: its Claude has not seen it (the usual cause is that the two sessions run
+> in different permission modes). As of this note the session whose commits sit on the shared local `main` has not
+> been told, and the owner has been, with what the message says: fetch, then merge origin/main into local main, a
+> merge and not a rebase if its commits are cited by hash; no conflict is expected. An action is recorded after it
+> has happened and been seen to have happened, not before.
+
+### The owner's to-do
+
+"Add todo: did we update the prompt templates for Shiploop to improve them?" (2026-11-21). **Not as of this
+entry.** Nothing under `skills/shiploop/` was changed by this experiment; the last change to the stage prompt text
+is still the fewest-steps commit of ShipLoop 2.4.0. It is open, not decided against. What is on record as a
+candidate, and what each would need, is the list at the end of section 15: a short cue in duty 2 naming the people
+who run the thing and its unhappy paths (interim evidence; the review's rewording, its own paired check, an E2E
+round and the owner's go); the stale sentence in `references/behavioral-requirements.md`; and, under both, whether
+the stage should decide more of what it reaches.

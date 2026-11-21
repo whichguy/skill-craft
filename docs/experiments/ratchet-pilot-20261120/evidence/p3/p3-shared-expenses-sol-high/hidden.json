@@ -1,0 +1,124 @@
+{
+ "build-1": {
+  "observed": true,
+  "passed": [
+   "unit",
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {},
+  "tree": "df1abf3bde02d922d9b4cf432c874650c255eee8",
+  "label": "build-1",
+  "at": 1343.5
+ },
+ "fix-1": {
+  "observed": true,
+  "passed": [
+   "unit",
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {},
+  "tree": "515f2c242dfae98a73f480c48e3d8ec9d032f3fa",
+  "label": "fix-1",
+  "at": 2611.0
+ },
+ "green-1": {
+  "observed": true,
+  "passed": [
+   "unit",
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {},
+  "tree": "515f2c242dfae98a73f480c48e3d8ec9d032f3fa",
+  "label": "green-1",
+  "at": 2611.0,
+  "same_tree_as": "fix-1"
+ },
+ "build-2": {
+  "observed": true,
+  "passed": [
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {
+   "unit": "  }"
+  },
+  "tree": "f85cc29f27837442913774eb031646e78e17ccd2",
+  "label": "build-2",
+  "at": 4031.9
+ },
+ "green-2": {
+  "observed": true,
+  "passed": [
+   "unit",
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {},
+  "tree": "313a1d4e6a860d207c84fe8675e75742af9f4b79",
+  "label": "green-2",
+  "at": 4781.5
+ },
+ "build-3": {
+  "observed": true,
+  "passed": [
+   "unit",
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {},
+  "tree": "837e266a2634872e311f1d2e3dba74eb5ff77bb6",
+  "label": "build-3",
+  "at": 5889.1
+ },
+ "green-3": {
+  "observed": true,
+  "passed": [
+   "unit",
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {},
+  "tree": "43f0b92ae3b5e5ca183b8bceab459ee8b8088380",
+  "label": "green-3",
+  "at": 6633.5
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "unit",
+   "contract",
+   "split",
+   "settle",
+   "restart",
+   "concurrency"
+  ],
+  "failed": {},
+  "tree": "91ca8072109b9213c02c9a77f5e9bce1f5c89660",
+  "label": "final",
+  "at": 7097.0
+ }
+}

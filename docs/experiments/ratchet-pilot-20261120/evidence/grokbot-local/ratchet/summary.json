@@ -1,0 +1,175 @@
+[
+ {
+  "run": "g-ratchet-sol-high",
+  "case": "grokbot-local",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 207.7,
+  "sessions": 14,
+  "clauses": 280,
+  "use_cases": 29,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 10.1,
+   "plan": 20.7,
+   "build": 50.5,
+   "tests": 60.1,
+   "delta": 16.7,
+   "fix": 7.4,
+   "gates and script": 42.2
+  },
+  "tokens": {
+   "input": 47089909,
+   "cached": 45244416,
+   "output": 392253,
+   "reasoning": 121921
+  },
+  "minutes_to_first_build": 37.5,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-261",
+     "C-262"
+    ],
+    "first_gate": "291 of 291",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-263",
+     "C-264",
+     "C-265",
+     "C-266",
+     "C-267",
+     "C-268"
+    ],
+    "delta_keeps_no": 3,
+    "delta_keeps_yes": 3
+   },
+   {
+    "cycle": 2,
+    "plan_added": [
+     "C-269"
+    ],
+    "first_gate": "297 of 298",
+    "first_gate_failing": [
+     "C-265"
+    ],
+    "fix_sessions": 1,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-270",
+     "C-271",
+     "C-272",
+     "C-273",
+     "C-274"
+    ],
+    "delta_keeps_no": 5,
+    "delta_keeps_yes": 0,
+    "build_changed": {
+     "files": 11,
+     "added": 597,
+     "removed": 68
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [
+     "C-275"
+    ],
+    "first_gate": "304 of 304",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-276",
+     "C-277",
+     "C-278",
+     "C-279",
+     "C-280"
+    ],
+    "delta_keeps_no": 5,
+    "delta_keeps_yes": 0,
+    "build_changed": {
+     "files": 8,
+     "added": 611,
+     "removed": 128
+    }
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 49,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 49,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ }
+]

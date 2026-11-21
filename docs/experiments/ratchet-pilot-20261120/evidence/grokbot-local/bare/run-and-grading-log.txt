@@ -1,0 +1,11 @@
+[22:14:01] session 1: bare-build
+[22:30:53]   ended exited after 1012.1 s
+[22:30:53] bare build ended after 1012.4 s
+run-exit=0
+g-bare-sol-high                   build-1     passed 43  failed ['a-second-conversation-starts-empty-and-both-are-listed', 'setup-accepts-a-good-token', 'setup-is-shown-without-a-token', 'setup-refuses-a-wrong-token-and-lets-me-retry', 'the-saved-token-survives-a-restart', 'the-token-is-never-shown-again']
+g-bare-sol-high                   final       passed 43  failed ['a-second-conversation-starts-empty-and-both-are-listed', 'setup-accepts-a-good-token', 'setup-is-shown-without-a-token', 'setup-refuses-a-wrong-token-and-lets-me-retry', 'the-saved-token-survives-a-restart', 'the-token-is-never-shown-again']
+grade-exit=0
+== regrade with the calibrated yardstick 22:36:55
+g-bare-sol-high                   build-1     passed 49  failed []
+g-bare-sol-high                   final       passed 49  failed []
+grade-exit=0 22:38:13

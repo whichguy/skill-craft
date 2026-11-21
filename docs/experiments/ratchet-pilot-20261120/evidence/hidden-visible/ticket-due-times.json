@@ -1,0 +1,67 @@
+{
+ "case": "ticket-due-times",
+ "reference_passes": [
+  "cli",
+  "migrate",
+  "off",
+  "pristine",
+  "restart",
+  "rollback",
+  "switch"
+ ],
+ "reference_fails": [
+  "suite"
+ ],
+ "reference_observed": true,
+ "defects": {
+  "version-two": {
+   "observed": true,
+   "fails": [
+    "pristine",
+    "rollback"
+   ]
+  },
+  "priority-moves-due": {
+   "observed": true,
+   "fails": [
+    "restart"
+   ]
+  },
+  "due-not-persisted": {
+   "observed": true,
+   "fails": [
+    "restart"
+   ]
+  },
+  "no-backfill": {
+   "observed": true,
+   "fails": [
+    "migrate",
+    "restart",
+    "switch"
+   ]
+  },
+  "flag-ignored": {
+   "observed": true,
+   "fails": [
+    "off"
+   ]
+  },
+  "overdue-active": {
+   "observed": true,
+   "fails": [
+    "migrate"
+   ]
+  }
+ },
+ "visible": [
+  "due-not-persisted",
+  "flag-ignored",
+  "no-backfill",
+  "overdue-active",
+  "priority-moves-due",
+  "version-two"
+ ],
+ "invisible": [],
+ "not_observed": []
+}

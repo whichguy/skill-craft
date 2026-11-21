@@ -1,0 +1,77 @@
+{
+ "label": "ShipLoop 2.4.0 delivery, own tests (Sol 6.2 medium)",
+ "tree": "/Users/dadleet/e2e-runs-sdlc8/20261120/ticket-assignment-sol-medium/work",
+ "sites_on_changed_lines": 7,
+ "files": {
+  "src/store.js": 2,
+  "src/tickets/query.js": 4,
+  "src/tickets/validate.js": 1
+ },
+ "sampled": 7,
+ "invalid": 0,
+ "commands_failing_on_the_untouched_copy": [],
+ "faults": [
+  {
+   "file": "src/store.js",
+   "line": 102,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 33,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 61,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/store.js",
+   "line": 105,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 48,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 48,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 48,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  }
+ ],
+ "own": {
+  "caught": 7,
+  "survived": 0,
+  "did_not_end": 0,
+  "share": 1.0
+ }
+}

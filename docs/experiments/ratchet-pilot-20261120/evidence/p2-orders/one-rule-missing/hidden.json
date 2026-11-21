@@ -1,0 +1,48 @@
+{
+ "frozen suite of an earlier run": {
+  "observed": true,
+  "passed": [
+   "boundary-tests"
+  ],
+  "failed": {
+   "strong-tests": "  }"
+  },
+  "tree": "8233c2f504c4a8f3d779059c050f703bab5d60c4",
+  "label": "frozen suite of an earlier run",
+  "at": 0.3
+ },
+ "fix-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "960d992217116ca48c5955f59106f4cabbf7d99b",
+  "label": "fix-1",
+  "at": 201.4
+ },
+ "green-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "960d992217116ca48c5955f59106f4cabbf7d99b",
+  "label": "green-1",
+  "at": 201.4,
+  "same_tree_as": "fix-1"
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "47df371822fc939fe01bc801c422ee6031b45eba",
+  "label": "final",
+  "at": 334.0
+ }
+}

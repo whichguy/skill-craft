@@ -1,0 +1,507 @@
+{
+ "label": "Ratchet, Sol 6.2 high, first build",
+ "tree": "<an export of the first build>",
+ "sites_on_changed_lines": 595,
+ "files": {
+  "lib/records.js": 35,
+  "lib/service.js": 59,
+  "lib/store.js": 144,
+  "lib/tasks.js": 52,
+  "lib/workspace.js": 52,
+  "public/app.js": 217,
+  "server.js": 36
+ },
+ "sampled": 60,
+ "invalid": 0,
+ "commands_failing_on_the_untouched_copy": [],
+ "untouched_failures": {},
+ "faults": [
+  {
+   "file": "lib/records.js",
+   "line": 16,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/service.js",
+   "line": 15,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 19,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 13,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 23,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 17,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 18,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 17,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/service.js",
+   "line": 17,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": null
+  },
+  {
+   "file": "lib/store.js",
+   "line": 19,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 13,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 61,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 18,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 18,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 24,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "lib/service.js",
+   "line": 22,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 19,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 16,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 62,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 19,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 18,
+   "op": "bound-literal",
+   "old": "65535",
+   "new": "65536",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 42,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/service.js",
+   "line": 23,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 19,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 16,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 63,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 20,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 32,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 43,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/service.js",
+   "line": 23,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 23,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 24,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 64,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 21,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 34,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 43,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/service.js",
+   "line": 24,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 23,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 25,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 68,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 29,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 34,
+   "op": "bound-literal",
+   "old": "180000",
+   "new": "180001",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 47,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/service.js",
+   "line": 26,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 23,
+   "op": "bound-literal",
+   "old": "1",
+   "new": "2",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 25,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 68,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 34,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 42,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 47,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/service.js",
+   "line": 31,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 30,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 25,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "lib/workspace.js",
+   "line": 68,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 38,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 42,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 47,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/service.js",
+   "line": 36,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 30,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 39,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": null
+  }
+ ],
+ "own": {
+  "caught": 23,
+  "survived": 35,
+  "did_not_end": 2,
+  "not_measured": 0,
+  "share": 0.397
+ }
+}

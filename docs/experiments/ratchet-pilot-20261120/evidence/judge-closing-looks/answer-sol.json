@@ -1,0 +1,311 @@
+{
+ "judge": "sol",
+ "meta": {
+  "model_used": "gpt-6.1-sol",
+  "served_model": null,
+  "model_verification": null,
+  "fallback": false,
+  "effort": "xhigh",
+  "profile": "ask",
+  "exit": 0,
+  "asked": "start 22:32:29",
+  "ended": "exit=0 22:40:17"
+ },
+ "labels": [
+  {
+   "id": "D02",
+   "label": "C",
+   "why": "The request does not specify handling of an inconsistent, occupied en-passant target."
+  },
+  {
+   "id": "D03",
+   "label": "C",
+   "why": "Acceptance and repair of castling rights inconsistent with the starting board are unspecified."
+  },
+  {
+   "id": "D04",
+   "label": "C",
+   "why": "Supporting unreachable analysis positions is an input-domain choice."
+  },
+  {
+   "id": "D08",
+   "label": "R",
+   "why": "En passant may legally give the opposing king check, including by removing its previous blocker."
+  },
+  {
+   "id": "D21",
+   "label": "C",
+   "why": "The request does not require tolerating stale special-move metadata instead of rejecting the position."
+  },
+  {
+   "id": "D33",
+   "label": "C",
+   "why": "Immediately normalizing unsupported castling flags is one possible policy for inconsistent input."
+  },
+  {
+   "id": "D34",
+   "label": "C",
+   "why": "The request does not specify accepting an en-passant field inconsistent with the halfmove clock."
+  },
+  {
+   "id": "D36",
+   "label": "C",
+   "why": "Tolerance for noncanonical whitespace, castling order and numeric formatting is unspecified."
+  },
+  {
+   "id": "D49",
+   "label": "C",
+   "why": "The request defines FEN inputs but does not prescribe rejection behavior for malformed FEN."
+  },
+  {
+   "id": "D51",
+   "label": "C",
+   "why": "Historical validation of en-passant metadata in an already inconsistent position is unspecified."
+  },
+  {
+   "id": "D11",
+   "label": "E",
+   "why": "Committing an incomplete HTTP message could create unintended records and consume expense numbers."
+  },
+  {
+   "id": "D12",
+   "label": "E",
+   "why": "Silently losing acknowledged expenses is a data-integrity defect, and refusing overlapping access avoids it."
+  },
+  {
+   "id": "D13",
+   "label": "E",
+   "why": "New admission limits should not invalidate supported persisted data or alter previously recorded amounts."
+  },
+  {
+   "id": "D14",
+   "label": "E",
+   "why": "Representation overflow must not corrupt committed amounts or consume an unsuccessful expense's number."
+  },
+  {
+   "id": "D20",
+   "label": "E",
+   "why": "Accepting a linked store and silently separating it from its backing file risks apparent data loss."
+  },
+  {
+   "id": "D27",
+   "label": "C",
+   "why": "The request does not prescribe documentation for client-specific handling of unusual accepted IDs."
+  },
+  {
+   "id": "D28",
+   "label": "C",
+   "why": "Ignoring unspecified query parameters is a policy choice; rejecting them could also be correct."
+  },
+  {
+   "id": "D29",
+   "label": "X",
+   "why": "Delayed store acquisition and live ownership handover add an operational lifecycle absent from the request."
+  },
+  {
+   "id": "D32",
+   "label": "C",
+   "why": "A documented combined HTTP size budget is an optional admission-policy detail."
+  },
+  {
+   "id": "D40",
+   "label": "C",
+   "why": "Neither an ID size limit nor measuring it in percent-encoded bytes is specified."
+  },
+  {
+   "id": "D41",
+   "label": "C",
+   "why": "A fixed decimal-length admission limit and its documentation are implementation choices."
+  },
+  {
+   "id": "D42",
+   "label": "E",
+   "why": "Silently splitting an accepted store's aliases can make acknowledged expenses disappear through another existing path."
+  },
+  {
+   "id": "D45",
+   "label": "E",
+   "why": "Detecting conflicting store changes prevents a stale process from silently destroying replacement data."
+  },
+  {
+   "id": "D48",
+   "label": "E",
+   "why": "An interrupted save must not destroy previously committed data or make abandoned candidates authoritative."
+  },
+  {
+   "id": "D50",
+   "label": "C",
+   "why": "The request does not require a documented transport-budget calculation or select its boundary convention."
+  },
+  {
+   "id": "D53",
+   "label": "E",
+   "why": "Replacing malformed UTF-8 silently can change identifiers and corrupt persisted meaning."
+  },
+  {
+   "id": "D55",
+   "label": "R",
+   "why": "Committed expenses must survive restart, and another valid POST records another expense without an idempotency contract."
+  },
+  {
+   "id": "D56",
+   "label": "E",
+   "why": "JSON responses should identify their representation so HTTP clients can interpret them correctly."
+  },
+  {
+   "id": "D59",
+   "label": "R",
+   "why": "Startup must load the configured valid snapshot and continue its saved expenses and numbering."
+  },
+  {
+   "id": "D01",
+   "label": "C",
+   "why": "The documented pagination contract does not choose live filtering over a consistent listing snapshot."
+  },
+  {
+   "id": "D05",
+   "label": "R",
+   "why": "The documented atomic store operation requires failed saves to leave ticket, audit and outbox unchanged."
+  },
+  {
+   "id": "D06",
+   "label": "C",
+   "why": "Duplicate-member rejection is an additional JSON interpretation policy absent from the documented snapshot contract."
+  },
+  {
+   "id": "D07",
+   "label": "E",
+   "why": "Silently decoding corrupt bytes would make readers report altered ticket data."
+  },
+  {
+   "id": "D09",
+   "label": "E",
+   "why": "Changed admission rules should not discard an already queued historical assignment notice."
+  },
+  {
+   "id": "D10",
+   "label": "E",
+   "why": "Writing notifications into the state file would corrupt persisted data and should instead fail safely."
+  },
+  {
+   "id": "D15",
+   "label": "C",
+   "why": "Rejecting duplicate JSON members rather than applying a consistent parser policy is unspecified."
+  },
+  {
+   "id": "D16",
+   "label": "E",
+   "why": "Silently replacing invalid bytes could load a different assignee from the one stored."
+  },
+  {
+   "id": "D17",
+   "label": "E",
+   "why": "Accepted assignee names should not corrupt the existing raw listing's record boundaries."
+  },
+  {
+   "id": "D18",
+   "label": "E",
+   "why": "Malformed encoding must not silently turn the requested assignee into a different name."
+  },
+  {
+   "id": "D19",
+   "label": "C",
+   "why": "Exact notice-to-audit correlation is an optional key design beyond the documented notification guarantees."
+  },
+  {
+   "id": "D22",
+   "label": "C",
+   "why": "Refusing retargeting with HTTP 500 is one of several possible safe path-handling policies."
+  },
+  {
+   "id": "D23",
+   "label": "C",
+   "why": "Rejecting line separators is one policy; accepting them with safe output encoding is another."
+  },
+  {
+   "id": "D24",
+   "label": "E",
+   "why": "Displaying an unassigned value indistinguishably from a valid agent name makes history misleading."
+  },
+  {
+   "id": "D25",
+   "label": "E",
+   "why": "Malformed encoding must not alias a different, correctly encoded agent name."
+  },
+  {
+   "id": "D26",
+   "label": "E",
+   "why": "An accepted state-file symlink should not silently separate persisted assignments from its backing snapshot."
+  },
+  {
+   "id": "D30",
+   "label": "R",
+   "why": "The documented atomic change requires a failed title save to preserve the committed ticket and audit."
+  },
+  {
+   "id": "D31",
+   "label": "C",
+   "why": "Strict rejection of malformed percent escapes is an unspecified query-decoding policy."
+  },
+  {
+   "id": "D35",
+   "label": "R",
+   "why": "Transport chunk boundaries cannot change a valid assignment name or its notification recipient."
+  },
+  {
+   "id": "D37",
+   "label": "C",
+   "why": "Supporting a dangling state symlink is optional; a correct implementation could refuse that configuration."
+  },
+  {
+   "id": "D38",
+   "label": "E",
+   "why": "Conflicting state and notification destinations must not silently corrupt the store."
+  },
+  {
+   "id": "D39",
+   "label": "E",
+   "why": "Direction controls can otherwise misrepresent an owner and reorder surrounding displayed ticket information."
+  },
+  {
+   "id": "D43",
+   "label": "C",
+   "why": "The request neither requires titles in assignment notices nor selects assignment-time versus delivery-time titles."
+  },
+  {
+   "id": "D44",
+   "label": "C",
+   "why": "A safe eager migration could rewrite a legacy snapshot while preserving all required behavior."
+  },
+  {
+   "id": "D46",
+   "label": "E",
+   "why": "Malformed encoding must not silently change saved ownership or notification recipients."
+  },
+  {
+   "id": "D47",
+   "label": "E",
+   "why": "An unassignment and assignment to the literal name null must not produce misleadingly identical history."
+  },
+  {
+   "id": "D52",
+   "label": "X",
+   "why": "This adds Unicode-separator title support and a raw-format documentation contract outside the assignment request."
+  },
+  {
+   "id": "D54",
+   "label": "E",
+   "why": "Ambiguous escaping would make raw consumers recover the wrong assignee."
+  },
+  {
+   "id": "D57",
+   "label": "E",
+   "why": "Malformed UTF-8 must not select an agent whose actual name contains a replacement character."
+  },
+  {
+   "id": "D58",
+   "label": "E",
+   "why": "All readers should reject corrupt encoding rather than silently report altered snapshot data."
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+== start 21:52:34
+mutate-exit=143 22:03:40
+stopped by me at 22:03:42 to reduce machine load (load average 45); to be rerun
+== restart with 2 workers 22:05:15
+Ratchet whole loop, final product (Sol 6.2 medium): 47 fault sites on changed lines in 7 files; 47 sampled, 0 invalid; own 0 caught, 47 survived (0%); acceptance 41 caught, 6 survived (87%); either 41 caught, 6 survived (87%); 1 command(s) left out because they fail on the untouched copy
+mutate-exit=0 22:29:38
+== own suite only, 2 workers 22:31:16
+Ratchet whole loop, final product (Sol 6.2 medium), builder's own tests: 47 fault sites on changed lines in 7 files; 47 sampled, 0 invalid; own 35 caught, 6 survived (85%)
+mutate-exit=0 22:53:21

@@ -1,0 +1,29 @@
+diff -ru <runs>/teeth/delete-instruction-not-kept/.untouched/product/public/app.js <runs>/teeth/delete-instruction-not-kept/product/public/app.js
+--- <runs>/teeth/delete-instruction-not-kept/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/delete-instruction-not-kept/product/public/app.js	2026-11-20 22:57:07
+@@ -4,6 +4,7 @@
+ const composer = $('message');
+ const thread = $('conversation');
+ const slices = new Map();
++const gone = new Set();
+ const drafts = new Map();
+ const scrollPositions = new Map();
+ const taskReceipts = new Set();
+@@ -308,7 +309,7 @@
+   apply.disabled = !enabled;
+   const edit = button('Edit ' + item.name, () => editSaved(type, item), 'quiet', 'edit-' + item.id);
+   const remove = button('Delete ' + item.name, async () => {
+-    if (await act(isInstruction ? 'delete-instruction' : 'delete-saved-task', { id: item.id })) {
++    if (isInstruction ? (gone.add(item.id), render(), true) : await act('delete-saved-task', { id: item.id })) {
+       const form = $(forms[type].form);
+       if (form.dataset.itemId === item.id) editSaved(type);
+       $(forms[type].name).focus();
+@@ -484,7 +485,7 @@
+   else if (nearBottom) thread.scrollTop = thread.scrollHeight;
+ 
+   updateSlice('instruction-list', [workspace.instructions, bot.instructionId], ([items, activeId]) =>
+-    items.map((item) => savedItem(item, 'instruction', true, item.id === activeId)));
++    items.filter((item) => !gone.has(item.id)).map((item) => savedItem(item, 'instruction', true, item.id === activeId)));
+   $('empty-memory').hidden = bot.memory.length > 0;
+   updateSlice('memory-list', bot.memory, (items) => items.map(memoryItem));
+   const orderedTasks = tasks.sort((left, right) => right.updatedRevision - left.updatedRevision);

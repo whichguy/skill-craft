@@ -1,0 +1,17 @@
+[19:06:50] session 1: spec-1
+[19:11:27]   ended exited after 277.1 s
+[19:11:28] build 1 is the given tree /Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/stand-in-rules/reference
+[19:11:28] gate 1 (after-given-build): PASS; 0 of 0 clauses pass
+[19:11:28] session 2: tests-1-1
+[19:19:08]   ended exited after 459.7 s
+[19:19:26] gate 2 (cycle-1-first): FAIL; 41 of 63 clauses pass; failing C-13, C-14, C-15, C-16, C-17, C-18, C-19, C-22
+[19:19:44] gate 3 (final): FAIL; 41 of 63 clauses pass; failing C-13, C-14, C-15, C-16, C-17, C-18, C-19, C-22
+[19:19:44] run ended: stop-after-tests; final gate FAIL; 63 clauses; 2 sessions; 774.1 s
+run-exit=0
+p1-stand-in-rules: 63 clauses; fail on the correct reference: ['C-13', 'C-14', 'C-15', 'C-16', 'C-17', 'C-18', 'C-19', 'C-22', 'C-24', 'C-25', 'C-27', 'C-28', 'C-29', 'C-32', 'C-35', 'C-37', 'C-38', 'C-39', 'C-40', 'C-41', 'C-42', 'C-63']
+  one-rule-missing            caught     C-10, C-31, C-7
+  tested-only                 MISSED     
+  limit-never-trips           caught     C-47, C-48, C-49, C-50
+  cross-field                 MISSED     
+  caught 2 of 4 calibrated defects
+strength-exit=0

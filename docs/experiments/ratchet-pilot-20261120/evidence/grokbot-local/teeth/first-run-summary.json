@@ -1,0 +1,512 @@
+[
+ {
+  "defect": "clean",
+  "files_edited": [],
+  "expected_check": null,
+  "failed_checks": [],
+  "verdict": "passes 28 of 28",
+  "passed": "28/28"
+ },
+ {
+  "defect": "standin-edited",
+  "files_edited": [
+   "provider/standin.js"
+  ],
+  "expected_check": "the-stand-in-is-delivered-as-it-was",
+  "failed_checks": [
+   "the-stand-in-is-delivered-as-it-was"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "the-stand-in-is-delivered-as-it-was": "provider/standin.js is not the file the project started with"
+  }
+ },
+ {
+  "defect": "adds-dependency",
+  "files_edited": [
+   "package.json"
+  ],
+  "expected_check": "no-npm-dependencies",
+  "failed_checks": [
+   "no-npm-dependencies"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "no-npm-dependencies": "package.json lists dependencies"
+  }
+ },
+ {
+  "defect": "writes-beside-code",
+  "files_edited": [
+   "server.js"
+  ],
+  "expected_check": "everything-kept-lives-under-the-data-folder",
+  "failed_checks": [
+   "everything-kept-lives-under-the-data-folder"
+  ],
+  "note": "Planted file is started.txt written by server.js at start-up; it is present in teeth/writes-beside-code/product/ because the run created it.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "everything-kept-lives-under-the-data-folder": "the app's own folder changed while it ran: started.txt"
+  }
+ },
+ {
+  "defect": "stale-write",
+  "files_edited": [
+   "lib/records.js"
+  ],
+  "expected_check": "a-proposal-whose-record-has-changed-is-not-applied-blindly",
+  "failed_checks": [
+   "a-proposal-whose-record-has-changed-is-not-applied-blindly"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-proposal-whose-record-has-changed-is-not-applied-blindly": "the proposal read \"Proposed changes Set the total of ORD-1001 to 150 ORD-1001 total: 125 \u2192 150 Confirm change\" and confirming it set the total to 150 over another person's 999"
+  }
+ },
+ {
+  "defect": "double-apply",
+  "files_edited": [
+   "lib/records.js",
+   "lib/workspace.js"
+  ],
+  "expected_check": "confirming-in-two-windows-applies-it-once",
+  "failed_checks": [
+   "confirming-in-two-windows-applies-it-once"
+  ],
+  "note": "Planted as: confirm is accepted on an already-applied proposal and a create proposal takes a fresh order id on each confirm (needed, otherwise the existing next-order-id guard in lib/records.js refuses the second apply).",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "confirming-in-two-windows-applies-it-once": "Maya sees 5 orders after one new order was confirmed in two windows; 4 is right"
+  }
+ },
+ {
+  "defect": "instructions-global",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "instructions-belong-to-the-bot-that-uses-them",
+  "failed_checks": [],
+  "note": "Planted as: using an instruction sets it on every EXISTING bot of the person. The check creates its second bot (Other) AFTER using the instruction, and new bots start with no instruction, so the check never sees the leak. See instructions-global-b for the form that reaches later-created bots.",
+  "verdict": "not caught",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {}
+ },
+ {
+  "defect": "instructions-global-b",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "instructions-belong-to-the-bot-that-uses-them",
+  "failed_checks": [
+   "instructions-belong-to-the-bot-that-uses-them"
+  ],
+  "note": "Variant: the instruction is also stored on the person (workspace) and every bot, existing or created later, answers with it. Caught.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "instructions-belong-to-the-bot-that-uses-them": "locator.waitFor: Timeout 12000ms exceeded."
+  }
+ },
+ {
+  "defect": "memory-shared",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "what-i-saved-and-what-my-bot-remembers-is-not-shown-to-another-person",
+  "failed_checks": [
+   "what-i-saved-and-what-my-bot-remembers-is-not-shown-to-another-person"
+  ],
+  "note": "Planted as: memory is read and shown from every person bot of the same name.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "what-i-saved-and-what-my-bot-remembers-is-not-shown-to-another-person": "Theo is shown what Maya's bot remembers"
+  }
+ },
+ {
+  "defect": "records-unfiltered",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "a-third-person-is-answered-only-from-their-own-records",
+  "failed_checks": [
+   "a-third-person-is-answered-only-from-their-own-records",
+   "confirming-in-two-windows-applies-it-once"
+  ],
+  "note": "The second failure is real: Maya then sees 5 orders because the stand-in counts every record.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-third-person-is-answered-only-from-their-own-records": "locator.waitFor: Timeout 12000ms exceeded.",
+   "confirming-in-two-windows-applies-it-once": "Maya sees 5 orders after one new order was confirmed in two windows; 4 is right"
+  }
+ },
+ {
+  "defect": "cancel-not-kept",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "a-cancelled-task-stays-cancelled-after-a-restart",
+  "failed_checks": [
+   "a-cancelled-task-stays-cancelled-after-a-restart"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-cancelled-task-stays-cancelled-after-a-restart": "after a restart the cancelled task reads \"Interrupted\""
+  }
+ },
+ {
+  "defect": "away-omits-failed",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "coming-back-names-what-finished-what-runs-and-what-failed",
+  "failed_checks": [
+   "coming-back-names-what-finished-what-runs-and-what-failed"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "coming-back-names-what-finished-what-runs-and-what-failed": "the account does not name: export"
+  }
+ },
+ {
+  "defect": "cancel-stays-offered",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "a-finished-task-no-longer-offers-cancel",
+  "failed_checks": [
+   "a-finished-task-no-longer-offers-cancel"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-finished-task-no-longer-offers-cancel": "a completed task still offers Cancel task"
+  }
+ },
+ {
+  "defect": "steer-ignored",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "a-steered-task-does-all-its-steps-and-the-added-one",
+  "failed_checks": [
+   "a-steered-task-does-all-its-steps-and-the-added-one"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-steered-task-does-all-its-steps-and-the-added-one": "the added step was not done"
+  }
+ },
+ {
+  "defect": "cancel-all",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "cancelling-one-task-leaves-another-running",
+  "failed_checks": [
+   "cancelling-one-task-leaves-another-running"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "cancelling-one-task-leaves-another-running": "locator.waitFor: Timeout 30000ms exceeded."
+  }
+ },
+ {
+  "defect": "delete-instruction-not-kept",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "a-saved-instruction-can-be-deleted",
+  "failed_checks": [
+   "a-saved-instruction-can-be-deleted"
+  ],
+  "note": "Planted client-side (public/app.js): Delete hides the entry in the page and sends nothing; the stored instruction stays and returns on reload.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-saved-instruction-can-be-deleted": "locator.waitFor: Timeout 8000ms exceeded."
+  }
+ },
+ {
+  "defect": "edit-does-not-refill",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "editing-puts-an-instruction-back-into-its-two-textboxes",
+  "failed_checks": [
+   "editing-puts-an-instruction-back-into-its-two-textboxes"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "editing-puts-an-instruction-back-into-its-two-textboxes": "after Edit Brief the textboxes hold \"Brief\" and \"\""
+  }
+ },
+ {
+  "defect": "task-edit-duplicates",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "a-saved-task-can-be-changed-under-the-same-name",
+  "failed_checks": [
+   "a-saved-task-can-be-changed-under-the-same-name",
+   "a-saved-task-can-be-deleted"
+  ],
+  "note": "The second failure follows from two entries named Daily (deleting one leaves the other).",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-saved-task-can-be-changed-under-the-same-name": "saving again under the same name left 2 tasks named Daily",
+   "a-saved-task-can-be-deleted": "locator.waitFor: Timeout 8000ms exceeded."
+  }
+ },
+ {
+  "defect": "delete-task-not-kept",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "a-saved-task-can-be-deleted",
+  "failed_checks": [
+   "a-saved-task-can-be-deleted"
+  ],
+  "note": "Planted client-side, same way as delete-instruction-not-kept.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-saved-task-can-be-deleted": "the deleted task is back after a reload"
+  }
+ },
+ {
+  "defect": "opens-newest-conversation",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "opening-an-earlier-conversation-returns-to-it",
+  "failed_checks": [
+   "opening-an-earlier-conversation-returns-to-it",
+   "the-open-conversation-is-the-one-marked-current"
+  ],
+  "note": "The mark check fails too because opening the other conversation reopens the newest.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "opening-an-earlier-conversation-returns-to-it": "locator.waitFor: Timeout 8000ms exceeded.",
+   "the-open-conversation-is-the-one-marked-current": "the mark stayed on the conversation that was left"
+  }
+ },
+ {
+  "defect": "mark-does-not-move",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "the-open-conversation-is-the-one-marked-current",
+  "failed_checks": [
+   "the-open-conversation-is-the-one-marked-current"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "the-open-conversation-is-the-one-marked-current": "locator.waitFor: Timeout 8000ms exceeded."
+  }
+ },
+ {
+  "defect": "bots-share-discussion",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "each-bot-returns-to-its-own-discussion",
+  "failed_checks": [
+   "each-bot-returns-to-its-own-discussion"
+  ],
+  "note": "Planted as: opening a bot copies the messages of the conversation that was open in the previous bot into a new first conversation of the opened bot.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "each-bot-returns-to-its-own-discussion": "locator.waitFor: Timeout 8000ms exceeded."
+  }
+ },
+ {
+  "defect": "pending-message-not-kept",
+  "files_edited": [
+   "server.js",
+   "lib/workspace.js"
+  ],
+  "expected_check": "a-reload-during-a-slow-reply-loses-nothing",
+  "failed_checks": [
+   "a-reload-during-a-slow-reply-loses-nothing"
+  ],
+  "note": "Planted as: the POST for a send is held until the reply is done and, if the page drops the connection first (a reload), the message is removed (new drop-message action in lib/workspace.js, ~12 lines across server.js and workspace.js). A simpler \"store only after the reply\" change would not make a reload lose anything, because the server keeps working; the check would pass.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-reload-during-a-slow-reply-loses-nothing": "after the reload the reply never came and nothing offers to try again"
+  }
+ },
+ {
+  "defect": "failed-message-dropped",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "a-failed-reply-can-still-be-retried-after-a-reload",
+  "failed_checks": [
+   "a-failed-reply-can-still-be-retried-after-a-reload"
+  ],
+  "note": "Planted client-side (public/app.js): a failed message is shown only if this page saw its reply pending; after a reload it is not shown. The server still stores it. The check cannot tell the two apart.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-failed-reply-can-still-be-retried-after-a-reload": "after the reload the failed message is gone from the conversation and from the message box"
+  }
+ },
+ {
+  "defect": "no-word-break",
+  "files_edited": [
+   "public/style.css"
+  ],
+  "expected_check": "a-long-unbroken-message-does-not-widen-the-page-at-320",
+  "failed_checks": [],
+  "note": "Removed overflow-wrap:anywhere from .message-text. The 240-character word then makes the conversation pane (.thread, overflow-y:auto) scroll sideways (measured: .thread scrollWidth 3905 vs clientWidth 320) but document scrollWidth stays 320, which is all the check measures. So the check cannot see this defect; it would only see a defect that widens the whole page.",
+  "verdict": "not caught",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {}
+ },
+ {
+  "defect": "focus-leaves-the-box",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "after-enter-the-next-message-can-be-typed-at-once",
+  "failed_checks": [
+   "after-enter-the-next-message-can-be-typed-at-once"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "after-enter-the-next-message-can-be-typed-at-once": "locator.waitFor: Timeout 12000ms exceeded."
+  }
+ },
+ {
+  "defect": "confirm-not-a-button",
+  "files_edited": [
+   "public/app.js"
+  ],
+  "expected_check": "a-change-can-be-confirmed-from-the-keyboard",
+  "failed_checks": [
+   "a-change-can-be-confirmed-from-the-keyboard",
+   "confirming-in-two-windows-applies-it-once",
+   "a-proposal-whose-record-has-changed-is-not-applied-blindly"
+  ],
+  "note": "The two extra failures are a cascade: the keyboard check leaves its proposal pending, so later checks find two Confirm changes buttons / two Proposed changes regions (strict mode violation).",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-change-can-be-confirmed-from-the-keyboard": "locator.waitFor: Timeout 8000ms exceeded.",
+   "confirming-in-two-windows-applies-it-once": "locator.waitFor: Error: strict mode violation: getByRole('button', { name: 'Confirm changes', exact: true }) resolved to 2 elements:",
+   "a-proposal-whose-record-has-changed-is-not-applied-blindly": "locator.waitFor: Error: strict mode violation: getByRole('region', { name: 'Proposed changes', exact: true }) resolved to 2 elements:"
+  }
+ },
+ {
+  "defect": "saved-tasks-folded",
+  "files_edited": [
+   "public/index.html",
+   "public/app.js"
+  ],
+  "expected_check": "at-1440-everything-named-is-on-the-main-screen",
+  "failed_checks": [
+   "a-saved-task-can-be-changed-under-the-same-name",
+   "a-saved-task-can-be-deleted",
+   "at-1440-everything-named-is-on-the-main-screen"
+  ],
+  "note": "Saved tasks section has the hidden attribute and is revealed by any click inside the Workspace column. (A first attempt used an inline style attribute, which the app CSP blocks, so it did nothing; that run was discarded and replaced.) The two saved-mode failures follow because the checks reload the page before touching Saved tasks, which hides it again.",
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "a-saved-task-can-be-changed-under-the-same-name": "locator.fill: Timeout 8000ms exceeded.",
+   "a-saved-task-can-be-deleted": "locator.waitFor: Timeout 8000ms exceeded.",
+   "at-1440-everything-named-is-on-the-main-screen": "not on the main screen: region Saved tasks, button Save task, textbox Task name, textbox Task request"
+  }
+ },
+ {
+  "defect": "box-out-of-view-narrow",
+  "files_edited": [
+   "public/style.css"
+  ],
+  "expected_check": "at-320-the-newest-reply-and-the-message-box-are-in-view",
+  "failed_checks": [
+   "at-320-the-newest-reply-and-the-message-box-are-in-view"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "at-320-the-newest-reply-and-the-message-box-are-in-view": "after a reply the newest reply is outside the window"
+  }
+ },
+ {
+  "defect": "forgets-place-on-switch",
+  "files_edited": [
+   "lib/workspace.js"
+  ],
+  "expected_check": "coming-back-as-myself-i-find-my-things",
+  "failed_checks": [
+   "coming-back-as-myself-i-find-my-things"
+  ],
+  "note": null,
+  "verdict": "caught as expected",
+  "checks_run": 28,
+  "mode_notes": [],
+  "failure_notes": {
+   "coming-back-as-myself-i-find-my-things": "locator.waitFor: Timeout 8000ms exceeded."
+  }
+ }
+]

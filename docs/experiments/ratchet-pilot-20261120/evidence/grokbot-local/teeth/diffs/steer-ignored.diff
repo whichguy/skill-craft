@@ -1,0 +1,11 @@
+diff -ru <runs>/teeth/steer-ignored/.untouched/product/lib/workspace.js <runs>/teeth/steer-ignored/product/lib/workspace.js
+--- <runs>/teeth/steer-ignored/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/steer-ignored/product/lib/workspace.js	2026-11-20 22:57:07
+@@ -192,7 +192,6 @@
+       if (output.steer) {
+         const running = thread.tasks.findLast((task) => task.status === 'Running');
+         if (running) {
+-          running.spec.steps.push(output.steer.add);
+           updateTask(draft, running, 'Running', 'Added a step: ' + output.steer.add);
+         } else {
+           thread.notice = 'There is no running task in this conversation. No step was added.';

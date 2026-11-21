@@ -1,0 +1,56 @@
+{
+ "clean": {
+  "passed": 28,
+  "of": 28,
+  "failed": {},
+  "verdict": "clean passes all"
+ },
+ "cancel-all": {
+  "passed": 27,
+  "of": 28,
+  "failed": {
+   "cancelling-one-task-leaves-another-running": "locator.waitFor: Timeout 30000ms exceeded."
+  },
+  "verdict": "caught as expected"
+ },
+ "cancel-not-kept": {
+  "passed": 27,
+  "of": 28,
+  "failed": {
+   "a-cancelled-task-stays-cancelled-after-a-restart": "after a restart the cancelled task reads \"Interrupted\""
+  },
+  "verdict": "caught as expected"
+ },
+ "no-word-break": {
+  "passed": 27,
+  "of": 28,
+  "failed": {
+   "a-long-unbroken-message-does-not-widen-the-page-at-320": "the long word runs to 3502 pixels in a 320-pixel window"
+  },
+  "verdict": "caught as expected"
+ },
+ "away-omits-failed": {
+  "passed": 27,
+  "of": 28,
+  "failed": {
+   "coming-back-names-what-finished-what-runs-and-what-failed": "on coming back the account does not name: export (it reads \"Since you were away 1 finished \u00b7 1 still running \u00b7 1 need attention quick note \u00b7 Completed \u00b7 Assistant / long task: quick note big survey \u00b7 \")"
+  },
+  "verdict": "caught as expected"
+ },
+ "instructions-global": {
+  "passed": 27,
+  "of": 28,
+  "failed": {
+   "instructions-belong-to-the-bot-that-uses-them": "locator.waitFor: Timeout 12000ms exceeded."
+  },
+  "verdict": "caught as expected"
+ },
+ "instructions-global-b": {
+  "passed": 27,
+  "of": 28,
+  "failed": {
+   "instructions-belong-to-the-bot-that-uses-them": "locator.waitFor: Timeout 12000ms exceeded."
+  },
+  "verdict": "caught as expected"
+ }
+}

@@ -1,0 +1,141 @@
+{
+ "frozen suite of an earlier run": {
+  "observed": true,
+  "passed": [
+   "migrate",
+   "restart",
+   "switch",
+   "off",
+   "cli"
+  ],
+  "failed": {
+   "suite": "FAIL: the delivery's own node --test: 115 pass, 2 fail (rc 1); failing: a version this service does not read (2.76525ms)",
+   "pristine": "FAIL: the base's pristine tests against the delivered source: 115 of 117 pass, 2 fail (rc 1); failing: a version this service does not read (3.529041ms); output tail: 4:18)",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=64251: 2026-11-21T05:40:50.025Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-fezmrnj6/off/tickets.json: has version 2; this service reads v"
+  },
+  "tree": "a7fa703f141e61b93536751b1642fb6ad7ad3fe5",
+  "label": "frozen suite of an earlier run",
+  "at": 0.3
+ },
+ "fix-1": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "pristine",
+   "switch",
+   "off"
+  ],
+  "failed": {
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=64721: 2026-11-21T05:40:55.746Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-cfbe35_x/tickets.json: missing deadlines; prepare the file wit",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=64748: 2026-11-21T05:40:56.039Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-i682opik/tickets.json: missing deadlines; prepare the file wit",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=64853: 2026-11-21T05:40:57.725Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-31055h5k/on/tickets.json: missing deadlines; prepare the file ",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=65031: 2026-11-21T05:40:59.538Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-evcdywlp/tickets.json: missing deadlines; prepare the file wit"
+  },
+  "tree": "4343f02b308dd2ef742f2d71dbaa688437c58cd3",
+  "label": "fix-1",
+  "at": 1193.6
+ },
+ "fix-2": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "pristine",
+   "switch",
+   "off"
+  ],
+  "failed": {
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=65320: 2026-11-21T05:41:02.668Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-seu6m9ca/tickets.json: missing deadlines; prepare the file wit",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=65331: 2026-11-21T05:41:02.977Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-6i64218d/tickets.json: missing deadlines; prepare the file wit",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=65441: 2026-11-21T05:41:04.771Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-50gqhdn6/on/tickets.json: missing deadlines; prepare the file ",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=49240: 2026-11-21T05:41:06.515Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-13n06seu/tickets.json: missing deadlines; prepare the file wit"
+  },
+  "tree": "7e0cdf40595286b836f8c5a683a0160530d86c49",
+  "label": "fix-2",
+  "at": 1960.6
+ },
+ "fix-3": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "switch",
+   "off"
+  ],
+  "failed": {
+   "pristine": "FAIL: the base's own tests do not pass in the base (rc None, pass 0, fail 0): node --test did not end within 120 s",
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=62761: 2026-11-21T05:43:08.286Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-qhwdws9k/tickets.json: missing deadlines; prepare the file wit",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=62772: 2026-11-21T05:43:08.559Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-1whqgsmr/tickets.json: missing deadlines; prepare the file wit",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=62953: 2026-11-21T05:43:10.074Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-q4dsrbbs/on/tickets.json: missing deadlines; prepare the file ",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=63219: 2026-11-21T05:43:11.619Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-_c27zisu/tickets.json: missing deadlines; prepare the file wit"
+  },
+  "rerun": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "switch",
+    "off"
+   ],
+   "failed": {
+    "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=63498: 2026-11-21T05:43:13.961Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-p7qrha1h/tickets.json: missing deadlines; prepare the file wit",
+    "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=63520: 2026-11-21T05:43:14.214Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-vgpk4zcu/tickets.json: missing deadlines; prepare the file wit",
+    "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=63673: 2026-11-21T05:43:15.800Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-8qmfl_y9/on/tickets.json: missing deadlines; prepare the file ",
+    "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=63830: 2026-11-21T05:43:17.350Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-lwxkltgz/tickets.json: missing deadlines; prepare the file wit"
+   }
+  },
+  "did_not_end": [
+   "pristine"
+  ],
+  "effective_passed": [
+   "off",
+   "pristine",
+   "suite",
+   "switch"
+  ],
+  "tree": "85703da6e775b4e83df2eaf56491bf37cc926413",
+  "label": "fix-3",
+  "at": 2340.5
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "switch",
+   "off"
+  ],
+  "failed": {
+   "pristine": "FAIL: the base's own tests do not pass in the base (rc None, pass 0, fail 0): node --test did not end within 120 s",
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=62761: 2026-11-21T05:43:08.286Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-qhwdws9k/tickets.json: missing deadlines; prepare the file wit",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=62772: 2026-11-21T05:43:08.559Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-1whqgsmr/tickets.json: missing deadlines; prepare the file wit",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=62953: 2026-11-21T05:43:10.074Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-q4dsrbbs/on/tickets.json: missing deadlines; prepare the file ",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=63219: 2026-11-21T05:43:11.619Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-_c27zisu/tickets.json: missing deadlines; prepare the file wit"
+  },
+  "rerun": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "switch",
+    "off"
+   ],
+   "failed": {
+    "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=63498: 2026-11-21T05:43:13.961Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-p7qrha1h/tickets.json: missing deadlines; prepare the file wit",
+    "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=63520: 2026-11-21T05:43:14.214Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-vgpk4zcu/tickets.json: missing deadlines; prepare the file wit",
+    "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=63673: 2026-11-21T05:43:15.800Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-8qmfl_y9/on/tickets.json: missing deadlines; prepare the file ",
+    "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=63830: 2026-11-21T05:43:17.350Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-lwxkltgz/tickets.json: missing deadlines; prepare the file wit"
+   }
+  },
+  "did_not_end": [
+   "pristine"
+  ],
+  "effective_passed": [
+   "off",
+   "pristine",
+   "suite",
+   "switch"
+  ],
+  "tree": "85703da6e775b4e83df2eaf56491bf37cc926413",
+  "label": "final",
+  "at": 2340.5,
+  "same_tree_as": "fix-3"
+ }
+}

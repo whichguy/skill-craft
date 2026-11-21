@@ -1,0 +1,919 @@
+{
+ "case": "stand-in-rules",
+ "clauses": 63,
+ "fails_on_reference": [
+  "C-13",
+  "C-14",
+  "C-15",
+  "C-16",
+  "C-17",
+  "C-18",
+  "C-19",
+  "C-22",
+  "C-24",
+  "C-25",
+  "C-27",
+  "C-28",
+  "C-29",
+  "C-32",
+  "C-35",
+  "C-37",
+  "C-38",
+  "C-39",
+  "C-40",
+  "C-41",
+  "C-42",
+  "C-63"
+ ],
+ "reference": {
+  "failing": [
+   "C-13",
+   "C-14",
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-22",
+   "C-24",
+   "C-25",
+   "C-27",
+   "C-28",
+   "C-29",
+   "C-32",
+   "C-35",
+   "C-37",
+   "C-38",
+   "C-39",
+   "C-40",
+   "C-41",
+   "C-42",
+   "C-63"
+  ],
+  "unstable": [],
+  "clauses": 63,
+  "tails": {
+   "C-13": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-14": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-15": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-16": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-17": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-18": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-19": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-22": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-24": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-25": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-27": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-28": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-29": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-32": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-35": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-37": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-38": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-39": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-40": [
+    "        at Test.run (node:internal/test_runner/test:1402:25),",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-41": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-42": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-63": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ "controls": {},
+ "defects": {
+  "one-rule-missing": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-31",
+    "C-7"
+   ]
+  },
+  "tested-only": {
+   "caught": false,
+   "by": []
+  },
+  "limit-never-trips": {
+   "caught": true,
+   "by": [
+    "C-47",
+    "C-48",
+    "C-49",
+    "C-50"
+   ]
+  },
+  "cross-field": {
+   "caught": false,
+   "by": []
+  }
+ },
+ "caught": 2,
+ "judged": 4,
+ "raw": {
+  "one-rule-missing": {
+   "failing": [
+    "C-10",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-22",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-31",
+    "C-32",
+    "C-35",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-63",
+    "C-7"
+   ],
+   "unstable": [],
+   "clauses": 63,
+   "tails": {
+    "C-7": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' }, { id: 2, qty: 1, price: 99, status: 'shipped', shippedAt: '2026-10-01' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-10": [
+     "    expected: [ { id: 1, qty: 2, price: 3, status: 'open', shippedAt: '' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-27": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "C-32": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-35": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-37": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-39": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-40": [
+     "        at Test.run (node:internal/test_runner/test:1402:25),",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-41": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-42": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-63": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "tested-only": {
+   "failing": [
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-22",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-32",
+    "C-35",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-63"
+   ],
+   "unstable": [],
+   "clauses": 63,
+   "tails": {
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-27": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-35": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-37": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-39": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-40": [
+     "        at Test.run (node:internal/test_runner/test:1402:25),",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-41": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-42": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-63": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "limit-never-trips": {
+   "failing": [
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-22",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-32",
+    "C-35",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-47",
+    "C-48",
+    "C-49",
+    "C-50",
+    "C-63"
+   ],
+   "unstable": [],
+   "clauses": 63,
+   "tails": {
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-27": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-35": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-37": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-39": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-40": [
+     "        at Test.run (node:internal/test_runner/test:1402:25),",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-41": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-42": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-47": [
+     "    expected: 137,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-48": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-49": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "C-50": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "C-63": [
+     "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
+     "      at Test.postRun (node:internal/test_runner/test:1542:19)",
+     "      at Test.run (node:internal/test_runner/test:1467:12)",
+     "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)"
+    ]
+   }
+  },
+  "cross-field": {
+   "failing": [
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-22",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-32",
+    "C-35",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-63"
+   ],
+   "unstable": [],
+   "clauses": 63,
+   "tails": {
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-27": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-35": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-37": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-39": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-40": [
+     "        at Test.run (node:internal/test_runner/test:1402:25),",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-41": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-42": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-63": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ }
+}

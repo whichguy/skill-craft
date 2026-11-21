@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/instructions-global/.untouched/product/lib/workspace.js <runs>/teeth/instructions-global/product/lib/workspace.js
+--- <runs>/teeth/instructions-global/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/instructions-global/product/lib/workspace.js	2026-11-20 22:57:06
+@@ -302,7 +302,7 @@
+           saveItem(workspace.instructions, input);
+           return;
+         case 'use-instruction':
+-          bot.instructionId = find(workspace.instructions, input.id, 'Instruction').id;
++          for (const each of workspace.bots) each.instructionId = find(workspace.instructions, input.id, 'Instruction').id;
+           return;
+         case 'delete-instruction':
+           deleteItem(workspace.instructions, input.id);
