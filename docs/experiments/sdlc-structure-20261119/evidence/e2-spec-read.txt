@@ -1,0 +1,20 @@
+specs: 24; the two readers give the same class to 24 of 24
+
+arm          specs  recorded none   class 1, 2, 3, 4 by reader A | by reader B   class 2 by both
+as shipped       8              2   [7, 1, 0, 0] | [7, 1, 0, 0]             1
+arm N            8              0   [4, 3, 1, 0] | [4, 3, 1, 0]             3
+arm G            8              1   [5, 3, 0, 0] | [5, 3, 0, 0]             3
+
+the registered reading (a wording changes the decision if at most 1 of its 8 is class 2 and at least 4 of the 8 as shipped are):
+  arm N: 3 of 8 in class 2 against 1 of 8 as shipped: no effect shown
+  arm G: 3 of 8 in class 2 against 1 of 8 as shipped: no effect shown
+
+every spec not in class 1 by both readers, and every safeguard a reader flagged:
+  e2-g-1       spec-24.md  A 2 | B 2 | An enabled service with a missing due in a saved ticket refuses startup before listening and gives operators the migration command.
+  e2-g-4       spec-21.md  A 2 | B 2 | Operators stop the sole writer and run the backfill before enabling. Existing tickets without due use their stored creation time and priority. An enabled service refuses 
+  e2-g-5       spec-22.md  A 2 | B 2 | A populated file with missing values blocks enabled startup until preparation succeeds.
+  e2-n-2       spec-18.md  A 3 | B 3 | Persist atomically before enabled service starts answering, with a documented offline production preparation command for completing the file before setting the gate.
+  e2-n-3       spec-20.md  A 2 | B 2 | Enabled startup refuses a persistent file containing tickets missing due.
+  e2-n-6       spec-01.md  A 2 | B 2 | An enabled service with missing deadlines fails before listening, with the migration remedy in the error.
+  e2-n-7       spec-10.md  A 2 | B 2 | An incomplete populated file fails enabled service startup before listening, with an actionable preparation error.
+  e2-plain-6   spec-03.md  A 2 | B 2 | Enabled startup against a stored ticket missing due fails before HTTP listens, and leaves the file untouched.

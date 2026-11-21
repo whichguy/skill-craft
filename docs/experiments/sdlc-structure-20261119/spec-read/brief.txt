@@ -1,0 +1,30 @@
+You are reading specifications that different writers produced for the same software request. Nothing tells you who
+wrote which, and you should not try to guess.
+
+== The request ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What to decide for each file ==
+How does the specification say the tickets that are already in the production data file get their due times, and what
+does the new release do when it is started on a data file whose tickets have none?
+
+Give each file exactly one class.
+
+1  The release prepares the file itself and starts. When the new service starts, with the switch on or off, it fills
+   in the missing due times itself and serves. An optional offline tool offered beside a start that works still
+   counts as 1.
+2  A person must run something first, and the release refuses until then. A migration or backfill command that an
+   operator runs, and a service that exits, refuses or fails to start (or to switch on) while a ticket lacks a due
+   time.
+3  Unresolved or contradictory. The specification leaves it open, says both, or does not say enough to tell.
+4  The file holds no specification of this behaviour at all.
+
+Also say whether the specification gives up a safeguard, for example by serving on a data file it could not save, by
+accepting data it cannot read, or by dropping the way back to release 1.4.0. Say "none" if you see none.
+
+== Output ==
+One line of JSON per file, in file order, and nothing else in the output file:
+
+{"file": "spec-01.md", "class": 1, "quote": "<the clause that decides it, copied from the file, at most 300 characters>", "safeguard_given_up": "none"}
+
+Read each file in full before you label it. Use only this brief and the spec files in this folder.

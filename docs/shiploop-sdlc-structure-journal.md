@@ -2484,6 +2484,71 @@ has one. Kept from each: the spec as written and as accepted.
 delivery, good for this decision by R79 and for nothing else; small counts read only large effects; all Sol
 sessions are shown the owner's own skills (R72).
 
+### Results: the two small tests (run 2026-11-21 after 3d9fa01fcde71293e33d1c7e180d7274064fe96a)
+
+**R84. E1, the card** (`evidence/e1-card-starts.txt`). Twenty-four fresh Sol 6.2 medium sessions, each ended by
+the harness at its first start; all started a run. As shipped, 2 of 12 passed `--planning-review none` with
+`--improve-skill` in their first start command, one on each request. With the patched card, 0 of 12, and none
+passed any run option. Twenty-four samples took eight minutes.
+
+**R85. E2, the spec wording** (`evidence/e2-spec-read.txt`, `spec-read/`). Twenty-four fresh Sol 6.2 high
+sessions of `ticket-due-times`, eight an arm, each ended when the navigator entered `test-strategy`: 2.6 to 4.7
+minutes a sample, all reached. The spec's review left the spec as written in 20 of the 21 runs that had one. Two
+readers not told the arm gave the same class to 24 of 24, and neither flagged a safeguard given up.
+
+| Arm | The release fills the file itself | A person acts first and the release refuses until then | Unresolved |
+|---|---|---|---|
+| as shipped | 7 | 1 | 0 |
+| N (an added manual step or refusal) | 4 | 3 | 1 |
+| G (the other session's seven sentences on limits) | 5 | 3 | 0 |
+
+**R86. Why a writer chooses the operator step, read in the seven specs that did.** None cites safety and none
+treats the refusal as something it is adding. Each ties the migration to the service's existing rule that one
+process writes the data file: "With the sole writer stopped", "Only the existing file owner or its offline
+replacement writes", "Production remains owned by the service operator". The specs that fill the file at start
+keep the same rule the other way round: the service is that one writer, so it does the filling.
+
+### Registered readings: the two small tests
+
+- **E1: no effect shown.** The card arm had 0 of 12, but the as-shipped arm had to show at least 4 of 12 and
+  showed 2. As a count, 0 of 12 against 2 of 12 is p = 0.48; against every as-shipped Sol 6.2 start on record
+  (7 of 27) it is p = 0.08, a comparison that was not registered.
+- **E2: no effect shown, for N and for G.** Neither wording lowered the count; both hold more operator-step
+  specs than the as-shipped arm, and 3 against 1 of 8 cannot be read either (p = 0.57).
+
+### Findings
+
+- **F57 (firm for these two wordings on this request).** A sentence in spec duty 4 about limits, or about added
+  manual steps and refusals, does not change what Sol 6.2 decides here. The writer does not see the operator
+  step as added: it reads it out of the repository's own rule about who writes the data file (R86). A wording
+  aimed at added refusals misses that.
+- **F58 (interim).** The rate of the operator-step reading is not stable: 1 of 8 as shipped here against 7 of
+  12 in the whole deliveries, on the same build, model and effort (p = 0.07). Pooled it is 8 of 20. So "7 of 12"
+  was never a base to measure a wording against, and F51's counts by effort are weaker than they looked.
+- **F59 (method; firm).** Ending a real run at the stage that decides cost 3 to 5 minutes a sample against 20
+  for a delivery: 48 samples and both readings inside an hour. For this endpoint it answered in eight samples
+  what the other session had planned 36 deliveries to ask of arm G.
+- **F60 (interim).** The reworded card points the right way and is not shown to work. The rate of an unasked
+  `none` on Sol 6.2 medium is 5 of 17 with these twelve, not the 3 of 5 of R76.
+
+### Recommendation (owner's decisions; nothing built)
+
+1. **Ship the three text corrections** (the card's default and whose choice a run option is; the
+   stop-by-recorded-process-id rule in `STAGE_RULES`; the stale sentence), in one ShipLoop change with one E2E
+   round, on the review's grounds. Say of the card change exactly what R84 shows: right direction, not shown.
+2. **Put no spec wording forward.** Two were tried and neither moved the decision. What the specs say points
+   elsewhere: the request, which does not say who fills the file, and the repository's own writer rule. A third
+   wording would have to speak to that, and this round gives no evidence one would work.
+3. **For the spec-elaboration session**, by this journal: on this endpoint arm G shows no effect in eight
+   samples; its own endpoints are a different question.
+
+### Limits
+
+- Eight and twelve samples an arm read only large effects, and both as-shipped arms came in low.
+- One request for E2, two for E1, Sol 6.2 only; a spec stands in for a delivery here and for nothing else.
+- Both readers are one model; they agreed on every file.
+- All sessions were shown the owner's own skills (R72).
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2535,6 +2600,8 @@ sessions are shown the owner's own skills (R72).
 | `review-r9/sol-max-brief.txt`, `review-r9/sol-max-review.md` | round 9: the brief sent for the max-effort review of the change plan, and the review word for word |
 | `overlays/r9-card-run-options.json`, `card_patch.py`, `overlays/r9-n-no-added-manual-step.json`, `overlays/r9-g-duty4-bounds.json`, `stage_stop_samples.py` | round 9: the three candidate wordings as patches to build copies, the applier for the card patch, and the driver that ends a real run once it is past the spec stage |
 | `runs-grok/census.json` | round 8: the Grok delivery's seconds by stage (R80 to R82) |
+| `evidence/e1-card-starts.txt`, `start_option_read.py` | round 9: the card test's 24 start-only samples, what each passed and recorded, and the registered reading (R84) |
+| `evidence/e2-spec-read.txt`, `spec_read_score.py`, `spec-read/` | round 9: the spec test's 24 accepted specs under shuffled names, the readers' brief, which is which, both readers' classes with quotes, the one spec its review changed as written, the sample list, and the score (R85, R86) |
 | `judge-grok/packet-*.txt`, `judge-grok/key.json`, `judge-grok/out-A.jsonl`, `judge-grok/out-B.jsonl`, `judge-grok/source/`, `evidence/grok-review-judge-brief.txt`, `evidence/grok-reviews-judged.txt`, `grok_review_score.py` | round 8: the Grok delivery's seven changed reviews and six round-7 anchors as the judges saw them, which is which, each judge's labels, the brief, the score and the script that makes it (R83) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
